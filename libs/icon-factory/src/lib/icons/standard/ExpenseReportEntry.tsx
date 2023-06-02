@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgExpenseReportEntry(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M37 31.6h20.4a1.84 1.84 0 001.9-1.9v-3.8a5.66 5.66 0 00-5.5-5.7h-13a5.59 5.59 0 00-5.5 5.7v3.8a1.74 1.74 0 001.7 1.9zM67.3 54.5A12.7 12.7 0 1080 67.2a12.72 12.72 0 00-12.7-12.7zm8.2 9.2L66.2 73a1.94 1.94 0 01-2.6 0L59 68.4a.85.85 0 010-1.3l1.3-1.3a.85.85 0 011.3 0l3.2 3.2 8.1-8.1a.85.85 0 011.3 0l1.3 1.3c.7.6.2 1.2 0 1.5z"
         fill="unset"
@@ -18,5 +17,4 @@ function SvgExpenseReportEntry(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgExpenseReportEntry;

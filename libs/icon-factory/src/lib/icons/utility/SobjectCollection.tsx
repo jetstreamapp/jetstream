@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgSobjectCollection(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M13.6 15.1c-3.4 7.5-3.4 10.5 0 18.1h2.5c-3-6.6-3-11.5-.1-18.1h-2.4zM36.9 29.4c.5-.1 1-.2 1.5-.2.4 0 .7 0 1.1.1 1.7-5.1 1.3-8.1-1.5-14.3h-2.5c2.4 5.4 2.9 9.6 1.4 14.4z"
@@ -18,5 +17,4 @@ function SvgSobjectCollection(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgSobjectCollection;

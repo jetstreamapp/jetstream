@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgOperatingHours(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M53 50.18a1.32 1.32 0 01-.35-1v-8.43a1.35 1.35 0 00-1.32-1.32h-2.61a1.35 1.35 0 00-1.32 1.32v10.66a1.85 1.85 0 00.35 1l6.52 6.52a1.28 1.28 0 001.85 0L58 57a1.28 1.28 0 000-1.85z"
         fill="unset"
@@ -21,5 +20,4 @@ function SvgOperatingHours(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgOperatingHours;

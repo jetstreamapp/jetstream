@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgWorkPlanTemplateEntry(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M69.6 59.3a10.2 10.2 0 1010.2 10.2 10.24 10.24 0 00-10.2-10.2zm6.6 7.4l-7.5 7.5a1.45 1.45 0 01-2 0L63 70.6a.67.67 0 010-1l1-1a.67.67 0 011 0l2.6 2.6 6.5-6.5a.67.67 0 011 0l1 1a.76.76 0 01.1 1zM44.5 30h17.8a1.58 1.58 0 001.6-1.6v-3.3a4.91 4.91 0 00-4.9-4.9H47.7a4.91 4.91 0 00-4.9 4.9v3.3a1.73 1.73 0 001.7 1.6zM56.1 73.3H31.4a4.89 4.89 0 01-4.8-4.9v-34H25a4.89 4.89 0 00-4.8 4.9v35.4a4.89 4.89 0 004.8 4.9h34.9a12.11 12.11 0 01-3.8-6.3z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgWorkPlanTemplateEntry(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgWorkPlanTemplateEntry;

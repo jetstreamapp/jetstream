@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCoaching(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M47 53c-1.3 0-2.6.5-3.5 1.5-1.9 1.9-1.9 5.1 0 7.1.9.9 2.2 1.5 3.5 1.5 1.3 0 2.6-.5 3.5-1.5 1.9-1.9 1.9-5.1 0-7.1-.9-1-2.2-1.5-3.5-1.5z"
@@ -14,5 +13,4 @@ function SvgCoaching(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCoaching;

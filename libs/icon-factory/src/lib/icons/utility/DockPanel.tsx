@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgDockPanel(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M1.908 35V9c0-3.9 3.1-7 7-7h26c3.9 0 7 3.1 7 7v3h-6V9c0-.601-.4-1-1-1h-26c-.6 0-1 .399-1 1v26c0 .6.4 1 1 1h3v6h-3c-3.9 0-7-3.1-7-7z"
@@ -14,5 +13,4 @@ function SvgDockPanel(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgDockPanel;

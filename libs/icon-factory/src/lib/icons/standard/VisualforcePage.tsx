@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgVisualforcePage(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M55.4 53.6c-.6 0-1.2-.5-1.2-1.2v-7.3c0-.6.5-1.2 1.2-1.2h7.5c.6 0 1.2.5 1.2 1.2v7.3c0 .6-.5 1.2-1.2 1.2h-7.5zM58.6 57.9l-4.3 4.7c-.3.3-.3.7 0 1l4.3 4.7c.3.3.8.3 1.1 0l4.3-4.7c.3-.3.3-.7 0-1l-4.3-4.7c-.3-.3-.8-.3-1.1 0z" />
         <circle cx={40.7} cy={63} r={4.9} />
@@ -12,5 +11,4 @@ function SvgVisualforcePage(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgVisualforcePage;

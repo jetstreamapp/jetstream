@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgBreadcrumbs(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M8.4 42c-.6 0-1-.4-1-1V10.9c0-.6.4-1 1-1h8.1c.4 0 .9.2 1.2.5L29.3 25c.4.5.4 1.3 0 1.9L17.6 41.5c-.3.4-.8.6-1.3.6L8.4 42z"
@@ -14,5 +13,4 @@ function SvgBreadcrumbs(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgBreadcrumbs;

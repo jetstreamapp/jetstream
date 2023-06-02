@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgRemoveLink(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M24 36.6c-.6 0-1.2-.1-1.8-.3-.6-.1-1.3-.3-1.9-.5-.4-.1-.8 0-1 .2l-.4.4c-2.5 2.5-6.6 2.8-9.3.5-2.9-2.6-3.1-7.1-.3-9.8l6.6-6.6c.9-.9 1.9-1.4 3-1.7 1.4-.4 2.9-.3 4.2.3.8.3 1.6.8 2.2 1.5.3.3.6.7.9 1.2.3.6 1.1.7 1.6.2l2.5-2.5c.4-.4.4-.9.1-1.3-.4-.5-.8-.9-1.2-1.4-.6-.6-1.4-1.2-2.1-1.7-1.3-.8-2.6-1.3-4.1-1.6-2.7-.5-5.6-.1-8.2 1.3-1 .5-1.9 1.2-2.7 2l-6.4 6.4c-4.6 4.6-5 12.1-.5 16.9 4.7 5 12.6 5.2 17.4.3l2.2-2.2c.5-.5.1-1.5-.8-1.6z"
@@ -14,5 +13,4 @@ function SvgRemoveLink(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgRemoveLink;

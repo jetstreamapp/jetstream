@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgGroups(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M36.7 52.4C35 49.7 34 46.5 34 43c0-5.9 2.5-10.9 6.5-13.9-1.5-2.5-4-4.1-7.5-4.1-5.8 0-9 4.6-9 10 0 2.9 1 5.3 2.9 7.1 1.1 1 2 2.3 2 3.7 0 1.4-.5 2.6-3.8 4-4.7 2.1-9 4.8-9.1 9.2 0 2.9 1.9 5 4.6 5h4.3c.7 0 1.4-.4 1.7-1 2.1-3.8 6-6.2 9.3-7.8 1.1-.5 1.5-1.8.8-2.8zM74.9 49.8c-3.3-1.4-3.8-2.7-3.8-4 0-1.4.9-2.7 2-3.7C75 40.3 76 37.9 76 35c0-5.4-3.2-10-9-10-3.5 0-6 1.6-7.5 4.1 4 3 6.5 7.9 6.5 13.9 0 3.5-.9 6.7-2.7 9.4-.7 1-.3 2.3.8 2.9 3.3 1.6 7.2 4 9.3 7.8.3.6 1 1 1.7 1h4.3c2.7 0 4.6-2.1 4.6-5-.1-4.4-4.4-7.2-9.1-9.3z"
@@ -14,5 +13,4 @@ function SvgGroups(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgGroups;

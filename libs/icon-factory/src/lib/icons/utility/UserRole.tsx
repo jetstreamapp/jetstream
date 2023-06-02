@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgUserRole(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         d="M38.3 27.2a11.4 11.4 0 1011.4 11.4 11.46 11.46 0 00-11.4-11.4zm2 12.4a2.39 2.39 0 01-.9-.2l-4.3 4.3a1.39 1.39 0 01-.9.4 1 1 0 01-.9-.4 1.39 1.39 0 010-1.9l4.3-4.3a2.92 2.92 0 01-.2-.9 3.47 3.47 0 013.4-3.8 2.39 2.39 0 01.9.2c.2 0 .2.2.1.3l-2 1.9a.28.28 0 000 .5l1.3 1.3a.38.38 0 00.6 0l1.9-1.9c.1-.1.4-.1.4.1a3.71 3.71 0 01.2.9 3.57 3.57 0 01-3.9 3.5z"
         fill="unset"
@@ -15,5 +14,4 @@ function SvgUserRole(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgUserRole;

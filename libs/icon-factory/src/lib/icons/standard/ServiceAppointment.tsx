@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgServiceAppointment(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <rect x={60.31} y={60.99} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
       <rect x={60.31} y={70.12} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
       <rect x={51.17} y={60.99} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
@@ -17,5 +16,4 @@ function SvgServiceAppointment(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgServiceAppointment;

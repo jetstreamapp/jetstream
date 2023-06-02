@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgSchedulingPolicy(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M22 74a5.69 5.69 0 005.6 6s32.4.3 32.3 0l-.7-1.4a7.67 7.67 0 01-1.9-4.8 8.31 8.31 0 011.8-4.8 7.39 7.39 0 012.2-4.8 8.52 8.52 0 014.5-2h.1a7.67 7.67 0 014.8-1.9 8.31 8.31 0 014.8 1.8 11 11 0 012.5.6V44c0-1.8-2-2.1-2-2.1H24a2 2 0 00-2 2z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgSchedulingPolicy(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgSchedulingPolicy;

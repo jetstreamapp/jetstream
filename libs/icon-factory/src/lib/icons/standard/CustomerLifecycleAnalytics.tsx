@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCustomerLifecycleAnalytics(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M57.4 38.4a18.1 18.1 0 11-18.1-18.2 18.12 18.12 0 0118.1 18.2zm-24.8-8.2c-1.3 0-2.3 1.3-2.3 3.1 0 1.6.9 3.1 2.3 3.1s2.3-1.3 2.3-3.1c-.2-1.7-1.1-3.1-2.3-3.1zm13.5 0c-1.3 0-2.3 1.3-2.3 3.1 0 1.6.9 3.1 2.3 3.1s2.3-1.3 2.3-3.1-.9-3.1-2.3-3.1zM28 40.7c.5 5.7 4.7 10.6 11.2 10.6a11.28 11.28 0 0011.5-10.6z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgCustomerLifecycleAnalytics(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCustomerLifecycleAnalytics;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgMultiPicklist(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M44.4 2H18.8C16.2 2 14 4.2 14 6.8v.8c0 .5.3.8.8.8H38c2.6 0 4.8 2.2 4.8 4.8V38c0 .5.3.8.8.8h.8c2.6 0 4.8-2.2 4.8-4.8V6.8C49.2 4.2 47 2 44.4 2z"
@@ -14,5 +13,4 @@ function SvgMultiPicklist(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgMultiPicklist;

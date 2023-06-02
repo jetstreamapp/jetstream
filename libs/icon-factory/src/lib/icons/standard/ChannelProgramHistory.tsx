@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgChannelProgramHistory(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M30.7 48.1c1-10.9 10.2-19.4 21.2-19.4 12.6 0 22.6 10.9 21.2 23.7-1 9.2-9.7 17.9-19 18.8-6.9.7-13.4-1.8-17.9-6.8-.6-.7-1.4-1.1-2.1-.1l-2.3 2.8c-.5.6-.1 1 .4 1.5 5.2 5.5 12.4 8.6 20.2 8.5 14-.2 25.7-11.2 26.6-25.2 1.2-15.8-11.4-29-27-29-14.3 0-26.1 11.1-27 25.2 0 .3-.1.7-.1 1h-4.4c-1.3 0-1.9 1.5-1.2 2.3l7.3 8.8c.6.7 1.6.7 2.2 0l7.3-8.8c.8-1 .1-2.3-1.2-2.3h-4.3l.1-1z"
@@ -14,5 +13,4 @@ function SvgChannelProgramHistory(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgChannelProgramHistory;

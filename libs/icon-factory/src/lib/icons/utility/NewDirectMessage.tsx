@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgNewDirectMessage(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M45.5 17l-3.4 3.5c-.6.6-.9 1.3-.9 2.1V40c0 .8-.7 1.5-1.5 1.5h-27c-.8 0-1.5-.7-1.5-1.5V13c0-.8.7-1.5 1.5-1.5h17.5c.8 0 1.6-.3 2.1-.9l3.4-3.4c.6-.6.2-1.7-.7-1.7H9.2c-2.2 0-4 1.8-4 4v34c0 2.2 1.8 4 4 4h34c2.2 0 4-1.8 4-4V17.7c0-.9-1.1-1.3-1.7-.7z"
@@ -14,5 +13,4 @@ function SvgNewDirectMessage(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgNewDirectMessage;

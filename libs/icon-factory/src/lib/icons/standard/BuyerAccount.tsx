@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgBuyerAccount(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M61.8 65.5h13.3c.4 0 .8-.3.8-.7l2.4-8.6c.2-.6-.3-1.1-.8-1.1H57l-.3-1.3c-.2-.6-.7-1-1.3-1h-2.2c-.7 0-1.4.6-1.4 1.3-.1.8.6 1.4 1.3 1.4h1.3l1.2 4 3 10.3c.2.6.7 1 1.3 1h15.6c.7 0 1.4-.6 1.4-1.3.1-.8-.6-1.4-1.3-1.4H61.8c-.6 0-1.1-.4-1.3-.9v-.1c-.2-.8.4-1.6 1.3-1.6z" />
         <circle cx={62.1} cy={75.8} r={2.2} />
@@ -12,5 +11,4 @@ function SvgBuyerAccount(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgBuyerAccount;
