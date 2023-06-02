@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { listMetadata as listMetadataApi } from '@jetstream/shared/data';
+import { listMetadata as listMetadataApi, queryAll } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -25,6 +25,28 @@ export interface ListMetadataResultItem {
   lastRefreshed: string | null;
   items: ListMetadataResult[];
 }
+
+interface FolderRecord {
+  Id: string;
+  DeveloperName: string;
+  ParentId: string | null;
+  Type:
+    | 'Document'
+    | 'Email'
+    | 'Report'
+    | 'Dashboard'
+    | 'QuickText'
+    | 'Macro'
+    | 'EmailTemplate'
+    | 'ActionCadence'
+    | 'AnalyticAssetCollection';
+}
+
+const getFolderSoqlQuery = (type: string) => {
+  return `SELECT Id, DeveloperName, ParentId, Type FROM Folder WHERE type = '${type}' ORDER BY Type, ParentId NULLS FIRST`;
+};
+
+const METADATA_TYPES_WITH_NESTED_FOLDERS = new Set(['Report', 'Dashboard']);
 
 // helper method
 async function fetchListMetadata(
@@ -77,19 +99,57 @@ async function fetchListMetadataForItemsInFolder(
     skipCacheIfOlderThan
   );
 
+  /**
+   * Some metadata types can have nested folders, but metadata returned does not include the full path of the folder
+   * This generally works to download, but the fullName in package.xml would be incorrect and trying to re-upload the data would fail
+   *
+   * To get around this, we query all folders and figure out the full path for each folder and replace the fullName with the full path
+   *
+   * @example {'SubSubFolder2': 'RootFolder/SubFolder1/SubSubFolder2'}
+   */
+  const foldersByPath: MapOf<string> = {};
+  if (METADATA_TYPES_WITH_NESTED_FOLDERS.has(type)) {
+    // query all folders and figure out all path combinations
+    const reportFolders = await queryAll<FolderRecord>(selectedOrg, getFolderSoqlQuery(type));
+    const foldersById = getMapOf(reportFolders.queryResults.records, 'Id');
+
+    reportFolders.queryResults.records.reduce((foldersByPath, folder) => {
+      const { DeveloperName, ParentId } = folder;
+
+      if (!ParentId) {
+        foldersByPath[DeveloperName] = DeveloperName;
+      } else {
+        const parentFolder = foldersById[ParentId];
+        const parentPath = foldersByPath[parentFolder.DeveloperName];
+        foldersByPath[DeveloperName] = `${parentPath}/${DeveloperName}`;
+      }
+      return foldersByPath;
+    }, foldersByPath);
+  }
+
   // we need to fetch for each folder, split into sets of 3
-  const folderItems = splitArrayToMaxSize(
-    data.filter((folder) => folder.manageableState === 'unmanaged'),
-    MAX_FOLDER_REQUESTS
-  );
+  const folderFullNames = data.filter((folder) => folder.manageableState === 'unmanaged').map(({ fullName }) => fullName);
+  const folderItems = splitArrayToMaxSize(folderFullNames, MAX_FOLDER_REQUESTS);
 
   for (const currFolderItem of folderItems) {
     if (currFolderItem.length) {
-      const { data: items, cache } = await listMetadataApi(
+      const { data: items } = await listMetadataApi(
         selectedOrg,
-        currFolderItem.map(({ fullName }) => ({ type, folder: fullName })),
+        currFolderItem.map((folder) => ({ type, folder })),
         skipRequestCache
       );
+
+      // replace fullName with full path for reports
+      // this ensues exports properly include the correct filePath
+      if (METADATA_TYPES_WITH_NESTED_FOLDERS.has(type)) {
+        items.forEach((item) => {
+          const [folder, name] = item.fullName.split('/');
+          if (folder && name && foldersByPath[folder]) {
+            item.fullName = `${foldersByPath[folder]}/${name}`;
+          }
+        });
+      }
+
       outputItems = outputItems.concat(items);
     }
   }
@@ -100,10 +160,6 @@ async function fetchListMetadataForItemsInFolder(
     loading: false,
     lastRefreshed: cache ? `Last updated ${formatRelative(cache.age, new Date())}` : null,
   };
-}
-
-function defaultFilterFn(item: ListMetadataResult) {
-  return true;
 }
 
 /**
