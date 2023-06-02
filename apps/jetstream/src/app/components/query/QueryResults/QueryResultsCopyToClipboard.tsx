@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { Maybe, Record } from '@jetstream/types';
-import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup } from '@jetstream/ui';
+import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
@@ -60,7 +60,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       return;
     }
 
-    copyRecordsToClipboard(records, format);
+    copyRecordsToClipboard(records, format, fields);
     trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
   }
 
@@ -81,7 +81,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       recordsToCopy = selectedRows;
     }
 
-    copyRecordsToClipboard(recordsToCopy, format);
+    copyRecordsToClipboard(recordsToCopy, format, fields);
     trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
 
     setFormat('excel');
@@ -92,15 +92,20 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     <Fragment>
       {/* TODO */}
       <ButtonGroupContainer>
-        <button
-          className={classNames('slds-button slds-button_neutral', className)}
-          onClick={() => handleCopyToClipboard()}
-          disabled={!hasRecords}
-          title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+        <Tooltip
+          delay={[1000, null]}
+          content="This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options."
         >
-          <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-          <span>Copy to Clipboard</span>
-        </button>
+          <button
+            className={classNames('slds-button slds-button_neutral', className)}
+            onClick={() => handleCopyToClipboard()}
+            disabled={!hasRecords}
+            title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+          >
+            <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+            <span>Copy to Clipboard</span>
+          </button>
+        </Tooltip>
         <DropDown
           className="slds-button_last"
           dropDownClassName="slds-dropdown_actions"
