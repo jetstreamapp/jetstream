@@ -256,7 +256,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
    */
   const loadListMetadataItem = useCallback(
     async (item: ListMetadataResultItem) => {
-      const { type } = item;
+      const { type, inFolder } = item;
       try {
         setListMetadataItems((previousItems) =>
           previousItems && previousItems[type]
@@ -266,7 +266,16 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
               }
             : previousItems
         );
-        const responseItem = await fetchListMetadata(selectedOrg, item, true);
+
+        let responseItem = await fetchListMetadata(selectedOrg, item, true);
+
+        if (inFolder) {
+          // handle additional fetches required if type is in folder
+          responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, true);
+        } else {
+          responseItem = await fetchListMetadata(selectedOrg, item, true);
+        }
+
         if (!isMounted.current) {
           return;
         }
