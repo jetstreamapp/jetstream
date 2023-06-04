@@ -46,9 +46,61 @@ export function parseRecordTypePicklistValuesFromCustomObject(xml: string) {
   });
 }
 
+export function generatePackageXml(types: { name: string; members: string[] }[], apiVersion: string): string {
+  const xmlDocument = document.implementation.createDocument(null, 'Package');
+
+  xmlDocument.insertBefore(xmlDocument.createProcessingInstruction('xml', 'version="1.0" encoding="UTF-8"'), xmlDocument.firstChild);
+
+  const rootElement = xmlDocument.documentElement;
+  rootElement.setAttribute('xmlns', 'http://soap.sforce.com/2006/04/metadata');
+
+  types.forEach(({ name, members }) => {
+    const typesElement = xmlDocument.createElement('types');
+    members.forEach((member) => {
+      const membersElement = xmlDocument.createElement('members');
+      membersElement.textContent = member;
+      typesElement.appendChild(membersElement);
+    });
+
+    const nameElement = xmlDocument.createElement('name');
+    nameElement.textContent = name;
+    typesElement.appendChild(nameElement);
+
+    rootElement.appendChild(typesElement);
+  });
+
+  // Create the 'version' element and set its value
+  const versionElement = xmlDocument.createElement('version');
+  versionElement.textContent = apiVersion.replace('v', '');
+
+  rootElement.appendChild(versionElement);
+
+  return new XMLSerializer().serializeToString(xmlDocument);
+}
+
+export function generateMetadataXml(rootName: string, types: { name: string; values: Record<string, any> }[]) {
+  const xmlDocument = document.implementation.createDocument(null, rootName);
+
+  xmlDocument.insertBefore(xmlDocument.createProcessingInstruction('xml', 'version="1.0" encoding="UTF-8"'), xmlDocument.firstChild);
+
+  const rootElement = xmlDocument.documentElement;
+  rootElement.setAttribute('xmlns', 'http://soap.sforce.com/2006/04/metadata');
+
+  types.forEach(({ name, values }) => {
+    const containerElement = xmlDocument.createElement(name);
+    Object.entries(values).forEach(([key, value]) => {
+      const currentElement = xmlDocument.createElement(key);
+      currentElement.textContent = value == null ? null : String(value);
+      containerElement.appendChild(currentElement);
+    });
+    rootElement.appendChild(containerElement);
+  });
+
+  return new XMLSerializer().serializeToString(xmlDocument);
+}
+
 function parseAttribute(node: Element, name: string) {
   let content = node.querySelector(name)?.textContent || null;
-  // FIXME: not sure if this is working
   if (content !== null) {
     content = decodeURIComponent(content);
   }

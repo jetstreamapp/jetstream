@@ -161,6 +161,7 @@ async function fetchRecordTypeData(selectedOrg: SalesforceOrgUi, sobjects: strin
         const file = salesforcePackage.file(decodedKeyMap[`profiles/${PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile}.profile`]);
         if (file) {
           return file.async('string').then((results) => {
+            logger.log('[fetchRecordTypeData][profile]', { profile, results });
             const parsedResults = parseProfile(results);
             return {
               profile,

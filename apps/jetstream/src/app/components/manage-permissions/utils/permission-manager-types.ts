@@ -174,6 +174,7 @@ export interface PermissionManagerObjectWithRecordType {
   recordType: { DeveloperName: string; SobjectType: string; fullName: string };
   profile: string;
   profileFullName: string;
+  errorMessage?: string;
   layoutLabel: string;
   layoutName: string;
   default: boolean;
@@ -191,4 +192,18 @@ export interface PermissionManagerRecordTypeRow {
   permissionsOriginal: {
     [profileName: string]: PermissionManagerObjectWithRecordType;
   };
+}
+
+export interface RecordTypeSaveData {
+  [profile: string]: { layoutAssignments: LayoutAssignment[]; recordTypeVisibilities: RecordTypeVisibility[] };
+}
+
+export interface LayoutAssignment {
+  layout: string;
+  recordType?: string;
+}
+export interface RecordTypeVisibility {
+  default: boolean;
+  recordType: string;
+  visible: boolean;
 }

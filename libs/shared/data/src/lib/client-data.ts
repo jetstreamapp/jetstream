@@ -12,6 +12,7 @@ import {
   BulkJobWithBatches,
   CloudinarySignature,
   CloudinaryUploadResponse,
+  DeployOptions,
   DeployResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
@@ -32,7 +33,6 @@ import parseISO from 'date-fns/parseISO';
 import type {
   AsyncResult,
   ChildRelationship,
-  DeployOptions,
   DescribeGlobalResult,
   DescribeMetadataResult,
   DescribeSObjectResult,

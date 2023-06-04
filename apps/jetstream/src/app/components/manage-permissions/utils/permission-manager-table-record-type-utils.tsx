@@ -1,14 +1,20 @@
-import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
+import { css } from '@emotion/react';
+import { encodeHtmlEntitySalesforceCompatible, orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { ListItem, MapOf } from '@jetstream/types';
-import { ColumnWithFilter, Grid, Icon, SummaryFilterRenderer, setColumnFromType } from '@jetstream/ui';
+import { ColumnWithFilter, Grid, Icon, SummaryFilterRenderer, Tooltip, setColumnFromType } from '@jetstream/ui';
 import { ChangeEvent, FunctionComponent, useState } from 'react';
 import { FormatterProps } from 'react-data-grid';
 import { RecordTypeData } from '../usePermissionRecordTypes';
 import { ColumnSearchFilter, ColumnSearchFilterSummary } from './permission-manager-table-utils';
 import {
+  DirtyRow,
+  LayoutAssignment,
+  PermissionManagerObjectWithRecordType,
   PermissionManagerObjectWithRecordTypes,
   PermissionManagerRecordTypeRow,
   PermissionTableSummaryRow,
+  RecordTypeSaveData,
+  RecordTypeVisibility,
 } from './permission-manager-types';
 
 export const REC_TYPE_COLUMN_SUFFIX = {
@@ -16,6 +22,55 @@ export const REC_TYPE_COLUMN_SUFFIX = {
   VISIBLE: '-record-type-visible',
   DEFAULT: '-record-type-default',
 };
+
+export function getDirtyRecordTypePermissions(
+  dirtyRows: MapOf<DirtyRow<PermissionManagerRecordTypeRow>>
+): PermissionManagerObjectWithRecordType[] {
+  return Object.values(dirtyRows).flatMap(({ row }) =>
+    Object.values(row.permissions).filter((permission) =>
+      isRecordTypePermissionDirty(permission, row.permissionsOriginal[permission.profile])
+    )
+  );
+}
+
+export function isRecordTypePermissionDirty(
+  permission: PermissionManagerObjectWithRecordType,
+  permissionsOriginal: PermissionManagerObjectWithRecordType
+): boolean {
+  return (
+    permission.default !== permissionsOriginal.default ||
+    permission.visible !== permissionsOriginal.visible ||
+    permission.layoutName !== permissionsOriginal.layoutName
+  );
+}
+
+export function prepareRecordTypePermissionSaveData(dirtyPermissions: PermissionManagerObjectWithRecordType[]): RecordTypeSaveData {
+  return dirtyPermissions.reduce(
+    (
+      output: { [profile: string]: { layoutAssignments: LayoutAssignment[]; recordTypeVisibilities: RecordTypeVisibility[] } },
+      permission,
+      i
+    ) => {
+      const profile = encodeHtmlEntitySalesforceCompatible(permission.profile);
+      output[profile] = output[profile] || {
+        layoutAssignments: [],
+        recordTypeVisibilities: [],
+      };
+      // TODO: it is possible that only one of these is dirty, but we are saving both
+      output[profile].layoutAssignments.push({
+        layout: encodeHtmlEntitySalesforceCompatible(permission.layoutName),
+        recordType: `${permission.recordType.SobjectType}.${permission.recordType.DeveloperName}`,
+      });
+      output[profile].recordTypeVisibilities.push({
+        default: permission.default,
+        recordType: `${permission.recordType.SobjectType}.${permission.recordType.DeveloperName}`,
+        visible: permission.visible,
+      });
+      return output;
+    },
+    {}
+  );
+}
 
 export function getTableDataForRecordTypes(recordTypeData: RecordTypeData) {
   const { profilesWithLayoutAndRecordTypeVisibilities, recordTypes, layouts } = recordTypeData;
@@ -181,7 +236,7 @@ function getColumnsForProfile(
         return '';
       },
       formatter: ({ column, isCellSelected, row, onRowChange }) => {
-        // const errorMessage = row.permissions[id].errorMessage;
+        const errorMessage = row.permissions[profile]?.errorMessage;
         const value = row.permissions[profile]?.visible;
 
         function handleChange(value: boolean) {
@@ -215,7 +270,7 @@ function getColumnsForProfile(
                 handleChange(ev.target.checked);
               }}
             ></input>
-            {/* {errorMessage && (
+            {errorMessage && (
               <div
                 css={css`
                   position: fixed;
@@ -223,7 +278,6 @@ function getColumnsForProfile(
                 `}
               >
                 <Tooltip
-                  id={`tooltip-${row.key}-${id}-${actionKey}`}
                   content={
                     <div>
                       <strong>{errorMessage}</strong>
@@ -233,7 +287,7 @@ function getColumnsForProfile(
                   <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small" />
                 </Tooltip>
               </div>
-            )} */}
+            )}
           </div>
         );
       },
@@ -261,7 +315,7 @@ function getColumnsForProfile(
         return '';
       },
       formatter: ({ column, isCellSelected, row, onRowChange }) => {
-        // const errorMessage = row.permissions[id].errorMessage;
+        const errorMessage = row.permissions[profile]?.errorMessage;
         const value = row.permissions[profile]?.default;
 
         function handleChange() {
@@ -304,7 +358,7 @@ function getColumnsForProfile(
                 ev.preventDefault();
               }}
             ></input>
-            {/* {errorMessage && (
+            {errorMessage && (
               <div
                 css={css`
                   position: fixed;
@@ -312,7 +366,6 @@ function getColumnsForProfile(
                 `}
               >
                 <Tooltip
-                  id={`tooltip-${row.key}-${id}-${actionKey}`}
                   content={
                     <div>
                       <strong>{errorMessage}</strong>
@@ -322,7 +375,7 @@ function getColumnsForProfile(
                   <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small" />
                 </Tooltip>
               </div>
-            )} */}
+            )}
           </div>
         );
       },
@@ -341,8 +394,6 @@ function getColumnsForProfile(
 // FIXME: this seems to have a complete re-render when item is modified
 function getProfileSelectRenderer(profile: string, layoutsBySobject: MapOf<RecordTypeData['layouts']>) {
   const ProfileSelectRenderer: FunctionComponent<FormatterProps<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>> = ({
-    column,
-    isCellSelected,
     row,
     onRowChange,
   }) => {
@@ -355,7 +406,7 @@ function getProfileSelectRenderer(profile: string, layoutsBySobject: MapOf<Recor
         meta: layout,
       }))
     );
-    // const errorMessage = row.permissions[id].errorMessage;
+    const errorMessage = row.permissions[profile]?.errorMessage;
     const value = row.permissions[profile]?.layoutName;
 
     function handleChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -397,6 +448,24 @@ function getProfileSelectRenderer(profile: string, layoutsBySobject: MapOf<Recor
               ))}
             </select>
           </div>
+          {errorMessage && (
+            <div
+              css={css`
+                position: fixed;
+                margin-left: 40px;
+              `}
+            >
+              <Tooltip
+                content={
+                  <div>
+                    <strong>{errorMessage}</strong>
+                  </div>
+                }
+              >
+                <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small" />
+              </Tooltip>
+            </div>
+          )}
         </div>
       </div>
     );
