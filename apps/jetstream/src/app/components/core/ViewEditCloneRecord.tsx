@@ -75,7 +75,13 @@ function getModalTitle(action: CloneEditView) {
   return 'Create Record';
 }
 
-function getTagline(selectedOrg: SalesforceOrgUi, serverUrl: string, sobjectName: string, initialRecord?: Record, recordId?: string) {
+function getTagline(
+  selectedOrg: SalesforceOrgUi,
+  serverUrl: string,
+  sobjectName: string,
+  initialRecord?: Record,
+  recordId?: string | null
+) {
   if (initialRecord && recordId) {
     return (
       <SalesforceLogin
@@ -109,7 +115,7 @@ export interface ViewEditCloneRecordProps {
   selectedOrg: SalesforceOrgUi;
   action: CloneEditView;
   sobjectName: string;
-  recordId: string;
+  recordId: string | null;
   onClose: (reloadRecords?: boolean) => void;
   onChangeAction: (action: CloneEditView) => void;
   onFetch?: (recordId: string, record: any) => void;
@@ -180,7 +186,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     let hasRemainingErrors = false;
     if (formErrors.hasErrors) {
       Object.keys(fieldErrors).forEach((key) => {
-        if (isUndefined(modifiedRecord[key])) {
+        if (action !== 'create' && isUndefined(modifiedRecord[key])) {
           needsFormErrorsUpdate = true;
           fieldErrors[key] = undefined;
         } else {
@@ -192,7 +198,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     if (needsFormErrorsUpdate) {
       setFormErrors({ hasErrors: hasRemainingErrors, fieldErrors, generalErrors: formErrors.generalErrors });
     }
-  }, [formErrors.fieldErrors, formErrors.generalErrors, formErrors.hasErrors, modifiedRecord]);
+  }, [action, formErrors.fieldErrors, formErrors.generalErrors, formErrors.hasErrors, modifiedRecord]);
 
   const fetchMetadata = useCallback(async () => {
     try {
@@ -206,7 +212,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         )
       );
 
-      if (action !== 'create') {
+      if (action !== 'create' && recordId) {
         record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
       }
 
@@ -245,33 +251,35 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       }
 
       // Query all related records so that related record name can be shown in the UI
-      try {
-        const { queryResults } = await query(
-          selectedOrg,
-          composeQuery({
-            sObject: sobjectName,
-            fields: sobjectMetadata.data.fields
-              .filter((field) => field.type === 'reference' && field.relationshipName && record[field.name])
-              .map((field) =>
-                getField({
-                  field: 'Name',
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  relationships: [field.relationshipName!],
-                })
-              ),
-            where: {
-              left: {
-                field: 'Id',
-                operator: '=',
-                value: recordId,
-                literalType: 'STRING',
+      if (recordId) {
+        try {
+          const { queryResults } = await query(
+            selectedOrg,
+            composeQuery({
+              sObject: sobjectName,
+              fields: sobjectMetadata.data.fields
+                .filter((field) => field.type === 'reference' && field.relationshipName && record[field.name])
+                .map((field) =>
+                  getField({
+                    field: 'Name',
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    relationships: [field.relationshipName!],
+                  })
+                ),
+              where: {
+                left: {
+                  field: 'Id',
+                  operator: '=',
+                  value: recordId,
+                  literalType: 'STRING',
+                },
               },
-            },
-          })
-        );
-        record = { ...record, ...queryResults.records[0] };
-      } catch (ex) {
-        logger.warn('Could not fetch related records');
+            })
+          );
+          record = { ...record, ...queryResults.records[0] };
+        } catch (ex) {
+          logger.warn('Could not fetch related records');
+        }
       }
 
       if (action === 'clone') {
@@ -284,7 +292,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         setPicklistValues(picklistValues);
         setInitialRecord(record);
         setLoading(false);
-        onFetch && onFetch(recordId, record);
+        onFetch && recordId && onFetch(recordId, record);
       }
     } catch (ex) {
       if (isMounted.current) {
@@ -294,7 +302,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
         });
         setLoading(false);
-        onFetchError && onFetchError(recordId, sobjectName);
+        onFetchError && recordId && onFetchError(recordId, sobjectName);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -454,7 +462,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         throw new Error(`Could not find sobject for record id ${newRecordId}`);
       }
       if (isMounted.current) {
-        setPriorRecords((prevValue) => [...prevValue, { recordId, sobjectName }]);
+        recordId && setPriorRecords((prevValue) => [...prevValue, { recordId, sobjectName }]);
         setModifiedRecord({});
         setRecordId(newRecordId);
         setSobjectName(sobject.name);
@@ -489,6 +497,43 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         generalErrors: ['Oops. There was a problem loading the related record information.'],
       });
     }
+  }
+
+  const tabs = [
+    {
+      id: 'root',
+      title: 'Record',
+      content: (
+        <UiRecordForm
+          action={action}
+          sobjectFields={sobjectFields || []}
+          picklistValues={picklistValues || {}}
+          record={initialRecord}
+          saveErrors={formErrors.fieldErrors}
+          onChange={handleRecordChange}
+          viewRelatedRecord={viewRelatedRecord}
+        />
+      ),
+    },
+  ];
+  if (recordId) {
+    tabs.push({
+      id: 'child',
+      title: 'Child Records',
+      content: (
+        <ViewChildRecords
+          selectedOrg={selectedOrg}
+          sobjectName={sobjectName}
+          parentRecordId={recordId}
+          childRelationships={childRelationships || []}
+          initialData={recordWithChildrenQueries[recordId]}
+          modalRef={modalRef}
+          onChildrenData={(parentRecordId, record) =>
+            setRecordWithChildrenQueries((priorData) => ({ ...priorData, [parentRecordId]: record }))
+          }
+        />
+      ),
+    });
   }
 
   return (
@@ -659,40 +704,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     onChange={(value) => {
                       value === 'children' && trackEvent(ANALYTICS_KEYS.record_modal_view_children);
                     }}
-                    tabs={[
-                      {
-                        id: 'root',
-                        title: 'Record',
-                        content: (
-                          <UiRecordForm
-                            action={action}
-                            sobjectFields={sobjectFields || []}
-                            picklistValues={picklistValues || {}}
-                            record={initialRecord}
-                            saveErrors={formErrors.fieldErrors}
-                            onChange={handleRecordChange}
-                            viewRelatedRecord={viewRelatedRecord}
-                          />
-                        ),
-                      },
-                      {
-                        id: 'child',
-                        title: 'Child Records',
-                        content: (
-                          <ViewChildRecords
-                            selectedOrg={selectedOrg}
-                            sobjectName={sobjectName}
-                            parentRecordId={recordId}
-                            childRelationships={childRelationships || []}
-                            initialData={recordWithChildrenQueries[recordId]}
-                            modalRef={modalRef}
-                            onChildrenData={(parentRecordId, record) =>
-                              setRecordWithChildrenQueries((priorData) => ({ ...priorData, [parentRecordId]: record }))
-                            }
-                          />
-                        ),
-                      },
-                    ]}
+                    tabs={tabs}
                   />
                 )}
                 {isViewAsJson && (

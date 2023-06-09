@@ -27,6 +27,7 @@ export interface QueryResultsDownloadButtonProps {
   selectedRows: any[];
   totalRecordCount: number;
   refreshRecords: () => void;
+  onCreateNewRecord: () => void;
 }
 
 export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadButtonProps> = ({
@@ -46,6 +47,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   selectedRows,
   totalRecordCount,
   refreshRecords,
+  onCreateNewRecord,
 }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId, serverUrl }] = useRecoilState(applicationCookieState);
@@ -100,12 +102,14 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
     });
   }
 
-  function handleAction(item: 'bulk-update') {
+  function handleAction(item: 'bulk-update' | 'new-record') {
     switch (item) {
       case 'bulk-update':
         setIsBulkUpdateModalOpen(true);
         break;
-
+      case 'new-record':
+        onCreateNewRecord();
+        break;
       default:
         break;
     }
@@ -129,8 +133,9 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           position="right"
           items={[
             { id: 'bulk-update', value: 'Bulk update records', disabled: isTooling || !sObject || !totalRecordCount || !parsedQuery },
+            { id: 'new-record', value: 'Create new record', disabled: isTooling || !sObject || !parsedQuery },
           ]}
-          onSelected={(item) => handleAction(item as 'bulk-update')}
+          onSelected={(item) => handleAction(item as 'bulk-update' | 'new-record')}
         />
       </ButtonGroupContainer>
       {isDownloadModalOpen && (

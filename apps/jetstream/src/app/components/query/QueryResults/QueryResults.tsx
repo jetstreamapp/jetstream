@@ -16,17 +16,7 @@ import {
   useObservable,
 } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import {
-  AsyncJob,
-  AsyncJobNew,
-  BulkDownloadJob,
-  CloneEditView,
-  FileExtCsvXLSXJsonGSheet,
-  MapOf,
-  Maybe,
-  Record,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { AsyncJob, AsyncJobNew, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CampingRainIllustration,
@@ -34,7 +24,6 @@ import {
   Grid,
   GridCol,
   Icon,
-  RecordDownloadModal,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -48,15 +37,15 @@ import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, use
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { Query, WhereClause } from 'soql-parser-js';
+import { Query } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
+import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
-import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
-import * as fromQueryState from '../query.state';
-import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
+import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
+import * as fromQueryState from '../query.state';
 import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
@@ -64,7 +53,6 @@ import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
-import QueryResultsViewRecordFields from './QueryResultsViewRecordFields';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 
 type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
@@ -460,7 +448,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   return (
     <div data-testid="query-results-page">
-      {cloneEditViewRecord && cloneEditViewRecord.recordId && (
+      {cloneEditViewRecord && (
         <ViewEditCloneRecord
           apiVersion={defaultApiVersion}
           selectedOrg={selectedOrg}
@@ -548,6 +536,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             selectedRows={selectedRows}
             totalRecordCount={totalRecordCount || 0}
             refreshRecords={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
+            onCreateNewRecord={handleCreateNewRecord}
           />
         </ToolbarItemActions>
       </Toolbar>

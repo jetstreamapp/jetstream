@@ -143,7 +143,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
         </Grid>
       </div>
       <hr className="slds-m-around_xx-small" />
-      {fieldMetadata?.length && !visibleFieldMetadataRows?.length && (
+      {!!fieldMetadata?.length && !visibleFieldMetadataRows?.length && (
         <EmptyState headline="There are no matching fields" subHeading="Adjust your selection."></EmptyState>
       )}
       {visibleFieldMetadataRows && (

@@ -6,7 +6,7 @@ import { flattenRecord } from '@jetstream/shared/utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
-import { Fragment, FunctionComponent, memo, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, CopyEvent } from 'react-data-grid';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
@@ -14,16 +14,16 @@ import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import { ContextMenuItem } from '../popover/ContextMenu';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import Spinner from '../widgets/Spinner';
+import { DataTable } from './DataTable';
 import { DataTableSubqueryContext } from './data-table-context';
 import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowSalesforceRecordWithKey, RowWithKey } from './data-table-types';
 import {
+  NON_DATA_COLUMN_KEYS,
+  TABLE_CONTEXT_MENU_ITEMS,
   addFieldLabelToColumn,
   copySalesforceRecordTableDataToClipboard,
   getColumnDefinitions,
-  NON_DATA_COLUMN_KEYS,
-  TABLE_CONTEXT_MENU_ITEMS,
 } from './data-table-utils';
-import { DataTable } from './DataTable';
 
 const SFDC_EMPTY_ID = '000000000000000AAA';
 
