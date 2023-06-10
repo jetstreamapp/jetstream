@@ -966,7 +966,7 @@ export async function pollMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
   options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void },
-  deploymentHistoryName?: string
+  deploymentHistoryName?: Maybe<string>
 ) {
   let { includeDetails, interval, maxAttempts, onChecked } = options || {};
   includeDetails = includeDetails || false;

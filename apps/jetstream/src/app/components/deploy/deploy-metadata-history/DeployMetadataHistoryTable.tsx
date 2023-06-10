@@ -14,16 +14,16 @@ const TYPE_MAP = {
 
 const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
   {
+    ...setColumnFromType('name', 'text'),
+    name: 'Name',
+    key: 'deploymentHistoryName',
+    width: 165,
+  },
+  {
     ...setColumnFromType('start', 'date'),
     name: 'Started',
     key: 'start',
     width: 200,
-  },
-  {
-    ...setColumnFromType('name', 'text'),
-    name: 'Deployment History Name',
-    key: 'deploymentHistoryName',
-    width: 165,
   },
   {
     ...setColumnFromType('type', 'text'),

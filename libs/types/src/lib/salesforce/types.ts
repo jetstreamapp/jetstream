@@ -484,7 +484,7 @@ export interface DeployResult {
   createdBy: string;
   createdByName: string;
   createdDate: string;
-  deploymentHistoryName?: string | undefined;
+  deploymentHistoryName?: Maybe<string>;
   details?: {
     componentFailures: DeployMessage[];
     componentSuccesses: DeployMessage[];

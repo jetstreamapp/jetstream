@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployOptionsTestLevel } from '@jetstream/types';
+import { DeployOptions, DeployOptionsTestLevel, Maybe } from '@jetstream/types';
 import { Checkbox, Icon, Input, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
@@ -20,7 +20,7 @@ export interface DeployMetadataOptionsProps {
   disabledOptions?: Set<keyof DeployOptions>;
   isSinglePackage?: boolean;
   onChange: (deployOptions: DeployOptions) => void;
-  setDeploymentHistoryName?: (deploymentHistoryName: string | undefined) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: Maybe<string>) => void;
 }
 
 export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps> = ({

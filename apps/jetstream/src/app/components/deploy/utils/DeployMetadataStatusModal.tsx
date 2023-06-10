@@ -49,7 +49,7 @@ export interface DeployMetadataStatusModalProps {
   onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
-  deploymentHistoryName?: string | undefined;
+  deploymentHistoryName?: Maybe<string>;
 }
 
 export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusModalProps> = ({
