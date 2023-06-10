@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployOptions, DeployResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -28,6 +28,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
   );
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
+  const [deploymentHistoryName, setDeploymentHistoryName] = useState<Undefinable<string>>(undefined);
 
   function handleClick() {
     setDestinationOrg(initialSelectedOrg);
@@ -79,6 +80,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
           initialIsSinglePackage={fileInfo.isSinglePackage}
           onClose={() => setConfigModalOpen(false)}
           onDeploy={handleDeploy}
+          setDeploymentHistoryName={setDeploymentHistoryName}
         />
       )}
       {deployStatusModalOpen && deployOptions && fileInfo.file && (
@@ -90,6 +92,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
           onGoBack={handleGoBackFromDeploy}
           onClose={handleCloseDeploymentModal}
           onDownload={handleDeployResultsDownload}
+          deploymentHistoryName={deploymentHistoryName}
         />
       )}
       {downloadResultsModalOpen && deployResultsData && (
