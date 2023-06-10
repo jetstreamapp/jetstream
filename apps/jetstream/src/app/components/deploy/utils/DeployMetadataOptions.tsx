@@ -40,7 +40,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   const [singlePackage, setSinglePackage] = useState(deployOptions.singlePackage ?? true);
   const [testLevel, setTestLevel] = useState<DeployOptionsTestLevel | undefined>(deployOptions.testLevel ?? undefined);
   const [runTests, setRunTests] = useState<string[]>(deployOptions.runTests ?? []);
-  const [deployName, setDeployName] = useState<Undefinable<string>>(setDeploymentHistoryName);
+  // const [deployName, setDeployName] = useState<Undefinable<string>>();
 
   const [runSpecifiedTestsVisible, setRunSpecifiedTestsVisible] = useState(testLevel === 'RunSpecifiedTests');
   const [runTestsStr, setRunTestsStr] = useState<string>(deployOptions.runTests?.join('\n') ?? '');
@@ -91,7 +91,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
         <Input label="Deployment History Name" className="slds-grow">
           <input
             className="slds-input"
-            value={deployName}
+            value={undefined}
             placeholder="Choose a deployment name"
             onChange={(event) => setDeploymentHistoryName(event.target.value)}
             autoComplete="off"

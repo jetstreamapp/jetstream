@@ -17,7 +17,7 @@ export interface DeleteMetadataConfigModalProps {
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (file: ArrayBuffer, deployOptions: DeployOptions) => void;
-  setDeploymentHistoryName?: Undefinable<string>;
+  setDeploymentHistoryName?: (deploymentHistoryName: Undefinable<string>) => void;
 }
 
 export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigModalProps> = ({

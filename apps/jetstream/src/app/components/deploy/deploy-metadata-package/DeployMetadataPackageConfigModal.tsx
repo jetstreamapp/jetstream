@@ -29,7 +29,7 @@ export interface DeployMetadataPackageConfigModalProps {
     destinationOrg: SalesforceOrgUi,
     deployOptions: DeployOptions
   ) => void;
-  setDeploymentHistoryName?: Undefinable<string>;
+  setDeploymentHistoryName?: (deploymentHistoryName: Undefinable<string>) => void;
 }
 
 export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataPackageConfigModalProps> = ({
