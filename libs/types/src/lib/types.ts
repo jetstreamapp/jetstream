@@ -3,6 +3,7 @@ import { InsertUpdateUpsertDeleteQuery, SalesforceOrgEdition, SalesforceOrgLocal
 
 export type Maybe<T> = T | null | undefined;
 export type Nullable<T> = T | null;
+export type Undefinable<T> = T | undefined;
 
 export const isNotNullish = <T>(input: T | null | undefined): input is T => input != null;
 export const isNotEmpty = <T>(input: T[]) => input.length !== 0;

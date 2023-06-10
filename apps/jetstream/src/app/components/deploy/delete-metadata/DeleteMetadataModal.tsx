@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -25,6 +25,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
   const [file, setFile] = useState<ArrayBuffer>();
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
+  const [deploymentHistoryName, setDeploymentHistoryName] = useState<Undefinable<string>>(undefined);
 
   function handleDeploy(file: ArrayBuffer, deployOptions: DeployOptions) {
     setFile(file);
@@ -43,6 +44,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
     setDeployResultsData(getDeployResultsExcelData(deployResults, deploymentUrl));
     setDownloadResultsModalOpen(true);
   }
+  console.log('deploymentHistoryName Delete Parent:', deploymentHistoryName);
 
   return (
     <Fragment>
@@ -55,6 +57,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           initialOptions={deployOptions}
           onClose={() => onClose()}
           onDeploy={handleDeploy}
+          setDeploymentHistoryName={setDeploymentHistoryName}
         />
       )}
       {deployStatusModalOpen && deployOptions && file && (
@@ -66,6 +69,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           onGoBack={handleGoBackFromDeploy}
           onClose={onClose}
           onDownload={handleDeployResultsDownload}
+          deploymentHistoryName={deploymentHistoryName}
         />
       )}
       {downloadResultsModalOpen && deployResultsData && (

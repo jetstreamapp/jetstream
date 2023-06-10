@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, SalesforceOrgUi, Undefinable } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -17,6 +17,7 @@ export interface DeployMetadataPackageStatusModalProps {
   onGoBack?: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
+  deploymentHistoryName?: Undefinable<string>;
 }
 
 export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataPackageStatusModalProps> = ({
@@ -27,13 +28,15 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   onGoBack,
   onClose,
   onDownload,
+  deploymentHistoryName,
 }) => {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataPackage(
     destinationOrg,
     deployOptions,
-    file
+    file,
+    deploymentHistoryName
   );
 
   useEffect(() => {
@@ -46,6 +49,8 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
       setDeployStatusUrl(getDeploymentStatusUrl(deployId));
     }
   }, [deployId]);
+
+  console.log('Delete STATUS', deploymentHistoryName);
 
   return (
     <DeployMetadataStatusModal
@@ -78,6 +83,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
       onGoBack={onGoBack}
       onClose={onClose}
       onDownload={onDownload}
+      deploymentHistoryName={deploymentHistoryName}
     />
   );
 };

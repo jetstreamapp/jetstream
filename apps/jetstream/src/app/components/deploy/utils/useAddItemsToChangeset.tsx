@@ -135,6 +135,7 @@ export function useAddItemsToChangeset(
           dispatch({ type: 'SUCCESS', payload: { results } });
           saveHistory({
             destinationOrg: selectedOrg,
+            deploymentHistoryName: 'test change set',
             type: 'changeset',
             start,
             metadata: selectedMetadata,

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
-import { DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DeployResult, Maybe, SalesforceOrgUi, Undefinable } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -49,7 +49,7 @@ export interface DeployMetadataStatusModalProps {
   onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
-  deploymentHistoryName?: Maybe<string>;
+  deploymentHistoryName?: Undefinable<string>;
 }
 
 export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusModalProps> = ({
@@ -113,7 +113,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
         ? {
             checkOnly: results.checkOnly,
             completedDate: results.completedDate,
-            deploymentHistoryName: results.deploymentHistoryName,
             numberComponentErrors: results.numberComponentErrors,
             numberComponentsDeployed: results.numberComponentsDeployed,
             numberComponentsTotal: results.numberComponentsTotal,
@@ -129,6 +128,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
     });
     onGoBack && onGoBack();
   }
+  console.log('deploymentHistoryName Delete Status Modal:', deploymentHistoryName);
 
   return (
     <Modal
@@ -297,7 +297,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                 )}
               </Grid>
             )}
-            {results?.deploymentHistoryName && 'Deployment History Name:' + results?.deploymentHistoryName}
+            {deploymentHistoryName && 'Deployment History Name:' + deploymentHistoryName}
           </GridCol>
           <GridCol grow className="slds-scrollable">
             {results && <DeployMetadataResultsTables results={results} />}

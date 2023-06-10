@@ -965,8 +965,7 @@ export function checkIfBulkApiJobIsDone(jobInfo: BulkJobWithBatches, totalBatche
 export async function pollMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void },
-  deploymentHistoryName?: Maybe<string>
+  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void }
 ) {
   let { includeDetails, interval, maxAttempts, onChecked } = options || {};
   includeDetails = includeDetails || false;
@@ -980,7 +979,7 @@ export async function pollMetadataResultsUntilDone(
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
-    deployResults = { ...deployResults, deploymentHistoryName: deploymentHistoryName };
+    deployResults = { ...deployResults };
     logger.log({ deployResults });
     onChecked(deployResults);
     done = deployResults.done;

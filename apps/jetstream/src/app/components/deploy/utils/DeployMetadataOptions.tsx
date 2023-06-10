@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployOptionsTestLevel, Maybe } from '@jetstream/types';
+import { DeployOptions, DeployOptionsTestLevel, Undefinable } from '@jetstream/types';
 import { Checkbox, Icon, Input, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
@@ -20,7 +20,7 @@ export interface DeployMetadataOptionsProps {
   disabledOptions?: Set<keyof DeployOptions>;
   isSinglePackage?: boolean;
   onChange: (deployOptions: DeployOptions) => void;
-  setDeploymentHistoryName?: (deploymentHistoryName: Maybe<string>) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: Undefinable<string>) => void;
 }
 
 export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps> = ({
@@ -40,6 +40,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   const [singlePackage, setSinglePackage] = useState(deployOptions.singlePackage ?? true);
   const [testLevel, setTestLevel] = useState<DeployOptionsTestLevel | undefined>(deployOptions.testLevel ?? undefined);
   const [runTests, setRunTests] = useState<string[]>(deployOptions.runTests ?? []);
+  const [deployName, setDeployName] = useState<Undefinable<string>>(setDeploymentHistoryName);
 
   const [runSpecifiedTestsVisible, setRunSpecifiedTestsVisible] = useState(testLevel === 'RunSpecifiedTests');
   const [runTestsStr, setRunTestsStr] = useState<string>(deployOptions.runTests?.join('\n') ?? '');
@@ -90,7 +91,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
         <Input label="Deployment History Name" className="slds-grow">
           <input
             className="slds-input"
-            value={undefined}
+            value={deployName}
             placeholder="Choose a deployment name"
             onChange={(event) => setDeploymentHistoryName(event.target.value)}
             autoComplete="off"

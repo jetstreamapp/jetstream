@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -29,7 +29,7 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
   const [deployMetadataOptions, setDeployMetadataOptions] = useState<DeployOptions | null>(null);
 
   const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>();
-  const [deploymentHistoryName, setDeploymentHistoryName] = useState(undefined);
+  const [deploymentHistoryName, setDeploymentHistoryName] = useState<Undefinable<string>>(undefined);
 
   function handleClick() {
     setConfigModalOpen(true);
