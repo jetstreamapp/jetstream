@@ -1,7 +1,0 @@
-yarn add v1.22.19
-warning ../package.json: No license field
-[1/5] Validating package.json...
-[2/5] Resolving packages...
-warning Lockfile has incorrect entry for "@nx/devkit@14.3.6". Ignoring it.
-error Couldn't find any versions for "@nx/devkit" that matches "14.3.6"
-info Visit https://yarnpkg.com/en/docs/cli/add for documentation about this command.
