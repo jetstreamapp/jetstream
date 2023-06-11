@@ -6,13 +6,13 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/linter:eslint",
       "options": {
         "lintFilePatterns": ["libs/shared/ui-record-form/**/*.{ts,tsx,js,jsx}"]
       }
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
         "jestConfig": "libs/shared/ui-record-form/jest.config.ts",
         "passWithNoTests": true
@@ -20,9 +20,8 @@
       "outputs": ["{workspaceRoot}/coverage/libs/shared/ui-record-form"]
     },
     "storybook": {
-      "executor": "@nrwl/storybook:storybook",
+      "executor": "@nx/storybook:storybook",
       "options": {
-        "uiFramework": "@storybook/react",
         "port": 4400,
         "configDir": "libs/shared/ui-record-form/.storybook"
       },
@@ -33,9 +32,8 @@
       }
     },
     "build-storybook": {
-      "executor": "@nrwl/storybook:build",
+      "executor": "@nx/storybook:build",
       "options": {
-        "uiFramework": "@storybook/react",
         "configDir": "libs/shared/ui-record-form/.storybook",
         "outputDir": "dist/storybook/shared-ui-record-form"
       },

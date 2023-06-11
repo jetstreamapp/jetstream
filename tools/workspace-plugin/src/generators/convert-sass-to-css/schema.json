@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/schema",
-  "cli": "nx",
   "$id": "convert-sass-to-css",
   "type": "object",
   "properties": {
@@ -17,5 +16,8 @@
       "description": "Input filename with full path"
     }
   },
-  "required": ["name", "filename"]
+  "required": [
+    "name",
+    "filename"
+  ]
 }

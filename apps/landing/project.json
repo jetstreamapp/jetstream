@@ -6,9 +6,8 @@
   "generators": {},
   "targets": {
     "build": {
-      "executor": "@nrwl/next:build",
+      "executor": "@nx/next:build",
       "options": {
-        "root": "apps/landing",
         "outputPath": "dist/apps/landing"
       },
       "configurations": {
@@ -17,11 +16,13 @@
           "outputPath": "apps/landing"
         }
       },
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nrwl/next:server",
+      "executor": "@nx/next:server",
       "options": {
         "buildTarget": "landing:build",
         "port": 4300,
@@ -40,13 +41,13 @@
       "defaultConfiguration": "development"
     },
     "export": {
-      "executor": "@nrwl/next:export",
+      "executor": "@nx/next:export",
       "options": {
         "buildTarget": "landing:build:production"
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/linter:eslint",
       "options": {
         "lintFilePatterns": [
           "apps/landing/**/*.spec.ts",
@@ -58,12 +59,14 @@
       }
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
         "jestConfig": "apps/landing/jest.config.ts",
         "passWithNoTests": true
       },
-      "outputs": ["{workspaceRoot}/coverage/apps/landing"]
+      "outputs": [
+        "{workspaceRoot}/coverage/apps/landing"
+      ]
     }
   },
   "tags": []

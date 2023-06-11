@@ -1,5 +1,5 @@
-import { Tree, formatFiles, readProjectConfiguration, joinPathFragments, logger, generateFiles } from '@nrwl/devkit';
-import { runCommandsGenerator } from '@nrwl/workspace/generators';
+import { Tree, formatFiles, readProjectConfiguration, joinPathFragments, logger, generateFiles } from '@nx/devkit';
+import { runCommandsGenerator } from '@nx/workspace/generators';
 import { join } from 'path';
 import { renderSync } from 'sass';
 
