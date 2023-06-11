@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgResourcePreference(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M49.91 20a25.4 25.4 0 1025.18 25.5c0-13.79-11.24-25.5-25.18-25.5zM39.24 55.91a2.82 2.82 0 01-3 2.55h-1.9a1.08 1.08 0 01-1.13-1V42.83a1.08 1.08 0 011.13-1h3.77a1.08 1.08 0 011.13 1zM66.39 53c0 5.55-5.2 6.06-10.86 6.06-5.35 0-7.09-1.72-12.22-1.91a1 1 0 01-1.06-1V43.47a1.08 1.08 0 011.13-1 6.71 6.71 0 006.41-6.7V32a1.08 1.08 0 011.13-1h1.89a2.82 2.82 0 013 2.55V40a2.82 2.82 0 003 2.55h4.52a2.82 2.82 0 013 2.55z"
         fill="unset"
@@ -16,5 +15,4 @@ function SvgResourcePreference(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgResourcePreference;

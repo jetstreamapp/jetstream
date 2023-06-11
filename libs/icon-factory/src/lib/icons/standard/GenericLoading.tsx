@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgGenericLoading(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path
           opacity={0.15}
@@ -12,5 +11,4 @@ function SvgGenericLoading(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgGenericLoading;

@@ -8,6 +8,11 @@ export interface TooltipProps {
   id?: string;
   className?: string;
   content: Maybe<string | JSX.Element>;
+  /**
+   * number controls hide delay in ms
+   * array controls show and hide delay, [openDelay, closeDelay]
+   */
+  delay?: TippyProps['delay'];
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   children?: React.ReactNode;
 }
@@ -37,7 +42,7 @@ const LazyTippy = (props: LazyTippyProps) => {
   return <Tippy {...computedProps} />;
 };
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, onClick, children }) => {
+export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, delay, onClick, children }) => {
   const [visible, setVisible] = useState(false);
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
@@ -48,6 +53,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, o
         content && setVisible(true);
       }}
       hideOnClick={false}
+      delay={delay}
       allowHTML
       popperOptions={{
         modifiers: [

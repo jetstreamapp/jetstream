@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgSystemAndGlobalVariable(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M48.8 75.6c0-3.7 1.8-6.5 4.2-8.1v-3.7c-1.3-.9-2.3-2.2-2.7-3.7-.5-2.1.2-4.5 1.5-6.2.3-.4.7-.8 1.1-1.2.4-.4.9-.7 1.4-.9 2.6-1.4 5.6-2.4 8.6-2.4 2.7 0 5.1 1.1 6.8 2.7 2.4-2.4 4.9-2.9 6.4-2.9 1.4 0 2.7.3 3.9.9v-.2c0-16.5-13.5-30-30-30S20 33.5 20 50c0 16.4 13.4 29.9 29.8 30-.7-1.3-1-2.7-1-4.4zm25-28.6h-7.9c-.3-7.1-1.9-13.3-4.3-18 6.6 3.7 11.2 10.3 12.2 18zM53 27.3c3.4 2.9 6.4 10.3 6.9 19.7H53V27.3zM26.2 53h7.9c.3 7.1 1.9 13.3 4.3 18-6.6-3.7-11.2-10.3-12.2-18zm7.9-6h-7.9c1-7.7 5.6-14.3 12.2-18-2.4 4.7-3.9 10.9-4.3 18zM47 72.7c-3.4-2.9-6.4-10.3-6.9-19.7H47v19.7zM47 47h-6.9c.5-9.4 3.5-16.8 6.9-19.7V47z"
@@ -14,5 +13,4 @@ function SvgSystemAndGlobalVariable(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgSystemAndGlobalVariable;

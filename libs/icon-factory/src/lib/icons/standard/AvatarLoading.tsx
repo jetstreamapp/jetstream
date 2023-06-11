@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgAvatarLoading(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g opacity={0.5}>
         <path
           fill="unset"
@@ -13,5 +12,4 @@ function SvgAvatarLoading(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgAvatarLoading;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgTextTemplate(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M42.5 63.8v-.2c.2-3.4 3-6.1 6.5-6.1h8.4c-1.4-2.4-1.1-5.5.9-7.7l.2-.2 2-1.9c1.1-1.2 2.7-1.9 4.3-2V25c0-2.7-2.2-5-5-5H25.1c-2.7 0-5 2.2-5 5v34.8c0 2.7 2.2 5 5 5h17.4v-1zM27.6 27.7c0-.7.5-1.2 1.2-1.2h7.5c.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2h-7.5c-.7 0-1.2-.5-1.2-1.2v-3.5zm0 10.9c0-.7.5-1.2 1.2-1.2h27.3c.7 0 1.2.5 1.2 1.2v3.5c0 .7-.5 1.2-1.2 1.2H28.9c-.7 0-1.2-.5-1.2-1.2v-3.5zm0 14.4v-3.5c0-.7.5-1.2 1.2-1.2h22.4c.7 0 1.2.5 1.2 1.2V53c0 .7-.5 1.2-1.2 1.2H28.9c-.8.1-1.3-.4-1.3-1.2z"
@@ -14,5 +13,4 @@ function SvgTextTemplate(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgTextTemplate;

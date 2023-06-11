@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgProductRequired(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <rect x={43.93} y={68.27} width={36.07} height={7.99} rx={2} ry={2} fill="unset" />
       <path
         d="M33.82 76.26h-4a2 2 0 01-2-2v-4a2 2 0 012-2h4a2 2 0 012 2v4a1.9 1.9 0 01-2 2zM33.82 58.41h-4a2 2 0 01-2-2v-4a2 2 0 012-2h4a2 2 0 012 2v4a1.9 1.9 0 01-2 2z"
@@ -19,5 +18,4 @@ function SvgProductRequired(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgProductRequired;

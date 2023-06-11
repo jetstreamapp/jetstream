@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgPricingWorkspace(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         d="M15.1 2.1a1.63 1.63 0 011.7 1.7v1.1a1.63 1.63 0 01-1.7 1.7H10a3.4 3.4 0 00-3.4 3.2V42a3.4 3.4 0 003.2 3.4H42a3.4 3.4 0 003.4-3.2v-5.3a1.63 1.63 0 011.7-1.7h1.1a1.63 1.63 0 011.7 1.7v6.2a6.81 6.81 0 01-6.8 6.8H8.9a6.81 6.81 0 01-6.8-6.8V8.9a6.81 6.81 0 016.8-6.8z"
         fill="unset"
@@ -15,5 +14,4 @@ function SvgPricingWorkspace(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgPricingWorkspace;

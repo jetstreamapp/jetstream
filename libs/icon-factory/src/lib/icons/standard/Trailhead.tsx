@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgTrailhead(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path fill="unset" d="M32.7 63.8l-3.2 3.7h6.4zM35.7 71.4h6.4l-3.2-3.7zM61.3 68.8l3.2-3.7 3.2 3.7z" />
       <path
         fill="unset"
@@ -11,5 +10,4 @@ function SvgTrailhead(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgTrailhead;

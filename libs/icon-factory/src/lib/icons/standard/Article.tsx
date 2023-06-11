@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgArticle(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path fill="unset" d="M32 59h13c1.1 0 2-.9 2-2V27c0-2.2-2-4-4-4H32.3C31 23 30 24 30 25.3V57c0 1.1.9 2 2 2z" />
       <path
         fill="unset"
@@ -12,5 +11,4 @@ function SvgArticle(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgArticle;

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCallHistory(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path fill="unset" d="M28.1 48c-.1.7-.1 1.3-.1 2h-6c0-.7 0-1.3.1-2h6z" />
       <path
         fill="unset"
@@ -15,5 +14,4 @@ function SvgCallHistory(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCallHistory;

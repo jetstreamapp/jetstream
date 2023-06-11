@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgAssetAction(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M64.2 72.4a3.74 3.74 0 01-3.7-3.9v-2.1a3.49 3.49 0 011-3.1l11.6-11.6V26.8a2.43 2.43 0 00-2.4-2.4H29.3a2.43 2.43 0 00-2.4 2.4v41.5a2.43 2.43 0 002.4 2.4h5.3v2.5a2.43 2.43 0 002.4 2.4h2.8a2.43 2.43 0 002.4-2.4v-2.5H58v2.5a2.43 2.43 0 002.4 2.4h2.8a2.43 2.43 0 002.4-2.4v-.8zM36.3 36.8a.84.84 0 01.9-.9h25.7a.84.84 0 01.9.9v.9a.84.84 0 01-.9.9H37.1a.84.84 0 01-.9-.9v-.9zm27.2 4.3V54a.84.84 0 01-.9.9h-1.7a.84.84 0 01-.9-.9V41.1a.84.84 0 01.9-.9h1.7q.9.15.9.9zm-5.9 0V54a.9.9 0 01-1.8 0V41.1a.84.84 0 01.9-.9q.9.15.9.9zm-3.3 0V54a.84.84 0 01-.9.9H50a.84.84 0 01-.9-.9V41.1a.84.84 0 01.9-.9h3.4c.5.1.9.4.9.9zm-7.7 0V54a.84.84 0 01-.9.9H44a.84.84 0 01-.9-.9V41.1a.84.84 0 01.9-.9h1.7c.5.1.9.4.9.9zm-10.3 0a.84.84 0 01.9-.9h3.4a.84.84 0 01.9.9V54a.84.84 0 01-.9.9h-3.4a.84.84 0 01-.9-.9zm.8 17.9a.84.84 0 01-.9-.9v-.9a.84.84 0 01.9-.9h25.7a.84.84 0 01.9.9v.9a.84.84 0 01-.9.9z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgAssetAction(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgAssetAction;

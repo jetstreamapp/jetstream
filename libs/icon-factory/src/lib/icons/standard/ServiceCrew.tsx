@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgServiceCrew(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M60.1 51.3h-3.7v-4.4c0-5.9-3.3-11-8.1-13.5V41c0 4-3.2 7.2-7.2 7.2S33.9 45 33.9 41v-7.8c-4.9 2.6-8.3 7.7-8.3 13.6v4.4H22c-1.2 0-2.1.9-2.1 2.1s.9 2.1 2.1 2.1h38.1c1.2 0 2.1-.9 2.1-2.1s-.9-2-2.1-2z" />
         <path d="M41.2 43.9c1.6 0 2.9-1.3 2.9-2.9v-9.2c-1-.2-2-.3-3-.3s-1.9.1-2.8.3V41c-.1 1.6 1.2 2.9 2.9 2.9z" />
@@ -18,5 +17,4 @@ function SvgServiceCrew(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgServiceCrew;

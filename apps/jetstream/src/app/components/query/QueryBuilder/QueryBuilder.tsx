@@ -40,6 +40,7 @@ import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import { QueryHistoryType } from '../QueryHistory/query-history.state';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
+import QueryCount from '../QueryOptions/QueryCount';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
@@ -465,7 +466,13 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                               },
                               {
                                 id: 'soql',
-                                title: 'Soql Query',
+                                title: (
+                                  <Grid verticalAlign="end">
+                                    <span className="slds-m-right_x-small">Soql Query</span>
+                                    <QueryCount org={selectedOrg} />
+                                  </Grid>
+                                ),
+                                titleText: 'Soql Query',
                                 content: (
                                   <SoqlTextarea
                                     key={selectedSObject.name}
