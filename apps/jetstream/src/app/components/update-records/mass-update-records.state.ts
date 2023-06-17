@@ -44,6 +44,6 @@ export const commonFields = selector<ListItem[]>({
       ((item: ListItem) => {
         return item.id;
       }) as any
-    ).map((item) => ({ ...item, label: item.value, secondaryLabel: null }));
+    ).map((item) => ({ ...item, label: item.value }));
   },
 });
