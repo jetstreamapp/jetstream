@@ -119,7 +119,7 @@ export const fieldDefinitions: FieldDefinitions = {
     values: async (org, skipRequestCache) => {
       return (await describeGlobal(org, false, skipRequestCache)).data.sobjects
         .filter((obj) => !(obj as any).associateEntityType && obj.triggerable && obj.queryable)
-        .map(({ name, label }) => ({ id: name, value: name, label: label, secondaryLabel: name }));
+        .map(({ name, label }) => ({ id: name, value: name, label: label, secondaryLabel: name, secondaryLabelOnNewLine: true }));
     },
     required: true,
   },
