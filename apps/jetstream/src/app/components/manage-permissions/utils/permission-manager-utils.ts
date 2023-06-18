@@ -1,8 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { sobjectOperation } from '@jetstream/shared/data';
-import { isErrorResponse } from '@jetstream/shared/ui-utils';
+import { PROFILE_LABEL_TO_FULL_NAME_MAP } from '@jetstream/shared/constants';
+import { deployMetadataZip, sobjectOperation } from '@jetstream/shared/data';
+import { generateMetadataXml, generatePackageXml, isErrorResponse } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
+  DeployResult,
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
   MapOf,
@@ -13,17 +15,21 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import { composeQuery, getField, Query, WhereClause } from 'soql-parser-js';
+import JSZip from 'jszip';
+import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
+import { isRecordTypePermissionDirty } from './permission-manager-table-record-type-utils';
 import {
   FieldPermissionDefinitionMap,
   FieldPermissionRecordForSave,
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecordForSave,
   PermissionFieldSaveData,
+  PermissionManagerRecordTypeRow,
   PermissionObjectSaveData,
   PermissionSaveResults,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCellPermission,
+  RecordTypeSaveData,
 } from './permission-manager-types';
 
 const MAX_OBJ_IN_QUERY = 100;
@@ -177,6 +183,46 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
   });
 
   return permissionSaveResults;
+}
+
+/**
+ * Kicks off job to save record type updates
+ * Job must be polled until complete
+ */
+export async function deployRecordTypeUpdates(org: SalesforceOrgUi, data: RecordTypeSaveData, apiVersion: string): Promise<string> {
+  // build metadata to save
+  const zip = new JSZip();
+  zip.file(
+    'package.xml',
+    generatePackageXml(
+      [{ members: Object.keys(data).map((key) => PROFILE_LABEL_TO_FULL_NAME_MAP[key] || key), name: 'Profile' }],
+      apiVersion
+    )
+  );
+  Object.keys(data).forEach((profile) => {
+    const { layoutAssignments, recordTypeVisibilities } = data[profile];
+    zip.file(
+      `profiles/${PROFILE_LABEL_TO_FULL_NAME_MAP[profile] || profile}.profile`,
+      generateMetadataXml('Profile', [
+        ...layoutAssignments.map((values) => ({ name: 'layoutAssignments', values })),
+        ...recordTypeVisibilities.map((values) => ({ name: 'recordTypeVisibilities', values })),
+      ])
+    );
+  });
+
+  const file = await zip.generateAsync({ type: 'arraybuffer' });
+
+  const { id } = await deployMetadataZip(org, file, {
+    allowMissingFiles: false,
+    autoUpdatePackage: false,
+    checkOnly: false,
+    ignoreWarnings: true,
+    rollbackOnError: true, // must be true for production, so set to true for all
+    runAllTests: false,
+    singlePackage: true,
+  });
+
+  return id;
 }
 
 /**
@@ -406,6 +452,55 @@ export function getUpdatedFieldPermissions(
     }
   });
   return output;
+}
+
+/**
+ * Update table data state based on the save results
+ */
+export function getUpdatedDeployPermissions(
+  deployResults: DeployResult,
+  rows: PermissionManagerRecordTypeRow[]
+): PermissionManagerRecordTypeRow[] {
+  const hasErrors = deployResults.numberComponentErrors > 0;
+
+  const errorMessagesByProfile =
+    deployResults.details?.componentFailures
+      ?.filter(({ componentType }) => componentType === 'Profile')
+      .reduce((acc: MapOf<string>, { fullName, problem }) => {
+        fullName = decodeURIComponent(fullName);
+        acc[PROFILE_LABEL_TO_FULL_NAME_MAP[fullName] || fullName] = problem;
+        return acc;
+      }, {}) || {};
+
+  // update all rows with new permissions or error messages
+  return rows.map((row) => {
+    row = {
+      ...row,
+      permissions: { ...row.permissions },
+      permissionsOriginal: { ...row.permissionsOriginal },
+    };
+    Object.keys(row.permissions).forEach((profile) => {
+      const isDirty = isRecordTypePermissionDirty(row.permissions[profile], row.permissionsOriginal[profile]);
+      if (isDirty && hasErrors && errorMessagesByProfile[profile]) {
+        row.permissions[profile] = {
+          ...row.permissions[profile],
+          errorMessage: errorMessagesByProfile[profile],
+        };
+      } else if (isDirty && hasErrors && !errorMessagesByProfile[profile]) {
+        row.permissions[profile] = {
+          ...row.permissions[profile],
+          errorMessage: 'Save was rolled back because of other failures.',
+        };
+      } else if (isDirty) {
+        row.permissions[profile] = {
+          ...row.permissions[profile],
+          errorMessage: undefined,
+        };
+        row.permissionsOriginal[profile] = { ...row.permissions[profile] };
+      }
+    });
+    return row;
+  });
 }
 
 export function clearPermissionErrorMessage<T extends ObjectPermissionDefinitionMap | FieldPermissionDefinitionMap>(

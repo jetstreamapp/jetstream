@@ -530,3 +530,19 @@ export const SOBJECT_NAME_FIELD_MAP = {
   WorkPlanTemplateEntry: 'WorkPlanTemplateEntryNumber',
   WorkStepStatus: 'ApiName',
 } as const;
+
+/**
+ * Some standard profiles have random fullnames that do not match their label.
+ */
+export const PROFILE_LABEL_TO_FULL_NAME_MAP = {
+  'Contract Manager': 'ContractManager',
+  'Customer Portal Manager': 'CustomerManager',
+  'High Volume Customer Portal': 'HighVolumePortal',
+  'Marketing User': 'MarketingProfile',
+  'Partner User': 'Partner',
+  'Service Cloud': 'ServiceCloud',
+  'Solution Manager': 'SolutionManager',
+  'Standard Platform User': 'StandardAul',
+  'Standard User': 'Standard',
+  'System Administrator': 'Admin',
+} as const;

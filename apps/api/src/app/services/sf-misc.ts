@@ -1,7 +1,7 @@
 import { ensureArray, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf } from '@jetstream/types';
 import type { PackageTypeMembers, RetrieveRequest } from 'jsforce';
-import { get as lodashGet, isObjectLike, isString } from 'lodash';
+import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from '../utils/error-handler';
 
@@ -33,7 +33,7 @@ export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: str
   return packageNode.end({ prettyPrint });
 }
 
-export function getRetrieveRequestFromListMetadata(types: MapOf<ListMetadataResult[]>, version: string) {
+export function getRetrieveRequestFromListMetadata<T extends { fullName: string }>(types: MapOf<T[]>, version: string) {
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve_request.htm
   const retrieveRequest: RetrieveRequest = {
     apiVersion: version,

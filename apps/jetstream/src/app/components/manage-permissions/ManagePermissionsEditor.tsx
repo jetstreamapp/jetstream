@@ -1,7 +1,8 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { getMapOf, multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -17,6 +18,7 @@ import {
   Tooltip,
 } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { RowsChangeData } from 'react-data-grid';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
@@ -26,8 +28,16 @@ import * as fromJetstreamEvents from '../core/jetstream-events';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import * as fromPermissionsState from './manage-permissions.state';
+import ManagePermissionRecordTypes from './record-types/ManagePermissionRecordTypes';
+import { usePermissionRecordTypes } from './usePermissionRecordTypes';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
+import {
+  REC_TYPE_COLUMN_SUFFIX,
+  getDirtyRecordTypePermissions,
+  getTableDataForRecordTypes,
+  prepareRecordTypePermissionSaveData,
+} from './utils/permission-manager-table-record-type-utils';
 import {
   getConfirmationModalContent,
   getDirtyFieldPermissions,
@@ -47,6 +57,8 @@ import {
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecordForSave,
   PermissionFieldSaveData,
+  PermissionManagerObjectWithRecordType,
+  PermissionManagerRecordTypeRow,
   PermissionObjectSaveData,
   PermissionSaveResults,
   PermissionTableFieldCell,
@@ -54,10 +66,13 @@ import {
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
   PermissionTableSummaryRow,
+  RecordTypeSaveData,
 } from './utils/permission-manager-types';
 import {
   clearPermissionErrorMessage,
   collectProfileAndPermissionIds,
+  deployRecordTypeUpdates,
+  getUpdatedDeployPermissions,
   getUpdatedFieldPermissions,
   getUpdatedObjectPermissions,
   permissionsHaveError,
@@ -92,7 +107,7 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const isMounted = useRef(true);
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ google_apiKey, google_appId, google_clientId, defaultApiVersion }] = useRecoilState(applicationCookieState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -109,6 +124,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   const profilesById = useRecoilValue(fromPermissionsState.profilesByIdSelector);
   const permissionSetsById = useRecoilValue(fromPermissionsState.permissionSetsByIdSelector);
+
+  const selectedProfileRecords = useRecoilValue(fromPermissionsState.selectedProfilesSelector);
+
   const [fieldsByObject, setFieldsByObject] = useRecoilState(fromPermissionsState.fieldsByObject);
   const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsState.fieldsByKey);
   const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsState.objectPermissionMap);
@@ -119,6 +137,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
 
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
+  const {
+    recordTypeData,
+    loading: recordTypeDataLoading,
+    hasError: recordTypeDataHasError,
+  } = usePermissionRecordTypes(selectedOrg, selectedSObjects, selectedProfileRecords);
 
   const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
@@ -132,11 +155,21 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [dirtyFieldRows, setDirtyFieldRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
   const [fieldFilter, setFieldFilter] = useState('');
 
+  const [recordTypeColumns, setRecordTypeColumns] = useState<ColumnWithFilter<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>[]>(
+    []
+  );
+  const [recordTypeRows, setRecordTypeRows] = useState<PermissionManagerRecordTypeRow[] | null>(null);
+  // const [visibleObjectRows, setVisibleObjectRows] = useState<PermissionManagerRecordTypeRow[] | null>(null);
+  const [dirtyRecordTypeRows, setDirtyRecordTypeRows] = useState<MapOf<DirtyRow<PermissionManagerRecordTypeRow>>>({});
+  // const [objectFilter, setObjectFilter] = useState('');
+
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
   const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
+  const [dirtyRecordTypeCount, setDirtyRecordTypeCount] = useState<number>(0);
 
   const [objectsHaveErrors, setObjectsHaveErrors] = useState<boolean>(false);
   const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
+  const [recordTypesHaveErrors, setRecordTypesHaveErrors] = useState<boolean>(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -152,6 +185,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldPermissionMap(recordData.fieldPermissionMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordData.fieldsByObject, recordData.fieldsByKey, recordData.objectPermissionMap, recordData.fieldPermissionMap]);
+
+  useEffect(() => {
+    recordTypeData && initRecordTypeData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordTypeData]);
 
   useEffect(() => {
     setLoading(recordData.loading);
@@ -183,6 +221,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   useEffect(() => {
     setDirtyObjectCount(Object.values(dirtyObjectRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
   }, [dirtyObjectRows]);
+
+  useEffect(() => {
+    setDirtyRecordTypeCount(Object.values(dirtyRecordTypeRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
+  }, [dirtyRecordTypeRows]);
 
   useEffect(() => {
     if (fieldRows && fieldFilter) {
@@ -259,6 +301,76 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     });
   }, []);
 
+  const handleRecordTypeBulkRowUpdate = useCallback(
+    (rows: PermissionManagerRecordTypeRow[], changeData?: RowsChangeData<PermissionManagerRecordTypeRow, PermissionTableSummaryRow>) => {
+      // eslint-disable-next-line prefer-const
+      let { column, indexes } = changeData || {};
+      /**
+       * Apply radio button behavior for default
+       * The default radio button only fires change events when the value is set to true, since it cannot be deselected
+       */
+      if (indexes?.length === 1 && column?.key.endsWith(REC_TYPE_COLUMN_SUFFIX.DEFAULT)) {
+        const profile = column.key.replace(REC_TYPE_COLUMN_SUFFIX.DEFAULT, '');
+        const modifiedRow = rows[indexes[0]];
+        // Apply radio button behavior
+        rows = rows.map((row) => {
+          if (modifiedRow.key !== row.key && modifiedRow.sobject === row.sobject) {
+            return {
+              ...row,
+              permissions: {
+                ...row.permissions,
+                [profile]: {
+                  ...row.permissions[profile],
+                  default: false,
+                },
+              },
+            };
+          }
+          return row;
+        });
+      }
+
+      /**
+       * FIXME:
+       * 1. If every value is unchecked for an object, default should be removed and disabled
+       * 2. If first value is checked for an object, default should be enabled
+       */
+      // const rowsBySobject = getMapOf(rows, 'sobject');
+      // then for each profile, we have to check all values for that profile
+
+      const rowsByKey = getMapOf(rows, 'key');
+      setRecordTypeRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
+      indexes = indexes || rows.map((row, index) => index);
+      const keysToCompare: (keyof PermissionManagerObjectWithRecordType)[] = ['default', 'layoutName', 'visible'];
+      setDirtyRecordTypeRows((priorValue) => {
+        const newValues: MapOf<DirtyRow<PermissionManagerRecordTypeRow>> = {};
+        // go through all rows since changing a value on a row can affect the dirty state of other rows
+        rows.forEach((row) => {
+          const rowKey = row.key;
+          const dirtyCount = Object.keys(row.permissions).reduce((acc, profileName) => {
+            const currValue: PermissionManagerObjectWithRecordType = row.permissions[profileName];
+            const origValue: PermissionManagerObjectWithRecordType = row.permissionsOriginal[profileName];
+            keysToCompare.forEach((key) => {
+              if (currValue[key] !== origValue[key]) {
+                acc += 1;
+              }
+            });
+            return acc;
+          }, 0);
+          newValues[rowKey] = { rowKey, dirtyCount, row };
+        });
+        // remove items with a dirtyCount of 0 to reduce future processing required
+        return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionManagerRecordTypeRow>>, key) => {
+          if (newValues[key].dirtyCount) {
+            output[key] = newValues[key];
+          }
+          return output;
+        }, {});
+      });
+    },
+    []
+  );
+
   function initTableData(
     includeColumns = true,
     objectPermissionMapOverride?: MapOf<ObjectPermissionDefinitionMap>,
@@ -279,7 +391,21 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setDirtyFieldRows({});
   }
 
-  // FIXME:
+  function initRecordTypeData(includeColumns = true) {
+    if (recordTypeData) {
+      const { columns, rows } = getTableDataForRecordTypes(recordTypeData);
+      setRecordTypeColumns(columns);
+      setRecordTypeRows(rows);
+      setDirtyRecordTypeRows({});
+      // TODO figure out what else we need to store
+    }
+
+    if (includeColumns) {
+      setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
+      setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
+    }
+  }
+
   function exportChanges() {
     // generate brand-new columns/rows just for export
     // This is required in the case where a tab may not have been rendered
@@ -301,14 +427,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   async function saveChanges() {
     if (
       await ConfirmationModalPromise({
-        header: 'Confirmation',
+        header: 'Review Changes',
         confirm: 'Save Changes',
-        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount),
+        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount, dirtyRecordTypeCount),
       })
     ) {
       setLoading(true);
       let objectPermissionData: PermissionObjectSaveData | undefined = undefined;
       let fieldPermissionData: PermissionFieldSaveData | undefined = undefined;
+      let recordTypePermissionData: RecordTypeSaveData | undefined = undefined;
       let profileIds: string[] = [];
       let permissionSetIds: string[] = [];
 
@@ -330,11 +457,24 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
         }
       }
+      if (dirtyRecordTypeCount) {
+        const dirtyRecordTypes = getDirtyRecordTypePermissions(dirtyRecordTypeRows);
+        if (dirtyRecordTypes.length > 0) {
+          recordTypePermissionData = prepareRecordTypePermissionSaveData(dirtyRecordTypes);
+        }
+      }
 
       let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[] | undefined =
         undefined;
       let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
         undefined;
+      let deployJobId: string | undefined = undefined;
+      let metadataDeployResults: DeployResult | undefined = undefined;
+
+      if (recordTypePermissionData) {
+        // submit job to update record types
+        deployJobId = await deployRecordTypeUpdates(selectedOrg, recordTypePermissionData, defaultApiVersion);
+      }
 
       if (objectPermissionData) {
         objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
@@ -351,6 +491,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           fieldPermissionData
         );
         logger.log({ fieldSaveResults });
+      }
+
+      if (deployJobId) {
+        // submit job to update record types
+        metadataDeployResults = await pollMetadataResultsUntilDone(selectedOrg, deployJobId, {
+          includeDetails: true,
+        });
+        logger.log({ metadataDeployResults });
       }
 
       // Update records so that SFDX is aware of the changes
@@ -378,6 +526,16 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           setFieldRows(rows);
           handleFieldBulkRowUpdate(rows);
         }
+        // recordData
+        // recordTypeData
+        // recordTypeData
+        // recordTypeRows
+        if (metadataDeployResults && recordTypeData && recordTypeRows) {
+          const rows = getUpdatedDeployPermissions(metadataDeployResults, recordTypeRows);
+          setRecordTypeRows(rows);
+          handleRecordTypeBulkRowUpdate(rows);
+          setRecordTypesHaveErrors(metadataDeployResults.numberComponentErrors > 0);
+        }
         setLoading(false);
       }
     }
@@ -389,6 +547,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setObjectPermissionMap(updatedObjectPermissionMap);
     setFieldPermissionMap(updatedFieldPermissionMap);
     initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
+    initRecordTypeData(false);
   }
 
   function handleGoBack() {
@@ -427,7 +586,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
             title="Reset Changes"
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors)}
+            disabled={
+              loading ||
+              (!dirtyObjectCount &&
+                !dirtyFieldCount &&
+                !dirtyRecordTypeCount &&
+                !objectsHaveErrors &&
+                !fieldsHaveErrors &&
+                !recordTypesHaveErrors)
+            }
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
@@ -444,7 +611,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           <button
             className="slds-button slds-button_brand"
             onClick={saveChanges}
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount)}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyRecordTypeCount)}
           >
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
             Save
@@ -522,6 +689,39 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     onBulkUpdate={handleFieldBulkRowUpdate}
                     onDirtyRows={setDirtyFieldRows}
                   />
+                ),
+              },
+              {
+                id: 'record-types',
+                title: (
+                  <Fragment>
+                    {recordTypeDataLoading && <Spinner size="small" />}
+                    <span className="slds-tabs__left-icon">
+                      <Icon
+                        type="standard"
+                        icon="record"
+                        containerClassname="slds-icon_container slds-icon-standard-record"
+                        className="slds-icon slds-icon_small"
+                      />
+                    </span>
+                    Record Types {dirtyRecordTypeCount ? `(${dirtyRecordTypeCount})` : ''}
+                    {/* <ErrorTooltip hasError={fieldsHaveErrors} id="record-type-errors" /> */}
+                  </Fragment>
+                ),
+                titleText: 'Record Types',
+                content: (
+                  <>
+                    {recordTypeDataLoading && <Spinner size="small" />}
+                    {!recordTypeDataLoading && recordTypeData && (
+                      <ManagePermissionRecordTypes
+                        columns={recordTypeColumns}
+                        rows={recordTypeRows || []}
+                        onBulkUpdate={handleRecordTypeBulkRowUpdate}
+                        loading={recordTypeDataLoading}
+                        hasError={recordTypeDataHasError}
+                      />
+                    )}
+                  </>
                 ),
               },
             ]}

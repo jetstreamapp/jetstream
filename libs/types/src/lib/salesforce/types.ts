@@ -462,16 +462,70 @@ export interface RetrieveResultRaw extends Omit<RetrieveResultSfdc, 'zipFile'> {
 export type DeployOptionsTestLevel = 'NoTestRun' | 'RunSpecifiedTests' | 'RunLocalTests' | 'RunAllTestsInOrg';
 
 export interface DeployOptions {
-  allowMissingFiles?: boolean;
-  autoUpdatePackage?: boolean;
-  checkOnly?: boolean;
-  ignoreWarnings?: boolean;
-  performRetrieve?: boolean;
-  purgeOnDelete?: boolean;
-  rollbackOnError?: boolean;
-  runAllTests?: boolean;
-  runTests?: string[];
-  singlePackage?: boolean;
+  /**
+   * If files that are specified in package.xml aren’t in the .zip file, specifies whether a deployment can still succeed.
+   *
+   * Don’t set this argument for deployment to production orgs.
+   *
+   * @default false
+   */
+  allowMissingFiles?: boolean | undefined;
+  /**
+   * If a file is in the .zip file but not specified in package.xml, specifies whether the file is automatically added to the package.
+   * A retrieve() is issued with the updated package.xml that includes the .zip file.
+   *
+   * Don’t set this argument for deployment to production orgs.
+   *
+   * @default false
+   */
+  autoUpdatePackage?: boolean | undefined;
+  /**
+   * Set to true to perform a test deployment (validation) of components without saving the components in the target org.
+   * A validation enables you to verify the results of tests that would be generated in a deployment, but doesn’t commit any changes.
+   * After a validation finishes with passing tests, sometimes it can qualify for deployment without rerunning tests.
+   * See deployRecentValidation().
+   * @default false
+   */
+  checkOnly?: boolean | undefined;
+  /**
+   * Indicates whether deployments with warnings complete successfully (true) or not (false).
+   * @default false
+   */
+  ignoreWarnings?: boolean | undefined;
+  /**
+   * Indicates whether a retrieve() call is performed immediately after the deployment (true) or not (false).
+   * Set to true to retrieve whatever was deployed.
+   * @default false
+   */
+  performRetrieve?: boolean | undefined;
+  /**
+   * If true, the deleted components in the destructiveChanges.xml manifest file aren't stored in the Recycle Bin.
+   * Instead, they become immediately eligible for deletion.
+   * @default false
+   */
+  purgeOnDelete?: boolean | undefined;
+  /**
+   * Indicates whether any failure causes a complete rollback (true) or not (false).
+   * If false, whatever actions can be performed without errors are performed, and errors are returned for the remaining actions.
+   * This parameter must be set to true if you’re deploying to a production org.
+   * @default false
+   */
+  rollbackOnError?: boolean | undefined;
+  /** @deprecated Only allowed in API ersions 33.0 and earlier */
+  runAllTests?: boolean | undefined;
+  /**
+   * A list of Apex tests to run during deployment. Specify the class name, one name per instance.
+   * The class name can also specify a namespace with a dot notation. For more information,
+   * see Running a Subset of Tests in a Deployment.
+   */
+  runTests?: string[] | undefined;
+  /**
+   * 	Indicates whether the specified .zip file points to a directory structure with a single package (true) or a set of packages (false).
+   */
+  singlePackage?: boolean | undefined;
+  /**
+   * Specifies which tests are run as part of a deployment. The test level is enforced regardless of the types of components that are present in the deployment package.
+   */
   testLevel?: DeployOptionsTestLevel;
 }
 

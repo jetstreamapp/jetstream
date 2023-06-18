@@ -19,3 +19,4 @@ export * from './lib/shared-ui-data-utils';
 export * from './lib/shared-ui-keyboard';
 export * from './lib/shared-ui-query-utils';
 export * from './lib/shared-ui-utils';
+export * from './lib/shared-ui-xml-utils';

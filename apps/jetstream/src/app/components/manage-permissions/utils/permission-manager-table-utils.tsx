@@ -643,36 +643,30 @@ export function updateFieldRowsAfterSave(
  *
  */
 
-export function getConfirmationModalContent(dirtyObjectCount: number, dirtyFieldCount: number) {
-  let output;
-  const dirtyObj = (
-    <Fragment>
-      <strong>
-        {dirtyObjectCount} Object {pluralizeFromNumber('Permission', dirtyObjectCount)}
-      </strong>
-    </Fragment>
-  );
-  const dirtyField = (
-    <Fragment>
-      <strong>
-        {dirtyFieldCount} Field {pluralizeFromNumber('Permission', dirtyFieldCount)}
-      </strong>
-    </Fragment>
-  );
-  if (dirtyObjectCount && dirtyFieldCount) {
-    output = (
-      <Fragment>
-        {dirtyObj} and {dirtyField}
-      </Fragment>
-    );
-  } else if (dirtyObjectCount) {
-    output = dirtyObj;
-  } else {
-    output = dirtyField;
-  }
+export function getConfirmationModalContent(dirtyObjectCount: number, dirtyFieldCount: number, dirtyRecordTypeCount: number) {
   return (
     <div>
-      <p>You have made changes to {output}.</p>
+      <p>
+        You have made changes to{' '}
+        <strong>
+          {dirtyObjectCount} Object {pluralizeFromNumber('Permission', dirtyObjectCount)}
+        </strong>
+        .
+      </p>
+      <p>
+        You have made changes to{' '}
+        <strong>
+          {dirtyFieldCount} Field {pluralizeFromNumber('Permission', dirtyFieldCount)}
+        </strong>
+        .
+      </p>
+      <p>
+        You have made changes to{' '}
+        <strong>
+          {dirtyRecordTypeCount} Record Type {pluralizeFromNumber('Permission', dirtyRecordTypeCount)}
+        </strong>
+        .
+      </p>
     </div>
   );
 }

@@ -246,13 +246,23 @@ export function transformListMetadataResponse(items: ListMetadataResultRaw[]): L
   if (!Array.isArray(items)) {
     items = isEmpty(items) ? [] : [items];
   }
-  return items.map((item) => ({
-    ...item,
-    createdDate: parseISO(item.createdDate),
-    lastModifiedDate: parseISO(item.lastModifiedDate),
-    // Some items, such as Settings do not include the property manageableState
-    manageableState: item.manageableState || 'unmanaged',
-  }));
+  // Account is returned twice in CustomObject response, this is used to remove any duplicates
+  const itemFullNames = new Set();
+  return items
+    .filter((item) => {
+      if (itemFullNames.has(item.fullName)) {
+        return false;
+      }
+      itemFullNames.add(item.fullName);
+      return true;
+    })
+    .map((item) => ({
+      ...item,
+      createdDate: parseISO(item.createdDate),
+      lastModifiedDate: parseISO(item.lastModifiedDate),
+      // Some items, such as Settings do not include the property manageableState
+      manageableState: item.manageableState || 'unmanaged',
+    }));
 }
 
 export function transformRetrieveRequestResponse(item: RetrieveResultRaw): RetrieveResult {
