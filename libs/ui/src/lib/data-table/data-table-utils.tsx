@@ -298,6 +298,19 @@ export function setColumnFromType<T>(key: string, fieldType: ColumnType, default
   return column;
 }
 
+export function getRowTypeFromValue(value: unknown): ColumnType {
+  if (typeof value === 'object') {
+    return 'object';
+  } else if (typeof value === 'boolean') {
+    return 'boolean';
+  } else if (typeof value === 'number') {
+    return 'number';
+  } else if (typeof value === 'string') {
+    return 'text';
+  }
+  return 'text';
+}
+
 /**
  * Based on field type, update formatters and filters
  * @param column

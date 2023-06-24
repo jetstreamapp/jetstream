@@ -201,7 +201,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField]);
 
   useEffect(() => {
-    setExternalIdFields(fields.filter((field) => field.externalId));
+    setExternalIdFields(fields.filter((field) => field.name === 'Id' || field.externalId));
   }, [fields]);
 
   useEffect(() => {

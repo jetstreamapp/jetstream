@@ -10,6 +10,7 @@ import {
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
+import { getRowTypeFromValue } from 'libs/ui/src/lib/data-table/data-table-utils';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 
@@ -46,34 +47,37 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   useEffect(() => {
     if (header) {
       setColumns(
-        header.map((item) => ({
-          ...setColumnFromType(item, 'text'),
-          name: item,
-          key: item,
-          field: item,
-          resizable: true,
-          width: COL_WIDTH_MAP[item],
-          formatter:
-            item === '_errors'
-              ? ({ row }) => (
-                  <p
-                    css={css`
-                      white-space: pre-wrap;
-                      line-height: normal;
-                    `}
-                  >
-                    {row._errors && (
-                      <CopyToClipboardWithToolTip
-                        content={row._errors}
-                        icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
-                        className="slds-text-color_error slds-p-right_x-small"
-                      />
-                    )}
-                    {row?._errors}
-                  </p>
-                )
-              : undefined,
-        }))
+        header.map((item) => {
+          const baseColumn = setColumnFromType(item, getRowTypeFromValue(rows?.[0]?.[item]));
+          return {
+            ...baseColumn,
+            name: item,
+            key: item,
+            field: item,
+            resizable: true,
+            width: COL_WIDTH_MAP[item],
+            formatter:
+              item === '_errors'
+                ? ({ row }) => (
+                    <p
+                      css={css`
+                        white-space: pre-wrap;
+                        line-height: normal;
+                      `}
+                    >
+                      {row._errors && (
+                        <CopyToClipboardWithToolTip
+                          content={row._errors}
+                          icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
+                          className="slds-text-color_error slds-p-right_x-small"
+                        />
+                      )}
+                      {row?._errors}
+                    </p>
+                  )
+                : baseColumn.formatter,
+          };
+        })
       );
     }
   }, [header]);
