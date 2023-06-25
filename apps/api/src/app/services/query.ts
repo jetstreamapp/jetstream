@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/api-config';
 import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import type { Connection } from 'jsforce';
-import { parseQuery, Query } from 'soql-parser-js';
+import { Query, parseQuery } from 'soql-parser-js';
 import { QueryColumnMetadata, QueryColumnsSfdc } from '../types/types';
 
 /**
@@ -40,7 +40,7 @@ export async function queryRecords(
       groupBy: tempColumns.groupBy,
       idSelected: tempColumns.idSelected,
       keyPrefix: tempColumns.keyPrefix,
-      columns: tempColumns.columnMetadata.flatMap((column) => flattenQueryColumn(column)),
+      columns: tempColumns.columnMetadata?.flatMap((column) => flattenQueryColumn(column)),
     };
   } catch (ex) {
     logger.error('Error fetching columns', ex);
@@ -76,7 +76,7 @@ function flattenQueryColumn(column: QueryColumnMetadata, prevColumnPath?: string
   if (Array.isArray(column.joinColumns) && column.joinColumns.length > 0) {
     if (column.foreignKeyName) {
       // Parent Query
-      output = output.concat(column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)));
+      output = output.concat((column.joinColumns || [])?.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)));
     } else {
       // Child query
       output.push({
@@ -92,7 +92,7 @@ function flattenQueryColumn(column: QueryColumnMetadata, prevColumnPath?: string
         numberType: column.numberType,
         textType: column.textType,
         updatable: column.updatable,
-        childColumnPaths: column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)),
+        childColumnPaths: (column.joinColumns || [])?.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)),
       });
     }
   } else {

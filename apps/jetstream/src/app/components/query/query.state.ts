@@ -299,7 +299,7 @@ export const hasFiltersConfigured = selector<boolean>({
   key: 'query.hasFiltersConfigured',
   get: ({ get }) =>
     !!get(queryFiltersState)
-      .rows.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
+      .rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
       .some((row) => queryFilterHasValue(row)),
 });
 
@@ -307,7 +307,7 @@ export const hasHavingConfigured = selector<boolean>({
   key: 'query.hasHavingConfigured',
   get: ({ get }) =>
     !!get(queryHavingState)
-      .rows.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
+      .rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
       .some((row) => queryFilterHasValue(row)),
 });
 
