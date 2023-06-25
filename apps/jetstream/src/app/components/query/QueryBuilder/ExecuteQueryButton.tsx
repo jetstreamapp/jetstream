@@ -1,7 +1,7 @@
 import { Maybe } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 
 interface ExecuteQueryButtonProps {

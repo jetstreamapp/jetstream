@@ -1,17 +1,8 @@
-/// <reference lib="webworker" />
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { LoadRecordsBatchError, fetchMappedRelatedRecords, generateCsv, transformData } from '@jetstream/shared/browser-worker-utils';
 import { logger } from '@jetstream/shared/client-logger';
-import {
-  bulkApiAddBatchToJob,
-  bulkApiCloseJob,
-  bulkApiCreateJob,
-  bulkApiGetJob,
-  genericRequest,
-  initForElectron,
-} from '@jetstream/shared/data';
+import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
+import { generateCsv } from '@jetstream/shared/ui-utils';
 import { getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import type {
+import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
   HttpMethod,
@@ -20,85 +11,43 @@ import type {
   SobjectCollectionRequest,
   SobjectCollectionRequestRecord,
   SobjectCollectionResponse,
-  WorkerMessage,
 } from '@jetstream/types';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
-import type {
-  LoadDataBulkApi,
-  LoadDataBulkApiStatusPayload,
-  LoadDataPayload,
-  PrepareDataPayload,
-} from '../../components/load-records/load-records-types';
-import { axiosElectronAdapter, initMessageHandler } from '../core/electron-axios-adapter';
+import type { LoadDataBulkApi, LoadDataBulkApiStatusPayload, LoadDataPayload, PrepareDataPayload } from '../load-records-types';
+import { LoadRecordsBatchError, fetchMappedRelatedRecords, transformData } from './load-records-utils';
 
-declare const self: DedicatedWorkerGlobalScope;
-logger.log('[LOAD WORKER] INITIALIZED');
+/**
+ * Pre-process all load data to prepare for loading
+ *
+ * @param payloadData
+ * @param progressCallback
+ * @returns
+ */
+export async function prepareData(payloadData: PrepareDataPayload, progressCallback: (progress: number) => void) {
+  const { data, fieldMapping, sObject, dateFormat, apiMode } = payloadData;
 
-self.addEventListener('error', (event) => {
-  console.log('WORKER ERROR', event);
-});
-
-type MessageName = 'isElectron' | 'prepareData' | 'prepareDataProgress' | 'loadData' | 'loadDataStatus' | 'abort';
-
-const abortStatus = { isAborted: false };
-
-// Respond to message from parent thread
-self.addEventListener('message', (event) => {
-  const payload: WorkerMessage<MessageName> = event.data;
-  logger.info('[WORKER]', { payload });
-  handleMessage(payload.name, payload.data, event.ports?.[0]);
-});
-
-async function handleMessage(name: MessageName, payloadData: any, port?: MessagePort) {
-  try {
-    abortStatus.isAborted = false;
-    switch (name) {
-      case 'isElectron': {
-        initForElectron(axiosElectronAdapter);
-        initMessageHandler(port);
-        break;
-      }
-      case 'prepareData': {
-        payloadData = payloadData || {};
-        const { data, fieldMapping, sObject, dateFormat, apiMode } = payloadData as PrepareDataPayload;
-        if (!Array.isArray(data) || !fieldMapping || !isString(sObject) || !isString(dateFormat) || !isString(apiMode)) {
-          throw new Error('The required parameters were not included in the request');
-        }
-
-        // also need to change file to add `#` at the beginning each data point
-        const preparedData = await fetchMappedRelatedRecords(transformData(payloadData), payloadData, (progress: number) => {
-          replyToMessage('prepareDataProgress', { progress });
-        });
-
-        replyToMessage(name, { preparedData });
-        break;
-      }
-      case 'loadData': {
-        const { apiMode } = payloadData as LoadDataPayload;
-        if (apiMode === 'BULK') {
-          // BULK - emits LoadDataBulkApiStatusPayload
-          loadBulkApiData(payloadData as LoadDataPayload);
-        } else {
-          // BATCH - emits {records: RecordResultWithRecord[]}
-          loadBatchApiData(payloadData as LoadDataPayload);
-        }
-        break;
-      }
-      case 'abort': {
-        abortStatus.isAborted = true;
-        break;
-      }
-      default:
-        break;
-    }
-  } catch (ex) {
-    return replyToMessage(name, null, new Error(ex.message));
+  if (!Array.isArray(data) || !fieldMapping || !isString(sObject) || !isString(dateFormat) || !isString(apiMode)) {
+    throw new Error('The required parameters were not included in the request');
   }
+
+  const preparedData = await fetchMappedRelatedRecords(await transformData(payloadData), payloadData, progressCallback);
+
+  return preparedData;
 }
 
-async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload) {
-  const replyName = 'loadData';
+/**
+ * Load data using the BULK API
+ *
+ * @param param0
+ * @param statusCallback
+ * @returns
+ */
+export async function loadBulkApiData(
+  { org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload,
+  statusCallback: (resultsSummary: LoadDataBulkApiStatusPayload) => void,
+  checkIfAborted: () => boolean
+) {
   try {
     const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -108,14 +57,14 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
       .map((batch) => generateCsv(batch))
       .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
 
-    replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) });
+    statusCallback(getBatchSummary(results, batches));
     let currItem = 1;
     let fatalError = false;
     const loadErrors: Error[] = [];
     const batchOrderMap: MapOf<number> = {};
     for (const batch of batches) {
       try {
-        if (abortStatus.isAborted) {
+        if (checkIfAborted()) {
           throw new Error('Aborted');
         }
         const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.data, currItem === batches.length);
@@ -131,11 +80,7 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
         batch.errorMessage = ex.message;
         loadErrors.push(ex);
       } finally {
-        let transfer: Transferable[] | undefined = undefined;
-        if (batch.data instanceof ArrayBuffer) {
-          transfer = [batch.data];
-        }
-        replyToMessage('loadDataStatus', { resultsSummary: getBatchSummary(results, batches) }, null, transfer);
+        statusCallback(getBatchSummary(results, batches));
       }
       currItem++;
     }
@@ -154,28 +99,35 @@ async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId
       fatalError = true;
     }
 
-    replyToMessage(
-      replyName,
-      { jobInfo: jobInfoWithBatches },
-      (fatalError && new LoadRecordsBatchError(`One or more batches failed to load`, loadErrors)) || null
-    );
-
     if (jobInfoWithBatches.state === 'Open') {
       // close job last so user does not have to wait for this since it does not matter
-      try {
-        await bulkApiCloseJob(org, jobId);
-      } catch (ex) {
-        // ignore batch closure failures
-      }
+      bulkApiCloseJob(org, jobId).catch((ex) => {
+        logger.warn('Error closing job', ex);
+      });
     }
+
+    return {
+      jobInfo: jobInfoWithBatches,
+      loadError: fatalError || loadErrors.length ? new LoadRecordsBatchError(`One or more batches failed to load`, loadErrors) : null,
+    };
   } catch (ex) {
-    return replyToMessage(replyName, null, new Error(ex.message));
+    logger.error('Error loading data', ex);
+    throw ex;
   }
 }
 
-async function loadBatchApiData(payload: LoadDataPayload) {
+/**
+ * Load data using the Composite API (AKA Batch API)
+ *
+ * @param payload
+ * @param statusCallback
+ */
+export async function loadBatchApiData(
+  payload: LoadDataPayload,
+  statusCallback: (records: RecordResultWithRecord[]) => void,
+  checkIfAborted: () => boolean
+) {
   const { org, sObject, type, externalId, assignmentRuleId } = payload;
-  const replyName = 'loadData';
   try {
     const { batchRecordMap, batches, failedRecords } = await getBatchApiBatches(payload);
 
@@ -197,7 +149,7 @@ async function loadBatchApiData(payload: LoadDataPayload) {
       let recordIndexesWithMissingIds: Set<number> = new Set();
 
       try {
-        if (abortStatus.isAborted) {
+        if (checkIfAborted()) {
           throw new Error('Aborted');
         }
         if (type === 'DELETE') {
@@ -253,7 +205,7 @@ async function loadBatchApiData(payload: LoadDataPayload) {
       } catch (ex) {
         let message = `An unknown error has occurred. Salesforce Message: ${ex.message}`;
         let statusCode = 'UNKNOWN';
-        if (abortStatus.isAborted) {
+        if (checkIfAborted()) {
           message = 'Data load aborted';
           statusCode = 'ABORTED';
         }
@@ -272,13 +224,14 @@ async function loadBatchApiData(payload: LoadDataPayload) {
             })
           ) || [];
       } finally {
-        replyToMessage('loadDataStatus', { records: responseWithRecord });
+        // replyToMessage('loadDataStatus', { records: responseWithRecord });
+        statusCallback(responseWithRecord);
       }
     }
     // Handle and processing failures (these happen when processing binary data)
     if (failedRecords.length) {
-      replyToMessage('loadDataStatus', {
-        records: failedRecords.map(
+      statusCallback(
+        failedRecords.map(
           (record): RecordResultWithRecord => ({
             success: false,
             errors: [
@@ -290,22 +243,15 @@ async function loadBatchApiData(payload: LoadDataPayload) {
             ],
             record,
           })
-        ),
-      });
+        )
+      );
     }
-    replyToMessage(replyName, {});
   } catch (ex) {
-    return replyToMessage(replyName, null, ex);
+    logger.error('Error loading data', ex);
+    throw ex;
   }
 }
 
-/**
- * Handles preparing batches for the Batch API
- * If required, prepares zip attachments as base64 and calculates the batch size
- *
- * @param {LoadDataPayload} payload
- * @returns
- */
 async function getBatchApiBatches({
   data,
   sObject,
@@ -385,9 +331,3 @@ function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]
     batchSummary: batches.map(({ id, batchNumber, completed, success }) => ({ id, batchNumber, completed, success })),
   };
 }
-
-function replyToMessage(name: string, data: any, error?: any, transfer?: Transferable[]) {
-  transfer ? self.postMessage({ name, data, error }, transfer) : self.postMessage({ name, data, error });
-}
-
-export default null as any;

@@ -7,7 +7,7 @@ import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import roundToNearestMinutes from 'date-fns/roundToNearestMinutes';
 import startOfDay from 'date-fns/startOfDay';
-import { Field } from 'jsforce';
+import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';

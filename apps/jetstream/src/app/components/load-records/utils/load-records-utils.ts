@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, getMapOf, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, delay, getMapOf, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
 import JSZip from 'jszip';
@@ -353,9 +353,19 @@ export function getFieldHeaderFromMapping(fieldMapping: FieldMapping): string[] 
     });
 }
 
-export function transformData({ data, fieldMapping, sObject, insertNulls, dateFormat, apiMode }: PrepareDataPayload): any[] {
-  return data.map((row) => {
-    return Object.keys(fieldMapping)
+export async function transformData({ data, fieldMapping, sObject, insertNulls, dateFormat, apiMode }: PrepareDataPayload): Promise<any[]> {
+  const output: any[] = [];
+  let counter = 0;
+
+  for (const row of data) {
+    counter++;
+    /**
+     * Let other work get done every 1K records to avoid blocking the UI
+     */
+    if (counter % 1000 === 0) {
+      await delay(0);
+    }
+    const processedRow = Object.keys(fieldMapping)
       .filter((key) => !!fieldMapping[key].targetField)
       .reduce((output: any, field, i) => {
         if (apiMode === 'BATCH' && i === 0) {
@@ -419,7 +429,10 @@ export function transformData({ data, fieldMapping, sObject, insertNulls, dateFo
 
         return output;
       }, {});
-  });
+
+    output.push(processedRow);
+  }
+  return output;
 }
 
 /**
