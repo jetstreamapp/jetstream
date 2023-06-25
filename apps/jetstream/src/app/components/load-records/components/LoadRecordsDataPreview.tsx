@@ -12,6 +12,7 @@ import { Column } from 'react-data-grid';
 import { useRecoilState } from 'recoil';
 import * as fromLoadRecordsState from '../load-records.state';
 
+const MAX_RECORD_FOR_PREVIEW = 100_000;
 const MAX_COLUMNS_TO_KEEP_SET_FILTER = 2000;
 const NUM_COLUMN = '_num';
 const getRowId = ({ _num }: any) => _num;
@@ -121,7 +122,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   }, [selectedOrg, selectedSObject, setTotalRecordCount, totalRecordCount]);
 
   useEffect(() => {
-    if (data && header) {
+    if (data && header && data.length < MAX_RECORD_FOR_PREVIEW) {
       // Transform data keys if needed to ensure the table preview can be rendered
       // Special characters in the header key cause issues with react-data-grid
       let _rows = data;
@@ -151,6 +152,8 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
     }
   }, [data, header]);
 
+  const tooLargeToShowPreview = data && data.length > MAX_RECORD_FOR_PREVIEW;
+
   return (
     <div>
       <Grid vertical>
@@ -176,6 +179,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
           )}
         </GridCol>
         <GridCol className="slds-is-relative">
+          {tooLargeToShowPreview && <p className="slds-text-heading_small">Your file is too large to show a preview</p>}
           {columns && rows && (
             <div
               css={css`
@@ -184,7 +188,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
                 min-width: 100%;
               `}
             >
-              <div className="slds-text-heading_small">File Preview</div>
+              <p className="slds-text-heading_small">File Preview</p>
               <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
                 <DataTable columns={columns} data={rows} getRowKey={getRowId} />
               </AutoFullHeightContainer>

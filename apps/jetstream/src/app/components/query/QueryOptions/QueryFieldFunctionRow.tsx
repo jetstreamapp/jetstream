@@ -3,7 +3,7 @@ import { REGEX } from '@jetstream/shared/utils';
 import { ListItem, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { ComboboxWithItems, GridCol, Icon, Input, Popover, PopoverRef } from '@jetstream/ui';
 import classNames from 'classnames';
-import { FieldType } from 'jsforce';
+import type { FieldType } from 'jsforce';
 import { useEffect, useRef, useState } from 'react';
 
 export interface QueryFieldFunctionRowProps {

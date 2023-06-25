@@ -1,15 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { bulkApiGetJob, checkMetadataRetrieveResults, queryAll } from '@jetstream/shared/data';
-import { NOOP, delay, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { HTTP } from '@jetstream/shared/constants';
+import { bulkApiGetJob, checkMetadataRetrieveResults } from '@jetstream/shared/data';
+import { NOOP, delay } from '@jetstream/shared/utils';
 import type { BulkJobWithBatches, MapOf, Maybe, RetrieveResult, SalesforceOrgUi } from '@jetstream/types';
-import { FieldType } from 'jsforce';
+import type { FieldType } from 'jsforce';
 import isFunction from 'lodash/isFunction';
-import isNil from 'lodash/isNil';
-import isString from 'lodash/isString';
 import numeral from 'numeral';
 import { UnparseConfig, unparse, unparse as unparseCsv } from 'papaparse';
-import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import * as XLSX from 'xlsx';
 
 /**
@@ -27,14 +24,6 @@ import * as XLSX from 'xlsx';
  *
  * FIXME: Everything here is duplicated elsewhere - we should keep this stuff here and have it accessed where needed (if possible)
  */
-
-export class LoadRecordsBatchError extends Error {
-  additionalErrors: Error[];
-  constructor(message: string, additionalErrors?: Error[]) {
-    super(`${message}. ${additionalErrors ? additionalErrors.map((ex) => ex.message).join(', ') : ''}`.trim());
-    this.additionalErrors = additionalErrors || [];
-  }
-}
 
 export function base64ToArrayBuffer(base64: string) {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
@@ -54,6 +43,7 @@ function detectDelimiter(): string {
   return delimiter;
 }
 
+/** @deprecated - I think this is unused */
 export function generateCsv(data: any[], options: UnparseConfig = {}): string {
   options = options || {};
   options.newline = options.newline || '\n';
@@ -305,283 +295,7 @@ export interface PrepareDataResponseError {
 }
 
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
-const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
-const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
-
-function addErrors(errorsByRowIndex: Map<number, { row: number; record: any; errors: string[] }>) {
-  return function addError(row: number, record: any, error: string) {
-    if (!errorsByRowIndex.has(row)) {
-      errorsByRowIndex.set(row, { row, record, errors: [] });
-    }
-    errorsByRowIndex.get(row)?.errors.push(error);
-  };
-}
-
-/**
- * For any lookup fields that are not mapped to an external Id, fetch related records and populate related record Id for each field
- * The fieldMapping option contains the options the user selected on how to handle cases where 0 or multiple related records are found for a given value
- *
- * @param data records
- * @param param1
- * @returns
- */
-export async function fetchMappedRelatedRecords(
-  data: any[],
-  { org, sObject, fieldMapping, apiMode }: PrepareDataPayload,
-  onProgress: (progress: number) => void
-): Promise<PrepareDataResponse> {
-  const nonExternalIdFieldMappings = Object.values(fieldMapping).filter(
-    (item) =>
-      item.mappedToLookup &&
-      item.relatedFieldMetadata &&
-      (!item.relatedFieldMetadata.isExternalId || item.relationshipName === SELF_LOOKUP_KEY)
-  );
-
-  const queryErrors: string[] = [];
-  const errorsByRowIndex = new Map<number, { row: number; record: any; errors: string[] }>();
-  const addError = addErrors(errorsByRowIndex);
-
-  if (nonExternalIdFieldMappings.length) {
-    // progress indicator
-    let current = 0;
-    const step = 100 / nonExternalIdFieldMappings.length;
-    const total = 100;
-
-    // increment progress between current and next step - lots of incremental records queried
-    const emitQueryProgress = (currentQuery: number, total: number) => {
-      const progressIncrement = (currentQuery / total) * step;
-      // ensure we don't exceed beyond the current step
-      onProgress(Math.min(current + progressIncrement, current + step));
-    };
-
-    for (const {
-      lookupOptionNullIfNoMatch,
-      lookupOptionUseFirstMatch,
-      relationshipName,
-      selectedReferenceTo,
-      targetField,
-      targetLookupField,
-    } of nonExternalIdFieldMappings) {
-      onProgress(Math.min(current / total, 100));
-      // only used for error messaging
-      let fieldRelationshipName = `${relationshipName}.${targetLookupField}`;
-      if (relationshipName === SELF_LOOKUP_KEY) {
-        // Don't show user ~SELF_LOOKUP~
-        fieldRelationshipName = `${targetLookupField}`;
-      }
-      // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
-      const relatedValues = new Set<string>(data.map((row: any) => row[targetField || '']).filter(Boolean));
-
-      if (relatedValues.size && selectedReferenceTo && targetLookupField) {
-        const relatedRecordsByRelatedField: MapOf<string[]> = {};
-        // Get as many queries as required based on the size of the related fields
-        const queries = getRelatedFieldsQueries(sObject, selectedReferenceTo, targetLookupField, Array.from(relatedValues));
-        let currentQuery = 1;
-        for (const query of queries) {
-          try {
-            emitQueryProgress(currentQuery, queries.length);
-            currentQuery++;
-            (await queryAll(org, query)).queryResults.records.forEach((record) => {
-              relatedRecordsByRelatedField[record[targetLookupField]] = relatedRecordsByRelatedField[record[targetLookupField]] || [];
-              relatedRecordsByRelatedField[record[targetLookupField]].push(record.Id);
-            });
-          } catch (ex) {
-            queryErrors.push((ex as any).message);
-          }
-        }
-
-        data.forEach((record: any, i: number) => {
-          if (!targetField || isNil(record[targetField]) || record[targetField] === '') {
-            return;
-          }
-          const relatedRecords = relatedRecordsByRelatedField[record[targetField]];
-          /** NO RELATED RECORD FOUND */
-          if (!relatedRecords) {
-            if (lookupOptionNullIfNoMatch) {
-              record[targetField] = apiMode === 'BATCH' ? null : SFDC_BULK_API_NULL_VALUE;
-            } else {
-              // No match, and not mark as null
-              addError(
-                i,
-                record,
-                `Related record not found for relationship "${fieldRelationshipName}" with a value of "${record[targetField]}".`
-              );
-            }
-          } else if (relatedRecords.length > 1 && lookupOptionUseFirstMatch !== 'FIRST') {
-            addError(
-              i,
-              record,
-              `Found ${formatNumber(relatedRecords.length)} related records for relationship "${fieldRelationshipName}" with a value of "${
-                record[targetField]
-              }".`
-            );
-          } else {
-            /** FOUND 1 MATCH, OR OPTION TO USE FIRST MATCH */
-            record[targetField] = relatedRecords[0];
-          }
-        });
-      }
-      current++;
-    }
-    onProgress(100);
-  }
-  // remove failed records from dataset
-  data = data.filter((_: unknown, i: number) => !errorsByRowIndex.has(i));
-
-  return { data, errors: Array.from(errorsByRowIndex.values()), queryErrors };
-}
 
 export function formatNumber(number?: number) {
   return numeral(number || 0).format('0,0');
-}
-
-/**
- * Get as many queries as required to fetch all the related values based on the length of the query
- *
- * @param baseObject Parent object, not the one being queried - used for additional filter special cases (e.x. RecordType)
- * @param relatedObject
- * @param relatedField
- * @param relatedValues
- * @returns
- */
-function getRelatedFieldsQueries(baseObject: string, relatedObject: string, relatedField: string, relatedValues: string[]): string[] {
-  let extraWhereClause = '';
-
-  const baseQuery: Query = {
-    sObject: relatedObject,
-    fields: Array.from(new Set([getField('Id'), getField(relatedField)])),
-  };
-
-  let extraWhereClauseNew: WhereClause | undefined = undefined;
-  const whereClause: WhereClause = {
-    left: {
-      field: relatedField,
-      operator: 'IN',
-      value: [],
-      literalType: 'STRING',
-    },
-  };
-
-  /** SPECIAL CASES */
-  if (relatedObject.toLowerCase() === 'recordtype') {
-    extraWhereClause = `SobjectType = '${baseObject}' AND `;
-    extraWhereClauseNew = {
-      left: {
-        field: 'SobjectType',
-        operator: '=',
-        value: baseObject,
-        literalType: 'STRING',
-      },
-    };
-  }
-  const QUERY_ITEM_BUFFER_LENGTH = 250;
-  const BASE_QUERY_LENGTH =
-    `SELECT Id, ${relatedField} FROM ${relatedObject} WHERE ${extraWhereClause}${relatedField} IN ('`.length + QUERY_ITEM_BUFFER_LENGTH;
-  const MAX_QUERY_LENGTH = 9500; // somewhere just over 10K was giving an error
-
-  const queries: string[] = [];
-  let tempRelatedValues: string[] = [];
-  let currLength = BASE_QUERY_LENGTH;
-  relatedValues.forEach((value) => {
-    tempRelatedValues.push(isString(value) ? value.replaceAll(`'`, `\\'`).replaceAll(`\\n`, `\\\\n`) : value);
-    currLength += value.length + QUERY_ITEM_BUFFER_LENGTH;
-    if (currLength >= MAX_QUERY_LENGTH) {
-      const tempQuery = { ...baseQuery };
-      if (extraWhereClauseNew) {
-        tempQuery.where = {
-          ...extraWhereClauseNew,
-          operator: 'AND',
-          right: { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } },
-        };
-      } else {
-        tempQuery.where = { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } };
-      }
-      queries.push(composeQuery(tempQuery));
-      tempRelatedValues = [];
-      currLength = BASE_QUERY_LENGTH;
-    }
-  });
-  if (tempRelatedValues.length) {
-    const tempQuery = { ...baseQuery };
-    if (extraWhereClauseNew) {
-      tempQuery.where = {
-        ...extraWhereClauseNew,
-        operator: 'AND',
-        right: { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } },
-      };
-    } else {
-      tempQuery.where = { ...whereClause, left: { ...whereClause.left, value: tempRelatedValues } };
-    }
-    queries.push(composeQuery(tempQuery));
-  }
-  return queries;
-}
-
-export function transformData({ data, fieldMapping, sObject, insertNulls, dateFormat, apiMode }: PrepareDataPayload): any[] {
-  return data.map((row) => {
-    return Object.keys(fieldMapping)
-      .filter((key) => !!fieldMapping[key].targetField)
-      .reduce((output: any, field, i) => {
-        if (apiMode === 'BATCH' && i === 0) {
-          output.attributes = { type: sObject };
-        }
-        let skipField = false;
-        const fieldMappingItem = fieldMapping[field];
-        // SFDC handles automatic type conversion with both bulk and batch apis (if possible, otherwise the record errors)
-        let value = row[field];
-
-        if (isNil(value) || (isString(value) && !value)) {
-          if (apiMode === 'BULK' && insertNulls) {
-            value = SFDC_BULK_API_NULL_VALUE;
-          } else if (apiMode === 'BATCH' && insertNulls) {
-            value = null;
-          } else if (apiMode === 'BATCH') {
-            // batch api will always clear the value in SFDC if a null is passed, so we must ensure it is not included at all
-            skipField = true;
-          }
-        } else if (fieldMappingItem.fieldMetadata) {
-          value = transformRecordForDataLoad(value, fieldMappingItem.fieldMetadata.type, dateFormat);
-        }
-
-        if (!skipField) {
-          // Handle external Id related fields
-          // Non-external Id lookups are handled separately in `fetchMappedRelatedRecords()` and are mapped normally to the target field initially
-          if (
-            apiMode === 'BATCH' &&
-            fieldMappingItem.mappedToLookup &&
-            fieldMappingItem.relatedFieldMetadata?.isExternalId &&
-            fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY &&
-            fieldMappingItem.relationshipName &&
-            fieldMappingItem.targetLookupField
-          ) {
-            output[fieldMappingItem.relationshipName] = { [fieldMappingItem.targetLookupField]: value };
-            // if polymorphic field, then add type attribute
-            if ((fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) > 1) {
-              output[fieldMappingItem.relationshipName] = {
-                attributes: { type: fieldMappingItem.selectedReferenceTo },
-                ...output[fieldMappingItem.relationshipName],
-              };
-            }
-          } else if (
-            fieldMappingItem.mappedToLookup &&
-            fieldMappingItem.relatedFieldMetadata?.isExternalId &&
-            fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY &&
-            fieldMappingItem.targetLookupField
-          ) {
-            if ((fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) > 1) {
-              // add in polymorphic field type
-              // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/datafiles_csv_rel_field_header_row.htm?search_text=Polymorphic
-              output[`${fieldMappingItem.selectedReferenceTo}:${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] =
-                value;
-            } else {
-              output[`${fieldMappingItem.relationshipName}.${fieldMappingItem.targetLookupField}`] = value;
-            }
-          } else if (fieldMappingItem.targetField) {
-            output[fieldMappingItem.targetField] = value;
-          }
-        }
-
-        return output;
-      }, {});
-  });
 }

@@ -181,7 +181,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               </GridCol>
             </Grid>
           </GridCol>
-          {allowBinaryAttachment && inputZipFilename && (
+          {allowBinaryAttachment && (
             <GridCol className="slds-m-bottom_small">
               <Grid verticalAlign="center">
                 <GridCol size={6}>
