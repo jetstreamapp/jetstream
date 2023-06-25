@@ -34,7 +34,7 @@ function getRowId(row: Record<ChildRecordRow>): string {
 const groupedRows = ['_groupByLabel'] as const;
 
 function getRows(childRelationships: ChildRelationship[], record: Record) {
-  return childRelationships
+  return (childRelationships || [])
     .flatMap((childRelationship): Record<ChildRecordRow>[] => {
       if (childRelationship.relationshipName && record[childRelationship.relationshipName]) {
         const childQueryResults: QueryResult<any> = record[childRelationship.relationshipName];
