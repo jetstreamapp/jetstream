@@ -18,11 +18,11 @@ import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Toolti
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
-import { useAmplitude } from '../../../core/analytics';
 import { fireToast } from '../../../core/AppToast';
+import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
-import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
 import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
+import { DownloadAction, DownloadType, PrepareDataResponseError } from '../../../shared/load-records-results/load-records-results-types';
 import {
   ApiMode,
   DownloadModalData,
@@ -31,9 +31,10 @@ import {
   LoadDataPayload,
   PrepareDataPayload,
   PrepareDataResponse,
+  PrepareDataResponseRaw,
   ViewModalData,
 } from '../../load-records-types';
-import { getFieldHeaderFromMapping, LoadRecordsBatchError } from '../../utils/load-records-utils';
+import { LoadRecordsBatchError, getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import { getLoadWorker } from '../../utils/load-records-worker';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
@@ -154,7 +155,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       setFatalError(null);
       const data: PrepareDataPayload = {
         org: selectedOrg,
-        data: inputFileData,
+        data: new TextEncoder().encode(JSON.stringify(inputFileData)).buffer,
         // zipData: inputZipFileData,
         fieldMapping,
         sObject: selectedSObject,
@@ -162,7 +163,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         dateFormat,
         apiMode,
       };
-      loadWorker.postMessage({ name: 'prepareData', data });
+      loadWorker.postMessage({ name: 'prepareData', data }, [data.data]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadWorker]);
@@ -171,7 +172,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     if (preparedData && preparedData.data.length) {
       const data: LoadDataPayload = {
         org: selectedOrg,
-        data: preparedData.data,
+        data: new TextEncoder().encode(JSON.stringify(preparedData.data)).buffer,
         zipData: inputZipFileData,
         sObject: selectedSObject,
         apiMode,
@@ -181,7 +182,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         serialMode,
         externalId,
       };
-      loadWorker.postMessage({ name: 'loadData', data });
+      loadWorker.postMessage({ name: 'loadData', data }, [data.data, data.zipData].filter(Boolean) as ArrayBuffer[]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preparedData]);
@@ -239,16 +240,37 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
         if (!isMounted.current) {
           return;
         }
-        const payload: WorkerMessage<
+        const payloadRaw: WorkerMessage<
           'prepareData' | 'prepareDataProgress' | 'loadDataStatus' | 'loadData',
           {
-            preparedData?: PrepareDataResponse;
+            preparedData?: PrepareDataResponseRaw;
             jobInfo?: BulkJobWithBatches;
             progress?: number;
             resultsSummary?: LoadDataBulkApiStatusPayload;
           },
           Error | LoadRecordsBatchError
         > = event.data;
+        // Convert all transferrables to normal data
+        const payload = {
+          name: payloadRaw.name,
+          error: payloadRaw.error instanceof ArrayBuffer ? JSON.parse(new TextDecoder().decode(payloadRaw.error)) : payloadRaw.error,
+          data: {
+            preparedData: payloadRaw.data?.preparedData
+              ? {
+                  data: (payloadRaw.data.preparedData?.data instanceof ArrayBuffer
+                    ? JSON.parse(new TextDecoder().decode(payloadRaw.data.preparedData.data)) || []
+                    : []) as any[],
+                  errors: (payloadRaw.data.preparedData?.errors instanceof ArrayBuffer
+                    ? JSON.parse(new TextDecoder().decode(payloadRaw.data.preparedData.errors)) || []
+                    : []) as PrepareDataResponseError[],
+                  queryErrors: payloadRaw.data.preparedData?.queryErrors || [],
+                }
+              : undefined,
+            jobInfo: payloadRaw.data?.jobInfo,
+            progress: payloadRaw.data?.progress,
+            resultsSummary: payloadRaw.data?.resultsSummary,
+          },
+        };
         logger.log('[LOAD DATA]', payload.name, { payload });
         const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
         switch (payload.name) {

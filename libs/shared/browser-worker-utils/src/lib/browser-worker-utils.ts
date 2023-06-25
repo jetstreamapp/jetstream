@@ -278,9 +278,9 @@ export interface FieldRelatedEntity {
   isExternalId: boolean;
 }
 
-export interface PrepareDataPayload {
+export interface PrepareDataPayload<TData extends ArrayBuffer | any[] = ArrayBuffer> {
   org: SalesforceOrgUi;
-  data: any[];
+  data: TData;
   fieldMapping: FieldMapping;
   sObject: string;
   insertNulls?: boolean; // defaults to false
@@ -517,7 +517,15 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
   return queries;
 }
 
-export function transformData({ data, fieldMapping, sObject, insertNulls, dateFormat, apiMode }: PrepareDataPayload): any[] {
+export function transformData({
+  data: DataArrayBuffer,
+  fieldMapping,
+  sObject,
+  insertNulls,
+  dateFormat,
+  apiMode,
+}: PrepareDataPayload): any[] {
+  const data = DataArrayBuffer instanceof ArrayBuffer ? (JSON.parse(JSON.stringify(DataArrayBuffer)) as any[]) : (DataArrayBuffer as any[]);
   return data.map((row) => {
     return Object.keys(fieldMapping)
       .filter((key) => !!fieldMapping[key].targetField)

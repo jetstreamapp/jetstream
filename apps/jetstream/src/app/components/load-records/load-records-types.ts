@@ -73,9 +73,9 @@ export interface FieldMappingItem {
   isBinaryBodyField: boolean;
 }
 
-export interface PrepareDataPayload {
+export interface PrepareDataPayload<TData extends ArrayBuffer | any[] = ArrayBuffer> {
   org: SalesforceOrgUi;
-  data: any[];
+  data: TData;
   fieldMapping: FieldMapping;
   sObject: string;
   insertNulls?: boolean; // defaults to false
@@ -89,6 +89,12 @@ export interface PrepareDataResponse {
   queryErrors: string[];
 }
 
+export interface PrepareDataResponseRaw {
+  data: ArrayBuffer;
+  errors: ArrayBuffer;
+  queryErrors: string[]; // TODO: should this be an array buffer?
+}
+
 // export interface PrepareDataResponseError {
 //   row: number;
 //   record: any;
@@ -97,7 +103,7 @@ export interface PrepareDataResponse {
 
 export interface LoadDataPayload {
   org: SalesforceOrgUi;
-  data: any[];
+  data: ArrayBuffer;
   zipData?: Maybe<ArrayBuffer>;
   sObject: string;
   apiMode: ApiMode;

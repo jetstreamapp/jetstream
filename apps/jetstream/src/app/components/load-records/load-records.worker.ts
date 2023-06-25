@@ -29,6 +29,7 @@ import type {
   LoadDataBulkApiStatusPayload,
   LoadDataPayload,
   PrepareDataPayload,
+  PrepareDataResponseRaw,
 } from '../../components/load-records/load-records-types';
 import { axiosElectronAdapter, initMessageHandler } from '../core/electron-axios-adapter';
 
@@ -61,7 +62,8 @@ async function handleMessage(name: MessageName, payloadData: any, port?: Message
       }
       case 'prepareData': {
         payloadData = payloadData || {};
-        const { data, fieldMapping, sObject, dateFormat, apiMode } = payloadData as PrepareDataPayload;
+        payloadData.data = JSON.parse(new TextDecoder().decode(payloadData.data)) as any[];
+        const { data, fieldMapping, sObject, dateFormat, apiMode } = payloadData as PrepareDataPayload<any[]>;
         if (!Array.isArray(data) || !fieldMapping || !isString(sObject) || !isString(dateFormat) || !isString(apiMode)) {
           throw new Error('The required parameters were not included in the request');
         }
@@ -71,7 +73,13 @@ async function handleMessage(name: MessageName, payloadData: any, port?: Message
           replyToMessage('prepareDataProgress', { progress });
         });
 
-        replyToMessage(name, { preparedData });
+        const preparedDataRaw: PrepareDataResponseRaw = {
+          ...preparedData,
+          errors: new TextEncoder().encode(JSON.stringify(preparedData.errors || [])).buffer,
+          data: new TextEncoder().encode(JSON.stringify(preparedData.data || [])).buffer,
+        };
+
+        replyToMessage(name, { preparedData: preparedDataRaw }, undefined, [preparedDataRaw.errors, preparedDataRaw.data]);
         break;
       }
       case 'loadData': {
@@ -97,9 +105,19 @@ async function handleMessage(name: MessageName, payloadData: any, port?: Message
   }
 }
 
-async function loadBulkApiData({ org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload) {
+async function loadBulkApiData({
+  org,
+  data: dataArrayBuffer,
+  sObject,
+  type,
+  batchSize,
+  externalId,
+  assignmentRuleId,
+  serialMode,
+}: LoadDataPayload) {
   const replyName = 'loadData';
   try {
+    const data = JSON.parse(new TextDecoder().decode(dataArrayBuffer)) as any[];
     const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const jobId = results.id!;
@@ -272,26 +290,30 @@ async function loadBatchApiData(payload: LoadDataPayload) {
             })
           ) || [];
       } finally {
-        replyToMessage('loadDataStatus', { records: responseWithRecord });
+        const records = new TextEncoder().encode(JSON.stringify(responseWithRecord)).buffer;
+        replyToMessage('loadDataStatus', { records }, undefined, [records]);
       }
     }
     // Handle and processing failures (these happen when processing binary data)
     if (failedRecords.length) {
-      replyToMessage('loadDataStatus', {
-        records: failedRecords.map(
-          (record): RecordResultWithRecord => ({
-            success: false,
-            errors: [
-              {
-                fields: [],
-                message: `An unknown error has occurred while processing this record.`,
-                statusCode: 'UNKNOWN',
-              },
-            ],
-            record,
-          })
-        ),
-      });
+      const records = new TextEncoder().encode(
+        JSON.stringify(
+          failedRecords.map(
+            (record): RecordResultWithRecord => ({
+              success: false,
+              errors: [
+                {
+                  fields: [],
+                  message: `An unknown error has occurred while processing this record.`,
+                  statusCode: 'UNKNOWN',
+                },
+              ],
+              record,
+            })
+          )
+        )
+      ).buffer;
+      replyToMessage('loadDataStatus', { records }, [records]);
     }
     replyToMessage(replyName, {});
   } catch (ex) {
@@ -307,12 +329,13 @@ async function loadBatchApiData(payload: LoadDataPayload) {
  * @returns
  */
 async function getBatchApiBatches({
-  data,
+  data: dataArrayBuffer,
   sObject,
   batchSize,
   zipData,
   binaryBodyField,
 }: LoadDataPayload): Promise<{ batches: SobjectCollectionRequest[]; batchRecordMap: Map<number, any[]>; failedRecords: any[] }> {
+  const data = JSON.parse(new TextDecoder().decode(dataArrayBuffer)) as any[];
   let batches: SobjectCollectionRequest[] = [];
   // used to ensure we don't send base64 (huge) back to browser
   const batchRecordMap: Map<number, any[]> = new Map();

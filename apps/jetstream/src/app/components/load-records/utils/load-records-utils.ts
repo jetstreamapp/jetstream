@@ -353,7 +353,15 @@ export function getFieldHeaderFromMapping(fieldMapping: FieldMapping): string[] 
     });
 }
 
-export function transformData({ data, fieldMapping, sObject, insertNulls, dateFormat, apiMode }: PrepareDataPayload): any[] {
+export function transformData({
+  data: DataArrayBuffer,
+  fieldMapping,
+  sObject,
+  insertNulls,
+  dateFormat,
+  apiMode,
+}: PrepareDataPayload): any[] {
+  const data = DataArrayBuffer instanceof ArrayBuffer ? (JSON.parse(JSON.stringify(DataArrayBuffer)) as any[]) : (DataArrayBuffer as any[]);
   return data.map((row) => {
     return Object.keys(fieldMapping)
       .filter((key) => !!fieldMapping[key].targetField)

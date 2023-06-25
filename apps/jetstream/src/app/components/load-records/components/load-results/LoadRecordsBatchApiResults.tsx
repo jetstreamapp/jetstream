@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { PrepareDataResponseError } from '@jetstream/shared/browser-worker-utils';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
@@ -18,6 +19,7 @@ import {
   LoadDataPayload,
   PrepareDataPayload,
   PrepareDataResponse,
+  PrepareDataResponseRaw,
   ViewModalData,
 } from '../../load-records-types';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
@@ -114,14 +116,14 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       setFatalError(null);
       const data: PrepareDataPayload = {
         org: selectedOrg,
-        data: inputFileData,
+        data: new TextEncoder().encode(JSON.stringify(inputFileData)).buffer,
         fieldMapping,
         sObject: selectedSObject,
         insertNulls,
         dateFormat,
         apiMode,
       };
-      loadWorker.postMessage({ name: 'prepareData', data: data });
+      loadWorker.postMessage({ name: 'prepareData', data: data }, [data.data]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -130,7 +132,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
     if (preparedData && preparedData.data.length) {
       const data: LoadDataPayload = {
         org: selectedOrg,
-        data: preparedData.data,
+        data: new TextEncoder().encode(JSON.stringify(preparedData.data)).buffer,
         sObject: selectedSObject,
         apiMode,
         type: loadType,
@@ -141,7 +143,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         binaryBodyField: Object.values(fieldMapping).find((field) => field.isBinaryBodyField)?.targetField,
         zipData: inputZipFileData,
       };
-      loadWorker.postMessage({ name: 'loadData', data });
+      loadWorker.postMessage({ name: 'loadData', data }, [data.data]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preparedData]);
@@ -182,10 +184,30 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
         if (!isMounted.current) {
           return;
         }
-        const payload: WorkerMessage<
+        const payloadRaw: WorkerMessage<
           'prepareData' | 'prepareDataProgress' | 'loadDataStatus' | 'loadData',
-          { preparedData?: PrepareDataResponse; progress?: number; records?: RecordResultWithRecord[] }
+          { preparedData?: PrepareDataResponseRaw; progress?: number; records?: ArrayBuffer }
         > = event.data;
+        // Convert all transferrables to normal data
+        const payload = {
+          name: payloadRaw.name,
+          error: payloadRaw.error instanceof ArrayBuffer ? JSON.parse(new TextDecoder().decode(payloadRaw.error)) : payloadRaw.error,
+          data: {
+            preparedData: payloadRaw.data?.preparedData
+              ? {
+                  data: (payloadRaw.data.preparedData?.data instanceof ArrayBuffer
+                    ? JSON.parse(new TextDecoder().decode(payloadRaw.data.preparedData.data)) || []
+                    : []) as any[],
+                  errors: (payloadRaw.data.preparedData?.errors instanceof ArrayBuffer
+                    ? JSON.parse(new TextDecoder().decode(payloadRaw.data.preparedData.errors)) || []
+                    : []) as PrepareDataResponseError[],
+                  queryErrors: payloadRaw.data.preparedData?.queryErrors || [],
+                }
+              : undefined,
+            progress: payloadRaw.data?.progress,
+            records: payloadRaw.data?.records instanceof ArrayBuffer ? JSON.parse(new TextDecoder().decode(payloadRaw.data.records)) : [],
+          },
+        };
         logger.log('[LOAD DATA]', payload.name, { payload });
         const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
         switch (payload.name) {
