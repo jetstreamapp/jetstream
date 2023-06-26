@@ -384,7 +384,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           onClose={handleViewModalClose}
         />
       )}
-      <Grid verticalAlign="end" align="spread">
+      <Grid verticalAlign="center" align="spread">
         <div>
           <h3 className="slds-text-heading_small">
             <Grid verticalAlign="center">
