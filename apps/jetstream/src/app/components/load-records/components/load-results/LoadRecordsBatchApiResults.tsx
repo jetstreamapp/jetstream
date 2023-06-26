@@ -405,7 +405,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
                       display: inline-block;
                     `}
                   >
-                    <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+                    <Spinner inline containerClassName="slds-m-bottom_x-small" size="x-small" />
                   </div>
                 </div>
               )}
