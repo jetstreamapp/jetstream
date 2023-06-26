@@ -490,7 +490,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           onClose={handleViewModalClose}
         />
       )}
-      <Grid verticalAlign="end" align="spread">
+      <Grid verticalAlign="center" align="spread">
         <div>
           <h3 className="slds-text-heading_small slds-grid">
             <Grid verticalAlign="center">
@@ -513,7 +513,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                       display: inline-block;
                     `}
                   >
-                    <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+                    <Spinner inline containerClassName="slds-m-bottom_x-small" size="x-small" />
                   </div>
                 </div>
               )}
