@@ -3,10 +3,10 @@ import { orderStringsBy } from '@jetstream/shared/utils';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { FormatterProps, RowHeightArgs } from 'react-data-grid';
+import { RenderCellProps, RowHeightArgs } from 'react-data-grid';
 import { MessagesByChannel } from './usePlatformEvent';
 
-export const WrappedTextFormatter: FunctionComponent<FormatterProps<PlatformEventRow>> = ({ column, row }) => {
+export const WrappedTextFormatter: FunctionComponent<RenderCellProps<PlatformEventRow>> = ({ column, row }) => {
   const value = row[column.key];
   return (
     <p
@@ -38,7 +38,7 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
     width: 450,
     // wrapText: true,
     // autoHeight: true,
-    formatter: WrappedTextFormatter,
+    renderCell: WrappedTextFormatter,
     cellClass: 'break-all',
   },
   {

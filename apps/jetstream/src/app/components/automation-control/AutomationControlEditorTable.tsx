@@ -43,7 +43,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           name: 'Automation Item',
           key: 'label',
           width: 400,
-          formatter: ({ column, row }) => {
+          renderCell: ({ column, row }) => {
             return (
               <ExpandingLabelRenderer
                 serverUrl={serverUrl}
@@ -67,7 +67,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           key: 'isActive',
           width: 110,
           cellClass: (row) => (!isTableRow(row) && row.isActive !== row.isActiveInitialState ? 'active-item-yellow-bg' : ''),
-          formatter: ({ row }) => {
+          renderCell: ({ row }) => {
             return <LoadingAndActiveRenderer row={row} updateIsActiveFlag={updateIsActiveFlag} />;
           },
         },
@@ -88,7 +88,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           width: 400,
           filters: null,
           sortable: false,
-          formatter: AdditionalDetailRenderer,
+          renderCell: AdditionalDetailRenderer,
         },
       ] as ColumnWithFilter<TableRowOrItemOrChild>[];
     }, []);

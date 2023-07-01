@@ -5,7 +5,7 @@ import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import type { QueryResult } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { FormatterProps } from 'react-data-grid';
+import { RenderCellProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -13,6 +13,7 @@ import Modal from '../modal/Modal';
 import { ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
+import { DataTable } from './DataTable';
 import { DataTableSubqueryContext } from './data-table-context';
 import {
   ColumnWithFilter,
@@ -23,15 +24,14 @@ import {
   SubqueryContext,
 } from './data-table-types';
 import {
+  NON_DATA_COLUMN_KEYS,
+  TABLE_CONTEXT_MENU_ITEMS,
   copySalesforceRecordTableDataToClipboard,
   getRowId,
   getSubqueryModalTagline,
-  NON_DATA_COLUMN_KEYS,
-  TABLE_CONTEXT_MENU_ITEMS,
 } from './data-table-utils';
-import { DataTable } from './DataTable';
 
-export const SubqueryRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
+export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unknown>> = ({ column, row, onRowChange }) => {
   const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
   const [modalTagline, setModalTagline] = useState<Maybe<string>>(null);
@@ -305,7 +305,6 @@ function ModalDataTable({
                 data={rows}
                 columns={columns}
                 getRowKey={getRowId}
-                // onCopy={handleCopy}
                 rowHeight={28.5}
                 selectedRows={selectedRows}
                 onSelectedRowsChange={setSelectedRows as any}

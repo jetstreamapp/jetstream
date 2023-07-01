@@ -18,7 +18,7 @@ import {
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, useContext, useRef, useState } from 'react';
-import { FormatterProps, SummaryFormatterProps } from 'react-data-grid';
+import { RenderCellProps, RenderSummaryCellProps } from 'react-data-grid';
 import {
   BulkActionCheckbox,
   DirtyRow,
@@ -205,7 +205,7 @@ export function getObjectColumns(
         return data && `${data.label} (${data.apiName})`;
       },
       summaryCellClass: 'bg-color-gray-dark no-outline',
-      summaryFormatter: ({ row }) => {
+      renderSummaryCell: ({ row }) => {
         if (row.type === 'HEADING') {
           return <ColumnSearchFilterSummary />;
         } else if (row.type === 'ACTION') {
@@ -220,9 +220,9 @@ export function getObjectColumns(
       width: 100,
       resizable: false,
       frozen: true,
-      formatter: RowActionRenderer,
+      renderCell: RowActionRenderer,
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
-      summaryFormatter: ({ row }) => {
+      renderSummaryCell: ({ row }) => {
         if (row.type === 'ACTION') {
           return <BulkActionRenderer />;
         }
@@ -353,7 +353,7 @@ export function getFieldColumns(
       width: 85,
       cellClass: 'bg-color-gray-dark',
       summaryCellClass: 'bg-color-gray-dark',
-      groupFormatter: ({ isExpanded }) => (
+      renderGroupCell: ({ isExpanded }) => (
         <Grid align="end" verticalAlign="center" className="h-100">
           <Icon
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -370,7 +370,7 @@ export function getFieldColumns(
       key: 'tableLabel',
       frozen: true,
       width: 300,
-      groupFormatter: ({ groupKey, childRows, toggleGroup }) => (
+      renderGroupCell: ({ groupKey, childRows, toggleGroup }) => (
         <>
           <button className="slds-button" onClick={toggleGroup}>
             {groupKey as string}
@@ -379,7 +379,7 @@ export function getFieldColumns(
         </>
       ),
       summaryCellClass: 'bg-color-gray-dark no-outline',
-      summaryFormatter: ({ row }) => {
+      renderSummaryCell: ({ row }) => {
         if (row.type === 'HEADING') {
           return <ColumnSearchFilterSummary />;
         } else if (row.type === 'ACTION') {
@@ -394,9 +394,9 @@ export function getFieldColumns(
       width: 100,
       resizable: false,
       frozen: true,
-      formatter: RowActionRenderer,
+      renderCell: RowActionRenderer,
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
-      summaryFormatter: ({ row }) => {
+      renderSummaryCell: ({ row }) => {
         if (row.type === 'ACTION') {
           return <BulkActionRenderer />;
         }
@@ -488,7 +488,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       return '';
     },
     colSpan: (args) => (args.type === 'HEADER' && isFirstItem ? numItems : undefined),
-    formatter: ({ column, isCellSelected, row, onRowChange }) => {
+    renderCell: ({ row, onRowChange }) => {
       const errorMessage = row.permissions[id].errorMessage;
       const value = row.permissions[id][actionKey as any];
 
@@ -549,7 +549,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     },
     getValue: ({ column, row }) => row.permissions[id][actionKey as any],
     summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
-    summaryFormatter: (args) => {
+    renderSummaryCell: (args) => {
       if (args.row.type === 'HEADING') {
         return <SummaryFilterRenderer columnKey={`${id}-${actionKey}`} label={actionType} />;
       }
@@ -780,8 +780,7 @@ export function updateRowsFromRowAction<TRows extends PermissionTableObjectCell 
 /**
  * Pinned row selection renderer
  */
-//  export const IdLinkRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
-export const PinnedSelectAllRendererWrapper: FunctionComponent<SummaryFormatterProps<any, unknown>> = ({ column }) => {
+export const PinnedSelectAllRendererWrapper: FunctionComponent<RenderSummaryCellProps<any, unknown>> = ({ column }) => {
   const { onColumnAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
 
   function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
@@ -947,7 +946,7 @@ function getDirtyCount({
  *
  * This component provides a popover that the user can open to make changes that apply to an entire row
  */
-export const RowActionRenderer: FunctionComponent<FormatterProps<PermissionTableObjectCell | PermissionTableFieldCell>> = ({
+export const RowActionRenderer: FunctionComponent<RenderCellProps<PermissionTableObjectCell | PermissionTableFieldCell>> = ({
   column,
   onRowChange,
   row,

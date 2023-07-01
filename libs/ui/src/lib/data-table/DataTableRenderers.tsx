@@ -9,8 +9,8 @@ import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
-import { Fragment, FunctionComponent, memo, MutableRefObject, useContext, useEffect, useRef, useState } from 'react';
-import { FormatterProps, GroupFormatterProps, headerRenderer, HeaderRendererProps, useFocusRef, useRowSelection } from 'react-data-grid';
+import { Fragment, FunctionComponent, MutableRefObject, memo, useContext, useEffect, useRef, useState } from 'react';
+import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, renderHeaderCell, useRowSelection } from 'react-data-grid';
 import { useDrag, useDrop } from 'react-dnd';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
@@ -56,7 +56,7 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 /**
  * DRAGGABLE COLUMNS, ALLOW REORDERING
  */
-interface DraggableHeaderRendererProps<R> extends HeaderRendererProps<R> {
+interface DraggableHeaderRendererProps<R> extends RenderHeaderCellProps<R> {
   onColumnsReorder: (sourceKey: string, targetKey: string) => void;
 }
 
@@ -94,7 +94,7 @@ export function DraggableHeaderRenderer<R>({ onColumnsReorder, column, ...props 
     >
       {(column as any)._priorHeaderRenderer
         ? (column as any)._priorHeaderRenderer({ column, ...props })
-        : headerRenderer({ column, ...props })}
+        : renderHeaderCell({ column, ...props })}
     </div>
   );
 }
@@ -102,7 +102,7 @@ export function DraggableHeaderRenderer<R>({ onColumnsReorder, column, ...props 
 /**
  * SELECT ALL CHECKBOX HEADER
  */
-export function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
+export function SelectHeaderRenderer<T>(props: RenderHeaderCellProps<T>) {
   const { column } = props;
   const [isRowSelected, onRowSelectionChange] = useRowSelection();
 
@@ -119,7 +119,7 @@ export function SelectHeaderRenderer<T>(props: HeaderRendererProps<T>) {
   );
 }
 
-export function SelectHeaderGroupRenderer<T>(props: GroupFormatterProps<T>) {
+export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
   const { column, groupKey, row, childRows } = props;
   const [isRowSelected, onRowSelectionChange] = useRowSelection();
 
@@ -140,12 +140,11 @@ export function SelectHeaderGroupRenderer<T>(props: GroupFormatterProps<T>) {
 }
 
 export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
-  isCellSelected,
   onSort,
   sortDirection,
   column,
   children,
-}: HeaderRendererProps<R, SR> & {
+}: RenderHeaderCellProps<R, SR> & {
   children: (
     args: HeaderFilterProps & {
       ref?: React.RefObject<T>;
@@ -154,7 +153,6 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
   ) => React.ReactElement;
 }) {
   const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
-  const { ref, tabIndex } = useFocusRef<T>(isCellSelected);
 
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
 
@@ -165,8 +163,6 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
         {sortDirection && <Icon type="utility" icon={iconName} className="slds-icon slds-icon-text-default slds-icon_xx-small" />}
         <div>
           {children({
-            ref,
-            tabIndex,
             columnKey: column.key,
             filters: filters[column.key],
             filterSetValues,
@@ -536,8 +532,8 @@ export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: Heade
 
 // CELL RENDERERS
 /** Generic cell renderer when the type of data is unknown */
-export function GenericRenderer(formatterProps: FormatterProps<RowWithKey>) {
-  const { column, row } = formatterProps;
+export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
+  const { column, row } = RenderCellProps;
 
   if (!row) {
     return <div />;
@@ -548,15 +544,15 @@ export function GenericRenderer(formatterProps: FormatterProps<RowWithKey>) {
   if (value instanceof Date) {
     value = dataTableDateFormatter(value);
   } else if (isBoolean(value)) {
-    return <BooleanRenderer {...formatterProps} />;
+    return <BooleanRenderer {...RenderCellProps} />;
   } else if (value && typeof value === 'object') {
-    value = <ComplexDataRenderer {...formatterProps} />;
+    value = <ComplexDataRenderer {...RenderCellProps} />;
   }
 
   return <div className="slds-truncate">{value}</div>;
 }
 
-export function SelectFormatter<T>(props: FormatterProps<T>) {
+export function SelectFormatter<T>(props: RenderCellProps<T>) {
   const { column, row } = props;
   const [isRowSelected, onRowSelectionChange] = useRowSelection();
 
@@ -571,7 +567,7 @@ export function SelectFormatter<T>(props: FormatterProps<T>) {
   );
 }
 
-export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: FormatterProps<T>) {
+export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: RenderCellProps<T>) {
   if (!row) {
     return <div />;
   }
@@ -583,7 +579,7 @@ export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column,
   return <div>{value}</div>;
 }
 
-export const ComplexDataRenderer: FunctionComponent<FormatterProps<RowWithKey, unknown>> = ({ column, row }) => {
+export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, unknown>> = ({ column, row }) => {
   const value = row[column.key];
   const [isActive, setIsActive] = useState(false);
   const [jsonValue] = useState(JSON.stringify(value || '', null, 2));
@@ -627,7 +623,7 @@ export const ComplexDataRenderer: FunctionComponent<FormatterProps<RowWithKey, u
   );
 };
 
-export const IdLinkRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
+export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row, onRowChange }) => {
   const value = row[column.key];
   const { skipFrontDoorAuth, url } = column.key === 'Id' ? getSfdcRetUrl(value, row) : { skipFrontDoorAuth: false, url: `/${value}` };
   return (
@@ -661,7 +657,7 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   );
 };
 
-export const BooleanRenderer: FunctionComponent<FormatterProps<any, unknown>> = ({ column, row, onRowChange, isCellSelected }) => {
+export const BooleanRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row }) => {
   const value = row[column.key];
   return (
     <Checkbox

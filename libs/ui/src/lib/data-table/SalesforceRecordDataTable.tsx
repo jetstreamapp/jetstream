@@ -7,7 +7,7 @@ import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Column, CopyEvent } from 'react-data-grid';
+import { Column } from 'react-data-grid';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
@@ -242,12 +242,6 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       setSelectedRows(rows);
     }, []);
 
-    const handleCopy = useCallback(({ sourceRow, sourceColumnKey }: CopyEvent<RowWithKey>) => {
-      if (window.isSecureContext) {
-        navigator.clipboard.writeText(sourceRow[sourceColumnKey]);
-      }
-    }, []);
-
     const handleColumnReorder = useCallback((newFields: string[]) => {
       onFields({ allFields: newFields, visibleFields: newFields });
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -300,7 +294,6 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               includeQuickFilter
               quickFilterText={globalFilter}
               getRowKey={getRowId}
-              onCopy={handleCopy}
               rowHeight={28.5}
               selectedRows={selectedRows}
               onReorderColumns={handleColumnReorder}

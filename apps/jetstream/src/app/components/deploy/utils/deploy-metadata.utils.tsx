@@ -28,7 +28,7 @@ import type { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { SelectColumn, SELECT_COLUMN_KEY } from 'react-data-grid';
+import { SELECT_COLUMN_KEY, SelectColumn } from 'react-data-grid';
 import { composeQuery, getField, Query } from 'soql-parser-js';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
 
@@ -224,7 +224,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       ...SelectColumn,
       key: SELECT_COLUMN_KEY,
       resizable: false,
-      formatter: (args) => {
+      renderCell: (args) => {
         const { row } = args;
         if (row.loading) {
           return null;
@@ -237,8 +237,8 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
         }
         return <SelectFormatter {...args} />;
       },
-      headerRenderer: SelectHeaderRenderer,
-      groupFormatter: (args) => {
+      renderHeaderCell: SelectHeaderRenderer,
+      renderGroupCell: (args) => {
         const { childRows } = args;
         // Don't allow selection if child rows are loading
         if (childRows.length === 0 || (childRows.length === 1 && (childRows[0].loading || !childRows[0].metadata))) {
@@ -262,7 +262,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       key: 'typeLabel',
       width: 40,
       frozen: true,
-      groupFormatter: ({ isExpanded }) => (
+      renderGroupCell: ({ isExpanded }) => (
         <Grid align="end" verticalAlign="center" className="h-100">
           <Icon
             icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -278,8 +278,8 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
       name: 'Name',
       key: 'fullName',
       frozen: true,
-      formatter: ({ row }) => (row.loading ? <Spinner size={'x-small'} /> : row.fullName),
-      groupFormatter: ({ toggleGroup, groupKey, childRows }) => (
+      renderCell: ({ row }) => (row.loading ? <Spinner size={'x-small'} /> : row.fullName),
+      renderGroupCell: ({ toggleGroup, groupKey, childRows }) => (
         <>
           <button className="slds-button" onClick={toggleGroup}>
             {groupKey as string}

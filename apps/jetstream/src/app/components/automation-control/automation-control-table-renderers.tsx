@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent } from 'react';
-import { CalculatedColumn, FormatterProps } from 'react-data-grid';
+import { CalculatedColumn, RenderCellProps } from 'react-data-grid';
 import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
 import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
 
@@ -104,7 +104,7 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
   }
 };
 
-export const AdditionalDetailRenderer: FunctionComponent<FormatterProps<TableRowOrItemOrChild, unknown>> = ({ row }) => {
+export const AdditionalDetailRenderer: FunctionComponent<RenderCellProps<TableRowOrItemOrChild, unknown>> = ({ row }) => {
   if (!isTableRow(row) && Array.isArray(row.additionalData) && row.additionalData.length > 0) {
     return (
       <Grid vertical className="slds-line-height_reset">
@@ -132,7 +132,7 @@ export const AdditionalDetailRenderer: FunctionComponent<FormatterProps<TableRow
   return null;
 };
 
-export const BooleanAndVersionRenderer: FunctionComponent<FormatterProps<DeploymentItemRow, unknown>> = ({ column, row }) => {
+export const BooleanAndVersionRenderer: FunctionComponent<RenderCellProps<DeploymentItemRow, unknown>> = ({ column, row }) => {
   const metadata = row;
   const type = metadata.type;
   const value = metadata[column.key];
@@ -182,7 +182,7 @@ function getErrorMessageContentString(deployError: Maybe<MetadataCompositeRespon
   }
 }
 
-export const AutomationDeployStatusRenderer: FunctionComponent<FormatterProps<DeploymentItemRow, unknown>> = ({ row }) => {
+export const AutomationDeployStatusRenderer: FunctionComponent<RenderCellProps<DeploymentItemRow, unknown>> = ({ row }) => {
   const { status, deploy } = row;
   const { deployError } = deploy;
   const isLoading = loadingStatuses.includes(status);

@@ -24,13 +24,13 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     name: 'Type',
     key: 'type',
     width: 165,
-    formatter: ({ column, row }) => TYPE_MAP[row[column.key]],
+    renderCell: ({ column, row }) => TYPE_MAP[row[column.key]],
   },
   {
     ...setColumnFromType('destinationOrg', 'text'),
     name: 'Deployed To Org',
     key: 'destinationOrg',
-    formatter: OrgRenderer,
+    renderCell: OrgRenderer,
     getValue: ({ row }) => row.destinationOrg?.label,
     width: 350,
   },
@@ -38,7 +38,7 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     ...setColumnFromType('status', 'text'),
     name: 'Status',
     key: 'status',
-    formatter: StatusRenderer,
+    renderCell: StatusRenderer,
     width: 150,
   },
   {
@@ -47,7 +47,7 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     width: 220,
     sortable: false,
     resizable: false,
-    formatter: ActionRenderer,
+    renderCell: ActionRenderer,
   },
 ];
 

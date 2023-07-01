@@ -3,29 +3,31 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import uniqueId from 'lodash/uniqueId';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
+import uniqueId from 'lodash/uniqueId';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import DataGrid, {
+  CellClickArgs,
   DataGridProps,
-  HeaderRendererProps,
-  Renderers,
   Row as GridRow,
-  RowRendererProps,
+  RenderHeaderCellProps,
+  RenderRowProps,
+  RenderSortStatusProps,
+  Renderers,
   SortColumn,
-  SortStatusProps,
 } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import ContextMenu, { ContextMenuContext, ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
+import { DraggableHeaderRenderer, configIdLinkRenderer } from './DataTableRenderers';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
 import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
-import { EMPTY_FIELD, filterRecord, getSearchTextByRow, isFilterActive, NON_DATA_COLUMN_KEYS, resetFilter } from './data-table-utils';
-import { configIdLinkRenderer, DraggableHeaderRenderer } from './DataTableRenderers';
+import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
 
-function sortStatus({ sortDirection, priority }: SortStatusProps) {
+function renderSortStatus({ sortDirection, priority }: RenderSortStatusProps) {
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
   return sortDirection !== undefined ? (
     <>
@@ -37,7 +39,7 @@ function sortStatus({ sortDirection, priority }: SortStatusProps) {
 
 interface ContextMenuRendererProps {
   containerId?: string;
-  props: RowRendererProps<any>;
+  props: RenderRowProps<any>;
   contextMenuItems: ContextMenuItem[];
   contextMenuAction: (item: ContextMenuItem, data: ContextMenuActionData<unknown>) => void;
 }
@@ -207,8 +209,8 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
     useEffect(() => {
       if (contextMenuItems && contextMenuAction) {
         setRenderers({
-          sortStatus,
-          rowRenderer: (key: React.Key, props: RowRendererProps<any>) => {
+          renderSortStatus,
+          renderRow: (key: React.Key, props: RenderRowProps<any>) => {
             return (
               <ContextMenuRenderer
                 key={key}
@@ -221,7 +223,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
           },
         });
       } else {
-        setRenderers({ sortStatus });
+        setRenderers({ renderSortStatus });
       }
     }, [contextMenuAction, contextMenuItems, gridId]);
 
@@ -318,7 +320,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       if (!allowReorder) {
         return columns;
       }
-      function headerRenderer(props: HeaderRendererProps<T>) {
+      function headerRenderer(props: RenderHeaderCellProps<T>) {
         return <DraggableHeaderRenderer {...props} onColumnsReorder={handleColumnsReorder} />;
       }
 
@@ -336,7 +338,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
         if (column.preventReorder || column.frozen) {
           return column;
         }
-        return { ...column, headerRenderer, _priorHeaderRenderer: column.headerRenderer };
+        return { ...column, headerRenderer, _priorrenderHeaderCell: column.renderHeaderCell };
       });
     }, [columns, allowReorder]);
 
@@ -371,6 +373,17 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       configIdLinkRenderer(serverUrl, org);
     }
 
+    const handleCellDoubleClick = useCallback(({ row, column, selectCell }: CellClickArgs<any, any>) => {
+      if (window.isSecureContext) {
+        let value = row[column.key];
+        if (value && !isString(value)) {
+          value = JSON.stringify(value);
+        }
+        navigator.clipboard.writeText(value);
+        selectCell(false);
+      }
+    }, []);
+
     return (
       <ContextMenuContext.Provider value={new Map()}>
         <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows, columns }}>
@@ -392,6 +405,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
               onSortColumnsChange={setSortColumns}
               rowKeyGetter={getRowKey}
               defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+              onCellDoubleClick={handleCellDoubleClick}
               {...rest}
             />
           </DataTableFilterContext.Provider>
