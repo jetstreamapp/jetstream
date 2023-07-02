@@ -1,10 +1,12 @@
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Column } from 'react-data-grid';
 
 export type RowWithKey = Record<string, any> & { _key: string };
 export type RowSalesforceRecordWithKey = RowWithKey & {
   _action: (row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex') => void;
   _record: Record<string, any>;
+  _touchedColumns: Set<string>;
+  _saveError?: Maybe<string>;
 };
 export type ColumnType = 'text' | 'number' | 'subquery' | 'object' | 'location' | 'date' | 'time' | 'boolean' | 'address' | 'salesforceId';
 export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'TIME' | 'SET' | 'BOOLEAN_SET';

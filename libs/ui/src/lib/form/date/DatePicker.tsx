@@ -37,6 +37,8 @@ export interface DatePickerProps {
   dropDownPosition?: PositionLeftRight;
   disabled?: boolean;
   readOnly?: boolean;
+  inputProps?: React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
+  usePortal?: boolean;
   onChange: (date: Date | null) => void;
 }
 
@@ -59,11 +61,14 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   dropDownPosition,
   disabled,
   readOnly,
+  inputProps,
+  usePortal = false,
   onChange,
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
   initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
   const inputRef = useRef<HTMLInputElement>(null);
+  const [popoverRef, setPopoverRef] = useState<HTMLDivElement | null>(null);
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
@@ -143,7 +148,12 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   }
 
   return (
-    <OutsideClickHandler display={containerDisplay} className="slds-combobox_container" onOutsideClick={() => handleToggleOpen(false)}>
+    <OutsideClickHandler
+      additionalParentRef={popoverRef}
+      display={containerDisplay}
+      className="slds-combobox_container"
+      onOutsideClick={() => handleToggleOpen(false)}
+    >
       <div
         className={classNames(
           'slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click',
@@ -183,6 +193,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
               }
             }}
             disabled={disabled}
+            {...inputProps}
           />
           <button
             className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
@@ -193,7 +204,13 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
           </button>
         </div>
-        <PopoverContainer isOpen={isOpen} className={`slds-datepicker`} referenceElement={inputRef.current}>
+        <PopoverContainer
+          ref={setPopoverRef}
+          isOpen={isOpen}
+          className={`slds-datepicker`}
+          referenceElement={inputRef.current}
+          usePortal={usePortal}
+        >
           <DatePickerPopup
             initialSelectedDate={selectedDate}
             initialVisibleDate={initialVisibleDate || selectedDate}

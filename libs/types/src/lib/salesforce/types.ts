@@ -93,6 +93,8 @@ export interface ErrorResult {
     message: string;
     statusCode: string;
   }[];
+  /** Will be available for updates */
+  id?: string;
   success: false;
 }
 

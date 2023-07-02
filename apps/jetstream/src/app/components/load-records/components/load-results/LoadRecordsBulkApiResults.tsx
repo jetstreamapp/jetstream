@@ -13,11 +13,10 @@ import {
   Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
+import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip, fireToast } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
-import { fireToast } from '../../../core/AppToast';
 import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';

@@ -1,11 +1,10 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { BadgeNotification, EmptyState, Icon, Popover, PopoverRef, Tooltip } from '@jetstream/ui';
+import { BadgeNotification, EmptyState, Icon, Popover, PopoverRef, Tooltip, fireToast } from '@jetstream/ui';
 import classNames from 'classnames';
 import pickBy from 'lodash/pickBy';
 import { FunctionComponent, useRef } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { fireToast } from '../../../core/AppToast';
 import { LoadSavedMappingItem, savedFieldMappingState, selectSavedFieldMappingState } from '../../load-records.state';
 import LoadRecordsSaveMappingItem from './SaveMappingItem';
 

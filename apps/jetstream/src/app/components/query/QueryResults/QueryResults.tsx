@@ -4,7 +4,7 @@ import { css } from '@emotion/react';
 import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { query } from '@jetstream/shared/data';
+import { query, sobjectOperation } from '@jetstream/shared/data';
 import {
   formatNumber,
   hasModifierKey,
@@ -15,8 +15,8 @@ import {
   useNonInitialEffect,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
+import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { AsyncJob, AsyncJobNew, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CampingRainIllustration,
@@ -55,13 +55,14 @@ import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 
-type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'MANUAL' | 'RELOAD';
+type SourceAction = 'STANDARD' | 'ORG_CHANGE' | 'BULK_DELETE' | 'HISTORY' | 'RECORD_ACTION' | 'RECORD_BULK_ACTION' | 'MANUAL' | 'RELOAD';
 
 const SOURCE_STANDARD: SourceAction = 'STANDARD';
 const SOURCE_ORG_CHANGE: SourceAction = 'ORG_CHANGE';
 const SOURCE_BULK_DELETE: SourceAction = 'BULK_DELETE';
 const SOURCE_HISTORY: SourceAction = 'HISTORY';
 const SOURCE_RECORD_ACTION: SourceAction = 'RECORD_ACTION';
+const RECORD_BULK_ACTION: SourceAction = 'RECORD_BULK_ACTION';
 const SOURCE_MANUAL: SourceAction = 'MANUAL';
 const SOURCE_RELOAD: SourceAction = 'RELOAD';
 
@@ -400,6 +401,22 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     trackEvent(ANALYTICS_KEYS.query_RecordAction, { action });
   }
 
+  async function handleUpdateRecords(modifiedRecords: any[]): Promise<SobjectCollectionResponse> {
+    const type = sobject || modifiedRecords?.[0]?.attributes?.type;
+    if (!type) {
+      return [];
+    }
+    const results = (
+      await Promise.all(
+        splitArrayToMaxSize(modifiedRecords, 200).map((records) =>
+          sobjectOperation<SobjectCollectionResponse>(selectedOrg, type, 'update', { records }, { allOrNone: false })
+        )
+      )
+    ).flat();
+    trackEvent(ANALYTICS_KEYS.query_UpdateRecordsInline, { recordCount: modifiedRecords.length });
+    return results;
+  }
+
   function handleChangeAction(action: CloneEditView) {
     setCloneEditViewRecord((currentAction) => (currentAction ? { ...currentAction, action } : null));
   }
@@ -648,9 +665,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               onView={(record) => {
                 handleCloneEditView(record, 'view');
               }}
+              onUpdateRecords={handleUpdateRecords}
               onGetAsApex={(record) => {
                 handleGetAsApex(record);
               }}
+              onReloadQuery={() => executeQuery(soql, RECORD_BULK_ACTION, { isTooling })}
             />
           )}
         </AutoFullHeightContainer>

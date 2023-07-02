@@ -2,7 +2,7 @@ import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, flattenRecords, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { MapOf } from '@jetstream/types';
+import { MapOf, Maybe } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
@@ -21,6 +21,7 @@ import uniqueId from 'lodash/uniqueId';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import { ContextMenuItem } from '../popover/ContextMenu';
+import { DataTableEditorBoolean, DataTableEditorDate, DataTableEditorText, dataTableEditorDropdownWrapper } from './DataTableEditors';
 import {
   ActionRenderer,
   BooleanRenderer,
@@ -54,6 +55,7 @@ const SFDC_EMPTY_ID = '000000000000000AAA';
 
 export const EMPTY_FIELD = '-BLANK-';
 export const ACTION_COLUMN_KEY = '_actions';
+export const RECORD_ERROR_COLUMN_KEY = '_saveError';
 export const SELECT_COLUMN_KEY = _SELECT_COLUMN_KEY;
 export const NON_DATA_COLUMN_KEYS = new Set([SELECT_COLUMN_KEY, ACTION_COLUMN_KEY]);
 
@@ -120,7 +122,11 @@ export function getColumnsForGenericTable(
  * @param isTooling
  * @returns
  */
-export function getColumnDefinitions(results: QueryResults<any>, isTooling: boolean): SalesforceQueryColumnDefinition<any> {
+export function getColumnDefinitions(
+  results: QueryResults<any>,
+  isTooling: boolean,
+  fieldMetadata?: Maybe<MapOf<Field>>
+): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
     !isTooling && results.queryResults.records.length
@@ -162,7 +168,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
 
   // Base fields
   const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field, i) =>
-    getQueryResultColumn(field, queryColumnsByPath, isFieldSubquery(results.parsedQuery?.[i]))
+    getQueryResultColumn({ field, queryColumnsByPath, isSubquery: isFieldSubquery(results.parsedQuery?.[i]), fieldMetadata })
   );
 
   // set checkbox as first column
@@ -194,7 +200,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
     ?.filter((field) => isFieldSubquery(field))
     .forEach((field: FieldSubquery) => {
       output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
-        getQueryResultColumn(field, queryColumnsByPath, false)
+        getQueryResultColumn({ field, queryColumnsByPath, isSubquery: false, allowEdit: false })
       );
     });
 
@@ -205,15 +211,32 @@ type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];
 };
 
-function getQueryResultColumn(
-  field: string,
-  queryColumnsByPath: MapOf<QueryResultsColumn>,
-  isSubquery: boolean
-): ColumnWithFilter<RowWithKey> {
+function getQueryResultColumn({
+  field,
+  queryColumnsByPath,
+  isSubquery,
+  fieldMetadata,
+  allowEdit = true,
+}: {
+  field: string;
+  queryColumnsByPath: MapOf<QueryResultsColumn>;
+  isSubquery: boolean;
+  fieldMetadata?: Maybe<MapOf<Field>>;
+  allowEdit?: boolean;
+}): ColumnWithFilter<RowWithKey> {
   const column: Mutable<ColumnWithFilter<RowWithKey>> = {
     name: field,
     key: field,
-    cellClass: 'slds-truncate',
+    cellClass: (row: any) => {
+      const classes = ['slds-truncate'];
+      if (row._touchedColumns instanceof Set && (row._touchedColumns as Set<string>).has(field) && row[field] !== row._record?.[field]) {
+        classes.push('active-item-yellow-bg');
+        if (row._saveError) {
+          classes.push('active-item-error');
+        }
+      }
+      return classes.join(' ');
+    },
     resizable: true,
     sortable: true,
     width: 200,
@@ -239,6 +262,10 @@ function getQueryResultColumn(
     column.name = col.columnFullPath;
     column.key = col.columnFullPath;
     updateColumnFromType(column, getColumnTypeFromQueryResultsColumn(col));
+    // exclude related records from edit mode
+    if (allowEdit && !col.columnFullPath?.includes('.')) {
+      updateColumnWithEditMode(column, col, fieldMetadata);
+    }
   } else {
     if (field.endsWith('Id')) {
       updateColumnFromType(column, 'salesforceId');
@@ -368,6 +395,73 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       break;
     default:
       break;
+  }
+}
+
+/**
+ * Allow inline editing of a cell based on field type or column results
+ */
+export function updateColumnWithEditMode(
+  column: Mutable<ColumnWithFilter<any>>,
+  { updatable, booleanType, apexType, columnName }: QueryResultsColumn,
+  fieldMetadata: Maybe<MapOf<Field>> = {}
+) {
+  column.editable = false;
+  fieldMetadata = fieldMetadata || {};
+  const field = fieldMetadata[column.key.toLowerCase()];
+  const type = field?.type;
+  if (
+    (field && !field?.updateable) ||
+    !updatable ||
+    type === 'complexvalue' ||
+    type === 'address' ||
+    type === 'anyType' ||
+    apexType === 'complexvaluetype' ||
+    columnName === 'Metadata'
+  ) {
+    return;
+  } else if (type === 'boolean' || booleanType) {
+    column.editable = true;
+    column.editorOptions = {
+      commitOnOutsideClick: false,
+      displayCellContent: true,
+    };
+    column.renderEditCell = DataTableEditorBoolean;
+  } else if (type === 'date' || apexType === 'Date' || type === 'datetime' || apexType === 'Datetime') {
+    column.editable = true;
+    column.editorOptions = {
+      commitOnOutsideClick: false,
+      displayCellContent: true,
+    };
+    column.renderEditCell = DataTableEditorDate;
+  } else if (field?.picklistValues && (type === 'picklist' || type === 'multipicklist')) {
+    column.editable = true;
+    column.editorOptions = {
+      commitOnOutsideClick: false,
+      displayCellContent: true,
+    };
+    column.renderEditCell = dataTableEditorDropdownWrapper({
+      values: field.picklistValues
+        .filter(({ active }) => active)
+        .map(({ value, label }) => ({
+          id: value,
+          label: label || value,
+          value: value,
+        })),
+    });
+    // We could differentiate number types
+    // } else if (type === 'currency' || type === 'double' || type === 'int' || type === 'percent' || numberType) {
+    // } else if (type === 'id' || apexType === 'Id') {
+    // } else if (type === 'datetime' || apexType === 'Datetime') {
+    // } else if (type === 'time' || apexType === 'Time') {
+  } else {
+    // textType
+    column.editable = true;
+    column.editorOptions = {
+      commitOnOutsideClick: false,
+      displayCellContent: true,
+    };
+    column.renderEditCell = DataTableEditorText;
   }
 }
 
