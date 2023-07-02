@@ -181,6 +181,7 @@ export const ANALYTICS_KEYS = {
   query_ManualSoqlOpened: 'query_ManualSoqlOpened',
   query_MetadataQueryToggled: 'query_MetadataQueryToggled',
   query_RecordAction: 'query_RecordAction',
+  query_UpdateRecordsInline: 'query_UpdateRecordsInline',
   query_ResetPage: 'query_ResetPage',
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',

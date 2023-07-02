@@ -641,6 +641,7 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   }
   return (
     <Fragment>
+      <ErrorMessageRenderer row={row} />
       <button className="slds-button slds-button_icon" title="View Full Record" onClick={() => row._action(row, 'view')}>
         <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer />
       </button>
@@ -668,5 +669,48 @@ export const BooleanRenderer: FunctionComponent<RenderCellProps<any, unknown>> =
       hideLabel
       readOnly
     />
+  );
+};
+
+export const ErrorMessageRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
+  if (!row?._saveError) {
+    return null;
+  }
+  return (
+    <Popover
+      containerClassName="slds-popover_error"
+      inverseIcons
+      header={
+        <header className="slds-popover__header">
+          <div className="slds-media slds-media_center slds-has-flexi-truncate">
+            <div className="slds-media__figure">
+              <Icon
+                type="utility"
+                icon="error"
+                className="slds-icon slds-icon_x-small"
+                containerClassname="slds-icon_container slds-icon-utility-error"
+              />
+            </div>
+            <div className="slds-media__body">
+              <h2 className="slds-truncate slds-text-heading_medium" id="dialog-heading-id-2" title="Resolve error">
+                Save Error
+              </h2>
+            </div>
+          </div>
+        </header>
+      }
+      content={
+        <div
+          css={css`
+            max-height: 80vh;
+          `}
+        >
+          <p>{row._saveError}</p>
+        </div>
+      }
+      buttonProps={{ className: 'slds-button slds-button_icon slds-button_icon-error' }}
+    >
+      <Icon type="utility" icon="error" className="slds-button__icon" omitContainer />
+    </Popover>
   );
 };

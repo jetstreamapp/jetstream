@@ -132,6 +132,7 @@ export * from './lib/sobject-list/SobjectCombobox';
 export * from './lib/sobject-list/SobjectList';
 export * from './lib/sobject-list/SobjectListMultiSelect';
 export * from './lib/tabs/Tabs';
+export * from './lib/toast/AppToast';
 export * from './lib/toast/Toast';
 export * from './lib/toolbar/Toolbar';
 export * from './lib/toolbar/ToolbarItemActions';

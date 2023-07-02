@@ -12,11 +12,11 @@ import {
   Grid,
   GridCol,
   XlsxSheetSelectionModalPromise,
+  fireToast,
 } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isString from 'lodash/isString';
 import { FunctionComponent } from 'react';
-import { fireToast } from '../../core/AppToast';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities, LocalOrGoogle } from '../load-records-types';
 import { filterLoadSobjects } from '../utils/load-records-utils';

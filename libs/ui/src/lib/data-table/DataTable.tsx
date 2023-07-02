@@ -5,11 +5,9 @@ import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isNil from 'lodash/isNil';
-import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import DataGrid, {
-  CellClickArgs,
   DataGridProps,
   Row as GridRow,
   RenderHeaderCellProps,
@@ -320,7 +318,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       if (!allowReorder) {
         return columns;
       }
-      function headerRenderer(props: RenderHeaderCellProps<T>) {
+      function renderHeaderCell(props: RenderHeaderCellProps<T>) {
         return <DraggableHeaderRenderer {...props} onColumnsReorder={handleColumnsReorder} />;
       }
 
@@ -338,7 +336,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
         if (column.preventReorder || column.frozen) {
           return column;
         }
-        return { ...column, headerRenderer, _priorrenderHeaderCell: column.renderHeaderCell };
+        return { ...column, renderHeaderCell, _priorrenderHeaderCell: column.renderHeaderCell };
       });
     }, [columns, allowReorder]);
 
@@ -373,17 +371,6 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       configIdLinkRenderer(serverUrl, org);
     }
 
-    const handleCellDoubleClick = useCallback(({ row, column, selectCell }: CellClickArgs<any, any>) => {
-      if (window.isSecureContext) {
-        let value = row[column.key];
-        if (value && !isString(value)) {
-          value = JSON.stringify(value);
-        }
-        navigator.clipboard.writeText(value);
-        selectCell(false);
-      }
-    }, []);
-
     return (
       <ContextMenuContext.Provider value={new Map()}>
         <DataTableGenericContext.Provider value={{ ...context, rows: filteredRows, columns }}>
@@ -405,7 +392,6 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
               onSortColumnsChange={setSortColumns}
               rowKeyGetter={getRowKey}
               defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
-              onCellDoubleClick={handleCellDoubleClick}
               {...rest}
             />
           </DataTableFilterContext.Provider>

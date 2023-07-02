@@ -1,14 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { Component } from 'react';
-import contains from 'document.contains';
+import { Maybe } from '@jetstream/types';
 import { addEventListener } from 'consolidated-events';
+import contains from 'document.contains';
+import React, { Component } from 'react';
 
 export interface OutsideClickHandlerProps {
-  onOutsideClick;
   className?: string;
   disabled?: boolean;
   useCapture?: boolean;
   display?: 'block' | 'flex' | 'inline' | 'inline-block' | 'contents';
+  /**
+   * If some items are in a portal, then provide a ref to the portal container
+   * and it will be considered for a valid click without firing onOutsideClick().
+   */
+  additionalParentRef?: Maybe<HTMLElement>;
+  onOutsideClick: (event: MouseEvent) => void;
   children?: React.ReactNode;
 }
 
@@ -20,10 +26,18 @@ export class OutsideClickHandler extends Component<OutsideClickHandlerProps, nev
   removeMouseUp;
   childNode;
 
+  constructor(props) {
+    super(props);
+    this.onMouseDown = this.onMouseDown.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
+  }
+
   componentDidMount() {
     const { disabled, useCapture } = this.props;
 
-    if (!disabled) this.addMouseDownEventListener(useCapture);
+    if (!disabled) {
+      this.addMouseDownEventListener(useCapture);
+    }
   }
 
   componentDidUpdate({ disabled: prevDisabled }: OutsideClickHandlerProps) {
@@ -42,9 +56,12 @@ export class OutsideClickHandler extends Component<OutsideClickHandlerProps, nev
   }
 
   onMouseDown = (event) => {
-    const { useCapture } = this.props;
+    const { useCapture, additionalParentRef } = this.props;
 
-    const isDescendantOfRoot = this.childNode && contains(this.childNode, event.target);
+    let isDescendantOfRoot = this.childNode && contains(this.childNode, event.target);
+    if (!isDescendantOfRoot && additionalParentRef) {
+      isDescendantOfRoot = contains(additionalParentRef, event.target);
+    }
     if (!isDescendantOfRoot) {
       if (this.removeMouseUp) {
         this.removeMouseUp();
@@ -57,10 +74,13 @@ export class OutsideClickHandler extends Component<OutsideClickHandlerProps, nev
   // Use mousedown/mouseup to enforce that clicks remain outside the root's
   // descendant tree, even when dragged. This should also get triggered on
   // touch devices.
-  onMouseUp = (event) => {
-    const { onOutsideClick } = this.props;
+  onMouseUp = (event: MouseEvent) => {
+    const { onOutsideClick, additionalParentRef } = this.props;
 
-    const isDescendantOfRoot = this.childNode && contains(this.childNode, event.target);
+    let isDescendantOfRoot = this.childNode && contains(this.childNode, event.target);
+    if (!isDescendantOfRoot && additionalParentRef) {
+      isDescendantOfRoot = contains(additionalParentRef, event.target);
+    }
     if (this.removeMouseUp) {
       this.removeMouseUp();
       this.removeMouseUp = null;

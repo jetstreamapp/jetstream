@@ -1,8 +1,8 @@
 import { useNonInitialEffect, useObservable } from '@jetstream/shared/ui-utils';
 import { InfoSuccessWarningError } from '@jetstream/types';
-import { Toast } from '@jetstream/ui';
 import React, { FunctionComponent, useState } from 'react';
 import { Subject } from 'rxjs';
+import { Toast } from './Toast';
 
 const appToastMessage = new Subject<AppToastMessage>();
 const appToastMessage$ = appToastMessage.asObservable();

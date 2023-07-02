@@ -587,7 +587,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 <div>
                   {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                     <span className="slds-text-align_left d-inline-block">
-                      <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
+                      <PopoverErrorButton className="slds-m-right_small" errors={formErrors.generalErrors} omitPortal />
                     </span>
                   )}
                   <ButtonGroupContainer className="slds-float_left">

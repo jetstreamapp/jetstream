@@ -11,13 +11,13 @@ import {
   PlatformEventMessagePayload,
   SalesforceOrgUi,
 } from '@jetstream/types';
+import { fireToast } from '@jetstream/ui';
 import { CometD } from 'cometd';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import { fireToast } from '../core/AppToast';
 import * as platformEventUtils from './platform-event-monitor.utils';
 
 export type MessagesByChannel = MapOf<{ replayId?: number; messages: PlatformEventMessagePayload[] }>;
