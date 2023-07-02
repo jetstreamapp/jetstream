@@ -5,8 +5,8 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Column } from 'react-data-grid';
-import { useAmplitude } from '../core/analytics';
 import ConfirmPageChange from '../core/ConfirmPageChange';
+import { useAmplitude } from '../core/analytics';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
@@ -37,21 +37,21 @@ const COLUMNS: Column<DeploymentItemRow>[] = [
   {
     name: 'Old Value',
     key: 'isActiveInitialState',
-    formatter: BooleanAndVersionRenderer,
+    renderCell: BooleanAndVersionRenderer,
     width: 130,
     cellClass: 'bg-color-gray',
   },
   {
     name: 'New Value',
     key: 'isActive',
-    formatter: BooleanAndVersionRenderer,
+    renderCell: BooleanAndVersionRenderer,
     width: 130,
     cellClass: 'active-item-yellow-bg',
   },
   {
     name: 'Status',
     key: 'status',
-    formatter: AutomationDeployStatusRenderer,
+    renderCell: AutomationDeployStatusRenderer,
     width: 200,
   },
 ];

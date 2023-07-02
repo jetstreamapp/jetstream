@@ -69,7 +69,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
         name: 'action',
         key: 'action',
         width: 150,
-        formatter: ({ row }) => {
+        renderCell: ({ row }) => {
           return (
             <button className={'slds-button slds-text-link_reset slds-text-link'} onClick={() => handleExecute(row)}>
               Use Request

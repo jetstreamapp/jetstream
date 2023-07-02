@@ -2,9 +2,9 @@ import { css } from '@emotion/react';
 import { ApexLogWithViewed } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Icon, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
-import { CellClickArgs, FormatterProps } from 'react-data-grid';
+import { CellClickArgs, RenderCellProps } from 'react-data-grid';
 
-export const LogViewedRenderer: FunctionComponent<FormatterProps<ApexLogWithViewed>> = ({ row }) => {
+export const LogViewedRenderer: FunctionComponent<RenderCellProps<ApexLogWithViewed>> = ({ row }) => {
   if (row?.viewed) {
     return (
       <Icon
@@ -27,7 +27,7 @@ const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
     name: '',
     key: 'viewed',
     width: 12,
-    formatter: LogViewedRenderer,
+    renderCell: LogViewedRenderer,
     resizable: false,
     // TODO: filter for this
   },

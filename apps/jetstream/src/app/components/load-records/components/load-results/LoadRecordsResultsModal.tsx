@@ -5,12 +5,12 @@ import {
   ColumnWithFilter,
   CopyToClipboardWithToolTip,
   DataTable,
+  getRowTypeFromValue,
   Icon,
   Modal,
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
-import { getRowTypeFromValue } from 'libs/ui/src/lib/data-table/data-table-utils';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 
@@ -75,7 +75,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                       {row?._errors}
                     </p>
                   )
-                : baseColumn.formatter,
+                : baseColumn.renderCell,
           };
         })
       );

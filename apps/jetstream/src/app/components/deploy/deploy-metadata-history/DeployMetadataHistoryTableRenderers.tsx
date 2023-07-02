@@ -3,13 +3,13 @@ import { IconName } from '@jetstream/icon-factory';
 import { SalesforceDeployHistoryItem } from '@jetstream/types';
 import { DataTableGenericContext, Grid, Icon } from '@jetstream/ui';
 import { Fragment, useContext } from 'react';
-import { FormatterProps } from 'react-data-grid';
+import { RenderCellProps } from 'react-data-grid';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
 
 const fallbackLabel = 'Unknown Org';
 
-export function OrgRenderer({ row: item }: FormatterProps<SalesforceDeployHistoryItem>) {
+export function OrgRenderer({ row: item }: RenderCellProps<SalesforceDeployHistoryItem>) {
   const { orgsById } = useContext(DataTableGenericContext) as DeployHistoryTableContext;
 
   const sourceOrg = item.sourceOrg ? orgsById[item.sourceOrg.uniqueId] : null;
@@ -54,7 +54,7 @@ export function OrgRenderer({ row: item }: FormatterProps<SalesforceDeployHistor
   );
 }
 
-export function StatusRenderer({ row: item }: FormatterProps<SalesforceDeployHistoryItem>) {
+export function StatusRenderer({ row: item }: RenderCellProps<SalesforceDeployHistoryItem>) {
   let status: string = item.status;
   let icon: IconName = 'success';
   let iconClassName = 'slds-icon slds-icon_x-small slds-icon-text-success';
@@ -82,7 +82,7 @@ export function StatusRenderer({ row: item }: FormatterProps<SalesforceDeployHis
   );
 }
 
-export function ActionRenderer({ row: item }: FormatterProps<SalesforceDeployHistoryItem>) {
+export function ActionRenderer({ row: item }: RenderCellProps<SalesforceDeployHistoryItem>) {
   const { onDownload, onView } = useContext(DataTableGenericContext) as DeployHistoryTableContext;
 
   return (

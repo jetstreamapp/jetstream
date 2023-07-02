@@ -92,8 +92,8 @@ export function getColumnsForGenericTable(
       resizable: true,
       sortable: true,
       filters: defaultFilters,
-      formatter: GenericRenderer,
-      headerRenderer: (props) => (
+      renderCell: GenericRenderer,
+      renderHeaderCell: (props) => (
         <FilterRenderer {...props}>
           {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
             <HeaderFilter
@@ -171,8 +171,8 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
       ...SelectColumn,
       key: SELECT_COLUMN_KEY,
       resizable: false,
-      formatter: SelectFormatter,
-      headerRenderer: SelectHeaderRenderer,
+      renderCell: SelectFormatter,
+      renderHeaderCell: SelectHeaderRenderer,
     });
     if (includeRecordActions) {
       parentColumns.unshift({
@@ -180,7 +180,7 @@ export function getColumnDefinitions(results: QueryResults<any>, isTooling: bool
         name: '',
         resizable: false,
         width: 100,
-        formatter: ActionRenderer,
+        renderCell: ActionRenderer,
         frozen: true,
         sortable: false,
       });
@@ -218,7 +218,7 @@ function getQueryResultColumn(
     sortable: true,
     width: 200,
     filters: ['TEXT', 'SET'],
-    headerRenderer: (props) => (
+    renderHeaderCell: (props) => (
       <FilterRenderer {...props}>
         {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
           <HeaderFilter
@@ -281,7 +281,7 @@ function getColumnTypeFromQueryResultsColumn(col: QueryResultsColumn): ColumnTyp
  */
 export function setColumnFromType<T>(key: string, fieldType: ColumnType, defaultProps?: Partial<Mutable<ColumnWithFilter<T>>>) {
   const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
-  column.headerRenderer = (props) => (
+  column.renderHeaderCell = (props) => (
     <FilterRenderer {...props}>
       {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
         <HeaderFilter
@@ -326,7 +326,7 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       break;
     case 'subquery':
       column.filters = ['SET'];
-      column.formatter = SubqueryRenderer;
+      column.renderCell = SubqueryRenderer;
       column.getValue = ({ column, row }) => {
         const results = row[column.key];
         if (!results || !results.totalSize) {
@@ -337,33 +337,33 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       break;
     case 'object':
       column.filters = [];
-      column.formatter = ComplexDataRenderer;
+      column.renderCell = ComplexDataRenderer;
       break;
     case 'location':
-      column.formatter = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
+      column.renderCell = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
       column.getValue = ({ column, row }) => dataTableLocationFormatter(row[column.key]);
       break;
     case 'date':
       column.filters = ['DATE', 'SET'];
-      column.formatter = ({ column, row }) => dataTableDateFormatter(row[column.key]);
+      column.renderCell = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       column.getValue = ({ column, row }) => dataTableDateFormatter(row[column.key]);
       break;
     case 'time':
       column.filters = ['TIME', 'SET'];
-      column.formatter = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
+      column.renderCell = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
       column.getValue = ({ column, row }) => dataTableTimeFormatter(row[column.key]);
       break;
     case 'boolean':
       column.filters = ['BOOLEAN_SET'];
-      column.formatter = BooleanRenderer;
+      column.renderCell = BooleanRenderer;
       column.width = 100;
       break;
     case 'address':
-      column.formatter = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
+      column.renderCell = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
       column.getValue = ({ column, row }) => dataTableAddressValueFormatter(row[column.key]);
       break;
     case 'salesforceId':
-      column.formatter = IdLinkRenderer;
+      column.renderCell = IdLinkRenderer;
       column.width = 175;
       break;
     default:

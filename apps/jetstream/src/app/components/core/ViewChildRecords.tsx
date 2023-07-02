@@ -101,7 +101,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         name: '',
         width: 40,
         frozen: true,
-        groupFormatter: ({ isExpanded }) => (
+        renderGroupCell: ({ isExpanded }) => (
           <Grid align="end" verticalAlign="center" className="h-100">
             <Icon
               icon={isExpanded ? 'chevrondown' : 'chevronright'}
@@ -116,7 +116,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         ...setColumnFromType('Id', 'text'),
         key: 'Id',
         name: 'Id',
-        formatter: ({ row }) => {
+        renderCell: ({ row }) => {
           return (
             <Grid>
               <SalesforceLogin
@@ -131,7 +131,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
             </Grid>
           );
         },
-        groupFormatter: ({ toggleGroup, groupKey, childRows }) => (
+        renderGroupCell: ({ toggleGroup, groupKey, childRows }) => (
           <button
             css={css`
               white-space: nowrap;
