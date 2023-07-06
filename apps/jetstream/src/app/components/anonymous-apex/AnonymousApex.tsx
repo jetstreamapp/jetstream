@@ -143,7 +143,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       setLoading(true);
       setResults('');
       setTextFilter('');
-      setUserDebug(false);
       logRef.current?.revealLine(1);
       setResultsStatus({ hasResults: false, success: false, label: null });
       try {
