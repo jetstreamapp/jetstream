@@ -336,7 +336,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
         if (column.preventReorder || column.frozen) {
           return column;
         }
-        return { ...column, renderHeaderCell, _priorrenderHeaderCell: column.renderHeaderCell };
+        return { ...column, renderHeaderCell, _priorHeaderRenderer: column.renderHeaderCell };
       });
     }, [columns, allowReorder]);
 
