@@ -134,6 +134,10 @@ export function isMKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'm' || event.key === 'M' || event.keyCode === 77;
 }
 
+export function isVKey(event: KeyboardEvent<unknown>): boolean {
+  return event.key === 'v' || event.code === 'KeyV' || event.keyCode === 86;
+}
+
 export function isArrowKey(event: KeyboardEvent<unknown>): boolean {
   return isArrowLeftKey(event) || isArrowUpKey(event) || isArrowRightKey(event) || isArrowDownKey(event);
 }

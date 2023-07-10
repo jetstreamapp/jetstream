@@ -31,5 +31,9 @@
       outline-offset: -2px;
       outline-style: solid;
     }
+    &.edited {
+      background: #faffbd;
+      border: 1px solid #a86403;
+    }
   }
 }

@@ -183,6 +183,7 @@ export const ANALYTICS_KEYS = {
   query_RecordAction: 'query_RecordAction',
   query_UpdateRecordsInline: 'query_UpdateRecordsInline',
   query_ResetPage: 'query_ResetPage',
+  query_InlineEditSave: 'query_InlineEditSave',
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
   attachment_ModalOpened: 'attachment_ModalOpened',

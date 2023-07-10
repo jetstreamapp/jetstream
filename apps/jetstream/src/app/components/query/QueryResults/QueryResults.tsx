@@ -639,6 +639,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           {!!(records && !!records.length) && (
             <SalesforceRecordDataTable
               org={selectedOrg}
+              defaultApiVersion={defaultApiVersion}
               google_apiKey={google_apiKey}
               google_appId={google_appId}
               google_clientId={google_clientId}
@@ -656,6 +657,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               onFields={handleFieldsChanged}
               onFilteredRowsChanged={setFilteredRows}
               onLoadMoreRecords={handleLoadMore}
+              onSavedRecords={(data) => {
+                trackEvent(ANALYTICS_KEYS.query_InlineEditSave, data);
+              }}
               onEdit={(record) => {
                 handleCloneEditView(record, 'edit');
               }}

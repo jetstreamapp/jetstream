@@ -1,13 +1,18 @@
 import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import copyToClipboard from 'copy-to-clipboard';
 import escapeRegExp from 'lodash/escapeRegExp';
+import isArray from 'lodash/isArray';
 import isNil from 'lodash/isNil';
+import isObject from 'lodash/isObject';
 import uniqueId from 'lodash/uniqueId';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import DataGrid, {
+  CellKeyDownArgs,
+  CellKeyboardEvent,
   DataGridProps,
   Row as GridRow,
   RenderHeaderCellProps,
@@ -340,6 +345,31 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       });
     }, [columns, allowReorder]);
 
+    /**
+     * For columns that have edit mode, by default any keypress will enable edit mode which breaks things like ctrl+c to copy.
+     * Aside from some specific use-cases, we disable the event from being handled by the grid.
+     */
+    function handleCellKeydown(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent) {
+      /** Events allowed to be handled by the editor */
+      if (isArrowKey(event) || isEnterKey(event) || (hasCtrlOrMeta(event) && isVKey(event))) {
+        return;
+      }
+
+      /** Custom copy to clipboard */
+      if (hasCtrlOrMeta(event) && isCKey(event)) {
+        const column = args.column as ColumnWithFilter<unknown>;
+        let value = args.row[column.key];
+
+        if (isArray(value) || isObject(value)) {
+          value = JSON.stringify(value);
+        }
+
+        !isNil(value) && copyToClipboard(value);
+      }
+
+      event.preventGridDefault();
+    }
+
     // NOTE: this is not used anywhere, so we may consider removing it.
     useImperativeHandle<unknown, DataTableRef<T>>(
       ref,
@@ -392,6 +422,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
               onSortColumnsChange={setSortColumns}
               rowKeyGetter={getRowKey}
               defaultColumnOptions={{ resizable: true, sortable: true, ...rest.defaultColumnOptions }}
+              onCellKeyDown={handleCellKeydown}
               {...rest}
             />
           </DataTableFilterContext.Provider>

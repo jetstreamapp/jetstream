@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
@@ -11,6 +12,7 @@ import { Column, RowsChangeData } from 'react-data-grid';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
+import { ConfirmationModalPromise } from '../modal/ConfirmationModalPromise';
 import { ContextMenuItem } from '../popover/ContextMenu';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
@@ -50,6 +52,7 @@ export interface SalesforceRecordDataTableProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
   serverUrl: string;
+  defaultApiVersion: string;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;
@@ -67,12 +70,14 @@ export interface SalesforceRecordDataTableProps {
   onView: (record: any) => void;
   onUpdateRecords: (records: any[]) => Promise<SobjectCollectionResponse>;
   onGetAsApex: (record: any) => void;
+  onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
 }
 
 export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
   ({
     org,
+    defaultApiVersion,
     google_apiKey,
     google_appId,
     google_clientId,
@@ -91,6 +96,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onView,
     onUpdateRecords,
     onGetAsApex,
+    onSavedRecords,
     onReloadQuery,
   }) => {
     const isMounted = useRef(true);
@@ -206,9 +212,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     useEffect(() => {
       const columnKeys = columns?.map((col) => col.key) || null;
       setRows(
-        (records || []).map((row): RowSalesforceRecordWithKey => {
+        (records || []).map((row, i): RowSalesforceRecordWithKey => {
           return {
             _action: handleRowAction,
+            _idx: i,
             _record: row,
             ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
             _key: getRowId(row),
@@ -222,6 +229,15 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     async function loadRemaining() {
       try {
+        if (
+          dirtyRows?.length &&
+          !(await ConfirmationModalPromise({
+            content: 'If you load all records your unsaved changes will not be saved.',
+          }))
+        ) {
+          return;
+        }
+
         if (!nextRecordsUrl) {
           return;
         }
@@ -332,6 +348,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
             (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col: string) => row[col] !== row._record[col])
           )
         );
+        onSavedRecords({ recordCount: modifiedRecords.length, failureCount: Object.values(failedResultsById).length });
       } catch (ex) {
         // This happens if exception thrown, normal behavior is to get records with result success/error
         logger.warn('Error saving records', ex);
@@ -369,32 +386,35 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
           <div className="slds-p-top_xx-small">
             <SearchInput id="record-filter" placeholder="Search records..." onChange={setGlobalFilter} />
           </div>
-          <div>
-            {dirtyRows?.length ? (
-              <div className="slds-m-right_small">
-                {saveErrors?.length > 0 && <PopoverErrorButton header="Save Errors" initOpenState={false} errors={saveErrors} />}
-                <button
-                  className="slds-button slds-button_neutral slds-m-left_x-small"
-                  onClick={handleCancelEditMode}
-                  disabled={isSavingRecords}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
-                  onClick={handleSaveRecords}
-                  disabled={isSavingRecords}
-                >
-                  Save
-                  {isSavingRecords && <Spinner size="small" />}
-                </button>
-              </div>
-            ) : (
-              summaryHeaderRightContent
-            )}
-          </div>
+          <div>{summaryHeaderRightContent}</div>
         </Grid>
-        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={10}>
+        {!!dirtyRows?.length && (
+          <Grid
+            css={css`
+              background-color: #f3f3f3;
+            `}
+            className="slds-p-around_x-small"
+            align="center"
+          >
+            {saveErrors?.length > 0 && <PopoverErrorButton header="Save Errors" initOpenState={false} errors={saveErrors} />}
+            <button
+              className="slds-button slds-button_neutral slds-m-left_x-small"
+              onClick={handleCancelEditMode}
+              disabled={isSavingRecords}
+            >
+              Cancel
+            </button>
+            <button
+              className="slds-button slds-button_brand slds-m-left_x-small slds-is-relative"
+              onClick={handleSaveRecords}
+              disabled={isSavingRecords}
+            >
+              Save
+              {isSavingRecords && <Spinner size="small" />}
+            </button>
+          </Grid>
+        )}
+        <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={dirtyRows?.length ? 58 : 10}>
           <DataTableSubqueryContext.Provider
             value={{
               serverUrl,
@@ -422,6 +442,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onSelectedRowsChange={handleSelectedRowsChange}
               onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
               onRowsChange={handleRowsChange}
+              context={{ org, defaultApiVersion }}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
             />

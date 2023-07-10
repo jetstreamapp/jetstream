@@ -4,6 +4,7 @@ import { Column } from 'react-data-grid';
 export type RowWithKey = Record<string, any> & { _key: string };
 export type RowSalesforceRecordWithKey = RowWithKey & {
   _action: (row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'apex') => void;
+  _idx: number;
   _record: Record<string, any>;
   _touchedColumns: Set<string>;
   _saveError?: Maybe<string>;
