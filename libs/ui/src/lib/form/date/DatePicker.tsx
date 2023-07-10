@@ -39,6 +39,7 @@ export interface DatePickerProps {
   readOnly?: boolean;
   inputProps?: React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
   usePortal?: boolean;
+  openOnInit?: boolean;
   onChange: (date: Date | null) => void;
 }
 
@@ -62,6 +63,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   disabled,
   readOnly,
   inputProps,
+  openOnInit = false,
   usePortal = false,
   onChange,
 }) => {
@@ -72,7 +74,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(openOnInit);
   const [availableYears, setAvailableYears] = useState(() => getDatePickerYears(initialMinAvailableDate, initialMaxAvailableDate));
 
   const [minAvailableDate, setMinAvailableDate] = useState(initialMinAvailableDate);

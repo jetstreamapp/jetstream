@@ -64,6 +64,7 @@ export interface ComboboxProps {
   noItemsPlaceholder?: string;
   disabled?: boolean;
   loading?: boolean;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
   /** Set to true if there are groups */
   /**
    * Text shown for the selected item when the menu is closed.
@@ -156,6 +157,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       noItemsPlaceholder = 'There are no items for selection',
       disabled,
       loading,
+      inputProps,
       selectedItemLabel,
       selectedItemTitle,
       leadingDropdown,
@@ -431,6 +433,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                       value={value}
                       title={selectedItemTitle || value}
                       onBlur={handleBlur}
+                      {...inputProps}
                     />
                     {loading ? iconLoading : iconNotLoading}
                   </div>

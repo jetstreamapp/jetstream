@@ -21,7 +21,13 @@ import uniqueId from 'lodash/uniqueId';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
 import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import { ContextMenuItem } from '../popover/ContextMenu';
-import { DataTableEditorBoolean, DataTableEditorDate, DataTableEditorText, dataTableEditorDropdownWrapper } from './DataTableEditors';
+import {
+  DataTableEditorBoolean,
+  DataTableEditorDate,
+  DataTableEditorText,
+  dataTableEditorDropdownWrapper,
+  dataTableEditorRecordLookup,
+} from './DataTableEditors';
 import {
   ActionRenderer,
   BooleanRenderer,
@@ -230,7 +236,7 @@ function getQueryResultColumn({
     cellClass: (row: any) => {
       const classes = ['slds-truncate'];
       if (row._touchedColumns instanceof Set && (row._touchedColumns as Set<string>).has(field) && row[field] !== row._record?.[field]) {
-        classes.push('active-item-yellow-bg');
+        classes.push('edited');
         if (row._saveError) {
           classes.push('active-item-error');
         }
@@ -445,7 +451,9 @@ export function updateColumnWithEditMode(
         .filter(({ active }) => active)
         .map(({ value, label }) => ({
           id: value,
-          label: label || value,
+          label: value,
+          secondaryLabel: label !== value ? label : undefined,
+          secondaryLabelOnNewLine: label !== value,
           value: value,
         })),
     });
@@ -454,6 +462,13 @@ export function updateColumnWithEditMode(
     // } else if (type === 'id' || apexType === 'Id') {
     // } else if (type === 'datetime' || apexType === 'Datetime') {
     // } else if (type === 'time' || apexType === 'Time') {
+  } else if (type === 'reference' && field.referenceTo?.length === 1) {
+    column.editable = true;
+    column.editorOptions = {
+      commitOnOutsideClick: false,
+      displayCellContent: true,
+    };
+    column.renderEditCell = dataTableEditorRecordLookup({ sobject: field.referenceTo[0] });
   } else {
     // textType
     column.editable = true;
