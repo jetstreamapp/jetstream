@@ -1,5 +1,5 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
-import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, flattenRecords, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, Maybe } from '@jetstream/types';
@@ -659,13 +659,23 @@ export function getSubqueryModalTagline(parentRecord: any) {
  * @returns
  */
 export function getSfdcRetUrl(id: string, record: any): { skipFrontDoorAuth: boolean; url: string } {
-  const type = record?.attributes?.type;
-  switch (type) {
-    case 'Group':
+  const baseRecordType = record?.attributes?.type || record?._record?.attributes?.type;
+  const relatedRecordType = RECORD_PREFIX_MAP[(id || '').substring(0, 3)] || null;
+
+  if (baseRecordType === 'Group') {
+    return {
+      skipFrontDoorAuth: true,
+      url: `/lightning/setup/PublicGroups/page?address=${encodeURIComponent(`/setup/own/groupdetail.jsp?id=${id}`)}`,
+    };
+  }
+
+  switch (relatedRecordType) {
+    case 'RecordType': {
       return {
-        skipFrontDoorAuth: true,
-        url: `/lightning/setup/PublicGroups/page?address=${encodeURIComponent(`/setup/own/groupdetail.jsp?id=${id}`)}`,
+        skipFrontDoorAuth: false,
+        url: `/lightning/setup/ObjectManager/${relatedRecordType}/RecordTypes/${id}/view`,
       };
+    }
     default:
       return { skipFrontDoorAuth: false, url: `/${id}` };
   }

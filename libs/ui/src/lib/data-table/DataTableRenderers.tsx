@@ -22,7 +22,7 @@ import Modal from '../modal/Modal';
 import Popover, { PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
-import SalesforceLogin from '../widgets/SalesforceLogin';
+import RecordLookupPopover from '../widgets/RecordLookupPopover';
 import Spinner from '../widgets/Spinner';
 import { DataTableFilterContext, DataTableSelectedContext } from './data-table-context';
 import { dataTableDateFormatter } from './data-table-formatters';
@@ -625,13 +625,16 @@ export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, 
 
 export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row, onRowChange }) => {
   const value = row[column.key];
-  const { skipFrontDoorAuth, url } = column.key === 'Id' ? getSfdcRetUrl(value, row) : { skipFrontDoorAuth: false, url: `/${value}` };
+  const { skipFrontDoorAuth, url } = getSfdcRetUrl(value, row);
   return (
-    <div className="slds-truncate" title={`${value}`}>
-      <SalesforceLogin serverUrl={_serverUrl} org={_org} returnUrl={url} skipFrontDoorAuth={skipFrontDoorAuth} omitIcon>
-        {value}
-      </SalesforceLogin>
-    </div>
+    <RecordLookupPopover
+      org={_org}
+      serverUrl={_serverUrl}
+      recordId={value}
+      skipFrontDoorAuth={skipFrontDoorAuth}
+      returnUrl={url}
+      isTooling={false}
+    />
   );
 };
 

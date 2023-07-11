@@ -754,3 +754,19 @@ export interface GlobalValueSetCustomValue {
   label?: string /** defaults to ValueName */;
   valueName: string;
 }
+
+export interface RecordWithAuditFields {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  CreatedById: string;
+  CreatedBy: {
+    Name: string;
+  } | null;
+  CreatedDate: string;
+  LastModifiedById: string;
+  LastModifiedBy: {
+    Name: string;
+  } | null;
+  LastModifiedDate: string;
+}
