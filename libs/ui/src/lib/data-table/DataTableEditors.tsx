@@ -1,9 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
 import { isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
+import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import { ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { RenderEditCellProps } from 'react-data-grid';
@@ -13,6 +15,7 @@ import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import PopoverContainer from '../popover/PopoverContainer';
 import Tabs from '../tabs/Tabs';
+import OutsideClickHandler from '../utils/OutsideClickHandler';
 import { DataTableGenericContext } from './data-table-context';
 import { getRowId } from './data-table-utils';
 
@@ -35,26 +38,30 @@ function DataTableEditorPopover({
   const popoverRef = useRef<HTMLDivElement | null>(null);
   /** This is not set on initial render because the date picker is open on render and the reference element must exist to render correctly */
   const [referenceElement, setReferenceElement] = useState<Element | null>(null);
+
   useEffect(() => {
     setReferenceElement(document.querySelector(`[aria-rowindex="${rowIdx + 2}"] > [aria-colindex="${colIdx + 1}"]`));
   }, [colIdx, rowIdx]);
+
   return (
-    <PopoverContainer
-      ref={popoverRef}
-      isOpen
-      referenceElement={referenceElement as any}
-      className={`slds-popover slds-popover slds-popover_edit`}
-      role="dialog"
-      offset={[0, -28.5]}
-      usePortal
-      onKeyDown={(event) => {
-        if (isEscapeKey(event)) {
-          onClose();
-        }
-      }}
-    >
-      {referenceElement && <div className="slds-p-around_x-small">{children}</div>}
-    </PopoverContainer>
+    <OutsideClickHandler additionalParentRef={popoverRef.current} onOutsideClick={() => onClose()}>
+      <PopoverContainer
+        ref={popoverRef}
+        isOpen
+        referenceElement={referenceElement as any}
+        className={`slds-popover slds-popover slds-popover_edit`}
+        role="dialog"
+        offset={[0, -28.5]}
+        usePortal
+        onKeyDown={(event) => {
+          if (isEscapeKey(event)) {
+            onClose();
+          }
+        }}
+      >
+        {referenceElement && <div className="slds-p-around_x-small">{children}</div>}
+      </PopoverContainer>
+    </OutsideClickHandler>
   );
 }
 
@@ -66,7 +73,7 @@ export function DataTableEditorText<TRow extends { _idx: number }, TSummaryRow>(
 }: RenderEditCellProps<TRow, TSummaryRow>) {
   return (
     <DataTableEditorPopover rowIdx={row._idx} colIdx={column.idx} onClose={onClose}>
-      <Input>
+      <Input hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
         <input
           className="slds-input"
           ref={autoFocusAndSelect}
@@ -139,7 +146,7 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
       <DataTableEditorPopover rowIdx={row._idx} colIdx={column.idx} onClose={onClose}>
         <ComboboxWithItems
           comboboxProps={{
-            label: isString(column.name) ? column.name : column.key,
+            label: `Edit ${isString(column.name) ? column.name : column.key}`,
             hideLabel: true,
             itemLength: 10,
             inputProps: {
@@ -174,9 +181,8 @@ export function DataTableEditorDate<TRow extends { _idx: number }, TSummaryRow>(
   return (
     <DataTableEditorPopover rowIdx={row._idx} colIdx={column.idx} onClose={onClose}>
       <DatePicker
-        label="Edit Date"
+        label={`Edit ${isString(column.name) ? column.name : column.key}`}
         hideLabel
-        usePortal
         containerDisplay="contents"
         className="d-block"
         initialSelectedDate={currDate}
@@ -239,17 +245,20 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
             }
           }
           const { queryResults } = await query(org, soql);
-          setRecords(
-            queryResults.records.map((record) => ({
+          setRecords([
+            {
+              id: '',
+              label: SFDC_BLANK_PICKLIST_VALUE,
+              value: '',
+            },
+            ...queryResults.records.map((record) => ({
               id: record.Id,
               label: record[name],
-              title: record.Id,
               secondaryLabel: record.Id,
               secondaryLabelOnNewLine: true,
               value: record.Id,
-              meta: record,
-            }))
-          );
+            })),
+          ]);
         } catch (ex) {
           logger.warn('Error searching records', ex);
           setRecords([]);
@@ -275,7 +284,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
               id: 'text',
               title: 'Text',
               content: (
-                <Input>
+                <Input hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
                   <input
                     className="slds-input"
                     ref={autoFocusAndSelect}
@@ -300,7 +309,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
               content: (
                 <ComboboxWithItemsTypeAhead
                   comboboxProps={{
-                    label: 'Record',
+                    label: `Edit ${isString(column.name) ? column.name : column.key}`,
                     hideLabel: true,
                     className: 'w-100',
                     placeholder: sobject ? `Search ${sobject} by name or id` : 'Select and object',
@@ -311,7 +320,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
                   onSelected={(item) => {
                     const _touchedColumns = new Set((row as any)._touchedColumns || []);
                     _touchedColumns.add(column.key);
-                    onRowChange({ ...row, [column.key]: item?.value || null, _touchedColumns }, true);
+                    onRowChange({ ...row, [column.key]: item?.value || null, _touchedColumns }, !isNil(item?.value));
                   }}
                 />
               ),

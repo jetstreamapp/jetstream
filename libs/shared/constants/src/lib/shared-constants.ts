@@ -4,6 +4,7 @@ export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 
 export const SESSION_EXP_DAYS = 5;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
+export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
 
 export const FEATURE_FLAGS = Object.freeze({
   ALL: 'all',

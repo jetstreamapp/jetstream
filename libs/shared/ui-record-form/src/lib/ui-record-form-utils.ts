@@ -1,3 +1,4 @@
+import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
 import { CloneEditView, PicklistFieldValues, Record } from '@jetstream/types';
 import type { DescribeSObjectResult, Field, FieldType } from 'jsforce';
@@ -8,8 +9,8 @@ import {
   EditableFieldDateTime,
   EditableFieldInput,
   EditableFieldPicklist,
-  EditableFields,
   EditableFieldTextarea,
+  EditableFields,
 } from './ui-record-form-types';
 
 const IGNORED_FIELD_TYPES = new Set<FieldType>(['address', 'location', 'complexvalue']);
@@ -94,9 +95,9 @@ export function convertMetadataToEditableFields(
           // Empty value to allow clearing picklist
           {
             id: '',
-            label: '--None--',
+            label: SFDC_BLANK_PICKLIST_VALUE,
             value: '',
-            meta: { attributes: null, validFor: null, label: '--None--', value: '' },
+            meta: { attributes: null, validFor: null, label: SFDC_BLANK_PICKLIST_VALUE, value: '' },
           },
         ].concat(
           picklist.values.map((item) => ({
