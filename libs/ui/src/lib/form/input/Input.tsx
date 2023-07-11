@@ -1,16 +1,17 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 
+import { IconName, IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, MouseEvent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
-import { IconType, IconName } from '@jetstream/icon-factory';
 
 export interface InputProps {
   id?: string;
   className?: string;
   formControlClassName?: string;
   label?: string;
+  hideLabel?: boolean;
   labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
@@ -33,6 +34,7 @@ export const Input: FunctionComponent<InputProps> = ({
   className,
   formControlClassName,
   label,
+  hideLabel = false,
   labelHelp,
   helpText,
   isRequired = false,
@@ -59,7 +61,7 @@ export const Input: FunctionComponent<InputProps> = ({
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
-          <label className="slds-form-element__label" htmlFor={id}>
+          <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
