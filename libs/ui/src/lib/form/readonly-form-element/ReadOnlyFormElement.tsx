@@ -15,7 +15,7 @@ export interface ReadOnlyFormElementProps {
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
-  value: string;
+  value: Maybe<string>;
   bottomBorder?: boolean;
   relatedRecord?: Maybe<{ attributes: RecordAttributes; Name: string }>;
   viewRelatedRecord?: (recordId: string, metadata: Field) => void;

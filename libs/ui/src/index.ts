@@ -149,6 +149,7 @@ export * from './lib/widgets/ItemSelectionSummary';
 export * from './lib/widgets/KeyboardShortcut';
 export * from './lib/widgets/NotSeeingRecentMetadataPopover';
 export * from './lib/widgets/Pill';
+export * from './lib/widgets/RecordLookupPopover';
 export * from './lib/widgets/SalesforceLogin';
 export * from './lib/widgets/Spinner';
 export * from './lib/widgets/SupportLink';

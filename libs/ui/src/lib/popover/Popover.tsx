@@ -36,6 +36,7 @@ export interface PopoverProps {
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
   buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string };
+  panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
   size?: SmallMediumLarge | sizeXLarge | FullWidth;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
@@ -61,6 +62,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       footer,
       panelStyle,
       buttonProps,
+      panelProps,
       buttonStyle,
       children,
       size,
@@ -188,6 +190,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                         }
                       }
                     `}
+                    {...panelProps}
                   >
                     {/* CLOSE BUTTON */}
                     <HeadlessPopover.Button
