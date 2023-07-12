@@ -10,6 +10,7 @@ import GridCol from '../grid/GridCol';
 import Popover from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import Icon from './Icon';
+import { KeyboardShortcut } from './KeyboardShortcut';
 import SalesforceLogin, { salesforceLoginAndRedirect } from './SalesforceLogin';
 import Spinner from './Spinner';
 
@@ -127,94 +128,105 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
             `}
             className="slds-is-relative slds-m-top_x-small"
           >
-            {loading && <Spinner />}
-            {record && (
-              <Grid wrap gutters>
-                {errorMessage && (
+            <Grid wrap gutters>
+              {loading && <Spinner />}
+              {errorMessage && (
+                <GridCol size={12}>
+                  <ScopedNotification theme="error">{errorMessage}</ScopedNotification>
+                </GridCol>
+              )}
+              {record && (
+                <>
                   <GridCol size={12}>
-                    <ScopedNotification theme="error">{errorMessage}</ScopedNotification>
+                    <ReadOnlyFormElement
+                      id="Object"
+                      label="Object"
+                      className="slds-p-bottom_x-small"
+                      value={`${sobjectLabel} (${sobjectName})`}
+                      bottomBorder
+                    />
                   </GridCol>
-                )}
-                <GridCol size={12}>
-                  <ReadOnlyFormElement
-                    id="Object"
-                    label="Object"
-                    className="slds-p-bottom_x-small"
-                    value={`${sobjectLabel} (${sobjectName})`}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement id="Id" label="Id" className="slds-p-bottom_x-small" value={record.Id} bottomBorder />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement id="Name" label="Name" className="slds-p-bottom_x-small" value={record.Name} bottomBorder />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="Created By"
-                    label="Created By"
-                    className="slds-p-bottom_x-small"
-                    value={record.CreatedBy?.Name || record.CreatedById}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="Created Date"
-                    label="Created Date"
-                    className="slds-p-bottom_x-small"
-                    value={dataTableDateFormatter(record.CreatedDate)}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="LastModified By"
-                    label="LastModified By"
-                    className="slds-p-bottom_x-small"
-                    value={record.LastModifiedBy?.Name || record.LastModifiedById}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="Last Modified Date"
-                    label="Last Modified Date"
-                    className="slds-p-bottom_x-small"
-                    value={dataTableDateFormatter(record.LastModifiedDate)}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={12}>
-                  <Grid align="spread">
-                    <div>
-                      {onRecordAction && sobjectName && (
-                        <>
-                          <button className="slds-button slds-button_neutral" onClick={() => onRecordAction('view', recordId, sobjectName)}>
-                            <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
-                            View Record
-                          </button>
-                          <button
-                            className="slds-button slds-button_neutral slds-p-left_x-small"
-                            onClick={() => onRecordAction('edit', recordId, sobjectName)}
-                          >
-                            <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                            Edit Record
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    <button className="slds-button" disabled={loading} onClick={() => fetchRecord(true)}>
-                      <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Reload
-                    </button>
-                  </Grid>
-                </GridCol>
-              </Grid>
-            )}
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement id="Id" label="Id" className="slds-p-bottom_x-small" value={record.Id} bottomBorder />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement id="Name" label="Name" className="slds-p-bottom_x-small" value={record.Name} bottomBorder />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="Created By"
+                      label="Created By"
+                      className="slds-p-bottom_x-small"
+                      value={record.CreatedBy?.Name || record.CreatedById}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="Created Date"
+                      label="Created Date"
+                      className="slds-p-bottom_x-small"
+                      value={dataTableDateFormatter(record.CreatedDate)}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="LastModified By"
+                      label="LastModified By"
+                      className="slds-p-bottom_x-small"
+                      value={record.LastModifiedBy?.Name || record.LastModifiedById}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="Last Modified Date"
+                      label="Last Modified Date"
+                      className="slds-p-bottom_x-small"
+                      value={dataTableDateFormatter(record.LastModifiedDate)}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={12} className="slds-m-top_small">
+                    <p className="slds-grid slds-text-small slds-text-color_weak">
+                      Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+                    </p>
+                  </GridCol>
+                </>
+              )}
+            </Grid>
           </Grid>
         </div>
+      }
+      footer={
+        !!record && !errorMessage ? (
+          <footer className="slds-popover__footer">
+            <Grid align="spread">
+              <div>
+                {onRecordAction && sobjectName && (
+                  <>
+                    <button className="slds-button slds-button_neutral" onClick={() => onRecordAction('view', recordId, sobjectName)}>
+                      <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      View Record
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral slds-p-left_x-small"
+                      onClick={() => onRecordAction('edit', recordId, sobjectName)}
+                    >
+                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Edit Record
+                    </button>
+                  </>
+                )}
+              </div>
+              <button className="slds-button" disabled={loading} onClick={() => fetchRecord(true)}>
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Reload
+              </button>
+            </Grid>
+          </footer>
+        ) : undefined
       }
       buttonProps={{ className: 'slds-button' }}
     >
