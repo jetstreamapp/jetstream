@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
 import ReadOnlyFormElement from '../form/readonly-form-element/ReadOnlyFormElement';
@@ -10,7 +10,8 @@ import GridCol from '../grid/GridCol';
 import Popover from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import Icon from './Icon';
-import SalesforceLogin from './SalesforceLogin';
+import { KeyboardShortcut } from './KeyboardShortcut';
+import SalesforceLogin, { salesforceLoginAndRedirect } from './SalesforceLogin';
 import Spinner from './Spinner';
 
 export interface RecordLookupPopoverProps {
@@ -20,6 +21,7 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
+  onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 
 export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = ({
@@ -29,10 +31,12 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   skipFrontDoorAuth,
   returnUrl,
   isTooling,
+  onRecordAction,
 }) => {
   const isMounted = useRef(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sobjectLabel, setSobjectLabel] = useState<string | null>(null);
   const [sobjectName, setSobjectName] = useState<string | null>(null);
   const [record, setRecord] = useState<RecordWithAuditFields | null>(null);
 
@@ -40,6 +44,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
     setLoading(false);
     setErrorMessage(null);
     setSobjectName(null);
+    setSobjectLabel(null);
     setRecord(null);
   }, [recordId]);
 
@@ -67,7 +72,8 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
         setErrorMessage(`An object with the prefix "${keyPrefix}" was not found.`);
         return;
       }
-      setSobjectName(`${sobject.label} (${sobject.name})`);
+      setSobjectName(sobject.name);
+      setSobjectLabel(sobject.label);
       const fields = await describeSObject(org, sobject.name, isTooling).then((result) => result.data.fields);
       if (!isMounted.current) {
         return;
@@ -122,73 +128,124 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
             `}
             className="slds-is-relative slds-m-top_x-small"
           >
-            {loading && <Spinner />}
-            {record && (
-              <Grid wrap gutters>
-                {errorMessage && (
+            <Grid wrap gutters>
+              {loading && <Spinner />}
+              {errorMessage && (
+                <GridCol size={12}>
+                  <ScopedNotification theme="error">{errorMessage}</ScopedNotification>
+                </GridCol>
+              )}
+              {record && (
+                <>
                   <GridCol size={12}>
-                    <ScopedNotification theme="error">{errorMessage}</ScopedNotification>
+                    <ReadOnlyFormElement
+                      id="Object"
+                      label="Object"
+                      className="slds-p-bottom_x-small"
+                      value={`${sobjectLabel} (${sobjectName})`}
+                      bottomBorder
+                    />
                   </GridCol>
-                )}
-                <GridCol size={12}>
-                  <ReadOnlyFormElement id="Object" label="Object" className="slds-p-bottom_x-small" value={sobjectName} bottomBorder />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement id="Id" label="Id" className="slds-p-bottom_x-small" value={record.Id} bottomBorder />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement id="Name" label="Name" className="slds-p-bottom_x-small" value={record.Name} bottomBorder />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="Created By"
-                    label="Created By"
-                    className="slds-p-bottom_x-small"
-                    value={record.CreatedBy?.Name || record.CreatedById}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="Created Date"
-                    label="Created Date"
-                    className="slds-p-bottom_x-small"
-                    value={dataTableDateFormatter(record.CreatedDate)}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="LastModified By"
-                    label="LastModified By"
-                    className="slds-p-bottom_x-small"
-                    value={record.LastModifiedBy?.Name || record.LastModifiedById}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={6}>
-                  <ReadOnlyFormElement
-                    id="Last Modified Date"
-                    label="Last Modified Date"
-                    className="slds-p-bottom_x-small"
-                    value={dataTableDateFormatter(record.LastModifiedDate)}
-                    bottomBorder
-                  />
-                </GridCol>
-                <GridCol size={12}>
-                  <button className="slds-button" disabled={loading} onClick={() => fetchRecord(true)}>
-                    <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Reload Record
-                  </button>
-                </GridCol>
-              </Grid>
-            )}
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement id="Id" label="Id" className="slds-p-bottom_x-small" value={record.Id} bottomBorder />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement id="Name" label="Name" className="slds-p-bottom_x-small" value={record.Name} bottomBorder />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="Created By"
+                      label="Created By"
+                      className="slds-p-bottom_x-small"
+                      value={record.CreatedBy?.Name || record.CreatedById}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="Created Date"
+                      label="Created Date"
+                      className="slds-p-bottom_x-small"
+                      value={dataTableDateFormatter(record.CreatedDate)}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="LastModified By"
+                      label="LastModified By"
+                      className="slds-p-bottom_x-small"
+                      value={record.LastModifiedBy?.Name || record.LastModifiedById}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={6}>
+                    <ReadOnlyFormElement
+                      id="Last Modified Date"
+                      label="Last Modified Date"
+                      className="slds-p-bottom_x-small"
+                      value={dataTableDateFormatter(record.LastModifiedDate)}
+                      bottomBorder
+                    />
+                  </GridCol>
+                  <GridCol size={12} className="slds-m-top_small">
+                    <p className="slds-grid slds-text-small slds-text-color_weak">
+                      Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
+                    </p>
+                  </GridCol>
+                </>
+              )}
+            </Grid>
           </Grid>
         </div>
       }
+      footer={
+        !!record && !errorMessage ? (
+          <footer className="slds-popover__footer">
+            <Grid align="spread">
+              <div>
+                {onRecordAction && sobjectName && (
+                  <>
+                    <button className="slds-button slds-button_neutral" onClick={() => onRecordAction('view', recordId, sobjectName)}>
+                      <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      View Record
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral slds-p-left_x-small"
+                      onClick={() => onRecordAction('edit', recordId, sobjectName)}
+                    >
+                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Edit Record
+                    </button>
+                  </>
+                )}
+              </div>
+              <button className="slds-button" disabled={loading} onClick={() => fetchRecord(true)}>
+                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Reload
+              </button>
+            </Grid>
+          </footer>
+        ) : undefined
+      }
       buttonProps={{ className: 'slds-button' }}
     >
-      {recordId}
+      <span
+        onClick={(event) => {
+          if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            event.stopPropagation();
+            event.preventDefault();
+            salesforceLoginAndRedirect({
+              serverUrl,
+              org,
+              returnUrl,
+              skipFrontDoorAuth,
+            });
+          }
+        }}
+      >
+        {recordId}
+      </span>
     </Popover>
   );
 };

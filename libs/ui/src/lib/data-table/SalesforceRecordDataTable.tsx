@@ -4,7 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl } from '@jetstream/shared/utils';
-import { MapOf, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { CloneEditView, MapOf, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -65,9 +65,9 @@ export interface SalesforceRecordDataTableProps {
   /** Fired when query is loaded OR user changes column order */
   onFields: (fields: { allFields: string[]; visibleFields: string[] }) => void;
   onLoadMoreRecords?: (queryResults: QueryResults<any>) => void;
-  onEdit: (record: any) => void;
-  onClone: (record: any) => void;
-  onView: (record: any) => void;
+  onEdit: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
+  onClone: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
+  onView: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onUpdateRecords: (records: any[]) => Promise<SobjectCollectionResponse>;
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
@@ -185,13 +185,13 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       logger.info('row action', record, action);
       switch (action) {
         case 'edit':
-          onEdit(record);
+          onEdit(record, 'ROW_ACTION');
           break;
         case 'clone':
-          onClone(record);
+          onClone(record, 'ROW_ACTION');
           break;
         case 'view':
-          onView(record);
+          onView(record, 'ROW_ACTION');
           break;
         case 'apex':
           onGetAsApex(record);
@@ -442,7 +442,20 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onSelectedRowsChange={handleSelectedRowsChange}
               onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
               onRowsChange={handleRowsChange}
-              context={{ org, defaultApiVersion }}
+              context={{
+                org,
+                defaultApiVersion,
+                onRecordAction: (action: CloneEditView, recordId: string, sobjectName: string) => {
+                  switch (action) {
+                    case 'view':
+                      onView({ Id: recordId, attributes: { type: sobjectName } }, 'RELATED_RECORD_POPOVER');
+                      break;
+                    case 'edit':
+                      onEdit({ Id: recordId, attributes: { type: sobjectName } }, 'RELATED_RECORD_POPOVER');
+                      break;
+                  }
+                },
+              }}
               contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
               contextMenuAction={handleContextMenuAction}
             />

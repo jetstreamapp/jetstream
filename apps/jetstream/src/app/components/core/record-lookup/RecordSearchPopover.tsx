@@ -3,7 +3,7 @@ import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeGlobal } from '@jetstream/shared/data';
 import { convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { CloneEditView, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import { getModifierKey, Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner } from '@jetstream/ui';
+import { Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner, getModifierKey } from '@jetstream/ui';
 import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -20,7 +20,7 @@ interface RecentRecord {
 
 const NUM_HISTORY_ITEMS = 10;
 
-export const RecordLookupPopover: FunctionComponent = () => {
+export const RecordSearchPopover: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const retainRecordId = useRef<boolean>(false);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
@@ -265,4 +265,4 @@ export const RecordLookupPopover: FunctionComponent = () => {
   );
 };
 
-export default RecordLookupPopover;
+export default RecordSearchPopover;

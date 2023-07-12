@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordStringFilter } from '@jetstream/shared/utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import classNames from 'classnames';
 import formatISO from 'date-fns/formatISO';
@@ -24,7 +24,7 @@ import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import RecordLookupPopover from '../widgets/RecordLookupPopover';
 import Spinner from '../widgets/Spinner';
-import { DataTableFilterContext, DataTableSelectedContext } from './data-table-context';
+import { DataTableFilterContext, DataTableGenericContext, DataTableSelectedContext } from './data-table-context';
 import { dataTableDateFormatter } from './data-table-formatters';
 import {
   DataTableBooleanSetFilter,
@@ -624,6 +624,9 @@ export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, 
 };
 
 export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row, onRowChange }) => {
+  const { onRecordAction } = useContext(DataTableGenericContext) as {
+    onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
+  };
   const value = row[column.key];
   const { skipFrontDoorAuth, url } = getSfdcRetUrl(value, row);
   return (
@@ -634,6 +637,7 @@ export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = 
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}
+      onRecordAction={onRecordAction}
     />
   );
 };
