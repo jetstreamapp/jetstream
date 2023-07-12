@@ -392,13 +392,13 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     return !loading && !errorMessage && !!records?.length;
   }
 
-  function handleCloneEditView(record: any, action: CloneEditView) {
+  function handleCloneEditView(record: any, action: CloneEditView, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') {
     setCloneEditViewRecord({
       action,
       recordId: record.Id || getRecordIdFromAttributes(record),
       sobjectName: getSObjectNameFromAttributes(record),
     });
-    trackEvent(ANALYTICS_KEYS.query_RecordAction, { action });
+    trackEvent(ANALYTICS_KEYS.query_RecordAction, { action, source });
   }
 
   async function handleUpdateRecords(modifiedRecords: any[]): Promise<SobjectCollectionResponse> {
@@ -660,14 +660,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               onSavedRecords={(data) => {
                 trackEvent(ANALYTICS_KEYS.query_InlineEditSave, data);
               }}
-              onEdit={(record) => {
-                handleCloneEditView(record, 'edit');
+              onEdit={(record, source) => {
+                handleCloneEditView(record, 'edit', source);
               }}
-              onClone={(record) => {
-                handleCloneEditView(record, 'clone');
+              onClone={(record, source) => {
+                handleCloneEditView(record, 'clone', source);
               }}
-              onView={(record) => {
-                handleCloneEditView(record, 'view');
+              onView={(record, source) => {
+                handleCloneEditView(record, 'view', source);
               }}
               onUpdateRecords={handleUpdateRecords}
               onGetAsApex={(record) => {

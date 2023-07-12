@@ -17,6 +17,35 @@ export interface SalesforceLoginProps {
   children?: React.ReactNode;
 }
 
+function getLoginUrl({
+  skipFrontDoorAuth,
+  org,
+  serverUrl,
+  returnUrl,
+}: Pick<SalesforceLoginProps, 'skipFrontDoorAuth' | 'org' | 'serverUrl' | 'returnUrl'>) {
+  if (skipFrontDoorAuth) {
+    return `${org.instanceUrl}/${returnUrl}`;
+  } else {
+    if (serverUrl) {
+      let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;
+      if (returnUrl) {
+        url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
+      }
+      return url;
+    }
+  }
+}
+
+/**
+ * Perform same action as <SalesforceLogin /> but programmatically
+ */
+export function salesforceLoginAndRedirect(options: Pick<SalesforceLoginProps, 'skipFrontDoorAuth' | 'org' | 'serverUrl' | 'returnUrl'>) {
+  const url = getLoginUrl(options);
+  if (url) {
+    window.open(url, '_blank', 'noopener noreferrer');
+  }
+}
+
 export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
   skipFrontDoorAuth = false,
   serverUrl,
@@ -31,16 +60,14 @@ export const SalesforceLogin: FunctionComponent<SalesforceLoginProps> = ({
 }) => {
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (skipFrontDoorAuth) {
-      setLoginUrl(`${org.instanceUrl}/${returnUrl}`);
-    } else {
-      if (serverUrl) {
-        let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;
-        if (returnUrl) {
-          url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
-        }
-        setLoginUrl(url);
-      }
+    const url = getLoginUrl({
+      skipFrontDoorAuth,
+      org,
+      serverUrl,
+      returnUrl,
+    });
+    if (url) {
+      setLoginUrl(url);
     }
   }, [serverUrl, org, returnUrl, loginUrl, skipFrontDoorAuth]);
 

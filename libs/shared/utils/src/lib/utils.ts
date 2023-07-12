@@ -17,7 +17,7 @@ import {
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import type { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
+import type { QueryResult, FieldType as jsforceFieldType } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -314,7 +314,7 @@ export function getRecordIdFromAttributes(record: any) {
 }
 
 export function getSObjectNameFromAttributes(record: any) {
-  let urlWithoutId = record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
+  let urlWithoutId = record.attributes.type || record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
   return urlWithoutId.substring(urlWithoutId.lastIndexOf('/') + 1);
 }
 
