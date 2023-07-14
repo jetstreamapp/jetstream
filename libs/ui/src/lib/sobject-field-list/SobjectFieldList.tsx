@@ -21,7 +21,7 @@ function getFilteredFields(visibleFields: Set<string>, queryFields: QueryFields,
   return Array.from(visibleFields)
     .map((key) => queryFields?.fields?.[key])
     .filter(Boolean)
-    .filter(filterFieldsFn(activeFilters)) as FieldWrapper[];
+    .filter(filterFieldsFn(activeFilters, queryFields.selectedFields)) as FieldWrapper[];
 }
 
 export interface SobjectFieldListProps {
@@ -73,7 +73,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
       //
       return Array.from(queryFieldsMap[itemKey].visibleFields)
         .map((key) => queryFieldsMap[itemKey].fields[key])
-        .filter(filterFieldsFn(activeFilters));
+        .filter(filterFieldsFn(activeFilters, queryFields?.selectedFields));
     }
     return null;
   });
