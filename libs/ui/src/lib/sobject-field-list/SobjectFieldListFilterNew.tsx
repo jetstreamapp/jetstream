@@ -1,13 +1,13 @@
+import { css } from '@emotion/react';
 import classNames from 'classnames';
-import uniqueId from 'lodash/uniqueId';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import BadgeNotification from '../badge/BadgeNotification';
+import { Fragment, FunctionComponent, MouseEvent, useEffect, useId, useRef, useState } from 'react';
 import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
-import Popover from '../popover/Popover';
+import Popover, { PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
 export type All = 'all';
+export type SelectedFilter = All | 'selected';
 export type EditableFilter = All | 'editable' | 'creatable' | 'read-only';
 export type RequiredFilter = All | 'allows-nulls' | 'does-not-allow-nulls';
 export type DefaultFilter = All | 'has-default' | 'no-default';
@@ -15,6 +15,7 @@ export type StandardCustomFilter = All | 'standard' | 'custom';
 export type ManagedFilter = All | 'unmanaged' | 'managed';
 
 export interface FilterTypes {
+  selected: SelectedFilter;
   editable: EditableFilter;
   required: RequiredFilter;
   default: DefaultFilter;
@@ -23,6 +24,7 @@ export interface FilterTypes {
 }
 
 export const DEFAULT_FILTER_TYPES: FilterTypes = {
+  selected: 'all',
   editable: 'all',
   required: 'all',
   default: 'all',
@@ -32,6 +34,10 @@ export const DEFAULT_FILTER_TYPES: FilterTypes = {
 Object.freeze(DEFAULT_FILTER_TYPES);
 
 export const DEFAULT_FILTER_TYPE_ITEMS = {
+  selected: [
+    { key: 'all', label: 'All' },
+    { key: 'selected', label: 'Selected' },
+  ],
   editable: [
     { key: 'all', label: 'All' },
     { key: 'editable', label: 'Editable' },
@@ -67,7 +73,8 @@ export interface SobjectFieldListFilterProps {
 }
 
 export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterProps> = ({ selectedItems, onChange }) => {
-  const [idPrefix] = useState(uniqueId('sobject-filter-list'));
+  const popoverRef = useRef<PopoverRef>(null);
+  const idPrefix = useId();
   const [filterSelectedCount, setFilterSelectedCount] = useState<number>(
     () => Object.values(selectedItems).filter((item) => item !== 'all').length
   );
@@ -80,20 +87,29 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     onChange({ ...selectedItems, [field]: value });
   }
 
-  function handleReset() {
+  function handleReset(event: MouseEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
     onChange({ ...DEFAULT_FILTER_TYPES });
+    popoverRef.current?.close();
   }
 
   return (
     <Popover
-      // placement="bottom"
+      ref={popoverRef}
       size="large"
-      //FIXME: figure out append to!
-      // tippyProps={{
-      //   appendTo: () => document.body,
-      // }}
+      placement="right"
       content={
         <Fragment>
+          <SobjectFieldListFilterSection
+            field="selected"
+            label="Selected Fields"
+            labelHelp="Only show fields that are currently selected."
+            idPrefix={idPrefix}
+            items={DEFAULT_FILTER_TYPE_ITEMS.selected}
+            value={selectedItems.selected}
+            onChange={handleChange}
+          />
           <SobjectFieldListFilterSection
             field="editable"
             label="Editable Fields"
@@ -157,7 +173,38 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className="slds-button__icon slds-button__icon_large"
         omitContainer
       />
-      {!!filterSelectedCount && <BadgeNotification>{filterSelectedCount}</BadgeNotification>}
+      {!!filterSelectedCount && (
+        <div
+          title="Reset all filters"
+          css={css`
+            position: absolute;
+            background-color: #ba0517;
+            top: -0.8rem;
+            right: -0.5rem;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            border-width: 2px;
+            border-color: white;
+            &:hover {
+              cursor: pointer;
+              &:after {
+                content: 'X';
+              }
+            }
+            &:after {
+              content: '${filterSelectedCount}';
+            }
+          `}
+          onClick={handleReset}
+        ></div>
+      )}
     </Popover>
   );
 };
