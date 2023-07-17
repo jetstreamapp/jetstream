@@ -1,4 +1,4 @@
-import React from 'react';
+/* eslint-disable @next/next/no-img-element */
 
 export interface FigureImgProps {
   src: string;

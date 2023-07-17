@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import Footer from '../../components/Footer';
 import Navigation from '../../components/Navigation';
 
@@ -29,43 +29,42 @@ const webSubProcessors = [
   { name: 'Rollbar', function: 'Automated bug tracking', location: 'United States', optional: 'No' },
   { name: 'Salesforce.com', function: 'Application core', location: 'United States', optional: 'No' },
 ];
-const desktopSubProcessors = [
-  {
-    name: 'Amplitude',
-    function: 'Telemetry',
-    location: 'United States',
-    optional: 'Yes, this is opt-in and you can turn off on first run.',
-  },
-  {
-    name: 'Cloudinary',
-    function: 'Image hosting',
-    location: 'United States',
-    optional: 'Yes, this processor is only used if you add images while creating a support ticket.',
-  },
-  {
-    name: 'Github',
-    function: 'Ticket tracking',
-    location: 'United States',
-    optional: 'Yes, this processor is only used if you file a support ticket.',
-  },
-  {
-    name: 'Google',
-    function: 'File storage',
-    location: 'United States',
-    optional: 'File storage is opt-in only if you use Google Drive to save and read files.',
-  },
-  { name: 'Mailgun', function: 'Email', location: 'United States', optional: 'No' },
-  {
-    name: 'Rollbar',
-    function: 'Automated bug tracking',
-    location: 'United States',
-    optional: 'Yes, this is opt-in and you can turn off on first run.',
-  },
-  { name: 'Salesforce.com', function: 'Application core', location: 'United States', optional: 'No' },
-];
+// const desktopSubProcessors = [
+//   {
+//     name: 'Amplitude',
+//     function: 'Telemetry',
+//     location: 'United States',
+//     optional: 'Yes, this is opt-in and you can turn off on first run.',
+//   },
+//   {
+//     name: 'Cloudinary',
+//     function: 'Image hosting',
+//     location: 'United States',
+//     optional: 'Yes, this processor is only used if you add images while creating a support ticket.',
+//   },
+//   {
+//     name: 'Github',
+//     function: 'Ticket tracking',
+//     location: 'United States',
+//     optional: 'Yes, this processor is only used if you file a support ticket.',
+//   },
+//   {
+//     name: 'Google',
+//     function: 'File storage',
+//     location: 'United States',
+//     optional: 'File storage is opt-in only if you use Google Drive to save and read files.',
+//   },
+//   { name: 'Mailgun', function: 'Email', location: 'United States', optional: 'No' },
+//   {
+//     name: 'Rollbar',
+//     function: 'Automated bug tracking',
+//     location: 'United States',
+//     optional: 'Yes, this is opt-in and you can turn off on first run.',
+//   },
+//   { name: 'Salesforce.com', function: 'Application core', location: 'United States', optional: 'No' },
+// ];
 
 function Privacy() {
-  const email = 'support@getjetstream.app';
   return (
     <Fragment>
       <Head>

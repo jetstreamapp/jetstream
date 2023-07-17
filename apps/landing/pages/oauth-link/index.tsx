@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import React, { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Footer from '../../components/Footer';
 import HeaderNoNavigation from '../../components/HeaderNoNavigation';
 import { parseQueryString } from '../../utils/utils';
@@ -136,7 +136,7 @@ function LinkAuthAccount() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  support@getjetstream.app
+                  {email}
                 </a>
                 .
               </p>

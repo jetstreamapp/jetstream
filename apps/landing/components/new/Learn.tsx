@@ -1,8 +1,3 @@
-import React from 'react';
-
-{
-  /* FIXME: upsplash logo not allowed */
-}
 const blogPosts = [
   {
     id: 1,
@@ -70,7 +65,7 @@ export const Learn = () => (
         <p className="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">Helpful Resources</p>
         <p className="mt-5 mx-auto max-w-prose text-xl text-gray-500">
           Check out the{' '}
-          <a className="underline" href="https://docs.getjetstream.app" target="_blank">
+          <a className="underline" href="https://docs.getjetstream.app" target="_blank" rel="noreferrer">
             Jetstream documentation
           </a>{' '}
           for more information about using Jetstream.
@@ -85,7 +80,7 @@ export const Learn = () => (
             <div className="flex-1 bg-white p-6 flex flex-col justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-cyan-600">{post.category.name}</p>
-                <a href={post.href} target="_blank" className="block mt-2">
+                <a href={post.href} target="_blank" className="block mt-2" rel="noreferrer">
                   <p className="text-xl font-semibold text-gray-900">{post.title}</p>
                   <p className="mt-3 text-base text-gray-500">{post.preview}</p>
                 </a>

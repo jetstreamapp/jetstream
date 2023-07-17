@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 
 const footerNavigation = {
@@ -39,7 +40,7 @@ export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
           <div className="md:grid md:grid-cols-1 md:gap-8">
             <div className="mt-12 md:mt-0">
               <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Support</h3>
-              <ul role="list" className="mt-4 space-y-4">
+              <ul className="mt-4 space-y-4">
                 {footerNavigation.support
                   .filter((item) => !omitLinks.includes(item.href))
                   .map((item) => (
@@ -61,7 +62,7 @@ export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Company</h3>
-            <ul role="list" className="mt-4 space-y-4">
+            <ul className="mt-4 space-y-4">
               {footerNavigation.company
                 .filter((item) => !omitLinks.includes(item.href))
                 .map((item) => (
@@ -75,7 +76,7 @@ export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
           </div>
           <div className="mt-12 md:mt-0">
             <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Legal</h3>
-            <ul role="list" className="mt-4 space-y-4">
+            <ul className="mt-4 space-y-4">
               {footerNavigation.legal
                 .filter((item) => !omitLinks.includes(item.href))
                 .map((item) => (
