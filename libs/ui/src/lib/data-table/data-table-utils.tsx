@@ -1,4 +1,5 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, flattenRecords, pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -659,25 +660,30 @@ export function getSubqueryModalTagline(parentRecord: any) {
  * @returns
  */
 export function getSfdcRetUrl(id: string, record: any): { skipFrontDoorAuth: boolean; url: string } {
-  const baseRecordType = record?.attributes?.type || record?._record?.attributes?.type;
-  const relatedRecordType = RECORD_PREFIX_MAP[(id || '').substring(0, 3)] || null;
+  try {
+    const baseRecordType = record?.attributes?.type || record?._record?.attributes?.type;
+    const relatedRecordType = RECORD_PREFIX_MAP[(id || '').substring(0, 3)] || null;
 
-  if (baseRecordType === 'Group') {
-    return {
-      skipFrontDoorAuth: true,
-      url: `/lightning/setup/PublicGroups/page?address=${encodeURIComponent(`/setup/own/groupdetail.jsp?id=${id}`)}`,
-    };
-  }
-
-  switch (relatedRecordType) {
-    case 'RecordType': {
+    if (baseRecordType === 'Group') {
       return {
-        skipFrontDoorAuth: false,
-        url: `/lightning/setup/ObjectManager/${relatedRecordType}/RecordTypes/${id}/view`,
+        skipFrontDoorAuth: true,
+        url: `/lightning/setup/PublicGroups/page?address=${encodeURIComponent(`/setup/own/groupdetail.jsp?id=${id}`)}`,
       };
     }
-    default:
-      return { skipFrontDoorAuth: false, url: `/${id}` };
+
+    switch (relatedRecordType) {
+      case 'RecordType': {
+        return {
+          skipFrontDoorAuth: false,
+          url: `/lightning/setup/ObjectManager/${relatedRecordType}/RecordTypes/${id}/view`,
+        };
+      }
+      default:
+        return { skipFrontDoorAuth: false, url: `/${id}` };
+    }
+  } catch (ex) {
+    logger.error('Error formatting Salesforce URL', ex);
+    return { skipFrontDoorAuth: false, url: `/${id}` };
   }
 }
 
