@@ -53,6 +53,8 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Build application
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
         run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
 
       - name: Uploading artifacts
