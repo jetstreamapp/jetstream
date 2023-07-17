@@ -1,5 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
-import React from 'react';
 
 export const HeaderNoNavigation = () => (
   <div className="py-6 bg-white">

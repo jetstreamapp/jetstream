@@ -1,4 +1,3 @@
-import React from 'react';
 import './index.scss';
 
 // This default export is required in a new `pages/_app.js` file.

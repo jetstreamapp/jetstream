@@ -1,4 +1,4 @@
-import React from 'react';
+/* eslint-disable @next/next/no-img-element */
 import { HeartIcon } from '@heroicons/react/solid';
 
 export const HeaderCta = () => (
