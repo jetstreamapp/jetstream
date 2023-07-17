@@ -189,9 +189,9 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
                     />
                   </GridCol>
                   <GridCol size={12} className="slds-m-top_small">
-                    <p className="slds-grid slds-text-small slds-text-color_weak">
+                    <div className="slds-grid slds-text-small slds-text-color_weak">
                       Use <KeyboardShortcut className="slds-m-left_x-small" keys={['shift', 'click']} /> to skip this popup
-                    </p>
+                    </div>
                   </GridCol>
                 </>
               )}
