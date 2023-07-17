@@ -15,7 +15,6 @@ if (ENV.PRISMA_DEBUG) {
 
 export const prisma = new PrismaClient({
   log,
-  rejectOnNotFound: false,
 });
 
 export const pgPool = new Pool({
