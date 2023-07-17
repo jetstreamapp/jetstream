@@ -38,6 +38,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   const [showReadOnlyFields, setShowReadOnlyFields] = useState(true);
   const [showFieldTypes, setShowFieldTypes] = useState(false);
   const [limitToRequired, setLimitToRequired] = useState(false);
+  const [limitToErrorFields, setLimitToErrorFields] = useState(false);
   const [modifiedRecord, setModifiedRecord] = useState<Record>({});
   const [visibleFieldMetadataRows, setVisibleFieldMetadataRows] = useState<EditableFields[][]>();
   const [fieldMetadata, setFieldMetadata] = useState(() => {
@@ -64,13 +65,16 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
           (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable
         );
       }
+      if (limitToErrorFields) {
+        visibleFields = visibleFields.filter((field) => saveErrors[field.name]);
+      }
       if (visibleFields.length) {
         setVisibleFieldMetadataRows(splitArrayToMaxSize(visibleFields, columnSize));
       } else {
         setVisibleFieldMetadataRows([]);
       }
     }
-  }, [fieldMetadata, debouncedFilters, showReadOnlyFields, columnSize, limitToRequired, action]);
+  }, [fieldMetadata, debouncedFilters, showReadOnlyFields, columnSize, limitToRequired, action, limitToErrorFields, saveErrors]);
 
   useNonInitialEffect(() => {
     setFieldMetadata(convertMetadataToEditableFields(sobjectFields, picklistValues, action, record));
@@ -140,6 +144,15 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
             disabled={!fieldMetadata || disabled}
             onChange={setLimitToRequired}
           />
+          {Object.keys(saveErrors).length > 0 && (
+            <Checkbox
+              id={`record-form-limit-to-error`}
+              label="Show Fields with Errors"
+              checked={limitToErrorFields}
+              disabled={!fieldMetadata || disabled}
+              onChange={setLimitToErrorFields}
+            />
+          )}
         </Grid>
       </div>
       <hr className="slds-m-around_xx-small" />

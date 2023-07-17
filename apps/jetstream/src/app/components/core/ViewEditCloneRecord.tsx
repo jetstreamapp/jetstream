@@ -37,7 +37,6 @@ import Editor from '@monaco-editor/react';
 import type { ChildRelationship, Field } from 'jsforce';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
-import isUndefined from 'lodash/isUndefined';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { composeQuery, getField } from 'soql-parser-js';
@@ -180,25 +179,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }, [action]);
 
   useNonInitialEffect(() => {
-    const isDirty = Object.values(modifiedRecord).filter((value) => value !== undefined).length > 0;
-    const fieldErrors = { ...formErrors.fieldErrors };
-    let needsFormErrorsUpdate = false;
-    let hasRemainingErrors = false;
-    if (formErrors.hasErrors) {
-      Object.keys(fieldErrors).forEach((key) => {
-        if (action !== 'create' && isUndefined(modifiedRecord[key])) {
-          needsFormErrorsUpdate = true;
-          fieldErrors[key] = undefined;
-        } else {
-          hasRemainingErrors = true;
-        }
-      });
-    }
-    setIsFormDirty(isDirty);
-    if (needsFormErrorsUpdate) {
-      setFormErrors({ hasErrors: hasRemainingErrors, fieldErrors, generalErrors: formErrors.generalErrors });
-    }
-  }, [action, formErrors.fieldErrors, formErrors.generalErrors, formErrors.hasErrors, modifiedRecord]);
+    setIsFormDirty(Object.values(modifiedRecord).filter((value) => value !== undefined).length > 0);
+  }, [action, modifiedRecord]);
 
   const fetchMetadata = useCallback(async () => {
     try {
