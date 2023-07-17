@@ -77,6 +77,11 @@ export function combineRecordsForClone(sobjectFields: Field[], initialRecord: Re
       clonedRecord[field.name] = undefined;
     }
   });
+  ['LastModifiedBy', 'Owner', 'CreatedBy'].forEach((fieldName) => {
+    if (clonedRecord[fieldName]) {
+      clonedRecord[fieldName] = undefined;
+    }
+  });
   return JSON.parse(JSON.stringify(clonedRecord));
 }
 

@@ -1,8 +1,8 @@
 import { REGEX } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
 import type { FieldType } from 'jsforce';
-import isString from 'lodash/isString';
 import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
 
 type FieldValue = string | number | boolean | null;
 type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
@@ -70,7 +70,7 @@ export function recordToApex(record: any, initialOptions: RecordToApexOptionsIni
   let output = '';
   if (isObject(record)) {
     const options = getDefaultOptions(record, initialOptions);
-    const { inline, wrapInMethod, wrapInMethodStatic, fields: initFields, sobjectName } = options;
+    const { inline, wrapInMethod, sobjectName } = options;
     const variableName = getVariableName(sobjectName);
 
     const fieldsApex = getFieldValues(record, options)
@@ -187,6 +187,9 @@ function getFieldValues(record: any, options: RecordToApexOptions): [string, Fie
         if (fieldMetadata[field] === 'date' || fieldMetadata[field] === 'datetime') {
           return [field, getDateOrDatetimeValue(record[field], fieldMetadata[field] === 'datetime', replaceDateWithToday)];
         }
+        if (fieldMetadata[field] === 'time') {
+          return [field, getTimeValue(record[field])];
+        }
         return [field, `'${record[field]}'`];
       } else {
         return [field, record[field] as FieldValue];
@@ -210,6 +213,15 @@ function getDateOrDatetimeValue(value: string, isDatetime: boolean, replaceDateW
     return `Date.today()`;
   }
   return `JSON.deserialize('"${value}"', Date.class)`;
+}
+
+/**
+ * Return time string formatted as `16:20:00.000Z` to `Time.newInstance(16, 20, 0, 0);`
+ */
+function getTimeValue(value: string): string {
+  const [hours, minutes, secondsTemp] = value.split(':');
+  const [seconds, milliseconds] = secondsTemp.split('.');
+  return `Time.newInstance(${Number(hours)}, ${Number(minutes)}, ${Number(seconds)}, ${Number.parseInt(milliseconds)})`;
 }
 
 function getFieldAsApex([field, value]: [string, FieldValue], variableName: string, options: RecordToApexOptions): string {
