@@ -42,7 +42,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nx/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "electron-worker:build",
         "inspect": true,

@@ -10,7 +10,7 @@ import { Icon } from '../widgets/Icon';
 
 const ConditionalPortal = ({ omitPortal, portalRef, children }: { omitPortal: boolean; portalRef: Element; children: ReactNode }) => (
   // eslint-disable-next-line react/jsx-no-useless-fragment
-  <Fragment>{omitPortal ? children : createPortal(children, portalRef || document.body)}</Fragment>
+  <Fragment>{omitPortal ? children : createPortal(children as any, portalRef || document.body)}</Fragment>
 );
 
 export interface PopoverRef {
