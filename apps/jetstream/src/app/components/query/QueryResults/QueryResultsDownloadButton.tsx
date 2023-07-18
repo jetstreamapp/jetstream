@@ -3,11 +3,12 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ButtonGroupContainer, DownloadFromServerOpts, DropDown, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { Query } from 'soql-parser-js';
 import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
+import * as fromQueryState from '../query.state';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 
 export interface QueryResultsDownloadButtonProps {
@@ -53,6 +54,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   const [{ google_apiKey, google_appId, google_clientId, serverUrl }] = useRecoilState(applicationCookieState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
   const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState<boolean>(false);
+  const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
 
   function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
     trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
@@ -66,8 +68,18 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   }
 
   function handleDownloadFromServer(options: DownloadFromServerOpts) {
-    const { fileFormat, fileName, fields, includeSubquery, whichFields, recordsToInclude, hasAllRecords, googleFolder, useBulkApi } =
-      options;
+    const {
+      fileFormat,
+      fileName,
+      fields,
+      includeSubquery,
+      whichFields,
+      recordsToInclude,
+      hasAllRecords,
+      googleFolder,
+      includeDeletedRecords,
+      useBulkApi,
+    } = options;
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -78,6 +90,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           sObject: sObject || '',
           soql,
           isTooling,
+          includeDeletedRecords,
           useBulkApi,
           fields,
           subqueryFields,
@@ -155,6 +168,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           totalRecordCount={totalRecordCount || 0}
           onModalClose={() => setModalOpen(false)}
           onDownload={handleDidDownload}
+          includeDeletedRecords={includeDeletedRecords}
           onDownloadFromServer={handleDownloadFromServer}
         />
       )}

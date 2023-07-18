@@ -14,7 +14,7 @@ import isValidDate from 'date-fns/isValid';
 import parseISO from 'date-fns/parseISO';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useDrag } from 'react-dnd';
 import FormRowButton from '../form/button/FormRowButton';
 import ComboboxWithDrillInItems from '../form/combobox/ComboboxWithDrillInItems';
@@ -190,7 +190,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
           {row !== 1 && AndOr && <span>{AndOr}</span>}
           <span className="slds-assistive-text">{`Condition ${row} ${group ? `Of Group ${group}` : ''}`}</span>
         </legend>
-        <Grid guttersSize="xx-small" wrap={wrap} verticalAlign="end">
+        <Grid gutters guttersSize="xx-small" wrap={wrap} verticalAlign="end">
           {showDragHandles && (
             <button
               ref={drag}

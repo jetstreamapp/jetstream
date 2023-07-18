@@ -115,6 +115,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           fields,
           records,
           hasAllRecords,
+          includeDeletedRecords,
           useBulkApi,
           fileFormat,
           fileName,
@@ -151,7 +152,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         } else {
           // Submit bulk query job and poll until results are ready
           // Main Browser context will handle downloading the file as a link so it can be streamed
-          const jobInfo = await bulkApiCreateJob(org, { type: 'QUERY', sObject });
+          const jobInfo = await bulkApiCreateJob(org, { type: includeDeletedRecords ? 'QUERY_ALL' : 'QUERY', sObject });
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const jobId = jobInfo.id!;
           const batchResult = await bulkApiAddBatchToJob(org, jobId, soql, true);

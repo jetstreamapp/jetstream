@@ -13,7 +13,7 @@ import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
   createJob: [
-    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY']),
+    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY', 'QUERY_ALL']),
     body('sObject').isString(),
     body('serialMode').optional().isBoolean(),
     body('externalIdFieldName').optional().isString(),
