@@ -55,6 +55,7 @@ export interface DownloadFromServerOpts {
   /** Only applies if fileFormat === 'gdrive', indicates to ignore nextRecords if there are any */
   hasAllRecords: boolean;
   googleFolder?: Maybe<string>;
+  includeDeletedRecords: boolean;
   useBulkApi: boolean; // FIXME: made req to see where used
 }
 
@@ -72,6 +73,7 @@ export interface RecordDownloadModalProps {
   filteredRecords?: Record[];
   selectedRecords?: Record[];
   totalRecordCount?: number;
+  includeDeletedRecords?: boolean;
   onModalClose: (cancelled?: boolean) => void;
   onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
@@ -96,6 +98,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   filteredRecords,
   selectedRecords,
   totalRecordCount,
+  includeDeletedRecords = false,
   onModalClose,
   onDownload,
   onDownloadFromServer,
@@ -234,6 +237,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             recordsToInclude: activeRecords,
             hasAllRecords: downloadRecordsValue !== RADIO_ALL_SERVER,
             googleFolder,
+            includeDeletedRecords,
             useBulkApi: downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API,
           });
         }

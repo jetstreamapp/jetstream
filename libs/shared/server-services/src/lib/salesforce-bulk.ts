@@ -16,11 +16,12 @@ import { create as xmlBuilder, convert as xmlConverter } from 'xmlbuilder2';
 const { HEADERS, CONTENT_TYPE } = HTTP;
 
 export async function sfBulkCreateJob(conn: jsforce.Connection, options: BulkApiCreateJobRequestPayload): Promise<BulkJob> {
-  const { type, sObject, assignmentRuleId, serialMode, externalId, hasZipAttachment } = options;
+  const type = options.type === 'QUERY_ALL' ? 'queryAll' : options.type.toLowerCase();
+  const { sObject, assignmentRuleId, serialMode, externalId, hasZipAttachment } = options;
   // prettier-ignore
   const jobInfoNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
       .ele('jobInfo', { xmlns: 'http://www.force.com/2009/06/asyncapi/dataload' })
-        .ele('operation').txt(type.toLowerCase()).up()
+        .ele('operation').txt(type).up()
         .ele('object').txt(sObject).up();
 
   if (type === 'UPSERT' && externalId) {

@@ -83,9 +83,10 @@ export type Update = 'UPDATE';
 export type Upsert = 'UPSERT';
 export type Delete = 'DELETE';
 export type Query = 'QUERY';
+export type QueryAll = 'QUERY_ALL';
 export type InsertUpdateUpsert = Insert | Update | Upsert;
 export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete;
-export type InsertUpdateUpsertDeleteQuery = Insert | Update | Upsert | Delete | Query;
+export type InsertUpdateUpsertDeleteQuery = Insert | Update | Upsert | Delete | Query | QueryAll;
 
 export interface ErrorResult {
   errors: {
@@ -325,7 +326,7 @@ export interface BulkJob {
   totalProcessingTime: number;
 }
 
-export interface BulkJobUntyped extends Object {
+export interface BulkJobUntyped extends Record<string, any> {
   $: any;
   concurrencyMode: 'Parallel' | 'Serial';
   contentType: string;
@@ -364,7 +365,7 @@ export interface BulkJobBatchInfo {
   apexProcessingTime: number;
 }
 
-export interface BulkJobBatchInfoUntyped extends Object {
+export interface BulkJobBatchInfoUntyped extends Record<string, any> {
   $?: any;
   '@xmlns'?: string;
   id: string;

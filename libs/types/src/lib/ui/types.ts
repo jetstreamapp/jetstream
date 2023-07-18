@@ -493,6 +493,7 @@ export interface BulkDownloadJob {
   fileName: string;
   googleFolder: Maybe<string>;
   includeSubquery: boolean;
+  includeDeletedRecords: boolean;
   useBulkApi: boolean;
 }
 

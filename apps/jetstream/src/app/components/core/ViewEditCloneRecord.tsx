@@ -391,6 +391,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           sObject: sobjectName,
           soql: '',
           isTooling: false,
+          includeDeletedRecords: false,
           useBulkApi: false,
           fields,
           subqueryFields,
