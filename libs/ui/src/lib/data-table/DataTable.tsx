@@ -350,24 +350,30 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
      * Aside from some specific use-cases, we disable the event from being handled by the grid.
      */
     function handleCellKeydown(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent) {
-      /** Events allowed to be handled by the editor */
-      if (isArrowKey(event) || isEnterKey(event) || (hasCtrlOrMeta(event) && isVKey(event))) {
-        return;
-      }
-
-      /** Custom copy to clipboard */
-      if (hasCtrlOrMeta(event) && isCKey(event)) {
-        const column = args.column as ColumnWithFilter<unknown>;
-        let value = args.row[column.key];
-
-        if (isArray(value) || isObject(value)) {
-          value = JSON.stringify(value);
+      try {
+        /** Events allowed to be handled by the editor */
+        if (isArrowKey(event) || isEnterKey(event) || (hasCtrlOrMeta(event) && isVKey(event))) {
+          return;
         }
 
-        !isNil(value) && copyToClipboard(value);
-      }
+        /** Custom copy to clipboard */
+        if (hasCtrlOrMeta(event) && isCKey(event)) {
+          const column = args.column as ColumnWithFilter<unknown>;
+          let value = args.row[column.key];
 
-      event.preventGridDefault();
+          if (isArray(value) || isObject(value)) {
+            value = JSON.stringify(value);
+          }
+
+          !isNil(value) && copyToClipboard(value);
+        }
+
+        event.preventGridDefault();
+      } catch (ex) {
+        logger.warn('handleCellKeydown Error', ex);
+        event.preventGridDefault();
+        return;
+      }
     }
 
     // NOTE: this is not used anywhere, so we may consider removing it.
