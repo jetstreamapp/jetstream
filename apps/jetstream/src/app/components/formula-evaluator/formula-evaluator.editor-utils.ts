@@ -158,8 +158,8 @@ async function fetchCompletions(
         if (!foundCustomMetadata) {
           return [];
         }
-        const { queryResults } = await queryAllWithCache(selectedOrg, `SELECT Id, QualifiedApiName FROM ${foundCustomMetadata.name}`);
-        return queryResults.records.map(({ QualifiedApiName }) => ({
+        const { data } = await queryAllWithCache(selectedOrg, `SELECT Id, QualifiedApiName FROM ${foundCustomMetadata.name}`);
+        return data.queryResults.records.map(({ QualifiedApiName }) => ({
           label: QualifiedApiName,
           filterText: QualifiedApiName,
           kind: monaco.languages.CompletionItemKind.Class,
@@ -297,7 +297,7 @@ async function fetchAndNormalizeLabelOrPermission(
   }[]
 > {
   if (type === 'customLabel') {
-    const { queryResults } = await queryAllWithCache<ExternalString>(
+    const { data } = await queryAllWithCache<ExternalString>(
       selectedOrg,
       composeQuery({
         fields: [getField('Name'), getField('MasterLabel'), getField('NamespacePrefix'), getField('Value')],
@@ -314,13 +314,13 @@ async function fetchAndNormalizeLabelOrPermission(
       true
     );
 
-    return queryResults.records.map(({ Name, NamespacePrefix, MasterLabel, Value }) => ({
+    return data.queryResults.records.map(({ Name, NamespacePrefix, MasterLabel, Value }) => ({
       name: NamespacePrefix ? `${NamespacePrefix}__${Name}` : Name,
       label: MasterLabel,
       detail: Value,
     }));
   } else if (type === 'customPermission') {
-    const { queryResults } = await queryAllWithCache<CustomPermission>(
+    const { data } = await queryAllWithCache<CustomPermission>(
       selectedOrg,
       composeQuery({
         fields: [getField('DeveloperName'), getField('MasterLabel'), getField('NamespacePrefix'), getField('Description')],
@@ -336,7 +336,7 @@ async function fetchAndNormalizeLabelOrPermission(
       })
     );
 
-    return queryResults.records.map(({ DeveloperName, NamespacePrefix, MasterLabel, Description }) => ({
+    return data.queryResults.records.map(({ DeveloperName, NamespacePrefix, MasterLabel, Description }) => ({
       name: NamespacePrefix ? `${NamespacePrefix}__${DeveloperName}` : DeveloperName,
       label: MasterLabel,
       detail: Description,

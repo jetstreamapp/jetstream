@@ -259,21 +259,20 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
 
         for (const subquery of splitArrayToMaxSize(subqueries, 11)) {
           try {
-            const { queryResults } = await (skipCache ? queryAll : queryAllWithCache)(
-              selectedOrg,
-              composeQuery({
-                sObject: sobjectName,
-                fields: [getField('Id'), getField(SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'), ...subquery],
-                where: {
-                  left: {
-                    field: 'Id',
-                    operator: '=',
-                    value: parentRecordId,
-                    literalType: 'STRING',
-                  },
+            const query = composeQuery({
+              sObject: sobjectName,
+              fields: [getField('Id'), getField(SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'), ...subquery],
+              where: {
+                left: {
+                  field: 'Id',
+                  operator: '=',
+                  value: parentRecordId,
+                  literalType: 'STRING',
                 },
-              })
-            );
+              },
+            });
+
+            const { queryResults } = skipCache ? await queryAll(selectedOrg, query) : (await queryAllWithCache(selectedOrg, query)).data;
             if (!isMounted.current) {
               return;
             }
