@@ -97,10 +97,9 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
           content="This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options."
         >
           <button
-            className={classNames('slds-button slds-button_neutral', className)}
+            className={classNames('slds-button slds-button_neutral slds-button_first', className)}
             onClick={() => handleCopyToClipboard()}
             disabled={!hasRecords}
-            title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
           >
             <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
             <span>Copy to Clipboard</span>

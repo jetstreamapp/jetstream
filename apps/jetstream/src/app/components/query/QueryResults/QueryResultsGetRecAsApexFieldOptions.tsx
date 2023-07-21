@@ -2,11 +2,12 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Checkbox, Grid } from '@jetstream/ui';
 import type { Field } from 'jsforce';
 import { FunctionComponent, useEffect, useState } from 'react';
+import { RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';
 
 export interface QueryResultsGetRecAsApexFieldOptionsProps {
-  record: any;
   fieldMetadata: Field[];
   onFields: (fields: string[]) => void;
+  onOptionsChange: (partialOptions: Partial<RecordToApexOptionsInitialOptions>) => void;
 }
 
 const SYS_FIELDS = new Set([
@@ -22,9 +23,9 @@ const SYS_FIELDS = new Set([
 ]);
 
 export const QueryResultsGetRecAsApexFieldOptions: FunctionComponent<QueryResultsGetRecAsApexFieldOptionsProps> = ({
-  record,
   fieldMetadata,
   onFields,
+  onOptionsChange,
 }) => {
   const [nulls, setNulls] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
@@ -37,13 +38,6 @@ export const QueryResultsGetRecAsApexFieldOptions: FunctionComponent<QueryResult
     setFields(
       fieldMetadata
         .filter((field) => {
-          const value = record[field.name];
-          if (value === undefined) {
-            return false;
-          }
-          if (!nulls && value === null) {
-            return false;
-          }
           if (!readOnly && !field.createable) {
             return false;
           }
@@ -51,9 +45,6 @@ export const QueryResultsGetRecAsApexFieldOptions: FunctionComponent<QueryResult
             return false;
           }
           if (!defaultOnCreate && field.defaultedOnCreate) {
-            return false;
-          }
-          if (!booleanIfFalse && value === false) {
             return false;
           }
           return true;
@@ -66,6 +57,13 @@ export const QueryResultsGetRecAsApexFieldOptions: FunctionComponent<QueryResult
   useNonInitialEffect(() => {
     onFields(fields);
   }, [fields, onFields]);
+
+  useNonInitialEffect(() => {
+    onOptionsChange({
+      includeNullFields: nulls,
+      includeBooleanIfFalse: booleanIfFalse,
+    });
+  }, [booleanIfFalse, nulls, onOptionsChange]);
 
   return (
     <Grid vertical>

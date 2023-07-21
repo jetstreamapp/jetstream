@@ -6,7 +6,7 @@ import Icon from './Icon';
 export interface SalesforceLoginProps {
   // If true, the request will go directly to SFDC without logging in
   skipFrontDoorAuth?: boolean;
-  serverUrl: string;
+  serverUrl?: string;
   className?: string;
   org: SalesforceOrgUi;
   title?: string;

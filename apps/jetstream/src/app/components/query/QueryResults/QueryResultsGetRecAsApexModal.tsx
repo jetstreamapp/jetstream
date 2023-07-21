@@ -8,20 +8,20 @@ import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
 import type { Field, FieldType } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
-import { recordToApex, RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';
+import { RecordToApexOptionsInitialOptions, recordToApex, recordsToApex } from '../utils/query-apex-utils';
 import QueryResultsGetRecAsApexFieldOptions from './QueryResultsGetRecAsApexFieldOptions';
 import QueryResultsGetRecAsApexGenerateOptions from './QueryResultsGetRecAsApexGenerateOptions';
 
 export interface QueryResultsGetRecAsApexModalProps {
   org: SalesforceOrgUi;
-  record: any;
+  records: any[];
   sobjectName: string;
   onClose: () => void;
 }
 
 export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRecAsApexModalProps> = ({
   org,
-  record,
+  records,
   sobjectName,
   onClose,
 }) => {
@@ -35,6 +35,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
     fieldMetadata: fieldTypesByName,
     fields,
   });
+  const hasMultipleRecords = records.length > 1;
   const [apex, setApex] = useState<string>('');
 
   const fetchFieldMetadata = useCallback(async () => {
@@ -69,7 +70,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
 
   useEffect(() => {
     fetchFieldMetadata();
-  }, [fetchFieldMetadata, org, record, sobjectName]);
+  }, [fetchFieldMetadata, org, records, sobjectName]);
 
   useEffect(() => {
     setOptions((options) => ({ ...options, fieldMetadata: fieldTypesByName }));
@@ -81,13 +82,13 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
 
   useNonInitialEffect(() => {
     if (!loading && !hasError) {
-      setApex(recordToApex(record, options));
+      setApex(hasMultipleRecords ? recordsToApex(records, options) : recordToApex(records[0], options));
     }
-  }, [hasError, loading, options, record]);
+  }, [hasError, hasMultipleRecords, loading, options, records]);
 
-  function handleOptionsChange(partialOptions: Partial<RecordToApexOptionsInitialOptions>) {
+  const handleOptionsChange = useCallback((partialOptions: Partial<RecordToApexOptionsInitialOptions>) => {
     setOptions((options) => ({ ...options, ...partialOptions }));
-  }
+  }, []);
 
   function handleCopyToClipboard() {
     copyToClipboard(apex, { format: 'text/plain' });
@@ -129,11 +130,11 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
               {/* Field Options */}
               <QueryResultsGetRecAsApexFieldOptions
                 fieldMetadata={fieldMetadata}
-                record={record}
                 onFields={(fields) => setFields(fields)}
+                onOptionsChange={handleOptionsChange}
               />
               {/* Generation Options */}
-              <QueryResultsGetRecAsApexGenerateOptions onChange={handleOptionsChange} />
+              <QueryResultsGetRecAsApexGenerateOptions isList={hasMultipleRecords} onChange={handleOptionsChange} />
               <hr className="slds-m-vertical_medium" />
               <button className="slds-button slds-button_neutral" onClick={handleCopyToClipboard} disabled={loading}>
                 <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />

@@ -4,10 +4,14 @@ import { FunctionComponent, useEffect, useState } from 'react';
 import { RecordToApexOptionsInitialOptions } from '../utils/query-apex-utils';
 
 export interface QueryResultsGetRecAsApexGenerateOptionsProps {
+  isList: boolean;
   onChange: (fields: Partial<RecordToApexOptionsInitialOptions>) => void;
 }
 
-export const QueryResultsGetRecAsApexGenerateOptions: FunctionComponent<QueryResultsGetRecAsApexGenerateOptionsProps> = ({ onChange }) => {
+export const QueryResultsGetRecAsApexGenerateOptions: FunctionComponent<QueryResultsGetRecAsApexGenerateOptionsProps> = ({
+  isList,
+  onChange,
+}) => {
   const [options, setOptions] = useState<Partial<RecordToApexOptionsInitialOptions>>({
     inline: true,
     wrapInMethod: false,
@@ -31,6 +35,7 @@ export const QueryResultsGetRecAsApexGenerateOptions: FunctionComponent<QueryRes
           id="rec-to-apex-inline"
           checked={!!options.inline}
           label="Construct object inline"
+          disabled={isList}
           onChange={(value) => setOptions({ ...options, inline: value })}
         />
         <Checkbox

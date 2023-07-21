@@ -369,7 +369,11 @@ export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;
   value: string | ReactNode;
-  icon?: any; // FIXME:
+  icon?: {
+    type: string;
+    icon: string;
+    description?: string;
+  }; // FIXME: unable to import cross module boundaries
   trailingDivider?: boolean;
   disabled?: boolean;
   title?: string;
