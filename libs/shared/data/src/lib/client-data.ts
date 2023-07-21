@@ -370,8 +370,8 @@ export async function queryAllWithCache<T = any>(
   includeDeletedRecords = false,
   // Ended up not using onProgress - if used, need to test
   onProgress?: (fetched: number, total: number) => void
-): Promise<API.QueryResults<T>> {
-  const { data: results } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
+): Promise<ApiResponse<API.QueryResults<T>>> {
+  const { data: results, cache } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
   if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
     if (isFunction(onProgress)) {
@@ -386,7 +386,7 @@ export async function queryAllWithCache<T = any>(
     results.queryResults.nextRecordsUrl = undefined;
     results.queryResults.done = true;
   }
-  return results;
+  return { data: results, cache };
 }
 
 /**

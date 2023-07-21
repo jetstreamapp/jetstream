@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
+import { clearCacheForOrg, queryAllWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
@@ -49,7 +49,7 @@ export function useUsers(
         if (clearCache) {
           clearCacheForOrg(selectedOrg);
         }
-        const { data, cache } = await queryWithCache<SalesforceUser>(selectedOrg, getQueryForUsers());
+        const { data, cache } = await queryAllWithCache<SalesforceUser>(selectedOrg, getQueryForUsers());
 
         if (isMounted.current) {
           if (cache) {
