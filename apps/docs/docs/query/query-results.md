@@ -52,22 +52,6 @@ In the header of each column is a menu icon, clicking this opens a filter menu t
 
 You can enter free-form text or click the checkboxes to show or hide rows that have a specific value in that column.
 
-:::tip
-
-Column filters can also be adjusted by clicking on the **Filters** side bar on the right-hand section of the table.
-
-:::
-
-<img src={require('./column-filter.png').default} alt="Column filters" />
-
-### Adjusting columns
-
-Clicking the **Columns** button on the right-hand section of the table will open the column menu, where you can show or hide columns.
-
-You can also click any column header in the table and drag it to change the column order.
-
-<img src={require('./column-sidebar.png').default} alt="Column sidebar" />
-
 ### Viewing child records (subqueries)
 
 If your query includes a subquery (child records), the data in each row will show text to indicate the number of records associated to each of the returned records and will be blank if there are no child related records.
@@ -83,7 +67,17 @@ On the left side of each record, there are four icons.
 - The **eye** icon is used to view all the fields for that record.
 - The **pencil** icon is used to edit the record.
 - The **copy** icon is used to clone the record and you can make any adjustments to fields prior to saving.
-- The **code** icon will turn the record into apex code that you can use to create a record that looks just like the on in your query results.
+- The **code** icon will turn the record into Apex code that you can use to create a record that looks just like the on in your query results.
+
+### Bulk Record Actions
+
+If you select one or more records, a table menu button at the top of the page will be enabled and within the menu you can:
+
+1. Delete the selected records
+2. Turn the selected records into Apex code
+3. Open each record in a new tab within Salesforce. (Make sure you have an active session with the Salesforce instance prior to to selecting this action, as you will not be automatically logged in.)
+
+<img src={require('./bulk-record-actions.png').default} alt="Bulk Record Actions" />
 
 ## Adjusting your query
 
@@ -127,13 +121,19 @@ If you are using **Windows** and choose **CSV**, non-english special characters 
 
 <img src={require('./download-modal.png').default} alt="Download records modal" />
 
+## Creating a new record
+
+After you query records, you can create a new record for the queried object by clicking the gear menu icon at the top of the page.
+
+<img src={require('./query-results-bulk-update-menu.png').default} alt="Creating new record" />
+
 ## Updating queried records
 
 You can update all or some of your queried records without downloading anything from the Query Results.
 
-After you query records, you can access the bulk update menu from the dropdown next to the Download button.
+After you query records, you can access the bulk update menu from the gear menu icon at the top of the page.
 
-<img src={require('./query-results-bulk-update-menu.png').default} alt="Accessing bulk update" />
+<img src={require('./query-results-bulk-update-menu.png').default} alt="Accessing bulk update records" />
 
 The configuration to update records is very similar to [Update records in bulk](../load/update-records.md), you can refer to the options there for additional details.
 

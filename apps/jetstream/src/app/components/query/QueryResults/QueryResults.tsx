@@ -15,10 +15,11 @@ import {
   useNonInitialEffect,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { getRecordIdFromAttributes, getSObjectNameFromAttributes, pluralizeIfMultiple, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { AsyncJob, AsyncJobNew, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { AsyncJob, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  ButtonGroupContainer,
   CampingRainIllustration,
   EmptyState,
   Grid,
@@ -29,8 +30,6 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
-  Tooltip,
-  useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -52,6 +51,7 @@ import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './Query
 import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
+import QueryResultsMoreActions from './QueryResultsMoreActions';
 import QueryResultsSoqlPanel from './QueryResultsSoqlPanel';
 import { useQueryResultsFetchMetadata } from './useQueryResultsFetchMetadata';
 
@@ -107,7 +107,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
-  const confirm = useConfirmation();
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
@@ -337,42 +336,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleBulkRowAction(id: string, rows: Record[]) {
-    logger.log({ id, rows });
-    switch (id) {
-      case 'delete record': {
-        const recordCountText = `${rows.length} ${pluralizeIfMultiple('Record', rows)}`;
-        confirm({
-          content: (
-            <div className="slds-m-around_medium">
-              <p className="slds-align_absolute-center slds-m-bottom_small">
-                Are you sure you want to <span className="slds-text-color_destructive slds-p-left_xx-small">delete {recordCountText}</span>?
-              </p>
-              <p>
-                <strong>These records will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the
-                Salesforce recycle bin.
-              </p>
-            </div>
-          ),
-        }).then(() => {
-          const jobs: AsyncJobNew[] = [
-            {
-              type: 'BulkDelete',
-              title: `Delete ${recordCountText}`,
-              org: selectedOrg,
-              meta: rows,
-            },
-          ];
-          fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-          trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: rows.length });
-        });
-        break;
-      }
-      default:
-        break;
-    }
-  }
-
   function handleLoadMore(results: IQueryResults<any>) {
     if (isMounted.current) {
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
@@ -479,7 +442,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       {getRecordAsApex && (
         <QueryResultsGetRecAsApexModal
           org={selectedOrg}
-          record={getRecordAsApex.record}
+          records={[getRecordAsApex.record]}
           sobjectName={getRecordAsApex.sobjectName}
           onClose={handleGetAsApexClose}
         />
@@ -490,42 +453,45 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Back
           </Link>
-          <button
-            className={classNames('slds-button collapsible-button collapsible-button-md', {
-              'slds-button_neutral': !soqlPanelOpen,
-              'slds-button_brand': soqlPanelOpen,
-            })}
-            title="View or manually edit SOQL query (ctrl/command + m)"
-            onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
-          >
-            <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
-            <span>SOQL Query</span>
-          </button>
-          <button
-            className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
-            onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
-            disabled={!!(loading || errorMessage)}
-            title="Re-run the current query"
-          >
-            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            <span>Reload</span>
-          </button>
-          <QueryHistory ref={queryHistoryRef} selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
+          <ButtonGroupContainer>
+            <button
+              className={classNames('slds-button collapsible-button collapsible-button-md slds-button_first', {
+                'slds-button_neutral': !soqlPanelOpen,
+                'slds-button_brand': soqlPanelOpen,
+              })}
+              title="View or manually edit SOQL query (ctrl/command + m)"
+              onClick={() => setSoqlPanelOpen(!soqlPanelOpen)}
+            >
+              <Icon type="utility" icon="component_customization" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span>SOQL Query</span>
+            </button>
+            <button
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
+              onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
+              disabled={!!(loading || errorMessage)}
+              title="Re-run the current query"
+            >
+              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+              <span>Reload</span>
+            </button>
+            <QueryHistory ref={queryHistoryRef} selectedOrg={selectedOrg} onRestore={handleRestoreFromHistory} />
+          </ButtonGroupContainer>
         </ToolbarItemGroup>
         <ToolbarItemActions>
           {/* FIXME: strongly type me! */}
           {!isTooling && (
-            <Tooltip content={selectedRows.length === 0 ? 'Select one or more records' : 'Delete selected records'}>
-              <button
-                className={classNames('slds-button slds-button_icon slds-button_icon-border slds-m-right_xx-small', {
-                  'slds-button_icon-error': selectedRows.length !== 0,
-                })}
-                disabled={selectedRows.length === 0}
-                onClick={() => handleBulkRowAction('delete record', selectedRows)}
-              >
-                <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
-              </button>
-            </Tooltip>
+            <QueryResultsMoreActions
+              selectedOrg={selectedOrg}
+              sObject={sobject}
+              parsedQuery={parsedQuery}
+              disabled={loading}
+              records={records || []}
+              filteredRows={filteredRows}
+              selectedRows={selectedRows}
+              totalRecordCount={totalRecordCount || 0}
+              refreshRecords={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
+              onCreateNewRecord={handleCreateNewRecord}
+            />
           )}
           <QueryResultsCopyToClipboard
             className="collapsible-button collapsible-button-md"
@@ -540,7 +506,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             selectedOrg={selectedOrg}
             sObject={sobject}
             soql={soql}
-            parsedQuery={parsedQuery}
             columns={queryResults?.columns?.columns || []}
             disabled={!hasRecords()}
             isTooling={isTooling}
@@ -552,8 +517,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             filteredRows={filteredRows}
             selectedRows={selectedRows}
             totalRecordCount={totalRecordCount || 0}
-            refreshRecords={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
-            onCreateNewRecord={handleCreateNewRecord}
           />
         </ToolbarItemActions>
       </Toolbar>

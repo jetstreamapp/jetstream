@@ -627,13 +627,13 @@ export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = 
   const { onRecordAction } = useContext(DataTableGenericContext) as {
     onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
   };
-  const value = row[column.key];
-  const { skipFrontDoorAuth, url } = getSfdcRetUrl(value, row);
+  const recordId = row[column.key];
+  const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId);
   return (
     <RecordLookupPopover
       org={_org}
       serverUrl={_serverUrl}
-      recordId={value}
+      recordId={recordId}
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}

@@ -115,6 +115,7 @@ import UtilityIcon_Strikethrough from './icons/utility/Strikethrough';
 import UtilityIcon_Success from './icons/utility/Success';
 import UtilityIcon_Switch from './icons/utility/Switch';
 import UtilityIcon_Sync from './icons/utility/Sync';
+import UtilityIcon_Table from './icons/utility/Table';
 import UtilityIcon_Task from './icons/utility/Task';
 import UtilityIcon_Text from './icons/utility/Text';
 import UtilityIcon_Underline from './icons/utility/Underline';
@@ -265,6 +266,7 @@ const utilityIcons = {
   success: UtilityIcon_Success,
   switch: UtilityIcon_Switch,
   sync: UtilityIcon_Sync,
+  table: UtilityIcon_Table,
   task: UtilityIcon_Task,
   text: UtilityIcon_Text,
   underline: UtilityIcon_Underline,

@@ -2,7 +2,7 @@ import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
-import { ensureBoolean, flattenRecords, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ensureBoolean, flattenRecords, getIdFromRecordUrl, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, Maybe } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import isAfter from 'date-fns/isAfter';
@@ -659,8 +659,9 @@ export function getSubqueryModalTagline(parentRecord: any) {
  * @param record
  * @returns
  */
-export function getSfdcRetUrl(id: string, record: any): { skipFrontDoorAuth: boolean; url: string } {
+export function getSfdcRetUrl(record: any, id?: string): { skipFrontDoorAuth: boolean; url: string } {
   try {
+    id = id || getIdFromRecordUrl(record?.attributes?.url || record?._record?.attributes?.url);
     const baseRecordType = record?.attributes?.type || record?._record?.attributes?.type;
     const relatedRecordType = RECORD_PREFIX_MAP[(id || '').substring(0, 3)] || null;
 
