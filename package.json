@@ -340,7 +340,7 @@
     "react-use-clipboard": "^1.0.9",
     "recoil": "^0.7.6",
     "regenerator-runtime": "0.13.7",
-    "rollbar": "^2.21.0",
+    "rollbar": "^2.26.2",
     "rxjs": "^7.4.0",
     "slack-notify": "^0.1.7",
     "socket.io": "^4.2.0",
