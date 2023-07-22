@@ -9,7 +9,7 @@
   "version": "2.34.1",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
-    "node": ">=18.17 <19"
+    "node": ">=16 <=18"
   },
   "scripts": {
     "init:project": "ts-node ./scripts/init-project.ts",
