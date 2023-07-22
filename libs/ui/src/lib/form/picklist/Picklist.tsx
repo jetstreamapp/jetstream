@@ -227,6 +227,9 @@ export const Picklist = forwardRef<any, PicklistProps>(
         isAKey?: boolean;
       }
     ) {
+      if (!item?.id) {
+        return;
+      }
       const { ctrlModifier, shiftModifier, isAKey } = options;
 
       if (multiSelection) {
