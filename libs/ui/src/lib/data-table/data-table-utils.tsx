@@ -332,15 +332,20 @@ export function setColumnFromType<T>(key: string, fieldType: ColumnType, default
   return column;
 }
 
-export function getRowTypeFromValue(value: unknown): ColumnType {
-  if (typeof value === 'object') {
+/**
+ * Get type of data for column
+ *
+ * @param value
+ * @param allowObject Object will show a link to "view data" in a modal. Set this to false if the data table is already in a modal to avoid stacked modals
+ * @returns
+ */
+export function getRowTypeFromValue(value: unknown, allowObject = true): ColumnType {
+  if (allowObject && (isObject(value) || Array.isArray(value))) {
     return 'object';
   } else if (typeof value === 'boolean') {
     return 'boolean';
   } else if (typeof value === 'number') {
     return 'number';
-  } else if (typeof value === 'string') {
-    return 'text';
   }
   return 'text';
 }

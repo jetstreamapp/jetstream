@@ -5,6 +5,7 @@ import type { DescribeGlobalSObjectResult } from 'jsforce';
 import localforage from 'localforage';
 import { atom, selector, selectorFamily } from 'recoil';
 import { FieldMapping, LocalOrGoogle, SavedFieldMapping } from './load-records-types';
+import { STATIC_MAPPING_PREFIX } from './utils/load-records-utils';
 
 const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
 SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
@@ -53,7 +54,9 @@ export const selectSavedFieldMappingState = selectorFamily<
     ({ get }) => {
       const savedMappings = Object.values(get(savedFieldMappingState)[sobject] || {});
       return savedMappings.filter(
-        (item) => item.csvFields.every((field) => csvFields.has(field)) && item.sobjectFields.every((field) => objectFields.has(field))
+        (item) =>
+          item.csvFields.filter((field) => !field.startsWith(STATIC_MAPPING_PREFIX)).every((field) => csvFields.has(field)) &&
+          item.sobjectFields.every((field) => objectFields.has(field))
       );
     },
 });

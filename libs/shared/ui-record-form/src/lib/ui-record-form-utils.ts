@@ -104,6 +104,8 @@ export function convertMetadataToEditableFields(
             id: item.value,
             label: item.label,
             value: item.value,
+            secondaryLabel: item.label !== item.value ? item.value : null,
+            secondaryLabelOnNewLine: item.label !== item.value,
             meta: item as any,
           }))
         );

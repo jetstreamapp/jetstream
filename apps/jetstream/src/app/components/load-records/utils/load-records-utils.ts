@@ -9,10 +9,13 @@ import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
+import uniqueId from 'lodash/uniqueId';
 import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import type {
   FieldMapping,
   FieldMappingItem,
+  FieldMappingItemCsv,
+  FieldMappingItemStatic,
   FieldRelatedEntity,
   FieldWithRelatedEntities,
   MapOfCustomMetadataRecord,
@@ -23,6 +26,7 @@ import type {
 import { LoadSavedMappingItem } from '../load-records.state';
 
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
+export const STATIC_MAPPING_PREFIX = '~STATIC~MAPPING~';
 const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
 const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
 
@@ -76,6 +80,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
         typeLabel: field.typeLabel,
         referenceTo,
         relationshipName,
+        field,
       };
     });
 
@@ -159,6 +164,7 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
       fieldLabelVariations[lowercaseFieldOrRelationship.replace(REGEX.NOT_ALPHANUMERIC, '')];
 
     output[field] = {
+      type: 'CSV',
       csvField: field,
       targetField: matchedField?.name || null,
       mappedToLookup: false,
@@ -209,6 +215,7 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
 export function resetFieldMapping(inputHeader: string[]): FieldMapping {
   return inputHeader.reduce((output: FieldMapping, field) => {
     output[field] = {
+      type: 'CSV',
       csvField: field,
       targetField: null,
       mappedToLookup: false,
@@ -222,6 +229,22 @@ export function resetFieldMapping(inputHeader: string[]): FieldMapping {
   }, {});
 }
 
+export function initStaticFieldMappingItem(): FieldMappingItemStatic {
+  const csvValuePlaceholder = uniqueId(STATIC_MAPPING_PREFIX);
+  return {
+    type: 'STATIC',
+    csvField: csvValuePlaceholder,
+    staticValue: '',
+    targetField: null,
+    mappedToLookup: false,
+    fieldMetadata: undefined,
+    selectedReferenceTo: undefined,
+    lookupOptionUseFirstMatch: DEFAULT_NON_EXT_ID_MAPPING_OPT,
+    lookupOptionNullIfNoMatch: DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT,
+    isBinaryBodyField: false,
+  };
+}
+
 export function loadFieldMappingFromSavedMapping(
   savedMapping: LoadSavedMappingItem,
   inputHeader: string[],
@@ -229,7 +252,7 @@ export function loadFieldMappingFromSavedMapping(
   binaryBodyField: Maybe<string>
 ): FieldMapping {
   const fieldMetadataByName = getMapOf(fields, 'name');
-  return inputHeader.reduce((output: FieldMapping, field) => {
+  const newMapping = inputHeader.reduce((output: FieldMapping, field) => {
     const matchedMapping = savedMapping.mapping[field];
     if (matchedMapping && matchedMapping.targetField && fieldMetadataByName[matchedMapping.targetField]) {
       output[field] = {
@@ -238,9 +261,10 @@ export function loadFieldMappingFromSavedMapping(
           ...fieldMetadataByName[matchedMapping.targetField],
         },
         isBinaryBodyField: !!binaryBodyField && matchedMapping.targetField === binaryBodyField,
-      };
+      } as FieldMappingItemCsv;
     } else {
       output[field] = {
+        type: 'CSV',
         csvField: field,
         targetField: null,
         mappedToLookup: false,
@@ -253,6 +277,24 @@ export function loadFieldMappingFromSavedMapping(
     }
     return output;
   }, {});
+
+  Object.keys(savedMapping.mapping)
+    .filter((key) => key.startsWith(STATIC_MAPPING_PREFIX))
+    .forEach((field) => {
+      const mapping = savedMapping.mapping[field];
+      if (mapping.targetField) {
+        newMapping[field] = {
+          ...mapping,
+          type: 'STATIC',
+          fieldMetadata: {
+            ...fieldMetadataByName[mapping.targetField],
+          },
+          isBinaryBodyField: false,
+        } as FieldMappingItemStatic;
+      }
+    });
+
+  return newMapping;
 }
 
 export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): FieldMapping {
@@ -374,7 +416,7 @@ export async function transformData({ data, fieldMapping, sObject, insertNulls, 
         let skipField = false;
         const fieldMappingItem = fieldMapping[field];
         // SFDC handles automatic type conversion with both bulk and batch apis (if possible, otherwise the record errors)
-        let value = row[field];
+        let value = fieldMappingItem.type === 'STATIC' ? fieldMappingItem.staticValue : row[field];
 
         if (isNil(value) || (isString(value) && !value)) {
           if (apiMode === 'BULK' && insertNulls) {
@@ -662,6 +704,9 @@ export function convertCsvToCustomMetadata(
     }, {});
 
   inputFileData.forEach((row) => {
+    if (!fieldMappingByTargetField.DeveloperName.csvField || !fieldMappingByTargetField.Label.csvField) {
+      return;
+    }
     const fullName = `${selectedSObject}.${row[fieldMappingByTargetField.DeveloperName.csvField]}`;
     const label = fieldMappingByTargetField.Label ? row[fieldMappingByTargetField.Label.csvField] : null;
     const record: any = {
@@ -678,6 +723,9 @@ export function convertCsvToCustomMetadata(
       .filter((field) => field.name.endsWith('__c'))
       .forEach((field) => {
         const fieldMappingItem = fieldMappingByTargetField[field.name];
+        if (!fieldMappingItem.csvField) {
+          return;
+        }
         let fieldValue = fieldMappingItem ? row[fieldMappingItem.csvField] : null;
         // ensure that field is in correct data type (mostly for dates)
         fieldValue = transformRecordForDataLoad(fieldValue, field.type, dateFormat);
@@ -750,7 +798,7 @@ export function checkForDuplicateRecords(
   }
 
   if (mappingItem && mappingItem.targetField) {
-    const rowsByMappedKeyField = groupBy(inputFileData, mappingItem.csvField);
+    const rowsByMappedKeyField = groupBy(inputFileData, mappingItem.csvField || 'static');
     return {
       duplicateKey:
         mappingItem.csvField === mappingItem.targetField ? mappingItem.csvField : `${mappingItem.csvField} -> ${mappingItem.targetField}`,

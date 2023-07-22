@@ -5,11 +5,11 @@ import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Se
 import isNumber from 'lodash/isNumber';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
-import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
+import { useAmplitude } from '../../core/analytics';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
+import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { ApiMode, FieldMapping } from '../load-records-types';
 
 const MAX_BULK = 10000;
@@ -171,6 +171,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         dateFormat,
         hasZipAttachment: !!hasZipAttachment,
         timesSameDataSubmitted: loadNumber + 1,
+        numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
       });
       document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
     }

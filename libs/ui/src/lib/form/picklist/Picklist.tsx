@@ -334,7 +334,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
             )}
             {label}
           </label>
-          {labelHelp && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
+          {labelHelp && !hideLabel && <HelpText id={`${comboboxId}-label-help-text`} content={labelHelp} />}
           <div className="slds-form-element__control" ref={divContainerEl}>
             <div className={containerClassName || 'slds-combobox_container'}>
               <div
@@ -398,6 +398,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
                           id={item.id}
                           label={item.label}
                           secondaryLabel={item.secondaryLabel}
+                          secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
                           title={item.title}
                           value={item.value}
                           isSelected={selectedItemsIdsSet.has(item.id)}
@@ -423,6 +424,8 @@ export const Picklist = forwardRef<any, PicklistProps>(
                             id={item.id}
                             label={item.label}
                             value={item.value}
+                            secondaryLabel={item.secondaryLabel}
+                            secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
                             isSelected={selectedItemsIdsSet.has(item.id)}
                             onClick={() => handleSelection(item)}
                           />

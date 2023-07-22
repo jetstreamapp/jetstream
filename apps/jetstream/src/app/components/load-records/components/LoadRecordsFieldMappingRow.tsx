@@ -5,7 +5,7 @@ import { Checkbox, ComboboxWithItems, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldMappingItem, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
+import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
 import { SELF_LOOKUP_KEY } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
@@ -30,11 +30,11 @@ function getComboboxFieldTitle(item: ListItem) {
 export interface LoadRecordsFieldMappingRowProps {
   isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
-  fieldMappingItem: FieldMappingItem;
+  fieldMappingItem: FieldMappingItemCsv;
   csvField: string;
   csvRowData: string;
   binaryAttachmentBodyField?: string;
-  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItem) => void;
+  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItemCsv) => void;
 }
 
 function getFieldListItems(fields: FieldWithRelatedEntities[]) {
@@ -103,6 +103,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
       onSelectionChanged(csvField, {
+        type: 'CSV',
         csvField,
         targetField: null,
         mappedToLookup: false,
