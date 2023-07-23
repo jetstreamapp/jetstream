@@ -1,3 +1,5 @@
+import { AnalyticStat } from '@jetstream/types';
+import AnalyticsSummary from './AnalyticsSummary';
 import ConnectWithTeam from './ConnectWithTeam';
 import FeatureGrid from './FeatureGrid';
 import FeatureScreenshot from './FeatureScreenshot';
@@ -6,9 +8,10 @@ import Learn from './Learn';
 import SupportCta from './SupportCta';
 import Testimonial from './Testimonial';
 
-export const LandingPage = () => (
+export const LandingPage = ({ stats }: { stats: AnalyticStat[] }) => (
   <main>
     <HeaderCta />
+    <AnalyticsSummary stats={stats} />
     <ConnectWithTeam />
     <FeatureScreenshot />
     <FeatureGrid />

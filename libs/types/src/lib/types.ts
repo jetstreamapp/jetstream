@@ -271,3 +271,11 @@ export interface PlatformEventMessageData {
   EventUuid: string;
   replayId: number;
 }
+
+export interface AnalyticStat {
+  id: string;
+  name: string;
+  value: string;
+  valueRaw: number;
+  lastUpdated: string;
+}

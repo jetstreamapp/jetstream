@@ -1,6 +1,13 @@
 import { Document } from '@contentful/rich-text-types';
 import { Asset, EntryFields, Sys } from 'contentful';
 
+export interface AnalyticSummaryItem {
+  type: 'LOAD_SUMMARY' | 'QUERY_SUMMARY';
+  week: number;
+  month: number;
+  year: number;
+}
+
 export interface ContentfulBlogPost {
   sys: Sys;
   fields: Array<ContentfulBlogPostField>;
