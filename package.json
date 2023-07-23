@@ -30,6 +30,7 @@
     "start:prod:debug": "pm2-runtime start ecosystem.config.js --env production --node-args=\"--inspect\"",
     "start:cron:inactive-account-warning": "node dist/apps/cron-tasks/inactive-account-warning.js",
     "start:cron:inactive-account-deletion": "node dist/apps/cron-tasks/inactive-account-deletion.js",
+    "start:cron:save-analytics-summary": "node dist/apps/cron-tasks/save-analytics-summary.js",
     "build": "cross-env NODE_ENV=production npm-run-all db:generate build:core build:landing rollbar:upload-sourcemaps",
     "build:core": "NODE_OPTIONS=--max_old_space_size=8192 nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw --configuration=production",
     "build:affected": "nx affected --target=build --parallel=3 --configuration=production",
@@ -95,7 +96,7 @@
   },
   "private": true,
   "prisma": {
-    "seed": "prisma/seed.sh"
+    "seed": "ts-node prisma/seed-salesforce-api.ts"
   },
   "devDependencies": {
     "@babel/core": "7.12.13",

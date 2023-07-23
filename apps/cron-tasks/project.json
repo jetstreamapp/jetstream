@@ -18,6 +18,10 @@
           {
             "entryName": "inactive-account-deletion",
             "entryPath": "apps/cron-tasks/src/inactive-account-deletion.ts"
+          },
+          {
+            "entryName": "save-analytics-summary",
+            "entryPath": "apps/cron-tasks/src/save-analytics-summary.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",

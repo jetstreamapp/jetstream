@@ -98,3 +98,13 @@ enum salesforce_org_orglanguagelocalekey_enum {
   es_MX
   no
 }
+
+model AnalyticsSummary {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type      String   @unique
+  week      Int
+  month     Int
+  year      Int
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @updatedAt
+}
