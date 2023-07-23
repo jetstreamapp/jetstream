@@ -42,7 +42,6 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 │   ├── jetstream-e2e
 │   ├── jetstream-worker
 │   ├── landing (LANDING PAGE WEBSITE)
-│   ├── landing-e2e
 │   ├── maizzle (EMAIL TEMPLATE GENERATION)
 │   └── ui-e2e
 ├── build (DESKTOP BUILD)

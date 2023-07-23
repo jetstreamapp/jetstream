@@ -69,7 +69,7 @@ export const Input: FunctionComponent<InputProps> = ({
             )}
             {label}
           </label>
-          {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+          {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         </Fragment>
       )}
       <div

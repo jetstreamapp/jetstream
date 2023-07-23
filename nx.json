@@ -39,11 +39,6 @@
         "linter": "eslint"
       }
     },
-    "@nx/cypress": {
-      "cypress-project": {
-        "linter": "eslint"
-      }
-    },
     "@nx/web": {
       "application": {
         "linter": "eslint"

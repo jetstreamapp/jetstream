@@ -115,10 +115,10 @@ type FieldAccumulator<T> = {
   remaining: T[];
 };
 
-export function sortQueryFields(fields: Field[]): Field[] {
+export function sortQueryFields<T extends Pick<Field, 'name' | 'label'>>(fields: T[]): T[] {
   // partition name and id field out, then append to front
   const reducedFields = orderObjectsBy(fields, 'label').reduce(
-    (out: FieldAccumulator<Field>, field) => {
+    (out: FieldAccumulator<T>, field) => {
       if (field.name === 'Id') {
         out.id = field;
       } else if (field.name === 'Name') {
@@ -135,7 +135,7 @@ export function sortQueryFields(fields: Field[]): Field[] {
     }
   );
 
-  const firstItems: Field[] = [];
+  const firstItems: T[] = [];
   if (reducedFields.id) {
     firstItems.push(reducedFields.id);
   }

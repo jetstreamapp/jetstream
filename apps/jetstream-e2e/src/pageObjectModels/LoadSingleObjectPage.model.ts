@@ -97,6 +97,7 @@ export class LoadSingleObjectPage {
     // choose non-ext id
     // polymorphic fields
     // getByRole('button', { name: 'Continue to Load Records' })
+    // Manually added fields
   }
 
   async loadRecords(apiType: 'Bulk API' | 'Batch API', isSubsequentLoad = false) {

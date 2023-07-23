@@ -48,7 +48,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
     if (header) {
       setColumns(
         header.map((item) => {
-          const baseColumn = setColumnFromType(item, getRowTypeFromValue(rows?.[0]?.[item]));
+          const baseColumn = setColumnFromType(item, getRowTypeFromValue(rows?.[0]?.[item], false));
           return {
             ...baseColumn,
             name: item,

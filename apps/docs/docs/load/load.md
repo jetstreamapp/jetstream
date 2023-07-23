@@ -55,6 +55,12 @@ Once you have everything configured, continue to Map Fields.
 
 ## Map fields
 
+:::tip
+
+The easiest way to prepare a file to load is to use the Query tool with the fields you want to load and download the records. This will give you an easy starting point to work from.
+
+:::
+
 You will need to choose which fields from your CSV should be loaded into Salesforce and you need to map fields from your file to fields in Salesforce.
 
 <img src={require('./mapping-overview.png').default} alt="Mapping overview" />
@@ -90,11 +96,13 @@ When you choose a lookup field, you will be presented with a few additional opti
     - You will need to choose how to handle cases where no related record is found or multiple related records are found with the same matching value.
     - <img src={require('./map-to-related.png').default} alt="Map to related" />
 
-:::tip
+### Add a value not included in your file
 
-The easiest way to prepare a file to load is to use the Query tool with the fields you want to load and download the records. This will give you an easy starting point to work from.
+You can add a manual mapping for fields that are not in your file by clicking on the `Add Manual Mapping` button.
 
-:::
+This will add a row to the mapping table and you will need to select a field and you can provide a value.
+
+<img src={require('./image.png').default} alt="Map using a manual value" />
 
 ## Load data
 

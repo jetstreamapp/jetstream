@@ -53,6 +53,8 @@ export interface UiRecordFormFieldProps {
   relatedRecord?: Maybe<{ attributes: RecordAttributes; Name: string }>;
   showFieldTypes: boolean;
   omitUndoIndicator?: boolean;
+  hideLabel?: boolean;
+  usePortal?: boolean;
   // picklist values are converted to strings prior to emitting
   onChange: (field: EditableFields, value: string | boolean | null, isDirty: boolean) => void;
   viewRelatedRecord?: (recordId: string, metadata: Field) => void;
@@ -70,6 +72,8 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   relatedRecord,
   showFieldTypes,
   omitUndoIndicator,
+  hideLabel = false,
+  usePortal = false,
   onChange,
   viewRelatedRecord,
 }) => {
@@ -254,6 +258,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
               <Input
                 id={id}
                 label={label}
+                hideLabel={hideLabel}
                 className="slds-form-element_stacked slds-is-editing"
                 errorMessage={saveError}
                 labelHelp={labelHelpText}
@@ -284,6 +289,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 id={id}
                 checked={!!value}
                 label={label}
+                hideLabel={hideLabel}
                 className="slds-form-element_stacked slds-is-editing"
                 isStandAlone
                 errorMessage={saveError}
@@ -301,6 +307,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 key={key}
                 id={id}
                 label={label}
+                hideLabel={hideLabel}
                 className="slds-form-element_stacked slds-is-editing"
                 containerDisplay="contents"
                 errorMessage={saveError}
@@ -311,6 +318,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 errorMessageId={`${id}-error`}
                 initialSelectedDate={initialSelectedDate}
                 disabled={disabled}
+                usePortal={usePortal}
                 onChange={handleDateChange}
               />
             )}
@@ -325,15 +333,18 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                   className: 'slds-form-element_stacked slds-is-editing',
                   containerDisplay: 'contents',
                   errorMessage: saveError,
+                  hideLabel,
                   labelHelp: labelHelpText,
                   helpText: helpText,
                   isRequired: !readOnly && required,
                   hasError: !!saveError,
                   errorMessageId: `${id}-error`,
                   disabled: disabled,
+                  usePortal,
                 }}
                 timeProps={{
                   label: 'Time',
+                  hideLabel,
                   className: 'slds-form-element_stacked slds-is-editing',
                   stepInMinutes: 1,
                   disabled: disabled,
@@ -346,6 +357,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
               <TimePicker
                 id={id}
                 label={label}
+                hideLabel={hideLabel}
                 className="slds-form-element_stacked slds-is-editing"
                 errorMessage={saveError}
                 labelHelp={labelHelpText}
@@ -364,6 +376,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
               <Textarea
                 id={id}
                 label={label}
+                hideLabel={hideLabel}
                 className="slds-form-element_stacked slds-is-editing"
                 errorMessage={saveError}
                 labelHelp={labelHelpText}
@@ -391,6 +404,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                 key={key}
                 id={id}
                 label={label}
+                hideLabel={hideLabel}
                 className="slds-form-element_stacked slds-is-editing"
                 containerDisplay="contents"
                 omitMultiSelectPills
