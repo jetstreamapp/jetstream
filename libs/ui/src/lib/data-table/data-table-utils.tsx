@@ -206,7 +206,7 @@ export function getColumnDefinitions(
   results.parsedQuery?.fields
     ?.filter((field) => isFieldSubquery(field))
     .forEach((field: FieldSubquery) => {
-      output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery).map((field) =>
+      output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {}).map((field) =>
         getQueryResultColumn({ field, queryColumnsByPath, isSubquery: false, allowEdit: false })
       );
     });
