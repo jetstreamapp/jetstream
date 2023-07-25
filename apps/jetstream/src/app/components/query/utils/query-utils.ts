@@ -141,7 +141,7 @@ export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query>): MapOf<
     query?.fields
       ?.filter((field) => field.type === 'FieldSubquery')
       .reduce((output: MapOf<string[]>, field: FieldSubquery) => {
-        output[field.subquery.relationshipName] = getFlattenedFields(field.subquery);
+        output[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {});
         return output;
       }, {}) || {}
   );
