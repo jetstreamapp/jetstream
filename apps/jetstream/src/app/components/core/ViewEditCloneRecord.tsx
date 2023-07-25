@@ -424,6 +424,9 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   }
 
   function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
+    if (!initialRecord) {
+      return;
+    }
     copyRecordsToClipboard(
       [initialRecord],
       format,
