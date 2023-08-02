@@ -1,5 +1,4 @@
 import { AnalyticStat } from '@jetstream/types';
-import { PrismaClient } from '@prisma/client';
 import { createClient } from 'contentful';
 import numeral from 'numeral';
 import { AuthorsById, BlogPost, BlogPostsBySlug, ContentfulBlogPostField, ContentfulIncludes } from './types';
@@ -9,8 +8,6 @@ import { AuthorsById, BlogPost, BlogPostsBySlug, ContentfulBlogPostField, Conten
  * DO NOT EXPORT ANYTHING WITH A RUNTIME DEPENDENCY
  * ONLY CALL THESE FUNCTIONS WITHIN getStaticProps OR getServerSideProps
  */
-
-const prisma = new PrismaClient({ log: ['info'] });
 
 let blogPostsBySlug: BlogPostsBySlug;
 
@@ -34,12 +31,17 @@ export async function getAnalyticSummary(): Promise<AnalyticStat[]> {
     },
   };
 
-  const results = await prisma.analyticsSummary.findMany().then((result) =>
-    result.reduce((acc, item) => {
-      acc[item.type] = item;
-      return acc;
-    }, FALLBACK_SUMMARY)
-  );
+  // FIXME: this should call Amplitude API instead of storing/getting from DB
+  const results = process.env.CI
+    ? FALLBACK_SUMMARY
+    : await import('@prisma/client').then(({ PrismaClient }) => {
+        return new PrismaClient({ log: ['info'] }).analyticsSummary.findMany().then((result) =>
+          result.reduce((acc, item) => {
+            acc[item.type] = item;
+            return acc;
+          }, FALLBACK_SUMMARY)
+        );
+      });
 
   const summaryStats: AnalyticStat[] = [
     {

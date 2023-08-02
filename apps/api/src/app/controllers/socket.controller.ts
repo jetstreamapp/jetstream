@@ -1,22 +1,16 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
-import { createServer, IncomingMessage } from 'http';
+import { IncomingMessage, createServer } from 'http';
+import { nanoid } from 'nanoid';
 import { Server, Socket } from 'socket.io';
 import { ExtendedError } from 'socket.io/dist/namespace';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import { nanoid } from 'nanoid';
 import { environment } from '../../environments/environment';
 import * as socketUtils from '../utils/socket-utils';
 
-const serverUrl = ENV.JETSTREAM_SERVER_URL;
 cometdClient.adapt();
-
-/**
- * FIXME: https://socket.io/docs/v4/pm2/
- * pm2 will cause issues!
- */
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
 
