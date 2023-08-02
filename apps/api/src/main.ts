@@ -26,7 +26,8 @@ declare module 'express-session' {
   }
 }
 
-const CPU_COUNT = cpus().length;
+// NOTE: render reports more CPUs than are actually available
+const CPU_COUNT = Math.min(cpus().length, 3);
 
 if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   logger.info(`Number of CPUs is ${CPU_COUNT}`);
