@@ -157,7 +157,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
             },
             {
               id: 'open-in-new-tab',
-              value: 'Open each record in Salesforce',
+              value: 'Open selected records in Salesforce',
               icon: {
                 icon: 'new_window',
                 type: 'utility',
