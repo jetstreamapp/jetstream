@@ -151,12 +151,14 @@ function getPrecision(a) {
 
 export async function getFormulaData({
   selectedOrg,
+  selectedUserId,
   fields,
   recordId,
   sobjectName,
   numberNullBehavior = 'ZERO',
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   fields: string[];
   recordId: string;
   sobjectName: string;
@@ -244,12 +246,13 @@ export async function getFormulaData({
   await collectBaseRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, formulaFields, numberNullBehavior });
   collectApiFields({ selectedOrg, fields: apiFields, formulaFields, numberNullBehavior });
   await collectCustomMetadata({ selectedOrg, fields: customMetadata, formulaFields, numberNullBehavior });
-  await collectCustomSettingFields({ selectedOrg, fields: customSettings, formulaFields, numberNullBehavior });
-  await collectCustomPermissions({ selectedOrg, fields: customPermissions, formulaFields, numberNullBehavior });
+  await collectCustomSettingFields({ selectedOrg, selectedUserId, fields: customSettings, formulaFields, numberNullBehavior });
+  await collectCustomPermissions({ selectedOrg, selectedUserId, fields: customPermissions, formulaFields, numberNullBehavior });
   await collectLabels({ selectedOrg, fields: customLabels, formulaFields, numberNullBehavior });
   await collectOrganizationFields({ selectedOrg, fields: organization, formulaFields, numberNullBehavior });
   await collectUserProfileAndRoleFields({
     selectedOrg,
+    selectedUserId,
     userFields: user,
     profileFields: profile,
     roleFields: userRole,
@@ -521,6 +524,7 @@ async function collectOrganizationFields({
 
 async function collectUserProfileAndRoleFields({
   selectedOrg,
+  selectedUserId,
   userFields,
   profileFields,
   roleFields,
@@ -528,6 +532,7 @@ async function collectUserProfileAndRoleFields({
   numberNullBehavior,
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   userFields: string[];
   profileFields: string[];
   roleFields: string[];
@@ -554,7 +559,7 @@ async function collectUserProfileAndRoleFields({
       where: {
         left: {
           field: 'Id',
-          value: selectedOrg.userId,
+          value: selectedUserId,
           operator: '=',
           literalType: 'STRING',
         },
@@ -597,11 +602,13 @@ async function collectUserProfileAndRoleFields({
  */
 async function collectCustomPermissions({
   selectedOrg,
+  selectedUserId,
   fields,
   formulaFields,
   numberNullBehavior,
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   fields: string[];
   formulaFields: formulon.FormulaData;
   numberNullBehavior: NullNumberBehavior;
@@ -631,7 +638,7 @@ async function collectCustomPermissions({
       ),
       sObject: 'PermissionSetAssignment',
       where: {
-        left: { field: 'AssigneeId', value: selectedOrg.userId, operator: '=', literalType: 'STRING' },
+        left: { field: 'AssigneeId', value: selectedUserId, operator: '=', literalType: 'STRING' },
         operator: 'AND',
         right: {
           left: { field: 'IsActive', value: 'TRUE', operator: '=', literalType: 'BOOLEAN' },
@@ -685,11 +692,13 @@ async function collectCustomPermissions({
 
 async function collectCustomSettingFields({
   selectedOrg,
+  selectedUserId,
   fields,
   formulaFields,
   numberNullBehavior,
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   fields: string[];
   formulaFields: formulon.FormulaData;
   numberNullBehavior: NullNumberBehavior;
@@ -707,7 +716,7 @@ async function collectCustomSettingFields({
       where: {
         left: {
           field: 'Id',
-          value: selectedOrg.userId,
+          value: selectedUserId,
           operator: '=',
           literalType: 'STRING',
         },

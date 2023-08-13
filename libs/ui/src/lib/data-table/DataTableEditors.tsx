@@ -312,7 +312,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
                     label: `Edit ${isString(column.name) ? column.name : column.key}`,
                     hideLabel: true,
                     className: 'w-100',
-                    placeholder: sobject ? `Search ${sobject} by name or id` : 'Select and object',
+                    placeholder: sobject ? `Search ${sobject} by name or id` : 'select an object',
                   }}
                   items={records}
                   onSearch={handleSearch}

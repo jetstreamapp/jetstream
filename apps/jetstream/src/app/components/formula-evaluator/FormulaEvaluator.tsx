@@ -34,6 +34,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import FormulaEvaluatorRecordSearch from './FormulaEvaluatorRecordSearch';
+import FormulaEvaluatorUserSearch from './FormulaEvaluatorUserSearch';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
 import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';
@@ -77,6 +78,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
   const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
+  const [selectedUserId, setSelectedUserId] = useRecoilState(fromFormulaState.selectedUserState);
   const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
   const [sourceType, setSourceType] = useRecoilState(fromFormulaState.sourceTypeState);
   const [recordId, setRecordId] = useRecoilState(fromFormulaState.recordIdState);
@@ -88,9 +90,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 
   const deployFormulaDisabled = loading || !selectedSObject || !formulaValue;
-  const testFormulaDisabled = loading || !selectedSObject || !recordId || !formulaValue;
+  const testFormulaDisabled = loading || !selectedSObject || !selectedUserId || !recordId || !formulaValue;
 
   const monaco = useMonaco();
+
+  useEffect(() => {
+    setSelectedUserId(selectedOrg.userId);
+  }, [selectedOrg.userId, setSelectedUserId]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -129,6 +135,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
             fields,
             recordId,
             selectedOrg,
+            selectedUserId,
             sobjectName: selectedSObject?.name || '',
             numberNullBehavior,
           });
@@ -310,6 +317,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   filterFn={filterSobjectFn}
                   onSelectedSObject={setSelectedSobject}
                 />
+                <FormulaEvaluatorUserSearch selectedOrg={selectedOrg} disabled={loading} onSelectedRecord={setSelectedUserId} />
                 <RadioGroup label="How to handle null values for numbers" formControlClassName="slds-grid">
                   <Radio
                     id="null-zero"
