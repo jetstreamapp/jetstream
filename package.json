@@ -65,7 +65,7 @@
     "release:build": "ts-node ./scripts/build-release.ts",
     "release:electron": "yarn build:electron && concurrently --group --restart-tries=3 \"npm:electron:dist:*\"",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",
-    "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=5a8e69d756ddc4a3067c7d9e7aecfc3b -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
+    "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=$ALGOLIA_API_KEY -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
     "rollbar:upload-sourcemaps": "yarn generate:version && ts-node ./scripts/upload-source-maps.ts",
     "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
     "generate:version": "ts-node ./scripts/generate-version.ts",
