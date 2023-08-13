@@ -1,8 +1,8 @@
 import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
+import { query, queryAll, readMetadata } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
-import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, PermissionSetMetadataRecord, ProfileMetadataRecord, SalesforceOrgUi } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
@@ -151,12 +151,14 @@ function getPrecision(a) {
 
 export async function getFormulaData({
   selectedOrg,
+  selectedUserId,
   fields,
   recordId,
   sobjectName,
   numberNullBehavior = 'ZERO',
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   fields: string[];
   recordId: string;
   sobjectName: string;
@@ -244,12 +246,13 @@ export async function getFormulaData({
   await collectBaseRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, formulaFields, numberNullBehavior });
   collectApiFields({ selectedOrg, fields: apiFields, formulaFields, numberNullBehavior });
   await collectCustomMetadata({ selectedOrg, fields: customMetadata, formulaFields, numberNullBehavior });
-  await collectCustomSettingFields({ selectedOrg, fields: customSettings, formulaFields, numberNullBehavior });
-  await collectCustomPermissions({ selectedOrg, fields: customPermissions, formulaFields, numberNullBehavior });
+  await collectCustomSettingFields({ selectedOrg, selectedUserId, fields: customSettings, formulaFields, numberNullBehavior });
+  await collectCustomPermissions({ selectedOrg, selectedUserId, fields: customPermissions, formulaFields, numberNullBehavior });
   await collectLabels({ selectedOrg, fields: customLabels, formulaFields, numberNullBehavior });
   await collectOrganizationFields({ selectedOrg, fields: organization, formulaFields, numberNullBehavior });
   await collectUserProfileAndRoleFields({
     selectedOrg,
+    selectedUserId,
     userFields: user,
     profileFields: profile,
     roleFields: userRole,
@@ -521,6 +524,7 @@ async function collectOrganizationFields({
 
 async function collectUserProfileAndRoleFields({
   selectedOrg,
+  selectedUserId,
   userFields,
   profileFields,
   roleFields,
@@ -528,6 +532,7 @@ async function collectUserProfileAndRoleFields({
   numberNullBehavior,
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   userFields: string[];
   profileFields: string[];
   roleFields: string[];
@@ -554,7 +559,7 @@ async function collectUserProfileAndRoleFields({
       where: {
         left: {
           field: 'Id',
-          value: selectedOrg.userId,
+          value: selectedUserId,
           operator: '=',
           literalType: 'STRING',
         },
@@ -589,13 +594,21 @@ async function collectUserProfileAndRoleFields({
   });
 }
 
+/**
+ * Fetch all assigned permission sets (which also include the user's profile)
+ * read metadata for each assigned permission set (slow)
+ * Get all the customPermissions assigned to the profile/permission sets
+ * compare with the formula's custom permission
+ */
 async function collectCustomPermissions({
   selectedOrg,
+  selectedUserId,
   fields,
   formulaFields,
   numberNullBehavior,
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   fields: string[];
   formulaFields: formulon.FormulaData;
   numberNullBehavior: NullNumberBehavior;
@@ -604,16 +617,88 @@ async function collectCustomPermissions({
     return;
   }
 
-  // TODO: not sure how to tackle these yet
+  // Get all assigned permission sets and assigned profile
+  const { queryResults } = await queryAll<{
+    Id: string;
+    PermissionSetId: string;
+    PermissionSet:
+      | { Name: string; IsOwnedByProfile: true; Profile: { Name: string } }
+      | { Name: string; IsOwnedByProfile: false; Profile: undefined };
+  }>(
+    selectedOrg,
+    composeQuery({
+      fields: Array.from(
+        new Set([
+          getField('Id'),
+          getField('PermissionSetId'),
+          getField('PermissionSet.Name'),
+          getField('PermissionSet.IsOwnedByProfile'),
+          getField('PermissionSet.Profile.Name'),
+        ])
+      ),
+      sObject: 'PermissionSetAssignment',
+      where: {
+        left: { field: 'AssigneeId', value: selectedUserId, operator: '=', literalType: 'STRING' },
+        operator: 'AND',
+        right: {
+          left: { field: 'IsActive', value: 'TRUE', operator: '=', literalType: 'BOOLEAN' },
+          operator: 'AND',
+          right: {
+            left: { field: 'IsRevoked', value: 'FALSE', operator: '=', literalType: 'BOOLEAN' },
+          },
+        },
+      },
+    })
+  );
+
+  // Fetch metadata for assigned profile and all assigned permission sets
+  const permissionSetNames = queryResults.records
+    .filter((item) => !item.PermissionSet.IsOwnedByProfile)
+    .map(({ PermissionSet }) => encodeURIComponent(PermissionSet.Name));
+
+  const profileMetadata = await readMetadata<ProfileMetadataRecord>(
+    selectedOrg,
+    'Profile',
+    queryResults.records
+      .filter((item) => item.PermissionSet.IsOwnedByProfile)
+      .map(({ PermissionSet }) => encodeURIComponent(PermissionSet.Profile?.Name || ''))
+  );
+  const permissionSets = permissionSetNames.length
+    ? await readMetadata<PermissionSetMetadataRecord>(selectedOrg, 'PermissionSet', permissionSetNames)
+    : [];
+
+  // Get all custom permissions assigned to profile and permission sets
+  const customPermissions = new Set(
+    [...profileMetadata, ...permissionSets].flatMap((item) => {
+      // readMetadata sometimes returns objects instead of array because of XML parsing done by JSForce
+      let customPermissions = item.customPermissions || [];
+      if (!Array.isArray(customPermissions)) {
+        customPermissions = [customPermissions];
+      }
+      return customPermissions.filter(({ enabled }) => enabled).map(({ name }) => name);
+    })
+  );
+
+  // Calculate if custom permission is enabled
+  fields.forEach((field) => {
+    const permissionName = field.split('.')[1];
+    formulaFields[field] = {
+      type: 'literal',
+      dataType: 'checkbox',
+      value: customPermissions.has(permissionName),
+    };
+  });
 }
 
 async function collectCustomSettingFields({
   selectedOrg,
+  selectedUserId,
   fields,
   formulaFields,
   numberNullBehavior,
 }: {
   selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
   fields: string[];
   formulaFields: formulon.FormulaData;
   numberNullBehavior: NullNumberBehavior;
@@ -631,7 +716,7 @@ async function collectCustomSettingFields({
       where: {
         left: {
           field: 'Id',
-          value: selectedOrg.userId,
+          value: selectedUserId,
           operator: '=',
           literalType: 'STRING',
         },

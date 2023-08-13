@@ -106,7 +106,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
             className: 'w-100',
             isRequired: true,
             labelHelp: 'Choose a record to test the formula against',
-            placeholder: selectedSObject ? `Search ${selectedSObject} by name or id` : 'Select and object',
+            placeholder: selectedSObject ? `Search ${selectedSObject} by name or id` : 'select an object',
             hasError: !!fieldErrorMessage,
             errorMessage: fieldErrorMessage,
           }}
