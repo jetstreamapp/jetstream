@@ -12,6 +12,7 @@ import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import type {
+  ApiMode,
   FieldMapping,
   FieldMappingItem,
   FieldMappingItemCsv,
@@ -27,6 +28,10 @@ import { LoadSavedMappingItem } from '../load-records.state';
 
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
 export const STATIC_MAPPING_PREFIX = '~STATIC~MAPPING~';
+export const BATCH_RECOMMENDED_THRESHOLD = 2000;
+export const MAX_API_CALLS = 250;
+export const MAX_BULK = 10000;
+export const MAX_BATCH = 200;
 const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';
 const DEFAULT_NULL_IF_NO_MATCH_MAPPING_OPT = false;
 
@@ -114,6 +119,36 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
     });
   }
   return fields;
+}
+
+export function getRecommendedApiMode(numRecords: number, hasBinaryAttachment: boolean): ApiMode {
+  return !hasBinaryAttachment && numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
+}
+
+export function getLabelWithOptionalRecommended(label: string, recommended: boolean, required: boolean): string | JSX.Element {
+  if (!recommended && !required) {
+    return label;
+  }
+  if (required) {
+    return (
+      <span>
+        {label} <span className="slds-text-body_small slds-text-color_weak">(Required based on the load configuration)</span>
+      </span>
+    );
+  }
+  return (
+    <span>
+      {label} <span className="slds-text-body_small slds-text-color_weak">(Recommended based on the number of impacted records)</span>
+    </span>
+  );
+}
+
+export function getMaxBatchSize(apiMode: ApiMode): number {
+  if (apiMode === 'BATCH') {
+    return MAX_BATCH;
+  } else {
+    return MAX_BULK;
+  }
 }
 
 /**

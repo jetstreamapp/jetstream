@@ -1,59 +1,18 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
-import isNumber from 'lodash/isNumber';
 import startCase from 'lodash/startCase';
-import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useState } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import { useAmplitude } from '../../core/analytics';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
-import { ApiMode, FieldMapping } from '../load-records-types';
-
-const MAX_BULK = 10000;
-const MAX_BATCH = 200;
-const MAX_API_CALLS = 250;
-const BATCH_RECOMMENDED_THRESHOLD = 2000;
-
-function getMaxBatchSize(apiMode: ApiMode): number {
-  if (apiMode === 'BATCH') {
-    return MAX_BATCH;
-  } else {
-    return MAX_BULK;
-  }
-}
-
-function getLabelWithOptionalRecommended(label: string, recommended: boolean, required: boolean): string | JSX.Element {
-  if (!recommended && !required) {
-    return label;
-  }
-  if (required) {
-    return (
-      <span>
-        {label} <span className="slds-text-body_small slds-text-color_weak">(Required based on the load configuration)</span>
-      </span>
-    );
-  }
-  return (
-    <span>
-      {label} <span className="slds-text-body_small slds-text-color_weak">(Recommended based on the number of impacted records)</span>
-    </span>
-  );
-}
-
-function getRecommendedApiMode(numRecords: number, hasBinaryAttachment: boolean): ApiMode {
-  return !hasBinaryAttachment && numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
-}
-
-function getBatchSizeExceededError(numApiCalls: number): string {
-  return (
-    `Either your batch size is too low or you are loading in too many records. ` +
-    `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${MAX_API_CALLS}. ` +
-    `Increase your batch size or reduce the number of records in your file.`
-  );
-}
+import { FieldMapping } from '../load-records-types';
+import * as loadRecordsState from '../load-records.state';
+import { getMaxBatchSize } from '../utils/load-records-utils';
 
 export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
@@ -83,19 +42,18 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const hasZipAttachment = !!inputZipFileData;
   const { trackEvent } = useAmplitude();
   const [loadNumber, setLoadNumber] = useState<number>(0);
-  const [apiMode, setApiMode] = useState<ApiMode>(() => getRecommendedApiMode(inputFileData.length, hasZipAttachment));
-  const [bulkApiModeLabel] = useState<string | JSX.Element>(() =>
-    getLabelWithOptionalRecommended('Bulk API', inputFileData.length > BATCH_RECOMMENDED_THRESHOLD, false)
-  );
-  const [batchApiModeLabel] = useState<string | JSX.Element>(() =>
-    getLabelWithOptionalRecommended('Batch API', inputFileData.length <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment)
-  );
-  const [batchSize, setBatchSize] = useState<Maybe<number>>(MAX_BULK);
-  const [batchSizeError, setBatchSizeError] = useState<Maybe<string>>(null);
-  const [insertNulls, setInsertNulls] = useState<boolean>(false);
-  const [serialMode, setSerialMode] = useState<boolean>(false);
-  const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
-  const [batchApiLimitError, setBatchApiLimitError] = useState<Maybe<string>>(null);
+
+  const [apiMode, setApiMode] = useRecoilState(loadRecordsState.apiModeState);
+  const [batchSize, setBatchSize] = useRecoilState(loadRecordsState.batchSizeState);
+  const [insertNulls, setInsertNulls] = useRecoilState(loadRecordsState.insertNullsState);
+  const [serialMode, setSerialMode] = useRecoilState(loadRecordsState.serialModeState);
+  const [dateFormat, setDateFormat] = useRecoilState(loadRecordsState.dateFormatState);
+
+  const batchSizeError = useRecoilValue(loadRecordsState.selectBatchSizeError);
+  const batchApiLimitError = useRecoilValue(loadRecordsState.selectBatchApiLimitError);
+  const bulkApiModeLabel = useRecoilValue(loadRecordsState.selectBulkApiModeLabel);
+  const batchApiModeLabel = useRecoilValue(loadRecordsState.selectBatchApiModeLabel);
+
   const [loading, setLoading] = useState<boolean>(false);
   const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
   const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
@@ -103,16 +61,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const numRecordsImpactedLabel = formatNumber(inputFileData.length);
   const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);
 
-  // ensure that the Batch API does not consume an huge amount of API calls
-  useEffect(() => {
-    if (inputFileData.length && batchSize && inputFileData.length / batchSize > MAX_API_CALLS) {
-      setBatchApiLimitError(getBatchSizeExceededError(Math.round(inputFileData.length / batchSize)));
-    } else if (batchApiLimitError) {
-      setBatchApiLimitError(null);
-    }
-  }, [batchSize, inputFileData.length, batchApiLimitError, inputZipFileData]);
-
-  useEffect(() => {
+  useNonInitialEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
     if (hasLoadResults) {
       setHasLoadResults(false);
@@ -124,17 +73,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiMode]);
-
-  useEffect(() => {
-    // Hack to ensure that the apiMode us fully changed before checking batch size
-    setTimeout(() => {
-      if (!isNumber(batchSize) || batchSize <= 0 || batchSize > getMaxBatchSize(apiMode)) {
-        setBatchSizeError(`The batch size must be between 1 and ${getMaxBatchSize(apiMode)}`);
-      } else if (batchSizeError) {
-        setBatchSizeError(null);
-      }
-    });
-  }, [batchSize, apiMode, batchSizeError]);
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
     const value = Number.parseInt(event.target.value);
@@ -188,11 +126,6 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   function hasDataInputError(): boolean {
     return !!batchSizeError || !!batchApiLimitError;
   }
-
-  /**
-   * TODO:
-   * limit batch api based on number of records and batch size (maybe limit to 50 or 100 api calls total)?
-   */
 
   return (
     <div>

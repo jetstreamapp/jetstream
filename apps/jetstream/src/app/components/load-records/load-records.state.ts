@@ -1,11 +1,20 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
-import { InsertUpdateUpsertDelete, MapOf } from '@jetstream/types';
+import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { InsertUpdateUpsertDelete, MapOf, Maybe } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import localforage from 'localforage';
+import isNumber from 'lodash/isNumber';
 import { atom, selector, selectorFamily } from 'recoil';
-import { FieldMapping, LocalOrGoogle, SavedFieldMapping } from './load-records-types';
-import { STATIC_MAPPING_PREFIX } from './utils/load-records-utils';
+import { ApiMode, FieldMapping, LocalOrGoogle, SavedFieldMapping } from './load-records-types';
+import {
+  BATCH_RECOMMENDED_THRESHOLD,
+  MAX_API_CALLS,
+  MAX_BULK,
+  STATIC_MAPPING_PREFIX,
+  getLabelWithOptionalRecommended,
+  getMaxBatchSize,
+} from './utils/load-records-utils';
 
 const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
 SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
@@ -147,5 +156,81 @@ export const isCustomMetadataObject = selector<boolean | null>({
   get: ({ get }) => {
     const selectedObject = get(selectedSObjectState);
     return selectedObject && selectedObject.name.endsWith('__mdt');
+  },
+});
+
+export const apiModeState = atom<ApiMode>({
+  key: 'apiModeState',
+  default: 'BATCH',
+});
+
+export const batchSizeState = atom<Maybe<number>>({
+  key: 'batchSizeState',
+  default: MAX_BULK,
+});
+
+export const batchSizeErrorState = atom<Maybe<string>>({
+  key: 'batchSizeErrorState',
+  default: null,
+});
+
+export const insertNullsState = atom({
+  key: 'insertNullsState',
+  default: false,
+});
+
+export const serialModeState = atom({
+  key: 'serialModeState',
+  default: false,
+});
+
+export const dateFormatState = atom({
+  key: 'dateFormatState',
+  default: DATE_FORMATS.MM_DD_YYYY,
+});
+
+export const selectBatchSizeError = selector<string | null>({
+  key: 'load.selectBatchSizeError',
+  get: ({ get }) => {
+    const batchSize = get(batchSizeState) || 0;
+    const apiMode = get(apiModeState);
+    if (!isNumber(batchSize) || batchSize <= 0 || batchSize > getMaxBatchSize(apiMode)) {
+      return `The batch size must be between 1 and ${formatNumber(getMaxBatchSize(apiMode))}`;
+    }
+    return null;
+  },
+});
+
+export const selectBatchApiLimitError = selector<string | null>({
+  key: 'load.selectBatchApiLimitError',
+  get: ({ get }) => {
+    const inputFileDataLength = get(inputFileDataState)?.length || 0;
+    const batchSize = get(batchSizeState) || 1;
+    if (inputFileDataLength && batchSize && inputFileDataLength / batchSize > MAX_API_CALLS) {
+      const numApiCalls = Math.round(inputFileDataLength / batchSize);
+      return (
+        `Either your batch size is too low or you are loading in too many records. ` +
+        `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${MAX_API_CALLS}. ` +
+        `Increase your batch size or reduce the number of records in your file.`
+      );
+    }
+    return null;
+  },
+});
+
+export const selectBulkApiModeLabel = selector<string | JSX.Element>({
+  key: 'load.selectBulkApiModeLabel',
+  get: ({ get }) => {
+    const inputFileDataLength = get(inputFileDataState)?.length || 0;
+    return getLabelWithOptionalRecommended('Bulk API', inputFileDataLength > BATCH_RECOMMENDED_THRESHOLD, false);
+  },
+});
+
+export const selectBatchApiModeLabel = selector<string | JSX.Element>({
+  key: 'load.selectBatchApiModeLabel',
+  get: ({ get }) => {
+    const inputFileDataLength = get(inputFileDataState)?.length || 0;
+    const hasZipAttachment = !!get(inputZipFileDataState);
+    return getLabelWithOptionalRecommended('Batch API', inputFileDataLength <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment);
   },
 });
