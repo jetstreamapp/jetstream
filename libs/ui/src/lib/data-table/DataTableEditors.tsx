@@ -35,13 +35,22 @@ function DataTableEditorPopover({
   onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
   children: ReactNode;
 }) {
+  const { rows } = useContext(DataTableGenericContext) as { rows: { _idx: number }[] };
   const popoverRef = useRef<HTMLDivElement | null>(null);
   /** This is not set on initial render because the date picker is open on render and the reference element must exist to render correctly */
   const [referenceElement, setReferenceElement] = useState<Element | null>(null);
 
   useEffect(() => {
-    setReferenceElement(document.querySelector(`[aria-rowindex="${rowIdx + 2}"] > [aria-colindex="${colIdx + 1}"]`));
-  }, [colIdx, rowIdx]);
+    try {
+      // If rows are filtered, the provided index will not be accurate
+      const actualRowIdx = !rows || rows[rowIdx]?._idx === rowIdx ? rowIdx : rows.findIndex(({ _idx }) => _idx === rowIdx);
+      if ((actualRowIdx ?? -1) >= 0) {
+        setReferenceElement(document.querySelector(`[aria-rowindex="${actualRowIdx + 2}"] > [aria-colindex="${colIdx + 1}"]`));
+      }
+    } catch (ex) {
+      logger.warn('Error setting reference element', ex);
+    }
+  }, [colIdx, rowIdx, rows]);
 
   return (
     <OutsideClickHandler additionalParentRef={popoverRef.current} onOutsideClick={() => onClose()}>
