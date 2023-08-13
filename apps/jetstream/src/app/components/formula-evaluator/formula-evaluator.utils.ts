@@ -1,8 +1,8 @@
 import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
-import { query } from '@jetstream/shared/data';
+import { query, queryAll, readMetadata } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
-import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, Maybe, PermissionSetMetadataRecord, ProfileMetadataRecord, SalesforceOrgUi } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
@@ -589,6 +589,12 @@ async function collectUserProfileAndRoleFields({
   });
 }
 
+/**
+ * Fetch all assigned permission sets (which also include the user's profile)
+ * read metadata for each assigned permission set (slow)
+ * Get all the customPermissions assigned to the profile/permission sets
+ * compare with the formula's custom permission
+ */
 async function collectCustomPermissions({
   selectedOrg,
   fields,
@@ -604,7 +610,77 @@ async function collectCustomPermissions({
     return;
   }
 
-  // TODO: not sure how to tackle these yet
+  // Get all assigned permission sets and assigned profile
+  const { queryResults } = await queryAll<{
+    Id: string;
+    PermissionSetId: string;
+    PermissionSet:
+      | { Name: string; IsOwnedByProfile: true; Profile: { Name: string } }
+      | { Name: string; IsOwnedByProfile: false; Profile: undefined };
+  }>(
+    selectedOrg,
+    composeQuery({
+      fields: Array.from(
+        new Set([
+          getField('Id'),
+          getField('PermissionSetId'),
+          getField('PermissionSet.Name'),
+          getField('PermissionSet.IsOwnedByProfile'),
+          getField('PermissionSet.Profile.Name'),
+        ])
+      ),
+      sObject: 'PermissionSetAssignment',
+      where: {
+        left: { field: 'AssigneeId', value: selectedOrg.userId, operator: '=', literalType: 'STRING' },
+        operator: 'AND',
+        right: {
+          left: { field: 'IsActive', value: 'TRUE', operator: '=', literalType: 'BOOLEAN' },
+          operator: 'AND',
+          right: {
+            left: { field: 'IsRevoked', value: 'FALSE', operator: '=', literalType: 'BOOLEAN' },
+          },
+        },
+      },
+    })
+  );
+
+  // Fetch metadata for assigned profile and all assigned permission sets
+  const permissionSetNames = queryResults.records
+    .filter((item) => !item.PermissionSet.IsOwnedByProfile)
+    .map(({ PermissionSet }) => encodeURIComponent(PermissionSet.Name));
+
+  const profileMetadata = await readMetadata<ProfileMetadataRecord>(
+    selectedOrg,
+    'Profile',
+    queryResults.records
+      .filter((item) => item.PermissionSet.IsOwnedByProfile)
+      .map(({ PermissionSet }) => encodeURIComponent(PermissionSet.Profile?.Name || ''))
+  );
+  const permissionSets = permissionSetNames.length
+    ? await readMetadata<PermissionSetMetadataRecord>(selectedOrg, 'PermissionSet', permissionSetNames)
+    : [];
+
+  // Get all custom permissions assigned to profile and permission sets
+  const customPermissions = new Set(
+    [...profileMetadata, ...permissionSets].flatMap((item) => {
+      // readMetadata sometimes returns objects instead of array because of XML parsing done by JSForce
+      let customPermissions = item.customPermissions || [];
+      if (!Array.isArray(customPermissions)) {
+        customPermissions = [customPermissions];
+      }
+      return customPermissions.filter(({ enabled }) => enabled).map(({ name }) => name);
+    })
+  );
+
+  // Calculate if custom permission is enabled
+  fields.forEach((field) => {
+    const permissionName = field.split('.')[1];
+    formulaFields[field] = {
+      type: 'literal',
+      dataType: 'checkbox',
+      value: customPermissions.has(permissionName),
+    };
+  });
 }
 
 async function collectCustomSettingFields({

@@ -771,3 +771,125 @@ export interface RecordWithAuditFields {
   } | null;
   LastModifiedDate: string;
 }
+
+// Returned from readMetadata API
+export interface ProfileMetadataRecord {
+  fullName: string;
+  applicationVisibilities?: ApplicationVisibility[];
+  classAccesses?: ClassAccess[];
+  custom?: string;
+  customMetadataTypeAccesses?: CustomMetadataTypeAccess[];
+  customPermissions?: CustomPermission[];
+  customSettingAccesses?: CustomSettingAccess[];
+  fieldPermissions?: FieldPermission[];
+  flowAccesses?: FlowAccesses;
+  layoutAssignments?: LayoutAssignment[];
+  loginIpRanges?: LoginIpRanges;
+  objectPermissions?: ObjectPermission[];
+  pageAccesses?: PageAccess[];
+  recordTypeVisibilities?: RecordTypeVisibility[];
+  tabVisibilities?: TabVisibility[];
+  userLicense?: string;
+  userPermissions?: UserPermission[];
+}
+
+// Returned from readMetadata API
+export interface PermissionSetMetadataRecord {
+  fullName: string;
+  hasActivationRequired: boolean;
+  label: string;
+  applicationVisibilities?: ApplicationVisibility[];
+  classAccesses?: ClassAccess[];
+  custom?: string;
+  customMetadataTypeAccesses?: CustomMetadataTypeAccess[];
+  customPermissions?: CustomPermission[];
+  customSettingAccesses?: CustomSettingAccess[];
+  fieldPermissions?: FieldPermission[];
+  flowAccesses?: FlowAccesses;
+  layoutAssignments?: LayoutAssignment[];
+  loginIpRanges?: LoginIpRanges;
+  objectPermissions?: ObjectPermission[];
+  pageAccesses?: PageAccess[];
+  recordTypeVisibilities?: RecordTypeVisibility[];
+  tabVisibilities?: TabVisibility[];
+  userLicense?: string;
+  userPermissions?: UserPermission[];
+}
+
+export interface ApplicationVisibility {
+  application: string;
+  default: string;
+  visible: string;
+}
+
+export interface ClassAccess {
+  apexClass: string;
+  enabled: string;
+}
+
+export interface CustomMetadataTypeAccess {
+  enabled: string;
+  name: string;
+}
+
+export interface CustomPermission {
+  enabled: string;
+  name: string;
+}
+
+export interface CustomSettingAccess {
+  enabled: string;
+  name: string;
+}
+
+export interface FieldPermission {
+  editable: string;
+  field: string;
+  readable: string;
+}
+
+export interface FlowAccesses {
+  enabled: string;
+  flow: string;
+}
+
+export interface LayoutAssignment {
+  layout: string;
+  recordType?: string;
+}
+
+export interface LoginIpRanges {
+  endAddress: string;
+  startAddress: string;
+}
+
+export interface ObjectPermission {
+  allowCreate: string;
+  allowDelete: string;
+  allowEdit: string;
+  allowRead: string;
+  modifyAllRecords: string;
+  object: string;
+  viewAllRecords: string;
+}
+
+export interface PageAccess {
+  apexPage: string;
+  enabled: string;
+}
+
+export interface RecordTypeVisibility {
+  default: string;
+  recordType: string;
+  visible: string;
+}
+
+export interface TabVisibility {
+  tab: string;
+  visibility: string;
+}
+
+export interface UserPermission {
+  enabled: string;
+  name: string;
+}
