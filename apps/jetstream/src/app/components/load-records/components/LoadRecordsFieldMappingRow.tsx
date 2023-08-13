@@ -219,6 +219,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           <div
             css={css`
               white-space: pre-wrap;
+              overflow-wrap: anywhere;
             `}
           >
             <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />
