@@ -118,10 +118,12 @@ async function fetchListMetadataForItemsInFolder(
 
       if (!ParentId) {
         foldersByPath[DeveloperName] = DeveloperName;
-      } else {
+      } else if (foldersById[ParentId]?.DeveloperName) {
         const parentFolder = foldersById[ParentId];
         const parentPath = foldersByPath[parentFolder.DeveloperName];
         foldersByPath[DeveloperName] = `${parentPath}/${DeveloperName}`;
+      } else {
+        logger.warn('[ERROR] Could not find parent folder for folder', folder);
       }
       return foldersByPath;
     }, foldersByPath);
