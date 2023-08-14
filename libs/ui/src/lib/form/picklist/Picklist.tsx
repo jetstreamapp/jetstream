@@ -1,15 +1,11 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { IconName } from '@jetstream/icon-factory';
 import {
-  hasCtrlModifierKey,
-  hasShiftModifierKey,
-  isAKey,
   isArrowDownKey,
   isArrowUpKey,
-  isControlKey,
   isEnterKey,
   isEscapeKey,
-  isShiftKey,
+  isSpaceKey,
   isTabKey,
   KeyBuffer,
   menuItemSelectScroll,
@@ -219,35 +215,19 @@ export const Picklist = forwardRef<any, PicklistProps>(
       setSelectedItemsIdsSet(new Set(selectedItemsIdsSet));
     }
 
-    function handleKeyboardSelection(
-      item: ListItem,
-      options: {
-        ctrlModifier?: boolean;
-        shiftModifier?: boolean;
-        isAKey?: boolean;
-      }
-    ) {
+    function handleKeyboardSelection(item: ListItem) {
       if (!item?.id) {
         return;
       }
-      const { ctrlModifier, shiftModifier, isAKey } = options;
 
       if (multiSelection) {
-        if (ctrlModifier && isAKey) {
-          // toggle select/de-select all
-          const newSelectedItemIdSet = selectedItemsIdsSet.size === items.length ? new Set() : new Set(items.map((item) => item.id));
-          setSelectedItemsIdsSet(newSelectedItemIdSet);
-        } else if (shiftModifier) {
-          // when shift is pressed, then select or unselect current item and leave all others selected
-          if (selectedItemsIdsSet.has(item.id)) {
-            selectedItemsIdsSet.delete(item.id);
-          } else {
-            selectedItemsIdsSet.add(item.id);
-          }
-          setSelectedItemsIdsSet(new Set(selectedItemsIdsSet));
+        const newSelectedItemIdSet = new Set(selectedItemsIdsSet);
+        if (newSelectedItemIdSet.has(item.id)) {
+          newSelectedItemIdSet.delete(item.id);
         } else {
-          setSelectedItemsIdsSet(new Set([item.id]));
+          newSelectedItemIdSet.add(item.id);
         }
+        setSelectedItemsIdsSet(newSelectedItemIdSet);
       } else {
         setSelectedItemsIdsSet(new Set([item.id]));
       }
@@ -255,18 +235,31 @@ export const Picklist = forwardRef<any, PicklistProps>(
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
       let newFocusedItem = focusedItem;
-      if (isControlKey(event) || isShiftKey(event)) {
-        return;
-      } else if (isTabKey(event) || isEscapeKey(event) || isEnterKey(event)) {
+
+      if (isTabKey(event) || isEscapeKey(event)) {
         event.preventDefault();
         event.stopPropagation();
         setIsOpen(false);
+        inputRef.current?.focus();
+        return;
+      }
+
+      if (isEnterKey(event) || isSpaceKey(event)) {
+        const item = items[focusedItem ?? -1];
+        if (item) {
+          handleKeyboardSelection(item);
+          if (!multiSelection) {
+            setIsOpen(false);
+            inputRef.current?.focus();
+          }
+        }
         return;
       }
 
       if (!isOpen) {
         setIsOpen(true);
       }
+
       if (isArrowDownKey(event)) {
         event.preventDefault();
         event.stopPropagation();
@@ -307,13 +300,6 @@ export const Picklist = forwardRef<any, PicklistProps>(
 
       if (isNumber(newFocusedItem)) {
         setFocusedItem(newFocusedItem);
-        const item = items[newFocusedItem];
-
-        handleKeyboardSelection(item, {
-          ctrlModifier: hasCtrlModifierKey(event),
-          shiftModifier: hasShiftModifierKey(event),
-          isAKey: isAKey(event),
-        });
       }
     }
 
