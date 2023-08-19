@@ -777,6 +777,58 @@ export function updateRowsFromRowAction<TRows extends PermissionTableObjectCell 
   });
 }
 
+export function resetRow<TRows extends PermissionTableObjectCell | PermissionTableFieldCell>(type: PermissionType, rows: TRows[]): TRows[] {
+  const newRows = [...rows];
+  return newRows.map((row) => {
+    row = { ...row };
+    row.permissions = { ...row.permissions };
+    for (const permissionId in row.permissions) {
+      row.permissions = { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } as any;
+      if (type === 'object') {
+        const permission = row.permissions[permissionId] as PermissionTableObjectCellPermission;
+
+        if (permission.createIsDirty) {
+          permission.create = !permission.create;
+        }
+        if (permission.readIsDirty) {
+          permission.read = !permission.read;
+        }
+        if (permission.editIsDirty) {
+          permission.edit = !permission.edit;
+        }
+        if (permission.deleteIsDirty) {
+          permission.delete = !permission.delete;
+        }
+        if (permission.viewAllIsDirty) {
+          permission.viewAll = !permission.viewAll;
+        }
+        if (permission.modifyAllIsDirty) {
+          permission.modifyAll = !permission.modifyAll;
+        }
+
+        permission.createIsDirty = false;
+        permission.readIsDirty = false;
+        permission.editIsDirty = false;
+        permission.deleteIsDirty = false;
+        permission.viewAllIsDirty = false;
+        permission.modifyAllIsDirty = false;
+      } else {
+        const permission = row.permissions[permissionId] as PermissionTableFieldCellPermission;
+        if (permission.readIsDirty) {
+          permission.read = !permission.read;
+        }
+        if (permission.editIsDirty) {
+          permission.edit = !permission.edit;
+        }
+
+        permission.readIsDirty = false;
+        permission.editIsDirty = false;
+      }
+    }
+    return row;
+  });
+}
+
 /**
  * Pinned row selection renderer
  */
@@ -980,12 +1032,13 @@ export const RowActionRenderer: FunctionComponent<RenderCellProps<PermissionTabl
     const checkboxesById = getMapOf(checkboxes, 'id');
     const [updatedRow] = updateRowsFromRowAction(type, checkboxesById, [row]);
     onRowChange(updatedRow);
-    setDirtyItemCount(getDirtyCount({ row, type }));
+    setDirtyItemCount(getDirtyCount({ row: updatedRow, type }));
   }
 
-  // TODO: honor which rows to apply to
   function handleReset() {
-    setDirtyItemCount(getDirtyCount({ row, type }));
+    const [updatedRow] = resetRow(type, [row]);
+    onRowChange(updatedRow);
+    setDirtyItemCount(getDirtyCount({ row: updatedRow, type }));
   }
 
   function handlePopoverChange(isOpen: boolean) {
@@ -1015,7 +1068,7 @@ export const RowActionRenderer: FunctionComponent<RenderCellProps<PermissionTabl
       }
       footer={
         <footer className="slds-popover__footer slds-grid slds-grid_align-center">
-          <button className="slds-button slds-button_neutral" onClick={handleReset} disabled={dirtyItemCount === 0}>
+          <button className="slds-button slds-button_neutral" onClick={handleReset}>
             Reset Row
           </button>
           <button className="slds-button slds-button_brand" onClick={handleSave}>
