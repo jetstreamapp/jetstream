@@ -111,10 +111,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
 
   const resetApiModeState = useResetRecoilState(fromLoadRecordsState.apiModeState);
   const resetBatchSizeState = useResetRecoilState(fromLoadRecordsState.batchSizeState);
-  const resetBatchSizeErrorState = useResetRecoilState(fromLoadRecordsState.batchSizeErrorState);
   const resetInsertNullsState = useResetRecoilState(fromLoadRecordsState.insertNullsState);
   const resetSerialModeState = useResetRecoilState(fromLoadRecordsState.serialModeState);
-  const resetDateFormatState = useResetRecoilState(fromLoadRecordsState.dateFormatState);
+  const resetDryRunState = useResetRecoilState(fromLoadRecordsState.dryRunState);
+  const resetDryRunSizeState = useResetRecoilState(fromLoadRecordsState.dryRunSizeState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -137,17 +137,16 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     setBatchSize(getMaxBatchSize(apiMode));
     setSerialMode(apiMode === 'BATCH');
 
-    resetBatchSizeErrorState();
     resetInsertNullsState();
-    resetDateFormatState();
+    resetDryRunState();
+    resetDryRunSizeState();
   }, [
     inputFileData,
     inputZipFileData,
-    resetBatchSizeErrorState,
     resetBatchSizeState,
-    resetDateFormatState,
+    resetDryRunSizeState,
+    resetDryRunState,
     resetInsertNullsState,
-    resetSerialModeState,
     setApiMode,
     setBatchSize,
     setSerialMode,
@@ -168,10 +167,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         resetInputZipFilename();
         resetApiModeState();
         resetBatchSizeState();
-        resetBatchSizeErrorState();
         resetInsertNullsState();
         resetSerialModeState();
-        resetDateFormatState();
+        resetDryRunState();
+        resetDryRunSizeState();
       }
     };
   }, [
@@ -187,10 +186,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     resetInputZipFilename,
     resetApiModeState,
     resetBatchSizeState,
-    resetBatchSizeErrorState,
     resetInsertNullsState,
     resetSerialModeState,
-    resetDateFormatState,
+    resetDryRunState,
+    resetDryRunSizeState,
   ]);
 
   useEffect(() => {
@@ -382,10 +381,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     setExternalId('');
     resetApiModeState();
     resetBatchSizeState();
-    resetBatchSizeErrorState();
     resetInsertNullsState();
     resetSerialModeState();
-    resetDateFormatState();
+    resetDryRunState();
+    resetDryRunSizeState();
     trackEvent(ANALYTICS_KEYS.load_StartOver, { page: currentStep.name });
   }
 

@@ -1,7 +1,8 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
+import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -13,6 +14,16 @@ import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { FieldMapping } from '../load-records-types';
 import * as loadRecordsState from '../load-records.state';
 import { getMaxBatchSize } from '../utils/load-records-utils';
+
+interface LoadState {
+  loading: boolean;
+  loadInProgress: boolean;
+  loadInProgressDryRun: boolean;
+  hasLoadResultsDryRun: boolean;
+  hasLoadResults: boolean;
+  inputFileDataDryRun: any[];
+  inputFileDataToLoad: any[];
+}
 
 export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
@@ -42,30 +53,47 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const hasZipAttachment = !!inputZipFileData;
   const { trackEvent } = useAmplitude();
   const [loadNumber, setLoadNumber] = useState<number>(0);
+  const [loadNumberDryRun, setLoadNumberDryRun] = useState<number>(0);
 
   const [apiMode, setApiMode] = useRecoilState(loadRecordsState.apiModeState);
   const [batchSize, setBatchSize] = useRecoilState(loadRecordsState.batchSizeState);
   const [insertNulls, setInsertNulls] = useRecoilState(loadRecordsState.insertNullsState);
   const [serialMode, setSerialMode] = useRecoilState(loadRecordsState.serialModeState);
+  const [dryRun, setDryRun] = useRecoilState(loadRecordsState.dryRunState);
+  const [dryRunSize, setDryRunSize] = useRecoilState(loadRecordsState.dryRunSizeState);
   const [dateFormat, setDateFormat] = useRecoilState(loadRecordsState.dateFormatState);
 
   const batchSizeError = useRecoilValue(loadRecordsState.selectBatchSizeError);
   const batchApiLimitError = useRecoilValue(loadRecordsState.selectBatchApiLimitError);
+  const dryRunSizeError = useRecoilValue(loadRecordsState.selectDryRunSizeError);
   const bulkApiModeLabel = useRecoilValue(loadRecordsState.selectBulkApiModeLabel);
   const batchApiModeLabel = useRecoilValue(loadRecordsState.selectBatchApiModeLabel);
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
-  const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
   const loadTypeLabel = startCase(loadType.toLowerCase());
-  const numRecordsImpactedLabel = formatNumber(inputFileData.length);
   const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);
+  const [
+    { loading, loadInProgress, loadInProgressDryRun, hasLoadResultsDryRun, hasLoadResults, inputFileDataDryRun, inputFileDataToLoad },
+    setLoadState,
+  ] = useState<LoadState>(() => ({
+    loading: false,
+    loadInProgress: false,
+    loadInProgressDryRun: false,
+    hasLoadResultsDryRun: false,
+    hasLoadResults: false,
+    inputFileDataDryRun: inputFileData.slice(0, dryRunSize || 0),
+    inputFileDataToLoad: inputFileData.slice(dryRunSize || 0),
+  }));
+
+  const numRecordsImpactedLabel = formatNumber(inputFileDataToLoad.length);
+  const numRecordsImpactedDryRunLabel = formatNumber(inputFileDataDryRun.length);
 
   useNonInitialEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
-    if (hasLoadResults) {
-      setHasLoadResults(false);
-    }
+    setLoadState((prevState) => ({
+      ...prevState,
+      hasLoadResults: false,
+      hasLoadResultsDryRun: false,
+    }));
     if (apiMode === 'BATCH' && !serialMode) {
       setSerialMode(true);
     } else if (apiMode === 'BULK' && serialMode) {
@@ -73,6 +101,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiMode]);
+
+  useNonInitialEffect(() => {
+    setLoadState((prevState) => ({
+      ...prevState,
+      hasLoadResults: false,
+      hasLoadResultsDryRun: false,
+      inputFileDataDryRun: dryRun && dryRunSize ? inputFileData.slice(0, dryRunSize) : [],
+      inputFileDataToLoad: dryRun && dryRunSize ? inputFileData.slice(dryRunSize || 0) : inputFileData,
+    }));
+  }, [dryRun, dryRunSize, inputFileData]);
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
     const value = Number.parseInt(event.target.value);
@@ -83,21 +121,33 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
   }
 
-  function handleDateFormatChange(event: ChangeEvent<HTMLSelectElement>) {
-    setDateFormat(event.target.value);
+  function handleDryRunSize(event: ChangeEvent<HTMLInputElement>) {
+    const value = Number.parseInt(event.target.value);
+    if (Number.isInteger(value)) {
+      setDryRunSize(value);
+    } else if (!event.target.value) {
+      setDryRunSize(null);
+    }
   }
 
-  async function handleStartLoad() {
+  async function handleStartLoad(isDryRun = false) {
     if (
       loadNumber === 0 ||
       (await ConfirmationModalPromise({
         content: 'This file has already been loaded, are you sure you want to load it again?',
       }))
     ) {
-      setLoadNumber(loadNumber + 1);
-      setLoading(true);
-      setLoadInProgress(true);
-      setHasLoadResults(false);
+      if (isDryRun) {
+        setLoadNumberDryRun(loadNumberDryRun + 1);
+      } else {
+        setLoadNumber(loadNumber + 1);
+      }
+      setLoadState((prevState) => {
+        if (isDryRun) {
+          return { ...prevState, loading: true, loadInProgressDryRun: true, hasLoadResultsDryRun: false, hasLoadResults: false };
+        }
+        return { ...prevState, loading: true, loadInProgress: true, hasLoadResults: false };
+      });
       onIsLoading(true);
       trackEvent(ANALYTICS_KEYS.load_Submitted, {
         loadType,
@@ -107,6 +157,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         insertNulls,
         serialMode,
         dateFormat,
+        isDryRun,
+        dryRunSize,
         hasZipAttachment: !!hasZipAttachment,
         timesSameDataSubmitted: loadNumber + 1,
         numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
@@ -115,16 +167,19 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
   }
 
-  function handleFinishLoad({ success, failure }: { success: number; failure: number }) {
-    setLoading(false);
-    setHasLoadResults(true);
-    setLoadInProgress(false);
+  function handleFinishLoad({ success, failure }: { success: number; failure: number }, isDryRun = false) {
+    setLoadState((prevState) => {
+      if (isDryRun) {
+        return { ...prevState, loading: false, loadInProgressDryRun: false, hasLoadResultsDryRun: true };
+      }
+      return { ...prevState, loading: false, loadInProgress: false, hasLoadResults: true };
+    });
     onIsLoading(false);
     document.title = `${formatNumber(success)} Success - ${formatNumber(failure)} Failed ${TITLES.BAR_JETSTREAM}`;
   }
 
   function hasDataInputError(): boolean {
-    return !!batchSizeError || !!batchApiLimitError;
+    return !!batchSizeError || !!batchApiLimitError || (dryRun && !!dryRunSizeError);
   }
 
   return (
@@ -207,31 +262,79 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             className="slds-input"
             placeholder="Set batch size"
             value={batchSize || ''}
-            aria-describedby={batchSizeError || undefined}
+            aria-describedby={'batch-size-error'}
             disabled={loading || hasZipAttachment}
             onChange={handleBatchSize}
           />
         </Input>
 
-        <Select
-          id={'date-format'}
-          label={'Date Format'}
-          labelHelp="Specify the format of any date fields in your file. Jetstream just needs to know the order of the month and the day and will auto-detect the exact format."
+        <RadioGroup
+          label={'Date Format Hint'}
+          labelHelp="Jetstream needs to know the order of the month and day and will auto-detect the exact format."
+          required
+          isButtonGroup
         >
-          <select
-            aria-describedby="date-format"
-            className="slds-select"
-            id="date-format-select"
-            required
-            value={dateFormat}
+          <RadioButton
+            id={'date-format-MM_DD_YYYY'}
+            name={'date-format'}
+            label={DATE_FORMATS.MM_DD_YYYY}
+            value={DATE_FORMATS.MM_DD_YYYY}
+            checked={dateFormat === DATE_FORMATS.MM_DD_YYYY}
             disabled={loading}
-            onChange={handleDateFormatChange}
-          >
-            <option value={DATE_FORMATS.MM_DD_YYYY}>{DATE_FORMATS.MM_DD_YYYY}</option>
-            <option value={DATE_FORMATS.DD_MM_YYYY}>{DATE_FORMATS.DD_MM_YYYY}</option>
-            <option value={DATE_FORMATS.YYYY_MM_DD}>{DATE_FORMATS.YYYY_MM_DD}</option>
-          </select>
-        </Select>
+            onChange={setDateFormat}
+          />
+          <RadioButton
+            id={'date-format-DD_MM_YYYY'}
+            name={'date-format'}
+            label={DATE_FORMATS.DD_MM_YYYY}
+            value={DATE_FORMATS.DD_MM_YYYY}
+            checked={dateFormat === DATE_FORMATS.DD_MM_YYYY}
+            disabled={loading}
+            onChange={setDateFormat}
+          />
+          <RadioButton
+            id={'date-format-YYYY_MM_DD'}
+            name={'date-format'}
+            label={DATE_FORMATS.YYYY_MM_DD}
+            value={DATE_FORMATS.YYYY_MM_DD}
+            checked={dateFormat === DATE_FORMATS.YYYY_MM_DD}
+            disabled={loading}
+            onChange={setDateFormat}
+          />
+        </RadioGroup>
+
+        {!inputZipFileData && (
+          <>
+            <Checkbox
+              id={'dry-run'}
+              className="slds-m-vertical_xx-small"
+              checked={dryRun}
+              label={'Dry Run'}
+              labelHelp="Test your data load by starting with a few records."
+              disabled={loading}
+              onChange={setDryRun}
+            />
+
+            {dryRun && (
+              <Input
+                label="Number of Records to load first"
+                isRequired={true}
+                hasError={!!dryRunSizeError}
+                errorMessageId="dry-run-size-error"
+                errorMessage={dryRunSizeError}
+              >
+                <input
+                  id="dry-run-size"
+                  className="slds-input"
+                  value={dryRunSize || ''}
+                  aria-describedby="dry-run-size-error"
+                  disabled={loading}
+                  onChange={handleDryRunSize}
+                />
+              </Input>
+            )}
+          </>
+        )}
       </div>
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
@@ -241,26 +344,43 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           </Badge>
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
-        <div className="slds-m-top_small">
-          <button
-            data-testid="start-load"
-            className="slds-button slds-button_brand"
-            disabled={hasDataInputError() || loadInProgress}
-            onClick={handleStartLoad}
-          >
-            {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
-          </button>
-        </div>
+        <Grid>
+          {dryRun && (
+            <div className="slds-m-top_small slds-m-right_small">
+              <button
+                data-testid="start-load"
+                className="slds-button slds-button_brand"
+                disabled={hasDataInputError() || loadInProgressDryRun || hasLoadResultsDryRun || loadInProgress}
+                onClick={() => handleStartLoad(true)}
+              >
+                {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedDryRunLabel}</strong>{' '}
+                {pluralizeIfMultiple('Record', inputFileDataDryRun)} (Dry Run)
+              </button>
+            </div>
+          )}
+          <div className="slds-m-top_small">
+            <button
+              data-testid="start-load"
+              className="slds-button slds-button_brand"
+              disabled={hasDataInputError() || (dryRun && !hasLoadResultsDryRun) || loadInProgress}
+              onClick={() => handleStartLoad()}
+            >
+              {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong>{' '}
+              {pluralizeIfMultiple('Record', inputFileDataToLoad)}
+            </button>
+          </div>
+        </Grid>
       </div>
       <h1 className="slds-text-heading_medium">Results</h1>
       <div className="slds-p-around_small">
-        {(loadInProgress || hasLoadResults) && (
+        {/* DRY RUN LOAD */}
+        {dryRun && (loadInProgressDryRun || hasLoadResultsDryRun) && (
           <LoadRecordsResults
-            key={loadNumber}
+            key={`dry-run-${loadNumberDryRun}`}
             selectedOrg={selectedOrg}
             selectedSObject={selectedSObject}
             fieldMapping={fieldMapping}
-            inputFileData={inputFileData}
+            inputFileData={inputFileDataDryRun}
             inputZipFileData={inputZipFileData}
             apiMode={apiMode}
             loadType={loadType}
@@ -270,7 +390,27 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             serialMode={serialMode}
             dateFormat={dateFormat}
             assignmentRuleId={assignmentRuleId}
-            onFinish={handleFinishLoad}
+            onFinish={(results) => handleFinishLoad(results, true)}
+          />
+        )}
+        {/* STANDARD LOAD */}
+        {(loadInProgress || hasLoadResults) && (
+          <LoadRecordsResults
+            key={loadNumber}
+            selectedOrg={selectedOrg}
+            selectedSObject={selectedSObject}
+            fieldMapping={fieldMapping}
+            inputFileData={inputFileDataToLoad}
+            inputZipFileData={inputZipFileData}
+            apiMode={apiMode}
+            loadType={loadType}
+            externalId={externalId}
+            batchSize={batchSize ?? getMaxBatchSize(apiMode)}
+            insertNulls={insertNulls}
+            serialMode={serialMode}
+            dateFormat={dateFormat}
+            assignmentRuleId={assignmentRuleId}
+            onFinish={(results) => handleFinishLoad(results)}
           />
         )}
       </div>

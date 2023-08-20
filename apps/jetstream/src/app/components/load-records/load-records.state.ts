@@ -169,11 +169,6 @@ export const batchSizeState = atom<Maybe<number>>({
   default: MAX_BULK,
 });
 
-export const batchSizeErrorState = atom<Maybe<string>>({
-  key: 'batchSizeErrorState',
-  default: null,
-});
-
 export const insertNullsState = atom({
   key: 'insertNullsState',
   default: false,
@@ -184,9 +179,26 @@ export const serialModeState = atom({
   default: false,
 });
 
+export const dryRunState = atom({
+  key: 'dryRunState',
+  default: false,
+});
+
+export const dryRunSizeState = atom<Maybe<number>>({
+  key: 'dryRunSizeState',
+  default: 1,
+});
+
 export const dateFormatState = atom({
   key: 'dateFormatState',
-  default: DATE_FORMATS.MM_DD_YYYY,
+  default: localStorage.getItem('LOADER_DATE_FORMAT') || DATE_FORMATS.MM_DD_YYYY,
+  effects: [
+    ({ onSet }) => {
+      onSet((value) => {
+        localStorage.setItem('LOADER_DATE_FORMAT', value);
+      });
+    },
+  ],
 });
 
 export const selectBatchSizeError = selector<string | null>({
@@ -213,6 +225,18 @@ export const selectBatchApiLimitError = selector<string | null>({
         `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${MAX_API_CALLS}. ` +
         `Increase your batch size or reduce the number of records in your file.`
       );
+    }
+    return null;
+  },
+});
+
+export const selectDryRunSizeError = selector<string | null>({
+  key: 'load.selectDryRunSizeError',
+  get: ({ get }) => {
+    const inputLength = get(inputFileDataState)?.length || 1;
+    const dryRunSize = get(dryRunSizeState) || 1;
+    if (!isNumber(dryRunSize) || dryRunSize <= 0 || dryRunSize >= inputLength) {
+      return `Must be between 1 and ${formatNumber(inputLength - 1)}`;
     }
     return null;
   },
