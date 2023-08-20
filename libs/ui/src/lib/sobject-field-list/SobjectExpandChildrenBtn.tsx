@@ -1,8 +1,8 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, Maybe, QueryFields } from '@jetstream/types';
+import { orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { FieldWrapper, ListItem, MapOf, Maybe, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import Select from '../form/select/Select';
+import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
 import Icon from '../widgets/Icon';
 
 const relationshipHelpText =
@@ -40,13 +40,25 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
   const [selectedSObject, setSelectedSObject] = useState<Maybe<string>>(
     () => initialSelectedSObject || (hasMultiple ? field.relatedSobject?.[0] : (field.relatedSobject as string))
   );
-  const [selectId] = useState(() => `select-${parentKey}-${field.name}`);
+  // const [selectId] = useState(() => `select-${parentKey}-${field.name}`);
+  const [relatedObjects, setRelatedObjects] = useState<ListItem[]>([]);
 
   useEffect(() => {
-    if (initialSelectedSObject && initialSelectedSObject !== selectedSObject) {
-      setSelectedSObject(initialSelectedSObject);
+    if (Array.isArray(field.relatedSobject)) {
+      setRelatedObjects(
+        orderStringsBy(field.relatedSobject).map(
+          (relationship): ListItem => ({
+            id: relationship,
+            label: relationship,
+            value: relationship,
+          })
+        )
+      );
+    } else {
+      setRelatedObjects([]);
     }
-  }, [initialSelectedSObject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMultiple]);
 
   function handleExpand(event: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     event.preventDefault();
@@ -58,22 +70,26 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
     <Fragment>
       {showWhich === 'multiple' && (
         <Fragment>
-          <Select id={selectId} label="Which Related Object" labelHelp={relationshipHelpText}>
-            <select
-              className="slds-select"
-              id={selectId}
-              value={selectedSObject || undefined}
-              onChange={(event) => setSelectedSObject(event.target.value)}
-              disabled={isExpanded}
-              title={isExpanded ? 'Hide fields to enable this element' : ''}
-            >
-              {(field.relatedSobject as string[]).map((relationship) => (
-                <option key={relationship} value={relationship}>
-                  {relationship}
-                </option>
-              ))}
-            </select>
-          </Select>
+          <div
+            onClick={(ev) => {
+              ev.stopPropagation();
+              ev.preventDefault();
+            }}
+          >
+            <ComboboxWithItems
+              comboboxProps={{
+                isRequired: true,
+                label: 'Which Related Object',
+                labelHelp: relationshipHelpText,
+                helpText: isExpanded ? 'Hide fields to to change objects' : '',
+                placeholder: 'Select an Option',
+                disabled: isExpanded,
+              }}
+              items={relatedObjects}
+              selectedItemId={selectedSObject}
+              onSelected={(item) => setSelectedSObject(item.id)}
+            />
+          </div>
           <button className="slds-button" onClick={handleExpand}>
             <Icon type="utility" icon={isExpanded ? 'dash' : 'add'} className="slds-button__icon slds-button__icon_left" />
             {isExpanded ? 'Hide' : 'View'} {selectedSObject} Fields

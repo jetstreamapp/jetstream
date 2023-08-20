@@ -1,11 +1,11 @@
 import { css } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/types';
-import { useHighlightedText } from 'libs/ui/src/lib/hooks/useHighlightedText';
-import Icon from 'libs/ui/src/lib/widgets/Icon';
-import Tooltip from 'libs/ui/src/lib/widgets/Tooltip';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Grid from '../grid/Grid';
+import { useHighlightedText } from '../hooks/useHighlightedText';
+import Icon from '../widgets/Icon';
+import Tooltip from '../widgets/Tooltip';
 import SobjectExpandChildrenBtn from './SobjectExpandChildrenBtn';
 import SobjectFieldList from './SobjectFieldList';
 import SobjectFieldListMetadataWarning from './SobjectFieldListMetadataWarning';
@@ -131,6 +131,7 @@ export const SobjectFieldListItem: FunctionComponent<SobjectFieldListItemProps> 
           {isExpanded && selectedSObject && (
             <div>
               <SobjectFieldList
+                key={selectedSObject}
                 org={org}
                 serverUrl={serverUrl}
                 isTooling={isTooling}
