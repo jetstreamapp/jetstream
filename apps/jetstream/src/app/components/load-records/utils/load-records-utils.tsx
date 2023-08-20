@@ -96,7 +96,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
   // related records
   if (relatedObjects.size > 0) {
     const relatedEntities = (
-      await queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(Array.from(relatedObjects)), true)
+      await queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(Array.from(relatedObjects)))
     ).data;
     const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinition.QualifiedApiName');
     fieldsWithRelationships.forEach((field) => {
