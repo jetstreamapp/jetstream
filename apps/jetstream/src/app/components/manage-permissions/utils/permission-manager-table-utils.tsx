@@ -482,6 +482,17 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
     filters: ['BOOLEAN_SET'],
     cellClass: (row) => {
       const permission = row.permissions[id];
+      if (permissionType === 'object') {
+        const permission = row.permissions[id] as PermissionTableObjectCellPermission;
+        if (
+          (actionKey === 'create' && permission.createIsDirty) ||
+          (actionKey === 'delete' && permission.deleteIsDirty) ||
+          (actionKey === 'viewAll' && permission.viewAllIsDirty) ||
+          (actionKey === 'modifyAll' && permission.modifyAllIsDirty)
+        ) {
+          return 'active-item-yellow-bg';
+        }
+      }
       if ((actionKey === 'read' && permission.readIsDirty) || (actionKey === 'edit' && permission.editIsDirty)) {
         return 'active-item-yellow-bg';
       }
