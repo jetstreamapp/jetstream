@@ -428,6 +428,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                         content: (
                           <Accordion
                             key={selectedSObject.name}
+                            allowMultiple
                             initOpenIds={['filters', 'soql']}
                             sections={[
                               {
@@ -472,7 +473,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                                     <QueryCount org={selectedOrg} />
                                   </Grid>
                                 ),
-                                titleText: 'Soql Query',
+                                titleText: 'SOQL Query',
                                 content: (
                                   <SoqlTextarea
                                     key={selectedSObject.name}
@@ -485,7 +486,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                                 ),
                               },
                             ]}
-                            allowMultiple
                           ></Accordion>
                         ),
                       },
