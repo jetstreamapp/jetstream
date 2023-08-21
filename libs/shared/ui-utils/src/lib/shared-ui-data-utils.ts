@@ -3,6 +3,7 @@ import { REGEX, flattenRecords, getMapOf, splitArrayToMaxSize } from '@jetstream
 import type {
   CompositeRequestBody,
   CompositeResponse,
+  CopyToClipboardFormat,
   DebugLevel,
   DescribeSObjectResultWithExtendedField,
   FieldWithExtendedType,
@@ -21,6 +22,7 @@ import { composeQuery, getField } from 'soql-parser-js';
 import {
   isRelationshipField,
   polyfillFieldDefinition,
+  prepareCsvFile,
   sortQueryFields,
   transformTabularDataToExcelStr,
   transformTabularDataToHtml,
@@ -296,13 +298,16 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
 /**
  * Copy records to clipboard in various formats
  */
-export function copyRecordsToClipboard(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json', fields?: Maybe<string[]>) {
+export function copyRecordsToClipboard(recordsToCopy: any, copyFormat: CopyToClipboardFormat, fields?: Maybe<string[]>) {
   if (copyFormat === 'excel' && fields) {
     const flattenedData = flattenRecords(recordsToCopy, fields);
     copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
   } else if (copyFormat === 'text' && fields) {
     const flattenedData = flattenRecords(recordsToCopy, fields);
     copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+  } else if (copyFormat === 'csv' && fields) {
+    const flattenedData = flattenRecords(recordsToCopy, fields);
+    copyToClipboard(prepareCsvFile(flattenedData, fields), { format: 'text/plain' });
   } else if (copyFormat === 'json') {
     copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
   }

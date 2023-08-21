@@ -1,10 +1,14 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
-import { Maybe, Record } from '@jetstream/types';
-import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup, Tooltip } from '@jetstream/ui';
+import { CopyToClipboardFormat, Maybe, Record } from '@jetstream/types';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
+import ButtonGroupContainer from '../form/button/ButtonGroupContainer';
+import DropDown from '../form/dropdown/DropDown';
+import Radio from '../form/radio/Radio';
+import RadioGroup from '../form/radio/RadioGroup';
+import Modal from '../modal/Modal';
+import Icon from '../widgets/Icon';
+import Tooltip from '../widgets/Tooltip';
 
 type WhichRecords = 'all' | 'filtered' | 'selected';
 
@@ -13,9 +17,9 @@ export interface QueryResultsCopyToClipboardProps {
   hasRecords: boolean;
   fields: Maybe<string[]>;
   records: Maybe<Record[]>;
-  filteredRows: Record[];
-  selectedRows: Record[];
-  isTooling: boolean;
+  filteredRows?: Maybe<Record[]>;
+  selectedRows?: Maybe<Record[]>;
+  onCopy?: (options: { whichRecords: WhichRecords; format: CopyToClipboardFormat }) => void;
 }
 
 export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToClipboardProps> = ({
@@ -25,11 +29,10 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
   records,
   filteredRows,
   selectedRows,
-  isTooling,
+  onCopy,
 }) => {
-  const { trackEvent } = useAmplitude();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [format, setFormat] = useState<'excel' | 'text' | 'json'>('excel');
+  const [format, setFormat] = useState<CopyToClipboardFormat>('excel');
   const [whichRecords, setWhichRecords] = useState<WhichRecords>('all');
   const [hasFilteredRows, setHasFilteredRows] = useState<boolean>(false);
   const [hasPartialSelectedRows, setHasPartialSelectedRows] = useState<boolean>(false);
@@ -50,10 +53,10 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     setWhichRecords('all');
   }, [records, filteredRows, selectedRows]);
 
-  async function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
+  async function handleCopyToClipboard(format: CopyToClipboardFormat = 'excel') {
     if (
-      (records && hasFilteredRows && filteredRows.length < records.length) ||
-      (records && hasPartialSelectedRows && selectedRows.length < records.length)
+      (records && hasFilteredRows && filteredRows && filteredRows.length < records.length) ||
+      (records && hasPartialSelectedRows && selectedRows && selectedRows.length < records.length)
     ) {
       setFormat(format);
       setIsModalOpen(true);
@@ -61,7 +64,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     }
 
     copyRecordsToClipboard(records, format, fields);
-    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
+    onCopy?.({ whichRecords, format });
   }
 
   function handleModalConfirmation(doCopy) {
@@ -82,7 +85,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     }
 
     copyRecordsToClipboard(recordsToCopy, format, fields);
-    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
+    onCopy?.({ whichRecords, format });
 
     setFormat('excel');
     setWhichRecords('all');
@@ -90,7 +93,6 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
 
   return (
     <Fragment>
-      {/* TODO */}
       <ButtonGroupContainer>
         <Tooltip
           delay={[1000, null]}
@@ -112,9 +114,10 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
           disabled={!hasRecords}
           items={[
             { id: 'text', value: 'Copy as Text' },
+            { id: 'csv', value: 'Copy as CSV' },
             { id: 'json', value: 'Copy as JSON' },
           ]}
-          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'text' | 'json')}
+          onSelected={(item) => handleCopyToClipboard(item as CopyToClipboardFormat)}
         />
       </ButtonGroupContainer>
       {isModalOpen && (
@@ -145,7 +148,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
                 checked={whichRecords === 'all'}
                 onChange={(value) => setWhichRecords('all')}
               />
-              {hasFilteredRows && (
+              {hasFilteredRows && filteredRows && (
                 <Radio
                   idPrefix="filtered"
                   id="radio-filtered"
@@ -156,7 +159,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
                   onChange={(value) => setWhichRecords('filtered')}
                 />
               )}
-              {hasPartialSelectedRows && (
+              {hasPartialSelectedRows && selectedRows && (
                 <Radio
                   idPrefix="selected"
                   id="radio-selected"

@@ -244,9 +244,10 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       setColumns(_columns);
     }, [_columns]);
 
-    useNonInitialEffect(() => {
+    useEffect(() => {
       onReorderColumns && onReorderColumns(columns.filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key)).map(({ key }) => key));
-    }, [columns, onReorderColumns]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [columns]);
 
     useEffect(() => {
       if (Array.isArray(columns) && columns.length && Array.isArray(data) && data.length) {

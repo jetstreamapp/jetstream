@@ -25,6 +25,7 @@ import {
   Grid,
   GridCol,
   Icon,
+  QueryResultsCopyToClipboard,
   SalesforceRecordDataTable,
   Spinner,
   Toolbar,
@@ -32,11 +33,11 @@ import {
   ToolbarItemGroup,
 } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { Query } from 'soql-parser-js';
+import { Query, composeQuery } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
 import { useAmplitude } from '../../core/analytics';
@@ -48,7 +49,6 @@ import * as fromQueryState from '../query.state';
 import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
-import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsDownloadButton from './QueryResultsDownloadButton';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 import QueryResultsMoreActions from './QueryResultsMoreActions';
@@ -69,7 +69,7 @@ const SOURCE_RELOAD: SourceAction = 'RELOAD';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
 
-export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
+export const QueryResults: FunctionComponent<QueryResultsProps> = () => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
@@ -94,7 +94,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [records, setRecords] = useState<Record[] | null>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
   const [fields, setFields] = useState<string[] | null>(null);
-  const [modifiedFields, setModifiedFields] = useState<string[] | null>(null);
   const [subqueryFields, setSubqueryFields] = useState<Maybe<MapOf<string[]>>>(null);
   const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
@@ -254,7 +253,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       }
       setRecords(null);
       setRecordCount(null);
-      // setFields(null);
+      setFields(null);
       setSubqueryFields(null);
       const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords);
       if (!isMounted.current) {
@@ -417,10 +416,29 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleFieldsChanged({ allFields, visibleFields }: { allFields: string[]; visibleFields: string[] }) {
-    setFields(allFields);
-    setModifiedFields(visibleFields);
-  }
+  const handleFieldsChanged = (newFields: string[]) => {
+    // if fields were re-ordered, track old and new index to modify SOQL query
+    const fieldIdxMap = (fields || []).reduce((acc, field, i) => {
+      acc[field] = i;
+      return acc;
+    }, {} as Record<number>);
+
+    const newFieldIdxMap = newFields.reduce((acc, field, i) => {
+      acc[fieldIdxMap[field]] = i;
+      return acc;
+    }, [] as number[]);
+
+    setFields(newFields);
+
+    if (fields?.length && parsedQuery?.fields && Array.isArray(parsedQuery.fields)) {
+      const newParsedQuery = {
+        ...parsedQuery,
+        fields: newFieldIdxMap.map((value) => parsedQuery.fields![value]),
+      };
+      setParsedQuery(newParsedQuery);
+      setSoql(composeQuery(newParsedQuery, { format: true }));
+    }
+  };
 
   function handleOpenHistory(type: fromQueryHistory.QueryHistoryType) {
     queryHistoryRef.current?.open(type);
@@ -478,7 +496,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           </ButtonGroupContainer>
         </ToolbarItemGroup>
         <ToolbarItemActions>
-          {/* FIXME: strongly type me! */}
           {!isTooling && (
             <QueryResultsMoreActions
               selectedOrg={selectedOrg}
@@ -496,11 +513,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           <QueryResultsCopyToClipboard
             className="collapsible-button collapsible-button-md"
             hasRecords={hasRecords()}
-            fields={modifiedFields || []}
+            fields={fields || []}
             records={records || []}
             filteredRows={filteredRows}
             selectedRows={selectedRows}
-            isTooling={isTooling}
+            onCopy={({ whichRecords, format }) => trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format })}
           />
           <QueryResultsDownloadButton
             selectedOrg={selectedOrg}
@@ -511,7 +528,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             isTooling={isTooling}
             nextRecordsUrl={nextRecordsUrl}
             fields={fields || []}
-            modifiedFields={modifiedFields || []}
+            modifiedFields={fields || []}
             subqueryFields={subqueryFields}
             records={records || []}
             filteredRows={filteredRows}
@@ -643,6 +660,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       </div>
     </div>
   );
-});
+};
 
 export default QueryResults;
