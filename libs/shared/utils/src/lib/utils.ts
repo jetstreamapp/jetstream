@@ -1,5 +1,4 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
-import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import {
   BulkJob,
@@ -516,14 +515,16 @@ export function transformRecordForDataLoad(value: any, fieldType: jsforceFieldTy
   } else if (fieldType === 'datetime') {
     return transformDateTime(value, dateFormat);
   } else if (fieldType === 'time') {
-    // time format is specific
-    // TODO: detect if times should be corrected
-    // 10 PM
-    // 10:10 PM
-    // 10:10:00 PM
-    // 10:10
-    // -->expected
-    // 13:15:00.000Z
+    // Already in proper format
+    if (isMatch('HH:mm:ss.SSSZ', value) || isMatch('HH:mm:ssZ', value)) {
+      return value;
+    }
+    // match local format first and convert to ISO
+    if (isMatch('p', value) || isMatch('pp', value)) {
+      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+    }
+    // Try various formats and convert to ISO, or return original value
+    return getIsoFormattedTimeFromString(value) || value;
   }
   return value;
 }
@@ -609,23 +610,31 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
     if (REGEX.ISO_DATE.test(value)) {
       return formatISODate(parseISODate(value), { representation: 'complete' });
     }
+    // Check if formatted in local date format, which is most likely if not ISO
+    if (isMatch('Pp', value)) {
+      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+    }
+    if (isMatch('PPpp', value)) {
+      return formatISODate(parseDate(value, 'PPpp', new Date()), { representation: 'complete' });
+    }
 
     value = value.replace('T', ' ');
-    const [date, ...timeArr] = value.split(' ', 2);
+    const [date, ...timeArr] = value.split(' ');
     const time = timeArr.join(' ');
     const formattedDate = buildDateFromString(date.trim(), dateFormat, 'date');
-    const timeFormat = ['hh:mm a', 'hh:mm:ss a', 'hh:mma', 'hh:mm:ssa', 'HH:mm', 'HH:mm:ss'].find((format) => isMatch(time, format));
-
-    const formattedTime = timeFormat ? formatISODate(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : '00:00:00Z';
-
-    if (!timeFormat) {
-      // TODO: should we tell the user?
-      logger.warn('Error parsing time, defaulting to midnight');
-    }
+    const formattedTime = getIsoFormattedTimeFromString(time) || '00:00:00Z';
 
     return `${formattedDate}T${formattedTime}`;
   }
   return null;
+}
+
+function getIsoFormattedTimeFromString(time: string) {
+  const timeFormat = ['HH:mm:ss.SSSZ', 'HH:mm:ssZ', 'p', 'pp', 'hh:mm a', 'hh:mm:ss a', 'hh:mma', 'hh:mm:ssa', 'HH:mm', 'HH:mm:ss'].find(
+    (format) => isMatch(time, format)
+  );
+  const formattedTime = timeFormat ? formatISODate(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : null;
+  return formattedTime;
 }
 
 /**
