@@ -82,7 +82,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
       if (errors.length > 0) {
         logger.warn(errors);
         fireToast({
-          message: 'There were errors parsing the file. Check the file preview to ensure the data is correct.',
+          message: `There were errors parsing the file. Check the file preview to ensure the data is correct. ${errors[0]}`,
           type: 'warning',
         });
       }
