@@ -1,4 +1,5 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import {
   BulkJob,
@@ -17,6 +18,7 @@ import {
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
+import isMatch from 'date-fns/isMatch';
 import type { QueryResult, FieldType as jsforceFieldType } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
@@ -609,16 +611,19 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
     }
 
     value = value.replace('T', ' ');
-    const [date, time] = value.split(' ', 2);
-    if (!time) {
-      return buildDateFromString(date.trim(), dateFormat, 'complete');
+    const [date, ...timeArr] = value.split(' ', 2);
+    const time = timeArr.join(' ');
+    const formattedDate = buildDateFromString(date.trim(), dateFormat, 'date');
+    const timeFormat = ['hh:mm a', 'hh:mm:ss a', 'hh:mma', 'hh:mm:ssa', 'HH:mm', 'HH:mm:ss'].find((format) => isMatch(time, format));
+
+    const formattedTime = timeFormat ? formatISODate(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : '00:00:00Z';
+
+    if (!timeFormat) {
+      // TODO: should we tell the user?
+      logger.warn('Error parsing time, defaulting to midnight');
     }
 
-    // TODO:
-    // based on locale, we need to parse the date and the time
-    // could be 12 hour time, or 24 hour time
-    // date will vary depending on locale
-    return null; // FIXME:
+    return `${formattedDate}T${formattedTime}`;
   }
   return null;
 }
