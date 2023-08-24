@@ -81,10 +81,13 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
       onFileChange(data, headers, filename, 'local');
       if (errors.length > 0) {
         logger.warn(errors);
-        fireToast({
-          message: `There were errors parsing the file. Check the file preview to ensure the data is correct. ${errors[0]}`,
-          type: 'warning',
-        });
+        // suppress delimiter error if it is the only error and just one column of data
+        if (headers.length !== 1 || errors.length !== 1 || !errors[0].includes('auto-detect delimiting character')) {
+          fireToast({
+            message: `There were errors parsing the file. Check the file preview to ensure the data is correct. ${errors.join()}`,
+            type: 'warning',
+          });
+        }
       }
     } catch (ex) {
       logger.warn('Error reading file', ex);
