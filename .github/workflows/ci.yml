@@ -67,6 +67,8 @@ jobs:
   e2e:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.37.0-jammy
     env:
       AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
       AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
@@ -140,9 +142,6 @@ jobs:
         with:
           name: dist-artifacts
           path: dist
-
-      - name: Install Playwright dependencies
-        run: npx playwright install --with-deps
 
       - name: Generate database
         run: yarn db:generate
