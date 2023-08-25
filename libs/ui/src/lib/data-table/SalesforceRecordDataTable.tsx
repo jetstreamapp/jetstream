@@ -130,7 +130,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
 
     useEffect(() => {
       if (queryResults) {
-        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
         const fields = parentColumns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
         setColumns(parentColumns);
         setFields(fields);
@@ -158,7 +158,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
      */
     useEffect(() => {
       if (fieldMetadata && queryResults) {
-        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata);
+        const { parentColumns, subqueryColumns } = getColumnDefinitions(queryResults, isTooling, fieldMetadata, fieldMetadataSubquery);
 
         setColumns(addFieldLabelToColumn(parentColumns, fieldMetadata));
 

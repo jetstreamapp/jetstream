@@ -132,7 +132,8 @@ export function getColumnsForGenericTable(
 export function getColumnDefinitions(
   results: QueryResults<any>,
   isTooling: boolean,
-  fieldMetadata?: Maybe<MapOf<Field>>
+  fieldMetadata?: Maybe<MapOf<Field>>,
+  fieldMetadataSubquery?: Maybe<MapOf<MapOf<Field>>>
 ): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
@@ -158,7 +159,10 @@ export function getColumnDefinitions(
 
       if (Array.isArray(curr.childColumnPaths)) {
         curr.childColumnPaths.forEach((subqueryField) => {
-          out[subqueryField.columnFullPath.toLowerCase()] = subqueryField;
+          out[subqueryField.columnFullPath.toLowerCase()] = {
+            ...subqueryField,
+            columnFullPath: subqueryField.columnFullPath.split('.').slice(1).join('.'), // remove child relationship name
+          } as QueryResultsColumn;
         });
       }
       return out;
@@ -205,9 +209,16 @@ export function getColumnDefinitions(
   // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
   results.parsedQuery?.fields
     ?.filter((field) => isFieldSubquery(field))
-    .forEach((field: FieldSubquery) => {
-      output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {}).map((field) =>
-        getQueryResultColumn({ field, queryColumnsByPath, isSubquery: false, allowEdit: false })
+    .forEach((parentField: FieldSubquery) => {
+      output.subqueryColumns[parentField.subquery.relationshipName] = getFlattenedFields(parentField.subquery || {}).map((field) =>
+        getQueryResultColumn({
+          field,
+          subqueryRelationshipName: parentField.subquery.relationshipName,
+          queryColumnsByPath,
+          isSubquery: false,
+          allowEdit: false,
+          fieldMetadata: fieldMetadataSubquery?.[field],
+        })
       );
     });
 
@@ -220,12 +231,14 @@ type Mutable<Type> = {
 
 function getQueryResultColumn({
   field,
+  subqueryRelationshipName,
   queryColumnsByPath,
   isSubquery,
   fieldMetadata,
   allowEdit = true,
 }: {
   field: string;
+  subqueryRelationshipName?: string;
   queryColumnsByPath: MapOf<QueryResultsColumn>;
   isSubquery: boolean;
   fieldMetadata?: Maybe<MapOf<Field>>;
@@ -263,7 +276,10 @@ function getQueryResultColumn({
     ),
   };
 
-  const fieldLowercase = field.toLowerCase();
+  let fieldLowercase = field.toLowerCase();
+  if (subqueryRelationshipName) {
+    fieldLowercase = `${subqueryRelationshipName.toLowerCase()}.${fieldLowercase}`;
+  }
   if (queryColumnsByPath[fieldLowercase]) {
     const col = queryColumnsByPath[fieldLowercase];
     column.name = col.columnFullPath;
