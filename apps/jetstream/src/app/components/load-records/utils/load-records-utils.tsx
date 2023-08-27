@@ -565,7 +565,7 @@ export async function fetchMappedRelatedRecords(
         fieldRelationshipName = `${targetLookupField}`;
       }
       // remove any falsy values, related fields cannot be booleans or numbers, so this should not cause issues
-      const relatedValues = new Set<string>(data.map((row) => row[targetField || '']).filter(Boolean));
+      const relatedValues = new Set<string>(data.map((row) => row[targetField || '']).filter((value) => !!value && isString(value)));
 
       if (relatedValues.size && selectedReferenceTo && targetLookupField) {
         const relatedRecordsByRelatedField: MapOf<string[]> = {};

@@ -515,22 +515,16 @@ export function transformRecordForDataLoad(value: any, fieldType: jsforceFieldTy
   } else if (fieldType === 'datetime') {
     return transformDateTime(value, dateFormat);
   } else if (fieldType === 'time') {
-    // Already in proper format
-    if (isMatch('HH:mm:ss.SSSZ', value) || isMatch('HH:mm:ssZ', value)) {
-      return value;
-    }
-    // match local format first and convert to ISO
-    if (isMatch('p', value) || isMatch('pp', value)) {
-      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
-    }
-    // Try various formats and convert to ISO, or return original value
-    return getIsoFormattedTimeFromString(value) || value;
+    return transformTime(value);
   }
   return value;
 }
 
 const DATE_ERR_MESSAGE =
   'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
+
+const TIME_ERR_MESSAGE =
+  'There was an error reading one or more time fields in your file. Ensure date fields are properly formatted with a four character year.';
 
 function transformDate(value: any, dateFormat: string): Maybe<string> {
   if (!value) {
@@ -541,7 +535,7 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
       try {
         return formatISODate(value, { representation: 'date' });
       } catch (ex) {
-        throw new Error(DATE_ERR_MESSAGE);
+        throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     } else {
       // date is invalid
@@ -552,16 +546,81 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
       try {
         return formatISODate(parseISODate(value), { representation: 'date' });
       } catch (ex) {
-        throw new Error(DATE_ERR_MESSAGE);
+        throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     }
     try {
       return buildDateFromString(value, dateFormat, 'date');
     } catch (ex) {
-      throw new Error(DATE_ERR_MESSAGE);
+      throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
     }
   }
   return null;
+}
+
+function transformDateTime(value: string | null | Date, dateFormat: string): Maybe<string> {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    if (!isNaN(value.getTime())) {
+      try {
+        return formatISODate(value, { representation: 'complete' });
+      } catch (ex) {
+        throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
+      }
+    } else {
+      // date is invalid
+      throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
+    }
+  } else if (isString(value)) {
+    try {
+      try {
+        return formatISODate(parseISODate(value), { representation: 'complete' });
+      } catch (ex) {
+        // Date not in ISO8601 compatible format, attempt to auto-detect
+      }
+      // Check if formatted in local date format, which is most likely if not ISO
+      if (isMatch('Pp', value)) {
+        return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+      }
+      if (isMatch('PPpp', value)) {
+        return formatISODate(parseDate(value, 'PPpp', new Date()), { representation: 'complete' });
+      }
+
+      value = value.replace('T', ' ');
+      const [date, ...timeArr] = value.split(' ');
+      const time = timeArr.join(' ');
+      const formattedDate = buildDateFromString(date.trim(), dateFormat, 'date');
+      const formattedTime = getIsoFormattedTimeFromString(time) || '00:00:00Z';
+
+      return `${formattedDate}T${formattedTime}`;
+    } catch (ex) {
+      throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
+    }
+  }
+  return null;
+}
+
+function transformTime(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    // Already in proper format
+    if (isMatch('HH:mm:ss.SSSZ', value) || isMatch('HH:mm:ssZ', value)) {
+      return value;
+    }
+    // match local format first and convert to ISO
+    if (isMatch('p', value) || isMatch('pp', value)) {
+      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+    }
+    // Try various formats and convert to ISO, or return original value
+    return getIsoFormattedTimeFromString(value) || value;
+  } catch (ex) {
+    throw new Error(`${TIME_ERR_MESSAGE} - ${value}`);
+  }
 }
 
 function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
@@ -593,40 +652,6 @@ function buildDateFromString(value: string, dateFormat: string, representation: 
     default:
       break;
   }
-}
-
-function transformDateTime(value: string | null | Date, dateFormat: string): Maybe<string> {
-  if (!value) {
-    return null;
-  }
-  if (value instanceof Date) {
-    if (!isNaN(value.getTime())) {
-      return formatISODate(value, { representation: 'complete' });
-    } else {
-      // date is invalid
-      return null;
-    }
-  } else if (isString(value)) {
-    if (REGEX.ISO_DATE.test(value)) {
-      return formatISODate(parseISODate(value), { representation: 'complete' });
-    }
-    // Check if formatted in local date format, which is most likely if not ISO
-    if (isMatch('Pp', value)) {
-      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
-    }
-    if (isMatch('PPpp', value)) {
-      return formatISODate(parseDate(value, 'PPpp', new Date()), { representation: 'complete' });
-    }
-
-    value = value.replace('T', ' ');
-    const [date, ...timeArr] = value.split(' ');
-    const time = timeArr.join(' ');
-    const formattedDate = buildDateFromString(date.trim(), dateFormat, 'date');
-    const formattedTime = getIsoFormattedTimeFromString(time) || '00:00:00Z';
-
-    return `${formattedDate}T${formattedTime}`;
-  }
-  return null;
 }
 
 function getIsoFormattedTimeFromString(time: string) {

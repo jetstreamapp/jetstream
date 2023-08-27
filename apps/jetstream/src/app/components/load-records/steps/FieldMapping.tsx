@@ -263,6 +263,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                   scope="col"
                   css={css`
                     width: 200px;
+                    max-width: 200px;
                   `}
                 >
                   <Grid verticalAlign="center">
