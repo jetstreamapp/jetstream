@@ -45,11 +45,14 @@ export async function emailSupport(req: express.Request, res: express.Response) 
       }),
       'h:Reply-To': 'support@getjetstream.app',
     });
-    logger.info('[SUPPORT EMAIL][EMAIL SENT] %s', results.id);
+    logger.info('[SUPPORT EMAIL][EMAIL SENT] %s', results.id, { requestId: res.locals.requestId });
     sendJson(res);
   } catch (ex) {
-    logger.error('[SUPPORT EMAIL][ERROR] %s', ex.message || 'An unknown error has occurred.', { userId: user.id });
-    logger.error(ex.stack);
+    logger.error('[SUPPORT EMAIL][ERROR] %s', ex.message || 'An unknown error has occurred.', {
+      userId: user.id,
+      requestId: res.locals.requestId,
+    });
+    logger.error('%o', ex.stack, { requestId: res.locals.requestId });
     throw new UserFacingError('There was a problem sending the email');
   }
 }
@@ -69,9 +72,12 @@ export async function getFullUserProfile(req: express.Request, res: express.Resp
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][PROFILE FETCH][ERROR] %o', error.response.data, { userId: user.id });
+        logger.error('[AUTH0][PROFILE FETCH][ERROR] %o', error.response.data, { userId: user.id, requestId: res.locals.requestId });
       } else if (error.request) {
-        logger.error('[AUTH0][PROFILE FETCH][ERROR] %s', error.message || 'An unknown error has occurred.', { userId: user.id });
+        logger.error('[AUTH0][PROFILE FETCH][ERROR] %s', error.message || 'An unknown error has occurred.', {
+          userId: user.id,
+          requestId: res.locals.requestId,
+        });
       }
     }
     throw new UserFacingError('There was an error obtaining your profile information');
@@ -89,9 +95,12 @@ export async function updateProfile(req: express.Request, res: express.Response)
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][PROFILE][ERROR] %o', error.response.data, { userId: user.id });
+        logger.error('[AUTH0][PROFILE][ERROR] %o', error.response.data, { userId: user.id, requestId: res.locals.requestId });
       } else if (error.request) {
-        logger.error('[AUTH0][PROFILE][ERROR] %s', error.message || 'An unknown error has occurred.', { userId: user.id });
+        logger.error('[AUTH0][PROFILE][ERROR] %s', error.message || 'An unknown error has occurred.', {
+          userId: user.id,
+          requestId: res.locals.requestId,
+        });
       }
     }
     throw new UserFacingError('There was an error updating the user profile');
@@ -110,9 +119,12 @@ export async function unlinkIdentity(req: express.Request, res: express.Response
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][UNLINK][ERROR] %o', error.response.data, { userId: user.id });
+        logger.error('[AUTH0][UNLINK][ERROR] %o', error.response.data, { userId: user.id, requestId: res.locals.requestId });
       } else if (error.request) {
-        logger.error('[AUTH0][UNLINK][ERROR] %s', error.message || 'An unknown error has occurred.', { userId: user.id });
+        logger.error('[AUTH0][UNLINK][ERROR] %s', error.message || 'An unknown error has occurred.', {
+          userId: user.id,
+          requestId: res.locals.requestId,
+        });
       }
     }
     throw new UserFacingError('There was an error unlinking the account');
@@ -130,9 +142,12 @@ export async function resendVerificationEmail(req: express.Request, res: express
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][EMAIL VERIFICATION][ERROR] %o', error.response.data, { userId: user.id });
+        logger.error('[AUTH0][EMAIL VERIFICATION][ERROR] %o', error.response.data, { userId: user.id, requestId: res.locals.requestId });
       } else if (error.request) {
-        logger.error('[AUTH0][EMAIL VERIFICATION][ERROR] %s', error.message || 'An unknown error has occurred.', { userId: user.id });
+        logger.error('[AUTH0][EMAIL VERIFICATION][ERROR] %s', error.message || 'An unknown error has occurred.', {
+          userId: user.id,
+          requestId: res.locals.requestId,
+        });
       }
     }
     throw new UserFacingError('There was an error re-sending the verification email');
@@ -177,19 +192,19 @@ export async function deleteAccount(req: express.Request, res: express.Response)
           'h:Reply-To': 'support@getjetstream.app',
         })
         .then((results) => {
-          logger.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.id);
+          logger.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.id, { requestId: res.locals.requestId });
         })
         .catch((error) => {
-          logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', error.message);
+          logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', error.message, { requestId: res.locals.requestId });
         });
     } catch (ex) {
-      logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message);
+      logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message, { requestId: res.locals.requestId });
     }
 
     // Destroy session - don't wait for response
     req.session.destroy((error) => {
       if (error) {
-        logger.error('[ACCOUNT DELETE][ERROR DESTROYING SESSION] %s', error.message);
+        logger.error('[ACCOUNT DELETE][ERROR DESTROYING SESSION] %s', error.message, { requestId: res.locals.requestId });
       }
     });
 
@@ -198,9 +213,12 @@ export async function deleteAccount(req: express.Request, res: express.Response)
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data, { userId: user.id });
+        logger.error('[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data, { userId: user.id, requestId: res.locals.requestId });
       } else if (error.request) {
-        logger.error('[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.', { userId: user.id });
+        logger.error('[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.', {
+          userId: user.id,
+          requestId: res.locals.requestId,
+        });
       }
     }
     throw new UserFacingError('There was a problem deleting your account, contact support@getjetstream.app for assistance.');

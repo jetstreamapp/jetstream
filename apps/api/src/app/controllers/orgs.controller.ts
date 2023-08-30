@@ -58,10 +58,10 @@ export async function checkOrgHealth(req: Request, res: Response, next: NextFunc
     try {
       await conn.identity();
       connectionError = null;
-      logger.warn('[ORG CHECK][VALID ORG]');
+      logger.warn('[ORG CHECK][VALID ORG]', { requestId: res.locals.requestId });
     } catch (ex) {
       connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
-      logger.warn('[ORG CHECK][INVALID ORG] %s', ex.message);
+      logger.warn('[ORG CHECK][INVALID ORG] %s', ex.message, { requestId: res.locals.requestId });
     }
 
     try {
@@ -69,7 +69,7 @@ export async function checkOrgHealth(req: Request, res: Response, next: NextFunc
         await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
       }
     } catch (ex) {
-      logger.warn('[ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo });
+      logger.warn('[ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo, requestId: res.locals.requestId });
     }
 
     if (connectionError) {

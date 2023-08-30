@@ -8,10 +8,16 @@ import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { isNumber } from 'lodash';
+import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { updateUserLastActivity } from '../services/auth0';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+
+export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  res.locals.requestId = uuid();
+  next();
+}
 
 /**
  * Set's cookie that is used by front-end application
@@ -34,11 +40,11 @@ export function setApplicationCookieMiddleware(req: express.Request, res: expres
 
 export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.path = req.path;
-  // logger.info(req.method, req.originalUrl);
   const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
   logger.debug('[REQ] %s %s', req.method, req.originalUrl, {
     method: req.method,
     url: req.originalUrl,
+    requestId: res.locals.requestId,
     agent: req.header('User-Agent'),
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
@@ -77,6 +83,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
       blocked: true,
       method: req.method,
       url: req.originalUrl,
+      requestId: res.locals.requestId,
       agent: req.header('User-Agent'),
       referrer: req.get('Referrer'),
       ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
@@ -106,23 +113,37 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
         // Update auth0 with expiration date
         updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
           .then(() => {
-            logger.debug('[AUTH][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, { userId: (req.user as any)?.user_id });
+            logger.debug('[AUTH][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, {
+              userId: (req.user as any)?.user_id,
+              requestId: res.locals.requestId,
+            });
           })
           .catch((err) => {
             // send error to rollbar
             const error: AxiosError = err;
             if (error.response) {
-              logger.error('[AUTH][LAST-ACTIVITY][ERROR] %o', error.response.data, { userId: (req.user as any)?.user_id });
+              logger.error('[AUTH][LAST-ACTIVITY][ERROR] %o', error.response.data, {
+                userId: (req.user as any)?.user_id,
+                requestId: res.locals.requestId,
+              });
             } else if (error.request) {
               logger.error('[AUTH][LAST-ACTIVITY][ERROR] %s', error.message || 'An unknown error has occurred.', {
                 userId: (req.user as any)?.user_id,
+                requestId: res.locals.requestId,
               });
             }
-            rollbarServer.error('Error updating Auth0 activityExp', { message: err.message, stack: err.stack });
+            rollbarServer.error('Error updating Auth0 activityExp', {
+              message: err.message,
+              stack: err.stack,
+              requestId: res.locals.requestId,
+            });
           });
       }
     } catch (ex) {
-      logger.warn('[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message, { userId: (req.user as any)?.user_id });
+      logger.warn('[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message, {
+        userId: (req.user as any)?.user_id,
+        requestId: res.locals.requestId,
+      });
     }
     return next();
   }
@@ -130,6 +151,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     blocked: true,
     method: req.method,
     url: req.originalUrl,
+    requestId: res.locals.requestId,
     agent: req.header('User-Agent'),
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
@@ -141,7 +163,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
   try {
     if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
       res.locals = res.locals || {};
-      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION);
+      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION, res.locals.requestId);
       if (results) {
         const { org, connection } = results;
         res.locals.org = org;
@@ -150,7 +172,12 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
     }
     if (req.get(HTTP.HEADERS.X_SFDC_ID_TARGET) || req.query[HTTP.HEADERS.X_SFDC_ID_TARGET]) {
       res.locals = res.locals || {};
-      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID_TARGET, HTTP.HEADERS.X_SFDC_API_TARGET_VERSION);
+      const results = await getOrgFromHeaderOrQuery(
+        req,
+        HTTP.HEADERS.X_SFDC_ID_TARGET,
+        HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
+        res.locals.requestId
+      );
       if (results) {
         if (results) {
           const { org, connection } = results;
@@ -160,7 +187,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       }
     }
   } catch (ex) {
-    logger.warn('[INIT-ORG][ERROR] %o', ex);
+    logger.warn('[INIT-ORG][ERROR] %o', ex, { requestId: res.locals.requestId });
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
@@ -173,18 +200,18 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
 export async function monkeyPatchOrgsToRequest(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
     if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
-      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION);
+      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION, res.locals.requestId);
       if (results) {
         const { org, connection } = results;
         res.locals = { org, jsforceConn: connection };
         (req as any).locals = res.locals;
       } else {
-        logger.info('[INIT-ORG][ERROR] An org did not exist on locals - Monkey Patch');
+        logger.info('[INIT-ORG][ERROR] An org did not exist on locals - Monkey Patch', { requestId: res.locals.requestId });
         return next(new UserFacingError('An org is required for this action'));
       }
     }
   } catch (ex) {
-    logger.warn('[INIT-ORG][ERROR] %o', ex);
+    logger.warn('[INIT-ORG][ERROR] %o', ex, { requestId: res.locals.requestId });
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
@@ -193,7 +220,7 @@ export async function monkeyPatchOrgsToRequest(req: express.Request, res: expres
 
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jsforceConn) {
-    logger.info('[INIT-ORG][ERROR] An org did not exist on locals');
+    logger.info('[INIT-ORG][ERROR] An org did not exist on locals', { requestId: res.locals.requestId });
     return next(new UserFacingError('An org is required for this action'));
   }
   next();
@@ -201,7 +228,7 @@ export function ensureOrgExists(req: express.Request, res: express.Response, nex
 
 export function ensureTargetOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.targetJsforceConn) {
-    logger.info('[INIT-ORG][ERROR] A target org did not exist on locals');
+    logger.info('[INIT-ORG][ERROR] A target org did not exist on locals', { requestId: res.locals.requestId });
     return next(new UserFacingError('A target org is required for this action'));
   }
   next();
@@ -217,7 +244,7 @@ export function ensureTargetOrgExists(req: express.Request, res: express.Respons
  * @param headerKey
  * @param versionHeaderKey
  */
-export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, versionHeaderKey: string) {
+export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, versionHeaderKey: string, requestId?: string) {
   const uniqueId = (req.get(headerKey) || req.query[headerKey]) as string;
   // TODO: not yet implemented on the front-end
   const apiVersion = (req.get(versionHeaderKey) || req.query[versionHeaderKey]) as string | undefined;
@@ -230,10 +257,16 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions);
+  return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions, requestId);
 }
 
-export async function getOrgForRequest(user: UserProfileServer, uniqueId: string, apiVersion?: string, includeCallOptions?: boolean) {
+export async function getOrgForRequest(
+  user: UserProfileServer,
+  uniqueId: string,
+  apiVersion?: string,
+  includeCallOptions?: boolean,
+  requestId?: string
+) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org) {
     throw new UserFacingError('An org was not found with the provided id');
@@ -272,9 +305,9 @@ export async function getOrgForRequest(user: UserProfileServer, uniqueId: string
         return;
       }
       await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, conn.refreshToken);
-      logger.info('[ORG][REFRESH] Org refreshed successfully');
+      logger.info('[ORG][REFRESH] Org refreshed successfully', { requestId });
     } catch (ex) {
-      logger.error('[ORG][REFRESH] Error saving refresh token', ex);
+      logger.error('[ORG][REFRESH] Error saving refresh token', ex, { requestId });
     }
   };
 

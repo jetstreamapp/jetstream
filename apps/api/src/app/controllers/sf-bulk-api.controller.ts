@@ -202,7 +202,7 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
       res.status(200).send();
     });
     csvParseStream.on('error', (err) => {
-      logger.warn('Error streaming files from Salesforce. %o', err);
+      logger.warn('Error streaming files from Salesforce. %o', err, { requestId: res.locals.requestId });
       res.status(400).send();
     });
 
