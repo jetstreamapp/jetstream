@@ -1,5 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { SalesforceOrgUi, SObjectOrganization, UserProfileServer } from '@jetstream/types';
+import { SObjectOrganization, SalesforceOrgUi, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
@@ -51,7 +51,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       returnParams.message = req.query.error_description
         ? (req.query.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query });
+      logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query, requestId: res.locals.requestId });
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
     }
 
@@ -78,7 +78,7 @@ export async function salesforceOauthCallback(req: express.Request, res: express
     return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
   } catch (ex) {
     const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-    logger.info('[OAUTH][ERROR] %o', ex.message, { userInfo });
+    logger.info('[OAUTH][ERROR] %o', ex.message, { userInfo, requestId: res.locals.requestId });
     returnParams.error = ex.message || 'Unexpected Error';
     returnParams.message = req.query.error_description
       ? (req.query.error_description as string)
@@ -109,7 +109,7 @@ export async function initConnectionFromOAuthResponse({
       companyInfoRecord = results.records[0];
     }
   } catch (ex) {
-    logger.warn(ex);
+    logger.warn('Error getting org info %o', ex);
   }
 
   const orgName = companyInfoRecord?.Name || 'Unknown Organization';

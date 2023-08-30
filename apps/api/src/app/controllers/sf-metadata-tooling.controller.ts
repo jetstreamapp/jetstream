@@ -426,7 +426,7 @@ export async function apexCompletions(req: Request, res: Response, next: NextFun
       },
     };
 
-    logger.info(requestOptions.url);
+    logger.info('Apex Completion %s', requestOptions.url, { requestId: res.locals.requestId });
     const completions = await conn.request<ApexCompletionResponse>(requestOptions);
 
     sendJson(res, completions);

@@ -19,6 +19,7 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
     blocked: true,
     method: req.method,
     url: req.originalUrl,
+    requestId: res.locals.requestId,
     agent: req.header('User-Agent'),
     referrer: req.get('Referrer'),
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
@@ -37,6 +38,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     error: err.message || err,
     method: req.method,
     url: req.originalUrl,
+    requestId: res.locals.requestId,
     agent: req.header('User-Agent'),
     ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
@@ -58,7 +60,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       const org = res.locals.org as SalesforceOrg;
       await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN });
     } catch (ex) {
-      logger.warn('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo });
+      logger.warn('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, {
+        error: ex.message,
+        userInfo,
+        requestId: res.locals.requestId,
+      });
     }
   }
 
@@ -104,13 +110,13 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
 
   // TODO: clean up everything below this
 
-  logger.error(err.message, { userInfo });
-  logger.error(err.stack, { userInfo });
+  logger.error(err.message, { userInfo, requestId: res.locals.requestId });
+  logger.error(err.stack, { userInfo, requestId: res.locals.requestId });
 
   try {
     rollbarServer.warn('Error not handled by error handler', req, userInfo, err);
   } catch (ex) {
-    logger.error('Error sending to Rollbar', ex);
+    logger.error('Error sending to Rollbar', ex, { requestId: res.locals.requestId });
   }
 
   const errorMessage = 'There was an error processing the request';
