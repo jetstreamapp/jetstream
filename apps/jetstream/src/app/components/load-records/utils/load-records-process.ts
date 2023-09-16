@@ -54,7 +54,7 @@ export async function loadBulkApiData(
     const jobId = results.id!;
     let batches: LoadDataBulkApi[] = [];
     batches = splitArrayToMaxSize(data, batchSize)
-      .map((batch) => generateCsv(batch))
+      .map((batch) => generateCsv(batch, { delimiter: ',' }))
       .map((data, i) => ({ data, batchNumber: i, completed: false, success: false }));
 
     statusCallback(getBatchSummary(results, batches));
