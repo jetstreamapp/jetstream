@@ -3,7 +3,7 @@
 ALTER TABLE "salesforce_org" ADD COLUMN "orgLanguageLocaleKey_new" VARCHAR;
 
 -- 2. Update the new column with values from the old column
-UPDATE "salesforce_org" SET "orgLanguageLocaleKey_new" = orgLanguageLocaleKey::VARCHAR;
+UPDATE "salesforce_org" SET "orgLanguageLocaleKey_new" = "orgLanguageLocaleKey"::VARCHAR;
 
 -- 3. Drop the old column
 ALTER TABLE "salesforce_org" DROP COLUMN "orgLanguageLocaleKey";
