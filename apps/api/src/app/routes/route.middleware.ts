@@ -99,10 +99,11 @@ function getActivityExp() {
 }
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER && req.hostname === 'localhost') {
-    req.user = ENV.EXAMPLE_USER;
-    return next();
-  }
+  console.log('checkAuth', req.user);
+  // if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER && req.hostname === 'localhost') {
+  //   req.user = ENV.EXAMPLE_USER;
+  //   return next();
+  // }
   if (req.user) {
     telemetryAddUserToAttributes(req.user as UserProfileServer);
     try {
@@ -147,6 +148,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     }
     return next();
   }
+
   logger.error('[AUTH][UNAUTHORIZED] %s %s', req.method, req.originalUrl, {
     blocked: true,
     method: req.method,

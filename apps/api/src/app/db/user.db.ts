@@ -1,5 +1,5 @@
 import { ENV, logger, prisma } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileServer, UserProfileUi } from '@jetstream/types';
 import { User } from '@prisma/client';
 
 /**
@@ -27,31 +27,31 @@ export async function updateUser(user: UserProfileServer, data: { name: string }
 /**
  * This is called each time a user logs in (e.x. goes through OAuth2 flow with Auth Provider)
  */
-export async function createOrUpdateUser(user: UserProfileServer): Promise<{ created: boolean; user: User }> {
+export async function createOrUpdateUser(user: UserProfileUi): Promise<{ created: boolean; user: User }> {
   try {
-    const existingUser = await findByUserId(user.id);
+    const existingUser = await findByUserId(user.sub);
 
     if (existingUser) {
       const updatedUser = await prisma.user.update({
-        where: { userId: user.id },
+        where: { userId: user.sub },
         data: {
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          appMetadata: JSON.stringify(user[ENV.AUTH_AUDIENCE!]),
         },
       });
-      logger.debug('[DB][USER][UPDATED] %s', user.id, { userId: user.id, id: existingUser.id });
+      logger.debug('[DB][USER][UPDATED] %s', user.sub, { userId: user.sub, id: existingUser.id });
       return { created: false, user: updatedUser };
     } else {
       const createdUser = await prisma.user.create({
         data: {
-          userId: user.id,
-          email: user._json.email,
-          name: user._json.name,
-          nickname: user._json.nickname,
-          picture: user._json.picture,
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          userId: user.sub,
+          email: user.email,
+          name: user.name,
+          nickname: user.nickname,
+          picture: user.picture,
+          appMetadata: JSON.stringify(user[ENV.AUTH_AUDIENCE!]),
         },
       });
-      logger.debug('[DB][USER][CREATED] %s', user.id, { userId: user.id, id: createdUser.id });
+      logger.debug('[DB][USER][CREATED] %s', user.sub, { userId: user.sub, id: createdUser.id });
       return { created: true, user: createdUser };
     }
   } catch (ex) {

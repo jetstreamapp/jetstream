@@ -56,3 +56,6 @@ package-lock.json
 **/test-results
 **/playwright-report
 **/playwright/.cache
+
+server.key
+server.key.enc

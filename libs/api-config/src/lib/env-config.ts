@@ -59,10 +59,14 @@ export const ENV = {
   JETSTREAM_SERVER_URL: process.env.JETSTREAM_SERVER_URL,
   // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
   JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
-  JETSTREAM_CLIENT_URL: process.env.JETSTREAM_CLIENT_URL,
+  JETSTREAM_CLIENT_URL: process.env.JETSTREAM_CLIENT_URL || '',
   JETSTREAM_WORKER_URL: process.env.JETSTREAM_WORKER_URL,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
   COMETD_DEBUG: ensureStringValue(process.env.COMETD_DEBUG, ['error', 'warn', 'info', 'debug']) as 'error' | 'warn' | 'info' | 'debug',
+  // AUTH - CASDOOR
+  CASDOOR_DOMAIN: process.env.CASDOOR_DOMAIN || '',
+  CASDOOR_CLIENT_ID: process.env.CASDOOR_CLIENT_ID || '',
+  CASDOOR_CLIENT_SECRET: process.env.CASDOOR_CLIENT_SECRET || '',
   // AUTH
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   /** use for M2M tokens - in DEV this is the same, but different in production */
