@@ -5,26 +5,26 @@ import { NextFunction, Request, Response } from 'express';
 import * as jsforce from 'jsforce';
 import { Issuer, generators } from 'openid-client';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { createOrUpdateUser } from '../db/user.db';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError } from '../utils/error-handler';
 import { OauthLinkParams } from './auth.controller';
 
+const AUTH_BASE = `${ENV.AUTH_DOMAIN}/b2c_1_jetstream`;
+// /v2.0/.well-known/openid-configuration
+// /Samlp/metadata
 const { Client } = new Issuer({
-  issuer: ENV.CASDOOR_DOMAIN,
-  authorization_endpoint: `${ENV.CASDOOR_DOMAIN}/login/oauth/authorize`,
-  registration_endpoint: `${ENV.CASDOOR_DOMAIN}/signup/oauth/authorize`,
-  token_endpoint: `${ENV.CASDOOR_DOMAIN}/api/login/oauth/access_token`,
-  end_session_endpoint: `${ENV.CASDOOR_DOMAIN}/api/logout`,
-  jwks_uri: `${ENV.CASDOOR_DOMAIN}/.well-known/jwks`,
-  userinfo_endpoint: `${ENV.CASDOOR_DOMAIN}/api/userinfo`,
-  introspection_endpoint: `${ENV.CASDOOR_DOMAIN}/api/login/oauth/introspect`,
-  token_endpoint_auth_methods_supported: ['client_secret_basic'],
+  issuer: 'https://getjetstream.b2clogin.com/9fbbd6e6-279b-4460-8109-07cc07c79904/v2.0/',
+  authorization_endpoint: `${AUTH_BASE}/oauth2/v2.0/authorize`,
+  token_endpoint: `${AUTH_BASE}/oauth2/v2.0/token`,
+  end_session_endpoint: `${AUTH_BASE}/oauth2/v2.0/logout`,
+  jwks_uri: `${AUTH_BASE}/discovery/v2.0/keys`,
+  userinfo_endpoint: `https://graph.microsoft.com/oidc/userinfo`,
+  token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
 });
 
 export const authClient = new Client({
-  client_id: ENV.CASDOOR_CLIENT_ID,
-  client_secret: ENV.CASDOOR_CLIENT_SECRET,
+  client_id: ENV.AUTH_CLIENT_ID,
+  client_secret: ENV.AUTH_CLIENT_SECRET,
   redirect_uris: [`${ENV.JETSTREAM_SERVER_URL}/oauth/callback`],
 });
 
@@ -32,15 +32,11 @@ function getAuthorizationUrl(prompt: 'login' | 'signup') {
   const nonce = generators.nonce();
   const code_verifier = generators.codeVerifier();
   const state = generators.state();
-  // store the code_verifier in your framework's session mechanism, if it is a cookie based solution
-  // it should be httpOnly (not readable by javascript) and encrypted.
 
   const code_challenge = generators.codeChallenge(code_verifier);
 
   let url = authClient.authorizationUrl({
     scope: 'openid email profile',
-    // response_mode: 'form_post',
-    // resource: 'https://my.api.example.com/resource/32178',
     nonce,
     state,
     code_challenge,
@@ -48,10 +44,10 @@ function getAuthorizationUrl(prompt: 'login' | 'signup') {
   });
 
   if (prompt === 'signup') {
-    url = url.replace('/login/', '/signup/');
+    url = url.replace('/b2c_1_jetstream/', '/b2c_1_jetstream_signup/');
   }
 
-  logger.info('[AUTH][URL]', {
+  logger.info('[AUTH][URL] %s', url, {
     nonce,
     state,
     code_verifier,
@@ -69,7 +65,7 @@ export function signup(req: Request, res: Response) {
 }
 
 export function login(req: Request, res: Response) {
-  // TODO: check if user is already logged in and has a valid session
+  // TODO: check if user is already logged in and has a valid session - if so, do not redirect to login?
   const { code_verifier, nonce, state, url } = getAuthorizationUrl('login');
 
   req.session.auth = { code_verifier, nonce, state };
@@ -80,12 +76,17 @@ export function logout(req: Request, res: Response) {
   const url = authClient.endSessionUrl();
   // TODO: figure out how to logout of casdoor
 
-  req.session.auth = { code_verifier, nonce, state };
+  // req.session.auth = { code_verifier, nonce, state };
   res.redirect(url);
 }
 
 export async function callback(req: Request, res: Response, next: NextFunction) {
   try {
+    /**
+     * FIXME: if there is a login error it comes to this URL
+     * we need to redirect somewhere else
+     */
+
     const authData = req.session.auth;
     req.session.auth = undefined;
 
@@ -99,45 +100,49 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     });
 
     // Exchange code for token
-    const { access_token, refresh_token } = tokenSet;
+    const { access_token, refresh_token, id_token } = tokenSet;
 
-    if (!access_token) {
+    console.log('tokenSet', JSON.stringify(tokenSet));
+
+    if (!id_token) {
       return next(new AuthenticationError('Invalid access token'));
     }
 
     logger.info('[AUTH][EXCHANGE VERIFIED] %s %s', req.method, req.originalUrl, { requestId: res.locals.requestId });
 
-    const introspect = await authClient.introspect(access_token);
-    const userInfo = await authClient.userinfo(access_token);
+    // const introspect = await authClient.introspect(access_token);
+    authClient.
+    const userInfo = await authClient.userinfo(id_token);
+    console.log('userInfo', JSON.stringify(userInfo));
 
-    const { user } = await createOrUpdateUser({
-      email: userInfo.email!,
-      email_verified: false,
-      // Set from environment variable, could be different
-      'http://getjetstream.app/app_metadata': {
-        featureFlags: {
-          flagVersion: '1.0',
-          flags: ['all'],
-          isDefault: true,
-        },
-      },
-      name: userInfo.name!,
-      nickname: userInfo.name!,
-      picture: userInfo.picture,
-      sub: userInfo.sub!,
-      updated_at: '',
-    });
+    // const { user } = await createOrUpdateUser({
+    //   email: userInfo.email!,
+    //   email_verified: false,
+    //   // Set from environment variable, could be different
+    //   'http://getjetstream.app/app_metadata': {
+    //     featureFlags: {
+    //       flagVersion: '1.0',
+    //       flags: ['all'],
+    //       isDefault: true,
+    //     },
+    //   },
+    //   name: userInfo.name!,
+    //   nickname: userInfo.name!,
+    //   picture: userInfo.picture,
+    //   sub: userInfo.sub!,
+    //   updated_at: '',
+    // });
 
     req.session.regenerate((err) => {
       if (err) {
         return next(new AuthenticationError('Unable to initiate session'));
       }
-      req.session.accessToken = access_token;
-      req.session.refreshToken = refresh_token;
-      req.session.user = user;
-      req.user = user;
+      // req.session.accessToken = access_token;
+      // req.session.refreshToken = refresh_token;
+      // req.session.user = user;
+      // req.user = user;
 
-      logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id, requestId: res.locals.requestId });
+      // logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id, requestId: res.locals.requestId });
 
       req.session.save(function (err) {
         if (err) {

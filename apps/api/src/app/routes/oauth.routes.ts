@@ -7,64 +7,12 @@ import { checkAuth } from './route.middleware';
 
 export const routes: express.Router = Router();
 
-// https://auth0.com/docs/universal-login/new-experience#signup
-// routes.get(
-//   '/signup',
-//   passport.authenticate('auth0', {
-//     scope: 'openid email profile',
-//     screen_hint: 'signup',
-//   } as any),
-//   authController.login
-// );
-
-// routes.get(
-//   '/login',
-//   passport.authenticate(
-//     ['custom', 'auth0'].filter((item) => item === 'auth0' || (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER)),
-//     {
-//       scope: 'openid email profile',
-//     }
-//   ),
-//   authController.login
-// );
-// passport.authenticate('google')
-// routes.get(
-//   '/signup',
-//   (req, res, next) => {
-//     const code_challenge = generators.codeChallenge(code_verifier);
-//     authClient.authorizationUrl({
-//       scope: 'openid email profile',
-//     });
-//   }
-//   // // passport.authenticate('auth0', {
-//   // //   scope: 'openid email profile',
-//   // //   screen_hint: 'signup',
-//   // // } as any),
-//   // // TODO: we want to redirect to signup page - not sure how to do with passport
-//   // // url pattern is slightly different (signup instead of login)
-//   // passport.authenticate('casdoor', {
-//   //   prompt: 'signup',
-//   //   scope: 'openid email profile',
-//   // }),
-//   // authController.login
-// );
-
-// routes.get(
-//   '/login',
-//   passport.authenticate('casdoor', {
-//     prompt: 'login',
-//     scope: 'openid email profile',
-//   }),
-//   authController.login
-// );
-
 routes.get('/signup', oauthController.signup);
 routes.get('/login', oauthController.login);
 routes.get('/logout', oauthController.logout);
 routes.get('/callback', oauthController.callback);
-// routes.get('/callback', passport.authenticate('casdoor', { failureRedirect: '/login' }), authController.callback);
-// routes.get('/logout', authController.logout);
 
+// FIXME: figure out how to do this
 // Link additional accounts
 routes.get('/identity/link', (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const options: passport.AuthenticateOptions & { connection?: string } = {
