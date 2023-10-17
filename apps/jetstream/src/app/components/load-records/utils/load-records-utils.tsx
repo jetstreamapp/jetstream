@@ -742,8 +742,24 @@ export function convertCsvToCustomMetadata(
     if (!fieldMappingByTargetField.DeveloperName.csvField || !fieldMappingByTargetField.Label.csvField) {
       return;
     }
-    const fullName = `${selectedSObject}.${row[fieldMappingByTargetField.DeveloperName.csvField]}`;
-    const label = fieldMappingByTargetField.Label ? row[fieldMappingByTargetField.Label.csvField] : null;
+
+    let developerName: string | null = null;
+    if (fieldMappingByTargetField.Label) {
+      developerName =
+        fieldMappingByTargetField.DeveloperName.type === 'STATIC'
+          ? fieldMappingByTargetField.DeveloperName.staticValue
+          : row[fieldMappingByTargetField.DeveloperName.csvField];
+    }
+
+    let label: string | null = null;
+    if (fieldMappingByTargetField.Label) {
+      label =
+        fieldMappingByTargetField.Label.type === 'STATIC'
+          ? fieldMappingByTargetField.Label.staticValue
+          : row[fieldMappingByTargetField.Label.csvField];
+    }
+
+    const fullName = `${selectedSObject}.${developerName}`;
     const record: any = {
       DeveloperName: fullName,
       Label: label,
@@ -758,11 +774,16 @@ export function convertCsvToCustomMetadata(
       .filter((field) => field.name.endsWith('__c'))
       .forEach((field) => {
         const fieldMappingItem = fieldMappingByTargetField[field.name];
-        if (!fieldMappingItem.csvField) {
-          return;
+
+        let fieldValue: string | null | boolean = null;
+
+        if (fieldMappingItem && fieldMappingItem.type === 'STATIC') {
+          fieldValue = fieldMappingItem.staticValue;
+        } else if (fieldMappingItem) {
+          fieldValue = row[fieldMappingItem.csvField];
         }
-        let fieldValue = fieldMappingItem ? row[fieldMappingItem.csvField] : null;
-        // ensure that field is in correct data type (mostly for dates)
+
+        // ensure field is in correct data type (mostly for dates)
         fieldValue = transformRecordForDataLoad(fieldValue, field.type, dateFormat);
         // Custom metadata lookups always use name to relate records
         const soapType = field.soapType === 'tns:ID' ? 'xsd:string' : field.soapType;

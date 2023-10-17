@@ -355,6 +355,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                   key={`${keyPrefix}-static-${i}`}
                   fields={fields}
                   fieldMappingItem={fieldMapping[header] as FieldMappingItemStatic}
+                  isCustomMetadata={isCustomMetadataObject}
                   onSelectionChanged={(value) => handleFieldMappingChange(header, value)}
                   onRemoveRow={() => handleRemoveRow(header)}
                 />

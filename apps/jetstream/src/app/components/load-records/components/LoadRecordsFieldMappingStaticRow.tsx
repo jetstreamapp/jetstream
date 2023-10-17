@@ -16,6 +16,7 @@ function getComboboxFieldTitle(item: ListItem) {
 export interface LoadRecordsFieldMappingStaticRowProps {
   fields: FieldWithRelatedEntities[];
   fieldMappingItem: FieldMappingItemStatic;
+  isCustomMetadata?: boolean;
   onSelectionChanged: (fieldMappingItem: FieldMappingItemStatic) => void;
   onRemoveRow: () => void;
 }
@@ -54,6 +55,7 @@ function getFieldListItems(fields: FieldWithRelatedEntities[]) {
 export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFieldMappingStaticRowProps> = ({
   fields,
   fieldMappingItem,
+  isCustomMetadata,
   onSelectionChanged,
   onRemoveRow,
 }) => {
@@ -83,9 +85,11 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
             })) || [],
         };
       }
-      setEditableField(convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {})[0]);
+      setEditableField(
+        convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {}, isCustomMetadata)[0]
+      );
     }
-  }, [fieldMappingItem.fieldMetadata]);
+  }, [fieldMappingItem.fieldMetadata, isCustomMetadata]);
 
   function handleValueChange(field: EditableFields, staticValue: string | boolean | null) {
     onSelectionChanged({
