@@ -55,12 +55,15 @@ export function convertMetadataToEditableFields(
   fields: Field[],
   picklistValues: PicklistFieldValues,
   action: CloneEditView,
-  record: Record
+  record: Record,
+  isCustomMetadata = false
 ): EditableFields[] {
   return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {
     let readOnly = action === 'view';
-    if (!readOnly) {
+    if (!readOnly && !isCustomMetadata) {
       readOnly = action === 'edit' ? !field.updateable : !field.createable;
+    } else if (!readOnly && isCustomMetadata) {
+      readOnly = !field.custom && field.name !== 'DeveloperName' && field.name !== 'Label';
     }
     const output: Partial<EditableFields> = {
       label: `${field.label} (${field.name})`,
