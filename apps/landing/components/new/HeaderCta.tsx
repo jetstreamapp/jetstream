@@ -8,7 +8,7 @@ export const HeaderCta = () => (
         <div className="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 sm:text-center lg:px-0 lg:text-left lg:flex lg:items-center">
           <div className="lg:py-24">
             <span className="px-3 py-0.5 text-white text-xs font-semibold leading-5 uppercase tracking-wide">
-              Jetstream is open source and free to use
+              Jetstream is community supported and free to use
             </span>
             <h1 className="mt-4 text-4xl tracking-tight font-extrabold text-white sm:mt-5 sm:text-6xl lg:mt-6 xl:text-6xl">
               <span className="block">A better way to</span>
@@ -30,7 +30,7 @@ export const HeaderCta = () => (
             </div>
             <div className="mt-7">
               <p className="text-base text-gray-300 sm:text-xl lg:text-lg xl:text-xl">
-                Jetstream is open source and <span className="underline">free to use</span> thanks to the support of our community.
+                Jetstream is <span className="underline">free to use</span> thanks to the support of our community.
               </p>
               <>
                 <a
