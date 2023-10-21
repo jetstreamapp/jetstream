@@ -46,16 +46,8 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
       setFieldMetadata([]);
       setFieldTypesByName({});
       const metadata = await describeSObject(org, sobjectName);
-      // metadata will include namespace, but when we get the record from Salesforce it will not include the namespace
-      if (org.orgNamespacePrefix) {
-        const replaceRegex = new RegExp(`^${org.orgNamespacePrefix}__`);
-        metadata.data.fields = metadata.data.fields.map((field) => {
-          return { ...field, name: field.name.replace(replaceRegex, '') };
-        });
-      }
       const fieldTypeByApiName = metadata.data.fields.reduce((output: MapOf<FieldType>, field) => {
-        const replaceNamespace = org.orgNamespacePrefix ? `${org.orgNamespacePrefix}__` : '';
-        output[field.name.replace(replaceNamespace, '')] = field.type;
+        output[field.name] = field.type;
         return output;
       }, {});
       setLoading(false);
