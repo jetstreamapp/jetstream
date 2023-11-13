@@ -14,11 +14,12 @@ export interface ListItemProps {
   subheadingPlaceholder?: boolean;
   searchTerm?: string;
   highlightText?: boolean;
+  disabled?: boolean;
   onSelected: () => void;
 }
 
 export const ListItem = memo<ListItemProps>(
-  ({ liRef, testId, heading = '', subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
+  ({ liRef, testId, heading = '', subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, disabled, onSelected }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
@@ -30,11 +31,11 @@ export const ListItem = memo<ListItemProps>(
         role="option"
         aria-selected={isActive}
         data-testid={testId}
-        className={classNames('slds-item', { 'is-active': isActive })}
+        className={classNames('slds-item', { 'is-active': isActive, disabled })}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          onSelected && onSelected();
+          !disabled && onSelected && onSelected();
         }}
       >
         {isString(heading) ? (

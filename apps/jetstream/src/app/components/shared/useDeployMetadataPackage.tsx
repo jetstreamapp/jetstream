@@ -95,7 +95,7 @@ function reducer(state: State, action: Action): State {
  * @param selectedOrg
  * @param changesetName
  */
-export function useDeployMetadataPackage(serverUrl: string, onFinished: () => void) {
+export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => void) {
   const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [{ hasLoaded, loading, hasError, errorMessage, deployId, results }, dispatch] = useReducer(reducer, {
@@ -131,7 +131,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished: () => vo
             },
           });
           dispatch({ type: 'SUCCESS', payload: { results } });
-          onFinished();
+          onFinished?.();
           if (results.success) {
             notifyUser(`Deployment finished successfully`, {
               body: getNotificationMessageBody(results),
@@ -143,6 +143,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished: () => vo
               tag: 'deploy-package',
             });
           }
+          return results;
         }
       } catch (ex) {
         logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);
@@ -152,7 +153,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished: () => vo
         }
       }
     },
-    [notifyUser]
+    [notifyUser, onFinished, rollbar]
   );
 
   return { deployMetadata, results, deployId, hasLoaded, loading, lastChecked, hasError, errorMessage };

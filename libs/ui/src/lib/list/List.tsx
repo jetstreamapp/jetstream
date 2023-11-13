@@ -13,7 +13,7 @@ import {
 import { Maybe } from '@jetstream/types';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
-import { createRef, forwardRef, Fragment, KeyboardEvent, RefObject, useEffect, useRef, useState } from 'react';
+import { Fragment, KeyboardEvent, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
 import ListItemCheckbox from './ListItemCheckbox';
 
@@ -27,6 +27,7 @@ export interface ListProps {
   subheadingPlaceholder?: boolean;
   searchTerm?: string;
   highlightText?: boolean;
+  disabled?: boolean;
   isActive: (item: any) => boolean;
   // function used to extract
   getContent: (item: any) => {
@@ -49,6 +50,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       isMultiSelect = useCheckbox,
       searchTerm,
       highlightText,
+      disabled = false,
       isActive,
       getContent,
       onSelected,
@@ -188,6 +190,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   subheadingPlaceholder={subheadingPlaceholder}
                   searchTerm={searchTerm}
                   highlightText={highlightText}
+                  disabled={disabled}
                   onSelected={() => handleSelect(key, i)}
                 />
               ) : (
@@ -201,6 +204,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   subheadingPlaceholder={subheadingPlaceholder}
                   searchTerm={searchTerm}
                   highlightText={highlightText}
+                  disabled={disabled}
                   onSelected={() => handleSelect(key, i)}
                 />
               );
