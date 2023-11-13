@@ -1,7 +1,7 @@
-import { AsyncJob, RecordResult, ErrorResult } from '@jetstream/types';
-import { unparse } from 'papaparse';
-import { saveFile } from '@jetstream/shared/ui-utils';
 import { MIME_TYPES } from '@jetstream/shared/constants';
+import { saveFile } from '@jetstream/shared/ui-utils';
+import { AsyncJob, ErrorResult, RecordResult } from '@jetstream/types';
+import { unparse } from 'papaparse';
 
 export function downloadJob(job: AsyncJob) {
   switch (job.type) {
@@ -17,7 +17,7 @@ export function downloadJob(job: AsyncJob) {
             fields: '',
           };
         } else {
-          const errors = (result as ErrorResult).errors;
+          const errors = (result as ErrorResult)?.errors || [];
           return {
             id: '',
             success: false,
