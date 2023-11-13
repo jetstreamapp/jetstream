@@ -270,6 +270,8 @@ export interface ObjectPermissionRecord {
   Parent: PermissionPermissionSetRecord;
 }
 
+export type ObjectPermissionRecordInsert = Omit<ObjectPermissionRecord, 'Id' | 'Parent'> & { attributes?: { type: 'ObjectPermissions' } };
+
 export interface FieldPermissionRecord {
   Id: string;
   SobjectType: string;
@@ -279,6 +281,13 @@ export interface FieldPermissionRecord {
   ParentId: string;
   Parent: PermissionPermissionSetRecord;
 }
+
+export type TabPermissionRecordInsert = {
+  attributes?: { type: 'PermissionSetTabSetting' };
+  ParentId: string;
+  Name: string;
+  Visibility: 'DefaultOn' | 'DefaultOff';
+};
 
 export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
 

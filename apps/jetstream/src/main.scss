@@ -158,8 +158,11 @@ pre {
   &:not(.read-only) {
     cursor: pointer;
   }
+  &.disabled {
+    cursor: not-allowed;
+  }
   margin: 1px;
-  &:not(.read-only):hover {
+  &:not(.disabled):not(.read-only):hover {
     background-color: $color-background;
   }
   &:not(.read-only).is-active {

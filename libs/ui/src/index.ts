@@ -153,4 +153,5 @@ export * from './lib/widgets/RecordLookupPopover';
 export * from './lib/widgets/SalesforceLogin';
 export * from './lib/widgets/Spinner';
 export * from './lib/widgets/SupportLink';
+export * from './lib/widgets/TabIconList';
 export * from './lib/widgets/Tooltip';

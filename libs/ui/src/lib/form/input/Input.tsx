@@ -12,7 +12,7 @@ export interface InputProps {
   formControlClassName?: string;
   label?: string;
   hideLabel?: boolean;
-  labelHelp?: string | null;
+  labelHelp?: string | JSX.Element | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;

@@ -16,18 +16,19 @@ export interface ListItemCheckboxProps {
   subheadingPlaceholder?: boolean;
   searchTerm?: string;
   highlightText?: boolean;
+  disabled?: boolean;
   onSelected: () => void;
 }
 
 export const ListItemCheckbox = memo<ListItemCheckboxProps>(
-  ({ id, testId, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, onSelected }) => {
+  ({ id, testId, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, disabled, onSelected }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { className: 'slds-truncate', ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
     });
     function handleClick(ev: MouseEvent<HTMLLIElement>) {
       ev.stopPropagation();
-      onSelected && onSelected();
+      disabled && onSelected && onSelected();
     }
     return (
       <li
@@ -40,7 +41,15 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
       >
         <div className="slds-grid slds-has-flexi-truncate">
           <div>
-            <Checkbox inputRef={inputRef} id={id} checked={!!isActive} label="" hideLabel onChange={() => onSelected && onSelected()} />
+            <Checkbox
+              inputRef={inputRef}
+              id={id}
+              checked={!!isActive}
+              label=""
+              hideLabel
+              disabled={disabled}
+              onChange={() => !disabled && onSelected && onSelected()}
+            />
           </div>
           <div className="slds-col slds-grow slds-has-flexi-truncate">
             {isString(heading) ? <span>{highlightedHeading}</span> : heading}
