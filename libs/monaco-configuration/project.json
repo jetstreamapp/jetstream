@@ -5,7 +5,7 @@
   "projectType": "library",
   "targets": {
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": ["libs/monaco-configuration/**/*.ts"]
       }
@@ -14,8 +14,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/libs/monaco-configuration"],
       "options": {
-        "jestConfig": "libs/monaco-configuration/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/monaco-configuration/jest.config.ts"
       }
     }
   },

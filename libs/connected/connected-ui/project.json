@@ -5,7 +5,7 @@
   "projectType": "library",
   "targets": {
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": ["libs/connected/connected-ui/**/*.{ts,tsx,js,jsx}"]
       }
@@ -14,8 +14,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/libs/connected/connected-ui"],
       "options": {
-        "jestConfig": "libs/connected/connected-ui/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/connected/connected-ui/jest.config.ts"
       }
     }
   },

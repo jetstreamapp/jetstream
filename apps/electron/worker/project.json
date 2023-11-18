@@ -50,7 +50,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["apps/electron/worker/**/*.ts"]
@@ -60,8 +60,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/electron/worker"],
       "options": {
-        "jestConfig": "apps/electron/worker/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/electron/worker/jest.config.ts"
       }
     }
   },

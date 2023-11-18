@@ -63,7 +63,7 @@
       "defaultConfiguration": "development"
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["apps/download-zip-sw/**/*.ts"]
@@ -73,8 +73,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/download-zip-sw"],
       "options": {
-        "jestConfig": "apps/download-zip-sw/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/download-zip-sw/jest.config.ts"
       }
     }
   },
