@@ -96,7 +96,7 @@ export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps
       </div>
     );
 
-    return usePortal ? createPortal(content, document.body) : content;
+    return usePortal ? (createPortal(content, document.body) as ReactNode) : content;
   }
 );
 

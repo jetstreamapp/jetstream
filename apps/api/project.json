@@ -66,7 +66,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": ["apps/api/**/*.ts", "apps/api/**/*.spec.ts", "apps/api/**/*.d.ts"]
       }
@@ -74,8 +74,7 @@
     "test": {
       "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "apps/api/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/api/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/apps/api"]
     }

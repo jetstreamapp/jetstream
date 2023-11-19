@@ -28,7 +28,7 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
     });
     function handleClick(ev: MouseEvent<HTMLLIElement>) {
       ev.stopPropagation();
-      disabled && onSelected && onSelected();
+      !disabled && onSelected && onSelected();
     }
     return (
       <li

@@ -5,7 +5,7 @@
   "projectType": "library",
   "targets": {
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["libs/shared/server-services/**/*.ts"]
@@ -15,8 +15,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/libs/shared/server-services"],
       "options": {
-        "jestConfig": "libs/shared/server-services/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/shared/server-services/jest.config.ts"
       }
     }
   },

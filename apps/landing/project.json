@@ -16,9 +16,7 @@
           "outputPath": "apps/landing"
         }
       },
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production"
     },
     "serve": {
@@ -47,7 +45,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": [
           "apps/landing/**/*.spec.ts",
@@ -61,12 +59,9 @@
     "test": {
       "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "apps/landing/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/landing/jest.config.ts"
       },
-      "outputs": [
-        "{workspaceRoot}/coverage/apps/landing"
-      ]
+      "outputs": ["{workspaceRoot}/coverage/apps/landing"]
     }
   },
   "tags": []

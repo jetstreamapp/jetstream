@@ -8,10 +8,12 @@ import { usePopper } from 'react-popper';
 import { Placement } from 'tippy.js';
 import { Icon } from '../widgets/Icon';
 
-const ConditionalPortal = ({ omitPortal, portalRef, children }: { omitPortal: boolean; portalRef: Element; children: ReactNode }) => (
-  // eslint-disable-next-line react/jsx-no-useless-fragment
-  <Fragment>{omitPortal ? children : createPortal(children as any, portalRef || document.body)}</Fragment>
-);
+const ConditionalPortal = ({ omitPortal, portalRef, children }: { omitPortal: boolean; portalRef: Element; children: ReactNode }) => {
+  if (omitPortal) {
+    return children;
+  }
+  return createPortal(children as any, portalRef || document.body) as ReactNode;
+};
 
 export interface PopoverRef {
   toggle: () => void;

@@ -139,7 +139,7 @@
       "defaultConfiguration": "development"
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": [
           "apps/jetstream/**/*.js",
@@ -157,8 +157,7 @@
     "test": {
       "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "apps/jetstream/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/jetstream/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/apps/jetstream"]
     },
