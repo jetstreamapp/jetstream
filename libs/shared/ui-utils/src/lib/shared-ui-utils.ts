@@ -1272,7 +1272,7 @@ export function getValueForExcel(value: any) {
  */
 export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
   data: Maybe<T>[],
-  fields?: string[],
+  fields?: Maybe<string[]>,
   includeHeader = true
 ): string {
   if (!Array.isArray(data) || data.length === 0) {
@@ -1308,7 +1308,7 @@ export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
  * @param includeHeader
  * @returns
  */
-export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: string[], includeHeader = true): string {
+export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: Maybe<string[]>, includeHeader = true): string {
   if (!Array.isArray(data) || data.length === 0) {
     return '';
   }

@@ -423,7 +423,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     });
   }
 
-  function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
+  function handleCopyToClipboard(format: 'excel' | 'json' = 'excel') {
     if (!initialRecord) {
       return;
     }
@@ -589,11 +589,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       className="slds-button_last"
                       dropDownClassName="slds-dropdown_actions"
                       position="right"
-                      items={[
-                        { id: 'text', value: 'Copy as Text' },
-                        { id: 'json', value: 'Copy as JSON' },
-                      ]}
-                      onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'text' | 'json')}
+                      items={[{ id: 'json', value: 'Copy as JSON' }]}
+                      onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'json')}
                     />
                   </ButtonGroupContainer>
                   <button
