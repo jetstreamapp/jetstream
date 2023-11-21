@@ -1,8 +1,7 @@
 import { queryMore } from '@jetstream/shared/data';
-import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
-import { flattenRecord, flattenRecords } from '@jetstream/shared/utils';
+import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
+import { flattenRecord } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import copyToClipboard from 'copy-to-clipboard';
 import type { QueryResult } from 'jsforce';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { RenderCellProps } from 'react-data-grid';
@@ -100,8 +99,7 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
 
   function handleCopyToClipboard(columns: ColumnWithFilter<any, unknown>[]) {
     const fields = columns.map((column) => column.key);
-    const flattenedData = flattenRecords(records, fields);
-    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
+    copyRecordsToClipboard(records, 'excel', fields);
   }
 
   async function loadMore(org: SalesforceOrgUi, isTooling: boolean) {

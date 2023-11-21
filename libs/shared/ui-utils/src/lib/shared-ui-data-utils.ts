@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest } from '@jetstream/shared/data';
 import { REGEX, flattenRecords, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import type {
@@ -295,15 +296,37 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
 
 /**
  * Copy records to clipboard in various formats
+ * Copy the content in both plain text and HTML to be compatible with pasting to excel
+ * along with other applications at the same time
  */
-export function copyRecordsToClipboard(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json', fields?: Maybe<string[]>) {
-  if (copyFormat === 'excel' && fields) {
-    const flattenedData = flattenRecords(recordsToCopy, fields);
-    copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
-  } else if (copyFormat === 'text' && fields) {
-    const flattenedData = flattenRecords(recordsToCopy, fields);
-    copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
-  } else if (copyFormat === 'json') {
-    copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
+export async function copyRecordsToClipboard(
+  recordsToCopy: any,
+  copyFormat: 'excel' | 'json' = 'excel',
+  fields?: Maybe<string[]>,
+  includeHeader = true
+) {
+  try {
+    if (copyFormat === 'excel') {
+      recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;
+      const clipboardItem = new ClipboardItem({
+        'text/plain': new Blob([transformTabularDataToExcelStr(recordsToCopy, fields, includeHeader)], { type: 'text/plain' }),
+        'text/html': new Blob([transformTabularDataToHtml(recordsToCopy, fields, includeHeader)], { type: 'text/html' }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
+    } else if (copyFormat === 'json') {
+      const clipboardItem = new ClipboardItem({
+        'text/plain': new Blob([JSON.stringify(recordsToCopy, null, 2)], { type: 'text/plain' }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
+    }
+    logger.info('[Clipboard][Copied]', { recordsToCopy });
+  } catch (ex) {
+    logger.warn('Copy to clipboard failed, trying fallback', ex.message);
+    if (copyFormat === 'excel' && fields) {
+      const flattenedData = flattenRecords(recordsToCopy, fields);
+      copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields, includeHeader), { format: 'text/plain' });
+    } else if (copyFormat === 'json') {
+      copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
+    }
   }
 }
