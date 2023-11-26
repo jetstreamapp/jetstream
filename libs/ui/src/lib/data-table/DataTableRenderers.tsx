@@ -53,13 +53,6 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 // HEADER RENDERERS
 
 /**
- * DRAGGABLE COLUMNS, ALLOW REORDERING
- */
-interface DraggableHeaderRendererProps<R> extends RenderHeaderCellProps<R> {
-  onColumnsReorder: (sourceKey: string, targetKey: string) => void;
-}
-
-/**
  * SELECT ALL CHECKBOX HEADER
  */
 export function SelectHeaderRenderer<T>(props: RenderHeaderCellProps<T>) {
