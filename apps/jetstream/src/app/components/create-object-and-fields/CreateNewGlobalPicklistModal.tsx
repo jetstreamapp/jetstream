@@ -86,7 +86,7 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
       handleCloseModal();
     } catch (ex) {
       setErrorMessage(`There was a problem creating the picklist. ${ex.message}`);
-      rollbar.error('Create Fields: Global Picklist creation failed', ex, {
+      rollbar.error('Create Fields: Global Picklist creation failed', {
         message: ex.message,
         stack: ex.stack,
         picklistData,
