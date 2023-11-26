@@ -297,7 +297,6 @@ function ModalDataTable({
           >
             <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
               <DataTable
-                allowReorder
                 serverUrl={serverUrl}
                 org={org}
                 data={rows}

@@ -18,18 +18,21 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     name: 'Started',
     key: 'start',
     width: 200,
+    draggable: true,
   },
   {
     ...setColumnFromType('type', 'text'),
     name: 'Type',
     key: 'type',
     width: 165,
+    draggable: true,
     renderCell: ({ column, row }) => TYPE_MAP[row[column.key]],
   },
   {
     ...setColumnFromType('destinationOrg', 'text'),
     name: 'Deployed To Org',
     key: 'destinationOrg',
+    draggable: true,
     renderCell: OrgRenderer,
     getValue: ({ row }) => row.destinationOrg?.label,
     width: 350,
@@ -38,6 +41,7 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     ...setColumnFromType('status', 'text'),
     name: 'Status',
     key: 'status',
+    draggable: true,
     renderCell: StatusRenderer,
     width: 150,
   },
@@ -47,6 +51,7 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
     width: 220,
     sortable: false,
     resizable: false,
+    draggable: true,
     renderCell: ActionRenderer,
   },
 ];
@@ -89,7 +94,7 @@ export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistory
     [orgsById, modalRef, onView, onDownload]
   );
   const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
-  return <DataTable allowReorder columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
+  return <DataTable columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };
 
 export default DeployMetadataHistoryTable;

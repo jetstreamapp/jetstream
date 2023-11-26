@@ -9,7 +9,7 @@ import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
-  DataTable,
+  DataTree,
   Grid,
   Icon,
   PopoverErrorButton,
@@ -346,7 +346,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         </Tooltip>
       </Grid>
       <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={155}>
-        <DataTable
+        <DataTree
           columns={columns}
           data={rows}
           getRowKey={getRowId}

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { orderStringsBy } from '@jetstream/shared/utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTree } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { RenderCellProps, RowHeightArgs } from 'react-data-grid';
@@ -40,18 +40,21 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
     // autoHeight: true,
     renderCell: WrappedTextFormatter,
     cellClass: 'break-all',
+    draggable: true,
   },
   {
     name: 'UUID',
     key: 'uuid',
     width: 160,
     // tooltipField: 'uuid',
+    draggable: true,
   },
   {
     name: 'Replay Id',
     key: 'replayId',
     width: 120,
     // tooltipField: 'replayId',
+    draggable: true,
   },
 ];
 
@@ -107,8 +110,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={25}>
-      <DataTable
-        allowReorder
+      <DataTree
         columns={columns}
         data={rows}
         getRowKey={getRowId}

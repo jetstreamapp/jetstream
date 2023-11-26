@@ -10,6 +10,7 @@ export * from './lib/color-picker/ColorSwatches';
 export * from './lib/confirmation-dialog/ConfirmationDialog';
 export * from './lib/data-table/DataTable';
 export * from './lib/data-table/DataTableRenderers';
+export * from './lib/data-table/DataTree';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/data-table/data-table-context';
 export * from './lib/data-table/data-table-formatters';
