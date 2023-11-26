@@ -10,10 +10,12 @@ import { DataType, FormulaDataValue } from 'formulon';
 import type { Field } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
 import { composeQuery, getField } from 'soql-parser-js';
-import { fetchMetadataFromSoql } from '../query/utils/query-soql-utils';
-import { NullNumberBehavior } from './formula-evaluator.state';
-import { FormulaFieldsByType } from './formula-evaluator.types';
+import { NullNumberBehavior } from '../../formula-evaluator/formula-evaluator.state';
+import { FormulaFieldsByType } from '../../formula-evaluator/formula-evaluator.types';
+import { fetchMetadataFromSoql } from '../../query/utils/query-soql-utils';
+import { ManualFormulaRecord } from '../create-fields/create-fields-types';
 
 const MATCH_FORMULA_SPECIAL_LABEL = /^\$[a-zA-Z]+\./;
 
@@ -34,7 +36,7 @@ export function getFormulonTypeFromColumnType(col: QueryResultsColumn): DataType
   return 'text';
 }
 
-export function getFormulonTypeFromMetadata(col: Field): DataType {
+export function getFormulonTypeFromMetadata<T extends { type: Field['type'] }>(col: T): DataType {
   if (col.type === 'boolean') {
     return 'checkbox';
   } else if (col.type === 'double' || col.type === 'currency' || col.type === 'percent' || col.type === 'int') {
@@ -58,11 +60,16 @@ export function getFormulonTypeFromMetadata(col: Field): DataType {
 /**
  * Function that determines if the provided value is of type QueryResultsColumn or Field
  */
-function isQueryResultsColumn(col: QueryResultsColumn | Field): col is QueryResultsColumn {
+function isQueryResultsColumn(col: QueryResultsColumn | Field | { type: Field['type'] }): col is QueryResultsColumn {
   return (col as QueryResultsColumn).booleanType !== undefined;
 }
 
-export function getFormulonData(col: QueryResultsColumn | Field, value: any, numberNullBehavior = 'ZERO'): FormulaDataValue {
+export function getFormulonData(
+  col: QueryResultsColumn | Field | { type: Field['type'] },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value: any,
+  numberNullBehavior = 'ZERO'
+): FormulaDataValue {
   const dataType = isQueryResultsColumn(col) ? getFormulonTypeFromColumnType(col) : getFormulonTypeFromMetadata(col);
   if (dataType === 'text') {
     return {
@@ -75,15 +82,16 @@ export function getFormulonData(col: QueryResultsColumn | Field, value: any, num
     };
   }
   if (dataType === 'number') {
-    const { length, scale } = isQueryResultsColumn(col)
-      ? {
-          length: getPrecision(value) - 18,
-          scale: getPrecision(value),
-        }
-      : {
-          length: (isNil(col.precision) ? getPrecision(value) : col.precision) - col.scale,
-          scale: col.scale,
-        };
+    const { length, scale } =
+      isQueryResultsColumn(col) || !('precision' in col) || !('scale' in col)
+        ? {
+            length: getPrecision(value) - 18,
+            scale: getPrecision(value),
+          }
+        : {
+            length: (isNil(col.precision) ? getPrecision(value) : col.precision) - col.scale,
+            scale: col.scale,
+          };
     return {
       type: 'literal',
       dataType,
@@ -107,10 +115,7 @@ export function getFormulonData(col: QueryResultsColumn | Field, value: any, num
       type: 'literal',
       dataType,
       value: isNil(value) ? null : parseISO(value),
-      options: {
-        length: value.length,
-        scale: getPrecision(value),
-      },
+      options: {},
     };
   }
   if (dataType === 'picklist' || dataType === 'multipicklist') {
@@ -123,14 +128,6 @@ export function getFormulonData(col: QueryResultsColumn | Field, value: any, num
       },
     };
   }
-  // FIXME: need to test a bunch of data types here
-  // if (isNil(value)) {
-  //   return {
-  //     type: 'literal',
-  //     dataType: 'null',
-  //     value: null,
-  //   };
-  // }
   return {
     type: 'literal',
     dataType,
@@ -138,8 +135,11 @@ export function getFormulonData(col: QueryResultsColumn | Field, value: any, num
   };
 }
 
-function getPrecision(a) {
-  if (!isFinite(a)) return 0;
+function getPrecision(a: number | string) {
+  a = isString(a) ? Number(a) : a;
+  if (!isFinite(a)) {
+    return 0;
+  }
   let e = 1;
   let p = 0;
   while (Math.round(a * e) / e !== a) {
@@ -149,124 +149,163 @@ function getPrecision(a) {
   return p;
 }
 
+interface FormulaDataProps {
+  selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
+  fields: string[];
+  /**
+   * If recordId is provided, the record will be queried from the org
+   * In this case, type can be omitted, if provided it should be 'QUERY_RECORD'
+   */
+  type?: 'QUERY_RECORD';
+  recordId: string;
+  record?: never;
+  sobjectName: string;
+  numberNullBehavior: NullNumberBehavior;
+}
+
+interface FormulaDataProvidedRecordProps {
+  selectedOrg: SalesforceOrgUi;
+  selectedUserId: string;
+  fields: string[];
+  /**
+   * If record is provided, the record will be used directly instead of querying from the org
+   */
+  type: 'PROVIDED_RECORD';
+  recordId?: never;
+  record: ManualFormulaRecord;
+  sobjectName: string;
+  numberNullBehavior: NullNumberBehavior;
+}
+
 export async function getFormulaData({
   selectedOrg,
   selectedUserId,
   fields,
+  type = 'QUERY_RECORD',
   recordId,
+  record,
   sobjectName,
   numberNullBehavior = 'ZERO',
-}: {
-  selectedOrg: SalesforceOrgUi;
-  selectedUserId: string;
-  fields: string[];
-  recordId: string;
-  sobjectName: string;
-  numberNullBehavior: NullNumberBehavior;
-}): Promise<
+}: FormulaDataProps | FormulaDataProvidedRecordProps): Promise<
   | { type: 'error'; message: string }
   | { type: 'success'; formulaFields: formulon.FormulaData; warnings: { type: string; message: string }[] }
 > {
-  const formulaFields: formulon.FormulaData = {};
-  const warnings = [];
+  try {
+    const formulaFields: formulon.FormulaData = {};
+    const warnings = [];
 
-  const {
-    objectFields,
-    apiFields,
-    customMetadata,
-    customLabels,
-    organization,
-    customPermissions,
-    profile,
-    customSettings,
-    system,
-    user,
-    userRole,
-  } = fields.reduce(
-    (output: FormulaFieldsByType, field) => {
-      if (!field.startsWith('$')) {
-        output.objectFields.push(field);
-      } else {
-        const identifier = field.toLowerCase().split('.')[0];
-        switch (identifier) {
-          case '$api':
-            output.apiFields.push(field);
-            break;
-          case '$custommetadata':
-            output.customMetadata.push(field);
-            break;
-          case '$label':
-            output.customLabels.push(field);
-            break;
-          case '$organization':
-            output.organization.push(field);
-            break;
-          case '$permission':
-            output.customPermissions.push(field);
-            break;
-          case '$profile':
-            output.profile.push(field);
-            break;
-          case '$setup':
-            output.customSettings.push(field);
-            break;
-          case '$system':
-            output.system.push(field);
-            break;
-          case '$user':
-            output.user.push(field);
-            break;
-          case '$userrole':
-            output.userRole.push(field);
-            break;
-          default:
-            break;
+    const {
+      objectFields,
+      apiFields,
+      customMetadata,
+      customLabels,
+      organization,
+      customPermissions,
+      profile,
+      customSettings,
+      system,
+      user,
+      userRole,
+    } = fields.reduce(
+      (output: FormulaFieldsByType, field) => {
+        if (!field.startsWith('$')) {
+          output.objectFields.push(field);
+        } else {
+          const identifier = field.toLowerCase().split('.')[0];
+          switch (identifier) {
+            case '$api':
+              output.apiFields.push(field);
+              break;
+            case '$custommetadata':
+              output.customMetadata.push(field);
+              break;
+            case '$label':
+              output.customLabels.push(field);
+              break;
+            case '$organization':
+              output.organization.push(field);
+              break;
+            case '$permission':
+              output.customPermissions.push(field);
+              break;
+            case '$profile':
+              output.profile.push(field);
+              break;
+            case '$setup':
+              output.customSettings.push(field);
+              break;
+            case '$system':
+              output.system.push(field);
+              break;
+            case '$user':
+              output.user.push(field);
+              break;
+            case '$userrole':
+              output.userRole.push(field);
+              break;
+            default:
+              break;
+          }
         }
+        return output;
+      },
+      {
+        objectFields: [],
+        apiFields: [],
+        customMetadata: [],
+        customLabels: [],
+        organization: [],
+        customPermissions: [],
+        profile: [],
+        customSettings: [],
+        system: [],
+        user: [],
+        userRole: [],
       }
-      return output;
-    },
-    {
-      objectFields: [],
-      apiFields: [],
-      customMetadata: [],
-      customLabels: [],
-      organization: [],
-      customPermissions: [],
-      profile: [],
-      customSettings: [],
-      system: [],
-      user: [],
-      userRole: [],
+    );
+
+    // TODO: this is a good candidate for unit tests
+    // TODO: collect warnings
+    // These should also be somewhat forgiving
+    if (type === 'QUERY_RECORD' && recordId) {
+      await collectBaseQueriedRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, formulaFields, numberNullBehavior });
+    } else {
+      await collectBaseRecordFields({
+        fields,
+        record: record || {},
+        formulaFields,
+        numberNullBehavior,
+      });
     }
-  );
 
-  // TODO: this is a good candidate for unit tests
-  // TODO: collect warnings
-  // These should also be somewhat forgiving
-  await collectBaseRecordFields({ selectedOrg, fields: objectFields, recordId, sobjectName, formulaFields, numberNullBehavior });
-  collectApiFields({ selectedOrg, fields: apiFields, formulaFields, numberNullBehavior });
-  await collectCustomMetadata({ selectedOrg, fields: customMetadata, formulaFields, numberNullBehavior });
-  await collectCustomSettingFields({ selectedOrg, selectedUserId, fields: customSettings, formulaFields, numberNullBehavior });
-  await collectCustomPermissions({ selectedOrg, selectedUserId, fields: customPermissions, formulaFields, numberNullBehavior });
-  await collectLabels({ selectedOrg, fields: customLabels, formulaFields, numberNullBehavior });
-  await collectOrganizationFields({ selectedOrg, fields: organization, formulaFields, numberNullBehavior });
-  await collectUserProfileAndRoleFields({
-    selectedOrg,
-    selectedUserId,
-    userFields: user,
-    profileFields: profile,
-    roleFields: userRole,
-    formulaFields,
-    numberNullBehavior,
-  });
-  await collectSystemFields({ fields: system, formulaFields });
+    collectApiFields({ selectedOrg, fields: apiFields, formulaFields, numberNullBehavior });
+    await collectCustomMetadata({ selectedOrg, fields: customMetadata, formulaFields, numberNullBehavior });
+    await collectCustomSettingFields({ selectedOrg, selectedUserId, fields: customSettings, formulaFields, numberNullBehavior });
+    await collectCustomPermissions({ selectedOrg, selectedUserId, fields: customPermissions, formulaFields, numberNullBehavior });
+    await collectLabels({ selectedOrg, fields: customLabels, formulaFields, numberNullBehavior });
+    await collectOrganizationFields({ selectedOrg, fields: organization, formulaFields, numberNullBehavior });
+    await collectUserProfileAndRoleFields({
+      selectedOrg,
+      selectedUserId,
+      userFields: user,
+      profileFields: profile,
+      roleFields: userRole,
+      formulaFields,
+      numberNullBehavior,
+    });
+    await collectSystemFields({ fields: system, formulaFields });
 
-  logger.log({ formulaFields, warnings });
+    logger.log({ formulaFields, warnings });
 
-  return { type: 'success', formulaFields, warnings };
+    return { type: 'success', formulaFields, warnings };
+  } catch (ex) {
+    logger.error(ex);
+    throw ex;
+  }
 }
 
-async function collectBaseRecordFields({
+async function collectBaseQueriedRecordFields({
   selectedOrg,
   fields,
   recordId,
@@ -284,6 +323,7 @@ async function collectBaseRecordFields({
   if (!fields.length) {
     return;
   }
+
   const { queryResults, columns, parsedQuery } = await query(
     selectedOrg,
     composeQuery({
@@ -322,6 +362,33 @@ async function collectBaseRecordFields({
       lodashGet(queryResults.records[0], fieldsByName[field.toLowerCase()].columnFullPath),
       numberNullBehavior
     );
+  });
+}
+
+async function collectBaseRecordFields({
+  fields,
+  record,
+  formulaFields,
+  numberNullBehavior,
+}: {
+  fields: string[];
+  record: ManualFormulaRecord;
+  formulaFields: formulon.FormulaData;
+  numberNullBehavior: NullNumberBehavior;
+}) {
+  if (!fields.length) {
+    return;
+  }
+
+  fields.forEach((field) => {
+    // Prefer to get field from actual metadata, otherwise picklist is not handled and can cause formula errors
+    const recordValue = record[field];
+    if (!recordValue) {
+      throw new Error(`Field ${field} does not exist in provided record data.`);
+    }
+    const { type, value } = recordValue;
+
+    formulaFields[field] = getFormulonData({ type }, value, numberNullBehavior);
   });
 }
 
@@ -475,6 +542,7 @@ async function collectLabels({
   fields.forEach((fieldWithIdentifier) => {
     const field = fieldWithIdentifier.replace(MATCH_FORMULA_SPECIAL_LABEL, '');
     const recordName = field.toLowerCase();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const record: Record<string, any> | undefined = recordsByApiName[recordName];
     formulaFields[fieldWithIdentifier] = {
       type: 'literal',
@@ -789,8 +857,8 @@ function getFieldsByName(columns: Maybe<QueryResultsColumns>) {
   );
 }
 
-function getRecordsByLowercaseField(records: Record<string, any>[], field: string): Record<string, Record<string, any>> {
-  return records.reduce((output: Record<string, Record<string, any>>, record) => {
+function getRecordsByLowercaseField(records: Record<string, string>[], field: string): Record<string, Record<string, string>> {
+  return records.reduce((output: Record<string, Record<string, string>>, record) => {
     output[record[field].toLowerCase()] = record;
     return output;
   }, {});

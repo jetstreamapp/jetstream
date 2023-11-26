@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, describeSObject, manualRequest, queryAllWithCache } from '@jetstream/shared/data';
 import { SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeSObjectResult } from 'jsforce';
+import type { DescribeSObjectResult, Field } from 'jsforce';
 import type * as monaco from 'monaco-editor';
 import { composeQuery, getField } from 'soql-parser-js';
 import { CharacterInfo, CustomPermission, ExternalString, SpecialWordType } from './formula-evaluator.types';
@@ -27,7 +27,12 @@ const triggerChars = 'adefhijlmnsu';
  * Register completions only for fields
  * Formula completions are registered in monaco-sfdx-formula-completions since these are known ahead of time
  */
-export async function registerCompletions(monaco: Monaco, selectedOrg: SalesforceOrgUi, sobject?: string) {
+export async function registerCompletions(
+  monaco: Monaco,
+  selectedOrg: SalesforceOrgUi,
+  sobject?: string,
+  additionalFields?: Partial<Field>[]
+) {
   if (priorCompletion) {
     priorCompletion.dispose();
   }
@@ -38,7 +43,7 @@ export async function registerCompletions(monaco: Monaco, selectedOrg: Salesforc
       provideCompletionItems: async (model, position, context, token) => {
         const characterInfo = getCharacterInfo(model, position);
         return {
-          suggestions: await fetchCompletions(monaco, characterInfo, selectedOrg, sobject),
+          suggestions: await fetchCompletions(monaco, characterInfo, selectedOrg, sobject, additionalFields),
         };
       },
     });
@@ -90,7 +95,8 @@ async function fetchCompletions(
   monaco: Monaco,
   characterInfo: CharacterInfo,
   selectedOrg: SalesforceOrgUi,
-  sobject?: string
+  sobject?: string,
+  additionalFields?: Partial<Field>[]
 ): Promise<monaco.languages.CompletionItem[]> {
   const { textUntilPosition: textUntilPositionAll, mostRecentCharacter, range } = characterInfo;
   // if spaces, ignore prior words - e.x. "Log__r.ApiVersion__c != LoggedBy__r" we only care about LoggedBy__r
@@ -106,7 +112,7 @@ async function fetchCompletions(
     }
   }
 
-  let currentSObjectMeta: DescribeSObjectResult;
+  let currentSObjectMeta: Omit<DescribeSObjectResult, 'fields'> & { fields: Partial<Field>[] };
 
   /**
    * Handle all special words (starts with `$`)
@@ -221,7 +227,10 @@ async function fetchCompletions(
    */
   const { data } = await describeSObject(selectedOrg, sobject);
   // Current object metadata - will be changed when fetching related object metadata
-  currentSObjectMeta = data;
+  currentSObjectMeta = {
+    ...data,
+    fields: [...data.fields, ...(additionalFields || [])],
+  };
   // If true, then special keywords will be included in results
   let isRootObject = true;
   // Completions are added to the list
@@ -265,7 +274,7 @@ async function fetchCompletions(
       detail: field.type,
       filterText: field.name,
       kind: monaco.languages.CompletionItemKind.Class,
-      insertText: field.name,
+      insertText: field.name!,
       range,
     });
     if (!!field.relationshipName && !!field.referenceTo?.length) {

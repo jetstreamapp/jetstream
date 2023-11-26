@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
 import { REGEX, ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
@@ -301,9 +302,8 @@ export const fieldDefinitions: FieldDefinitions = {
   },
   formula: {
     label: 'Formula',
-    type: 'textarea',
+    type: 'textarea-with-formula',
     required: true,
-    // TODO: would be cool to have syntax highlighting
   },
   formulaTreatBlanksAs: {
     label: 'Treat Blanks As',

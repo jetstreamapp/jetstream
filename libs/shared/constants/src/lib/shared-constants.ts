@@ -234,6 +234,7 @@ export const ANALYTICS_KEYS = {
   sobj_create_field_deploy: 'sobj_create_field_deploy',
   sobj_create_field_export_results: 'sobj_create_field_export_results',
   sobj_create_field_global_picklist: 'sobj_create_field_global_picklist',
+  sobj_create_field_formula_execute: 'sobj_create_field_formula_execute',
   /** FORMULA EVALUATOR */
   formula_execute: 'formula_execute',
   formula_export_deploy: 'formula_export_deploy',

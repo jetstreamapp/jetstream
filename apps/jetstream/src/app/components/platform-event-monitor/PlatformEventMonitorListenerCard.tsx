@@ -34,6 +34,7 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
   return (
     <Card
       className="slds-grow"
+      icon={{ type: 'standard', icon: 'events' }}
       title={
         <Grid vertical>
           <div>Subscribe to Events</div>

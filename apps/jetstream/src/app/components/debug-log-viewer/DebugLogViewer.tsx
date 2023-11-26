@@ -206,6 +206,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
         <div className="slds-p-horizontal_x-small">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'feed' }}
             title={
               <Grid vertical>
                 <div>Debug Logs</div>
@@ -260,6 +261,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
         <div className="slds-p-horizontal_x-small slds-is-relative">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'outcome' }}
             title={<div>Log Results</div>}
             actions={
               <Fragment>
