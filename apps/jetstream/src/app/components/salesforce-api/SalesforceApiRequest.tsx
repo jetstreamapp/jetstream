@@ -14,12 +14,12 @@ import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip, ViewDocsL
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
-import { Fragment, FunctionComponent, useReducer, useRef, useState } from 'react';
+import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import * as fromSalesforceApiHistory from './salesforceApi.state';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
 import SalesforceApiHistory from './SalesforceApiHistory';
 import SalesforceApiUserInput from './SalesforceApiUserInput';
+import * as fromSalesforceApiHistory from './salesforceApi.state';
 
 type JsonText = 'JSON' | 'TEXT';
 type Action =
@@ -206,6 +206,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
 
   return (
     <Card
+      icon={{ type: 'standard', icon: 'actions_and_buttons' }}
       title={
         <Grid vertical>
           <div>Salesforce API Request</div>
