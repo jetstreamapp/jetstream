@@ -9,7 +9,7 @@ import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-tabl
 import { useDataTable } from './useDataTable';
 
 export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
-  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter' | 'onColumnsReorder'> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
@@ -24,7 +24,7 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   getRowKey: (row: T) => string;
   rowAlwaysVisible?: (row: T) => boolean;
   ignoreRowInSetFilter?: (row: T) => boolean;
-  onReorderColumns?: (columns: string[]) => void;
+  onReorderColumns?: (columns: string[], columnOrder: number[]) => void;
   onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
 }
 

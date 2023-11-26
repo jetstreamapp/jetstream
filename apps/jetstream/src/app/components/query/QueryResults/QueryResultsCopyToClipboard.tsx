@@ -89,7 +89,6 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
 
   return (
     <Fragment>
-      {/* TODO */}
       <ButtonGroupContainer>
         <Tooltip
           delay={[1000, null]}

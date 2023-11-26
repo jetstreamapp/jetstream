@@ -22,7 +22,6 @@ import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogl
 import Checkbox from '../form/checkbox/Checkbox';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
-import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
@@ -67,7 +66,6 @@ export interface RecordDownloadModalProps {
   downloadModalOpen: boolean;
   columns?: QueryResultsColumn[];
   fields: string[];
-  modifiedFields?: string[];
   subqueryFields?: MapOf<string[]>;
   records: Record[];
   filteredRecords?: Record[];
@@ -92,7 +90,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   downloadModalOpen,
   columns = [],
   fields = [],
-  modifiedFields = [],
   subqueryFields = {},
   records = [],
   filteredRecords,
@@ -114,7 +111,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   );
   const [includeSubquery, setIncludeSubquery] = useState(true);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
-  const [columnAreModified, setColumnsAreModified] = useState(false);
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
   const inputEl = useRef<HTMLInputElement>(null);
@@ -153,12 +149,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       setFileFormat(RADIO_FORMAT_CSV);
     }
   }, [isBulkApi]);
-
-  useEffect(() => {
-    if (fields !== modifiedFields && fields.length && modifiedFields.length) {
-      setColumnsAreModified(fields.some((field, i) => field !== modifiedFields[i]));
-    }
-  }, [fields, modifiedFields]);
 
   useEffect(() => {
     if (!fileName || (fileFormat === 'gdrive' && !isSignedInWithGoogle)) {
@@ -209,8 +199,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     if (errorMessage) {
       setErrorMessage(null);
     }
-    const fieldsToUse = whichFields === 'specified' && modifiedFields?.length ? modifiedFields : fields;
-    if (fieldsToUse.length === 0) {
+    if (fields.length === 0) {
       return;
     }
     try {
@@ -230,7 +219,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           onDownloadFromServer({
             fileFormat,
             fileName: fileNameWithExt,
-            fields: fieldsToUse,
+            fields,
             subqueryFields,
             whichFields,
             includeSubquery: includeSubquery && hasSubqueryFields,
@@ -250,9 +239,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             let data: MapOf<any[]> = {};
 
             if (includeSubquery && hasSubqueryFields) {
-              data = getMapOfBaseAndSubqueryRecords(activeRecords, fieldsToUse, subqueryFields);
+              data = getMapOfBaseAndSubqueryRecords(activeRecords, fields, subqueryFields);
             } else {
-              data['records'] = flattenRecords(activeRecords, fieldsToUse);
+              data['records'] = flattenRecords(activeRecords, fields);
             }
 
             fileData = prepareExcelFile(data);
@@ -260,8 +249,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             break;
           }
           case 'csv': {
-            const data = flattenRecords(activeRecords, fieldsToUse);
-            fileData = prepareCsvFile(data, fieldsToUse);
+            const data = flattenRecords(activeRecords, fields);
+            fileData = prepareCsvFile(data, fields);
             mimeType = MIME_TYPES.CSV;
             break;
           }
@@ -461,28 +450,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   checked={downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API}
                   onChange={(value: typeof RADIO_DOWNLOAD_METHOD_BULK_API) => setDownloadMethod(value)}
                   disabled={requireBulkApi}
-                />
-              </RadioGroup>
-            )}
-            {fileFormat !== 'json' && columnAreModified && !requireBulkApi && (
-              <RadioGroup
-                label="Include Which Fields"
-                isButtonGroup
-                labelHelp="With Current table view, the downloaded file will match the modifications you made to the table columns."
-              >
-                <RadioButton
-                  name="which-fields"
-                  label="Current table view"
-                  value="specified"
-                  checked={whichFields === 'specified'}
-                  onChange={(value) => setWhichFields('specified')}
-                />
-                <RadioButton
-                  name="which-fields"
-                  label="Original table view"
-                  value="all"
-                  checked={whichFields === 'all'}
-                  onChange={(value) => setWhichFields('all')}
                 />
               </RadioGroup>
             )}

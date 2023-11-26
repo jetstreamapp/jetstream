@@ -63,7 +63,8 @@ export interface SalesforceRecordDataTableProps {
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
   /** Fired when query is loaded OR user changes column order */
-  onFields: (fields: { allFields: string[]; visibleFields: string[] }) => void;
+  onFields: (fields: string[], columnOrder: number[]) => void;
+  onSubqueryFieldReorder: (columnKey: string, fields: string[], columnOrder: number[]) => void;
   onLoadMoreRecords?: (queryResults: QueryResults<any>) => void;
   onEdit: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onClone: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
@@ -90,6 +91,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onSelectionChanged,
     onFilteredRowsChanged,
     onFields,
+    onSubqueryFieldReorder,
     onLoadMoreRecords,
     onEdit,
     onClone,
@@ -134,7 +136,10 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         const fields = parentColumns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
         setColumns(parentColumns);
         setFields(fields);
-        onFields({ allFields: fields, visibleFields: fields });
+        onFields(
+          fields,
+          fields.map((_, i) => i)
+        );
         setSubqueryColumnsMap(subqueryColumns);
         setRecords(queryResults.queryResults.records);
         onFilteredRowsChanged(queryResults.queryResults.records);
@@ -280,8 +285,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       setSelectedRows(rows);
     }, []);
 
-    const handleColumnReorder = useCallback((newFields: string[]) => {
-      onFields({ allFields: newFields, visibleFields: newFields });
+    const handleColumnReorder = useCallback((columns: string[], columnOrder: number[]) => {
+      onFields(columns, columnOrder);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -362,6 +367,21 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       }
     };
 
+    function handleSubqueryFieldsChanged(columnKey: string, newFields: string[], columnOrder: number[]) {
+      onSubqueryFieldReorder(columnKey, newFields, columnOrder);
+      // FIXME: this causes an infinite render loop
+      // The purpose of attempting this is to ensure that the query map is updated with the new column order for the specific subquery
+      // without this the modal uses the prior column order if it is opened a second time - but the query is updated correctly
+      // which means the fields get modified and the table gets fully re-rendered
+      // this doesn't actually need to fire until the modal closes, but it's not clear how to do that
+      // setSubqueryColumnsMap((prevValue) => {
+      //   return {
+      //     ...prevValue,
+      //     [columnKey]: columnOrder.map((idx) => prevValue![columnKey][idx]),
+      //   };
+      // });
+    }
+
     return records ? (
       <Fragment>
         <Grid className="slds-p-around_xx-small" align="spread">
@@ -421,6 +441,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               org,
               isTooling,
               columnDefinitions: subqueryColumnsMap,
+              onSubqueryFieldReorder: handleSubqueryFieldsChanged,
               google_apiKey,
               google_appId,
               google_clientId,
