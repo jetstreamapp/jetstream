@@ -66,7 +66,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', ex);
+            rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
           });
       } catch (ex) {
         setResults({
@@ -84,7 +84,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', ex);
+            rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
           });
       } finally {
         setLoading(false);

@@ -106,7 +106,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
       setZipFileError(null);
     } catch (ex) {
       logger.warn('[ZIP][ERROR]', ex);
-      rollbar.error(`JSZip Error: ${ex.message}`, { ex });
+      rollbar.error(`JSZip Error: ${ex.message}`, { message: ex.message, stack: ex.stack });
       setZipFileError('There was an error reading the zip file. Make sure the file is a valid zip file and try again.');
       setFileName(undefined);
       setFileContents(undefined);

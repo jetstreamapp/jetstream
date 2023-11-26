@@ -170,7 +170,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             })
             .catch((ex) => {
               logger.warn('[ERROR] Could not save history', ex);
-              rollbar.error('Error saving apex history', ex);
+              rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
             });
         }
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });

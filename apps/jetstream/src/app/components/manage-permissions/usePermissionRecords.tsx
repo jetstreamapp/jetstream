@@ -66,7 +66,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', ex.message);
-      rollbar.error('[useProfilesAndPermSets][ERROR]', ex);
+      rollbar.error('[useProfilesAndPermSets][ERROR]', { message: ex.message, stack: ex.stack });
       if (isMounted.current) {
         setHasError(true);
       }
