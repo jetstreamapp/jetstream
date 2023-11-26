@@ -258,6 +258,7 @@ function getQueryResultColumn({
     },
     resizable: true,
     sortable: true,
+    draggable: true,
     width: 200,
     filters: ['TEXT', 'SET'],
     renderHeaderCell: (props) => (

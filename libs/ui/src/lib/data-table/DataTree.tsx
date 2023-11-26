@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef } from 'react';
-import DataGrid, { DataGridProps } from 'react-data-grid';
+import { TreeDataGrid, TreeDataGridProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { ContextMenuContext, ContextMenuItem } from '../popover/ContextMenu';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
@@ -8,8 +8,8 @@ import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-table-types';
 import { useDataTable } from './useDataTable';
 
-export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
-  extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
+export interface DataTreeProps<T = RowWithKey, TContext = Record<string, any>>
+  extends Omit<TreeDataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
@@ -28,7 +28,7 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   onSortedAndFilteredRowsChange?: (rows: readonly T[]) => void;
 }
 
-export const DataTable = forwardRef<any, DataTableProps<any>>(
+export const DataTree = forwardRef<any, DataTreeProps<any>>(
   <T extends object>(
     {
       data,
@@ -46,7 +46,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       onReorderColumns,
       onSortedAndFilteredRowsChange,
       ...rest
-    }: DataTableProps<T>,
+    }: DataTreeProps<T>,
     ref
   ) => {
     const {
@@ -90,7 +90,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
               updateFilter,
             }}
           >
-            <DataGrid
+            <TreeDataGrid
               data-id={gridId}
               className="rdg-light fill-grid"
               columns={reorderedColumns}
