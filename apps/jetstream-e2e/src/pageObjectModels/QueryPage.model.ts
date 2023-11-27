@@ -1,10 +1,10 @@
-import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
-import { QueryFilterOperator } from '@jetstream/types';
-import isNumber from 'lodash/isNumber';
-import { formatNumber } from '@jetstream/shared/ui-utils';
 import { QueryResults } from '@jetstream/api-interfaces';
-import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { isRecordWithId } from '@jetstream/shared/utils';
+import { QueryFilterOperator } from '@jetstream/types';
+import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
+import isNumber from 'lodash/isNumber';
+import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 
 export class QueryPage {
   readonly apiRequestUtils: ApiRequestUtils;
@@ -200,7 +200,10 @@ export class QueryPage {
 
     // verify correct query shows up
     await this.page.getByRole('button', { name: 'SOQL Query' }).click();
-    await expect(this.page.getByRole('code').locator('div').filter({ hasText: query }).first()).toBeVisible();
+    // The full query is broken up in a weird way, we we check each token individually
+    for (const token of query.split(' ')) {
+      await expect(this.page.getByRole('code').locator('div').filter({ hasText: token }).first()).toBeVisible();
+    }
     await this.page.getByRole('button', { name: 'Collapse SOQL Query' }).click();
 
     await this.page.getByRole('button', { name: 'History' }).click();

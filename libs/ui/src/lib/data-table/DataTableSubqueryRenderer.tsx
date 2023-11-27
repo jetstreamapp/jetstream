@@ -3,7 +3,7 @@ import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils
 import { flattenRecord } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { QueryResult } from 'jsforce';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RenderCellProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import Grid from '../grid/Grid';
@@ -14,14 +14,7 @@ import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
 import { DataTable } from './DataTable';
 import { DataTableSubqueryContext } from './data-table-context';
-import {
-  ColumnWithFilter,
-  ContextAction,
-  ContextMenuActionData,
-  RowWithKey,
-  SalesforceQueryColumnDefinition,
-  SubqueryContext,
-} from './data-table-types';
+import { ColumnWithFilter, ContextAction, ContextMenuActionData, RowWithKey, SubqueryContext } from './data-table-types';
 import {
   NON_DATA_COLUMN_KEYS,
   TABLE_CONTEXT_MENU_ITEMS,
@@ -97,8 +90,7 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
     setDownloadModalIsActive(true);
   }
 
-  function handleCopyToClipboard(columns: ColumnWithFilter<any, unknown>[]) {
-    const fields = columns.map((column) => column.key);
+  function handleCopyToClipboard(fields: string[]) {
     copyRecordsToClipboard(records, 'excel', fields);
   }
 
@@ -133,13 +125,20 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
         if (!props) {
           return null;
         }
-        const { serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId } = props;
+        const { serverUrl, org, columnDefinitions, onSubqueryFieldReorder, isTooling, google_apiKey, google_appId, google_clientId } =
+          props;
+
+        if (!columnDefinitions || !columnDefinitions[column.key]) {
+          return null;
+        }
+
         return (
           <div>
             {(downloadModalIsActive || isActive) && (
               <ModalDataTable
                 isActive={isActive}
                 columnKey={column.key}
+                columns={columnDefinitions[column.key]!}
                 modalTagline={modalTagline}
                 queryResults={queryResults}
                 selectedRows={selectedRows}
@@ -152,6 +151,7 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
                 google_apiKey={google_apiKey}
                 google_appId={google_appId}
                 google_clientId={google_clientId}
+                onSubqueryFieldReorder={onSubqueryFieldReorder}
                 loadMore={loadMore}
                 openDownloadModal={openDownloadModal}
                 handleCloseModal={handleCloseModal}
@@ -174,15 +174,17 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
 interface ModalDataTableProps extends SubqueryContext {
   isActive: boolean;
   columnKey: string;
+  columns: ColumnWithFilter<any, unknown>[];
   modalTagline?: Maybe<string>;
   queryResults: QueryResult<any>;
   isLoadingMore: boolean;
   selectedRows: ReadonlySet<string>;
   downloadModalIsActive: boolean;
+  onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
   loadMore: (org: SalesforceOrgUi, isTooling: boolean) => void;
   openDownloadModal: () => void;
   handleCloseModal: (cancelled?: boolean) => void;
-  handleCopyToClipboard: (columns: ColumnWithFilter<any, unknown>[]) => void;
+  handleCopyToClipboard: (fields: string[]) => void;
   handleRowAction: (row: any, action: 'view' | 'edit' | 'clone' | 'apex') => void;
   setSelectedRows: (rows: ReadonlySet<string>) => void;
 }
@@ -190,6 +192,7 @@ interface ModalDataTableProps extends SubqueryContext {
 function ModalDataTable({
   isActive,
   columnKey,
+  columns,
   modalTagline,
   queryResults,
   selectedRows,
@@ -202,6 +205,7 @@ function ModalDataTable({
   google_apiKey,
   google_appId,
   google_clientId,
+  onSubqueryFieldReorder,
   loadMore,
   openDownloadModal,
   handleCloseModal,
@@ -213,21 +217,28 @@ function ModalDataTable({
 
   const { records, done, totalSize } = queryResults;
 
-  const columns = getColumns(columnDefinitions) || [];
-  const columnKeys = columns?.map((col) => col.key) || null;
-  const fields = columns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
-  const rows = records.map((row) => {
+  const { fields: _fields, rows } = useMemo(() => {
+    const columnKeys = columns?.map((col) => col.key) || null;
+    const fields = columns.filter((column) => column.key && !NON_DATA_COLUMN_KEYS.has(column.key)).map((column) => column.key);
+    const rows = records.map((row) => {
+      return {
+        _key: getRowId(row),
+        _action: handleRowAction,
+        _record: row,
+        ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
+      };
+    });
     return {
-      _key: getRowId(row),
-      _action: handleRowAction,
-      _record: row,
-      ...(columnKeys ? flattenRecord(row, columnKeys, false) : row),
+      fields,
+      rows,
     };
-  });
+  }, [columns, handleRowAction, records]);
 
-  function getColumns(subqueryColumns?: SalesforceQueryColumnDefinition<any>['subqueryColumns']) {
-    return subqueryColumns?.[columnKey];
-  }
+  const [fields, setFields] = useState(_fields);
+
+  useEffect(() => {
+    setFields(_fields);
+  }, [_fields]);
 
   const handleContextMenuAction = useCallback(
     (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
@@ -235,6 +246,12 @@ function ModalDataTable({
     },
     [fields]
   );
+
+  const handleColumnReorder = useCallback((columns: string[], columnOrder: number[]) => {
+    setFields(columns);
+    onSubqueryFieldReorder && onSubqueryFieldReorder(columnKey, columns, columnOrder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -274,7 +291,7 @@ function ModalDataTable({
               <div>
                 <button
                   className="slds-button slds-button_neutral"
-                  onClick={() => handleCopyToClipboard(columns)}
+                  onClick={() => handleCopyToClipboard(fields)}
                   title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
                 >
                   <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -308,6 +325,7 @@ function ModalDataTable({
                 context={{ portalRefForFilters: modalRef }}
                 contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
                 contextMenuAction={handleContextMenuAction}
+                onReorderColumns={handleColumnReorder}
               />
             </AutoFullHeightContainer>
           </div>
@@ -321,7 +339,6 @@ function ModalDataTable({
           google_clientId={google_clientId}
           downloadModalOpen
           fields={fields}
-          modifiedFields={fields}
           records={records}
           onModalClose={handleCloseModal}
         />

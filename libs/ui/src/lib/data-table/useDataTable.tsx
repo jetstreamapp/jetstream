@@ -44,7 +44,7 @@ export interface UseDataTableProps {
   getRowKey: (row: any) => string;
   rowAlwaysVisible?: (row: any) => boolean;
   ignoreRowInSetFilter?: (row: any) => boolean;
-  onReorderColumns?: (columns: string[]) => void;
+  onReorderColumns?: (columns: string[], columnOrder: number[]) => void;
   onSortedAndFilteredRowsChange?: (rows: readonly any[]) => void;
 }
 
@@ -111,8 +111,18 @@ export function useDataTable<T = RowWithKey>({
   }, [_columns]);
 
   useNonInitialEffect(() => {
-    onReorderColumns && onReorderColumns(columns.filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key)).map(({ key }) => key));
-  }, [columns, onReorderColumns]);
+    if (onReorderColumns) {
+      const newColumns = reorderedColumns.filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key)).map(({ key }) => key);
+      const remainingIdx = new Set(
+        reorderedColumns.map((column, i) => (NON_DATA_COLUMN_KEYS.has(column.key) ? -1 : i)).filter((idx) => idx >= 0)
+      );
+      const offset = reorderedColumns.length - newColumns.length;
+      onReorderColumns(
+        newColumns,
+        columnsOrder.filter((idx) => remainingIdx.has(idx)).map((index) => index - offset)
+      );
+    }
+  }, [reorderedColumns, columnsOrder, onReorderColumns]);
 
   useEffect(() => {
     if (Array.isArray(columns) && columns.length && Array.isArray(data) && data.length) {

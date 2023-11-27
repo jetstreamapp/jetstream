@@ -88,6 +88,7 @@ export interface SubqueryContext<TRow = any> {
   org: SalesforceOrgUi;
   isTooling: boolean;
   columnDefinitions?: MapOf<ColumnWithFilter<TRow, unknown>[]>;
+  onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;

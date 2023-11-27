@@ -36,7 +36,7 @@ import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, use
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { Query } from 'soql-parser-js';
+import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from 'soql-parser-js';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
 import { useAmplitude } from '../../core/analytics';
@@ -94,7 +94,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [records, setRecords] = useState<Record[] | null>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
   const [fields, setFields] = useState<string[] | null>(null);
-  const [modifiedFields, setModifiedFields] = useState<string[] | null>(null);
   const [subqueryFields, setSubqueryFields] = useState<Maybe<MapOf<string[]>>>(null);
   const [filteredRows, setFilteredRows] = useState<Record[]>([]);
   const [selectedRows, setSelectedRows] = useState<Record[]>([]);
@@ -178,15 +177,29 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }, [isTooling, soqlPanelOpen, trackEvent]);
 
+  // Ensure that the query is updated in the browser history any time it changes
+  useNonInitialEffect(() => {
+    if (soql) {
+      window.history.replaceState({ state: { soql, isTooling } }, '');
+    }
+  }, [isTooling, soql]);
+
   useEffect(() => {
     logger.log({ location });
-    if (locationState) {
-      setSoql(locationState.soql || '');
+    if (locationState && locationState.soql) {
+      setSoql(locationState.soql);
       setIsTooling(locationState.isTooling ? true : false);
-      locationState.soql &&
-        executeQuery(locationState.soql, locationState.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
-          isTooling: locationState.isTooling,
-        });
+
+      try {
+        const parsedQuery = parseQuery(locationState.soql);
+        setParsedQuery(parsedQuery);
+      } catch (ex) {
+        logger.warn('Could not parse query from location state', locationState.soql, ex.message);
+      }
+
+      executeQuery(locationState.soql, locationState.fromHistory ? SOURCE_HISTORY : SOURCE_STANDARD, {
+        isTooling: locationState.isTooling,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
@@ -254,12 +267,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       }
       setRecords(null);
       setRecordCount(null);
-      // setFields(null);
       setSubqueryFields(null);
       const results = await query(selectedOrg, soqlQuery, tooling, !tooling && includeDeletedRecords);
       if (!isMounted.current) {
         return;
       }
+      setParsedQuery(results.parsedQuery);
       setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       setRecordCount(results.queryResults.totalSize);
@@ -286,7 +299,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       sobjectName && (await saveQueryHistory(soqlQuery, sobjectName, tooling));
       setSobject(sobjectName);
-      setParsedQuery(results.parsedQuery);
     } catch (ex) {
       if (!isMounted.current) {
         return;
@@ -417,9 +429,50 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
-  function handleFieldsChanged({ allFields, visibleFields }: { allFields: string[]; visibleFields: string[] }) {
-    setFields(allFields);
-    setModifiedFields(visibleFields);
+  function handleFieldsChanged(newFields: string[], columnOrder: number[]) {
+    try {
+      setFields(newFields);
+      if (newFields?.length && parsedQuery?.fields && Array.isArray(parsedQuery.fields)) {
+        const newParsedQuery = {
+          ...parsedQuery,
+          fields: columnOrder.map((idx) => parsedQuery.fields![idx]),
+        };
+        setParsedQuery(newParsedQuery);
+        setSoql(composeQuery(newParsedQuery, { format: true }));
+      }
+    } catch (ex) {
+      logger.warn('Error setting query after fields changed', ex.message);
+    }
+  }
+
+  function handleSubqueryFieldsChanged(columnKey: string, newFields: string[], columnOrder: number[]) {
+    try {
+      const subqueryIdx = fields?.findIndex((field) => field === columnKey) || -1;
+      if (
+        subqueryIdx >= 0 &&
+        newFields?.length &&
+        parsedQuery?.fields &&
+        Array.isArray(parsedQuery.fields) &&
+        isFieldSubquery(parsedQuery.fields[subqueryIdx])
+      ) {
+        const subqueryColumn = { ...(parsedQuery.fields[subqueryIdx] as FieldSubquery) };
+
+        subqueryColumn.subquery = {
+          ...subqueryColumn.subquery,
+          fields: columnOrder.map((idx) => subqueryColumn.subquery.fields![idx]),
+        };
+
+        const newParsedQuery = {
+          ...parsedQuery,
+          fields: parsedQuery.fields.map((field, idx) => (idx === subqueryIdx ? subqueryColumn : field)),
+        };
+        setParsedQuery(newParsedQuery);
+
+        setSoql(composeQuery(newParsedQuery, { format: true }));
+      }
+    } catch (ex) {
+      logger.warn('Error setting query after fields changed (Subquery)', ex.message);
+    }
   }
 
   function handleOpenHistory(type: fromQueryHistory.QueryHistoryType) {
@@ -496,7 +549,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           <QueryResultsCopyToClipboard
             className="collapsible-button collapsible-button-md"
             hasRecords={hasRecords()}
-            fields={modifiedFields || []}
+            fields={fields || []}
             records={records || []}
             filteredRows={filteredRows}
             selectedRows={selectedRows}
@@ -511,7 +564,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
             isTooling={isTooling}
             nextRecordsUrl={nextRecordsUrl}
             fields={fields || []}
-            modifiedFields={modifiedFields || []}
             subqueryFields={subqueryFields}
             records={records || []}
             filteredRows={filteredRows}
@@ -618,6 +670,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               }
               onSelectionChanged={setSelectedRows}
               onFields={handleFieldsChanged}
+              onSubqueryFieldReorder={handleSubqueryFieldsChanged}
               onFilteredRowsChanged={setFilteredRows}
               onLoadMoreRecords={handleLoadMore}
               onSavedRecords={(data) => {

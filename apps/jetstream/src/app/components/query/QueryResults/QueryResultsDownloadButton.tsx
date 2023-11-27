@@ -20,7 +20,6 @@ export interface QueryResultsDownloadButtonProps {
   isTooling: boolean;
   nextRecordsUrl: Maybe<string>;
   fields: string[];
-  modifiedFields: string[];
   subqueryFields: Maybe<MapOf<string[]>>;
   records: any[];
   filteredRows: any[];
@@ -37,7 +36,6 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   isTooling,
   nextRecordsUrl,
   fields,
-  modifiedFields,
   subqueryFields,
   records,
   filteredRows,
@@ -146,7 +144,6 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           downloadModalOpen={isDownloadModalOpen}
           columns={columns}
           fields={fields || []}
-          modifiedFields={modifiedFields || []}
           subqueryFields={subqueryFields || {}}
           records={records || []}
           filteredRecords={filteredRows}
