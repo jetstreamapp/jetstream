@@ -81,7 +81,7 @@ export interface RecordDownloadModalProps {
 }
 
 const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
-const ALLOW_BULK_API_COUNT = 25_000;
+const ALLOW_BULK_API_COUNT = 5_000;
 const REQUIRE_BULK_API_COUNT = 500_000;
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
@@ -138,7 +138,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     !columns.some((column) => PROHIBITED_BULK_APEX_TYPES.has(column.apexType || '')) &&
     downloadRecordsValue === RADIO_ALL_SERVER;
 
-  const requireBulkApi = allowBulkApi && (totalRecordCount || 0) >= REQUIRE_BULK_API_COUNT;
+  const allowBulkApiWithWarning =
+    !allowBulkApi &&
+    (totalRecordCount || 0) >= ALLOW_BULK_API_COUNT &&
+    records?.[0]?.attributes?.type !== 'AggregateResult' &&
+    downloadRecordsValue === RADIO_ALL_SERVER;
+
+  const requireBulkApi = allowBulkApiWithWarning && (totalRecordCount || 0) >= REQUIRE_BULK_API_COUNT;
   const isBulkApi = downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API;
 
   useEffect(() => {
@@ -206,13 +212,23 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }
 
   async function handleDownload() {
-    if (errorMessage) {
-      setErrorMessage(null);
-    }
-    const fieldsToUse = whichFields === 'specified' && modifiedFields?.length ? modifiedFields : fields;
+    errorMessage && setErrorMessage(null);
+    let fieldsToUse = whichFields === 'specified' && modifiedFields?.length ? modifiedFields : fields;
     if (fieldsToUse.length === 0) {
       return;
     }
+
+    let _includeSubquery = includeSubquery && hasSubqueryFields;
+
+    // Remove invalid fields from query if necessary for bulk query
+    if (downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API && allowBulkApiWithWarning) {
+      const complexFields = new Set(
+        columns.filter((column) => PROHIBITED_BULK_APEX_TYPES.has(column.apexType || '')).map(({ columnFullPath }) => columnFullPath)
+      );
+      fieldsToUse = fieldsToUse.filter((field) => !subqueryFields[field] && !complexFields.has(field));
+      _includeSubquery = false;
+    }
+
     try {
       const fileNameWithExt = `${fileName}${fileFormat !== 'gdrive' ? `.${fileFormat}` : ''}`;
 
@@ -233,7 +249,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             fields: fieldsToUse,
             subqueryFields,
             whichFields,
-            includeSubquery: includeSubquery && hasSubqueryFields,
+            includeSubquery: _includeSubquery,
             recordsToInclude: activeRecords,
             hasAllRecords: downloadRecordsValue !== RADIO_ALL_SERVER,
             googleFolder,
@@ -444,7 +460,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 label="Download Method"
                 required
                 className="slds-m-bottom_small"
-                labelHelp="The Bulk API is usually faster and can support a very large number of records. However, it does not support all file formats."
+                labelHelp="The Bulk API handles large record volumes but has limitations in file format and query support."
               >
                 <Radio
                   name="radio-download-method"
@@ -463,6 +479,38 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   disabled={requireBulkApi}
                 />
               </RadioGroup>
+            )}
+            {allowBulkApiWithWarning && (
+              <>
+                <RadioGroup
+                  label="Download Method"
+                  required
+                  className="slds-m-bottom_small"
+                  labelHelp="The Bulk API handles large record volumes but has limitations in file format and query support."
+                >
+                  <Radio
+                    name="radio-download-method"
+                    label="Standard"
+                    value={RADIO_DOWNLOAD_METHOD_STANDARD}
+                    checked={downloadMethod === RADIO_DOWNLOAD_METHOD_STANDARD}
+                    onChange={(value: typeof RADIO_DOWNLOAD_METHOD_STANDARD) => setDownloadMethod(value)}
+                    disabled={requireBulkApi}
+                  />
+                  <Radio
+                    name="radio-download-method"
+                    label="Salesforce Bulk API"
+                    value={RADIO_DOWNLOAD_METHOD_BULK_API}
+                    checked={downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API}
+                    onChange={(value: typeof RADIO_DOWNLOAD_METHOD_BULK_API) => setDownloadMethod(value)}
+                    disabled={requireBulkApi}
+                  />
+                </RadioGroup>
+                {downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API && (
+                  <ScopedNotification theme="warning">
+                    Complex fields, including addresses and subqueries, will be automatically removed from your download.
+                  </ScopedNotification>
+                )}
+              </>
             )}
             {fileFormat !== 'json' && columnAreModified && !requireBulkApi && (
               <RadioGroup
