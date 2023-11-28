@@ -1,13 +1,12 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
 import { forwardRef, useMemo } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
 import { isTableRow } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
 
-const getRowHeight = ({ row, type }: RowHeightArgs<TableRowOrItemOrChild>) => {
-  if (type === 'GROUP' || isTableRow(row)) {
+const getRowHeight = (row: TableRowOrItemOrChild) => {
+  if (isTableRow(row)) {
     return 28.5;
   }
   if (row.additionalData.length > 1) {
@@ -85,7 +84,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
         {
           name: 'Additional Information',
           key: 'additionalInfo',
-          width: 400,
+          width: 1000,
           filters: null,
           sortable: false,
           renderCell: AdditionalDetailRenderer,

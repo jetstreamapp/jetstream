@@ -524,7 +524,7 @@ const DATE_ERR_MESSAGE =
   'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
 
 const TIME_ERR_MESSAGE =
-  'There was an error reading one or more time fields in your file. Ensure date fields are properly formatted with a four character year.';
+  'There was an error reading one or more time fields in your file. Ensure time fields are properly formatted using or 00:00:00Z or 00:00:00.000Z.';
 
 function transformDate(value: any, dateFormat: string): Maybe<string> {
   if (!value) {
@@ -609,7 +609,7 @@ function transformTime(value: string | null) {
 
   try {
     // Already in proper format
-    if (isMatch('HH:mm:ss.SSSZ', value) || isMatch('HH:mm:ssZ', value)) {
+    if (isMatch(value, `HH:mm:ss.SSS'Z'`) || isMatch(value, `HH:mm:ss'Z'`)) {
       return value;
     }
     // match local format first and convert to ISO
