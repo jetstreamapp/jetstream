@@ -1,7 +1,7 @@
-import { ensureArray, orderObjectsBy } from '@jetstream/shared/utils';
+import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf } from '@jetstream/types';
 import type { PackageTypeMembers, RetrieveRequest } from 'jsforce';
-import { get as lodashGet, isObjectLike, isString } from 'lodash';
+import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from '../utils/error-handler';
 
@@ -15,8 +15,14 @@ export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: str
   Object.keys(types).forEach((metadataType) => {
     const typesNode = packageNode.ele('types');
     if (types[metadataType].length) {
-      orderObjectsBy(types[metadataType], 'fullName').forEach(({ fullName }) => {
-        typesNode.ele('members').txt(fullName);
+      orderObjectsBy(types[metadataType], 'fullName').forEach(({ fullName, namespacePrefix }) => {
+        typesNode.ele('members').txt(
+          getFullNameFromListMetadata({
+            fullName,
+            metadataType,
+            namespace: namespacePrefix,
+          })
+        );
       });
       typesNode.ele('name').txt(metadataType);
     }
@@ -42,7 +48,13 @@ export function getRetrieveRequestFromListMetadata(types: MapOf<ListMetadataResu
       types: Object.keys(types).map((metadataName) => {
         const members = types[metadataName];
         return {
-          members: members.map(({ fullName }) => fullName),
+          members: members.map(({ fullName, namespacePrefix }) => {
+            return getFullNameFromListMetadata({
+              fullName,
+              metadataType: metadataName,
+              namespace: namespacePrefix,
+            });
+          }),
           name: metadataName,
         };
       }),

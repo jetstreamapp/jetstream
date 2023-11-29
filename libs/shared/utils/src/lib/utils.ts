@@ -819,3 +819,24 @@ export function decodeHtmlEntity(value: Maybe<string>) {
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>');
 }
+
+/**
+ * Some fullNames from listMetadata need to be modified
+ */
+export function getFullNameFromListMetadata({
+  metadataType,
+  namespace,
+  fullName,
+}: {
+  metadataType: string;
+  fullName: string;
+  namespace: Maybe<string>;
+}) {
+  // Fix fullName for managed package layouts
+  if (namespace && metadataType === 'Layout' && !fullName.slice(fullName.indexOf('-') + 1).startsWith(`${namespace}__`)) {
+    const objectName = fullName.slice(0, fullName.indexOf('-') + 1);
+    const layoutName = fullName.slice(fullName.indexOf('-') + 1);
+    return `${objectName}${namespace}__${layoutName}`;
+  }
+  return fullName;
+}
