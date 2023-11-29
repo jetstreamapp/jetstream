@@ -9,7 +9,9 @@ import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useRecoilState } from 'recoil';
+import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import * as fromLoadRecordsState from '../load-records.state';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
@@ -180,7 +182,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
         </GridCol>
         <GridCol className="slds-is-relative">
           {tooLargeToShowPreview && <p className="slds-text-heading_small">Your file is too large to show a preview</p>}
-          {columns && rows && (
+          {Array.isArray(columns) && Array.isArray(rows) && (
             <div
               css={css`
                 position: absolute;
@@ -189,9 +191,11 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               `}
             >
               <p className="slds-text-heading_small">File Preview</p>
-              <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                <DataTable columns={columns} data={rows} getRowKey={getRowId} />
-              </AutoFullHeightContainer>
+              <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
+                  <DataTable columns={columns} data={rows} getRowKey={getRowId} />
+                </AutoFullHeightContainer>
+              </ErrorBoundary>
             </div>
           )}
         </GridCol>

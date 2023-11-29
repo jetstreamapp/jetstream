@@ -12,7 +12,6 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -20,7 +19,7 @@ const COL_WIDTH_MAP = {
   _errors: 450,
 };
 
-const getRowHeight = ({ row, type }: RowHeightArgs<any>) => (type === 'ROW' && row?._errors ? 75 : 25);
+const getRowHeight = (row: any) => (row?._errors ? 75 : 25);
 
 export interface LoadRecordsResultsModalProps {
   type: 'results' | 'failures';
@@ -117,7 +116,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
         <div className="slds-is-relative slds-scrollable_x">
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
             {loading && <Spinner />}
-            {rows && columns && (
+            {Array.isArray(rows) && Array.isArray(columns) && (
               <DataTable
                 columns={columns}
                 data={rows}

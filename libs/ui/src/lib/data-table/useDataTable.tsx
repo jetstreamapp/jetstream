@@ -108,6 +108,7 @@ export function useDataTable<T = RowWithKey>({
 
   useNonInitialEffect(() => {
     setColumns(_columns);
+    setColumnsOrder(_columns.map((_, index) => index));
   }, [_columns]);
 
   useNonInitialEffect(() => {

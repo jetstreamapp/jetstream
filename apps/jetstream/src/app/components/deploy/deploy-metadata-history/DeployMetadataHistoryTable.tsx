@@ -1,7 +1,6 @@
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
 import { ActionRenderer, OrgRenderer, StatusRenderer } from './DeployMetadataHistoryTableRenderers';
 
@@ -56,22 +55,18 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
   },
 ];
 
-const getRowHeight =
-  (orgsById: MapOf<SalesforceOrgUi>) =>
-  ({ row: item, type }: RowHeightArgs<SalesforceDeployHistoryItem>) => {
-    const rowHeight = 27.5;
-    let numberOfRows = 3;
-    if (type === 'ROW') {
-      if (item.type === 'orgToOrg') {
-        /** we need 3 rows plus a little buffer */
-        numberOfRows = 3.5;
-      } else if (item.fileKey || (item.sourceOrg && orgsById[item.sourceOrg.uniqueId])) {
-        /** we need 3 rows */
-        return 27.5 * 3;
-      }
-    }
-    return rowHeight * numberOfRows;
-  };
+const getRowHeight = (orgsById: MapOf<SalesforceOrgUi>) => (row: SalesforceDeployHistoryItem) => {
+  const rowHeight = 27.5;
+  let numberOfRows = 3;
+  if (row.type === 'orgToOrg') {
+    /** we need 3 rows plus a little buffer */
+    numberOfRows = 3.5;
+  } else if (row.fileKey || (row.sourceOrg && orgsById[row.sourceOrg.uniqueId])) {
+    /** we need 3 rows */
+    return 27.5 * 3;
+  }
+  return rowHeight * numberOfRows;
+};
 const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 
 export interface DeployMetadataHistoryTableProps {
