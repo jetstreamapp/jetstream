@@ -76,7 +76,7 @@ export function getRowId(data: any): string {
     return uniqueId('row-id');
   }
   let nodeId = data?.attributes?.url || data.Id || data.id || data.key;
-  if (!nodeId || nodeId.endsWith(SFDC_EMPTY_ID) || data.Id === SFDC_EMPTY_ID) {
+  if (!nodeId || (isString(nodeId) && nodeId.endsWith(SFDC_EMPTY_ID)) || data.Id === SFDC_EMPTY_ID) {
     nodeId = uniqueId('row-id');
   }
   return nodeId;
