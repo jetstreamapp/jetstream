@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { INDEXED_DB } from '@jetstream/shared/constants';
+import { detectDateFormatForLocale, formatNumber } from '@jetstream/shared/ui-utils';
 import { InsertUpdateUpsertDelete, MapOf, Maybe } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import localforage from 'localforage';
@@ -20,6 +20,7 @@ const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
 SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('Document', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('ContentVersion', { bodyField: 'VersionData' });
+const DATE_FIELDS = new Set(['date', 'datetime']);
 
 export interface LoadSavedMappingItem {
   key: string; // object:createdDate
@@ -169,11 +170,6 @@ export const batchSizeState = atom<Maybe<number>>({
   default: MAX_BULK,
 });
 
-export const batchSizeErrorState = atom<Maybe<string>>({
-  key: 'batchSizeErrorState',
-  default: null,
-});
-
 export const insertNullsState = atom({
   key: 'insertNullsState',
   default: false,
@@ -184,9 +180,24 @@ export const serialModeState = atom({
   default: false,
 });
 
+export const trialRunState = atom({
+  key: 'trialRunState',
+  default: false,
+});
+
+export const trialRunSizeState = atom<Maybe<number>>({
+  key: 'trialRunSizeState',
+  default: 1,
+});
+
 export const dateFormatState = atom({
   key: 'dateFormatState',
-  default: DATE_FORMATS.MM_DD_YYYY,
+  default: detectDateFormatForLocale(),
+});
+
+export const selectHasDateFieldMapped = selector({
+  key: 'load.selectHasDateFieldMapped',
+  get: ({ get }) => Object.values(get(fieldMappingState)).some((item) => item.fieldMetadata && DATE_FIELDS.has(item.fieldMetadata.type)),
 });
 
 export const selectBatchSizeError = selector<string | null>({
@@ -213,6 +224,18 @@ export const selectBatchApiLimitError = selector<string | null>({
         `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${MAX_API_CALLS}. ` +
         `Increase your batch size or reduce the number of records in your file.`
       );
+    }
+    return null;
+  },
+});
+
+export const selectTrialRunSizeError = selector<string | null>({
+  key: 'load.selectTrialRunSizeError',
+  get: ({ get }) => {
+    const inputLength = get(inputFileDataState)?.length || 1;
+    const trialRunSize = get(trialRunSizeState) || 1;
+    if (!isNumber(trialRunSize) || trialRunSize <= 0 || trialRunSize >= inputLength) {
+      return `Must be between 1 and ${formatNumber(inputLength - 1)}`;
     }
     return null;
   },

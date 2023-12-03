@@ -1,4 +1,11 @@
-import { InputAcceptTypeCsv, InputAcceptTypeExcel, InputAcceptTypeXml, InputAcceptTypeZip, MimeType } from '@jetstream/types';
+import {
+  InputAcceptTypeCsv,
+  InputAcceptTypeExcel,
+  InputAcceptTypeTsv,
+  InputAcceptTypeXml,
+  InputAcceptTypeZip,
+  MimeType,
+} from '@jetstream/types';
 
 export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 
@@ -23,11 +30,13 @@ export const FEATURE_FLAGS = Object.freeze({
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
   CSV: InputAcceptTypeCsv;
+  TSV: InputAcceptTypeTsv;
   EXCEL: InputAcceptTypeExcel;
   XML: InputAcceptTypeXml;
 } = {
   ZIP: '.zip',
   CSV: '.csv',
+  TSV: '.tsv',
   EXCEL: '.xlsx',
   XML: '.xml',
 };

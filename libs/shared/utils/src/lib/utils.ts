@@ -655,9 +655,18 @@ function buildDateFromString(value: string, dateFormat: string, representation: 
 }
 
 function getIsoFormattedTimeFromString(time: string) {
-  const timeFormat = ['HH:mm:ss.SSSZ', 'HH:mm:ssZ', 'p', 'pp', 'hh:mm a', 'hh:mm:ss a', 'hh:mma', 'hh:mm:ssa', 'HH:mm', 'HH:mm:ss'].find(
-    (format) => isMatch(time, format)
-  );
+  const timeFormat = [
+    `HH:mm:ss.SSS'Z'`,
+    `HH:mm:ss'Z'`,
+    'p',
+    'pp',
+    'hh:mm a',
+    'hh:mm:ss a',
+    'hh:mma',
+    'hh:mm:ssa',
+    'HH:mm',
+    'HH:mm:ss',
+  ].find((format) => isMatch(time, format));
   const formattedTime = timeFormat ? formatISODate(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : null;
   return formattedTime;
 }

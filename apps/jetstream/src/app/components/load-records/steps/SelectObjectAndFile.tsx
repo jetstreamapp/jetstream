@@ -75,9 +75,9 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   children,
 }) => {
   const hasGoogleInputConfigured = !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
-  async function handleFile({ content, filename, isPasteFromClipboard }: InputReadFileContent) {
+  async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
-      const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard });
+      const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
       onFileChange(data, headers, filename, 'local');
       if (errors.length > 0) {
         logger.warn(errors);
@@ -166,7 +166,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                     id: 'load-record-file',
                     label: 'File to Load',
                     filename: inputFileType === 'local' ? inputFilename : undefined,
-                    accept: [INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.EXCEL],
+                    accept: [INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.TSV, INPUT_ACCEPT_FILETYPES.EXCEL],
                     allowFromClipboard: true,
                     userHelpText: 'Choose CSV or XLSX file to upload',
                     onReadFile: handleFile,

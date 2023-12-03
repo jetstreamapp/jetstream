@@ -1,7 +1,8 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
-import { Badge, Checkbox, ConfirmationModalPromise, Input, Radio, RadioGroup, Select } from '@jetstream/ui';
+import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -13,6 +14,16 @@ import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
 import { FieldMapping } from '../load-records-types';
 import * as loadRecordsState from '../load-records.state';
 import { getMaxBatchSize } from '../utils/load-records-utils';
+
+interface LoadState {
+  loading: boolean;
+  loadInProgress: boolean;
+  loadInProgressTrialRun: boolean;
+  hasLoadResultsTrialRun: boolean;
+  hasLoadResults: boolean;
+  inputFileDataTrialRun: any[];
+  inputFileDataToLoad: any[];
+}
 
 export interface LoadRecordsPerformLoadProps {
   selectedOrg: SalesforceOrgUi;
@@ -42,30 +53,49 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const hasZipAttachment = !!inputZipFileData;
   const { trackEvent } = useAmplitude();
   const [loadNumber, setLoadNumber] = useState<number>(0);
+  const [loadNumberTrialRun, setLoadNumberTrialRun] = useState<number>(0);
 
   const [apiMode, setApiMode] = useRecoilState(loadRecordsState.apiModeState);
   const [batchSize, setBatchSize] = useRecoilState(loadRecordsState.batchSizeState);
   const [insertNulls, setInsertNulls] = useRecoilState(loadRecordsState.insertNullsState);
   const [serialMode, setSerialMode] = useRecoilState(loadRecordsState.serialModeState);
+  const [trialRun, setTrialRun] = useRecoilState(loadRecordsState.trialRunState);
+  const [trialRunSize, setTrialRunSize] = useRecoilState(loadRecordsState.trialRunSizeState);
   const [dateFormat, setDateFormat] = useRecoilState(loadRecordsState.dateFormatState);
+  /** Only show date hint if the user has a mapped date/datetime field */
+  const hasDateFieldMapped = useRecoilValue(loadRecordsState.selectHasDateFieldMapped);
 
   const batchSizeError = useRecoilValue(loadRecordsState.selectBatchSizeError);
   const batchApiLimitError = useRecoilValue(loadRecordsState.selectBatchApiLimitError);
+  const trialRunSizeError = useRecoilValue(loadRecordsState.selectTrialRunSizeError);
   const bulkApiModeLabel = useRecoilValue(loadRecordsState.selectBulkApiModeLabel);
   const batchApiModeLabel = useRecoilValue(loadRecordsState.selectBatchApiModeLabel);
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadInProgress, setLoadInProgress] = useState<boolean>(false);
-  const [hasLoadResults, setHasLoadResults] = useState<boolean>(false);
   const loadTypeLabel = startCase(loadType.toLowerCase());
-  const numRecordsImpactedLabel = formatNumber(inputFileData.length);
   const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);
+  const [
+    { loading, loadInProgress, loadInProgressTrialRun, hasLoadResultsTrialRun, hasLoadResults, inputFileDataTrialRun, inputFileDataToLoad },
+    setLoadState,
+  ] = useState<LoadState>(() => ({
+    loading: false,
+    loadInProgress: false,
+    loadInProgressTrialRun: false,
+    hasLoadResultsTrialRun: false,
+    hasLoadResults: false,
+    inputFileDataTrialRun: inputFileData.slice(0, trialRunSize || 0),
+    inputFileDataToLoad: inputFileData.slice(trialRunSize || 0),
+  }));
+
+  const numRecordsImpactedLabel = formatNumber(inputFileDataToLoad.length);
+  const numRecordsImpactedTrialRunLabel = formatNumber(inputFileDataTrialRun.length);
 
   useNonInitialEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
-    if (hasLoadResults) {
-      setHasLoadResults(false);
-    }
+    setLoadState((prevState) => ({
+      ...prevState,
+      hasLoadResults: false,
+      hasLoadResultsTrialRun: false,
+    }));
     if (apiMode === 'BATCH' && !serialMode) {
       setSerialMode(true);
     } else if (apiMode === 'BULK' && serialMode) {
@@ -73,6 +103,16 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiMode]);
+
+  useNonInitialEffect(() => {
+    setLoadState((prevState) => ({
+      ...prevState,
+      hasLoadResults: false,
+      hasLoadResultsTrialRun: false,
+      inputFileDataTrialRun: trialRun && trialRunSize ? inputFileData.slice(0, trialRunSize) : [],
+      inputFileDataToLoad: trialRun && trialRunSize ? inputFileData.slice(trialRunSize || 0) : inputFileData,
+    }));
+  }, [trialRun, trialRunSize, inputFileData]);
 
   function handleBatchSize(event: ChangeEvent<HTMLInputElement>) {
     const value = Number.parseInt(event.target.value);
@@ -83,21 +123,33 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
   }
 
-  function handleDateFormatChange(event: ChangeEvent<HTMLSelectElement>) {
-    setDateFormat(event.target.value);
+  function handletrialRunSize(event: ChangeEvent<HTMLInputElement>) {
+    const value = Number.parseInt(event.target.value);
+    if (Number.isInteger(value)) {
+      setTrialRunSize(value);
+    } else if (!event.target.value) {
+      setTrialRunSize(null);
+    }
   }
 
-  async function handleStartLoad() {
+  async function handleStartLoad(isTrialRun = false) {
     if (
       loadNumber === 0 ||
       (await ConfirmationModalPromise({
         content: 'This file has already been loaded, are you sure you want to load it again?',
       }))
     ) {
-      setLoadNumber(loadNumber + 1);
-      setLoading(true);
-      setLoadInProgress(true);
-      setHasLoadResults(false);
+      if (isTrialRun) {
+        setLoadNumberTrialRun(loadNumberTrialRun + 1);
+      } else {
+        setLoadNumber(loadNumber + 1);
+      }
+      setLoadState((prevState) => {
+        if (isTrialRun) {
+          return { ...prevState, loading: true, loadInProgressTrialRun: true, hasLoadResultsTrialRun: false, hasLoadResults: false };
+        }
+        return { ...prevState, loading: true, loadInProgress: true, hasLoadResults: false };
+      });
       onIsLoading(true);
       trackEvent(ANALYTICS_KEYS.load_Submitted, {
         loadType,
@@ -106,7 +158,10 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         batchSize,
         insertNulls,
         serialMode,
+        hasDateFieldMapped,
         dateFormat,
+        isTrialRun,
+        trialRunSize,
         hasZipAttachment: !!hasZipAttachment,
         timesSameDataSubmitted: loadNumber + 1,
         numStaticFields: Object.values(fieldMapping).filter(({ type }) => type === 'STATIC').length,
@@ -115,16 +170,19 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     }
   }
 
-  function handleFinishLoad({ success, failure }: { success: number; failure: number }) {
-    setLoading(false);
-    setHasLoadResults(true);
-    setLoadInProgress(false);
+  function handleFinishLoad({ success, failure }: { success: number; failure: number }, isTrialRun = false) {
+    setLoadState((prevState) => {
+      if (isTrialRun) {
+        return { ...prevState, loading: false, loadInProgressTrialRun: false, hasLoadResultsTrialRun: true };
+      }
+      return { ...prevState, loading: false, loadInProgress: false, hasLoadResults: true };
+    });
     onIsLoading(false);
     document.title = `${formatNumber(success)} Success - ${formatNumber(failure)} Failed ${TITLES.BAR_JETSTREAM}`;
   }
 
   function hasDataInputError(): boolean {
-    return !!batchSizeError || !!batchApiLimitError;
+    return !!batchSizeError || !!batchApiLimitError || (trialRun && !!trialRunSizeError);
   }
 
   return (
@@ -207,31 +265,81 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             className="slds-input"
             placeholder="Set batch size"
             value={batchSize || ''}
-            aria-describedby={batchSizeError || undefined}
+            aria-describedby={'batch-size-error'}
             disabled={loading || hasZipAttachment}
             onChange={handleBatchSize}
           />
         </Input>
 
-        <Select
-          id={'date-format'}
-          label={'Date Format'}
-          labelHelp="Specify the format of any date fields in your file. Jetstream just needs to know the order of the month and the day and will auto-detect the exact format."
-        >
-          <select
-            aria-describedby="date-format"
-            className="slds-select"
-            id="date-format-select"
+        {hasDateFieldMapped && (
+          <RadioGroup
+            label={'Date Format Hint'}
+            labelHelp="Jetstream can usually auto-detect your date format but may require a hint if your file has dates formatted based on your geographic region."
             required
-            value={dateFormat}
-            disabled={loading}
-            onChange={handleDateFormatChange}
+            isButtonGroup
           >
-            <option value={DATE_FORMATS.MM_DD_YYYY}>{DATE_FORMATS.MM_DD_YYYY}</option>
-            <option value={DATE_FORMATS.DD_MM_YYYY}>{DATE_FORMATS.DD_MM_YYYY}</option>
-            <option value={DATE_FORMATS.YYYY_MM_DD}>{DATE_FORMATS.YYYY_MM_DD}</option>
-          </select>
-        </Select>
+            <RadioButton
+              id={'date-format-MM_DD_YYYY'}
+              name={'date-format'}
+              label={DATE_FORMATS.MM_DD_YYYY}
+              value={DATE_FORMATS.MM_DD_YYYY}
+              checked={dateFormat === DATE_FORMATS.MM_DD_YYYY}
+              disabled={loading}
+              onChange={setDateFormat}
+            />
+            <RadioButton
+              id={'date-format-DD_MM_YYYY'}
+              name={'date-format'}
+              label={DATE_FORMATS.DD_MM_YYYY}
+              value={DATE_FORMATS.DD_MM_YYYY}
+              checked={dateFormat === DATE_FORMATS.DD_MM_YYYY}
+              disabled={loading}
+              onChange={setDateFormat}
+            />
+            <RadioButton
+              id={'date-format-YYYY_MM_DD'}
+              name={'date-format'}
+              label={DATE_FORMATS.YYYY_MM_DD}
+              value={DATE_FORMATS.YYYY_MM_DD}
+              checked={dateFormat === DATE_FORMATS.YYYY_MM_DD}
+              disabled={loading}
+              onChange={setDateFormat}
+            />
+          </RadioGroup>
+        )}
+
+        {!inputZipFileData && (
+          <>
+            <Checkbox
+              id={'trial-run'}
+              className="slds-m-vertical_xx-small"
+              checked={trialRun}
+              label={'Trial Run'}
+              labelHelp="Test your data load by starting with a few records."
+              disabled={loading}
+              onChange={setTrialRun}
+            />
+
+            {trialRun && (
+              <Input
+                label="Number of Records to load first"
+                isRequired={true}
+                hasError={!!trialRunSizeError}
+                errorMessageId="trial-run-size-error"
+                errorMessage={trialRunSizeError}
+              >
+                <input
+                  id="trial-run-size"
+                  className="slds-input"
+                  value={trialRunSize || ''}
+                  aria-describedby="trial-run-size-error"
+                  disabled={loading}
+                  onChange={handletrialRunSize}
+                />
+              </Input>
+            )}
+          </>
+        )}
       </div>
       <h1 className="slds-text-heading_medium">Summary</h1>
       <div className="slds-p-around_small">
@@ -241,26 +349,43 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           </Badge>
           <strong className="slds-m-left_xx-small">{selectedOrg.username}</strong>
         </div>
-        <div className="slds-m-top_small">
-          <button
-            data-testid="start-load"
-            className="slds-button slds-button_brand"
-            disabled={hasDataInputError() || loadInProgress}
-            onClick={handleStartLoad}
-          >
-            {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong> Records
-          </button>
-        </div>
+        <Grid>
+          {trialRun && (
+            <div className="slds-m-top_small slds-m-right_small">
+              <button
+                data-testid="start-load"
+                className="slds-button slds-button_brand"
+                disabled={hasDataInputError() || loadInProgressTrialRun || hasLoadResultsTrialRun || loadInProgress}
+                onClick={() => handleStartLoad(true)}
+              >
+                {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedTrialRunLabel}</strong>{' '}
+                {pluralizeIfMultiple('Record', inputFileDataTrialRun)} (Dry Run)
+              </button>
+            </div>
+          )}
+          <div className="slds-m-top_small">
+            <button
+              data-testid="start-load"
+              className="slds-button slds-button_brand"
+              disabled={hasDataInputError() || (trialRun && !hasLoadResultsTrialRun) || loadInProgress}
+              onClick={() => handleStartLoad()}
+            >
+              {loadTypeLabel} <strong className="slds-m-horizontal_xx-small">{numRecordsImpactedLabel}</strong>{' '}
+              {pluralizeIfMultiple('Record', inputFileDataToLoad)}
+            </button>
+          </div>
+        </Grid>
       </div>
       <h1 className="slds-text-heading_medium">Results</h1>
       <div className="slds-p-around_small">
-        {(loadInProgress || hasLoadResults) && (
+        {/* DRY RUN LOAD */}
+        {trialRun && (loadInProgressTrialRun || hasLoadResultsTrialRun) && (
           <LoadRecordsResults
-            key={loadNumber}
+            key={`trial-run-${loadNumberTrialRun}`}
             selectedOrg={selectedOrg}
             selectedSObject={selectedSObject}
             fieldMapping={fieldMapping}
-            inputFileData={inputFileData}
+            inputFileData={inputFileDataTrialRun}
             inputZipFileData={inputZipFileData}
             apiMode={apiMode}
             loadType={loadType}
@@ -270,7 +395,27 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             serialMode={serialMode}
             dateFormat={dateFormat}
             assignmentRuleId={assignmentRuleId}
-            onFinish={handleFinishLoad}
+            onFinish={(results) => handleFinishLoad(results, true)}
+          />
+        )}
+        {/* STANDARD LOAD */}
+        {(loadInProgress || hasLoadResults) && (
+          <LoadRecordsResults
+            key={loadNumber}
+            selectedOrg={selectedOrg}
+            selectedSObject={selectedSObject}
+            fieldMapping={fieldMapping}
+            inputFileData={inputFileDataToLoad}
+            inputZipFileData={inputZipFileData}
+            apiMode={apiMode}
+            loadType={loadType}
+            externalId={externalId}
+            batchSize={batchSize ?? getMaxBatchSize(apiMode)}
+            insertNulls={insertNulls}
+            serialMode={serialMode}
+            dateFormat={dateFormat}
+            assignmentRuleId={assignmentRuleId}
+            onFinish={(results) => handleFinishLoad(results)}
           />
         )}
       </div>

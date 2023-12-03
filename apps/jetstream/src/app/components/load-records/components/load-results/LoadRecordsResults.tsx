@@ -38,7 +38,7 @@ export const LoadRecordsResults: FunctionComponent<LoadRecordsResultsProps> = ({
   onFinish,
 }) => {
   return (
-    <div>
+    <div className="slds-m-bottom_medium">
       {apiMode === 'BULK' && (
         <LoadRecordsBulkApiResults
           selectedOrg={selectedOrg}
