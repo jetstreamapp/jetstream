@@ -12,6 +12,7 @@ export interface CreateObjectPayload {
   allowInChatterGroups: boolean;
   compactLayoutAssignment: 'SYSTEM';
   deploymentStatus: 'Deployed';
+  description?: string;
   enableActivities: boolean;
   enableBulkApi: boolean;
   enableEnhancedLookup: false;

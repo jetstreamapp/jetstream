@@ -31,7 +31,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<TabsRef>();
 
-  const apiName = useRecoilValue(fromCreateObjectState.apiNameState);
+  const apiNameWithoutNamespace = useRecoilValue(fromCreateObjectState.apiNameState);
   const createTab = useRecoilValue(fromCreateObjectState.createTabState);
   const selectedTabIcon = useRecoilValue(fromCreateObjectState.selectedTabIconState);
   const objectPermissions = useRecoilValue(fromCreateObjectState.objectPermissionsState);
@@ -39,6 +39,8 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
   const selectedProfiles = useRecoilValue(fromCreateObjectState.selectedProfilesState);
   const payload = useRecoilValue(fromCreateObjectState.payloadSelector);
   const isValid = useRecoilValue(fromCreateObjectState.isFormValid);
+
+  const apiName = `${selectedOrg.orgNamespacePrefix ? `${selectedOrg.orgNamespacePrefix}__` : ''}${apiNameWithoutNamespace}`;
 
   const { results, deployMetadata, status, errorMessage, hasError, loading, permissionRecordResults } = useCreateObject({
     apiVersion: defaultApiVersion,

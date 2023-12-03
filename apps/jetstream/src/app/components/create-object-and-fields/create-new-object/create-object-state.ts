@@ -66,6 +66,7 @@ export const payloadSelector = selector<CreateObjectPayload>({
       allowInChatterGroups: get(allowInChatterGroupsState),
       compactLayoutAssignment: 'SYSTEM',
       deploymentStatus: 'Deployed',
+      description: get(descriptionState),
       enableActivities: get(allowActivitiesState),
       enableBulkApi: get(allowSharingBulkStreamingState),
       enableEnhancedLookup: false,

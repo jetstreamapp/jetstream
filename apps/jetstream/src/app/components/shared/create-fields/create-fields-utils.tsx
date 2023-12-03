@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
 import { REGEX, ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeResponse, GlobalValueSetRequest, MapOf, SalesforceOrgUi, ToolingApiResponse } from '@jetstream/types';
+import { CompositeResponse, GlobalValueSetRequest, MapOf, Maybe, SalesforceOrgUi, ToolingApiResponse } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -800,11 +800,11 @@ export function isFieldValues(input: FieldValues | FieldDefinitionMetadata): inp
   return !isNil((input as any)?._key);
 }
 
-export function preparePayload(sobjects: string[], rows: FieldValues[]): FieldDefinitionMetadata[] {
-  return rows.flatMap((row) => sobjects.map((sobject) => prepareFieldPayload(sobject, row)));
+export function preparePayload(sobjects: string[], rows: FieldValues[], orgNamespace?: Maybe<string>): FieldDefinitionMetadata[] {
+  return rows.flatMap((row) => sobjects.map((sobject) => prepareFieldPayload(sobject, row, orgNamespace)));
 }
 
-function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDefinitionMetadata {
+function prepareFieldPayload(sobject: string, fieldValues: FieldValues, orgNamespace?: Maybe<string>): FieldDefinitionMetadata {
   const fieldMetadata: FieldDefinitionMetadata = [
     ...baseFields,
     ...fieldTypeDependencies[fieldValues.type.value as FieldDefinitionType],
@@ -816,7 +816,8 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues): FieldDe
     return output;
   }, {});
   // prefix with object
-  fieldMetadata.fullName = `${sobject}.${fieldMetadata.fullName}__c`;
+  const fieldApiName = orgNamespace ? `${orgNamespace}__${fieldMetadata.fullName}__c` : `${fieldMetadata.fullName}__c`;
+  fieldMetadata.fullName = `${sobject}.${fieldApiName}`;
 
   if (fieldValues.type.value === 'Formula') {
     fieldMetadata.type = fieldValues.secondaryType.value;
