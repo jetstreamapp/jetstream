@@ -113,8 +113,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   const resetBatchSizeState = useResetRecoilState(fromLoadRecordsState.batchSizeState);
   const resetInsertNullsState = useResetRecoilState(fromLoadRecordsState.insertNullsState);
   const resetSerialModeState = useResetRecoilState(fromLoadRecordsState.serialModeState);
-  const resetDryRunState = useResetRecoilState(fromLoadRecordsState.dryRunState);
-  const resetDryRunSizeState = useResetRecoilState(fromLoadRecordsState.dryRunSizeState);
+  const resetTrialRunState = useResetRecoilState(fromLoadRecordsState.trialRunState);
+  const resetTrialRunSizeState = useResetRecoilState(fromLoadRecordsState.trialRunSizeState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -138,14 +138,14 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     setSerialMode(apiMode === 'BATCH');
 
     resetInsertNullsState();
-    resetDryRunState();
-    resetDryRunSizeState();
+    resetTrialRunState();
+    resetTrialRunSizeState();
   }, [
     inputFileData,
     inputZipFileData,
     resetBatchSizeState,
-    resetDryRunSizeState,
-    resetDryRunState,
+    resetTrialRunSizeState,
+    resetTrialRunState,
     resetInsertNullsState,
     setApiMode,
     setBatchSize,
@@ -169,8 +169,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         resetBatchSizeState();
         resetInsertNullsState();
         resetSerialModeState();
-        resetDryRunState();
-        resetDryRunSizeState();
+        resetTrialRunState();
+        resetTrialRunSizeState();
       }
     };
   }, [
@@ -188,8 +188,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     resetBatchSizeState,
     resetInsertNullsState,
     resetSerialModeState,
-    resetDryRunState,
-    resetDryRunSizeState,
+    resetTrialRunState,
+    resetTrialRunSizeState,
   ]);
 
   useEffect(() => {
@@ -383,8 +383,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     resetBatchSizeState();
     resetInsertNullsState();
     resetSerialModeState();
-    resetDryRunState();
-    resetDryRunSizeState();
+    resetTrialRunState();
+    resetTrialRunSizeState();
     trackEvent(ANALYTICS_KEYS.load_StartOver, { page: currentStep.name });
   }
 

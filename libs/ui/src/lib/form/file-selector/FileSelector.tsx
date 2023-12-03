@@ -149,7 +149,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
 
       setManagedFilename(file.name);
 
-      const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
+      const readAsArrayBuffer = extension !== '.csv' && extension !== '.tsv' && extension !== '.xml';
       const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
 
       onReadFile({ filename: file.name, extension, content });

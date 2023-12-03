@@ -203,9 +203,10 @@ export type MimeTypeJson = 'application/json;charset=utf-8';
 export type MimeTypeXML = 'text/xml;charset=utf-8';
 export type MimeTypeGSheet = 'application/vnd.google-apps.spreadsheet';
 
-export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel | InputAcceptTypeXml;
+export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeTsv | InputAcceptTypeExcel | InputAcceptTypeXml;
 export type InputAcceptTypeZip = '.zip';
 export type InputAcceptTypeCsv = '.csv';
+export type InputAcceptTypeTsv = '.tsv';
 export type InputAcceptTypeExcel = '.xlsx';
 export type InputAcceptTypeXml = '.xml';
 
