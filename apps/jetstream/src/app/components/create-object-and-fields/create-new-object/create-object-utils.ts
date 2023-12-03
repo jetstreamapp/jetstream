@@ -1,6 +1,6 @@
 import { queryAll, sobjectOperation } from '@jetstream/shared/data';
 import { REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ObjectPermissionRecordInsert, RecordResult, SalesforceOrgUi, TabPermissionRecordInsert } from '@jetstream/types';
+import { Maybe, ObjectPermissionRecordInsert, RecordResult, SalesforceOrgUi, TabPermissionRecordInsert } from '@jetstream/types';
 import JSZip from 'jszip';
 import partition from 'lodash/partition';
 import { composeQuery, getField } from 'soql-parser-js';
@@ -24,7 +24,11 @@ export function generateApiNameFromLabel(value: string) {
   return apiNameLabel ? `${apiNameLabel}__c` : '';
 }
 
-export function getObjectAndTabPermissionRecords({ apiName, createTab, profiles, permissionSets, objectPermissions }: CreateFieldParams) {
+export function getObjectAndTabPermissionRecords(
+  { apiName: apiNameWithoutNamespace, createTab, profiles, permissionSets, objectPermissions }: CreateFieldParams,
+  orgNamespacePrefix?: Maybe<string>
+) {
+  const apiName = orgNamespacePrefix ? `${orgNamespacePrefix}__${apiNameWithoutNamespace}` : apiNameWithoutNamespace;
   const _objectPermissions: ObjectPermissionRecordInsert[] = [];
   const tabPermissions: TabPermissionRecordInsert[] = [];
 
@@ -162,6 +166,7 @@ export function getObjectXml(payload: CreateObjectPayload) {
   <allowInChatterGroups>${payload.allowInChatterGroups}</allowInChatterGroups>
   <compactLayoutAssignment>${payload.compactLayoutAssignment}</compactLayoutAssignment>
   <deploymentStatus>${payload.deploymentStatus}</deploymentStatus>
+  <description>${payload.description || ''}</description>
   <enableActivities>${payload.enableActivities}</enableActivities>
   <enableBulkApi>${payload.enableBulkApi}</enableBulkApi>
   <enableEnhancedLookup>${payload.enableEnhancedLookup}</enableEnhancedLookup>

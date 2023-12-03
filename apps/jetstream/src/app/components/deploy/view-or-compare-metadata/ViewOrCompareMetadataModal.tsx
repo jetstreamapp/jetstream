@@ -2,19 +2,19 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { unSanitizeXml } from '@jetstream/shared/utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
-import { useViewOrCompareMetadata } from './useViewOrCompareMetadata';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';
 import ViewOrCompareMetadataSidebar from './ViewOrCompareMetadataSidebar';
+import { useViewOrCompareMetadata } from './useViewOrCompareMetadata';
 import { EditorType, FileItemMetadata, OrgType } from './viewOrCompareMetadataTypes';
 import { generateExport, getEditorLanguage } from './viewOrCompareMetadataUtils';
 
@@ -157,6 +157,11 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
     fetchMetadata(org, 'TARGET');
   }
 
+  function handleReload() {
+    sourceOrg && fetchMetadata(sourceOrg, 'SOURCE');
+    targetOrg && fetchMetadata(targetOrg, 'TARGET');
+  }
+
   async function handleDownload(which: OrgType) {
     const fileNameParts = ['metadata-package'];
     if (which === 'SOURCE' && sourceResults) {
@@ -234,6 +239,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
               sourceLastChecked={sourceLastChecked}
               targetLoading={targetLoading}
               targetLastChecked={targetLastChecked}
+              reloadMetadata={handleReload}
               onDownloadPackage={handleDownload}
               onExportSummary={handleExport}
               onClose={onClose}
