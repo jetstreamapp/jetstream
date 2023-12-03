@@ -1,4 +1,4 @@
-import { getExcelSafeSheetName } from '../utils';
+import { getExcelSafeSheetName, getFullNameFromListMetadata } from '../utils';
 
 describe('utils.getExcelSafeSheetName', () => {
   it('should handle simple cases', () => {
@@ -35,5 +35,44 @@ describe('utils.getExcelSafeSheetName', () => {
         'recordsrecordsrecordsrecordsr12',
       ])
     ).toEqual('recordsrecordsrecordsrecordsr13');
+  });
+});
+
+describe('utils.getFullNameFromListMetadata', () => {
+  it('Should convert layout name', () => {
+    expect(
+      getFullNameFromListMetadata({
+        fullName: 'SBQQ__AttributeSet__c-Attribute Set Layout',
+        metadataType: 'Layout',
+        namespace: 'SBQQ',
+      })
+    ).toEqual('SBQQ__AttributeSet__c-SBQQ__Attribute Set Layout');
+  });
+  it('Should not double add namespace if already correct', () => {
+    expect(
+      getFullNameFromListMetadata({
+        fullName: 'SBQQ__AttributeSet__c-SBQQ__Attribute Set Layout',
+        metadataType: 'Layout',
+        namespace: 'SBQQ',
+      })
+    ).toEqual('SBQQ__AttributeSet__c-SBQQ__Attribute Set Layout');
+  });
+  it('Should not add namespace if non-managed', () => {
+    expect(
+      getFullNameFromListMetadata({
+        fullName: 'AttributeSet__c-Attribute Set Layout',
+        metadataType: 'Layout',
+        namespace: null,
+      })
+    ).toEqual('AttributeSet__c-Attribute Set Layout');
+  });
+  it('Should not apply to other managed package types', () => {
+    expect(
+      getFullNameFromListMetadata({
+        fullName: 'AttributeSet__c-Attribute Set Layout',
+        metadataType: 'ApexClass',
+        namespace: 'TEST',
+      })
+    ).toEqual('AttributeSet__c-Attribute Set Layout');
   });
 });

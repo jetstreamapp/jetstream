@@ -3,7 +3,7 @@ import { queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
-import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Spinner } from '../..';
 import ErrorBoundaryWithoutContent from '../utils/ErrorBoundaryWithoutContent';
 import Icon from '../widgets/Icon';

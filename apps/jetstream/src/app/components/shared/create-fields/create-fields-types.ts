@@ -1,4 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+
+export type ManualFormulaFieldType = 'string' | 'double' | 'boolean' | 'date' | 'datetime' | 'time';
+
+export type ManualFormulaRecord = Record<
+  string,
+  {
+    value: FieldValue | null;
+    type: ManualFormulaFieldType;
+  }
+>;
 
 export type FieldDefinitionMetadata = Partial<Record<FieldDefinitionType, any>>;
 
@@ -65,7 +76,7 @@ export type SalesforceFieldType =
   | 'LongTextArea'
   | 'Html';
 
-export type FieldDefinitionUiType = 'picklist' | 'text' | 'textarea' | 'radio' | 'checkbox';
+export type FieldDefinitionUiType = 'picklist' | 'text' | 'textarea' | 'textarea-with-formula' | 'radio' | 'checkbox';
 
 export interface FieldValueState {
   value: FieldValue;

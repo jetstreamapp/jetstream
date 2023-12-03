@@ -6,7 +6,7 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
         "lintFilePatterns": [
           "libs/ui/**/*.js",
@@ -25,8 +25,7 @@
     "test": {
       "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "libs/ui/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/ui/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/libs/ui"]
     },

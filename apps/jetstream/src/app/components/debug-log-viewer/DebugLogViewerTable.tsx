@@ -29,43 +29,48 @@ const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
     width: 12,
     renderCell: LogViewedRenderer,
     resizable: false,
-    // TODO: filter for this
   },
   {
     ...setColumnFromType('LogUser.Name', 'text'),
     name: 'User',
     key: 'LogUser.Name',
     width: 125,
+    draggable: true,
   },
   {
     ...setColumnFromType('Application', 'text'),
     name: 'Application',
     key: 'Application',
     width: 125,
+    draggable: true,
   },
   {
     ...setColumnFromType('Operation', 'text'),
     name: 'Operation',
     key: 'Operation',
     width: 125,
+    draggable: true,
   },
   {
     ...setColumnFromType('Status', 'text'),
     name: 'Status',
     key: 'Status',
     width: 125,
+    draggable: true,
   },
   {
     ...setColumnFromType('LogLength', 'text'),
     name: 'Size',
     key: 'LogLength',
     width: 125,
+    draggable: true,
   },
   {
     ...setColumnFromType('LastModifiedDate', 'date'),
     name: 'Time',
     key: 'LastModifiedDate',
     width: 202,
+    draggable: true,
   },
 ];
 
@@ -96,7 +101,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
-      <DataTable allowReorder columns={COLUMNS} data={logs} getRowKey={getRowId} onCellClick={handleSelectionChanged} />
+      <DataTable columns={COLUMNS} data={logs} getRowKey={getRowId} onCellClick={handleSelectionChanged} />
     </AutoFullHeightContainer>
   );
 };

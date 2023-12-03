@@ -38,7 +38,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["apps/jetstream-worker/**/*.ts"]
@@ -48,8 +48,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/jetstream-worker"],
       "options": {
-        "jestConfig": "apps/jetstream-worker/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/jetstream-worker/jest.config.ts"
       }
     }
   },

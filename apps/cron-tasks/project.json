@@ -51,7 +51,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["apps/cron-tasks/**/*.ts"]
@@ -61,8 +61,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/cron-tasks"],
       "options": {
-        "jestConfig": "apps/cron-tasks/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/cron-tasks/jest.config.ts"
       }
     }
   },

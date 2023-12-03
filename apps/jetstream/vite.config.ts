@@ -2,7 +2,7 @@
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
 import { PluginOption, defineConfig } from 'vite';
-import viteTsConfigPaths from 'vite-tsconfig-paths';
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 
 dns.setDefaultResultOrder('verbatim');
 const BASE_HREF = '/app';
@@ -52,17 +52,13 @@ export default defineConfig({
         plugins: ['@emotion/babel-plugin'],
       },
     }),
-    viteTsConfigPaths({
-      root: '../../',
-    }),
+    nxViteTsPaths(),
     baseHrefPlugin(),
   ],
 
   worker: {
     plugins: [
-      viteTsConfigPaths({
-        root: '../../',
-      }),
+      nxViteTsPaths(),
     ],
   },
 });

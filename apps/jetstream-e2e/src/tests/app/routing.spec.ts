@@ -24,7 +24,7 @@ const testCases = [
     menu: 'Deploy Metadata',
     items: [
       { link: 'Deploy and Compare Metadata', path: '/deploy-metadata' },
-      { link: 'Create Fields', path: '/create-fields' },
+      { link: 'Create Object and Fields', path: '/create-fields' },
       { link: 'Formula Evaluator', path: '/formula-evaluator' },
     ],
   },

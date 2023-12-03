@@ -1,9 +1,11 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
+import { composeQuery, parseQuery } from 'soql-parser-js';
 import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
@@ -18,7 +20,6 @@ export interface QueryResultsDownloadButtonProps {
   isTooling: boolean;
   nextRecordsUrl: Maybe<string>;
   fields: string[];
-  modifiedFields: string[];
   subqueryFields: Maybe<MapOf<string[]>>;
   records: any[];
   filteredRows: any[];
@@ -35,7 +36,6 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   isTooling,
   nextRecordsUrl,
   fields,
-  modifiedFields,
   subqueryFields,
   records,
   filteredRows,
@@ -71,6 +71,29 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
       includeDeletedRecords,
       useBulkApi,
     } = options;
+    let _soql = soql;
+
+    // Adjust the SOQL query to only include the fields specified (e.x. remove invalid fields for bulk API)
+    try {
+      const query = parseQuery(soql);
+      const fieldValues = new Set(fields);
+      query.fields = query.fields?.filter((field) => {
+        if (field.type === 'Field' || field.type === 'FieldTypeof') {
+          return fieldValues.has(field.field);
+        }
+        if (field.type === 'FieldRelationship' && field.rawValue) {
+          return fieldValues.has(field.rawValue);
+        }
+        if (field.type === 'FieldSubquery' && !includeSubquery) {
+          return false;
+        }
+        return true;
+      });
+      _soql = composeQuery(query);
+    } catch (ex) {
+      logger.warn('Failed processing or parse SOQL query', ex);
+    }
+
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -79,7 +102,7 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
         meta: {
           serverUrl,
           sObject: sObject || '',
-          soql,
+          soql: _soql,
           isTooling,
           includeDeletedRecords,
           useBulkApi,
@@ -121,7 +144,6 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           downloadModalOpen={isDownloadModalOpen}
           columns={columns}
           fields={fields || []}
-          modifiedFields={modifiedFields || []}
           subqueryFields={subqueryFields || {}}
           records={records || []}
           filteredRecords={filteredRows}

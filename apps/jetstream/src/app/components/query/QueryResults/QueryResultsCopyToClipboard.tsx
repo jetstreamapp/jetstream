@@ -29,7 +29,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
 }) => {
   const { trackEvent } = useAmplitude();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [format, setFormat] = useState<'excel' | 'text' | 'json'>('excel');
+  const [format, setFormat] = useState<'excel' | 'json'>('excel');
   const [whichRecords, setWhichRecords] = useState<WhichRecords>('all');
   const [hasFilteredRows, setHasFilteredRows] = useState<boolean>(false);
   const [hasPartialSelectedRows, setHasPartialSelectedRows] = useState<boolean>(false);
@@ -50,7 +50,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     setWhichRecords('all');
   }, [records, filteredRows, selectedRows]);
 
-  async function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
+  async function handleCopyToClipboard(format: 'excel' | 'json' = 'excel') {
     if (
       (records && hasFilteredRows && filteredRows.length < records.length) ||
       (records && hasPartialSelectedRows && selectedRows.length < records.length)
@@ -59,7 +59,6 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       setIsModalOpen(true);
       return;
     }
-
     copyRecordsToClipboard(records, format, fields);
     trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
   }
@@ -90,7 +89,6 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
 
   return (
     <Fragment>
-      {/* TODO */}
       <ButtonGroupContainer>
         <Tooltip
           delay={[1000, null]}
@@ -110,11 +108,8 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
           dropDownClassName="slds-dropdown_actions"
           position="right"
           disabled={!hasRecords}
-          items={[
-            { id: 'text', value: 'Copy as Text' },
-            { id: 'json', value: 'Copy as JSON' },
-          ]}
-          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'text' | 'json')}
+          items={[{ id: 'json', value: 'Copy as JSON' }]}
+          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'json')}
         />
       </ButtonGroupContainer>
       {isModalOpen && (

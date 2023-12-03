@@ -37,34 +37,34 @@ model SalesforceApi {
 }
 
 model SalesforceOrg {
-  id                     Int                                       @id @default(autoincrement())
-  jetstreamUserId        String                                    @db.VarChar
-  uniqueId               String                                    @db.VarChar
-  filterText             String                                    @db.VarChar
-  accessToken            String                                    @db.VarChar
-  instanceUrl            String                                    @db.VarChar
-  loginUrl               String                                    @db.VarChar
-  userId                 String                                    @db.VarChar(18)
-  email                  String                                    @db.VarChar
-  organizationId         String                                    @db.VarChar(18)
-  username               String                                    @db.VarChar
-  displayName            String                                    @db.VarChar
-  thumbnail              String?                                   @db.VarChar
-  apiVersion             String?                                   @db.VarChar
-  orgName                String?                                   @db.VarChar
-  orgCountry             String?                                   @db.VarChar
-  orgInstanceName        String?                                   @db.VarChar
+  id                     Int       @id @default(autoincrement())
+  jetstreamUserId        String    @db.VarChar
+  uniqueId               String    @db.VarChar
+  filterText             String    @db.VarChar
+  accessToken            String    @db.VarChar
+  instanceUrl            String    @db.VarChar
+  loginUrl               String    @db.VarChar
+  userId                 String    @db.VarChar(18)
+  email                  String    @db.VarChar
+  organizationId         String    @db.VarChar(18)
+  username               String    @db.VarChar
+  displayName            String    @db.VarChar
+  thumbnail              String?   @db.VarChar
+  apiVersion             String?   @db.VarChar
+  orgName                String?   @db.VarChar
+  orgCountry             String?   @db.VarChar
+  orgInstanceName        String?   @db.VarChar
   orgIsSandbox           Boolean?
-  orgLanguageLocaleKey   salesforce_org_orglanguagelocalekey_enum?
-  orgNamespacePrefix     String?                                   @db.VarChar
-  orgTrialExpirationDate DateTime?                                 @db.Date
-  createdAt              DateTime                                  @default(now()) @db.Timestamp(6)
-  updatedAt              DateTime                                  @updatedAt
-  connectionError        String?                                   @db.VarChar
-  jetstreamUrl           String?                                   @db.VarChar
-  label                  String?                                   @db.VarChar(100)
-  orgOrganizationType    String?                                   @db.VarChar
-  color                  String?                                   @db.VarChar(10)
+  orgLanguageLocaleKey   String?   @db.VarChar
+  orgNamespacePrefix     String?   @db.VarChar
+  orgTrialExpirationDate DateTime? @db.Date
+  createdAt              DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt              DateTime  @updatedAt
+  connectionError        String?   @db.VarChar
+  jetstreamUrl           String?   @db.VarChar
+  label                  String?   @db.VarChar(100)
+  orgOrganizationType    String?   @db.VarChar
+  color                  String?   @db.VarChar(10)
 
   @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
   @@map("salesforce_org")
@@ -76,27 +76,6 @@ model sessions {
   expire DateTime @db.Timestamp(6)
 
   @@index([expire], map: "IDX_session_expire")
-}
-
-enum salesforce_org_orglanguagelocalekey_enum {
-  en_US
-  de
-  es
-  fr
-  it
-  ja
-  sv
-  ko
-  zh_TW
-  zh_CN
-  pt_BR
-  nl_NL
-  da
-  th
-  fi
-  ru
-  es_MX
-  no
 }
 
 model AnalyticsSummary {

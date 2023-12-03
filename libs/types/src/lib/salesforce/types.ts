@@ -18,33 +18,13 @@ export type SalesforceOrgEdition =
   | 'Contact Manager Edition'
   | 'Base Edition';
 
-export type SalesforceOrgLocaleKey =
-  | 'en_US'
-  | 'de'
-  | 'es'
-  | 'fr'
-  | 'it'
-  | 'ja'
-  | 'sv'
-  | 'ko'
-  | 'zh_TW'
-  | 'zh_CN'
-  | 'pt_BR'
-  | 'nl_NL'
-  | 'da'
-  | 'th'
-  | 'fi'
-  | 'ru'
-  | 'es_MX'
-  | 'no';
-
 export interface SObjectOrganization {
   Name?: string;
   Country?: string;
   OrganizationType?: SalesforceOrgEdition;
   InstanceName?: string;
   IsSandbox?: boolean;
-  LanguageLocaleKey?: SalesforceOrgLocaleKey;
+  LanguageLocaleKey?: string;
   NamespacePrefix?: string;
   TrialExpirationDate?: string;
 }
@@ -290,6 +270,8 @@ export interface ObjectPermissionRecord {
   Parent: PermissionPermissionSetRecord;
 }
 
+export type ObjectPermissionRecordInsert = Omit<ObjectPermissionRecord, 'Id' | 'Parent'> & { attributes?: { type: 'ObjectPermissions' } };
+
 export interface FieldPermissionRecord {
   Id: string;
   SobjectType: string;
@@ -299,6 +281,13 @@ export interface FieldPermissionRecord {
   ParentId: string;
   Parent: PermissionPermissionSetRecord;
 }
+
+export type TabPermissionRecordInsert = {
+  attributes?: { type: 'PermissionSetTabSetting' };
+  ParentId: string;
+  Name: string;
+  Visibility: 'DefaultOn' | 'DefaultOff';
+};
 
 export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
 

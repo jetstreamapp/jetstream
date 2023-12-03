@@ -16,7 +16,13 @@ import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
-import { blockBotByUserAgentMiddleware, logRoute, notFoundMiddleware, setApplicationCookieMiddleware } from './app/routes/route.middleware';
+import {
+  addContextMiddleware,
+  blockBotByUserAgentMiddleware,
+  logRoute,
+  notFoundMiddleware,
+  setApplicationCookieMiddleware,
+} from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
@@ -84,6 +90,8 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   if (environment.production) {
     app.set('trust proxy', 1); // required for environments such as heroku / {render?}
   }
+
+  app.use(addContextMiddleware);
 
   // Setup session
   app.use(sessionMiddleware);

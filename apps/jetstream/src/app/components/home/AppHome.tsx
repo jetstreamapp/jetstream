@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { IconName, IconType } from '@jetstream/icon-factory';
 import { Badge, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment } from 'react';
@@ -76,10 +77,13 @@ export const AppHome = () => {
               <div className="slds-media__figure">
                 {card.icon && (
                   <Icon
-                    type={card.icon.type as any}
-                    icon={card.icon.icon as any}
+                    type={card.icon.type as IconType}
+                    icon={card.icon.icon as IconName}
                     containerClassname="slds-icon_container"
-                    className={classNames('slds-icon slds-icon_small', `slds-icon-${card.icon.type}-${card.icon.icon.replace('_', '-')}`)}
+                    className={classNames(
+                      'slds-icon slds-icon_small',
+                      `slds-icon-${card.icon.type}-${card.icon.icon.replaceAll('_', '-')}`
+                    )}
                   />
                 )}
               </div>

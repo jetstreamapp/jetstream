@@ -257,6 +257,7 @@ export const FormulaEvaluatorDeployModal = ({
                       )}
                     </Grid>
                   ),
+                  titleText: 'Field',
                   content: <FormulaEvaluatorFields formula={formula} field={field} loading={loading} onFieldChange={onFieldChange} />,
                 },
                 {
@@ -266,6 +267,7 @@ export const FormulaEvaluatorDeployModal = ({
                       <span>Field Permissions ({selectedProfiles.length + selectedPermissionSets.length})</span>
                     </Grid>
                   ),
+                  titleText: 'Field Permissions',
                   content: (
                     <FormulaEvaluatorPermissions
                       hasError={permissionData.hasError}
@@ -288,6 +290,7 @@ export const FormulaEvaluatorDeployModal = ({
                       <span>Page Layouts ({layoutData.selectedLayoutIds.size})</span>
                     </Grid>
                   ),
+                  titleText: 'Page Layouts',
                   content: (
                     <FormulaEvaluatorPageLayouts
                       sobjectName={sobject}
@@ -327,6 +330,7 @@ export const FormulaEvaluatorDeployModal = ({
                       )}
                     </Grid>
                   ),
+                  titleText: 'Deploy Field',
                   content: (
                     <FormulaEvaluatorDeploySummary
                       selectedOrg={selectedOrg}

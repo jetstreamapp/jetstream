@@ -173,8 +173,20 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   return (
     <tr>
-      <td className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
-        <div className="slds-line-clamp_medium slds-m-top_x-small" title={csvRowDataStr}>
+      <td
+        className="slds-align-top slds-text-color_weak bg-color-backdrop-tint"
+        css={css`
+          width: 200px;
+          max-width: 200px;
+        `}
+      >
+        <div
+          css={css`
+            line-break: anywhere;
+          `}
+          className="slds-line-clamp_medium slds-m-top_x-small"
+          title={csvRowDataStr}
+        >
           {csvRowDataStr}
         </div>
       </td>

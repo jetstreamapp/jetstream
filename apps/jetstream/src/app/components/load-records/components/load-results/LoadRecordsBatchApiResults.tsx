@@ -147,7 +147,11 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
-        rollbar.error('Error preparing batch api data', { queryErrors: preparedData?.queryErrors });
+        rollbar.error('Error preparing batch api data', {
+          message: 'Pre-processing failed',
+          queryErrors: preparedData?.queryErrors,
+          errors: preparedDataResponse.errors?.flatMap((error) => error.errors) || [],
+        });
       } else {
         setStatus(STATUSES.PROCESSING);
         setPreparedData(preparedDataResponse);

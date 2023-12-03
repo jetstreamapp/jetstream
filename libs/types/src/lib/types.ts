@@ -1,5 +1,5 @@
 import type { SalesforceId } from 'jsforce';
-import { InsertUpdateUpsertDeleteQuery, SalesforceOrgEdition, SalesforceOrgLocaleKey } from './salesforce/types';
+import { InsertUpdateUpsertDeleteQuery, SalesforceOrgEdition } from './salesforce/types';
 
 export type Maybe<T> = T | null | undefined;
 export type Nullable<T> = T | null;
@@ -207,7 +207,7 @@ export interface SalesforceOrgUi {
   orgOrganizationType?: Maybe<SalesforceOrgEdition>;
   orgInstanceName?: Maybe<string>;
   orgIsSandbox?: Maybe<boolean>;
-  orgLanguageLocaleKey?: Maybe<SalesforceOrgLocaleKey>;
+  orgLanguageLocaleKey?: Maybe<string>;
   orgNamespacePrefix?: Maybe<string>;
   orgTrialExpirationDate?: Maybe<string>;
   color?: Maybe<string>;

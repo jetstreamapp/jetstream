@@ -10,8 +10,7 @@ import parseISO from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import { Fragment, FunctionComponent, MutableRefObject, memo, useContext, useEffect, useRef, useState } from 'react';
-import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, renderHeaderCell, useRowSelection } from 'react-data-grid';
-import { useDrag, useDrop } from 'react-dnd';
+import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, useRowSelection } from 'react-data-grid';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
@@ -54,52 +53,6 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
 // HEADER RENDERERS
 
 /**
- * DRAGGABLE COLUMNS, ALLOW REORDERING
- */
-interface DraggableHeaderRendererProps<R> extends RenderHeaderCellProps<R> {
-  onColumnsReorder: (sourceKey: string, targetKey: string) => void;
-}
-
-export function DraggableHeaderRenderer<R>({ onColumnsReorder, column, ...props }: DraggableHeaderRendererProps<R>) {
-  const [{ isDragging }, drag] = useDrag({
-    type: 'COLUMN_DRAG',
-    item: { key: column.key },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const [{ isOver }, drop] = useDrop({
-    accept: 'COLUMN_DRAG',
-    drop({ key }: { key: string }) {
-      onColumnsReorder(key, column.key);
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-    }),
-  });
-
-  return (
-    <div
-      ref={(ref) => {
-        drag(ref);
-        drop(ref);
-      }}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        backgroundColor: isOver ? '#ececec' : undefined,
-        cursor: isDragging ? 'move' : undefined,
-      }}
-    >
-      {(column as any)._priorHeaderRenderer
-        ? (column as any)._priorHeaderRenderer({ column, ...props })
-        : renderHeaderCell({ column, ...props })}
-    </div>
-  );
-}
-
-/**
  * SELECT ALL CHECKBOX HEADER
  */
 export function SelectHeaderRenderer<T>(props: RenderHeaderCellProps<T>) {
@@ -140,7 +93,6 @@ export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
 }
 
 export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
-  onSort,
   sortDirection,
   column,
   children,
@@ -157,7 +109,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
 
   return (
-    <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center cursor-pointer" onClick={() => onSort(false)}>
+    <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center cursor-pointer">
       <div className="slds-truncate">{column.name}</div>
       <div className="slds-grid slds-grid_vertical-align-center">
         {sortDirection && <Icon type="utility" icon={iconName} className="slds-icon slds-icon-text-default slds-icon_xx-small" />}

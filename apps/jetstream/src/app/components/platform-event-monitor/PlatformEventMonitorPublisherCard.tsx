@@ -139,6 +139,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   return (
     <Card
       className="slds-grow"
+      icon={{ type: 'standard', icon: 'record_create' }}
       title="Publish Event"
       actions={
         <button

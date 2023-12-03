@@ -13,6 +13,16 @@ export type ColumnType = 'text' | 'number' | 'subquery' | 'object' | 'location' 
 export type FilterType = 'TEXT' | 'NUMBER' | 'DATE' | 'TIME' | 'SET' | 'BOOLEAN_SET';
 export const FILTER_SET_TYPES = new Set<FilterType>(['SET', 'BOOLEAN_SET']);
 
+export interface DataTableRef<T> {
+  hasSortApplied: () => boolean;
+  getFilteredAndSortedRows: () => readonly T[];
+  hasReorderedColumns: () => boolean;
+  /** Takes into account re-ordered columns */
+  getCurrentColumns: () => ColumnWithFilter<T>[];
+  /** Takes into account re-ordered columns */
+  getCurrentColumnNames: () => string[];
+}
+
 export type DataTableFilter =
   | DataTableTextFilter
   | DataTableNumberFilter
@@ -58,8 +68,6 @@ export interface ColumnWithFilter<TRow, TSummaryRow = unknown> extends Column<TR
   /** getValue is used when filtering or sorting rows */
   readonly getValue?: (params: { row: TRow; column: ColumnWithFilter<TRow, unknown> }) => string | null;
   readonly filters?: FilterType[];
-  /** If column reordering is enabled for a table, prevent column from reorder */
-  readonly preventReorder?: boolean;
 }
 
 export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {
@@ -80,6 +88,7 @@ export interface SubqueryContext<TRow = any> {
   org: SalesforceOrgUi;
   isTooling: boolean;
   columnDefinitions?: MapOf<ColumnWithFilter<TRow, unknown>[]>;
+  onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;

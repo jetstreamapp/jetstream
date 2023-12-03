@@ -258,7 +258,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
 
         // tried queue, but hit a stupid error - we may want a queue in the future for parallel requests
         for (const item of itemsToProcess) {
-          const { type, inFolder, folder, loading, error, items } = item;
+          const { type, inFolder } = item;
           try {
             let responseItem: ListMetadataResultItem;
             if (inFolder) {
@@ -274,7 +274,6 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             setListMetadataItems((previousItems) => ({ ...previousItems, [type]: responseItem }));
           } catch (ex) {
             logger.error(ex);
-            rollbar.error('List Metadata Failed for item', ex);
             if (!isMounted.current) {
               break;
             }
@@ -295,7 +294,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         setInitialLoadFinished(true);
       } catch (ex) {
         logger.error(ex);
-        rollbar.error('List Metadata Failed', ex);
+        rollbar.error('List Metadata Failed', { message: ex.message, stack: ex.stack });
         if (!isMounted.current) {
           return;
         }

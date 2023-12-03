@@ -6,7 +6,7 @@ export class UserFacingError extends Error {
   constructor(message: string | Error, additionalData?: any) {
     if (message instanceof Error) {
       if (message.message.startsWith('<?xml')) {
-        logger.warn('[XML ERROR]', { message: message.message });
+        logger.warn('[XML ERROR]', { message: message.message, additionalData });
         message.message = 'An unexpected error has occurred';
       }
       super(message.message);
@@ -14,7 +14,7 @@ export class UserFacingError extends Error {
       this.stack = message.stack;
     } else {
       if (message.startsWith('<?xml')) {
-        logger.warn('[XML ERROR]', { message });
+        logger.warn('[XML ERROR]', { message, additionalData });
         message = 'An unexpected error has occurred';
       }
       super(message);
@@ -54,7 +54,7 @@ export class NotFoundError extends Error {
 export class NotAllowedError extends Error {
   additionalData?: any;
   constructor(message: string | Error, additionalData?: any) {
-    logger.warn('[ROUTE NOT ALLOWED]', { message });
+    logger.warn('[ROUTE NOT ALLOWED]', { message, additionalData });
     if (message instanceof Error) {
       super(message.message);
       this.name = message.name;

@@ -13,7 +13,11 @@ export interface SalesforceApiResponseProps {
 
 export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps> = ({ loading, request, results }) => {
   return (
-    <Card title="Response" actions={<CopyToClipboard type="button" content={results?.body || ''} disabled={!results} />}>
+    <Card
+      icon={{ type: 'standard', icon: 'outcome' }}
+      title="Response"
+      actions={<CopyToClipboard type="button" content={results?.body || ''} disabled={!results} />}
+    >
       {loading && <Spinner />}
       <Grid
         vertical

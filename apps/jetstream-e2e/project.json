@@ -19,7 +19,7 @@
     },
     "e2e-ci": {
       "executor": "nx:run-commands",
-      "outputs": ["apps/jetstream-e2e/playwright-report"],
+      "outputs": ["{projectRoot}/playwright-report"],
       "options": {
         "command": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'"
       },
@@ -42,7 +42,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["apps/jetstream-e2e/**/*.{ts,tsx,js,jsx}"]

@@ -1,10 +1,9 @@
 import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
-import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
-import { ensureBoolean, flattenRecords, getIdFromRecordUrl, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
+import { ensureBoolean, getIdFromRecordUrl, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, Maybe } from '@jetstream/types';
-import copyToClipboard from 'copy-to-clipboard';
 import isAfter from 'date-fns/isAfter';
 import isBefore from 'date-fns/isBefore';
 import isSameDay from 'date-fns/isSameDay';
@@ -77,7 +76,7 @@ export function getRowId(data: any): string {
     return uniqueId('row-id');
   }
   let nodeId = data?.attributes?.url || data.Id || data.id || data.key;
-  if (!nodeId || nodeId.endsWith(SFDC_EMPTY_ID) || data.Id === SFDC_EMPTY_ID) {
+  if (!nodeId || (isString(nodeId) && nodeId.endsWith(SFDC_EMPTY_ID)) || data.Id === SFDC_EMPTY_ID) {
     nodeId = uniqueId('row-id');
   }
   return nodeId;
@@ -132,7 +131,8 @@ export function getColumnsForGenericTable(
 export function getColumnDefinitions(
   results: QueryResults<any>,
   isTooling: boolean,
-  fieldMetadata?: Maybe<MapOf<Field>>
+  fieldMetadata?: Maybe<MapOf<Field>>,
+  fieldMetadataSubquery?: Maybe<MapOf<MapOf<Field>>>
 ): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
@@ -158,7 +158,10 @@ export function getColumnDefinitions(
 
       if (Array.isArray(curr.childColumnPaths)) {
         curr.childColumnPaths.forEach((subqueryField) => {
-          out[subqueryField.columnFullPath.toLowerCase()] = subqueryField;
+          out[subqueryField.columnFullPath.toLowerCase()] = {
+            ...subqueryField,
+            columnFullPath: subqueryField.columnFullPath.split('.').slice(1).join('.'), // remove child relationship name
+          } as QueryResultsColumn;
         });
       }
       return out;
@@ -205,9 +208,16 @@ export function getColumnDefinitions(
   // subquery fields - only used if user clicks "view data" on a field so that the table can be built properly
   results.parsedQuery?.fields
     ?.filter((field) => isFieldSubquery(field))
-    .forEach((field: FieldSubquery) => {
-      output.subqueryColumns[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {}).map((field) =>
-        getQueryResultColumn({ field, queryColumnsByPath, isSubquery: false, allowEdit: false })
+    .forEach((parentField: FieldSubquery) => {
+      output.subqueryColumns[parentField.subquery.relationshipName] = getFlattenedFields(parentField.subquery || {}).map((field) =>
+        getQueryResultColumn({
+          field,
+          subqueryRelationshipName: parentField.subquery.relationshipName,
+          queryColumnsByPath,
+          isSubquery: false,
+          allowEdit: false,
+          fieldMetadata: fieldMetadataSubquery?.[field],
+        })
       );
     });
 
@@ -220,12 +230,14 @@ type Mutable<Type> = {
 
 function getQueryResultColumn({
   field,
+  subqueryRelationshipName,
   queryColumnsByPath,
   isSubquery,
   fieldMetadata,
   allowEdit = true,
 }: {
   field: string;
+  subqueryRelationshipName?: string;
   queryColumnsByPath: MapOf<QueryResultsColumn>;
   isSubquery: boolean;
   fieldMetadata?: Maybe<MapOf<Field>>;
@@ -246,6 +258,7 @@ function getQueryResultColumn({
     },
     resizable: true,
     sortable: true,
+    draggable: true,
     width: 200,
     filters: ['TEXT', 'SET'],
     renderHeaderCell: (props) => (
@@ -263,7 +276,10 @@ function getQueryResultColumn({
     ),
   };
 
-  const fieldLowercase = field.toLowerCase();
+  let fieldLowercase = field.toLowerCase();
+  if (subqueryRelationshipName) {
+    fieldLowercase = `${subqueryRelationshipName.toLowerCase()}.${fieldLowercase}`;
+  }
   if (queryColumnsByPath[fieldLowercase]) {
     const col = queryColumnsByPath[fieldLowercase];
     column.name = col.columnFullPath;
@@ -805,13 +821,9 @@ export function copySalesforceRecordTableDataToClipboard(
   }
   if (recordsToCopy.length) {
     if (format === 'json') {
-      copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
-    } else if (format === 'excel') {
-      const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
-      copyToClipboard(transformTabularDataToHtml(flattenedData, fieldsToCopy), { format: 'text/html' });
+      copyRecordsToClipboard(recordsToCopy, 'json');
     } else {
-      const flattenedData = flattenRecords(recordsToCopy, fieldsToCopy);
-      copyToClipboard(transformTabularDataToExcelStr(flattenedData, fieldsToCopy, includeHeader), { format: 'text/plain' });
+      copyRecordsToClipboard(recordsToCopy, 'excel', fieldsToCopy, includeHeader);
     }
   }
 }

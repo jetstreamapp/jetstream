@@ -87,7 +87,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
         'package.xml',
         [
           '<?xml version="1.0" encoding="UTF-8"?>',
-          '\t<Package xmlns="http://soap.sforce.com/2006/04/metadata">',
+          '<Package xmlns="http://soap.sforce.com/2006/04/metadata">',
           `\t<version>${defaultApiVersion.replace('v', '')}</version>`,
           '</Package>',
         ].join('\n')

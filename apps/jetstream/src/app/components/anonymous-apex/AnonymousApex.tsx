@@ -170,7 +170,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             })
             .catch((ex) => {
               logger.warn('[ERROR] Could not save history', ex);
-              rollbar.error('Error saving apex history', ex);
+              rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
             });
         }
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
@@ -211,10 +211,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     window.open(loginUrl, 'Developer Console', 'height=600,width=600');
   }
 
-  function handleLogLevelChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    setLogLevel(event.target.value);
-  }
-
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <Split
@@ -230,6 +226,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         <div className="slds-p-horizontal_x-small">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'apex' }}
             title={
               <Grid vertical>
                 <div>Anonymous Apex</div>
@@ -288,6 +285,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         <div className="slds-p-horizontal_x-small slds-is-relative">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'outcome' }}
             title={
               <div>
                 Results

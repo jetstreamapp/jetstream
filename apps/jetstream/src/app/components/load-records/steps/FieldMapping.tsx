@@ -263,6 +263,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                   scope="col"
                   css={css`
                     width: 200px;
+                    max-width: 200px;
                   `}
                 >
                   <Grid verticalAlign="center">
@@ -354,6 +355,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                   key={`${keyPrefix}-static-${i}`}
                   fields={fields}
                   fieldMappingItem={fieldMapping[header] as FieldMappingItemStatic}
+                  isCustomMetadata={isCustomMetadataObject}
                   onSelectionChanged={(value) => handleFieldMappingChange(header, value)}
                   onRemoveRow={() => handleRemoveRow(header)}
                 />
