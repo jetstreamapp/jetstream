@@ -82,8 +82,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
     loadInProgressTrialRun: false,
     hasLoadResultsTrialRun: false,
     hasLoadResults: false,
-    inputFileDataTrialRun: inputFileData.slice(0, trialRunSize || 0),
-    inputFileDataToLoad: inputFileData.slice(trialRunSize || 0),
+    inputFileDataTrialRun: trialRun && trialRunSize ? inputFileData.slice(0, trialRunSize) : [],
+    inputFileDataToLoad: trialRun && trialRunSize ? inputFileData.slice(trialRunSize || 0) : inputFileData,
   }));
 
   const numRecordsImpactedLabel = formatNumber(inputFileDataToLoad.length);
