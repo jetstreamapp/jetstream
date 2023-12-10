@@ -1,5 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import * as Auth0Strategy from 'passport-auth0';
 
 interface AuthorizationParamsOptions {

@@ -1,7 +1,7 @@
 import { logger, mailgun } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { AxiosError } from 'axios';
-import * as express from 'express';
+import express from 'express';
 import { body, query as queryString } from 'express-validator';
 import { deleteUserAndOrgs } from '../db/transactions.db';
 import * as auth0Service from '../services/auth0';

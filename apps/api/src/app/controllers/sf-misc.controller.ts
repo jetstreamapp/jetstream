@@ -4,7 +4,7 @@ import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } fr
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { NextFunction, Request, Response } from 'express';
 import { body, query } from 'express-validator';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { isObject, isString } from 'lodash';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';

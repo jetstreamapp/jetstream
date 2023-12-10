@@ -5,7 +5,7 @@ import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfo } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 import { sfBulkDownloadRecords, sfBulkGetQueryResultsJobIds } from '../services/sf-bulk';
 import { UserFacingError } from '../utils/error-handler';

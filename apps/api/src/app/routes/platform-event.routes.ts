@@ -1,10 +1,10 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
-import * as express from 'express';
+import express from 'express';
 import Router from 'express-promise-router';
 import type * as http from 'http';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { Url } from 'url';
 import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 

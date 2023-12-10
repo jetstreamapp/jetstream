@@ -4,7 +4,7 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { CometD } from 'cometd';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { CometdReplayExtension } from './cometd-replay-extension';
 
 export function initCometD(user: UserProfileServer, cometd: CometD, connection: jsforce.Connection) {

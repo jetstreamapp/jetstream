@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import * as queryService from '../services/query';
 import { sendJson } from '../utils/response.handlers';
 import { UserFacingError } from '../utils/error-handler';

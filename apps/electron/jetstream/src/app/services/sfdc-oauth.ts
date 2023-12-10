@@ -1,5 +1,5 @@
 import { SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { environment } from '../../environments/environment';
 import logger from './logger';
 

@@ -1,6 +1,6 @@
 import { getMapOf } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import fetch from 'node-fetch';
 import { PassThrough } from 'stream';
 import { environment } from '../../environments/environment';

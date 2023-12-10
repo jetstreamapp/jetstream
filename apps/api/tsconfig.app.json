@@ -3,6 +3,7 @@
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "outDir": "../../dist/out-tsc",
+    "module": "commonjs",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "jest.config.ts"],

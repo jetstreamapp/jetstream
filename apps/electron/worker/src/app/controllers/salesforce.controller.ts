@@ -12,7 +12,7 @@ import {
   Maybe,
 } from '@jetstream/types';
 import { Connection, DeployOptions, RequestInfo, RetrieveRequest, Tooling } from 'jsforce';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
 import { isObject, isString } from 'lodash';
 import fetch, { RequestInit } from 'node-fetch';
 import { parse as parseCsv } from 'papaparse';

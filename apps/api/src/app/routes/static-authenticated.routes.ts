@@ -1,4 +1,4 @@
-import * as express from 'express';
+import express from 'express';
 import Router from 'express-promise-router';
 import * as bulkApiController from '../controllers/sf-bulk-api.controller';
 import * as sfMiscController from '../controllers/sf-misc.controller';

@@ -9,7 +9,7 @@ import {
   BulkJobUntyped,
   BulkJobWithBatches,
 } from '@jetstream/types';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { isString } from 'lodash';
 import * as request from 'superagent';
 import { create as xmlBuilder, convert as xmlConverter } from 'xmlbuilder2';

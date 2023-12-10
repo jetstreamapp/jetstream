@@ -1,5 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import * as express from 'express';
+import express from 'express';
 import Router from 'express-promise-router';
 import * as passport from 'passport';
 import * as authController from '../controllers/auth.controller';

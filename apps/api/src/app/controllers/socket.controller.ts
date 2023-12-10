@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
-import * as express from 'express';
+import express from 'express';
 import { IncomingMessage, createServer } from 'http';
 import { nanoid } from 'nanoid';
 import { Server, Socket } from 'socket.io';

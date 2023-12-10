@@ -1,7 +1,7 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { MapOf } from '@jetstream/types';
 import findMyWay, { HTTPMethod } from 'find-my-way';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { isString } from 'lodash';
 import * as appController from './controllers/app.controller';
 import * as salesforceApiController from './controllers/salesforce-api.controller';

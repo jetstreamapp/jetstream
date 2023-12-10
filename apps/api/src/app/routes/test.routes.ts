@@ -1,7 +1,7 @@
 import { ENV } from '@jetstream/api-config';
-import * as express from 'express';
+import express from 'express';
 import Router from 'express-promise-router';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import { initConnectionFromOAuthResponse } from '../controllers/oauth.controller';
 import { NotAllowedError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';

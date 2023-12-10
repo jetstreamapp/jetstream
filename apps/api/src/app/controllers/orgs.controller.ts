@@ -3,7 +3,7 @@ import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { UserProfileServer } from '@jetstream/types';
 import { SalesforceOrg } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
-import * as jsforce from 'jsforce';
+import jsforce from 'jsforce';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
