@@ -289,6 +289,25 @@ export type TabPermissionRecordInsert = {
   Visibility: 'DefaultOn' | 'DefaultOff';
 };
 
+export interface TabVisibilityPermissionRecord {
+  Id: string;
+  Name: string;
+  Visibility: 'DefaultOff' | 'DefaultOn';
+  ParentId: string;
+  Parent: PermissionPermissionSetRecord;
+}
+
+export interface TabDefinitionRecord {
+  Id: string;
+  Name: string;
+  Label: string;
+  SobjectName: string;
+}
+
+export type TabVisibilityPermissionRecordInsert = Omit<TabVisibilityPermissionRecord, 'Id' | 'Parent'> & {
+  attributes?: { type: 'ObjectPermissions' };
+};
+
 export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
 
 export interface BulkJob {

@@ -11,19 +11,26 @@ import {
   PermissionSetWithProfileRecord,
   RecordResult,
   SalesforceOrgUi,
+  TabVisibilityPermissionRecord,
 } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import { composeQuery, getField, Query, WhereClause } from 'soql-parser-js';
+import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import {
   FieldPermissionDefinitionMap,
   FieldPermissionRecordForSave,
   ObjectPermissionDefinitionMap,
   ObjectPermissionRecordForSave,
+  PermissionDefinitionMap,
   PermissionFieldSaveData,
   PermissionObjectSaveData,
   PermissionSaveResults,
+  PermissionTabVisibilitySaveData,
+  PermissionTableCellPermission,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCellPermission,
+  PermissionTableTabVisibilityCellPermission,
+  TabVisibilityPermissionDefinitionMap,
+  TabVisibilityPermissionRecordForSave,
 } from './permission-manager-types';
 
 const MAX_OBJ_IN_QUERY = 100;
@@ -58,6 +65,7 @@ export function prepareObjectPermissionSaveData(dirtyPermissions: PermissionTabl
         permissionSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[];
         recordsToInsert: ObjectPermissionRecordForSave[];
         recordsToUpdate: ObjectPermissionRecordForSave[];
+        recordsToDelete: string[];
       },
       perm,
       i
@@ -93,7 +101,7 @@ export function prepareObjectPermissionSaveData(dirtyPermissions: PermissionTabl
 
       return output;
     },
-    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [] }
+    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] }
   );
 }
 
@@ -105,6 +113,7 @@ export function prepareFieldPermissionSaveData(dirtyPermissions: PermissionTable
         permissionSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[];
         recordsToInsert: FieldPermissionRecordForSave[];
         recordsToUpdate: FieldPermissionRecordForSave[];
+        recordsToDelete: string[];
       },
       perm,
       i
@@ -137,22 +146,80 @@ export function prepareFieldPermissionSaveData(dirtyPermissions: PermissionTable
 
       return output;
     },
-    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [] }
+    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] }
+  );
+}
+
+export function prepareTabVisibilityPermissionSaveData(
+  dirtyPermissions: PermissionTableTabVisibilityCellPermission[]
+): PermissionTabVisibilitySaveData {
+  return dirtyPermissions.reduce(
+    (
+      output: {
+        // used to easily keep track of the input data with the actual results
+        permissionSaveResults: PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[];
+        recordsToInsert: TabVisibilityPermissionRecordForSave[];
+        recordsToUpdate: TabVisibilityPermissionRecordForSave[];
+        recordsToDelete: string[];
+      },
+      perm,
+      i
+    ) => {
+      let newRecord: TabVisibilityPermissionRecordForSave | undefined = undefined;
+      let recordIdx: number;
+      let operation: 'insert' | 'update' | 'delete' = 'insert';
+      if (perm.record.record && !perm.available) {
+        output.recordsToDelete.push(perm.record.record.Id);
+        recordIdx = output.recordsToDelete.length - 1;
+        operation = 'delete';
+      } else if (perm.record.record) {
+        newRecord = {
+          attributes: { type: 'PermissionSetTabSetting' },
+          Id: perm.record.record.Id,
+          Visibility: perm.visible ? 'DefaultOn' : 'DefaultOff',
+        };
+        output.recordsToUpdate.push(newRecord);
+        recordIdx = output.recordsToUpdate.length - 1;
+        operation = 'update';
+      } else {
+        newRecord = {
+          attributes: { type: 'PermissionSetTabSetting' },
+          Name: perm.sobject.endsWith('__c') ? perm.sobject : `standard-${perm.sobject}`,
+          Visibility: perm.visible ? 'DefaultOn' : 'DefaultOff',
+          ParentId: perm.parentId,
+        };
+        output.recordsToInsert.push(newRecord);
+        recordIdx = output.recordsToInsert.length - 1;
+      }
+
+      output.permissionSaveResults.push({
+        dirtyPermission: perm,
+        dirtyPermissionIdx: i,
+        operation,
+        record: newRecord,
+        recordIdx,
+      });
+
+      return output;
+    },
+    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] }
   );
 }
 
 export async function savePermissionRecords<RecordType, DirtyPermType>(
   org: SalesforceOrgUi,
-  type: 'ObjectPermissions' | 'FieldPermissions',
+  type: 'ObjectPermissions' | 'FieldPermissions' | 'PermissionSetTabSetting',
   preparedData: {
     permissionSaveResults: PermissionSaveResults<RecordType, DirtyPermType>[];
     recordsToInsert: RecordType[];
     recordsToUpdate: RecordType[];
+    recordsToDelete: string[];
   }
 ): Promise<PermissionSaveResults<RecordType, DirtyPermType>[]> {
-  const { permissionSaveResults, recordsToInsert, recordsToUpdate } = preparedData;
+  const { permissionSaveResults, recordsToInsert, recordsToUpdate, recordsToDelete } = preparedData;
   let recordInsertResults: RecordResult[] = [];
   let recordUpdateResults: RecordResult[] = [];
+  let recordDeleteResults: RecordResult[] = [];
   if (recordsToInsert.length) {
     recordInsertResults = (
       await Promise.all(
@@ -167,12 +234,21 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
       )
     ).flat();
   }
+  if (recordsToDelete.length) {
+    recordDeleteResults = (
+      await Promise.all(
+        splitArrayToMaxSize(recordsToDelete, 200).map((ids) => sobjectOperation(org, type, 'delete', { ids }, { allOrNone: false }))
+      )
+    ).flat();
+  }
 
   permissionSaveResults.forEach((saveResults) => {
     if (saveResults.operation === 'insert') {
       saveResults.response = recordInsertResults[saveResults.recordIdx];
-    } else {
+    } else if (saveResults.operation === 'update') {
       saveResults.response = recordUpdateResults[saveResults.recordIdx];
+    } else if (saveResults.operation === 'delete') {
+      saveResults.response = recordDeleteResults[saveResults.recordIdx];
     }
   });
 
@@ -209,7 +285,7 @@ export async function updatePermissionSetRecords(
 }
 
 export function collectProfileAndPermissionIds(
-  dirtyPermissions: (PermissionTableObjectCellPermission | PermissionTableFieldCellPermission)[],
+  dirtyPermissions: PermissionTableCellPermission[],
   profilesById: MapOf<PermissionSetWithProfileRecord>,
   permissionSetsById: MapOf<PermissionSetNoProfileRecord>
 ) {
@@ -408,9 +484,88 @@ export function getUpdatedFieldPermissions(
   return output;
 }
 
-export function clearPermissionErrorMessage<T extends ObjectPermissionDefinitionMap | FieldPermissionDefinitionMap>(
-  permissionMap: MapOf<T>
-): MapOf<T> {
+export function getUpdatedTabVisibilityPermissions(
+  objectPermissionMap: MapOf<TabVisibilityPermissionDefinitionMap>,
+  permissionSaveResults: PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
+) {
+  const output: MapOf<TabVisibilityPermissionDefinitionMap> = { ...objectPermissionMap };
+  // remove all error messages across all objects
+  Object.keys(output).forEach((key) => {
+    output[key] = { ...output[key] };
+    output[key].permissionKeys.forEach((permKey) => {
+      output[key].permissions = {
+        ...output[key].permissions,
+        [permKey]: {
+          ...output[key].permissions[permKey],
+          errorMessage: undefined,
+        },
+      };
+    });
+  });
+
+  permissionSaveResults.forEach(({ dirtyPermission, operation, response }) => {
+    const fieldKey = dirtyPermission.sobject;
+    if (!isErrorResponse(response)) {
+      const fieldPermission: Partial<TabVisibilityPermissionRecord> = {
+        Id: response?.id,
+        ParentId: dirtyPermission.parentId,
+        Visibility: dirtyPermission.visible ? 'DefaultOn' : 'DefaultOff',
+        Name: dirtyPermission.sobject,
+        // missing Parent related lookup, as we do not have data for it
+      };
+      if (operation === 'insert') {
+        output[fieldKey] = {
+          ...output[fieldKey],
+          permissions: {
+            ...output[fieldKey].permissions,
+            [dirtyPermission.parentId]: {
+              ...output[fieldKey].permissions[dirtyPermission.parentId],
+              available: dirtyPermission.available,
+              visible: dirtyPermission.visible,
+              record: fieldPermission as TabVisibilityPermissionRecord,
+            },
+          },
+        };
+      } else {
+        const isDelete = !dirtyPermission.available;
+        output[fieldKey] = {
+          ...output[fieldKey],
+          permissions: {
+            ...output[fieldKey].permissions,
+            [dirtyPermission.parentId]: {
+              ...output[fieldKey].permissions[dirtyPermission.parentId],
+              available: dirtyPermission.available,
+              visible: dirtyPermission.visible,
+              record: isDelete ? null : (fieldPermission as TabVisibilityPermissionRecord),
+            },
+          },
+        };
+      }
+    } else {
+      logger.warn('[SAVE ERROR]', { dirtyPermission, response });
+      output[fieldKey] = {
+        ...output[fieldKey],
+        permissions: {
+          ...output[fieldKey].permissions,
+          [dirtyPermission.parentId]: {
+            ...output[fieldKey].permissions[dirtyPermission.parentId],
+            errorMessage: response.errors
+              .map((err) =>
+                // (field not detectable in advance): Field Name: bad value for restricted picklist field: X.X
+                err.statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'
+                  ? 'Salesforce does not allow modification of permissions for this field.'
+                  : err.message
+              )
+              .join('\n'),
+          },
+        },
+      };
+    }
+  });
+  return output;
+}
+
+export function clearPermissionErrorMessage<T extends PermissionDefinitionMap>(permissionMap: MapOf<T>): MapOf<T> {
   return Object.keys(permissionMap).reduce((output: MapOf<T>, key) => {
     output[key] = { ...permissionMap[key] };
     output[key].permissions = { ...output[key].permissions };
@@ -421,9 +576,7 @@ export function clearPermissionErrorMessage<T extends ObjectPermissionDefinition
   }, {});
 }
 
-export function permissionsHaveError<T extends ObjectPermissionDefinitionMap | FieldPermissionDefinitionMap>(
-  permissionMap: MapOf<T>
-): boolean {
+export function permissionsHaveError<T extends PermissionDefinitionMap>(permissionMap: MapOf<T>): boolean {
   return Object.values(permissionMap).some((item) => Object.values(item.permissions).some((permission) => permission.errorMessage));
 }
 
@@ -568,6 +721,70 @@ export function getQueryForFieldPermissions(allSobjects: string[], profilePermSe
 }
 
 /**
+ * Gets query object permissions
+ * @param allSobjects
+ * @param permSetIds
+ * @param profilePermSetIds
+ * @returns query object permissions
+ */
+export function getQueryTabVisibilityPermissions(allSobjects: string[], permSetIds: string[], profilePermSetIds: string[]): string[] {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
+    const query: Query = {
+      fields: [
+        getField('Id'),
+        getField('Name'),
+        getField('Visibility'),
+        getField('ParentId'),
+        getField('Parent.Id'),
+        getField('Parent.Name'),
+        getField('Parent.IsOwnedByProfile'),
+        getField('Parent.ProfileId'),
+      ],
+      sObject: 'PermissionSetTabSetting',
+      where: getWhereClauseForPermissionQuery(
+        sobjects.map((sobject) => (sobject.endsWith('__c') ? sobject : `standard-${sobject}`)),
+        permSetIds,
+        profilePermSetIds,
+        'Name'
+      ),
+      orderBy: {
+        field: 'Name',
+        order: 'ASC',
+      },
+    };
+
+    return composeQuery(query);
+  });
+  logger.log('getQueryTabVisibilityPermissions()', queries);
+  return queries;
+}
+
+export function getQueryTabDefinition(allSobjects: string[]): string[] {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
+    const query: Query = {
+      fields: [getField('Id'), getField('Name'), getField('Label'), getField('SobjectName')],
+      sObject: 'TabDefinition',
+      where: {
+        left: {
+          field: 'SobjectName',
+          operator: 'IN',
+          value: sobjects,
+          literalType: 'STRING',
+        },
+      },
+      orderBy: {
+        field: 'SobjectName',
+        order: 'ASC',
+      },
+    };
+
+    return composeQuery(query);
+  });
+  logger.log('getQueryTabDefinition()', queries);
+  return queries;
+}
+
+/**
  * Build WHERE clause for object/field permissions
  * Assumptions:
  * 1. sobjects will always have at least one entry
@@ -577,13 +794,18 @@ export function getQueryForFieldPermissions(allSobjects: string[], profilePermSe
  * @param permSetIds
  * @param profilePermSetIds
  */
-function getWhereClauseForPermissionQuery(sobjects: string[], profilePermSetIds: string[], permSetIds: string[]): WhereClause | undefined {
+function getWhereClauseForPermissionQuery(
+  sobjects: string[],
+  profilePermSetIds: string[],
+  permSetIds: string[],
+  sobjectNameField: 'SobjectType' | 'Name' = 'SobjectType'
+): WhereClause | undefined {
   if (!sobjects.length || (!permSetIds.length && !profilePermSetIds.length)) {
     return undefined;
   }
   return {
     left: {
-      field: 'SobjectType',
+      field: sobjectNameField,
       operator: 'IN',
       value: sobjects,
       literalType: 'STRING',

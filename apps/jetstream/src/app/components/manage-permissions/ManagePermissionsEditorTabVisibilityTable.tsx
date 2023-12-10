@@ -8,33 +8,33 @@ import {
   FieldPermissionTypes,
   ManagePermissionsEditorTableRef,
   PermissionManagerTableContext,
-  PermissionTableObjectCell,
   PermissionTableSummaryRow,
+  PermissionTableTabVisibilityCell,
 } from './utils/permission-manager-types';
 
-function getRowKey(row: PermissionTableObjectCell) {
+function getRowKey(row: PermissionTableTabVisibilityCell) {
   return row.key;
 }
 
 // summary row is just a placeholder for rendered content
 const SUMMARY_ROWS: PermissionTableSummaryRow[] = [{ type: 'HEADING' }, { type: 'ACTION' }];
 
-export interface ManagePermissionsEditorObjectTableProps {
-  columns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[];
-  rows: PermissionTableObjectCell[];
+export interface ManagePermissionsEditorTabVisibilityTableProps {
+  columns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[];
+  rows: PermissionTableTabVisibilityCell[];
   totalCount: number;
   onFilter: (value: string) => void;
-  onBulkUpdate: (rows: PermissionTableObjectCell[], indexes?: number[]) => void;
-  onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableObjectCell>>) => void;
+  onBulkUpdate: (rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => void;
+  onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableTabVisibilityCell>>) => void;
 }
 
-export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
+export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
-    const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
+    const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {
-        resetGridChanges({ rows, type: 'object' });
+        resetGridChanges({ rows, type: 'tabVisibility' });
         setDirtyRows({});
       },
     }));
@@ -45,11 +45,11 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
 
     function handleColumnAction(action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) {
       const [id, typeLabel] = columnKey.split('-');
-      onBulkUpdate(updateRowsFromColumnAction('object', action, typeLabel as FieldPermissionTypes, id, rows));
+      onBulkUpdate(updateRowsFromColumnAction('tabVisibility', action, typeLabel as FieldPermissionTypes, id, rows));
     }
 
     const handleRowsChange = useCallback(
-      (rows: PermissionTableObjectCell[], { indexes }) => {
+      (rows: PermissionTableTabVisibilityCell[], { indexes }) => {
         onBulkUpdate(rows, indexes);
       },
       [onBulkUpdate]
@@ -66,7 +66,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
             onRowsChange={handleRowsChange}
             context={
               {
-                type: 'object',
+                type: 'tabVisibility',
                 totalCount,
                 onFilterRows: onFilter,
                 onColumnAction: handleColumnAction,
@@ -82,4 +82,4 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
   }
 );
 
-export default ManagePermissionsEditorObjectTable;
+export default ManagePermissionsEditorTabVisibilityTable;
