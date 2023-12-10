@@ -43,6 +43,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
+  const resetTabVisibilityPermissionMap = useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
@@ -67,6 +68,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     resetFieldsByKey();
     resetObjectPermissionMap();
     resetFieldPermissionMap();
+    resetTabVisibilityPermissionMap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 
