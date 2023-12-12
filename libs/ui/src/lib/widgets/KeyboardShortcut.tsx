@@ -11,9 +11,12 @@ export interface KeyboardShortcutProps extends GridProps {
   preContent?: ReactNode;
   postContent?: ReactNode;
   separator?: ReactNode;
+  inverse?: boolean;
 }
 
-export function KeyboardShortcut({ keys, preContent, postContent, separator = '+', ...rest }: KeyboardShortcutProps) {
+export function KeyboardShortcut({ keys, preContent, postContent, separator = '+', inverse, ...rest }: KeyboardShortcutProps) {
+  const bgColor = inverse ? `#e5e5e5` : `rgba(0, 0, 0, 0.06)`;
+  const accentColor = inverse ? `#e5e5e5` : `#e5e5e5`;
   return (
     <Grid verticalAlign="center" {...rest}>
       {preContent && <span className="slds-m-right_x-small">{preContent}</span>}
@@ -23,11 +26,11 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
             className={i === keys.length - 1 ? 'slds-m-right_x-small' : ''}
             css={css`
               align-items: center;
-              background-color: rgba(0, 0, 0, 0.06);
+              background-color: ${bgColor};
               border-radius: 0.25rem;
-              border: 1px solid #e5e5e5;
-              box-shadow: #e5e5e5;
-              box-shadow: inset 0 -1px 0 0 #e5e5e5;
+              border: 1px solid ${accentColor};
+              box-shadow: ${accentColor};
+              box-shadow: inset 0 -1px 0 0 ${accentColor};
               color: rgba(24, 24, 27, 1);
               display: inline-flex;
               font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans,

@@ -14,9 +14,12 @@ import {
   CopyToClipboard,
   Grid,
   Icon,
+  KeyboardShortcut,
   SalesforceLogin,
   Spinner,
+  Tooltip,
   ViewDocsLink,
+  getModifierKey,
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
@@ -248,10 +251,19 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                     onSelected={(item) => setLogLevel(item.id)}
                   />
                 </div>
-                <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
-                  <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Submit
-                </button>
+                <Tooltip
+                  delay={[300, null]}
+                  content={
+                    <div className="slds-p-bottom_small">
+                      <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                    </div>
+                  }
+                >
+                  <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
+                    <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Submit
+                  </button>
+                </Tooltip>
               </Fragment>
             }
           >
