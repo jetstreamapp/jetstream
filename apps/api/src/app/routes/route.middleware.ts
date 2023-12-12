@@ -287,6 +287,7 @@ export async function getOrgForRequest(
       // http://www.fishofprey.com/2016/03/salesforce-forcecom-ide-superpowers.html
       // FIXME: this breaks some orgs
       // client: `apex_eclipse/v${apiVersion || org.apiVersion || ENV.SFDC_API_VERSION}`,
+      client: 'jetstream',
     },
   };
 
