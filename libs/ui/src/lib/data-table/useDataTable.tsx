@@ -38,6 +38,7 @@ export interface UseDataTableProps {
   // context?: TContext;
   /** Must be stable to avoid constant re-renders */
   contextMenuItems?: ContextMenuItem[];
+  initialSortColumns?: SortColumn[];
   ref: any;
   /** Must be stable to avoid constant re-renders */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<any>) => void;
@@ -56,6 +57,7 @@ export function useDataTable<T = RowWithKey>({
   quickFilterText,
   includeQuickFilter,
   contextMenuItems,
+  initialSortColumns,
   ref,
   contextMenuAction,
   getRowKey,
@@ -66,7 +68,7 @@ export function useDataTable<T = RowWithKey>({
 }: UseDataTableProps) {
   const [gridId] = useState(() => uniqueId('grid-'));
   const [columns, setColumns] = useState(_columns || []);
-  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
+  const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>(() => initialSortColumns || []);
   const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
   const [renderers, setRenderers] = useState<Renderers<T, unknown>>({});
   const [columnsOrder, setColumnsOrder] = useState((): readonly number[] => columns.map((_, index) => index));
