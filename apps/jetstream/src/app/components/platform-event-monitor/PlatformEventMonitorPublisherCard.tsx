@@ -4,15 +4,16 @@ import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
 import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
-import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
+import type { DescribeSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { PlatformEventObject } from './platform-event-monitor.types';
 
 export interface PlatformEventMonitorPublisherCardProps {
   selectedOrg: SalesforceOrgUi;
   serverUrl: string;
   loadingPlatformEvents: boolean;
   picklistKey: string | number;
-  platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
+  platformEventsList: ListItem<string, PlatformEventObject>[];
   selectedPublishEvent: Maybe<string>;
   onSelectedPublishEvent: (id: string) => void;
   publish: (platformEventName: string, data: any) => Promise<string>;

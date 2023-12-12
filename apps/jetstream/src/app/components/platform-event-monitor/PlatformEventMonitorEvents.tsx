@@ -1,10 +1,19 @@
 import { css } from '@emotion/react';
 import { orderStringsBy } from '@jetstream/shared/utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTree } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, ContextMenuItem, DataTree } from '@jetstream/ui';
+import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { RenderCellProps, RowHeightArgs } from 'react-data-grid';
 import { MessagesByChannel } from './usePlatformEvent';
+
+type ContextEventAction = 'COPY_CELL' | 'COPY_EVENT' | 'COPY_EVENT_ALL';
+
+const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextEventAction>[] = [
+  { label: 'Copy cell to clipboard', value: 'COPY_CELL' },
+  { label: 'Copy event to clipboard', value: 'COPY_EVENT' },
+  { label: 'Copy all events to clipboard', value: 'COPY_EVENT_ALL' },
+];
 
 export const WrappedTextFormatter: FunctionComponent<RenderCellProps<PlatformEventRow>> = ({ column, row }) => {
   const value = row[column.key];
@@ -25,19 +34,12 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
     name: 'Event',
     key: 'event',
     width: 230,
-    // rowGroup: true,
-    // hide: true,
-    // lockVisible: true,
-    // lockPosition: true,
-    // tooltipField: 'event',
     frozen: true,
   },
   {
     name: 'Payload',
     key: 'payload',
     width: 450,
-    // wrapText: true,
-    // autoHeight: true,
     renderCell: WrappedTextFormatter,
     cellClass: 'break-all',
     draggable: true,
@@ -46,14 +48,12 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
     name: 'UUID',
     key: 'uuid',
     width: 160,
-    // tooltipField: 'uuid',
     draggable: true,
   },
   {
     name: 'Replay Id',
     key: 'replayId',
     width: 120,
-    // tooltipField: 'replayId',
     draggable: true,
   },
 ];
@@ -61,7 +61,7 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
 const groupedRows = ['event'] as const;
 
 function getRowId(data: PlatformEventRow): string {
-  return data.uuid;
+  return data.uuid || `${data.replayId}` || JSON.stringify(data);
 }
 
 function getRowHeight({ row, type }: RowHeightArgs<PlatformEventRow>) {
@@ -108,6 +108,23 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
     );
   }, [messagesByChannel]);
 
+  const handleContextMenuAction = useCallback(
+    (item: ContextMenuItem<ContextEventAction>, data: ContextMenuActionData<PlatformEventRow>) => {
+      switch (item.value) {
+        case 'COPY_CELL':
+          copyToClipboard(JSON.stringify(data.row[data.column.key], null, 2), { format: 'text/plain' });
+          break;
+        case 'COPY_EVENT':
+          copyToClipboard(JSON.stringify(data.row, null, 2), { format: 'text/plain' });
+          break;
+        case 'COPY_EVENT_ALL':
+          copyToClipboard(JSON.stringify(data.rows, null, 2), { format: 'text/plain' });
+          break;
+      }
+    },
+    []
+  );
+
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={25}>
       <DataTree
@@ -119,6 +136,8 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         expandedGroupIds={expandedGroupIds}
         onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
         rowHeight={getRowHeight}
+        contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
+        contextMenuAction={handleContextMenuAction}
       />
     </AutoFullHeightContainer>
   );
