@@ -1,23 +1,43 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { formatNumber, hasModifierKey, isHKey, useGlobalEventHandler, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import {
+  formatNumber,
+  hasModifierKey,
+  hasShiftModifierKey,
+  isHKey,
+  useGlobalEventHandler,
+  useNonInitialEffect,
+} from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
-import { EmptyState, Grid, GridCol, Icon, List, Modal, SearchInput, Spinner } from '@jetstream/ui';
+import {
+  EmptyState,
+  Grid,
+  GridCol,
+  Icon,
+  KeyboardShortcut,
+  List,
+  Modal,
+  SearchInput,
+  Spinner,
+  Tooltip,
+  getModifierKey,
+} from '@jetstream/ui';
 import classNames from 'classnames';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { useAmplitude } from '../../core/analytics';
 import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
-import * as fromQueryHistoryState from './query-history.state';
+import { useAmplitude } from '../../core/analytics';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
 import QueryHistoryWhichOrg from './QueryHistoryWhichOrg';
 import QueryHistoryWhichType from './QueryHistoryWhichType';
+import * as fromQueryHistoryState from './query-history.state';
 
 const SHOWING_STEP = 25;
 
@@ -60,9 +80,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
   useImperativeHandle(ref, () => {
     return {
       open: (type: fromQueryHistoryState.QueryHistoryType = 'HISTORY') => {
-        setIsOpen(true);
-        setWhichType(type);
-        setWhichOrg('ALL');
+        handleOpenModal(type, 'externalAction');
       },
     };
   });
@@ -72,9 +90,10 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
       if (!isOpen && hasModifierKey(event as any) && isHKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
-        setIsOpen(true);
+        handleOpenModal(hasShiftModifierKey(event as any) ? 'SAVED' : 'HISTORY', 'keyboardShortcut');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isOpen]
   );
 
@@ -133,12 +152,6 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   useEffect(() => {
     if (isOpen) {
-      trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened);
-    }
-  }, [isOpen, trackEvent]);
-
-  useEffect(() => {
-    if (isOpen) {
       setIsOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -162,9 +175,11 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectObjectsList, filterValue]);
 
-  function handleOpenModal() {
+  function handleOpenModal(type: fromQueryHistoryState.QueryHistoryType = 'HISTORY', source = 'buttonClick') {
+    setWhichType(type);
     setIsOpen(true);
     fromQueryHistoryState.initQueryHistory().then((queryHistory) => setQueryHistorySateMap(queryHistory));
+    trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened, { source, type });
   }
 
   function handleExecute({ created, lastRun, runCount, isTooling, isFavorite }: QueryHistoryItem) {
@@ -229,15 +244,45 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <button
-        className={classNames('slds-button slds-button_neutral', className)}
-        aria-haspopup="true"
-        title="View query history and saved queries (ctrl/command + h)"
-        onClick={() => handleOpenModal()}
+      <Tooltip
+        content={
+          <div className="slds-p-bottom_small">
+            View query history
+            <KeyboardShortcut inverse keys={[getModifierKey(), 'h']} />
+          </div>
+        }
       >
-        <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
-        <span>History</span>
-      </button>
+        <button
+          className={classNames('slds-button slds-button_neutral slds-m-right_xx-small', className)}
+          css={css`
+            padding: 0.5rem;
+          `}
+          aria-haspopup="true"
+          onClick={() => handleOpenModal('HISTORY')}
+        >
+          <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer />
+        </button>
+      </Tooltip>
+      <Tooltip
+        content={
+          <div className="slds-p-bottom_small">
+            View saved queries
+            <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'h']} />
+          </div>
+        }
+      >
+        <button
+          className={classNames('slds-button slds-button_neutral', className)}
+          css={css`
+            padding: 0.5rem;
+          `}
+          aria-haspopup="true"
+          title="View query history and saved queries (ctrl/command + h)"
+          onClick={() => handleOpenModal('SAVED')}
+        >
+          <Icon type="utility" icon="favorite" className="slds-button__icon" omitContainer />
+        </button>
+      </Tooltip>
       {isOpen && (
         <Modal
           header="Query History"

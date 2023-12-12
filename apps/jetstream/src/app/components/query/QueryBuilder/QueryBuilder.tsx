@@ -310,7 +310,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               </button>
               <QueryResetButton />
               <ManualSoql isTooling={isTooling} generatedSoql={soql} />
-              <QueryHistory className="collapsible-button collapsible-button-lg" selectedOrg={selectedOrg} ref={queryHistoryRef} />
+              <QueryHistory selectedOrg={selectedOrg} ref={queryHistoryRef} />
               <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>
