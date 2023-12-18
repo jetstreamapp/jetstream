@@ -168,7 +168,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
       <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}>
         <button
-          className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-more'}
+          className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
           aria-expanded={isOpen}
           title={actionText}

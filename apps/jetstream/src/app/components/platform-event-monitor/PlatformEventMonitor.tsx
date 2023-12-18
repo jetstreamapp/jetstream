@@ -47,17 +47,10 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
   }, []);
 
   useEffect(() => {
-    // const subscriptionEvents2 = platformEvents.map<ListItemGroup<string, PlatformEventObject>>((event) => ({
-    //   id: event.channel,
-    //   label: `${event.label} (${event.name})`,
-    //   secondaryLabel: event.channel,
-    //   secondaryLabelOnNewLine: true,
-    //   value: event.channel,
-    //   meta: event,
-    // }));
     const subscriptionEvents: ListItemGroup<string, PlatformEventObject>[] = [
       {
         id: 'PLATFORM_EVENT',
+        label: 'Platform Events (Custom)',
         items: platformEvents
           .filter((item) => item.type === 'PLATFORM_EVENT')
           .map<ListItem<string, PlatformEventObject>>((event) => ({
@@ -68,10 +61,10 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
             value: event.channel,
             meta: event,
           })),
-        label: 'Platform Events',
       },
       {
         id: 'PLATFORM_EVENT_STANDARD',
+        label: 'Platform Events (Standard)',
         items: platformEvents
           .filter((item) => item.type === 'PLATFORM_EVENT_STANDARD')
           .map<ListItem<string, PlatformEventObject>>((event) => ({
@@ -82,10 +75,10 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
             value: event.channel,
             meta: event,
           })),
-        label: 'Platform Events (Standard)',
       },
       {
         id: 'CHANGE_EVENT',
+        label: 'Change Data Capture Events',
         items: platformEvents
           .filter((item) => item.type === 'CHANGE_EVENT')
           .map<ListItem<string, PlatformEventObject>>((event) => ({
@@ -96,7 +89,6 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
             value: event.channel,
             meta: event,
           })),
-        label: 'Change Data Capture Events',
       },
     ];
 

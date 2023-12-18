@@ -519,7 +519,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               <span>SOQL Query</span>
             </button>
             <button
-              className="slds-button slds-button_neutral collapsible-button collapsible-button-md"
+              className="slds-button slds-button_neutral collapsible-button collapsible-button-md slds-button_last"
               onClick={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
               disabled={!!(loading || errorMessage)}
               title="Re-run the current query"

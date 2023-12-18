@@ -190,7 +190,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       <Tooltip
         content={
           <div className="slds-p-bottom_small">
-            View history
             <KeyboardShortcut inverse keys={[getModifierKey(), 'h']} />
           </div>
         }

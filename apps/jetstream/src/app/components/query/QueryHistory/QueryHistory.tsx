@@ -14,6 +14,7 @@ import {
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import {
+  ButtonGroupContainer,
   EmptyState,
   Grid,
   GridCol,
@@ -244,45 +245,48 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   return (
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-      <Tooltip
-        content={
-          <div className="slds-p-bottom_small">
-            View query history
-            <KeyboardShortcut inverse keys={[getModifierKey(), 'h']} />
-          </div>
-        }
-      >
-        <button
-          className={classNames('slds-button slds-button_neutral slds-m-right_xx-small', className)}
-          css={css`
-            padding: 0.5rem;
-          `}
-          aria-haspopup="true"
-          onClick={() => handleOpenModal('HISTORY')}
+      <ButtonGroupContainer>
+        <Tooltip
+          content={
+            <div className="slds-p-bottom_small">
+              View query history
+              <KeyboardShortcut inverse keys={[getModifierKey(), 'h']} />
+            </div>
+          }
         >
-          <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer />
-        </button>
-      </Tooltip>
-      <Tooltip
-        content={
-          <div className="slds-p-bottom_small">
-            View saved queries
-            <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'h']} />
-          </div>
-        }
-      >
-        <button
-          className={classNames('slds-button slds-button_neutral', className)}
-          css={css`
-            padding: 0.5rem;
-          `}
-          aria-haspopup="true"
-          title="View query history and saved queries (ctrl/command + h)"
-          onClick={() => handleOpenModal('SAVED')}
+          <button
+            aria-label="Query History"
+            className={classNames('slds-button slds-button_neutral slds-button_first', className)}
+            css={css`
+              padding: 0.5rem;
+            `}
+            aria-haspopup="true"
+            onClick={() => handleOpenModal('HISTORY')}
+          >
+            <Icon type="utility" icon="date_time" className="slds-button__icon" omitContainer />
+          </button>
+        </Tooltip>
+        <Tooltip
+          content={
+            <div className="slds-p-bottom_small">
+              View saved queries
+              <KeyboardShortcut inverse keys={[getModifierKey(), 'shift', 'h']} />
+            </div>
+          }
         >
-          <Icon type="utility" icon="favorite" className="slds-button__icon" omitContainer />
-        </button>
-      </Tooltip>
+          <button
+            aria-label="Saved Queries"
+            className={classNames('slds-button slds-button_neutral slds-button_last', className)}
+            css={css`
+              padding: 0.5rem;
+            `}
+            aria-haspopup="true"
+            onClick={() => handleOpenModal('SAVED')}
+          >
+            <Icon type="utility" icon="favorite" className="slds-button__icon" omitContainer />
+          </button>
+        </Tooltip>
+      </ButtonGroupContainer>
       {isOpen && (
         <Modal
           header="Query History"
