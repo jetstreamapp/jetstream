@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { useTitle } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
@@ -45,6 +45,10 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
       isMounted.current = false;
     };
   }, []);
+
+  useNonInitialEffect(() => {
+    setSelectedPublishEvent(null);
+  }, [selectedOrg]);
 
   useEffect(() => {
     const subscriptionEvents: ListItemGroup<string, PlatformEventObject>[] = [
@@ -123,7 +127,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
   const hasErrorOrNoEvents = !hasPlatformEvents || platformEventFetchError;
 
   return (
-    <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none">
+    <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" key={selectedOrg.uniqueId}>
       {hasErrorOrNoEvents && (
         <PlatformEventMonitorFetchEventStatus
           serverUrl={serverUrl}

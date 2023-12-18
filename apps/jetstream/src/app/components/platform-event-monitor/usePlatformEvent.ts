@@ -124,16 +124,22 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
   );
 
   const handleSubscribeError = useCallback((message: EventMessageUnsuccessful) => {
-    logger.warn('[PLATFORM EVENT][ERROR] unsubscribing');
-    fireToast({ type: 'error', message: `Error subscribing to event: ${message.subscription}. ${message.error}` });
-    setMessagesByChannel((item) => {
-      return Object.keys(item)
-        .filter((key) => key !== message.subscription)
-        .reduce((output: MessagesByChannel, key) => {
-          output[key] = item[key];
-          return output;
-        }, {});
-    });
+    logger.warn('[PLATFORM EVENT][ERROR]', message);
+    if (message.subscription) {
+      fireToast({ type: 'error', message: `Error subscribing to event: ${message.subscription}. ${message.error}` });
+      setMessagesByChannel((item) => {
+        return Object.keys(item)
+          .filter((key) => key !== message.subscription)
+          .reduce((output: MessagesByChannel, key) => {
+            output[key] = item[key];
+            return output;
+          }, {});
+      });
+    } else if (message.channel === '/meta/handshake') {
+      fireToast({ type: 'error', message: `Error subscribing to event: ${message.failure?.reason || 'Unknown reason'}.` });
+    } else {
+      fireToast({ type: 'error', message: `There was an unknown error subscribing to the event` });
+    }
   }, []);
 
   const subscribe = useCallback(

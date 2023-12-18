@@ -13,7 +13,13 @@ export interface EventMessage {
 }
 
 export interface EventMessageUnsuccessful extends EventMessage {
-  subscription: string;
-  error: string;
+  subscription?: string;
+  error?: string;
   successful: false;
+  failure?: {
+    connectionType: string;
+    exception?: string;
+    reason?: string;
+    transport?: string;
+  };
 }
