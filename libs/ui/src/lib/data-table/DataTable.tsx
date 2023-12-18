@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef } from 'react';
-import DataGrid, { DataGridProps } from 'react-data-grid';
+import DataGrid, { DataGridProps, SortColumn } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { ContextMenuContext, ContextMenuItem } from '../popover/ContextMenu';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
@@ -19,6 +19,7 @@ export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
   context?: TContext;
   /** Must be stable to avoid constant re-renders */
   contextMenuItems?: ContextMenuItem[];
+  initialSortColumns?: SortColumn[];
   /** Must be stable to avoid constant re-renders */
   contextMenuAction?: (item: ContextMenuItem, data: ContextMenuActionData<T>) => void;
   getRowKey: (row: T) => string;
@@ -39,6 +40,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       includeQuickFilter,
       context,
       contextMenuItems,
+      initialSortColumns,
       contextMenuAction,
       getRowKey,
       ignoreRowInSetFilter,
@@ -70,6 +72,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       quickFilterText,
       includeQuickFilter,
       contextMenuItems,
+      initialSortColumns,
       ref,
       contextMenuAction,
       getRowKey,

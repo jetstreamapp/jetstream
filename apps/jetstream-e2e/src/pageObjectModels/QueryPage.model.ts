@@ -206,7 +206,7 @@ export class QueryPage {
     }
     await this.page.getByRole('button', { name: 'Collapse SOQL Query' }).click();
 
-    await this.page.getByRole('button', { name: 'History' }).click();
+    await this.page.getByLabel('Query History').click();
 
     // verify query history
     await expect(
@@ -229,7 +229,7 @@ export class QueryPage {
       buttonName = 'Saved';
       role = 'button';
     }
-    await this.page.getByRole('button', { name: 'History' }).click();
+    await this.page.getByLabel('Query History').click();
     await this.page.getByTestId(`query-history-${query}`).getByRole(role, { name: buttonName }).click();
   }
 

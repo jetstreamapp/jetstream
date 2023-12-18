@@ -1,16 +1,16 @@
-import { ListItem, Maybe } from '@jetstream/types';
+import { ListItem, ListItemGroup, Maybe } from '@jetstream/types';
 import { Card, Grid, Pill, Spinner, ViewDocsLink } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import PlatformEventMonitorEvents from './PlatformEventMonitorEvents';
 import PlatformEventMonitorSubscribe from './PlatformEventMonitorSubscribe';
+import { PlatformEventObject } from './platform-event-monitor.types';
 import { MessagesByChannel } from './usePlatformEvent';
 
 export interface PlatformEventMonitorListenerCardListenerCard {
   loading: boolean;
   picklistKey: string | number;
-  platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
-  subscribedPlatformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
+  platformEventsList: ListItemGroup<string, PlatformEventObject>[];
+  subscribedPlatformEventsList: ListItem<string, PlatformEventObject>[];
   selectedSubscribeEvent?: Maybe<string>;
   messagesByChannel: MessagesByChannel;
   fetchPlatformEvents: (clearCache?: boolean) => void;

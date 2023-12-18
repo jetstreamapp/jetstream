@@ -170,6 +170,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
         <button
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
+          aria-expanded={isOpen}
           title={actionText}
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}

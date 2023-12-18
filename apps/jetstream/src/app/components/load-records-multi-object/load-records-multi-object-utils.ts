@@ -398,12 +398,12 @@ export function getDataGraph(
         (
           {
             transformedRecord,
+            externalIdValue,
             recordIdForUpdate,
             dependencies,
           }: { transformedRecord: MapOf<any>; externalIdValue: string | null; recordIdForUpdate: string | null; dependencies: string[] },
           header
         ) => {
-          let externalIdValue: string | null = null;
           const field = dataset.fieldsByName[header.toLowerCase()];
           let value = record[header];
           const valueIsNull = isNil(value) || (isString(value) && !value);

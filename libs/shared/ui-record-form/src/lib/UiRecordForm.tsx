@@ -29,7 +29,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   sobjectFields,
   picklistValues,
   record,
-  saveErrors = {},
+  saveErrors,
   disabled = false,
   onChange,
   viewRelatedRecord,
@@ -66,7 +66,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
         );
       }
       if (limitToErrorFields) {
-        visibleFields = visibleFields.filter((field) => saveErrors[field.name]);
+        visibleFields = visibleFields.filter((field) => saveErrors?.[field.name]);
       }
       if (visibleFields.length) {
         setVisibleFieldMetadataRows(splitArrayToMaxSize(visibleFields, columnSize));
@@ -144,7 +144,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
             disabled={!fieldMetadata || disabled}
             onChange={setLimitToRequired}
           />
-          {Object.keys(saveErrors).length > 0 && (
+          {saveErrors && Object.keys(saveErrors).length > 0 && (
             <Checkbox
               id={`record-form-limit-to-error`}
               label="Show Fields with Errors"
@@ -167,7 +167,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
                 <div key={field.name} className="slds-form__item" role="listitem">
                   <UiRecordFormField
                     field={field}
-                    saveError={saveErrors[field.name]}
+                    saveError={saveErrors?.[field.name]}
                     disabled={disabled}
                     initialValue={record[field.name]}
                     modifiedValue={modifiedRecord[field.name]}

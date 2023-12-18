@@ -22,6 +22,8 @@ export const LogViewedRenderer: FunctionComponent<RenderCellProps<ApexLogWithVie
   return null;
 };
 
+const INITIAL_SORT = [{ columnKey: 'LastModifiedDate', direction: 'DESC' } as const];
+
 const COLUMNS: ColumnWithFilter<ApexLogWithViewed>[] = [
   {
     name: '',
@@ -101,7 +103,13 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
 
   return (
     <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={75}>
-      <DataTable columns={COLUMNS} data={logs} getRowKey={getRowId} onCellClick={handleSelectionChanged} />
+      <DataTable
+        columns={COLUMNS}
+        data={logs}
+        getRowKey={getRowId}
+        initialSortColumns={INITIAL_SORT}
+        onCellClick={handleSelectionChanged}
+      />
     </AutoFullHeightContainer>
   );
 };

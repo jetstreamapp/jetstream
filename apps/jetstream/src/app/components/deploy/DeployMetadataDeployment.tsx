@@ -297,6 +297,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             />
             <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
             <DropDown
+              className="slds-button_last"
               position="right"
               items={[
                 {
