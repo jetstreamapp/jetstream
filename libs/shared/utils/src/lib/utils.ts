@@ -422,35 +422,40 @@ export function isValidDate(date: Date) {
 export function bulkApiEnsureTyped(job: BulkJobBatchInfo | BulkJobBatchInfoUntyped): BulkJobBatchInfo;
 export function bulkApiEnsureTyped(job: BulkJob | BulkJobUntyped): BulkJob;
 export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
-  if (!isObject(job)) {
+  try {
+    if (!isObject(job)) {
+      return job as BulkJob | BulkJobBatchInfo;
+    }
+    const numberTypes = [
+      'apexProcessingTime',
+      'apiActiveProcessingTime',
+      'apiVersion',
+      'numberBatchesCompleted',
+      'numberBatchesFailed',
+      'numberBatchesInProgress',
+      'numberBatchesQueued',
+      'numberBatchesTotal',
+      'numberRecordsFailed',
+      'numberRecordsProcessed',
+      'numberRetries',
+      'totalProcessingTime',
+    ];
+    if (job['$']) {
+      job['$'] = undefined;
+    }
+    if (job['@xmlns']) {
+      job['@xmlns'] = undefined;
+    }
+
+    numberTypes.forEach((prop) => {
+      if (prop in job && typeof job[prop] === 'string') {
+        job[prop] = Number(job[prop]);
+      }
+    });
+    return job as BulkJob | BulkJobBatchInfo;
+  } catch (ex) {
     return job as BulkJob | BulkJobBatchInfo;
   }
-  const numberTypes = [
-    'apexProcessingTime',
-    'apiActiveProcessingTime',
-    'apiVersion',
-    'numberBatchesCompleted',
-    'numberBatchesFailed',
-    'numberBatchesInProgress',
-    'numberBatchesQueued',
-    'numberBatchesTotal',
-    'numberRecordsFailed',
-    'numberRecordsProcessed',
-    'numberRetries',
-    'totalProcessingTime',
-  ];
-  if (job['$']) {
-    job['$'] = undefined;
-  }
-  if (job['@xmlns']) {
-    job['@xmlns'] = undefined;
-  }
-  numberTypes.forEach((prop) => {
-    if (job.hasOwnProperty(prop) && typeof job[prop] === 'string') {
-      job[prop] = Number(job[prop]);
-    }
-  });
-  return job as BulkJob | BulkJobBatchInfo;
 }
 
 export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
