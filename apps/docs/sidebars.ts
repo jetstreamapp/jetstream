@@ -1,5 +1,4 @@
-module.exports = {
-  /** @type {import('@docusaurus/preset-classic').Si} */
+const sidebar = {
   sidebar: [
     {
       type: 'category',
@@ -37,3 +36,5 @@ module.exports = {
     'other/other-useful-features',
   ],
 };
+
+export default sidebar;

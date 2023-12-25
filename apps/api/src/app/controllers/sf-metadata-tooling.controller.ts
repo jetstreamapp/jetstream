@@ -117,7 +117,7 @@ export async function deployMetadata(req: Request, res: Response, next: NextFunc
     const zip = new JSZip();
     files.forEach((file) => zip.file(file.fullFilename, file.content));
 
-    const results = await conn.metadata.deploy(zip.generateNodeStream(), req.body.options);
+    const results = await conn.metadata.deploy(zip.generateNodeStream() as any, req.body.options);
 
     sendJson(res, results);
   } catch (ex) {
@@ -296,7 +296,7 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
         sendJson(res, { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults), zipFile: results.zipFile });
       } else {
         // Deploy package as-is
-        const deployResults = await targetConn.metadata.deploy(oldPackage.generateNodeStream(), deployOptions);
+        const deployResults = await targetConn.metadata.deploy(oldPackage.generateNodeStream() as any, deployOptions);
         sendJson(res, { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults), zipFile: results.zipFile });
       }
     } else {

@@ -13,7 +13,8 @@
         "tsConfig": "apps/jetstream-worker/tsconfig.app.json",
         "assets": ["apps/jetstream-worker/src/assets"],
         "target": "node",
-        "compiler": "tsc"
+        "compiler": "tsc",
+        "webpackConfig": "apps/jetstream-worker/webpack.config.js"
       },
       "configurations": {
         "production": {
@@ -39,10 +40,7 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/jetstream-worker/**/*.ts"]
-      }
+      "outputs": ["{options.outputFile}"]
     },
     "test": {
       "executor": "@nx/jest:jest",
