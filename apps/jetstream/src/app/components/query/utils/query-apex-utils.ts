@@ -237,7 +237,7 @@ function getFieldValues(record: any, options: RecordToApexOptions): [string, Fie
   return fields
     .filter(
       (field) =>
-        Object.hasOwnProperty.call(record, field) &&
+        field in record &&
         !isObject(record[field]) &&
         (includeNullFields || record[field] !== null) &&
         (includeBooleanIfFalse || !isBoolean(record[field] || record[field]))

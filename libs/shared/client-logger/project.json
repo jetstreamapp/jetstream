@@ -6,17 +6,7 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/shared/client-logger/**/*.ts",
-          "libs/shared/client-logger/**/*.spec.ts",
-          "libs/shared/client-logger/**/*.spec.tsx",
-          "libs/shared/client-logger/**/*.spec.js",
-          "libs/shared/client-logger/**/*.spec.jsx",
-          "libs/shared/client-logger/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/jest:jest",

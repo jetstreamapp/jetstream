@@ -1,31 +1,16 @@
 /// <reference types="vitest" />
+import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
-import { PluginOption, defineConfig } from 'vite';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import { defineConfig } from 'vite';
+import { baseHrefPlugin, replaceFiles } from './vite.plugins';
+
+// import replaceFiles from '@nx/vite/plugins/rollup-replace-files.plugin';
 
 dns.setDefaultResultOrder('verbatim');
-const BASE_HREF = '/app';
-
-/**
- * Adds <base href="/app">` to the head of the index.html
- * The reason why the `base` configuration property doesn't work is because it makes
- * all assets served under `/app` of `/` and this impacts the download zip service worker
- * We only want to the service worker to listen to events related to downloads, but not capture any other events
- * and the only way to do this is make sure all assets are served from the root, but we still want our app path to be `/app`
- *
- * This mimics the same behavior we had with webpack before migrating to vite
- */
-const baseHrefPlugin: () => PluginOption = () => {
-  return {
-    name: 'html-transform',
-    transformIndexHtml(html) {
-      return html.replace('<head>', `<head>\n    <base href="${BASE_HREF}">`);
-    },
-  };
-};
 
 export default defineConfig({
+  root: __dirname,
   cacheDir: '../../node_modules/.vite/jetstream',
   envPrefix: 'NX',
 
@@ -35,6 +20,9 @@ export default defineConfig({
   },
 
   build: {
+    outDir: '../../dist/apps/jetstream',
+    reportCompressedSize: true,
+    commonjsOptions: { transformMixedEsModules: true },
     // Put all assets at the root of the app instead of under /assets
     assetsDir: './',
     sourcemap: true,
@@ -46,6 +34,10 @@ export default defineConfig({
   },
 
   plugins: [
+    replaceFiles([
+      // { replace: 'apps/jetstream/src/environments/environment.ts', with: 'apps/jetstream/src/environments/environment.prod.ts' },
+      // { replace: 'libs/ui/.storybook/storybook-styles.scss', with: 'apps/jetstream/src/main.scss' },
+    ]),
     react({
       jsxImportSource: '@emotion/react',
       babel: {
@@ -57,8 +49,6 @@ export default defineConfig({
   ],
 
   worker: {
-    plugins: [
-      nxViteTsPaths(),
-    ],
+    plugins: () => [nxViteTsPaths()],
   },
 });

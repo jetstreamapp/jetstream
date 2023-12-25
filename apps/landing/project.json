@@ -45,16 +45,7 @@
       }
     },
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": [
-          "apps/landing/**/*.spec.ts",
-          "apps/landing/**/*.spec.tsx",
-          "apps/landing/**/*.spec.js",
-          "apps/landing/**/*.spec.jsx",
-          "apps/landing/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/jest:jest",

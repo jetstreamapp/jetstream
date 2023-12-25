@@ -6,20 +6,7 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/shared/data/**/*.js",
-          "libs/shared/data/**/*.jsx",
-          "libs/shared/data/**/*.ts",
-          "libs/shared/data/**/*.tsx",
-          "libs/shared/data/**/*.spec.ts",
-          "libs/shared/data/**/*.spec.tsx",
-          "libs/shared/data/**/*.spec.js",
-          "libs/shared/data/**/*.spec.jsx",
-          "libs/shared/data/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/jest:jest",

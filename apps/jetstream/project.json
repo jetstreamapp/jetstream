@@ -139,20 +139,7 @@
       "defaultConfiguration": "development"
     },
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": [
-          "apps/jetstream/**/*.js",
-          "apps/jetstream/**/*.jsx",
-          "apps/jetstream/**/*.ts",
-          "apps/jetstream/**/*.tsx",
-          "apps/jetstream/**/*.spec.ts",
-          "apps/jetstream/**/*.spec.tsx",
-          "apps/jetstream/**/*.spec.js",
-          "apps/jetstream/**/*.spec.jsx",
-          "apps/jetstream/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/jest:jest",

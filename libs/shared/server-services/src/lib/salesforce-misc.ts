@@ -4,7 +4,7 @@ import { AnonymousApexResponse, AnonymousApexSoapResponse, ListMetadataResult, M
 import * as jsforce from 'jsforce';
 import { DeployOptions, PackageTypeMembers, RetrieveRequest } from 'jsforce';
 import * as JSZip from 'jszip';
-import { get as lodashGet, isObject, isObjectLike, isString, toNumber } from 'lodash';
+import { isObject, isObjectLike, isString, get as lodashGet, toNumber } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from './errors';
 
@@ -236,7 +236,7 @@ export async function checkRetrieveStatusAndRedeploy(
       return { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults), zipFile: results.zipFile };
     } else {
       // Deploy package as-is
-      const deployResults = await targetConn.metadata.deploy(oldPackage.generateNodeStream(), deployOptions || {});
+      const deployResults = await targetConn.metadata.deploy(oldPackage.generateNodeStream() as any, deployOptions || {});
       return { type: 'deploy', results: correctInvalidXmlResponseTypes(deployResults), zipFile: results.zipFile };
     }
   } else {

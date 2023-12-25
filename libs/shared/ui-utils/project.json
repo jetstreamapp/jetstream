@@ -6,20 +6,7 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/shared/ui-utils/**/*.js",
-          "libs/shared/ui-utils/**/*.jsx",
-          "libs/shared/ui-utils/**/*.ts",
-          "libs/shared/ui-utils/**/*.tsx",
-          "libs/shared/ui-utils/**/*.spec.ts",
-          "libs/shared/ui-utils/**/*.spec.tsx",
-          "libs/shared/ui-utils/**/*.spec.js",
-          "libs/shared/ui-utils/**/*.spec.jsx",
-          "libs/shared/ui-utils/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/jest:jest",

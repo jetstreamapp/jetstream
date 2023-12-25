@@ -1,5 +1,25 @@
-/** @type {import('@docusaurus/types').DocusaurusConfig} */
-module.exports = {
+import type * as Preset from '@docusaurus/preset-classic';
+import type { Config, } from '@docusaurus/types';
+
+// const config: Config = {
+//   title: 'My Site',
+//   favicon: 'img/favicon.ico',
+//   presets: [
+//     [
+//       'classic',
+//       {
+//         /* Your preset config here */
+//       } satisfies Preset.Options,
+//     ],
+//   ],
+
+//   themeConfig: {
+//     /* Your theme config here */
+//   } satisfies Preset.ThemeConfig,
+// };
+
+
+const config: Config = {
   title: 'Jetstream',
   tagline: 'Documentation',
   url: 'https://docs.getjetstream.app',
@@ -17,10 +37,9 @@ module.exports = {
   presets: [
     [
       '@docusaurus/preset-classic',
-      /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
+          sidebarPath: 'sidebars.ts',
           sidebarCollapsed: false,
           routeBasePath: '/',
           editUrl: 'https://github.com/jetstreamapp/jetstream/tree/main/apps/docs/',
@@ -30,18 +49,17 @@ module.exports = {
           trackingID: 'G-GZJ9QQTK44',
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: ['./src/css/custom.css'],
         },
         sitemap: {
-          changefreq: 'weekly',
+          changefreq: 'weekly' as any, // FIXME: figure out how to use enum
           priority: 0.5,
         },
-      }),
+      } satisfies Preset.Options,
     ],
   ],
   themeConfig:
-    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
+    {
       algolia: {
         appId: '21D7I5RB7N',
         apiKey: '16cff3d92b030f175ef9a30f606a221e',
@@ -77,7 +95,6 @@ module.exports = {
           },
         ],
       },
-      /** @type {import('@docusaurus/theme-common').Footer} */
       footer: {
         style: 'dark',
         links: [
@@ -115,5 +132,7 @@ module.exports = {
         ],
         copyright: `Copyright © ${new Date().getFullYear()} Jetstream.`,
       },
-    }),
+    } satisfies Preset.ThemeConfig,
 };
+
+export default config;

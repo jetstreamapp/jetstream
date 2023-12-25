@@ -27,7 +27,8 @@
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
         "assets": [],
         "target": "node",
-        "compiler": "tsc"
+        "compiler": "tsc",
+        "webpackConfig": "apps/cron-tasks/webpack.config.js"
       },
       "configurations": {
         "production": {
@@ -52,10 +53,7 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/cron-tasks/**/*.ts"]
-      }
+      "outputs": ["{options.outputFile}"]
     },
     "test": {
       "executor": "@nx/jest:jest",

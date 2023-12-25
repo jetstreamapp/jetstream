@@ -8,18 +8,7 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": [
-          "libs/ui/**/*.js",
-          "libs/ui/**/*.jsx",
-          "libs/ui/**/*.ts",
-          "libs/ui/**/*.tsx",
-          "libs/ui/**/*.spec.ts",
-          "libs/ui/**/*.spec.tsx",
-          "libs/ui/**/*.spec.js",
-          "libs/ui/**/*.spec.jsx",
-          "libs/ui/**/*.d.ts",
-          "libs/src/**/*"
-        ]
+        "lintFilePatterns": ["libs/ui", "libs/src/**/*"]
       }
     },
     "test": {

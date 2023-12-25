@@ -6,17 +6,7 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nx/eslint:lint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/api-interfaces/**/*.ts",
-          "libs/api-interfaces/**/*.spec.ts",
-          "libs/api-interfaces/**/*.spec.tsx",
-          "libs/api-interfaces/**/*.spec.js",
-          "libs/api-interfaces/**/*.spec.jsx",
-          "libs/api-interfaces/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/jest:jest",
