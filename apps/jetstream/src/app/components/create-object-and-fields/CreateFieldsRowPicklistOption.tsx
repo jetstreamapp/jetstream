@@ -1,15 +1,17 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid } from '@jetstream/ui';
-import React, { FunctionComponent, useRef } from 'react';
-import { FieldDefinitions, FieldDefinitionType, FieldValue, FieldValues } from '../shared/create-fields/create-fields-types';
+import { FunctionComponent, useRef } from 'react';
+import { FieldDefinitionType, FieldDefinitions, FieldValue, FieldValues } from '../shared/create-fields/create-fields-types';
 import CreateFieldsRowField from './CreateFieldsRowField';
 import CreateNewGlobalPicklistModal from './CreateNewGlobalPicklistModal';
 
 export interface CreateFieldsRowPicklistOptionProps {
   rowIdx: number;
   selectedOrg: SalesforceOrgUi;
+  selectedSObjects: string[];
   values: FieldValues;
   fieldDefinitions: FieldDefinitions;
+  rows: FieldValues[];
   disabled: boolean;
   onChangePicklistOption: (value: boolean) => void;
   onChange: (field: FieldDefinitionType, value: FieldValue) => void;
@@ -19,8 +21,10 @@ export interface CreateFieldsRowPicklistOptionProps {
 export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPicklistOptionProps> = ({
   rowIdx,
   selectedOrg,
-  values,
+  selectedSObjects,
   fieldDefinitions,
+  values,
+  rows,
   disabled,
   onChange,
   onChangePicklistOption,
@@ -48,8 +52,10 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
         <Grid vertical>
           <CreateFieldsRowField
             ref={createFieldRowRef}
-            selectedOrg={selectedOrg}
             id={`field-${rowIdx}-globalValueSet`}
+            selectedOrg={selectedOrg}
+            selectedSObjects={selectedSObjects}
+            rows={rows}
             fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions.globalValueSet}
             allValues={values}
@@ -63,8 +69,10 @@ export const CreateFieldsRowPicklistOption: FunctionComponent<CreateFieldsRowPic
       )}
       {!values._picklistGlobalValueSet && (
         <CreateFieldsRowField
-          selectedOrg={selectedOrg}
           id={`field-${rowIdx}-valueSet`}
+          selectedOrg={selectedOrg}
+          selectedSObjects={selectedSObjects}
+          rows={rows}
           fieldDefinitions={fieldDefinitions}
           field={fieldDefinitions.valueSet}
           allValues={values}

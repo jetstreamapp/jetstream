@@ -1,30 +1,33 @@
 import { css } from '@emotion/react';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ComboboxWithItems, Grid, Icon, Input, Radio, RadioGroup, Spinner, Textarea, Tooltip } from '@jetstream/ui';
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import {
   FieldDefinition,
   FieldDefinitions,
   FieldValue,
-  FieldValues,
   FieldValueState,
+  FieldValues,
   SalesforceFieldType,
 } from '../shared/create-fields/create-fields-types';
+import CreateFieldsFormulaEditor from './CreateFieldsFormulaEditor';
 
 export interface CreateFieldsRowFieldProps {
   selectedOrg: SalesforceOrgUi;
   id: string;
+  selectedSObjects: string[];
   fieldDefinitions: FieldDefinitions; // TODO: unused, remove
   field: FieldDefinition;
   allValues: FieldValues;
   valueState: FieldValueState;
   disabled: boolean;
+  rows: FieldValues[];
   onChange: (value: FieldValue) => void;
   onBlur: () => void;
 }
 
-export const CreateFieldsRowField = forwardRef<any, CreateFieldsRowFieldProps>(
-  ({ selectedOrg, id, field, allValues, valueState, disabled: _disabled, onChange, onBlur }, ref) => {
+export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProps>(
+  ({ selectedOrg, id, selectedSObjects, field, allValues, valueState, disabled: _disabled, rows, onChange, onBlur }, ref) => {
     const { value, touched, errorMessage } = valueState;
     const disabled = _disabled || field?.disabled?.(allValues);
     const [values, setValues] = useState<ListItem[]>([]);
@@ -194,6 +197,29 @@ export const CreateFieldsRowField = forwardRef<any, CreateFieldsRowFieldProps>(
                 onBlur={onBlur}
               />
             </Textarea>
+          </div>
+        );
+      case 'textarea-with-formula':
+        return (
+          <div
+            className="slds-m-right_medium slds-is-relative"
+            css={css`
+              max-width: 250px;
+            `}
+          >
+            {loadingValues && <Spinner size="small" />}
+            <CreateFieldsFormulaEditor
+              id={id}
+              selectedSObjects={selectedSObjects}
+              disabled={disabled}
+              rows={rows}
+              selectedOrg={selectedOrg}
+              allValues={allValues}
+              field={field}
+              valueState={valueState}
+              onChange={onChange}
+              onBlur={onBlur}
+            />
           </div>
         );
       case 'text':

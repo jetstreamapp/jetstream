@@ -1,6 +1,7 @@
 import {
   BulkJobWithBatches,
   EntityParticleRecord,
+  FieldWithExtendedType,
   InsertUpdateUpsertDelete,
   MapOf,
   Maybe,
@@ -22,6 +23,7 @@ export interface FieldWithRelatedEntities {
   referenceTo?: string[];
   relationshipName?: string;
   relatedFields?: MapOf<FieldRelatedEntity[]>;
+  field: FieldWithExtendedType;
 }
 
 export interface FieldRelatedEntity {
@@ -54,8 +56,16 @@ export interface FieldMapping {
   [field: string]: FieldMappingItem;
 }
 
-export interface FieldMappingItem {
+export interface SavedFieldMapping {
+  [field: string]: Omit<FieldMappingItem, 'fieldMetadata'>;
+}
+
+export type FieldMappingItem = FieldMappingItemCsv | FieldMappingItemStatic;
+
+export interface FieldMappingItemBase {
+  type: 'CSV' | 'STATIC';
   csvField: string;
+  staticValue?: string | boolean | null;
   targetField: string | null;
   mappedToLookup: boolean;
   selectedReferenceTo?: string;
@@ -67,6 +77,22 @@ export interface FieldMappingItem {
   lookupOptionUseFirstMatch: NonExtIdLookupOption;
   lookupOptionNullIfNoMatch: boolean;
   isBinaryBodyField: boolean;
+}
+
+export interface FieldMappingItemCsv extends FieldMappingItemBase {
+  type: 'CSV';
+  staticValue?: never;
+}
+
+export interface FieldMappingItemStatic extends FieldMappingItemBase {
+  type: 'STATIC';
+  staticValue: string | boolean | null;
+  mappedToLookup: false;
+  selectedReferenceTo?: never;
+  relationshipName?: never;
+  targetLookupField?: never;
+  lookupOptionNullIfNoMatch: false;
+  isBinaryBodyField: false;
 }
 
 export interface PrepareDataPayload {

@@ -6,23 +6,12 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/types/**/*.ts",
-          "libs/types/**/*.spec.ts",
-          "libs/types/**/*.spec.tsx",
-          "libs/types/**/*.spec.js",
-          "libs/types/**/*.spec.jsx",
-          "libs/types/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "libs/types/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/types/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/libs/types"]
     }

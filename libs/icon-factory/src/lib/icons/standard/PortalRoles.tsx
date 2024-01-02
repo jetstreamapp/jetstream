@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgPortalRoles(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M73.8 20H26.2c-3.4 0-6.2 2.8-6.2 6.2v47.6c0 3.4 2.8 6.2 6.2 6.2h47.6c3.4 0 6.2-2.8 6.2-6.2V26.2c0-3.4-2.8-6.2-6.2-6.2zm-26.4 7.4c0-.8.8-1.4 1.6-1.4h23.4c.8 0 1.4.8 1.4 1.6v3c0 .8-.8 1.4-1.6 1.4H48.8c-.8 0-1.4-.8-1.4-1.6v-3zm-8-1.4c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zM29 26c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm45 46.6c0 .8-.8 1.4-1.6 1.4h-45c-.8 0-1.4-.8-1.4-1.6v-33c0-.8.8-1.4 1.6-1.4h45c.8 0 1.4.8 1.4 1.6v33z"
@@ -14,5 +13,4 @@ function SvgPortalRoles(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgPortalRoles;

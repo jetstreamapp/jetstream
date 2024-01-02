@@ -284,6 +284,12 @@ export const querySoqlState = atom<string>({
   default: '',
 });
 
+// SOQL query with count() function
+export const querySoqlCountState = atom<string>({
+  key: 'query.querySoqlCountState',
+  default: '',
+});
+
 export const queryIncludeDeletedRecordsState = atom<boolean>({
   key: 'query.queryIncludeDeletedRecordsState',
   default: false,
@@ -293,7 +299,7 @@ export const hasFiltersConfigured = selector<boolean>({
   key: 'query.hasFiltersConfigured',
   get: ({ get }) =>
     !!get(queryFiltersState)
-      .rows.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
+      .rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
       .some((row) => queryFilterHasValue(row)),
 });
 
@@ -301,7 +307,7 @@ export const hasHavingConfigured = selector<boolean>({
   key: 'query.hasHavingConfigured',
   get: ({ get }) =>
     !!get(queryHavingState)
-      .rows.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
+      .rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
       .some((row) => queryFilterHasValue(row)),
 });
 

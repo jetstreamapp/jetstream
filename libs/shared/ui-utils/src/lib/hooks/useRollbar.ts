@@ -6,7 +6,7 @@ import { useState } from 'react';
 import Rollbar, { LogArgument } from 'rollbar';
 import { useNonInitialEffect } from './useNonInitialEffect';
 
-const REPLACE_HOST_REGEX = /[a-zA-Z0-9._-]*?getjetstream.app/;
+const ignoredMessagesSet = new Set(['expired access/refresh token', 'socket hang up']);
 
 interface RollbarProperties {
   accessToken?: string;
@@ -55,13 +55,19 @@ class RollbarConfig {
         captureUncaught: true,
         captureUnhandledRejections: true,
         environment: this.environment,
-        // Unable to get proxy config working
-        // endpoint: this.serverUrl ? `${this.serverUrl}/rollbar` : 'https://api.rollbar.com/api/1/item',
-        autoInstrument: {
-          // eslint-disable-next-line no-restricted-globals
-          log: location.hostname !== 'localhost',
+        // autoInstrument: {
+        //   // eslint-disable-next-line no-restricted-globals
+        //   log: location.hostname !== 'localhost',
+        // },
+        // hostBlockList: ['localhost'],
+        checkIgnore: function (isUncaught, args, payload) {
+          logger.log('[ROLLBAR] checkIgnore', isUncaught, args, payload);
+          if (ignoredMessagesSet.has(payload?.body?.['message']?.extra?.message)) {
+            return true;
+          }
+          return false;
         },
-        hostBlockList: ['localhost'],
+        ignoredMessages: Array.from(ignoredMessagesSet),
         payload: {
           client: {
             javascript: {
@@ -75,19 +81,6 @@ class RollbarConfig {
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};
           payload.recentLogs = getRecentLogs();
-        },
-        // https://docs.rollbar.com/docs/source-maps#using-source-maps-on-many-domains
-        transform: (payload: any) => {
-          const trace = payload.body.trace;
-          if (trace?.frames) {
-            for (let i = 0; i < trace.frames.length; i++) {
-              const filename = trace.frames[i].filename;
-              if (filename) {
-                // Use dynamichost so that sourcemaps only need to be uploaded once and can be shared across all environments
-                trace.frames[i].filename = trace.frames[i].filename.replace(REPLACE_HOST_REGEX, 'dynamichost');
-              }
-            }
-          }
         },
       });
     this.rollbar.global({ itemsPerMinute: 10, maxItems: 20 });

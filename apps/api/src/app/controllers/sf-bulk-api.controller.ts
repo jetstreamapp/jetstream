@@ -13,7 +13,7 @@ import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
   createJob: [
-    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY']),
+    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY', 'QUERY_ALL']),
     body('sObject').isString(),
     body('serialMode').optional().isBoolean(),
     body('externalIdFieldName').optional().isString(),
@@ -202,7 +202,7 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
       res.status(200).send();
     });
     csvParseStream.on('error', (err) => {
-      logger.warn('Error streaming files from Salesforce. %o', err);
+      logger.warn('Error streaming files from Salesforce. %o', err, { requestId: res.locals.requestId });
       res.status(400).send();
     });
 

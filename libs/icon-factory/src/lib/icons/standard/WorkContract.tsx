@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgWorkContract(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M56.3 34h9.1a1.16 1.16 0 001.2-1.2 1.09 1.09 0 00-.4-.9L55 20.6a1.27 1.27 0 00-.9-.4 1.16 1.16 0 00-1.2 1.2v9.1a3.6 3.6 0 003.4 3.5zM63.9 55.2a12.3 12.3 0 1012.3 12.3 12.29 12.29 0 00-12.3-12.3zM66 68.6c-.4 0-.7-.1-1-.1l-4.7 4.6a1.22 1.22 0 01-1 .5 1.28 1.28 0 01-1-.4 1.66 1.66 0 010-2.1l4.7-4.7a2.79 2.79 0 01-.1-1 3.85 3.85 0 013.7-4.1c.4 0 .7.1 1 .1.1 0 .1.1.1.4l-2.1 2.1a.45.45 0 000 .5l1.5 1.5a.63.63 0 00.6 0l2.1-2.1c.1-.1.4-.1.4.1a3.75 3.75 0 01.1 1 4 4 0 01-4.3 3.7z"
         fill="unset"
@@ -14,5 +13,4 @@ function SvgWorkContract(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgWorkContract;

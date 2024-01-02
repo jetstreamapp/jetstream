@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgWorkType(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M75.87 29.25l-9-8.88A1.13 1.13 0 0066 20a1.39 1.39 0 00-1.38 1.38v6.38a3.89 3.89 0 003.87 3.87h6.37a1.39 1.39 0 001.38-1.38 1.66 1.66 0 00-.37-1zM29.63 62.63v-31a5.84 5.84 0 00-5.88 5.75v36.74A5.87 5.87 0 0029.63 80h29.12a5.84 5.84 0 005.88-5.75H41.25c-6.37 0-11.62 0-11.62-11.62z"
         fill="unset"
@@ -16,5 +15,4 @@ function SvgWorkType(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgWorkType;

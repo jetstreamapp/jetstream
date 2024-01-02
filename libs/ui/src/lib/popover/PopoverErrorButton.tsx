@@ -1,9 +1,11 @@
 import { css } from '@emotion/react';
+import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import Icon from '../widgets/Icon';
 import Popover, { PopoverRef } from './Popover';
 
 export interface PopoverErrorButtonProps {
+  className?: string;
   initOpenState?: boolean;
   header?: string;
   listHeader?: string | null;
@@ -13,6 +15,7 @@ export interface PopoverErrorButtonProps {
 }
 
 export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
+  className,
   initOpenState = true,
   header = 'We hit a snag.',
   listHeader = 'Review the following errors',
@@ -40,12 +43,6 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
     >
       <Popover
         ref={popoverRef}
-        // ref={(ref) => {
-        //   popoverRef.current = ref;
-        //   if ((popoverRef.current && initOpenState) ?? true) {
-        //     popoverRef.current?.open();
-        //   }
-        // }}
         containerClassName="slds-popover_error"
         inverseIcons
         omitPortal={omitPortal}
@@ -84,7 +81,7 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
           </div>
         }
         buttonProps={{
-          className: 'slds-button slds-button_icon slds-button-icon-error slds-m-right_small',
+          className: classNames('slds-button slds-button_icon slds-button-icon-error', className),
         }}
       >
         <Icon

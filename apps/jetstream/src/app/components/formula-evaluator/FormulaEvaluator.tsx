@@ -17,7 +17,6 @@ import {
   Radio,
   RadioButton,
   RadioGroup,
-  ScopedNotification,
   SobjectCombobox,
   SobjectComboboxRef,
   SobjectFieldCombobox,
@@ -33,11 +32,13 @@ import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'rea
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import FormulaEvaluatorRecordSearch from './FormulaEvaluatorRecordSearch';
+import FormulaEvaluatorRecordSearch from '../shared/formula-evaluator/FormulaEvaluatorRecordSearch';
+import FormulaEvaluatorResults from '../shared/formula-evaluator/FormulaEvaluatorResults';
+import FormulaEvaluatorUserSearch from '../shared/formula-evaluator/FormulaEvaluatorUserSearch';
+import { getFormulaData } from '../shared/formula-evaluator/formula-evaluator.utils';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
 import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';
-import { getFormulaData } from './formula-evaluator.utils';
 
 // Lazy import
 const prettier = import('prettier/standalone');
@@ -77,6 +78,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
   const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
+  const [selectedUserId, setSelectedUserId] = useRecoilState(fromFormulaState.selectedUserState);
   const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
   const [sourceType, setSourceType] = useRecoilState(fromFormulaState.sourceTypeState);
   const [recordId, setRecordId] = useRecoilState(fromFormulaState.recordIdState);
@@ -88,9 +90,13 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 
   const deployFormulaDisabled = loading || !selectedSObject || !formulaValue;
-  const testFormulaDisabled = loading || !selectedSObject || !recordId || !formulaValue;
+  const testFormulaDisabled = loading || !selectedSObject || !selectedUserId || !recordId || !formulaValue;
 
   const monaco = useMonaco();
+
+  useEffect(() => {
+    setSelectedUserId(selectedOrg.userId);
+  }, [selectedOrg.userId, setSelectedUserId]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -129,6 +135,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
             fields,
             recordId,
             selectedOrg,
+            selectedUserId,
             sobjectName: selectedSObject?.name || '',
             numberNullBehavior,
           });
@@ -159,6 +166,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!testFormulaDisabled && hasModifierKey(event as any) && isEnterKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();
@@ -283,6 +291,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
           <div className="slds-p-horizontal_x-small">
             <Card
               className="h-100"
+              icon={{ type: 'standard', icon: 'formula' }}
               title={
                 <Grid vertical>
                   <div>Formula Evaluator</div>
@@ -310,6 +319,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   filterFn={filterSobjectFn}
                   onSelectedSObject={setSelectedSobject}
                 />
+                <FormulaEvaluatorUserSearch selectedOrg={selectedOrg} disabled={loading} onSelectedRecord={setSelectedUserId} />
                 <RadioGroup label="How to handle null values for numbers" formControlClassName="slds-grid">
                   <Radio
                     id="null-zero"
@@ -410,6 +420,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
           <div className="slds-p-horizontal_x-small slds-is-relative">
             <Card
               className="h-100"
+              icon={{ type: 'standard', icon: 'outcome' }}
               title={<div>Results</div>}
               actions={
                 <>
@@ -431,7 +442,6 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
               }
             >
               {loading && <Spinner />}
-
               <FormulaEvaluatorRecordSearch
                 selectedOrg={selectedOrg}
                 selectedSObject={selectedSObject?.name || ''}
@@ -439,46 +449,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                 fieldErrorMessage={fieldErrorMessage}
                 onSelectedRecord={setRecordId}
               />
-              {errorMessage && (
-                <div className="slds-m-around-medium">
-                  <ScopedNotification theme="error" className="slds-m-top_medium">
-                    {errorMessage}
-                  </ScopedNotification>
-                </div>
-              )}
-              {results && (
-                <Grid vertical>
-                  {!!Object.keys(results.formulaFields).length && (
-                    <>
-                      <div className="slds-text-heading_small">Record Fields</div>
-                      <div className="slds-m-top_xx-small slds-m-bottom_small slds-p-left_small">
-                        {Object.keys(results.formulaFields).map((field) => {
-                          const { value } = results.formulaFields[field];
-                          return (
-                            <div key={field}>
-                              <span className="text-bold">{field}</span>: {String(value) || '<blank>'}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                  <div className="slds-text-heading_small">Formula Results</div>
-                  <div className="slds-m-top_xx-small slds-m-bottom_small slds-p-left_small">
-                    {results.parsedFormula.type === 'error' ? (
-                      <Grid vertical className="slds-text-color_error">
-                        <div>{results.parsedFormula.errorType}</div>
-                        <div>{results.parsedFormula.message}</div>
-                        {results.parsedFormula.errorType === 'NotImplementedError' && results.parsedFormula.name === 'isnull' && (
-                          <div>Use ISBLANK instead</div>
-                        )}
-                      </Grid>
-                    ) : (
-                      <div className="slds-text-color_success">{String(results.parsedFormula.value)}</div>
-                    )}
-                  </div>
-                </Grid>
-              )}
+              <FormulaEvaluatorResults errorMessage={errorMessage} results={results} />
               {!errorMessage && !results && (
                 <EmptyState
                   headline="Test out a formula, the results will be shown here"

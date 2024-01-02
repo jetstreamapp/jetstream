@@ -1,14 +1,29 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { EntityParticlePermissionsRecord, FieldPermissionRecord, MapOf, ObjectPermissionRecord, SalesforceOrgUi } from '@jetstream/types';
+import { getMapOf } from '@jetstream/shared/utils';
+import {
+  EntityParticlePermissionsRecord,
+  FieldPermissionRecord,
+  MapOf,
+  ObjectPermissionRecord,
+  SalesforceOrgUi,
+  TabDefinitionRecord,
+  TabVisibilityPermissionRecord,
+} from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
+import {
+  FieldPermissionDefinitionMap,
+  ObjectPermissionDefinitionMap,
+  TabVisibilityPermissionDefinitionMap,
+} from './utils/permission-manager-types';
 import {
   getFieldDefinitionKey,
   getQueryForAllPermissionableFields,
   getQueryForFieldPermissions,
   getQueryObjectPermissions,
+  getQueryTabDefinition,
+  getQueryTabVisibilityPermissions,
 } from './utils/permission-manager-utils';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
@@ -22,6 +37,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
 
   const [objectPermissionMap, setObjectPermissionMap] = useState<MapOf<ObjectPermissionDefinitionMap> | null>(null);
   const [fieldPermissionMap, setFieldPermissionMap] = useState<MapOf<FieldPermissionDefinitionMap> | null>(null);
+  const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useState<MapOf<TabVisibilityPermissionDefinitionMap> | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -50,12 +66,26 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true, true),
         queryAndCombineResults<ObjectPermissionRecord>(selectedOrg, getQueryObjectPermissions(sobjects, permSetIds, profilePermSetIds)),
         queryAndCombineResults<FieldPermissionRecord>(selectedOrg, getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds)),
-      ]).then(([fieldDefinition, objectPermissions, fieldPermissions]) => {
+        queryAndCombineResults<TabVisibilityPermissionRecord>(
+          selectedOrg,
+          getQueryTabVisibilityPermissions(sobjects, permSetIds, profilePermSetIds)
+        ).then((record) => record.map((item) => ({ ...item, Name: item.Name.replace('standard-', '') }))),
+        queryAndCombineResults<TabDefinitionRecord>(selectedOrg, getQueryTabDefinition(sobjects), false, true).then((tabs) =>
+          getMapOf(tabs, 'SobjectName')
+        ),
+      ]).then(([fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
         return {
           fieldsByObject: getAllFieldsByObject(fieldDefinition),
           fieldsByKey: groupFields(fieldDefinition),
           objectPermissionMap: getObjectPermissionMap(sobjects, profilePermSetIds, permSetIds, objectPermissions),
           fieldPermissionMap: getFieldPermissionMap(fieldDefinition, profilePermSetIds, permSetIds, fieldPermissions),
+          tabVisibilityPermissionMap: getTabVisibilityPermissionMap(
+            sobjects,
+            profilePermSetIds,
+            permSetIds,
+            tabVisibilityPermissions,
+            tabDefinitions
+          ),
         };
       });
       if (isMounted.current) {
@@ -63,10 +93,11 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setFieldsByKey(output.fieldsByKey);
         setObjectPermissionMap(output.objectPermissionMap);
         setFieldPermissionMap(output.fieldPermissionMap);
+        setTabVisibilityPermissionMap(output.tabVisibilityPermissionMap);
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', ex.message);
-      rollbar.error('[useProfilesAndPermSets][ERROR]', ex);
+      rollbar.error('[useProfilesAndPermSets][ERROR]', { message: ex.message, stack: ex.stack });
       if (isMounted.current) {
         setHasError(true);
       }
@@ -85,6 +116,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     /** permissionsByObjectAndField, objectPermissionsByKey, fieldPermissionsByKey, */
     objectPermissionMap,
     fieldPermissionMap,
+    tabVisibilityPermissionMap,
     hasError,
   };
 }
@@ -223,6 +255,57 @@ function getFieldPermissionMap(
     selectedPermissionSets.forEach(processProfileAndPermSet);
 
     output[fieldKey] = currItem;
+    return output;
+  }, {});
+}
+
+function getTabVisibilityPermissionMap(
+  sobjects: string[],
+  selectedProfiles: string[],
+  selectedPermissionSets: string[],
+  permissions: TabVisibilityPermissionRecord[],
+  tabDefinitions: MapOf<TabDefinitionRecord>
+): MapOf<TabVisibilityPermissionDefinitionMap> {
+  const objectPermissionsByFieldByParentId = permissions.reduce((output: MapOf<MapOf<TabVisibilityPermissionRecord>>, item) => {
+    output[item.Name] = output[item.Name] || {};
+    output[item.Name][item.ParentId] = item;
+    return output;
+  }, {});
+
+  return sobjects.reduce((output: MapOf<TabVisibilityPermissionDefinitionMap>, item) => {
+    const currItem: TabVisibilityPermissionDefinitionMap = {
+      apiName: item,
+      label: item,
+      metadata: item,
+      permissions: {},
+      permissionKeys: [],
+      canSetPermission: !!tabDefinitions[item],
+    };
+
+    function processProfileAndPermSet(id: string) {
+      const permissionRecord = objectPermissionsByFieldByParentId[item]?.[id];
+      currItem.permissionKeys.push(id);
+      if (permissionRecord) {
+        currItem.permissions[id] = {
+          available: true,
+          visible: permissionRecord.Visibility === 'DefaultOn' ? true : false,
+          record: permissionRecord,
+          canSetPermission: true,
+        };
+      } else {
+        currItem.permissions[id] = {
+          available: false,
+          visible: false,
+          record: null,
+          canSetPermission: !!tabDefinitions[item],
+        };
+      }
+    }
+
+    selectedProfiles.forEach(processProfileAndPermSet);
+    selectedPermissionSets.forEach(processProfileAndPermSet);
+
+    output[item] = currItem;
     return output;
   }, {});
 }

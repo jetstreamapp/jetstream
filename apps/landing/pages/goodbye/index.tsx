@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import Footer from '../../components/Footer';
 import Navigation from '../../components/Navigation';
 
@@ -55,7 +55,7 @@ function Goodbye() {
                 target="_blank"
                 rel="noreferrer"
               >
-                support@getjetstream.app
+                {email}
               </a>{' '}
               if you have any questions or have feedback on what we can do better.
             </p>

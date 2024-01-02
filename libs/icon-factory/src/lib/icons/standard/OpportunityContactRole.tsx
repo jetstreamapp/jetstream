@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgOpportunityContactRole(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M64.9 47.4c-8.2 0-15 6.7-15 15 0 8.2 6.7 15 15 15s15-6.7 15-15-6.8-15-15-15zm7.3 13.1l-2.8 2.8c-.3.3-.4.6-.4.8l.7 4.2c.2 1.2-.9.5-.9.5L65.4 67c-.5-.3-1 0-1 0l-3.5 1.8c-.9.5-.9 0-.9-.4l.7-3.9c.1-.8-.3-1.1-.3-1.2l-2.5-2.4-.3-.3c-.3-.3-.5-.8.6-1l3.5-.5c.5-.1.8-.3.9-.5l1.9-3.9c.1-.3.5-.6.9.2l1.9 3.8c.1.2.4.3.6.4h.3l3.7.5h.1c.2.1.9.3.2.9z"
@@ -14,5 +13,4 @@ function SvgOpportunityContactRole(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgOpportunityContactRole;

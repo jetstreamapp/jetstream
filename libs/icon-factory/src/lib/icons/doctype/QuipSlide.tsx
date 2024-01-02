@@ -1,16 +1,15 @@
 import * as React from 'react';
-
 function SvgQuipSlide(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 56 64" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" aria-hidden="true" {...props}>
       <path
         fillRule="evenodd"
         clipRule="evenodd"
-        fill="#8D3DF5"
+        fill="#9050E9"
         d="M0 5.1v53.7C0 61.7 2.3 64 5.1 64h45.7c2.8 0 5.1-2.3 5.1-5.1V21L37 0H5.1C2.3 0 0 2.3 0 5.1z"
       />
-      <path opacity={0.5} fill="unset" d="M37 0l19 21H42.1c-2.8 0-5.2-2.3-5.2-5.2L37 0z" />
-      <path opacity={0.5} fill="#6D2BD6" d="M37 15.9v1c0 2.8 2.3 5.2 5.2 5.2H56v-1H42.1c-2.8-.1-5.1-2.4-5.1-5.2z" />
+      <path fill="#ECE1F9" d="M37 0l19 21H42.1c-2.8 0-5.2-2.3-5.2-5.2L37 0z" />
+      <path fill="#5A1BA9" d="M37 15.9v1c0 2.8 2.3 5.2 5.2 5.2H56v-1H42.1c-2.8-.1-5.1-2.4-5.1-5.2z" />
       <path
         fill="unset"
         d="M23.5 46.7h-6.9c-.4 0-.8.3-.8.8s.3.8.8.8h6.9c.4 0 .8-.3.8-.8s-.4-.8-.8-.8zM16.5 41.3h6.9c.4 0 .8-.3.8-.8 0-.4-.3-.8-.8-.8h-6.9c-.4 0-.8.3-.8.8.1.5.4.8.8.8zM14.2 43.2c-.4 0-.8.3-.8.8 0 .4.3.8.8.8h11.5c.4 0 .8-.3.8-.8 0-.4-.3-.8-.8-.8H14.2z"
@@ -22,5 +21,4 @@ function SvgQuipSlide(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgQuipSlide;

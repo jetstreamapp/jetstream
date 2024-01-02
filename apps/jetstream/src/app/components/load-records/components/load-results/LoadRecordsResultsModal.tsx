@@ -3,16 +3,15 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
-  CopyToClipboard,
+  CopyToClipboardWithToolTip,
   DataTable,
+  getRowTypeFromValue,
   Icon,
   Modal,
   setColumnFromType,
   Spinner,
-  Tooltip,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -20,7 +19,7 @@ const COL_WIDTH_MAP = {
   _errors: 450,
 };
 
-const getRowHeight = ({ row, type }: RowHeightArgs<any>) => (type === 'ROW' && row?._errors ? 75 : 25);
+const getRowHeight = (row: any) => (row?._errors ? 75 : 25);
 
 export interface LoadRecordsResultsModalProps {
   type: 'results' | 'failures';
@@ -47,36 +46,37 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   useEffect(() => {
     if (header) {
       setColumns(
-        header.map((item) => ({
-          ...setColumnFromType(item, 'text'),
-          name: item,
-          key: item,
-          field: item,
-          resizable: true,
-          width: COL_WIDTH_MAP[item],
-          formatter:
-            item === '_errors'
-              ? ({ row }) => (
-                  <p
-                    css={css`
-                      white-space: pre-wrap;
-                      line-height: normal;
-                    `}
-                  >
-                    {row._errors && (
-                      <Tooltip content={row._errors}>
-                        <CopyToClipboard
-                          icon={{ type: 'utility', icon: 'error', description: 'load error' }}
+        header.map((item) => {
+          const baseColumn = setColumnFromType(item, getRowTypeFromValue(rows?.[0]?.[item], false));
+          return {
+            ...baseColumn,
+            name: item,
+            key: item,
+            field: item,
+            resizable: true,
+            width: COL_WIDTH_MAP[item],
+            formatter:
+              item === '_errors'
+                ? ({ row }) => (
+                    <p
+                      css={css`
+                        white-space: pre-wrap;
+                        line-height: normal;
+                      `}
+                    >
+                      {row._errors && (
+                        <CopyToClipboardWithToolTip
                           content={row._errors}
+                          icon={{ type: 'utility', icon: 'error', description: 'Click to copy to clipboard' }}
                           className="slds-text-color_error slds-p-right_x-small"
                         />
-                      </Tooltip>
-                    )}
-                    {row?._errors}
-                  </p>
-                )
-              : undefined,
-        }))
+                      )}
+                      {row?._errors}
+                    </p>
+                  )
+                : baseColumn.renderCell,
+          };
+        })
       );
     }
   }, [header]);
@@ -116,7 +116,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
         <div className="slds-is-relative slds-scrollable_x">
           <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
             {loading && <Spinner />}
-            {rows && columns && (
+            {Array.isArray(rows) && Array.isArray(columns) && (
               <DataTable
                 columns={columns}
                 data={rows}

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgInstoreLocations(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M32.1 70.1c-.6 0-1.2-.5-1.2-1.2v-7.3c0-.6.5-1.2 1.2-1.2h7.5c.6 0 1.2.5 1.2 1.2V69c0 .6-.5 1.2-1.2 1.2h-7.5zM46.3 70.1c-.6 0-1.2-.5-1.2-1.2V57.7c0-.6.5-1.2 1.2-1.2h7.5c.6 0 1.2.5 1.2 1.2V69c0 .6-.5 1.2-1.2 1.2h-7.5zM60.5 70.1c-.6 0-1.2-.5-1.2-1.2v-7.3c0-.6.5-1.2 1.2-1.2H68c.6 0 1.2.5 1.2 1.2V69c0 .6-.5 1.2-1.2 1.2h-7.5zM32.1 42.9c-.6 0-1.2-.5-1.2-1.2V31.1c0-.6.5-1.2 1.2-1.2h21.7c.6 0 1.2.5 1.2 1.2v10.7c0 .6-.5 1.2-1.2 1.2H32.1zM60.5 42.9c-.6 0-1.2-.5-1.2-1.2v-7.3c0-.6.5-1.2 1.2-1.2H68c.6 0 1.2.5 1.2 1.2v7.3c0 .6-.5 1.2-1.2 1.2h-7.5z" />
         <path d="M73.8 20H26.2c-3.4 0-6.2 2.8-6.2 6.2v47.6c0 3.4 2.8 6.2 6.2 6.2h47.6c3.4 0 6.2-2.8 6.2-6.2V26.2c0-3.4-2.8-6.2-6.2-6.2zm0 51.7c0 1.2-.9 2.1-2.1 2.1H28.3c-1.1 0-2.1-.9-2.1-2.1v-19h47.6v19zm0-25H26.2V28.3c0-1.2.9-2.1 2.1-2.1h43.4c1.1 0 2.1.9 2.1 2.1v18.4z" />
@@ -10,5 +9,4 @@ function SvgInstoreLocations(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgInstoreLocations;

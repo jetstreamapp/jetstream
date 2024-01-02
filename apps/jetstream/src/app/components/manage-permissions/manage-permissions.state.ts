@@ -7,7 +7,11 @@ import {
 } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
-import { FieldPermissionDefinitionMap, ObjectPermissionDefinitionMap } from './utils/permission-manager-types';
+import {
+  FieldPermissionDefinitionMap,
+  ObjectPermissionDefinitionMap,
+  TabVisibilityPermissionDefinitionMap,
+} from './utils/permission-manager-types';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'permission-manager.sObjectsState',
@@ -51,24 +55,6 @@ export const fieldsByKey = atom<MapOf<EntityParticlePermissionsRecord> | null>({
   default: null,
 });
 
-// // key = either Sobject name or field name with object prefix
-// export const permissionsByObjectAndField = atom<MapOf<string[]>>({
-//   key: 'permission-manager.permissionsByObjectAndField',
-//   default: null,
-// });
-
-// //KEY = {Id-SObjectName} ex: `${record.ParentId}-${record.Field}`
-// export const objectPermissionsByKey = atom<MapOf<ObjectPermissionRecord>>({
-//   key: 'permission-manager.objectPermissionsByKey',
-//   default: null,
-// });
-
-// //KEY = {Id-FieldName} ex: `${record.ParentId}-${record.Field}`
-// export const fieldPermissionsByKey = atom<MapOf<FieldPermissionRecord>>({
-//   key: 'permission-manager.fieldPermissionsByKey',
-//   default: null,
-// });
-
 export const objectPermissionMap = atom<MapOf<ObjectPermissionDefinitionMap> | null>({
   key: 'permission-manager.objectPermissionMap',
   default: null,
@@ -76,6 +62,11 @@ export const objectPermissionMap = atom<MapOf<ObjectPermissionDefinitionMap> | n
 
 export const fieldPermissionMap = atom<MapOf<FieldPermissionDefinitionMap> | null>({
   key: 'permission-manager.fieldPermissionMap',
+  default: null,
+});
+
+export const tabVisibilityPermissionMap = atom<MapOf<TabVisibilityPermissionDefinitionMap> | null>({
+  key: 'permission-manager.tabVisibilityPermissionMap',
   default: null,
 });
 

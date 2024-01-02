@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgListEmail(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M64.9 34.9H30.3c-2.7 0-4.8 2.2-4.8 4.8v.8c0 .4.4.8.8.8h32.1c2.7 0 4.8 2.2 4.8 4.8v23c0 .4.4.8.8.8h.8c2.7 0 4.8-2.2 4.8-4.8V39.7c.1-2.6-2.1-4.8-4.7-4.8z"
@@ -18,5 +17,4 @@ function SvgListEmail(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgListEmail;

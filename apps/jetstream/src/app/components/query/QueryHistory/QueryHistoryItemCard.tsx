@@ -6,7 +6,7 @@ import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Texta
 import Editor from '@monaco-editor/react';
 import formatDate from 'date-fns/format';
 import clamp from 'lodash/clamp';
-import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
@@ -158,6 +158,10 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                     selectionHighlight: false,
                     renderLineHighlight: 'none',
                     scrollBeyondLastLine: false,
+                    scrollbar: {
+                      alwaysConsumeMouseWheel: false,
+                      handleMouseWheel: false,
+                    },
                   }}
                 />
               </Textarea>

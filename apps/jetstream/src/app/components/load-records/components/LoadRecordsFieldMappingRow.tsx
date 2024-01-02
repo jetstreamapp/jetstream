@@ -1,10 +1,11 @@
 import { css } from '@emotion/react';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { Checkbox, ComboboxWithItems, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldMappingItem, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
+import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
 import { SELF_LOOKUP_KEY } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
@@ -29,11 +30,42 @@ function getComboboxFieldTitle(item: ListItem) {
 export interface LoadRecordsFieldMappingRowProps {
   isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
-  fieldMappingItem: FieldMappingItem;
+  fieldMappingItem: FieldMappingItemCsv;
   csvField: string;
   csvRowData: string;
   binaryAttachmentBodyField?: string;
-  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItem) => void;
+  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItemCsv) => void;
+}
+
+function getFieldListItems(fields: FieldWithRelatedEntities[]) {
+  return fields.map((field) => ({
+    id: field.name,
+    label: field.label,
+    value: field.name,
+    secondaryLabel: field.typeLabel,
+    meta: field,
+    customRenderer: (item: ListItem<string, FieldWithRelatedEntities>) => (
+      <>
+        <span className="slds-listbox__option-text slds-listbox__option-text_entity">
+          <Grid align="spread">
+            <span title={item.label} className="slds-truncate">
+              {item.label}
+            </span>
+            {item.secondaryLabel && (
+              <span className="slds-badge slds-badge_lightest slds-truncate" title={item.secondaryLabel}>
+                {item.secondaryLabel}
+              </span>
+            )}
+          </Grid>
+        </span>
+        <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+          <span title={item.value} className="slds-truncate">
+            {item.value}
+          </span>
+        </span>
+      </>
+    ),
+  }));
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({
@@ -45,40 +77,11 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   binaryAttachmentBodyField,
   onSelectionChanged,
 }) => {
-  const [fieldListItems, setFieldListItems] = useState<ListItem<string, FieldWithRelatedEntities>[]>([]);
+  const [fieldListItems, setFieldListItems] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() => getFieldListItems(fields));
   const [relatedFields, setRelatedFields] = useState<ListItem<string, FieldRelatedEntity>[]>([]);
 
-  useEffect(() => {
-    setFieldListItems(
-      fields.map((field) => ({
-        id: field.name,
-        label: field.label,
-        value: field.name,
-        secondaryLabel: field.typeLabel,
-        meta: field,
-        customRenderer: (item: ListItem<string, FieldWithRelatedEntities>) => (
-          <>
-            <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-              <Grid align="spread">
-                <span title={item.label} className="slds-truncate">
-                  {item.label}
-                </span>
-                {item.secondaryLabel && (
-                  <span className="slds-badge slds-badge_lightest slds-truncate" title={item.secondaryLabel}>
-                    {item.secondaryLabel}
-                  </span>
-                )}
-              </Grid>
-            </span>
-            <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-              <span title={item.value} className="slds-truncate">
-                {item.value}
-              </span>
-            </span>
-          </>
-        ),
-      }))
-    );
+  useNonInitialEffect(() => {
+    setFieldListItems(getFieldListItems(fields));
   }, [fields]);
 
   useEffect(() => {
@@ -100,6 +103,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
       onSelectionChanged(csvField, {
+        type: 'CSV',
         csvField,
         targetField: null,
         mappedToLookup: false,
@@ -169,8 +173,20 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   return (
     <tr>
-      <td className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
-        <div className="slds-line-clamp_medium slds-m-top_x-small" title={csvRowDataStr}>
+      <td
+        className="slds-align-top slds-text-color_weak bg-color-backdrop-tint"
+        css={css`
+          width: 200px;
+          max-width: 200px;
+        `}
+      >
+        <div
+          css={css`
+            line-break: anywhere;
+          `}
+          className="slds-line-clamp_medium slds-m-top_x-small"
+          title={csvRowDataStr}
+        >
           {csvRowDataStr}
         </div>
       </td>
@@ -215,6 +231,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           <div
             css={css`
               white-space: pre-wrap;
+              overflow-wrap: anywhere;
             `}
           >
             <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />

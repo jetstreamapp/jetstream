@@ -9,4 +9,5 @@ export const rollbarServer = new Rollbar({
   captureUncaught: true,
   captureUnhandledRejections: true,
   enabled: !!ENV.ROLLBAR_SERVER_TOKEN,
+  nodeSourceMaps: true,
 });

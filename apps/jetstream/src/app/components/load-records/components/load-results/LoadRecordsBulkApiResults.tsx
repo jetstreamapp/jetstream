@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { decodeHtmlEntity, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobResultRecord,
@@ -12,13 +12,11 @@ import {
   MapOf,
   Maybe,
   SalesforceOrgUi,
-  WorkerMessage,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip, fireToast } from '@jetstream/ui';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
-import { fireToast } from '../../../core/AppToast';
 import { useAmplitude } from '../../../core/analytics';
 import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
@@ -33,8 +31,8 @@ import {
   PrepareDataResponse,
   ViewModalData,
 } from '../../load-records-types';
-import { LoadRecordsBatchError, getFieldHeaderFromMapping } from '../../utils/load-records-utils';
-import { getLoadWorker } from '../../utils/load-records-worker';
+import { loadBulkApiData, prepareData } from '../../utils/load-records-process';
+import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -93,12 +91,12 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   onFinish,
 }) => {
   const isMounted = useRef(true);
+  const isAborted = useRef(false);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
-  const [loadWorker] = useState(() => getLoadWorker());
   const [status, setStatus] = useState<Status>(STATUSES.PREPARING);
   const [fatalError, setFatalError] = useState<Maybe<string>>(null);
   const [downloadError, setDownloadError] = useState<Maybe<string>>(null);
@@ -126,12 +124,6 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   }, []);
 
   useEffect(() => {
-    if (loadWorker) {
-      loadWorker.postMessage({ name: 'init', isElectron: window.electron?.isElectron });
-    }
-  }, [loadWorker]);
-
-  useEffect(() => {
     if (batchSummary && batchSummary.batchSummary) {
       const batchSummariesWithId = batchSummary.batchSummary.filter((batch) => batch.id);
       if (Array.isArray(batchSummariesWithId)) {
@@ -146,45 +138,6 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       }
     }
   }, [batchSummary]);
-
-  useEffect(() => {
-    if (loadWorker) {
-      setStatus(STATUSES.PREPARING);
-      setProcessingStartTime(convertDateToLocale(new Date(), { timeStyle: 'medium' }));
-      setFatalError(null);
-      const data: PrepareDataPayload = {
-        org: selectedOrg,
-        data: inputFileData,
-        // zipData: inputZipFileData,
-        fieldMapping,
-        sObject: selectedSObject,
-        insertNulls,
-        dateFormat,
-        apiMode,
-      };
-      loadWorker.postMessage({ name: 'prepareData', data });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadWorker]);
-
-  useEffect(() => {
-    if (preparedData && preparedData.data.length) {
-      const data: LoadDataPayload = {
-        org: selectedOrg,
-        data: preparedData.data,
-        zipData: inputZipFileData,
-        sObject: selectedSObject,
-        apiMode,
-        type: loadType,
-        batchSize,
-        assignmentRuleId,
-        serialMode,
-        externalId,
-      };
-      loadWorker.postMessage({ name: 'loadData', data });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preparedData]);
 
   /**
    * When jobInfo is modified, check to see if everything is done
@@ -233,139 +186,163 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobInfo, status]);
 
-  useEffect(() => {
-    if (loadWorker) {
-      loadWorker.onmessage = (event: MessageEvent) => {
-        if (!isMounted.current) {
-          return;
-        }
-        const payload: WorkerMessage<
-          'prepareData' | 'prepareDataProgress' | 'loadDataStatus' | 'loadData',
-          {
-            preparedData?: PrepareDataResponse;
-            jobInfo?: BulkJobWithBatches;
-            progress?: number;
-            resultsSummary?: LoadDataBulkApiStatusPayload;
-          },
-          Error | LoadRecordsBatchError
-        > = event.data;
-        logger.log('[LOAD DATA]', payload.name, { payload });
-        const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
-        switch (payload.name) {
-          case 'prepareData': {
-            if (payload.error) {
-              logger.error('ERROR', payload.error);
-              setStatus(STATUSES.ERROR);
-              setFatalError(payload.error.message);
-              onFinish({ success: 0, failure: inputFileData.length });
-              notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
-                body: `❌ ${payload.error.message}`,
-                tag: 'load-records',
-              });
-              rollbar.error('Error preparing bulk api data', { message: payload.error.message, stack: payload.error.stack });
-            } else if (!payload.data.preparedData?.data.length) {
-              if (payload.data.preparedData?.queryErrors?.length) {
-                setFatalError(payload.data.preparedData.queryErrors.join('\n'));
-              } else if (payload.error) {
-                setFatalError((payload.error as any)?.message || 'An unknown error has occurred');
-              }
-              // processing failed on every record
-              setStatus(STATUSES.ERROR);
-              setPreparedData(payload.data.preparedData);
-              setProcessingEndTime(dateString);
-              // mock response to ensure results table is visible
-              setJobInfo({
-                concurrencyMode: serialMode ? 'Serial' : 'Parallel',
-                contentType: 'CSV',
-                createdById: null,
-                createdDate: null,
-                id: null,
-                object: selectedSObject,
-                operation: loadType,
-                state: 'Failed',
-                systemModstamp: null,
-                apexProcessingTime: 0,
-                apiActiveProcessingTime: 0,
-                apiVersion: 0,
-                numberBatchesCompleted: 0,
-                numberBatchesFailed: 0,
-                numberBatchesInProgress: 0,
-                numberBatchesQueued: 0,
-                numberBatchesTotal: 0,
-                numberRecordsFailed: 0,
-                numberRecordsProcessed: 0,
-                numberRetries: 0,
-                totalProcessingTime: 0,
-                batches: [],
-              });
-              onFinish({ success: 0, failure: inputFileData.length });
-              notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
-                body: `❌ Pre-processing records failed.`,
-                tag: 'load-records',
-              });
-              rollbar.error('Error preparing bulk api data', {
-                queryErrors: payload.data.preparedData?.queryErrors,
-                message: (payload.error as any)?.message,
-                stack: (payload.error as any)?.stack,
-              });
-            } else {
-              setStatus(STATUSES.UPLOADING);
-              setPreparedData(payload.data.preparedData);
-              setProcessingEndTime(dateString);
-            }
-            break;
-          }
-          case 'prepareDataProgress': {
-            setPrepareDataProgress(payload.data.progress || 0);
-            break;
-          }
-          case 'loadDataStatus': {
-            setBatchSummary(payload.data.resultsSummary);
-            if (Array.isArray(payload.data.resultsSummary?.jobInfo.batches) && payload.data.resultsSummary?.jobInfo.batches.length) {
-              setJobInfo(payload.data.resultsSummary.jobInfo);
-            }
-            break;
-          }
-          case 'loadData': {
-            if (payload.error) {
-              logger.error('ERROR', payload.error);
-              setFatalError(payload.error.message);
-              if (payload.data?.jobInfo && payload.data.jobInfo.batches.length) {
-                setJobInfo(payload.data.jobInfo);
-                setStatus(STATUSES.PROCESSING);
-              } else {
-                setStatus(STATUSES.ERROR);
-                onFinish({ success: 0, failure: inputFileData.length });
-                notifyUser(`Your data load failed`, {
-                  body: `❌ ${payload.error?.message || payload.error}`,
-                  tag: 'load-records',
-                });
-              }
-              if (payload.error instanceof LoadRecordsBatchError) {
-                rollbar.error('Error loading batches', {
-                  message: payload.error.message,
-                  stack: payload.error.stack,
-                  specificErrors: payload.error.additionalErrors.map((error) => ({
-                    message: error.message,
-                    stack: error.stack,
-                  })),
-                });
-              } else {
-                rollbar.error('Error loading batches', { message: payload.error.message, stack: payload.error.stack });
-              }
-            } else {
-              setJobInfo(payload.data.jobInfo);
-              setStatus(STATUSES.PROCESSING);
-            }
-            break;
-          }
-          default:
-            break;
-        }
+  const doPrepareData = useCallback(async () => {
+    try {
+      setStatus(STATUSES.PREPARING);
+      setProcessingStartTime(convertDateToLocale(new Date(), { timeStyle: 'medium' }));
+      setFatalError(null);
+      const prepareDataPayload: PrepareDataPayload = {
+        org: selectedOrg,
+        data: inputFileData,
+        fieldMapping,
+        sObject: selectedSObject,
+        insertNulls,
+        dateFormat,
+        apiMode,
       };
+
+      const preparedDataResponse = await prepareData(prepareDataPayload, (progress) => {
+        setPrepareDataProgress(progress || 0);
+      });
+
+      if (isAborted.current) {
+        throw new Error('Aborted');
+      }
+
+      const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
+
+      if (!preparedDataResponse?.data.length) {
+        if (preparedDataResponse?.queryErrors?.length) {
+          setFatalError(preparedDataResponse.queryErrors.join('\n'));
+        }
+        // processing failed on every record
+        setStatus(STATUSES.ERROR);
+        setPreparedData(preparedDataResponse);
+        setProcessingEndTime(dateString);
+        // mock response to ensure results table is visible
+        setJobInfo({
+          concurrencyMode: serialMode ? 'Serial' : 'Parallel',
+          contentType: 'CSV',
+          createdById: null,
+          createdDate: null,
+          id: null,
+          object: selectedSObject,
+          operation: loadType,
+          state: 'Failed',
+          systemModstamp: null,
+          apexProcessingTime: 0,
+          apiActiveProcessingTime: 0,
+          apiVersion: 0,
+          numberBatchesCompleted: 0,
+          numberBatchesFailed: 0,
+          numberBatchesInProgress: 0,
+          numberBatchesQueued: 0,
+          numberBatchesTotal: 0,
+          numberRecordsFailed: 0,
+          numberRecordsProcessed: 0,
+          numberRetries: 0,
+          totalProcessingTime: 0,
+          batches: [],
+        });
+        onFinish({ success: 0, failure: inputFileData.length });
+        notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+          body: `❌ Pre-processing records failed.`,
+          tag: 'load-records',
+        });
+        rollbar.error('Error preparing bulk api data', { queryErrors: preparedDataResponse?.queryErrors });
+      } else {
+        setStatus(STATUSES.UPLOADING);
+        setPreparedData(preparedDataResponse);
+        setProcessingEndTime(dateString);
+
+        return preparedDataResponse;
+      }
+    } catch (ex) {
+      logger.error('ERROR', ex);
+      setStatus(STATUSES.ERROR);
+      setFatalError(ex.message);
+      onFinish({ success: 0, failure: inputFileData.length });
+      notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+        body: `❌ ${ex.message}`,
+        tag: 'load-records',
+      });
+      rollbar.error('Error preparing bulk api data', { message: ex.message, stack: ex.stack });
+      return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadWorker]);
+  }, []);
+
+  const loadData = useCallback(async () => {
+    isAborted.current = false;
+
+    const preparedDataResponse = await doPrepareData();
+
+    if (!preparedDataResponse) {
+      return;
+    }
+
+    try {
+      const loadDataPayload: LoadDataPayload = {
+        org: selectedOrg,
+        data: preparedDataResponse.data,
+        zipData: inputZipFileData,
+        sObject: selectedSObject,
+        apiMode,
+        type: loadType,
+        batchSize,
+        assignmentRuleId,
+        serialMode,
+        externalId,
+      };
+
+      const { loadError, jobInfo } = await loadBulkApiData(
+        loadDataPayload,
+        (resultsSummary) => {
+          setBatchSummary(resultsSummary);
+          if (Array.isArray(resultsSummary?.jobInfo.batches) && resultsSummary?.jobInfo.batches.length) {
+            setJobInfo(resultsSummary.jobInfo);
+          }
+        },
+        () => isAborted.current
+      );
+
+      if (loadError) {
+        logger.error('ERROR', loadError);
+        setFatalError(loadError.message);
+        if (jobInfo && jobInfo.batches.length) {
+          setJobInfo(jobInfo);
+          setStatus(STATUSES.PROCESSING);
+        } else {
+          setStatus(STATUSES.ERROR);
+          onFinish({ success: 0, failure: inputFileData.length });
+          notifyUser(`Your data load failed`, {
+            body: `❌ ${loadError.message}`,
+            tag: 'load-records',
+          });
+        }
+        rollbar.error('Error loading batches', {
+          message: loadError.message,
+          stack: loadError.stack,
+          specificErrors: loadError.additionalErrors.map((error) => ({
+            message: error.message,
+            stack: error.stack,
+          })),
+        });
+      } else {
+        setJobInfo(jobInfo);
+        setStatus(STATUSES.PROCESSING);
+      }
+    } catch (ex) {
+      logger.error('ERROR', ex);
+      setFatalError(ex.message);
+      return;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   function getUploadingText() {
     if (
@@ -408,7 +385,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           combinedResults.push({
             _id: resultRecord.Id || records[i].Id || null,
             _success: resultRecord.Success,
-            _errors: resultRecord.Error,
+            _errors: decodeHtmlEntity(resultRecord.Error),
             ...records[i],
           });
         }
@@ -475,7 +452,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   }
 
   async function handleAbort() {
-    loadWorker.postMessage({ name: 'abort' });
+    isAborted.current = true;
     setStatus(STATUSES.ABORTING);
     try {
       jobInfo?.id && (await bulkApiAbortJob(selectedOrg, jobInfo.id));
@@ -512,7 +489,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           onClose={handleViewModalClose}
         />
       )}
-      <Grid verticalAlign="end" align="spread">
+      <Grid verticalAlign="center" align="spread">
         <div>
           <h3 className="slds-text-heading_small slds-grid">
             <Grid verticalAlign="center">
@@ -535,7 +512,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
                       display: inline-block;
                     `}
                   >
-                    <Spinner inline containerClassName="slds-m-bottom_small" size="x-small" />
+                    <Spinner inline containerClassName="slds-m-bottom_x-small" size="x-small" />
                   </div>
                 </div>
               )}

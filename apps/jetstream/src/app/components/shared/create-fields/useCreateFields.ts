@@ -101,7 +101,7 @@ export default function useCreateFields({
     (rows: FieldValues[]) => {
       if (rows?.length && sObjects?.length) {
         try {
-          const payload: CreateFieldsResults[] = preparePayload(sObjects, rows).map(
+          const payload: CreateFieldsResults[] = preparePayload(sObjects, rows, selectedOrg.orgNamespacePrefix).map(
             (field): CreateFieldsResults => ({
               key: `${(field.fullName as string).replace('.', '_').replace(REGEX.CONSECUTIVE_UNDERSCORES, '_')}`,
               label: field.fullName,
@@ -127,7 +127,7 @@ export default function useCreateFields({
       }
       return false;
     },
-    [rollbar, sObjects]
+    [rollbar, sObjects, selectedOrg.orgNamespacePrefix]
   );
 
   /**

@@ -116,7 +116,9 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
                 className="slds-input"
                 placeholder="org-domain"
                 value={customUrl}
-                onChange={(event) => setCustomUrl(event.target.value)}
+                onChange={(event) =>
+                  setCustomUrl((prevValue) => (event.target.value || '').replaceAll(/(https:\/\/)|(\.my\.salesforce\.com)/g, ''))
+                }
               />
             </Input>
           )}

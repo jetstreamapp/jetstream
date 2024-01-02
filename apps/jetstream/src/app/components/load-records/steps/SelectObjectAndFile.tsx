@@ -12,11 +12,11 @@ import {
   Grid,
   GridCol,
   XlsxSheetSelectionModalPromise,
+  fireToast,
 } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isString from 'lodash/isString';
 import { FunctionComponent } from 'react';
-import { fireToast } from '../../core/AppToast';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities, LocalOrGoogle } from '../load-records-types';
 import { filterLoadSobjects } from '../utils/load-records-utils';
@@ -75,16 +75,19 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   children,
 }) => {
   const hasGoogleInputConfigured = !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
-  async function handleFile({ content, filename, isPasteFromClipboard }: InputReadFileContent) {
+  async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
-      const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard });
+      const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
       onFileChange(data, headers, filename, 'local');
       if (errors.length > 0) {
         logger.warn(errors);
-        fireToast({
-          message: 'There were errors parsing the file. Check the file preview to ensure the data is correct.',
-          type: 'warning',
-        });
+        // suppress delimiter error if it is the only error and just one column of data
+        if (headers.length !== 1 || errors.length !== 1 || !errors[0].includes('auto-detect delimiting character')) {
+          fireToast({
+            message: `There were errors parsing the file. Check the file preview to ensure the data is correct. ${errors.join()}`,
+            type: 'warning',
+          });
+        }
       }
     } catch (ex) {
       logger.warn('Error reading file', ex);
@@ -163,7 +166,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
                     id: 'load-record-file',
                     label: 'File to Load',
                     filename: inputFileType === 'local' ? inputFilename : undefined,
-                    accept: [INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.EXCEL],
+                    accept: [INPUT_ACCEPT_FILETYPES.CSV, INPUT_ACCEPT_FILETYPES.TSV, INPUT_ACCEPT_FILETYPES.EXCEL],
                     allowFromClipboard: true,
                     userHelpText: 'Choose CSV or XLSX file to upload',
                     onReadFile: handleFile,
@@ -181,7 +184,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               </GridCol>
             </Grid>
           </GridCol>
-          {allowBinaryAttachment && inputZipFilename && (
+          {allowBinaryAttachment && (
             <GridCol className="slds-m-bottom_small">
               <Grid verticalAlign="center">
                 <GridCol size={6}>

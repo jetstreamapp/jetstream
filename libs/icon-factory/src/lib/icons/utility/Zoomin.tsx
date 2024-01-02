@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgZoomin(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M31 19h-6v-6c0-.6-.4-1-1-1h-4c-.6 0-1 .4-1 1v6h-6c-.6 0-1 .4-1 1v4c0 .6.4 1 1 1h6v6c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-6h6c.6 0 1-.4 1-1v-4c0-.6-.4-1-1-1z"
@@ -14,5 +13,4 @@ function SvgZoomin(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgZoomin;

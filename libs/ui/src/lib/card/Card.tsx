@@ -43,7 +43,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(
                     icon={icon.icon}
                     title={icon.title}
                     description={icon.description}
-                    containerClassname={classNames('slds-icon_container', `slds-icon-${icon.type}-${icon.icon.replace('_', '-')}`)}
+                    containerClassname={classNames('slds-icon_container', `slds-icon-${icon.type}-${icon.icon.replaceAll('_', '-')}`)}
                     className="slds-icon slds-icon_small"
                   />
                 </div>

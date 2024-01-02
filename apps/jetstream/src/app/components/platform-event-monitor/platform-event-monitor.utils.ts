@@ -1,12 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { CometD, Message, Extension, SubscriptionHandle } from 'cometd';
+import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { CometD, Extension, Message, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
-
-/**
- * TODO: a worker might be the best solution here to ensure events are received from background
- */
+import { EventMessage, EventMessageUnsuccessful } from './platform-event-monitor.types';
 
 const subscriptions = new Map<string, SubscriptionHandle>();
 
@@ -17,10 +14,12 @@ export function init({
   serverUrl,
   defaultApiVersion,
   selectedOrg,
+  onSubscribeError,
 }: {
   serverUrl: string;
   defaultApiVersion: string;
   selectedOrg: SalesforceOrgUi;
+  onSubscribeError?: (message: EventMessageUnsuccessful) => void;
 }) {
   return new Promise<CometD>((resolve, reject) => {
     const cometd = new CometD();
@@ -56,14 +55,17 @@ export function init({
       }
     });
 
-    cometd.addListener('/meta/connect', (message) => {
+    cometd.addListener('/meta/connect', (message: EventMessage) => {
       logger.log('[COMETD] connect', message);
     });
-    cometd.addListener('/meta/disconnect', (message) => {
+    cometd.addListener('/meta/disconnect', (message: EventMessage) => {
       logger.log('[COMETD] disconnect', message);
     });
-    cometd.addListener('/meta/unsuccessful', (message) => {
+    // Library appears to have incorrect type for subscription property
+    cometd.addListener('/meta/unsuccessful', (message: unknown) => {
       logger.log('[COMETD] unsuccessful', message);
+      // message.subscription -> not valid
+      onSubscribeError && onSubscribeError(message as EventMessageUnsuccessful);
     });
     (cometd as any).onListenerException = (exception, subscriptionHandle, isListener, message) => {
       logger.warn('[COMETD][LISTENER][ERROR]', exception?.message, message, subscriptionHandle);
@@ -72,23 +74,21 @@ export function init({
 }
 
 export function subscribe<T = any>(
-  { cometd, platformEventName, replayId }: { cometd: CometD; platformEventName: string; replayId?: number },
+  { cometd, channel, replayId }: { cometd: CometD; channel: string; replayId?: number },
   callback: (message: T) => void
 ) {
-  const channel = `/event/${platformEventName}`;
-
   if (!cometd.isDisconnected()) {
     const replayExt = cometd.getExtension(CometdReplayExtension.EXT_NAME) as any;
     if (replayExt) {
-      replayExt.addChannel(platformEventName, replayId);
+      replayExt.addChannel(channel, replayId);
     }
 
-    if (subscriptions.has(platformEventName)) {
+    if (subscriptions.has(channel)) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      cometd.unsubscribe(subscriptions.get(platformEventName)!);
+      cometd.unsubscribe(subscriptions.get(channel)!);
     }
     subscriptions.set(
-      platformEventName,
+      channel,
       cometd.subscribe(channel, (message) => {
         callback(message as any);
       })
@@ -96,12 +96,12 @@ export function subscribe<T = any>(
   }
 }
 
-export function unsubscribe({ cometd, platformEventName }: { cometd: CometD; platformEventName: string }) {
+export function unsubscribe({ cometd, channel }: { cometd: CometD; channel: string }) {
   if (!cometd.isDisconnected()) {
-    if (subscriptions.has(platformEventName)) {
+    if (subscriptions.has(channel)) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      cometd.unsubscribe(subscriptions.get(platformEventName)!);
-      subscriptions.delete(platformEventName);
+      cometd.unsubscribe(subscriptions.get(channel)!);
+      subscriptions.delete(channel);
     }
     // if no more subscriptions, disconnect everything
     if (!subscriptions.size) {
@@ -135,12 +135,10 @@ class CometdReplayExtension implements Extension {
   }
 
   addChannel(channel: string, replay?: number) {
-    channel = channel.startsWith('/event') ? channel : `/event/${channel}`;
     this.replayFromMap[channel] = replay ?? -1;
   }
 
   removeChannel(channel: string) {
-    channel = channel.startsWith('/event') ? channel : `/event/${channel}`;
     this.replayFromMap[channel] = undefined;
   }
 

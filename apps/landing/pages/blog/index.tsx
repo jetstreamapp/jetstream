@@ -1,6 +1,5 @@
 import { format, parseISO } from 'date-fns';
 import Head from 'next/head';
-import React, { Fragment } from 'react';
 import Footer from '../../components/Footer';
 import Navigation from '../../components/Navigation';
 import { fetchBlogPosts } from '../../utils/data';

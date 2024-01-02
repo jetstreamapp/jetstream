@@ -18,33 +18,13 @@ export type SalesforceOrgEdition =
   | 'Contact Manager Edition'
   | 'Base Edition';
 
-export type SalesforceOrgLocaleKey =
-  | 'en_US'
-  | 'de'
-  | 'es'
-  | 'fr'
-  | 'it'
-  | 'ja'
-  | 'sv'
-  | 'ko'
-  | 'zh_TW'
-  | 'zh_CN'
-  | 'pt_BR'
-  | 'nl_NL'
-  | 'da'
-  | 'th'
-  | 'fi'
-  | 'ru'
-  | 'es_MX'
-  | 'no';
-
 export interface SObjectOrganization {
   Name?: string;
   Country?: string;
   OrganizationType?: SalesforceOrgEdition;
   InstanceName?: string;
   IsSandbox?: boolean;
-  LanguageLocaleKey?: SalesforceOrgLocaleKey;
+  LanguageLocaleKey?: string;
   NamespacePrefix?: string;
   TrialExpirationDate?: string;
 }
@@ -83,9 +63,10 @@ export type Update = 'UPDATE';
 export type Upsert = 'UPSERT';
 export type Delete = 'DELETE';
 export type Query = 'QUERY';
+export type QueryAll = 'QUERY_ALL';
 export type InsertUpdateUpsert = Insert | Update | Upsert;
 export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete;
-export type InsertUpdateUpsertDeleteQuery = Insert | Update | Upsert | Delete | Query;
+export type InsertUpdateUpsertDeleteQuery = Insert | Update | Upsert | Delete | Query | QueryAll;
 
 export interface ErrorResult {
   errors: {
@@ -93,6 +74,8 @@ export interface ErrorResult {
     message: string;
     statusCode: string;
   }[];
+  /** Will be available for updates */
+  id?: string;
   success: false;
 }
 
@@ -287,6 +270,8 @@ export interface ObjectPermissionRecord {
   Parent: PermissionPermissionSetRecord;
 }
 
+export type ObjectPermissionRecordInsert = Omit<ObjectPermissionRecord, 'Id' | 'Parent'> & { attributes?: { type: 'ObjectPermissions' } };
+
 export interface FieldPermissionRecord {
   Id: string;
   SobjectType: string;
@@ -296,6 +281,32 @@ export interface FieldPermissionRecord {
   ParentId: string;
   Parent: PermissionPermissionSetRecord;
 }
+
+export type TabPermissionRecordInsert = {
+  attributes?: { type: 'PermissionSetTabSetting' };
+  ParentId: string;
+  Name: string;
+  Visibility: 'DefaultOn' | 'DefaultOff';
+};
+
+export interface TabVisibilityPermissionRecord {
+  Id: string;
+  Name: string;
+  Visibility: 'DefaultOff' | 'DefaultOn';
+  ParentId: string;
+  Parent: PermissionPermissionSetRecord;
+}
+
+export interface TabDefinitionRecord {
+  Id: string;
+  Name: string;
+  Label: string;
+  SobjectName: string;
+}
+
+export type TabVisibilityPermissionRecordInsert = Omit<TabVisibilityPermissionRecord, 'Id' | 'Parent'> & {
+  attributes?: { type: 'ObjectPermissions' };
+};
 
 export type BulkJobWithBatches = BulkJob & { batches: BulkJobBatchInfo[] };
 
@@ -323,7 +334,7 @@ export interface BulkJob {
   totalProcessingTime: number;
 }
 
-export interface BulkJobUntyped extends Object {
+export interface BulkJobUntyped extends Record<string, any> {
   $: any;
   concurrencyMode: 'Parallel' | 'Serial';
   contentType: string;
@@ -362,7 +373,7 @@ export interface BulkJobBatchInfo {
   apexProcessingTime: number;
 }
 
-export interface BulkJobBatchInfoUntyped extends Object {
+export interface BulkJobBatchInfoUntyped extends Record<string, any> {
   $?: any;
   '@xmlns'?: string;
   id: string;
@@ -751,4 +762,142 @@ export interface GlobalValueSetCustomValue {
   isActive?: boolean;
   label?: string /** defaults to ValueName */;
   valueName: string;
+}
+
+export interface RecordWithAuditFields {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  CreatedById: string;
+  CreatedBy: {
+    Name: string;
+  } | null;
+  CreatedDate: string;
+  LastModifiedById: string;
+  LastModifiedBy: {
+    Name: string;
+  } | null;
+  LastModifiedDate: string;
+}
+
+// Returned from readMetadata API
+export interface ProfileMetadataRecord {
+  fullName: string;
+  applicationVisibilities?: ApplicationVisibility[];
+  classAccesses?: ClassAccess[];
+  custom?: string;
+  customMetadataTypeAccesses?: CustomMetadataTypeAccess[];
+  customPermissions?: CustomPermission[];
+  customSettingAccesses?: CustomSettingAccess[];
+  fieldPermissions?: FieldPermission[];
+  flowAccesses?: FlowAccesses;
+  layoutAssignments?: LayoutAssignment[];
+  loginIpRanges?: LoginIpRanges;
+  objectPermissions?: ObjectPermission[];
+  pageAccesses?: PageAccess[];
+  recordTypeVisibilities?: RecordTypeVisibility[];
+  tabVisibilities?: TabVisibility[];
+  userLicense?: string;
+  userPermissions?: UserPermission[];
+}
+
+// Returned from readMetadata API
+export interface PermissionSetMetadataRecord {
+  fullName: string;
+  hasActivationRequired: boolean;
+  label: string;
+  applicationVisibilities?: ApplicationVisibility[];
+  classAccesses?: ClassAccess[];
+  custom?: string;
+  customMetadataTypeAccesses?: CustomMetadataTypeAccess[];
+  customPermissions?: CustomPermission[];
+  customSettingAccesses?: CustomSettingAccess[];
+  fieldPermissions?: FieldPermission[];
+  flowAccesses?: FlowAccesses;
+  layoutAssignments?: LayoutAssignment[];
+  loginIpRanges?: LoginIpRanges;
+  objectPermissions?: ObjectPermission[];
+  pageAccesses?: PageAccess[];
+  recordTypeVisibilities?: RecordTypeVisibility[];
+  tabVisibilities?: TabVisibility[];
+  userLicense?: string;
+  userPermissions?: UserPermission[];
+}
+
+export interface ApplicationVisibility {
+  application: string;
+  default: string;
+  visible: string;
+}
+
+export interface ClassAccess {
+  apexClass: string;
+  enabled: string;
+}
+
+export interface CustomMetadataTypeAccess {
+  enabled: string;
+  name: string;
+}
+
+export interface CustomPermission {
+  enabled: string;
+  name: string;
+}
+
+export interface CustomSettingAccess {
+  enabled: string;
+  name: string;
+}
+
+export interface FieldPermission {
+  editable: string;
+  field: string;
+  readable: string;
+}
+
+export interface FlowAccesses {
+  enabled: string;
+  flow: string;
+}
+
+export interface LayoutAssignment {
+  layout: string;
+  recordType?: string;
+}
+
+export interface LoginIpRanges {
+  endAddress: string;
+  startAddress: string;
+}
+
+export interface ObjectPermission {
+  allowCreate: string;
+  allowDelete: string;
+  allowEdit: string;
+  allowRead: string;
+  modifyAllRecords: string;
+  object: string;
+  viewAllRecords: string;
+}
+
+export interface PageAccess {
+  apexPage: string;
+  enabled: string;
+}
+
+export interface RecordTypeVisibility {
+  default: string;
+  recordType: string;
+  visible: string;
+}
+
+export interface TabVisibility {
+  tab: string;
+  visibility: string;
+}
+
+export interface UserPermission {
+  enabled: string;
+  name: string;
 }

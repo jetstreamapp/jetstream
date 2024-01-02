@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgUnlinked(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M18.1 36.9l9.4-9.5.7-.7 8.4-8.4 3.7-3.7 4.1-4.1c.7-.6.8-1.5.3-2l-1.8-1.8c-.4-.4-1.1-.4-1.7-.1L6.7 40.9v.1c-.6.6-.7 1.5-.3 2l1.8 1.8c.5.5 1.4.4 2-.3l4-4c0 .1 3.9-3.6 3.9-3.6zM18.4 23.1c-.5 0-.8.4-1 .8-.1.6-.1 1.2-.1 1.8 0 .4 0 .8.1 1.2l3.8-3.8h-2.8z"
@@ -15,5 +14,4 @@ function SvgUnlinked(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgUnlinked;

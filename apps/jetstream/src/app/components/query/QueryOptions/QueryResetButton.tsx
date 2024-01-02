@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { useResetRecoilState } from 'recoil';
-import * as fromQueryState from '../query.state';
 import { useAmplitude } from '../../core/analytics';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import * as fromQueryState from '../query.state';
 
 export interface QueryResetButtonProps {
   className?: string;
@@ -43,7 +43,6 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
   return (
     <button
       className={classNames('slds-button slds-button_neutral collapsible-button collapsible-button-lg', className)}
-      title="Reset Query"
       onClick={resetQuery}
     >
       <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgAdvertising(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M23 27.2h.4c.2-2.7 1.2-5.1 2.7-7-.8-.8-1.8-1.3-3.1-1.3-2.4 0-4.2 1.8-4.2 4.2 0 2.3 1.8 4.1 4.2 4.1z" />
         <path d="M24.2 35.2c.5 0 1-.1 1.2-.1-.8-1.3-1.4-2.7-1.7-4H23c-4.5 0-8.4-3.6-8.4-8.4 0-4.5 3.6-8.4 8.4-8.4 2.5 0 4.9 1.1 6.4 2.9 1.2-.7 2.5-1.1 3.9-1.3-2.3-3.3-6.1-5.4-10.4-5.4-7.2 0-12.6 5.7-12.6 12.6S16 35.7 23.2 35.4c.4-.1.7-.1 1-.2z" />
@@ -12,5 +11,4 @@ function SvgAdvertising(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgAdvertising;

@@ -1,56 +1,51 @@
 import { QueryResultsColumn } from '@jetstream/api-interfaces';
+import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { ButtonGroupContainer, DownloadFromServerOpts, DropDown, Icon, RecordDownloadModal } from '@jetstream/ui';
+import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { Query } from 'soql-parser-js';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { composeQuery, parseQuery } from 'soql-parser-js';
 import { applicationCookieState } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
-import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
+import * as fromQueryState from '../query.state';
 
 export interface QueryResultsDownloadButtonProps {
   selectedOrg: SalesforceOrgUi;
   sObject?: Maybe<string>;
   soql: string;
-  parsedQuery: Maybe<Query>;
   columns?: QueryResultsColumn[];
   disabled: boolean;
   isTooling: boolean;
   nextRecordsUrl: Maybe<string>;
   fields: string[];
-  modifiedFields: string[];
   subqueryFields: Maybe<MapOf<string[]>>;
   records: any[];
   filteredRows: any[];
   selectedRows: any[];
   totalRecordCount: number;
-  refreshRecords: () => void;
 }
 
 export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadButtonProps> = ({
   selectedOrg,
   sObject,
   soql,
-  parsedQuery,
   columns,
   disabled,
   isTooling,
   nextRecordsUrl,
   fields,
-  modifiedFields,
   subqueryFields,
   records,
   filteredRows,
   selectedRows,
   totalRecordCount,
-  refreshRecords,
 }) => {
   const { trackEvent } = useAmplitude();
   const [{ google_apiKey, google_appId, google_clientId, serverUrl }] = useRecoilState(applicationCookieState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
-  const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState<boolean>(false);
+  const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
 
   function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
     trackEvent(ANALYTICS_KEYS.query_DownloadResults, {
@@ -64,8 +59,41 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   }
 
   function handleDownloadFromServer(options: DownloadFromServerOpts) {
-    const { fileFormat, fileName, fields, includeSubquery, whichFields, recordsToInclude, hasAllRecords, googleFolder, useBulkApi } =
-      options;
+    const {
+      fileFormat,
+      fileName,
+      fields,
+      includeSubquery,
+      whichFields,
+      recordsToInclude,
+      hasAllRecords,
+      googleFolder,
+      includeDeletedRecords,
+      useBulkApi,
+    } = options;
+    let _soql = soql;
+
+    // Adjust the SOQL query to only include the fields specified (e.x. remove invalid fields for bulk API)
+    try {
+      const query = parseQuery(soql);
+      const fieldValues = new Set(fields);
+      query.fields = query.fields?.filter((field) => {
+        if (field.type === 'Field' || field.type === 'FieldTypeof') {
+          return fieldValues.has(field.field);
+        }
+        if (field.type === 'FieldRelationship' && field.rawValue) {
+          return fieldValues.has(field.rawValue);
+        }
+        if (field.type === 'FieldSubquery' && !includeSubquery) {
+          return false;
+        }
+        return true;
+      });
+      _soql = composeQuery(query);
+    } catch (ex) {
+      logger.warn('Failed processing or parse SOQL query', ex);
+    }
+
     const jobs: AsyncJobNew<BulkDownloadJob>[] = [
       {
         type: 'BulkDownload',
@@ -74,8 +102,9 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
         meta: {
           serverUrl,
           sObject: sObject || '',
-          soql,
+          soql: _soql,
           isTooling,
+          includeDeletedRecords,
           useBulkApi,
           fields,
           subqueryFields,
@@ -100,39 +129,12 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
     });
   }
 
-  function handleAction(item: 'bulk-update') {
-    switch (item) {
-      case 'bulk-update':
-        setIsBulkUpdateModalOpen(true);
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  function handleBulkUpdateModalClose(didUpdate = false) {
-    setIsBulkUpdateModalOpen(false);
-    didUpdate && refreshRecords();
-  }
-
   return (
     <Fragment>
-      <ButtonGroupContainer>
-        <button className="slds-button slds-button_brand" onClick={() => setModalOpen(true)} disabled={disabled}>
-          <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Download
-        </button>
-        <DropDown
-          className="slds-button_last"
-          dropDownClassName="slds-dropdown_actions"
-          position="right"
-          items={[
-            { id: 'bulk-update', value: 'Bulk update records', disabled: isTooling || !sObject || !totalRecordCount || !parsedQuery },
-          ]}
-          onSelected={(item) => handleAction(item as 'bulk-update')}
-        />
-      </ButtonGroupContainer>
+      <button className="slds-button slds-button_brand" onClick={() => setModalOpen(true)} disabled={disabled}>
+        <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+        Download
+      </button>
       {isDownloadModalOpen && (
         <RecordDownloadModal
           org={selectedOrg}
@@ -142,7 +144,6 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           downloadModalOpen={isDownloadModalOpen}
           columns={columns}
           fields={fields || []}
-          modifiedFields={modifiedFields || []}
           subqueryFields={subqueryFields || {}}
           records={records || []}
           filteredRecords={filteredRows}
@@ -150,19 +151,8 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
           totalRecordCount={totalRecordCount || 0}
           onModalClose={() => setModalOpen(false)}
           onDownload={handleDidDownload}
+          includeDeletedRecords={includeDeletedRecords}
           onDownloadFromServer={handleDownloadFromServer}
-        />
-      )}
-      {isBulkUpdateModalOpen && sObject && totalRecordCount && parsedQuery && (
-        <BulkUpdateFromQueryModal
-          selectedOrg={selectedOrg}
-          sobject={sObject}
-          parsedQuery={parsedQuery}
-          records={records || []}
-          filteredRecords={filteredRows}
-          selectedRecords={selectedRows}
-          totalRecordCount={totalRecordCount || 0}
-          onModalClose={handleBulkUpdateModalClose}
         />
       )}
     </Fragment>

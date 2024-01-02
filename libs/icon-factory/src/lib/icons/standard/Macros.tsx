@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgMacros(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M64.7 67.5c-.2.5-.7.6-1.2.6h-5.8c-.5 0-.9-.4-.9-.9 0-.1.1-.4.1-.5l.1-.1.2-.2L70 50.9c.4-.5.5-1.2.2-1.7 0-.1-.1-.2-.1-.2L56.9 33.2c-.1-.1-.1-.4-.1-.5 0-.5.5-.9.9-.9h5.8c.5 0 1 .1 1.2.6L78.4 49c.2.2.2.6.2.9 0 .4-.1.7-.2 1L64.7 67.5z"
@@ -18,5 +17,4 @@ function SvgMacros(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgMacros;

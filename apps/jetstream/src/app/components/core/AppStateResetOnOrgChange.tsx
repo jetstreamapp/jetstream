@@ -1,5 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
 import * as fromAutomationControlState from '../automation-control/automation-control.state';
@@ -49,6 +49,7 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromPermissionsState.fieldsByKey),
     useResetRecoilState(fromPermissionsState.objectPermissionMap),
     useResetRecoilState(fromPermissionsState.fieldPermissionMap),
+    useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap),
     // Deploy
     useResetRecoilState(fromDeployMetadataState.metadataItemsState),
     useResetRecoilState(fromDeployMetadataState.metadataItemsMapState),
@@ -77,7 +78,7 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
 
-  return <Fragment />;
+  return null;
 };
 
 export default AppStateResetOnOrgChange;

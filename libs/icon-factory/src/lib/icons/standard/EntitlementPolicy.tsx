@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgEntitlementPolicy(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M25.4 34.9H36c2.2 0 4-1.8 4-4V20.3c0-.8-.6-1.4-1.4-1.4-.4 0-.7.1-1 .4L24.4 32.5c-.3.3-.4.6-.4 1 0 .8.6 1.4 1.4 1.4z" />
         <path d="M46.4 78.8l4.7-6.4 4.3-5.8c-.1-.4-.1-.7-.2-1v-.1c-.7-.9-1.9-2.5-1.9-4.8s1.2-3.9 1.8-4.8c.1-1 .4-3.1 2.2-4.8 1.6-1.5 3.5-1.8 4.5-2h.1c.9-.7 2.5-1.9 4.8-1.9s3.9 1.2 4.8 1.8c.6.1 1.5.2 2.5.6V24.9c0-3.3-2.7-6-6-6H48c-1.1 0-2 .9-2 2v14c0 3.3-2.7 6-6 6H26c-1.1 0-2 .9-2 2v30c0 3.3 2.7 6 6 6h16.3l.1-.1z" />
@@ -14,5 +13,4 @@ function SvgEntitlementPolicy(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgEntitlementPolicy;

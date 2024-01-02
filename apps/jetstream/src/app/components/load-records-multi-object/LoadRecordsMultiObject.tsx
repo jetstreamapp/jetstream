@@ -18,12 +18,12 @@ import {
   ScopedNotification,
   Select,
   Spinner,
+  fireToast,
 } from '@jetstream/ui';
 import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
-import { fireToast } from '../core/AppToast';
 import { useAmplitude } from '../core/analytics';
 import { LocalOrGoogle } from '../load-records/load-records-types';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';

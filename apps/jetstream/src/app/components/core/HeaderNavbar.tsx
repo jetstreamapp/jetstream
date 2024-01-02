@@ -6,12 +6,12 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
 import { applicationCookieState, selectUserPreferenceState } from '../../app-state';
 import OrgsDropdown from '../orgs/OrgsDropdown';
-import { APP_ROUTES } from './app-routes';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
-import Jobs from './jobs/Jobs';
 import NotificationsRequestModal from './NotificationsRequestModal';
-import RecordLookupPopover from './record-lookup/RecordLookupPopover';
+import { APP_ROUTES } from './app-routes';
+import Jobs from './jobs/Jobs';
+import { RecordSearchPopover } from './record-lookup/RecordSearchPopover';
 
 const isElectron = window.electron?.isElectron;
 
@@ -91,7 +91,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         logo={isElectron ? <Icon type="brand" icon="jetstream_inverse" /> : Logo}
         orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral slds-m-left_small' : undefined} />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[<RecordLookupPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />]}
+        rightHandMenuItems={[<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />]}
         isElectron={isElectron}
         onUserMenuItemSelected={handleUserMenuSelection}
       >

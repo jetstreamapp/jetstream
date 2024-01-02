@@ -1,5 +1,5 @@
 import { FunctionComponent, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { GroupByFieldClause, GroupByFnClause, Query } from 'soql-parser-js';
 import * as fromQueryState from '../query.state';
 import { composeSoqlQuery } from '../utils/query-utils';
@@ -19,6 +19,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
   const queryLimit = useRecoilValue(fromQueryState.selectQueryLimit);
   const queryLimitSkip = useRecoilValue(fromQueryState.selectQueryLimitSkip);
   const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
+  const setSoqlCount = useSetRecoilState(fromQueryState.querySoqlCountState);
 
   useEffect(() => {
     if (!!selectedSObject && selectedFields?.length > 0) {
@@ -32,18 +33,12 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
         limit: queryLimit,
         offset: queryLimitSkip,
       };
+      const queryCount: Query = { ...query, fields: [{ type: 'FieldFunctionExpression', functionName: 'COUNT', parameters: [] }] };
       setSoql(composeSoqlQuery(query, filters, hasGroupBy ? havingClauses : undefined));
-      // if (queryWorker) {
-      //   queryWorker.postMessage({
-      //     name: 'composeQuery',
-      //     data: {
-      //       query: query,
-      //       whereExpression: debouncedFilters,
-      //     },
-      //   });
-      // }
+      setSoqlCount(composeSoqlQuery(queryCount, filters, hasGroupBy ? havingClauses : undefined));
     } else if (soql !== '') {
       setSoql('');
+      setSoqlCount('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSObject, selectedFields, filters, havingClauses, groupByClauses, orderByClauses, queryLimit, queryLimitSkip]);

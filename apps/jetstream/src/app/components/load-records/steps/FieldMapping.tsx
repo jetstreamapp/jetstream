@@ -4,14 +4,30 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordStringFilter } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, DropDown, Grid, GridCol, Icon, SearchInput } from '@jetstream/ui';
+import { Alert, ButtonGroupContainer, DropDown, Grid, GridCol, Icon, SearchInput, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
+import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
 import LoadRecordsRefreshCachePopover from '../components/LoadRecordsRefreshCachePopover';
-import { FieldMapping, FieldMappingItem, FieldWithRelatedEntities } from '../load-records-types';
-import { autoMapFields, checkForDuplicateFieldMappings, resetFieldMapping } from '../utils/load-records-utils';
+import { LoadMappingPopover } from '../components/load-mapping-storage/LoadMappingPopover';
+import SaveMappingPopover from '../components/load-mapping-storage/SaveMappingPopover';
+import {
+  FieldMapping,
+  FieldMappingItem,
+  FieldMappingItemCsv,
+  FieldMappingItemStatic,
+  FieldWithRelatedEntities,
+} from '../load-records-types';
+import { LoadSavedMappingItem } from '../load-records.state';
+import {
+  autoMapFields,
+  checkForDuplicateFieldMappings,
+  initStaticFieldMappingItem,
+  loadFieldMappingFromSavedMapping,
+  resetFieldMapping,
+} from '../utils/load-records-utils';
 
 type DropDownAction = 'CLEAR' | 'RESET' | 'ALL' | 'MAPPED' | 'UNMAPPED';
 type Filter = 'ALL' | 'MAPPED' | 'UNMAPPED';
@@ -55,7 +71,14 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
   }) => {
     const { trackEvent } = useAmplitude();
     const hasInitialized = useRef(false);
+    const [csvFields, setCsvFields] = useState(() => new Set(inputHeader));
+    const [objectFields, setObjectFields] = useState(() => new Set(fields.map((field) => field.name)));
     const [visibleHeaders, setVisibleHeaders] = useState(inputHeader);
+    const [staticRowHeaders, setStaticRowHeaders] = useState<string[]>(() =>
+      Object.values(fieldMappingInit)
+        .filter((item) => item.type === 'STATIC')
+        .map((item) => item.csvField)
+    );
     const [activeRowIndex, setActiveRowIndex] = useState(0);
     const [activeRow, setActiveRow] = useState<string[]>(() => fileData[activeRowIndex]);
     // hack to force child re-render when fields are re-mapped
@@ -71,6 +94,11 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     useNonInitialEffect(() => {
       setActiveRow(fileData[debouncedSelectedValue] || fileData[0]);
     }, [debouncedSelectedValue, fileData, trackEvent]);
+
+    useNonInitialEffect(() => {
+      setCsvFields(new Set(inputHeader));
+      setObjectFields(new Set(fields.map((field) => field.name)));
+    }, [fields, inputHeader]);
 
     useEffect(() => {
       if (hasInitialized.current) {
@@ -101,7 +129,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           setWarningMessage('Custom Metadata Objects must have Label and DeveloperName mapped.');
           return;
         } else if (!isCustomMetadataObject && !externalIdMapped) {
-          setWarningMessage(`Upsert requires the ExternalId filed ${externalId} to be mapped.`);
+          setWarningMessage(`Upsert requires the ExternalId field ${externalId} to be mapped.`);
           return;
         }
       }
@@ -136,10 +164,12 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     function handleAction(id: DropDownAction) {
       switch (id) {
         case MAPPING_CLEAR:
+          setStaticRowHeaders([]);
           setFieldMapping(resetFieldMapping(inputHeader));
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
         case MAPPING_RESET:
+          setStaticRowHeaders([]);
           setFieldMapping(autoMapFields(inputHeader, fields, binaryAttachmentBodyField));
           setFilter(FILTER_ALL);
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
@@ -153,6 +183,18 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         default:
           break;
       }
+      setKeyPrefix(new Date().getTime());
+    }
+
+    function handleLoadMapping(savedMapping: LoadSavedMappingItem) {
+      const newMapping = loadFieldMappingFromSavedMapping(savedMapping, inputHeader, fields, binaryAttachmentBodyField);
+      setFieldMapping(newMapping);
+      setStaticRowHeaders(
+        Object.values(newMapping)
+          .filter((item) => item.type === 'STATIC')
+          .map((item) => item.csvField)
+      );
+      trackEvent(ANALYTICS_KEYS.load_SavedMappingLoaded);
       setKeyPrefix(new Date().getTime());
     }
 
@@ -176,6 +218,21 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       }
     }
 
+    function handleAddRow() {
+      const fieldMappingItem = initStaticFieldMappingItem();
+      setFieldMapping((fieldMapping) => ({ ...fieldMapping, [fieldMappingItem.csvField]: fieldMappingItem }));
+      setStaticRowHeaders((prevValue) => [...prevValue, fieldMappingItem.csvField]);
+    }
+
+    function handleRemoveRow(csvField: string) {
+      setFieldMapping((fieldMapping) => {
+        const clonedMapping = { ...fieldMapping };
+        delete clonedMapping[csvField];
+        return checkForDuplicateFieldMappings(clonedMapping);
+      });
+      setStaticRowHeaders((prevValue) => prevValue.filter((value) => value !== csvField));
+    }
+
     return (
       <Grid vertical>
         <GridCol>
@@ -192,6 +249,10 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         </GridCol>
         <GridCol grow>
           <Grid align="spread" className="slds-p-vertical_xx-small">
+            <ButtonGroupContainer>
+              <SaveMappingPopover sobject={sobject} fieldMapping={fieldMapping} />
+              <LoadMappingPopover sobject={sobject} csvFields={csvFields} objectFields={objectFields} onLoadMapping={handleLoadMapping} />
+            </ButtonGroupContainer>
             <SearchInput id="field-filter" className="slds-size_1-of-2" placeholder="Filter fields from file" onChange={setSearchTerm} />
             <LoadRecordsRefreshCachePopover org={org} sobject={sobject} loading={refreshLoading} onReload={handleCacheRefresh} />
           </Grid>
@@ -202,6 +263,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
                   scope="col"
                   css={css`
                     width: 200px;
+                    max-width: 200px;
                   `}
                 >
                   <Grid verticalAlign="center">
@@ -279,17 +341,32 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
             <tbody>
               {visibleHeaders.map((header, i) => (
                 <LoadRecordsFieldMappingRow
-                  key={`${keyPrefix}-${i}`}
+                  key={`${keyPrefix}-csv-${i}`}
                   isCustomMetadataObject={isCustomMetadataObject}
                   fields={fields}
-                  fieldMappingItem={fieldMapping[header]}
+                  fieldMappingItem={fieldMapping[header] as FieldMappingItemCsv}
                   csvField={header}
                   csvRowData={activeRow[header]}
                   onSelectionChanged={handleFieldMappingChange}
                 />
               ))}
+              {staticRowHeaders.map((header, i) => (
+                <LoadRecordsFieldMappingStaticRow
+                  key={`${keyPrefix}-static-${i}`}
+                  fields={fields}
+                  fieldMappingItem={fieldMapping[header] as FieldMappingItemStatic}
+                  isCustomMetadata={isCustomMetadataObject}
+                  onSelectionChanged={(value) => handleFieldMappingChange(header, value)}
+                  onRemoveRow={() => handleRemoveRow(header)}
+                />
+              ))}
             </tbody>
           </table>
+          <Tooltip content="Manually set a provided value for all records for fields not included in your file.">
+            <button className="slds-button slds-button_neutral slds-m-top_x-small" onClick={handleAddRow}>
+              Add Manual Mapping
+            </button>
+          </Tooltip>
         </GridCol>
       </Grid>
     );

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCustomers(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <ellipse fill="unset" cx={41.3} cy={42.3} rx={12.2} ry={13.5} />
       <path
         fill="unset"
@@ -11,5 +10,4 @@ function SvgCustomers(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCustomers;

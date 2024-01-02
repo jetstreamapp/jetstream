@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { formatNumber, transformTabularDataToExcelStr } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -17,7 +17,6 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import copyToClipboard from 'copy-to-clipboard';
 import addMinutes from 'date-fns/addMinutes';
 import formatISODate from 'date-fns/formatISO';
 import isAfter from 'date-fns/isAfter';
@@ -29,19 +28,19 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
+import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
+import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
+import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
 import AddToChangeset from './add-to-changeset/AddToChangeset';
 import DeleteMetadataModal from './delete-metadata/DeleteMetadataModal';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
 import * as fromDeployMetadataState from './deploy-metadata.state';
-import { AllUser, DeployMetadataTableRow, SidePanelType, YesNo } from './deploy-metadata.types';
+import { DeployMetadataTableRow, SidePanelType } from './deploy-metadata.types';
 import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
-import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
-import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
-import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
-import { convertRowsForExport, convertRowsToMapOfListMetadataResults, getRows } from './utils/deploy-metadata.utils';
 import DeployMetadataSelectedItemsBadge from './utils/DeployMetadataSelectedItemsBadge';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
+import { convertRowsForExport, convertRowsToMapOfListMetadataResults, getRows } from './utils/deploy-metadata.utils';
 import ViewOrCompareMetadataModal from './view-or-compare-metadata/ViewOrCompareMetadataModal';
 
 const TABLE_ACTION_CLIPBOARD = 'table-copy-to-clipboard';
@@ -211,9 +210,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     if (id === TABLE_ACTION_DOWNLOAD_MANIFEST) {
       handleDownloadActive('manifest');
     } else if (id === TABLE_ACTION_CLIPBOARD) {
-      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows || [], selectedRows)), { format: 'text/plain' });
+      copyRecordsToClipboard(convertRowsForExport(rows || [], selectedRows));
     } else if (id === TABLE_ACTION_CLIPBOARD_SELECTED) {
-      copyToClipboard(transformTabularDataToExcelStr(convertRowsForExport(rows || [], selectedRows, true)), { format: 'text/plain' });
+      copyRecordsToClipboard(convertRowsForExport(rows || [], selectedRows, true));
     } else if (id === TABLE_ACTION_DOWNLOAD) {
       setExportData(convertRowsForExport(rows || [], selectedRows));
     } else if (id === TABLE_ACTION_DOWNLOAD_SELECTED) {
@@ -298,6 +297,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
             />
             <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
             <DropDown
+              className="slds-button_last"
               position="right"
               items={[
                 {

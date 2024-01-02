@@ -2,12 +2,11 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip } from '@jetstream/ui';
+import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip, fireToast } from '@jetstream/ui';
 import type { Field } from 'jsforce';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
-import { fireToast } from '../../core/AppToast';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
@@ -258,6 +257,7 @@ export const FormulaEvaluatorDeployModal = ({
                       )}
                     </Grid>
                   ),
+                  titleText: 'Field',
                   content: <FormulaEvaluatorFields formula={formula} field={field} loading={loading} onFieldChange={onFieldChange} />,
                 },
                 {
@@ -267,6 +267,7 @@ export const FormulaEvaluatorDeployModal = ({
                       <span>Field Permissions ({selectedProfiles.length + selectedPermissionSets.length})</span>
                     </Grid>
                   ),
+                  titleText: 'Field Permissions',
                   content: (
                     <FormulaEvaluatorPermissions
                       hasError={permissionData.hasError}
@@ -289,6 +290,7 @@ export const FormulaEvaluatorDeployModal = ({
                       <span>Page Layouts ({layoutData.selectedLayoutIds.size})</span>
                     </Grid>
                   ),
+                  titleText: 'Page Layouts',
                   content: (
                     <FormulaEvaluatorPageLayouts
                       sobjectName={sobject}
@@ -328,6 +330,7 @@ export const FormulaEvaluatorDeployModal = ({
                       )}
                     </Grid>
                   ),
+                  titleText: 'Deploy Field',
                   content: (
                     <FormulaEvaluatorDeploySummary
                       selectedOrg={selectedOrg}

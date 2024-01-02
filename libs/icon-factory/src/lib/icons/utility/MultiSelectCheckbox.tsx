@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgMultiSelectCheckbox(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M44 2.5H19c-2.6 0-4.7 2.1-4.7 4.7V8c0 .5.3.8.8.8h22.7c2.6 0 4.7 2.1 4.7 4.7v24.3c0 .5.3.8.8.8h.7c2.6 0 4.7-2.1 4.7-4.7V7.2c0-2.6-2.1-4.7-4.7-4.7z"
@@ -14,5 +13,4 @@ function SvgMultiSelectCheckbox(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgMultiSelectCheckbox;

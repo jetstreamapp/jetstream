@@ -4,7 +4,6 @@ import addDays from 'date-fns/addDays';
 import isAfter from 'date-fns/isAfter';
 import isSameDay from 'date-fns/isSameDay';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { CSSTransition } from 'react-transition-group';
 import { useRecoilState } from 'recoil';
 import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { AllUser } from '../deploy-metadata.types';
@@ -104,43 +103,41 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
           onChange={(value: AllUser) => setDateRangeSelection(value)}
         />
       </div>
-      <CSSTransition in={dateRangeSelection === 'user'} timeout={300} classNames="animation-item">
-        <div
-          key="modified-since"
-          css={css`
-            min-height: 80px;
-          `}
-        >
-          {dateRangeSelection === 'user' && (
-            <Fragment>
-              <DatePicker
-                id="modified-start"
-                label="Modified After"
-                className="slds-m-top_small slds-form-element_stacked slds-is-editing"
-                maxAvailableDate={maxDate}
-                errorMessage="Choose a valid date in the past"
-                labelHelp="All metadata items that were created or modified on or after this date will be shown"
-                hasError={false}
-                errorMessageId={`modified-start-error`}
-                initialSelectedDate={dateRangeStart || undefined}
-                onChange={setDateRangeStart}
-              />
-              <DatePicker
-                id="modified-end"
-                label="Modified Before"
-                className="slds-m-top_small slds-form-element_stacked slds-is-editing"
-                maxAvailableDate={maxDate}
-                errorMessage="Choose a valid date in the past"
-                labelHelp="All metadata items that were created or modified on or before this date will be shown"
-                hasError={false}
-                errorMessageId={`modified-end-error`}
-                initialSelectedDate={dateRangeEnd || undefined}
-                onChange={setDateRangeEnd}
-              />
-            </Fragment>
-          )}
-        </div>
-      </CSSTransition>
+      <div
+        key="modified-since"
+        css={css`
+          min-height: 80px;
+        `}
+      >
+        {dateRangeSelection === 'user' && (
+          <Fragment>
+            <DatePicker
+              id="modified-start"
+              label="Modified After"
+              className="slds-m-top_small slds-form-element_stacked slds-is-editing"
+              maxAvailableDate={maxDate}
+              errorMessage="Choose a valid date in the past"
+              labelHelp="All metadata items that were created or modified on or after this date will be shown"
+              hasError={false}
+              errorMessageId={`modified-start-error`}
+              initialSelectedDate={dateRangeStart || undefined}
+              onChange={setDateRangeStart}
+            />
+            <DatePicker
+              id="modified-end"
+              label="Modified Before"
+              className="slds-m-top_small slds-form-element_stacked slds-is-editing"
+              maxAvailableDate={maxDate}
+              errorMessage="Choose a valid date in the past"
+              labelHelp="All metadata items that were created or modified on or before this date will be shown"
+              hasError={false}
+              errorMessageId={`modified-end-error`}
+              initialSelectedDate={dateRangeEnd || undefined}
+              onChange={setDateRangeEnd}
+            />
+          </Fragment>
+        )}
+      </div>
     </Fragment>
   );
 };

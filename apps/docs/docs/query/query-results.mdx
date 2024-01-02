@@ -1,0 +1,150 @@
+---
+id: query-results
+title: Query Results
+description: Jetstream's Query Results page allows you to view, download, or work with your records in your Salesforce org.
+keywords:
+  [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench,
+    salesforce metadata,
+    soql,
+    apex,
+    salesforce api,
+    query,
+    view records,
+    edit records,
+    update records,
+    apex,
+    export records,
+    download records,
+    clone record,
+    view record,
+  ]
+sidebar_label: Query Results
+slug: /query/results
+---
+
+After running a query, you will see the list of records that matched your criteria.
+
+Here are some examples of things you can do from the Query Results page:
+
+- See what records exist in your org.
+- Click on an Id to navigate to that record in Salesforce.
+- Download records so you can make changes to records, then load the data back in to Salesforce.
+- Copy records to your clipboard and paste into a spreadsheet.
+- Modify records (view, edit, clone, delete).
+- Update all of the queried records in bulk, such as updating a picklist field for all records.
+
+<img src={require('./query-results-records.png').default} alt="Query results table" />
+
+## Working with records
+
+### Global filter
+
+Use the search input above the list of records to search across all returned records. This is great when you need to find one or more records in the results without updating query query.
+
+### Column filter
+
+In the header of each column is a menu icon, clicking this opens a filter menu that you can use to filter which records are shown.
+
+You can enter free-form text or click the checkboxes to show or hide rows that have a specific value in that column.
+
+### Viewing child records (subqueries)
+
+If your query includes a subquery (child records), the data in each row will show text to indicate the number of records associated to each of the returned records and will be blank if there are no child related records.
+
+You can click the number of records to open a modal with each of the child records.
+
+<img src={require('./child-records.png').default} alt="Child records" />
+
+### Record actions (View, update, and clone records)
+
+On the left side of each record, there are four icons.
+
+- The **eye** icon is used to view all the fields for that record.
+- The **pencil** icon is used to edit the record.
+- The **copy** icon is used to clone the record and you can make any adjustments to fields prior to saving.
+- The **code** icon will turn the record into Apex code that you can use to create a record that looks just like the on in your query results.
+
+### Bulk Record Actions
+
+If you select one or more records, a table menu button at the top of the page will be enabled and within the menu you can:
+
+1. Delete the selected records
+2. Turn the selected records into Apex code
+3. Open each record in a new tab within Salesforce. (Make sure you have an active session with the Salesforce instance prior to to selecting this action, as you will not be automatically logged in.)
+
+<img src={require('./bulk-record-actions.png').default} alt="Bulk Record Actions" />
+
+## Adjusting your query
+
+Click the **Manage SOQL Query** button to show a sidebar with your SOQL query. You can easily make changes to your query and resubmit the results
+
+## Query more
+
+If you have a lot of records on an object, Jetstream will only show the first set of records initially. If you want to see more records, you can click the **Load More** button that appears if there are additional records.
+
+:::tip
+
+When you download your records, the default option will be to include all records, not just the initial set.
+
+:::
+
+## Query history
+
+The query history works just like it does on the Query page. Refer to [Query](query.mdx) page for more details.
+
+## Downloading records
+
+You can download records by clicking the **Download Records** button.
+
+This modal may show different options depending on if there are more records available or if you have records selected.
+
+You can download in the following formats:
+
+- Excel _(Recommended format)_
+- CSV
+- JSON
+- Google Drive
+
+:::warning
+
+If you are using **Windows** and choose **CSV**, non-english special characters will become corrupt if you open the file with Excel.
+
+- If you don't open the file in Excel, the CSV data will not be corrupt.
+- If you require a CSV and are on Windows, you can import the CSV into Excel with the UTF-8 option.
+
+:::
+
+<img src={require('./download-modal.png').default} alt="Download records modal" />
+
+## Creating a new record
+
+After you query records, you can create a new record for the queried object by clicking the gear menu icon at the top of the page.
+
+<img src={require('./query-results-bulk-update-menu.png').default} alt="Creating new record" />
+
+## Updating queried records
+
+You can update all or some of your queried records without downloading anything from the Query Results.
+
+After you query records, you can access the bulk update menu from the gear menu icon at the top of the page.
+
+<img src={require('./query-results-bulk-update-menu.png').default} alt="Accessing bulk update records" />
+
+The configuration to update records is very similar to [Update records in bulk](../load/update-records.mdx), you can refer to the options there for additional details.
+
+1. First, determine which records you want to target by selecting **Which Base Records**.
+   1. Depending on how many records are in Salesforce and how your query was configured, you may have fewer options to choose from than the screenshot shown below.
+2. Choose which field you would like to update.
+3. Choose what value you would like to apply to the field on each record.
+4. Choose which base records you would like to update.
+   1. This criteria only applies to records returned from your query.
+5. Adjust the advanced options if required.
+   1. In most cases, these options can be ignored.
+6. Click update records to begin the record update process.
+
+<img src={require('./query-results-bulk-update-modal.png').default} alt="Bulk update modal" />

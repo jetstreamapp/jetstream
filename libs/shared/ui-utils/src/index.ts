@@ -6,6 +6,7 @@ export * from './lib/hooks/useDrivePicker';
 export * from './lib/hooks/useFetchPageLayouts';
 export * from './lib/hooks/useGlobalEventHandler';
 export * from './lib/hooks/useGoogleApi';
+export * from './lib/hooks/useHover';
 export * from './lib/hooks/useInjectScript';
 export * from './lib/hooks/useInterval';
 export * from './lib/hooks/useLocationState';

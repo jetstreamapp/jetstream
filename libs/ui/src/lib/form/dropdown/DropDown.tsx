@@ -1,10 +1,11 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { IconObj } from '@jetstream/icon-factory';
+import { IconName, IconObj, IconType } from '@jetstream/icon-factory';
 import {
+  KeyBuffer,
   isArrowDownKey,
   isArrowUpKey,
   isEnterKey,
-  KeyBuffer,
+  isEscapeKey,
   menuItemSelectScroll,
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
@@ -13,12 +14,12 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, {
-  createRef,
   Fragment,
   FunctionComponent,
   KeyboardEvent,
   ReactNode,
   RefObject,
+  createRef,
   useEffect,
   useMemo,
   useRef,
@@ -116,6 +117,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     event.stopPropagation();
     let newFocusedItem;
 
+    if (isEscapeKey(event)) {
+      setIsOpen(false);
+      return;
+    }
+
     if (isArrowUpKey(event)) {
       if (!isNumber(focusedItem) || focusedItem === 0) {
         newFocusedItem = items.length - 1;
@@ -164,6 +170,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
         <button
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
+          aria-expanded={isOpen}
           title={actionText}
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}
@@ -220,8 +227,8 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                         <span className="slds-truncate" title={title || value}>
                           {icon && (
                             <Icon
-                              type={icon.type}
-                              icon={icon.icon}
+                              type={icon.type as IconType}
+                              icon={icon.icon as IconName}
                               description={icon.description}
                               omitContainer
                               className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"

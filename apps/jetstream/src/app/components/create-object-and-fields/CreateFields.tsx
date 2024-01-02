@@ -196,9 +196,11 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           {rows.map((row, i) => (
             <CreateFieldsRow
               key={row._key}
+              rows={rows}
               rowIdx={i}
               enableDelete={rows.length > 1}
               selectedOrg={selectedOrg}
+              selectedSObjects={selectedSObjects}
               values={row}
               allValid={row._allValid}
               onChange={(field, value) => changeRow(row._key, field, value)}

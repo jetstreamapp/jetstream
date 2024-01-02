@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTree, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -63,13 +63,13 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
         name: 'Group',
         key: 'groupName',
         width: 150,
-        preventReorder: true,
       },
       {
         name: 'action',
         key: 'action',
         width: 150,
-        formatter: ({ row }) => {
+        draggable: true,
+        renderCell: ({ row }) => {
           return (
             <button className={'slds-button slds-text-link_reset slds-text-link'} onClick={() => handleExecute(row)}>
               Use Request
@@ -77,9 +77,9 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
           );
         },
       },
-      { ...setColumnFromType('name', 'text'), name: 'Name', key: 'name', width: 250 },
-      { ...setColumnFromType('method', 'text'), name: 'Method', key: 'method', width: 110 },
-      { ...setColumnFromType('url', 'text'), name: 'url', key: 'url' /** flex: 1 */ },
+      { ...setColumnFromType('name', 'text'), name: 'Name', key: 'name', width: 250, draggable: true },
+      { ...setColumnFromType('method', 'text'), name: 'Method', key: 'method', width: 110, draggable: true },
+      { ...setColumnFromType('url', 'text'), name: 'url', key: 'url', draggable: true /** flex: 1 */ },
     ];
     return columns;
   }, []);
@@ -131,8 +131,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
           >
             {isLoading && <Spinner />}
             <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={250}>
-              <DataTable
-                allowReorder
+              <DataTree
                 columns={COLUMNS}
                 data={requests}
                 getRowKey={(row: SalesforceApiRequest) => row.id}

@@ -34,13 +34,15 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'yarn'
 
       - name: install dependencies
-        run: yarn install --frozen-lockfile --prefer-offline
+        run: yarn install --frozen-lockfile
 
       - name: Build application
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
         run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
 
       - name: Uploading artifacts
@@ -78,7 +80,7 @@ jobs:
       SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
       SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
       SFDC_ENC_KEY: ${{ secrets.SFDC_ENC_KEY }}
-      SFDC_API_VERSION: '57.0'
+      SFDC_API_VERSION: '58.0'
 
     services:
       postgres:
@@ -103,11 +105,11 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'yarn'
 
       - name: install dependencies
-        run: yarn install --frozen-lockfile --prefer-offline
+        run: yarn install --frozen-lockfile
 
       - name: Download artifacts from build
         uses: actions/download-artifact@v3

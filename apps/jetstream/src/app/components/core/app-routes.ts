@@ -78,7 +78,7 @@ export const APP_ROUTES: RouteMap = {
   CREATE_FIELDS: {
     ROUTE: '/create-fields',
     DOCS: 'https://docs.getjetstream.app/deploy-fields',
-    TITLE: 'Create Fields',
+    TITLE: 'Create Object and Fields',
     DESCRIPTION: 'Create and update fields in bulk',
   },
   FORMULA_EVALUATOR: {

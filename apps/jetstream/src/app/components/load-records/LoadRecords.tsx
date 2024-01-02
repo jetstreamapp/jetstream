@@ -18,7 +18,7 @@ import {
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
@@ -31,7 +31,7 @@ import LoadRecordsLoadAutomationRollback from './steps/LoadRecordsAutomationRoll
 import PerformLoad from './steps/PerformLoad';
 import PerformLoadCustomMetadata from './steps/PerformLoadCustomMetadata';
 import LoadRecordsSelectObjectAndFile from './steps/SelectObjectAndFile';
-import { autoMapFields, getFieldMetadata } from './utils/load-records-utils';
+import { autoMapFields, getFieldMetadata, getMaxBatchSize, getRecommendedApiMode } from './utils/load-records-utils';
 
 const HEIGHT_BUFFER = 170;
 
@@ -83,6 +83,10 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
 
   const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
 
+  const setApiMode = useSetRecoilState(fromLoadRecordsState.apiModeState);
+  const setBatchSize = useSetRecoilState(fromLoadRecordsState.batchSizeState);
+  const setSerialMode = useSetRecoilState(fromLoadRecordsState.serialModeState);
+
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
   const [didPerformDataLoad, setDidPerformDataLoad] = useState<boolean>(false);
@@ -105,6 +109,13 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   const resetInputZipFileData = useResetRecoilState(fromLoadRecordsState.inputZipFileDataState);
   const resetInputZipFilename = useResetRecoilState(fromLoadRecordsState.inputZipFilenameState);
 
+  const resetApiModeState = useResetRecoilState(fromLoadRecordsState.apiModeState);
+  const resetBatchSizeState = useResetRecoilState(fromLoadRecordsState.batchSizeState);
+  const resetInsertNullsState = useResetRecoilState(fromLoadRecordsState.insertNullsState);
+  const resetSerialModeState = useResetRecoilState(fromLoadRecordsState.serialModeState);
+  const resetTrialRunState = useResetRecoilState(fromLoadRecordsState.trialRunState);
+  const resetTrialRunSizeState = useResetRecoilState(fromLoadRecordsState.trialRunSizeState);
+
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -119,6 +130,28 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     }
   }, [isCustomMetadataObject, setLoadType]);
 
+  // On file change, reset load option state
+  useEffect(() => {
+    const apiMode = getRecommendedApiMode(inputFileData?.length || 0, !!inputZipFileData);
+    setApiMode(apiMode);
+    setBatchSize(getMaxBatchSize(apiMode));
+    setSerialMode(apiMode === 'BATCH');
+
+    resetInsertNullsState();
+    resetTrialRunState();
+    resetTrialRunSizeState();
+  }, [
+    inputFileData,
+    inputZipFileData,
+    resetBatchSizeState,
+    resetTrialRunSizeState,
+    resetTrialRunState,
+    resetInsertNullsState,
+    setApiMode,
+    setBatchSize,
+    setSerialMode,
+  ]);
+
   // reset state when user leaves page
   useEffect(() => {
     return () => {
@@ -132,6 +165,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
         resetFieldMappingTypeState();
         resetInputZipFileData();
         resetInputZipFilename();
+        resetApiModeState();
+        resetBatchSizeState();
+        resetInsertNullsState();
+        resetSerialModeState();
+        resetTrialRunState();
+        resetTrialRunSizeState();
       }
     };
   }, [
@@ -145,6 +184,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     resetFieldMappingTypeState,
     resetInputZipFileData,
     resetInputZipFilename,
+    resetApiModeState,
+    resetBatchSizeState,
+    resetInsertNullsState,
+    resetSerialModeState,
+    resetTrialRunState,
+    resetTrialRunSizeState,
   ]);
 
   useEffect(() => {
@@ -201,7 +246,7 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
   }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField]);
 
   useEffect(() => {
-    setExternalIdFields(fields.filter((field) => field.externalId));
+    setExternalIdFields(fields.filter((field) => field.name === 'Id' || field.externalId));
   }, [fields]);
 
   useEffect(() => {
@@ -334,6 +379,12 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
     resetInputFilenameState();
     resetFieldMappingState();
     setExternalId('');
+    resetApiModeState();
+    resetBatchSizeState();
+    resetInsertNullsState();
+    resetSerialModeState();
+    resetTrialRunState();
+    resetTrialRunSizeState();
     trackEvent(ANALYTICS_KEYS.load_StartOver, { page: currentStep.name });
   }
 

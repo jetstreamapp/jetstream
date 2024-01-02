@@ -172,7 +172,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
         )}
         {label}
       </label>
-      {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+      {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
         <div className="slds-dueling-list">
           <div className="slds-assistive-text" id="drag-live-region" aria-live="assertive"></div>

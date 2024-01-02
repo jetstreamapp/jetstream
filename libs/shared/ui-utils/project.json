@@ -6,26 +6,12 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/shared/ui-utils/**/*.js",
-          "libs/shared/ui-utils/**/*.jsx",
-          "libs/shared/ui-utils/**/*.ts",
-          "libs/shared/ui-utils/**/*.tsx",
-          "libs/shared/ui-utils/**/*.spec.ts",
-          "libs/shared/ui-utils/**/*.spec.tsx",
-          "libs/shared/ui-utils/**/*.spec.js",
-          "libs/shared/ui-utils/**/*.spec.jsx",
-          "libs/shared/ui-utils/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "libs/shared/ui-utils/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/shared/ui-utils/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/libs/shared/ui-utils"]
     }

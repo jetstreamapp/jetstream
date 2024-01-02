@@ -1,0 +1,48 @@
+---
+id: deploy-object
+title: Create Custom Object
+description: Jetstream makes it easy to quickly create a new Custom Object.
+keywords: [
+    salesforce,
+    salesforce admin,
+    salesforce developer,
+    salesforce automation,
+    salesforce workbench
+    create custom object,
+    update custom object,
+    field level security,
+    page layout,
+  ]
+sidebar_label: Create Custom Object
+slug: /deploy-object
+---
+
+## Getting Started
+
+You can quickly deploy a new Custom Object in Jetstream from the **Create Object and Fields** page.
+
+Jetstream allows creating one object at a time, usually you would do this prior to creating new custom fields for the object.
+
+From the **Create Object and Fields** page, click the **Create New Object** button to open the modal to guide you through the process.
+
+## Configure Permissions
+
+Choose the profiles and permission sets you would like to assign permissions to, and choose which permissions you would like to apply.
+
+<img src={require('./create-object-permissions.png').default} alt="Create object permissions" />
+
+## Configure Object
+
+Configure your object. Jetstream will automatically populate the object plural label, API name, and Field Name fields for you when you modify the label to make the process simple. You can adjust the automatically populated values as needed.
+
+Refer to Salesforce documentation on specific details for configuring a new custom object.
+
+<img src={require('./create-object-form.png').default} alt="Create object form" />
+
+## Review Results
+
+Once you start the deployment, review the results on the the **Results** tab.
+
+Once you close the modal, the list of objects will be refreshed and the newly created object will be available for selection to create new custom fields.
+
+<img src={require('./create-object-results.png').default} alt="Create object results" />

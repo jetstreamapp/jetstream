@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgServiceTerritoryLocation(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M66.3 59.5c-2.2 0-3.9-1.7-4-3.9 0-2.2 1.8-3.9 4-3.9s3.9 1.7 4 3.9c0 2.1-1.8 3.9-4 3.9zM47.4 59.5c-2.2 0-3.9-1.7-4-3.9 0-2.2 1.8-3.9 4-3.9s3.9 1.7 4 3.9c-.1 2.1-1.8 3.8-4 3.9zM56.8 59.5c-2.2 0-3.9-1.7-4-3.9 0-2.2 1.8-3.9 4-3.9s3.9 1.7 4 3.9c0 2.1-1.8 3.9-4 3.9z"
@@ -14,5 +13,4 @@ function SvgServiceTerritoryLocation(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgServiceTerritoryLocation;

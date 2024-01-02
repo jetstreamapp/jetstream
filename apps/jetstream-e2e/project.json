@@ -19,11 +19,17 @@
     },
     "e2e-ci": {
       "executor": "nx:run-commands",
-      "outputs": ["apps/jetstream-e2e/playwright-report"],
+      "outputs": ["{projectRoot}/playwright-report"],
       "options": {
         "command": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'"
       },
-      "dependsOn": [{ "projects": "dependencies", "target": "build", "params": "ignore" }]
+      "dependsOn": [
+        {
+          "target": "build",
+          "params": "ignore",
+          "dependencies": true
+        }
+      ]
     },
     "ts-check": {
       "executor": "nx:run-commands",
@@ -36,11 +42,8 @@
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/jetstream-e2e/**/*.{ts,tsx,js,jsx}"]
-      }
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     }
   },
   "tags": ["e2e"],

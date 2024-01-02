@@ -77,6 +77,11 @@ export function combineRecordsForClone(sobjectFields: Field[], initialRecord: Re
       clonedRecord[field.name] = undefined;
     }
   });
+  ['LastModifiedBy', 'Owner', 'CreatedBy'].forEach((fieldName) => {
+    if (clonedRecord[fieldName]) {
+      clonedRecord[fieldName] = undefined;
+    }
+  });
   return JSON.parse(JSON.stringify(clonedRecord));
 }
 
@@ -136,7 +141,7 @@ export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query>): MapOf<
     query?.fields
       ?.filter((field) => field.type === 'FieldSubquery')
       .reduce((output: MapOf<string[]>, field: FieldSubquery) => {
-        output[field.subquery.relationshipName] = getFlattenedFields(field.subquery);
+        output[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {});
         return output;
       }, {}) || {}
   );

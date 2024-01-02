@@ -50,7 +50,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
             setLogs(queryResults.records);
           } else {
             setLogs((logs) =>
-              orderBy(Object.values({ ...getMapOf(logs, 'Id'), ...getMapOf(queryResults.records, 'Id') }), ['Id'], ['asc'])
+              orderBy(Object.values({ ...getMapOf(logs, 'Id'), ...getMapOf(queryResults.records, 'Id') }), ['LastModifiedDate'], ['desc'])
             );
           }
           setLoading(false);

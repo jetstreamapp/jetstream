@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgToday(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M50 20c-16.5 0-30 13.5-30 30s13.5 30 30 30 30-13.5 30-30-13.5-30-30-30zm0 54c-13.2 0-24-10.8-24-24s10.8-24 24-24 24 10.8 24 24-10.8 24-24 24z"
@@ -14,5 +13,4 @@ function SvgToday(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgToday;

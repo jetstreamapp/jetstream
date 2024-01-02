@@ -40,6 +40,7 @@ import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import { QueryHistoryType } from '../QueryHistory/query-history.state';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
+import QueryCount from '../QueryOptions/QueryCount';
 import QueryFilter from '../QueryOptions/QueryFilter';
 import QueryLimit from '../QueryOptions/QueryLimit';
 import QueryOrderBy from '../QueryOptions/QueryOrderBy';
@@ -309,7 +310,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               </button>
               <QueryResetButton />
               <ManualSoql isTooling={isTooling} generatedSoql={soql} />
-              <QueryHistory className="collapsible-button collapsible-button-lg" selectedOrg={selectedOrg} ref={queryHistoryRef} />
+              <QueryHistory selectedOrg={selectedOrg} ref={queryHistoryRef} />
               <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>
@@ -427,6 +428,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                         content: (
                           <Accordion
                             key={selectedSObject.name}
+                            allowMultiple
                             initOpenIds={['filters', 'soql']}
                             sections={[
                               {
@@ -465,7 +467,13 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                               },
                               {
                                 id: 'soql',
-                                title: 'Soql Query',
+                                title: (
+                                  <Grid verticalAlign="end">
+                                    <span className="slds-m-right_x-small">Soql Query</span>
+                                    <QueryCount org={selectedOrg} />
+                                  </Grid>
+                                ),
+                                titleText: 'SOQL Query',
                                 content: (
                                   <SoqlTextarea
                                     key={selectedSObject.name}
@@ -478,7 +486,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                                 ),
                               },
                             ]}
-                            allowMultiple
                           ></Accordion>
                         ),
                       },

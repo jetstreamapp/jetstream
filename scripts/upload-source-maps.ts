@@ -14,7 +14,6 @@ void (async function () {
   }
   console.log(chalk.blue(`Uploading sourcemaps to Rollbar`));
   const distPath = path.join(__dirname, '../dist');
-  const sourceMapPaths = [path.join(distPath, 'apps/jetstream'), path.join(distPath, 'apps/download-zip-sw')];
   const version = (fs.readFileSync(path.join(distPath, 'VERSION'), 'utf8') || (await $`git describe --always`).stdout).trim();
   const url = 'https://api.rollbar.com/api/1/sourcemap';
   const accessToken = process.env.ROLLBAR_SERVER_TOKEN;
@@ -28,7 +27,10 @@ void (async function () {
 
   $.verbose = false;
   console.time();
-  for (const sourceMapPath of sourceMapPaths) {
+  /**
+   * CLIENT SOURCEMAPS
+   */
+  for (const sourceMapPath of [path.join(distPath, 'apps/jetstream'), path.join(distPath, 'apps/download-zip-sw')]) {
     console.log(sourceMapPath);
     const files = (await fs.readdir(sourceMapPath)).filter((item) => item.endsWith('.js.map')).sort();
 
@@ -41,7 +43,27 @@ void (async function () {
 
         await $`curl ${url} -F access_token=${accessToken} -F version=${version} -F minified_url=${minifiedUrl} -F source_map=@${filePath}`;
       } catch (ex: any) {
-        console.error(chalk.redBright('🚫 Error uploading sourcemap', ex.message));
+        console.error(chalk.redBright('🚫 Error uploading client sourcemap', ex.message));
+      }
+    }
+  }
+  /**
+   * SERVER SOURCEMAPS
+   */
+  for (const sourceMapPath of [path.join(distPath, 'apps/api')]) {
+    console.log(sourceMapPath);
+    const files = (await fs.readdir(sourceMapPath)).filter((item) => item.endsWith('.js.map')).sort();
+
+    for (const file of files) {
+      try {
+        const filePath = path.join(sourceMapPath, file);
+        const minifiedUrl = `/opt/render/project/src/dist/apps/api/${file.replace('.js.map', '.js')}`;
+
+        console.log(chalk.blue(`- ${file}`));
+
+        await $`curl ${url} -F access_token=${accessToken} -F version=${version} -F minified_url=${minifiedUrl} -F source_map=@${filePath}`;
+      } catch (ex: any) {
+        console.error(chalk.redBright('🚫 Error uploading server sourcemap', ex.message));
       }
     }
   }

@@ -1,3 +1,4 @@
+import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
 import { CloneEditView, PicklistFieldValues, Record } from '@jetstream/types';
 import type { DescribeSObjectResult, Field, FieldType } from 'jsforce';
@@ -8,8 +9,8 @@ import {
   EditableFieldDateTime,
   EditableFieldInput,
   EditableFieldPicklist,
-  EditableFields,
   EditableFieldTextarea,
+  EditableFields,
 } from './ui-record-form-types';
 
 const IGNORED_FIELD_TYPES = new Set<FieldType>(['address', 'location', 'complexvalue']);
@@ -54,12 +55,15 @@ export function convertMetadataToEditableFields(
   fields: Field[],
   picklistValues: PicklistFieldValues,
   action: CloneEditView,
-  record: Record
+  record: Record,
+  isCustomMetadata = false
 ): EditableFields[] {
   return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {
     let readOnly = action === 'view';
-    if (!readOnly) {
+    if (!readOnly && !isCustomMetadata) {
       readOnly = action === 'edit' ? !field.updateable : !field.createable;
+    } else if (!readOnly && isCustomMetadata) {
+      readOnly = !field.custom && field.name !== 'DeveloperName' && field.name !== 'Label';
     }
     const output: Partial<EditableFields> = {
       label: `${field.label} (${field.name})`,
@@ -94,15 +98,17 @@ export function convertMetadataToEditableFields(
           // Empty value to allow clearing picklist
           {
             id: '',
-            label: '--None--',
+            label: SFDC_BLANK_PICKLIST_VALUE,
             value: '',
-            meta: { attributes: null, validFor: null, label: '--None--', value: '' },
+            meta: { attributes: null, validFor: null, label: SFDC_BLANK_PICKLIST_VALUE, value: '' },
           },
         ].concat(
           picklist.values.map((item) => ({
             id: item.value,
             label: item.label,
             value: item.value,
+            secondaryLabel: item.label !== item.value ? item.value : null,
+            secondaryLabelOnNewLine: item.label !== item.value,
             meta: item as any,
           }))
         );

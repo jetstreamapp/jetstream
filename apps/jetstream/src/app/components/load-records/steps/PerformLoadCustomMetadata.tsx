@@ -6,15 +6,15 @@ import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, Salesforc
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
-import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
+import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { DownloadType } from '../../shared/load-records-results/load-records-results-types';
+import { useDeployMetadataPackage } from '../../shared/useDeployMetadataPackage';
+import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
 import LoadRecordsResultsModal from '../components/load-results/LoadRecordsResultsModal';
-import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import { DownloadModalData, FieldMapping, FieldWithRelatedEntities, MapOfCustomMetadataRecord, ViewModalData } from '../load-records-types';
-import { useDeployMetadataPackage } from '../useDeployMetadataPackage';
 import { convertCsvToCustomMetadata, prepareCustomMetadata } from '../utils/load-records-utils';
 
 export function getDeploymentStatusUrl(id: string) {

@@ -6,23 +6,12 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "options": {
-        "lintFilePatterns": [
-          "libs/api-interfaces/**/*.ts",
-          "libs/api-interfaces/**/*.spec.ts",
-          "libs/api-interfaces/**/*.spec.tsx",
-          "libs/api-interfaces/**/*.spec.js",
-          "libs/api-interfaces/**/*.spec.jsx",
-          "libs/api-interfaces/**/*.d.ts"
-        ]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "libs/api-interfaces/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/api-interfaces/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/libs/api-interfaces"]
     }

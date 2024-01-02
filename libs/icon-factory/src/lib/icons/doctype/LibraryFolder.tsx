@@ -1,15 +1,14 @@
 import * as React from 'react';
-
 function SvgLibraryFolder(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 56 64" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" aria-hidden="true" {...props}>
       <path
-        fill="#003462"
+        fill="#032D60"
         d="M51.5 15.5c2.5 0 4.5 2 4.5 4.5v31c0 2.5-2 4.5-4.5 4.5h-47C2 55.5 0 53.5 0 51V13c0-2.5 2-4.5 4.5-4.5H16c3.8 0 4.2 1.2 6.7 4.5 2.1 2.7 7.2 2.5 10.4 2.5h18.4z"
       />
-      <path fill="#87C8F2" d="M51.5 18.1H9.2c-2.5 0-4.5 2-4.5 4.5v2.9L9.2 19h42.3l4.5 6.5v-2.9c0-2.5-2-4.5-4.5-4.5z" />
+      <path fill="#90D0FE" d="M51.5 18.1H9.2c-2.5 0-4.5 2-4.5 4.5v2.9L9.2 19h42.3l4.5 6.5v-2.9c0-2.5-2-4.5-4.5-4.5z" />
       <path
-        fill="#00A1E0"
+        fill="#1AB9FF"
         d="M4.6 55.5h46.9c2.5 0 4.5-2 4.5-4.5V23.5c0-2.5-2-4.5-4.5-4.5H9.3c-2.5-.1-4.5 1.9-4.6 4.4v28.3c0 1.3-1 2.3-2.3 2.3-1.3 0-2.3-1-2.3-2.3.3 2.2 2.3 3.8 4.5 3.8z"
       />
       <g fill="unset">
@@ -19,5 +18,4 @@ function SvgLibraryFolder(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgLibraryFolder;

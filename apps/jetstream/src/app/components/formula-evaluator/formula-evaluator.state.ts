@@ -13,6 +13,11 @@ export const selectedSObjectState = atom<DescribeGlobalSObjectResult | null>({
   default: null,
 });
 
+export const selectedUserState = atom<string | null>({
+  key: 'formula.selectedUserState',
+  default: null,
+});
+
 export const selectedFieldState = atom<Field | null>({
   key: 'formula.selectedFieldState',
   default: null,

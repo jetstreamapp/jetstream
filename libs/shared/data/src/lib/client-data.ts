@@ -31,6 +31,7 @@ import {
 import parseISO from 'date-fns/parseISO';
 import type {
   AsyncResult,
+  ChildRelationship,
   DeployOptions,
   DescribeGlobalResult,
   DescribeMetadataResult,
@@ -197,7 +198,31 @@ export async function describeSObject(
   return handleRequest(
     { method: 'GET', url: `/api/describe/${SObject}`, params: { isTooling } },
     { org, useCache: true, useQueryParamsInCacheKey: true, mockHeaderKey: SObject.startsWith('@') ? SObject : undefined }
-  );
+  ).then((results: ApiResponse<DescribeSObjectResult>) => {
+    // There are some rare circumstances where objects have duplicate child relationships which breaks things
+    // This is a Salesforce bug, but the best we can do is ignore duplicates
+    // Most notable example is Salesforce CPQ's SBQQ__Quote__c object which has two child relationships named `FinanceBalanceSnapshots`
+    results.data.childRelationships = results.data.childRelationships.reduce(
+      (
+        acc: {
+          childRelationships: ChildRelationship[];
+          previouslySeenRelationships: Set<string>;
+        },
+        item
+      ) => {
+        if (!item.relationshipName || !acc.previouslySeenRelationships.has(item.relationshipName)) {
+          acc.childRelationships.push(item);
+        }
+        item.relationshipName && acc.previouslySeenRelationships.add(item.relationshipName);
+        return acc;
+      },
+      {
+        childRelationships: [],
+        previouslySeenRelationships: new Set<string>(),
+      }
+    ).childRelationships;
+    return results;
+  });
 }
 
 export async function query<T = any>(
@@ -345,8 +370,8 @@ export async function queryAllWithCache<T = any>(
   includeDeletedRecords = false,
   // Ended up not using onProgress - if used, need to test
   onProgress?: (fetched: number, total: number) => void
-): Promise<API.QueryResults<T>> {
-  const { data: results } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
+): Promise<ApiResponse<API.QueryResults<T>>> {
+  const { data: results, cache } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
   if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
     if (isFunction(onProgress)) {
@@ -361,7 +386,7 @@ export async function queryAllWithCache<T = any>(
     results.queryResults.nextRecordsUrl = undefined;
     results.queryResults.done = true;
   }
-  return results;
+  return { data: results, cache };
 }
 
 /**

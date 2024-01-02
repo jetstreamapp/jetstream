@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgVisitTemplates(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M30 58c-1.1 0-2-.9-2-2v-2c0-1.1.9-2 2-2h20c.5 0 .9.2 1.3.5C54.5 49 59 46.6 64 46.1V26c0-3.3-2.7-6-6-6H26c-3.3 0-6 2.7-6 6v34c0 3.3 2.7 6 6 6h20c0-2.8.6-5.5 1.7-8H30zm-2-28c0-1.1.9-2 2-2h20c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H30c-1.1 0-2-.9-2-2v-2zm0 12c0-1.1.9-2 2-2h24c1.1 0 2 .9 2 2v2c0 1.1-.9 2-2 2H30c-1.1 0-2-.9-2-2v-2z"
@@ -14,5 +13,4 @@ function SvgVisitTemplates(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgVisitTemplates;

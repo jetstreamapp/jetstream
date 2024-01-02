@@ -1,8 +1,9 @@
 import { REGEX } from '@jetstream/shared/utils';
 import { MapOf } from '@jetstream/types';
 import type { FieldType } from 'jsforce';
-import isString from 'lodash/isString';
+import isBoolean from 'lodash/isBoolean';
 import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
 
 type FieldValue = string | number | boolean | null;
 type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
@@ -22,6 +23,7 @@ const OPEN_CLOSE_PAREN = `${OPEN_PAREN}${CLOSE_PAREN}`;
 const EQ = `=`;
 const EQ_SPACE = ` ${EQ} `;
 const COMMA_NL = `${COMMA}${NEWLINE}`;
+const COMMA_SPACE = `${COMMA} `;
 const SEMI_NL = `${SEMI}${NEWLINE}`;
 const NEW_SPACE = ` new `;
 const PUBLIC = 'public';
@@ -60,6 +62,8 @@ export interface RecordToApexOptions {
   tabSize: number;
   replaceDateWithToday: boolean;
   insertStatement: boolean;
+  includeNullFields: boolean;
+  includeBooleanIfFalse: boolean;
 }
 
 /**
@@ -70,7 +74,7 @@ export function recordToApex(record: any, initialOptions: RecordToApexOptionsIni
   let output = '';
   if (isObject(record)) {
     const options = getDefaultOptions(record, initialOptions);
-    const { inline, wrapInMethod, wrapInMethodStatic, fields: initFields, sobjectName } = options;
+    const { inline, wrapInMethod, sobjectName } = options;
     const variableName = getVariableName(sobjectName);
 
     const fieldsApex = getFieldValues(record, options)
@@ -105,6 +109,52 @@ export function recordToApex(record: any, initialOptions: RecordToApexOptionsIni
 }
 
 /**
+ * Convert multiple records to apex
+ * The records will always be constructed inline
+ *
+ * @param records any[]
+ * @param initialOptions
+ * @returns
+ */
+export function recordsToApex(records: any[], initialOptions: RecordToApexOptionsInitialOptions): string {
+  const options = getDefaultOptions(records[0], initialOptions);
+  const { wrapInMethod, sobjectName } = options;
+  const variableName = getVariableName(sobjectName, true);
+
+  // List<Account> accounts = new List<Account>{
+  let output = `List<${sobjectName}> ${variableName} = new List<${sobjectName}>{\n`;
+
+  output += records
+    .map((record) => {
+      if (isObject(record)) {
+        const fieldsApex = getFieldValues(record, options)
+          .map((fields) => getFieldAsApex(fields, variableName, options, true))
+          .join(COMMA_SPACE);
+        // new Account(foo = 'bar', bar = 'baz')
+        return `${NEW_SPACE}${sobjectName}${OPEN_PAREN}${fieldsApex}${CLOSE_PAREN}`;
+      }
+      return '';
+    })
+    .filter(Boolean)
+    .join(COMMA_NL);
+
+  output += '\n};';
+
+  if (wrapInMethod) {
+    const methodName = `${GET}${variableName[0].toUpperCase()}${variableName.substring(1)}`;
+    const lines = transformLinesForMethod(output, options);
+    output = getMethodSignature(methodName, options, true);
+    output += `${NEWLINE}${lines}${NEWLINE}${NEWLINE}`;
+    output += getInsertStatement(variableName, options);
+    output += getMethodReturn(variableName, options);
+    output += CLOSE_BRACKET;
+  } else {
+    output += getInsertStatement(variableName, options);
+  }
+  return output;
+}
+
+/**
  * Initialize options
  * @param options
  * @returns
@@ -128,13 +178,17 @@ function getDefaultOptions(record: any, options: RecordToApexOptionsInitialOptio
     tabSize: Number.isFinite(options.tabSize) ? Math.abs(options.tabSize!) : indentation === 'spaces' ? DEF_TAB_SIZE : DEF_TAB_SIZE_TABS,
     replaceDateWithToday: options.replaceDateWithToday ?? DEF_REPLACE_DATE_W_TODAY,
     insertStatement: options.insertStatement ?? DEF_INSERT_STATEMENT,
+    includeNullFields: options.includeNullFields ?? false,
+    includeBooleanIfFalse: options.includeNullFields ?? false,
   };
 }
 
-function getMethodSignature(methodName: string, options: RecordToApexOptions) {
+function getMethodSignature(methodName: string, options: RecordToApexOptions, isList = false) {
   const { wrapInMethodStatic, sobjectName } = options;
   const staticStr = wrapInMethodStatic ? `${STATIC}${SPACE}` : '';
-  return `${PUBLIC} ${staticStr}${sobjectName} ${methodName}${OPEN_CLOSE_PAREN} ${OPEN_BRACKET}${NEWLINE}`;
+  return `${PUBLIC} ${staticStr}${
+    isList ? `List<${sobjectName}>` : sobjectName
+  } ${methodName}${OPEN_CLOSE_PAREN} ${OPEN_BRACKET}${NEWLINE}`;
 }
 
 function transformLinesForMethod(output: string, options: RecordToApexOptions) {
@@ -166,7 +220,7 @@ function getMethodReturn(variableName: string, options: RecordToApexOptions) {
   return `${getIndentation(options)}${RETURN}${SPACE}${variableName}${SEMI}${NEWLINE}`;
 }
 
-function getVariableName(sobjectName: string) {
+function getVariableName(sobjectName: string, plural = false) {
   let tempName = sobjectName;
   if (REGEX.HAS_NAMESPACE.test(tempName)) {
     tempName = tempName.replace(NAMESPACE_RGX, '');
@@ -175,19 +229,28 @@ function getVariableName(sobjectName: string) {
   tempName = tempName.replace(SUFFIX_RGX, '').replace(REGEX.NOT_ALPHA, '');
   // make first character lowercase
   tempName = `${tempName[0].toLowerCase()}${tempName.substring(1)}`;
-  return tempName;
+  return `${tempName}${plural ? 's' : ''}`;
 }
 
 function getFieldValues(record: any, options: RecordToApexOptions): [string, FieldValue][] {
-  const { fields, fieldMetadata, replaceDateWithToday } = options;
+  const { fields, fieldMetadata, replaceDateWithToday, includeNullFields, includeBooleanIfFalse } = options;
   return fields
-    .filter((field) => Object.hasOwnProperty.call(record, field) && !isObject(record[field]))
+    .filter(
+      (field) =>
+        field in record &&
+        !isObject(record[field]) &&
+        (includeNullFields || record[field] !== null) &&
+        (includeBooleanIfFalse || !isBoolean(record[field] || record[field]))
+    )
     .map((field): [string, FieldValue] => {
       if (isString(record[field])) {
         if (fieldMetadata[field] === 'date' || fieldMetadata[field] === 'datetime') {
           return [field, getDateOrDatetimeValue(record[field], fieldMetadata[field] === 'datetime', replaceDateWithToday)];
         }
-        return [field, `'${record[field]}'`];
+        if (fieldMetadata[field] === 'time') {
+          return [field, getTimeValue(record[field])];
+        }
+        return [field, `'${record[field].replaceAll(`'`, `\\'`)}'`];
       } else {
         return [field, record[field] as FieldValue];
       }
@@ -205,20 +268,29 @@ function getDateOrDatetimeValue(value: string, isDatetime: boolean, replaceDateW
   if (isDatetime && replaceDateWithToday) {
     return `Datetime.now()`;
   } else if (isDatetime) {
-    return `JSON.deserialize('"${value}"', Datetime.class)`;
+    return `(Datetime) JSON.deserialize('"${value}"', Datetime.class)`;
   } else if (replaceDateWithToday) {
     return `Date.today()`;
   }
-  return `JSON.deserialize('"${value}"', Date.class)`;
+  return `(Date) JSON.deserialize('"${value}"', Date.class)`;
 }
 
-function getFieldAsApex([field, value]: [string, FieldValue], variableName: string, options: RecordToApexOptions): string {
+/**
+ * Return time string formatted as `16:20:00.000Z` to `Time.newInstance(16, 20, 0, 0);`
+ */
+function getTimeValue(value: string): string {
+  const [hours, minutes, secondsTemp] = value.split(':');
+  const [seconds, milliseconds] = secondsTemp.split('.');
+  return `Time.newInstance(${Number(hours)}, ${Number(minutes)}, ${Number(seconds)}, ${Number.parseInt(milliseconds)})`;
+}
+
+function getFieldAsApex([field, value]: [string, FieldValue], variableName: string, options: RecordToApexOptions, isList = false): string {
   const { inline } = options;
   if (isString(value)) {
     value = value.replaceAll('\n', '\\n');
   }
   if (inline) {
-    return `${getIndentation(options)}${field}${EQ_SPACE}${value}`;
+    return `${isList ? '' : getIndentation(options)}${field}${EQ_SPACE}${value}`;
   } else {
     return `${variableName}${PERIOD}${field}${EQ_SPACE}${value}`;
   }

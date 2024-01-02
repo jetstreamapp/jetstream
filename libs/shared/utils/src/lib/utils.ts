@@ -17,7 +17,8 @@ import {
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
-import type { FieldType as jsforceFieldType, QueryResult } from 'jsforce';
+import isMatch from 'date-fns/isMatch';
+import type { QueryResult, FieldType as jsforceFieldType } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -314,7 +315,7 @@ export function getRecordIdFromAttributes(record: any) {
 }
 
 export function getSObjectNameFromAttributes(record: any) {
-  let urlWithoutId = record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
+  let urlWithoutId = record.attributes.type || record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
   return urlWithoutId.substring(urlWithoutId.lastIndexOf('/') + 1);
 }
 
@@ -421,35 +422,40 @@ export function isValidDate(date: Date) {
 export function bulkApiEnsureTyped(job: BulkJobBatchInfo | BulkJobBatchInfoUntyped): BulkJobBatchInfo;
 export function bulkApiEnsureTyped(job: BulkJob | BulkJobUntyped): BulkJob;
 export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
-  if (!isObject(job)) {
+  try {
+    if (!isObject(job)) {
+      return job as BulkJob | BulkJobBatchInfo;
+    }
+    const numberTypes = [
+      'apexProcessingTime',
+      'apiActiveProcessingTime',
+      'apiVersion',
+      'numberBatchesCompleted',
+      'numberBatchesFailed',
+      'numberBatchesInProgress',
+      'numberBatchesQueued',
+      'numberBatchesTotal',
+      'numberRecordsFailed',
+      'numberRecordsProcessed',
+      'numberRetries',
+      'totalProcessingTime',
+    ];
+    if (job['$']) {
+      job['$'] = undefined;
+    }
+    if (job['@xmlns']) {
+      job['@xmlns'] = undefined;
+    }
+
+    numberTypes.forEach((prop) => {
+      if (prop in job && typeof job[prop] === 'string') {
+        job[prop] = Number(job[prop]);
+      }
+    });
+    return job as BulkJob | BulkJobBatchInfo;
+  } catch (ex) {
     return job as BulkJob | BulkJobBatchInfo;
   }
-  const numberTypes = [
-    'apexProcessingTime',
-    'apiActiveProcessingTime',
-    'apiVersion',
-    'numberBatchesCompleted',
-    'numberBatchesFailed',
-    'numberBatchesInProgress',
-    'numberBatchesQueued',
-    'numberBatchesTotal',
-    'numberRecordsFailed',
-    'numberRecordsProcessed',
-    'numberRetries',
-    'totalProcessingTime',
-  ];
-  if (job['$']) {
-    job['$'] = undefined;
-  }
-  if (job['@xmlns']) {
-    job['@xmlns'] = undefined;
-  }
-  numberTypes.forEach((prop) => {
-    if (job.hasOwnProperty(prop) && typeof job[prop] === 'string') {
-      job[prop] = Number(job[prop]);
-    }
-  });
-  return job as BulkJob | BulkJobBatchInfo;
 }
 
 export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
@@ -514,20 +520,16 @@ export function transformRecordForDataLoad(value: any, fieldType: jsforceFieldTy
   } else if (fieldType === 'datetime') {
     return transformDateTime(value, dateFormat);
   } else if (fieldType === 'time') {
-    // time format is specific
-    // TODO: detect if times should be corrected
-    // 10 PM
-    // 10:10 PM
-    // 10:10:00 PM
-    // 10:10
-    // -->expected
-    // 13:15:00.000Z
+    return transformTime(value);
   }
   return value;
 }
 
 const DATE_ERR_MESSAGE =
   'There was an error reading one or more date fields in your file. Ensure date fields are properly formatted with a four character year.';
+
+const TIME_ERR_MESSAGE =
+  'There was an error reading one or more time fields in your file. Ensure time fields are properly formatted using or 00:00:00Z or 00:00:00.000Z.';
 
 function transformDate(value: any, dateFormat: string): Maybe<string> {
   if (!value) {
@@ -538,7 +540,7 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
       try {
         return formatISODate(value, { representation: 'date' });
       } catch (ex) {
-        throw new Error(DATE_ERR_MESSAGE);
+        throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     } else {
       // date is invalid
@@ -549,16 +551,81 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
       try {
         return formatISODate(parseISODate(value), { representation: 'date' });
       } catch (ex) {
-        throw new Error(DATE_ERR_MESSAGE);
+        throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     }
     try {
       return buildDateFromString(value, dateFormat, 'date');
     } catch (ex) {
-      throw new Error(DATE_ERR_MESSAGE);
+      throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
     }
   }
   return null;
+}
+
+function transformDateTime(value: string | null | Date, dateFormat: string): Maybe<string> {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    if (!isNaN(value.getTime())) {
+      try {
+        return formatISODate(value, { representation: 'complete' });
+      } catch (ex) {
+        throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
+      }
+    } else {
+      // date is invalid
+      throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
+    }
+  } else if (isString(value)) {
+    try {
+      try {
+        return formatISODate(parseISODate(value), { representation: 'complete' });
+      } catch (ex) {
+        // Date not in ISO8601 compatible format, attempt to auto-detect
+      }
+      // Check if formatted in local date format, which is most likely if not ISO
+      if (isMatch('Pp', value)) {
+        return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+      }
+      if (isMatch('PPpp', value)) {
+        return formatISODate(parseDate(value, 'PPpp', new Date()), { representation: 'complete' });
+      }
+
+      value = value.replace('T', ' ');
+      const [date, ...timeArr] = value.split(' ');
+      const time = timeArr.join(' ');
+      const formattedDate = buildDateFromString(date.trim(), dateFormat, 'date');
+      const formattedTime = getIsoFormattedTimeFromString(time) || '00:00:00Z';
+
+      return `${formattedDate}T${formattedTime}`;
+    } catch (ex) {
+      throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
+    }
+  }
+  return null;
+}
+
+function transformTime(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    // Already in proper format
+    if (isMatch(value, `HH:mm:ss.SSS'Z'`) || isMatch(value, `HH:mm:ss'Z'`)) {
+      return value;
+    }
+    // match local format first and convert to ISO
+    if (isMatch('p', value) || isMatch('pp', value)) {
+      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+    }
+    // Try various formats and convert to ISO, or return original value
+    return getIsoFormattedTimeFromString(value) || value;
+  } catch (ex) {
+    throw new Error(`${TIME_ERR_MESSAGE} - ${value}`);
+  }
 }
 
 function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
@@ -592,35 +659,21 @@ function buildDateFromString(value: string, dateFormat: string, representation: 
   }
 }
 
-function transformDateTime(value: string | null | Date, dateFormat: string): Maybe<string> {
-  if (!value) {
-    return null;
-  }
-  if (value instanceof Date) {
-    if (!isNaN(value.getTime())) {
-      return formatISODate(value, { representation: 'complete' });
-    } else {
-      // date is invalid
-      return null;
-    }
-  } else if (isString(value)) {
-    if (REGEX.ISO_DATE.test(value)) {
-      return formatISODate(parseISODate(value), { representation: 'complete' });
-    }
-
-    value = value.replace('T', ' ');
-    const [date, time] = value.split(' ', 2);
-    if (!time) {
-      return buildDateFromString(date.trim(), dateFormat, 'complete');
-    }
-
-    // TODO:
-    // based on locale, we need to parse the date and the time
-    // could be 12 hour time, or 24 hour time
-    // date will vary depending on locale
-    return null; // FIXME:
-  }
-  return null;
+function getIsoFormattedTimeFromString(time: string) {
+  const timeFormat = [
+    `HH:mm:ss.SSS'Z'`,
+    `HH:mm:ss'Z'`,
+    'p',
+    'pp',
+    'hh:mm a',
+    'hh:mm:ss a',
+    'hh:mma',
+    'hh:mm:ssa',
+    'HH:mm',
+    'HH:mm:ss',
+  ].find((format) => isMatch(time, format));
+  const formattedTime = timeFormat ? formatISODate(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : null;
+  return formattedTime;
 }
 
 /**
@@ -770,4 +823,34 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
     }
     return output;
   }, []);
+}
+
+// https://stackoverflow.com/questions/7394748/whats-the-right-way-to-decode-a-string-that-has-special-html-entities-in-it
+export function decodeHtmlEntity(value: Maybe<string>) {
+  return (value?.replace(/&amp;|&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) || '')
+    .replaceAll('&quot;', '"')
+    .replaceAll('\x00', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>');
+}
+
+/**
+ * Some fullNames from listMetadata need to be modified
+ */
+export function getFullNameFromListMetadata({
+  metadataType,
+  namespace,
+  fullName,
+}: {
+  metadataType: string;
+  fullName: string;
+  namespace: Maybe<string>;
+}) {
+  // Fix fullName for managed package layouts
+  if (namespace && metadataType === 'Layout' && !fullName.slice(fullName.indexOf('-') + 1).startsWith(`${namespace}__`)) {
+    const objectName = fullName.slice(0, fullName.indexOf('-') + 1);
+    const layoutName = fullName.slice(fullName.indexOf('-') + 1);
+    return `${objectName}${namespace}__${layoutName}`;
+  }
+  return fullName;
 }

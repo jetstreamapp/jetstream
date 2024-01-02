@@ -1,5 +1,5 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableSelectedContext, Grid, Icon, SearchInput } from '@jetstream/ui';
+import { AutoFullHeightContainer, DataTableSelectedContext, DataTree, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from './deploy-metadata.types';
@@ -18,13 +18,14 @@ function getRowId(row: DeployMetadataTableRow): string {
 
 const groupedRows = ['typeLabel'] as const;
 
+const COLUMNS = getColumnDefinitions();
+
 export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDeploymentTableProps> = ({
   rows,
   hasSelectedRows,
   onSelectedRows,
   onViewOrCompareOpen,
 }) => {
-  const [columns, setColumns] = useState<ColumnWithFilter<DeployMetadataTableRow>[]>([]);
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());
@@ -34,10 +35,6 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
     setVisibleRows(rows);
     setExpandedGroupIds(new Set(rows.map(({ typeLabel }) => typeLabel)));
   }, [rows]);
-
-  useEffect(() => {
-    setColumns(getColumnDefinitions());
-  }, []);
 
   useEffect(() => {
     onSelectedRows(new Set(rows.filter((row) => selectedRowIds.has(getRowId(row)))));
@@ -60,8 +57,8 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
         </Grid>
       )}
       <AutoFullHeightContainer fillHeight setHeightAttr delayForSecondTopCalc bottomBuffer={15}>
-        <DataTable
-          columns={columns}
+        <DataTree
+          columns={COLUMNS}
           data={rows}
           getRowKey={getRowId}
           includeQuickFilter

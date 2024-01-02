@@ -7,6 +7,7 @@ export interface TextareaProps {
   className?: string;
   labelClassName?: string;
   label?: string | ReactNode;
+  hideLabel?: boolean;
   labelHelp?: string | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
@@ -22,6 +23,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
   className,
   labelClassName,
   label,
+  hideLabel,
   labelHelp,
   helpText,
   hasError,
@@ -35,7 +37,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
-          <label className={classNames('slds-form-element__label', labelClassName)} htmlFor={id}>
+          <label className={classNames('slds-form-element__label', labelClassName, { 'slds-assistive-text': hideLabel })} htmlFor={id}>
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
@@ -43,7 +45,7 @@ export const Textarea: FunctionComponent<TextareaProps> = ({
             )}
             {label}
           </label>
-          {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+          {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         </Fragment>
       )}
       <div className={classNames('slds-form-element__control', { 'slds-border_bottom': readOnly })}>{children}</div>

@@ -1,5 +1,5 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
-import { ConfirmationServiceProvider } from '@jetstream/ui';
+import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useEffect, useState } from 'react';
@@ -13,7 +13,6 @@ import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
 import AppLoading from './components/core/AppLoading';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
-import AppToast from './components/core/AppToast';
 import { DownloadFileStream } from './components/core/DownloadFileStream';
 import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';

@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { HTTP } from '@jetstream/shared/constants';
+import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import {
   anonymousApex,
   checkMetadataResults,
@@ -115,10 +115,10 @@ type FieldAccumulator<T> = {
   remaining: T[];
 };
 
-export function sortQueryFields(fields: Field[]): Field[] {
+export function sortQueryFields<T extends Pick<Field, 'name' | 'label'>>(fields: T[]): T[] {
   // partition name and id field out, then append to front
   const reducedFields = orderObjectsBy(fields, 'label').reduce(
-    (out: FieldAccumulator<Field>, field) => {
+    (out: FieldAccumulator<T>, field) => {
       if (field.name === 'Id') {
         out.id = field;
       } else if (field.name === 'Name') {
@@ -135,7 +135,7 @@ export function sortQueryFields(fields: Field[]): Field[] {
     }
   );
 
-  const firstItems: Field[] = [];
+  const firstItems: T[] = [];
   if (reducedFields.id) {
     firstItems.push(reducedFields.id);
   }
@@ -1136,6 +1136,7 @@ export async function parseFile(
     onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
     isBinaryString?: boolean;
     isPasteFromClipboard?: boolean;
+    extension?: string;
   }
 ): Promise<{
   data: any[];
@@ -1145,11 +1146,23 @@ export async function parseFile(
   options = options || {};
   if (!options.isBinaryString && isString(content)) {
     // csv - read from papaparse
-    const csvResult = parseCsv(content, {
-      delimiter: options.isPasteFromClipboard ? undefined : detectDelimiter(),
+    let csvResult = parseCsv(content, {
+      delimiter: options.isPasteFromClipboard ? undefined : detectDelimiter(options.extension),
       header: true,
       skipEmptyLines: true,
     });
+    // Check if it is likely an incorrect delimiter was used and re-parse file with auto-detect delimiter
+    if (
+      Array.isArray(csvResult.meta.fields) &&
+      csvResult.meta.fields.length === 1 &&
+      ((csvResult.meta.fields[0].includes(',') && csvResult.meta.delimiter === ';') ||
+        (csvResult.meta.fields[0].includes(';') && csvResult.meta.delimiter === ','))
+    ) {
+      csvResult = parseCsv(content, {
+        header: true,
+        skipEmptyLines: true,
+      });
+    }
     return {
       data: csvResult.data,
       headers: Array.from(new Set(csvResult.meta.fields)), // remove duplicates, if any
@@ -1206,7 +1219,10 @@ export function generateCsv(data: any[], options: UnparseConfig = {}): string {
   return unparseCsv(data, options);
 }
 
-function detectDelimiter(): string {
+function detectDelimiter(extension?: string): string {
+  if (extension === INPUT_ACCEPT_FILETYPES.TSV) {
+    return '\t';
+  }
   let delimiter = ',';
   try {
     // determine if delimiter is the same as the decimal symbol in current locale
@@ -1241,6 +1257,27 @@ export function convertDateToLocale(dateOrIsoDateString: string | Date, options?
   }
 }
 
+export function detectDateFormatForLocale() {
+  try {
+    const locale = navigator.language || 'en-US';
+    const testDate = new Date(2021, 11, 24); // December 24, 2021
+    const formattedDate = new Intl.DateTimeFormat(locale).format(testDate);
+
+    if (formattedDate.startsWith('12')) {
+      return DATE_FORMATS.MM_DD_YYYY;
+    } else if (formattedDate.startsWith('24')) {
+      return DATE_FORMATS.DD_MM_YYYY;
+    } else if (formattedDate.startsWith('2021')) {
+      return DATE_FORMATS.YYYY_MM_DD;
+    }
+  } catch (ex) {
+    logger.warn(`[ERROR] Exception detecting date format`, ex.message);
+  }
+
+  logger.warn(`[ERROR] Falling back to ${DATE_FORMATS.MM_DD_YYYY}`);
+  return DATE_FORMATS.MM_DD_YYYY;
+}
+
 export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string[]): any[][] {
   if (!data || !data.length) {
     return [];
@@ -1272,7 +1309,7 @@ export function getValueForExcel(value: any) {
  */
 export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
   data: Maybe<T>[],
-  fields?: string[],
+  fields?: Maybe<string[]>,
   includeHeader = true
 ): string {
   if (!Array.isArray(data) || data.length === 0) {
@@ -1308,7 +1345,7 @@ export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
  * @param includeHeader
  * @returns
  */
-export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: string[], includeHeader = true): string {
+export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: Maybe<string[]>, includeHeader = true): string {
   if (!Array.isArray(data) || data.length === 0) {
     return '';
   }
