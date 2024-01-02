@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { Alert } from '@jetstream/ui';
+import { Alert, Tooltip } from '@jetstream/ui';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 const updateIntervalCheck = 60 * 60 * 1000; // 1 hour
@@ -40,28 +40,30 @@ export function ServiceWorkerManager() {
     <Alert type="info" leadingIcon="info" allowClose onClose={handleClose}>
       There is a new version of Jetstream available.
       {needRefresh && (
-        <button
-          css={css`
-            color: currentColor;
-            border: 1px solid transparent;
-            border-radius: 0.25rem;
-            text-decoration: underline;
-            cursor: pointer;
-            background: none;
-            user-select: none;
-            white-space: normal;
-            &:hover: {
-              text-decoration: none;
-              outline: 0;
-            }
-            $:focus: {
-              border: 1px solid #f3f3f3;
-            }
-          `}
-          onClick={() => updateServiceWorker(true)}
-        >
-          Get newest version
-        </button>
+        <Tooltip content="This will refresh all open tabs, so make sure you don't have any work in progress.">
+          <button
+            css={css`
+              color: currentColor;
+              border: 1px solid transparent;
+              border-radius: 0.25rem;
+              text-decoration: underline;
+              cursor: pointer;
+              background: none;
+              user-select: none;
+              white-space: normal;
+              &:hover: {
+                text-decoration: none;
+                outline: 0;
+              }
+              $:focus: {
+                border: 1px solid #f3f3f3;
+              }
+            `}
+            onClick={() => updateServiceWorker(true)}
+          >
+            Get newest version
+          </button>
+        </Tooltip>
       )}
     </Alert>
   );
