@@ -241,9 +241,9 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
 
   useEffect(() => {
     if (mappableFields && inputFileHeader) {
-      setFieldMapping(autoMapFields(inputFileHeader, mappableFields, binaryAttachmentBodyField));
+      setFieldMapping(autoMapFields(inputFileHeader, mappableFields, binaryAttachmentBodyField, loadType, externalId));
     }
-  }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField]);
+  }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField, externalId]);
 
   useEffect(() => {
     setExternalIdFields(fields.filter((field) => field.name === 'Id' || field.externalId));
