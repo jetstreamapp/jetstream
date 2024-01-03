@@ -217,9 +217,9 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           comboboxProps={{
             hideLabel: true,
             label: 'Salesforce Fields',
-            hasError: fieldMappingItem.isDuplicateMappedField,
-            errorMessage: 'Each Salesforce field should only be mapped once',
-            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-duplicate-field-error`,
+            hasError: !!fieldMappingItem.fieldErrorMsg,
+            errorMessage: fieldMappingItem.fieldErrorMsg,
+            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-mapping-error`,
           }}
           items={fieldListItems}
           selectedItemId={fieldMappingItem.targetField}

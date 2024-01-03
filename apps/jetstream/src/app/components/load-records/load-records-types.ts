@@ -74,6 +74,7 @@ export interface FieldMappingItemBase {
   fieldMetadata: Maybe<FieldWithRelatedEntities>;
   relatedFieldMetadata?: FieldRelatedEntity;
   isDuplicateMappedField?: boolean;
+  fieldErrorMsg?: string;
   lookupOptionUseFirstMatch: NonExtIdLookupOption;
   lookupOptionNullIfNoMatch: boolean;
   isBinaryBodyField: boolean;

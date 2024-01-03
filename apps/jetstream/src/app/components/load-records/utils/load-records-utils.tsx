@@ -162,7 +162,13 @@ export function getMaxBatchSize(apiMode: ApiMode): number {
  * @param inputHeader
  * @param fields
  */
-export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEntities[], binaryBodyField: Maybe<string>): FieldMapping {
+export function autoMapFields(
+  inputHeader: string[],
+  fields: FieldWithRelatedEntities[],
+  binaryBodyField: Maybe<string>,
+  loadType: InsertUpdateUpsertDelete,
+  externalId?: Maybe<string>
+): FieldMapping {
   const output: FieldMapping = {};
   const fieldVariations: MapOf<FieldWithRelatedEntities> = {};
   const fieldLabelVariations: MapOf<FieldWithRelatedEntities> = {};
@@ -244,7 +250,7 @@ export function autoMapFields(inputHeader: string[], fields: FieldWithRelatedEnt
     }
   });
 
-  return checkForDuplicateFieldMappings(output);
+  return checkFieldsForMappingError(output, loadType, externalId);
 }
 
 export function resetFieldMapping(inputHeader: string[]): FieldMapping {
@@ -332,6 +338,16 @@ export function loadFieldMappingFromSavedMapping(
   return newMapping;
 }
 
+export function checkFieldsForMappingError(
+  fieldMapping: FieldMapping,
+  loadType: InsertUpdateUpsertDelete,
+  externalId?: Maybe<string>
+): FieldMapping {
+  fieldMapping = checkForDuplicateFieldMappings(fieldMapping);
+  fieldMapping = checkForExternalIdFieldMappingsError(fieldMapping, loadType, externalId);
+  return fieldMapping;
+}
+
 export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): FieldMapping {
   fieldMapping = { ...fieldMapping };
   const mappedFieldFrequency = Object.values(fieldMapping)
@@ -345,12 +361,34 @@ export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): Fiel
     }, {});
   Object.keys(fieldMapping).forEach((key) => {
     if (fieldMapping[key].targetField) {
+      const isDuplicateMappedField = (mappedFieldFrequency[fieldMapping[key].targetField || ''] || 0) > 1;
       fieldMapping[key] = {
         ...fieldMapping[key],
-        isDuplicateMappedField: (mappedFieldFrequency[fieldMapping[key].targetField || ''] || 0) > 1,
+        isDuplicateMappedField,
+        fieldErrorMsg: isDuplicateMappedField ? 'Each Salesforce field should only be mapped once' : undefined,
       };
     } else {
       fieldMapping[key] = { ...fieldMapping[key], isDuplicateMappedField: false };
+    }
+  });
+  return fieldMapping;
+}
+
+export function checkForExternalIdFieldMappingsError(
+  fieldMapping: FieldMapping,
+  loadType: InsertUpdateUpsertDelete,
+  externalId?: Maybe<string>
+): FieldMapping {
+  if (loadType !== 'UPSERT' || !externalId || externalId === 'Id') {
+    return fieldMapping;
+  }
+  fieldMapping = { ...fieldMapping };
+  Object.keys(fieldMapping).forEach((key) => {
+    if (fieldMapping[key].targetField === 'Id' && !fieldMapping[key].fieldErrorMsg) {
+      fieldMapping[key] = {
+        ...fieldMapping[key],
+        fieldErrorMsg: 'Including a Record Id in an upsert will cause the load to fail',
+      };
     }
   });
   return fieldMapping;

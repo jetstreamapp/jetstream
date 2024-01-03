@@ -23,6 +23,7 @@ import {
 import { LoadSavedMappingItem } from '../load-records.state';
 import {
   autoMapFields,
+  checkFieldsForMappingError,
   checkForDuplicateFieldMappings,
   initStaticFieldMappingItem,
   loadFieldMappingFromSavedMapping,
@@ -134,7 +135,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         }
       }
       setWarningMessage(null);
-    }, [externalId, fieldMapping, loadType]);
+    }, [externalId, fieldMapping, isCustomMetadataObject, loadType]);
 
     useNonInitialEffect(() => {
       let tempVisibleHeaders = inputHeader;
@@ -158,7 +159,9 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
      *
      */
     function handleFieldMappingChange(csvField: string, fieldMappingItem: FieldMappingItem) {
-      setFieldMapping((fieldMapping) => checkForDuplicateFieldMappings({ ...fieldMapping, [csvField]: fieldMappingItem }));
+      setFieldMapping((fieldMapping) =>
+        checkFieldsForMappingError({ ...fieldMapping, [csvField]: fieldMappingItem }, loadType, externalId)
+      );
     }
 
     function handleAction(id: DropDownAction) {
@@ -170,7 +173,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           break;
         case MAPPING_RESET:
           setStaticRowHeaders([]);
-          setFieldMapping(autoMapFields(inputHeader, fields, binaryAttachmentBodyField));
+          setFieldMapping(autoMapFields(inputHeader, fields, binaryAttachmentBodyField, loadType, externalId));
           setFilter(FILTER_ALL);
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
