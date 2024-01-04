@@ -246,7 +246,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 <div>
                   {lastChecked && (
                     <p title={pollTitle} className="slds-text-color_weak slds-truncate">
-                      <button className="slds-button slds-button_icon slds-button_icon-container" onClick={() => fetchLogs()}>
+                      <button
+                        className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
+                        onClick={() => fetchLogs()}
+                      >
                         <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
                       </button>
                       Last Checked {formatDate(lastChecked, 'h:mm:ss')}
