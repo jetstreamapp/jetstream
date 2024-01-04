@@ -9,7 +9,7 @@ export const LogViewedRenderer: FunctionComponent<RenderCellProps<ApexLogWithVie
     return (
       <Icon
         css={css`
-          margin-left: 24px;
+          margin-left: 8px;
         `}
         type="utility"
         icon="preview"
