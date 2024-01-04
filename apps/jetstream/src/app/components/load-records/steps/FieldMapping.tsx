@@ -237,7 +237,12 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     }
 
     return (
-      <Grid vertical>
+      <Grid
+        vertical
+        css={css`
+          padding-bottom: 8rem;
+        `}
+      >
         <GridCol>
           {warningMessage && (
             <Alert type="warning" leadingIcon="info">
