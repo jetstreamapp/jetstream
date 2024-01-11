@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { isArrowLeftKey, isArrowRightKey, isEnterOrSpace, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
@@ -13,7 +14,7 @@ export interface ColorSwatchItem {
 export interface ColorSwatchesProps {
   className?: string;
   items: ColorSwatchItem[];
-  selectedItem?: string;
+  selectedItem?: Maybe<string>;
   onSelection: (item: ColorSwatchItem) => void;
 }
 
@@ -87,7 +88,7 @@ export const ColorSwatches = ({ className, items = [], selectedItem, onSelection
   }
 
   return (
-    <ul ref={ulRef} className={classNames('slds-color-picker__swatches', className)} role="menu" onBlur={handleBlur}>
+    <ul ref={ulRef} className={classNames('slds-color-picker__swatches', className)} role="listbox" onBlur={handleBlur}>
       {items.map((item, i) => (
         <li
           key={item.id}

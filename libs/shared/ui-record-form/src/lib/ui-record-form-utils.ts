@@ -103,14 +103,17 @@ export function convertMetadataToEditableFields(
             meta: { attributes: null, validFor: null, label: SFDC_BLANK_PICKLIST_VALUE, value: '' },
           },
         ].concat(
-          picklist.values.map((item) => ({
-            id: item.value,
-            label: item.label,
-            value: item.value,
-            secondaryLabel: item.label !== item.value ? item.value : null,
-            secondaryLabelOnNewLine: item.label !== item.value,
-            meta: item as any,
-          }))
+          picklist.values.map((item) => {
+            const label = item.label ?? item.value;
+            return {
+              id: item.value,
+              label,
+              value: item.value,
+              secondaryLabel: label !== item.value ? item.value : null,
+              secondaryLabelOnNewLine: label !== item.value,
+              meta: item as any,
+            };
+          })
         );
         // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
         if (isString(record[field.name]) && !picklistOutput.values.find((item) => item.value === record[field.name])) {

@@ -9,6 +9,8 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
 
+const OrgList = lazy(() => import('./components/orgs/org-list/OrgList'));
+
 const Query = lazy(() => import('./components/query/Query'));
 const QueryBuilder = lazy(() => import('./components/query/QueryBuilder/QueryBuilder'));
 const QueryResults = lazy(() => import('./components/query/QueryResults/QueryResults'));
@@ -79,6 +81,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
       {/* This is just here to allow testing the error page without having a real error - can uncomment for testing */}
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
       <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome />} />
+      <Route path={APP_ROUTES.ORGS.ROUTE} element={<OrgList />} />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}
         element={

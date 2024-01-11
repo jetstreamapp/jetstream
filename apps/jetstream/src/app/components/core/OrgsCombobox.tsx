@@ -1,9 +1,7 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { ListItem, ListItemGroup, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithGroupedItems } from '@jetstream/ui';
-import groupBy from 'lodash/groupBy';
-import sortBy from 'lodash/sortBy';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent } from 'react';
 
 function getSelectedItemLabel(item: ListItem<string, SalesforceOrgUi>) {
   const org = item.meta;
@@ -58,26 +56,8 @@ function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
   return !!org.connectionError;
 }
 
-function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
-  const orgsById = groupBy(sortBy(orgs, ['label']), 'orgName');
-  return Object.keys(orgsById).map(
-    (key): ListItemGroup => ({
-      id: key,
-      label: key,
-      items: orgsById[key].map((org) => ({
-        id: org.uniqueId,
-        label: org.label || org.username,
-        value: org.uniqueId,
-        secondaryLabel: org.username !== org.label ? org.username : undefined,
-        secondaryLabelOnNewLine: org.username !== org.label,
-        meta: org,
-      })),
-    })
-  );
-}
-
 export interface OrgsComboboxProps {
-  orgs: SalesforceOrgUi[];
+  groupedOrgs: ListItemGroup<string, any>[];
   selectedOrg: Maybe<SalesforceOrgUi>;
   label?: string;
   hideLabel?: boolean;
@@ -89,7 +69,7 @@ export interface OrgsComboboxProps {
 }
 
 export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
-  orgs,
+  groupedOrgs,
   selectedOrg,
   label = 'Orgs',
   hideLabel = true,
@@ -99,12 +79,6 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
   minWidth = 300,
   onSelected,
 }) => {
-  const [groupedOrgs, setGroupedOrgs] = useState<ListItemGroup<string, SalesforceOrgUi>[]>(() => groupOrgs(orgs));
-
-  useEffect(() => {
-    setGroupedOrgs(groupOrgs(orgs));
-  }, [orgs]);
-
   return (
     <div
       className="slds-col"

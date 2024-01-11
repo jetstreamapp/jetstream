@@ -4,8 +4,8 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import {
   ButtonGroupContainer,
   Checkbox,
-  ColorSwatches,
   ColorSwatchItem,
+  ColorSwatches,
   Grid,
   GridCol,
   Icon,

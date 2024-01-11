@@ -370,6 +370,8 @@ export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;
   value: string | ReactNode;
+  className?: string;
+  spanClassName?: string;
   icon?: {
     type: string;
     icon: string;

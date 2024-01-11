@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Icon, Tooltip, Grid } from '@jetstream/ui';
+import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
@@ -23,6 +23,7 @@ interface OrgsDropdownProps {
 
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButtonClassName }) => {
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
+  const groupedOrgs = useRecoilValue(fromAppState.selectGroupedOrgsListItems);
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
   const actionInProgress = useRecoilValue(fromAppState.actionInProgressState);
   const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
@@ -110,7 +111,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButt
           )}
         </div>
         <OrgsCombobox
-          orgs={orgs}
+          groupedOrgs={groupedOrgs}
           selectedOrg={selectedOrg}
           disabled={actionInProgress}
           onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)}

@@ -6,6 +6,7 @@ import { getMapOf } from '@jetstream/shared/utils';
 import {
   ApplicationCookie,
   ElectronPreferences,
+  ListItemGroup,
   Maybe,
   SalesforceOrgUi,
   SalesforceOrgUiType,
@@ -13,7 +14,9 @@ import {
   UserProfileUi,
 } from '@jetstream/types';
 import localforage from 'localforage';
+import groupBy from 'lodash/groupBy';
 import isString from 'lodash/isString';
+import sortBy from 'lodash/sortBy';
 import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export const STORAGE_KEYS = {
@@ -135,6 +138,35 @@ export const electronPreferences = atom<ElectronPreferences>({
 export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
   key: 'salesforceOrgsState',
   default: getOrgsFromStorage(),
+});
+
+export const selectGroupedOrgs = selector({
+  key: 'selectGroupedOrgs',
+  get: ({ get }) => {
+    const salesforceOrgs = get(salesforceOrgsState);
+    return groupBy(sortBy(salesforceOrgs, ['label']), 'orgName');
+  },
+});
+
+export const selectGroupedOrgsListItems = selector({
+  key: 'selectGroupedOrgsListItems',
+  get: ({ get }) => {
+    const orgsById = get(selectGroupedOrgs);
+    return Object.keys(orgsById).map(
+      (key): ListItemGroup => ({
+        id: key,
+        label: key,
+        items: orgsById[key].map((org) => ({
+          id: org.uniqueId,
+          label: org.label || org.username,
+          value: org.uniqueId,
+          secondaryLabel: org.username !== org.label ? org.username : undefined,
+          secondaryLabelOnNewLine: org.username !== org.label,
+          meta: org,
+        })),
+      })
+    );
+  },
 });
 
 export const selectedOrgIdState = atom<Maybe<string>>({

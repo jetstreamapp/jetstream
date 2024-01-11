@@ -207,14 +207,14 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
             )}
           >
             <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
-              {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
+              {items.map(({ id, subheader, className, spanClassName, value, icon, disabled, title, trailingDivider, metadata }, i) => (
                 <Fragment key={id}>
                   {subheader && (
                     <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
                       <span>{subheader}</span>
                     </li>
                   )}
-                  <li className="slds-dropdown__item" role="presentation">
+                  <li className={classNames('slds-dropdown__item', className)} role="presentation">
                     <a
                       ref={elRefs.current[i]}
                       role="menuitem"
@@ -224,7 +224,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                       aria-disabled={disabled}
                     >
                       {isString(value) ? (
-                        <span className="slds-truncate" title={title || value}>
+                        <span className={classNames('slds-truncate', spanClassName)} title={title || value}>
                           {icon && (
                             <Icon
                               type={icon.type as IconType}

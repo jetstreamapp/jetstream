@@ -1,5 +1,6 @@
 type RouteKey =
   | 'HOME'
+  | 'ORGS'
   | 'QUERY'
   | 'LOAD'
   | 'LOAD_MULTIPLE'
@@ -32,6 +33,11 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/home',
     TITLE: 'Home',
     DESCRIPTION: 'Welcome to Jetstream',
+  },
+  ORGS: {
+    ROUTE: '/orgs',
+    TITLE: 'Orgs',
+    DESCRIPTION: 'View and manage your orgs',
   },
   QUERY: {
     ROUTE: '/query',
