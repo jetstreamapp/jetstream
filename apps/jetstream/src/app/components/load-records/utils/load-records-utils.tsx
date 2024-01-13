@@ -10,7 +10,7 @@ import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
-import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
+import { Query, WhereClauseWithRightCondition, WhereClauseWithoutOperator, composeQuery, getField } from 'soql-parser-js';
 import type {
   ApiMode,
   FieldMapping,
@@ -690,8 +690,8 @@ function getRelatedFieldsQueries(baseObject: string, relatedObject: string, rela
     fields: Array.from(new Set([getField('Id'), getField(relatedField)])),
   };
 
-  let extraWhereClauseNew: WhereClause | undefined = undefined;
-  const whereClause: WhereClause = {
+  let extraWhereClauseNew: WhereClauseWithoutOperator | WhereClauseWithRightCondition | undefined = undefined;
+  const whereClause: WhereClauseWithoutOperator = {
     left: {
       field: relatedField,
       operator: 'IN',
