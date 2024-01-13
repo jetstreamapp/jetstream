@@ -51,6 +51,7 @@ import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
 import UtilityIcon_Check from './icons/utility/Check';
 import UtilityIcon_Chevrondown from './icons/utility/Chevrondown';
+import UtilityIcon_Chevronleft from './icons/utility/Chevronleft';
 import UtilityIcon_Chevronright from './icons/utility/Chevronright';
 import UtilityIcon_Clear from './icons/utility/Clear';
 import UtilityIcon_Clock from './icons/utility/Clock';
@@ -210,6 +211,7 @@ const utilityIcons = {
   chart: UtilityIcon_Chart,
   check: UtilityIcon_Check,
   chevrondown: UtilityIcon_Chevrondown,
+  chevronleft: UtilityIcon_Chevronleft,
   chevronright: UtilityIcon_Chevronright,
   clear: UtilityIcon_Clear,
   clock: UtilityIcon_Clock,

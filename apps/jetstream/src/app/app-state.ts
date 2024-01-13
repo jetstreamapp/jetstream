@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
+import { getMapOf, orderStringsBy } from '@jetstream/shared/utils';
 import {
   ApplicationCookie,
   ElectronPreferences,
@@ -144,19 +144,23 @@ export const selectGroupedOrgs = selector({
   key: 'selectGroupedOrgs',
   get: ({ get }) => {
     const salesforceOrgs = get(salesforceOrgsState);
-    return groupBy(sortBy(salesforceOrgs, ['label']), 'orgName');
+    const groupedOrgs = groupBy(sortBy(salesforceOrgs, ['label']), 'orgName');
+    return {
+      groupKeys: orderStringsBy(Object.keys(groupedOrgs)),
+      groupedOrgs,
+    };
   },
 });
 
 export const selectGroupedOrgsListItems = selector({
   key: 'selectGroupedOrgsListItems',
   get: ({ get }) => {
-    const orgsById = get(selectGroupedOrgs);
-    return Object.keys(orgsById).map(
+    const { groupKeys, groupedOrgs } = get(selectGroupedOrgs);
+    return groupKeys.map(
       (key): ListItemGroup => ({
         id: key,
         label: key,
-        items: orgsById[key].map((org) => ({
+        items: groupedOrgs[key].map((org) => ({
           id: org.uniqueId,
           label: org.label || org.username,
           value: org.uniqueId,
