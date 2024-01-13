@@ -23549,10 +23549,10 @@ sonic-boom@^2.2.1:
   dependencies:
     atomic-sleep "^1.0.0"
 
-soql-parser-js@^4.9.2:
-  version "4.9.2"
-  resolved "https://registry.yarnpkg.com/soql-parser-js/-/soql-parser-js-4.9.2.tgz#59eff369e9c425507152e34bc50af05e683ac4ad"
-  integrity sha512-+hjOmqYptFGY+WgkF0EJ91XaSCmhdPKDJEl99qmnTMnIwRKlpGVk/95LdpYsIZ5DJKxiOriBOwGa2x52WqwGJw==
+soql-parser-js@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/soql-parser-js/-/soql-parser-js-5.0.1.tgz#eb96a56eb6ef0238a6eef0c6a533e8b01720ae48"
+  integrity sha512-1TEHwUwB+wl/W8avFBwk+iTX0rbt2zEOKK3p7M1AACSUoqq7+eTdZq+Xvy1xA9Hwgp4TrabPXjt4hD8JCGy6+w==
   dependencies:
     chevrotain "^10.5.0"
     commander "^2.20.3"

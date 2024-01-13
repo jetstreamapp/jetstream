@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { FetchDebugLogOptions } from '@jetstream/types';
 import isNumber from 'lodash/isNumber';
-import { composeQuery, ConditionWithValueQuery, getField, Query } from 'soql-parser-js';
+import { composeQuery, ConditionWithValueQuery, getField, Query, WhereClauseWithoutOperator } from 'soql-parser-js';
 
 export function getApexLogsQuery({ userId, limit, asOfId }: FetchDebugLogOptions = {}) {
   limit = isNumber(limit) ? Math.abs(limit) : 100;
@@ -47,7 +47,7 @@ export function getApexLogsQuery({ userId, limit, asOfId }: FetchDebugLogOptions
       literalType: 'STRING',
     };
     if (query.where) {
-      query.where = { ...query.where, operator: 'AND', right: { left: leftClause } };
+      query.where = { ...(query.where as WhereClauseWithoutOperator), operator: 'AND', right: { left: leftClause } };
     } else {
       query.where = { left: leftClause };
     }
