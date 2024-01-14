@@ -3,87 +3,86 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("JETSTREAM_POSTGRES_DBURI")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId      String    @unique @db.VarChar
-  email       String    @db.VarChar
-  name        String?   @db.VarChar
-  nickname    String?   @db.VarChar
-  picture     String?   @db.VarChar
-  appMetadata Json?     @db.Json
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  email       String
+  name        String?
+  nickname    String?
+  picture     String?
+  appMetadata String? // Changed from Json to String
   deletedAt   DateTime?
-  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
 model SalesforceApi {
-  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  groupName        String?  @db.VarChar
-  groupDescription String?  @db.VarChar
-  name             String?  @db.VarChar
-  description      String?  @db.VarChar
-  method           String?  @db.VarChar
-  url              String?  @db.VarChar
-  header           String?  @db.VarChar
-  body             String?  @db.VarChar
-  createdAt        DateTime @default(now()) @db.Timestamp(6)
+  id               String   @id @default(uuid()) // Changed from dbgenerated("uuid_generate_v4()")
+  groupName        String?
+  groupDescription String?
+  name             String?
+  description      String?
+  method           String?
+  url              String?
+  header           String?
+  body             String?
+  createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   @@map("salesforce_api")
 }
 
 model SalesforceOrg {
-  id                     Int       @id @default(autoincrement())
-  jetstreamUserId        String    @db.VarChar
-  uniqueId               String    @db.VarChar
-  filterText             String    @db.VarChar
-  accessToken            String    @db.VarChar
-  instanceUrl            String    @db.VarChar
-  loginUrl               String    @db.VarChar
-  userId                 String    @db.VarChar(18)
-  email                  String    @db.VarChar
-  organizationId         String    @db.VarChar(18)
-  username               String    @db.VarChar
-  displayName            String    @db.VarChar
-  thumbnail              String?   @db.VarChar
-  apiVersion             String?   @db.VarChar
-  orgName                String?   @db.VarChar
-  orgCountry             String?   @db.VarChar
-  orgInstanceName        String?   @db.VarChar
+  id                     String    @id @default(uuid())
+  jetstreamUserId        String
+  uniqueId               String
+  filterText             String
+  accessToken            String
+  instanceUrl            String
+  loginUrl               String
+  userId                 String
+  email                  String
+  organizationId         String
+  username               String
+  displayName            String
+  thumbnail              String?
+  apiVersion             String?
+  orgName                String?
+  orgCountry             String?
+  orgInstanceName        String?
   orgIsSandbox           Boolean?
-  orgLanguageLocaleKey   String?   @db.VarChar
-  orgNamespacePrefix     String?   @db.VarChar
-  orgTrialExpirationDate DateTime? @db.Date
-  createdAt              DateTime  @default(now()) @db.Timestamp(6)
+  orgLanguageLocaleKey   String?
+  orgNamespacePrefix     String?
+  orgTrialExpirationDate DateTime?
+  createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
-  connectionError        String?   @db.VarChar
-  jetstreamUrl           String?   @db.VarChar
-  label                  String?   @db.VarChar(100)
-  orgOrganizationType    String?   @db.VarChar
-  color                  String?   @db.VarChar(10)
+  connectionError        String?
+  jetstreamUrl           String?
+  label                  String?
+  orgOrganizationType    String?
+  color                  String?
 
-  @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
+  @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg")
   @@map("salesforce_org")
 }
 
-model sessions {
-  sid    String   @id(map: "session_pkey") @db.VarChar
-  sess   Json     @db.Json
-  expire DateTime @db.Timestamp(6)
-
-  @@index([expire], map: "IDX_session_expire")
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
 }
 
 model AnalyticsSummary {
-  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id        String   @id @default(uuid()) // Changed from dbgenerated("uuid_generate_v4()")
   type      String   @unique
   week      Int
   month     Int
   year      Int
-  createdAt DateTime @default(now()) @db.Timestamp(6)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -32,7 +32,8 @@
     "start:cron:save-analytics-summary": "node dist/apps/cron-tasks/save-analytics-summary.js",
     "build": "cross-env NODE_ENV=production npm-run-all db:generate build:core build:landing",
     "build:pre-deploy": "cross-env NODE_ENV=production npm-run-all --parallel rollbar:upload-sourcemaps db:migrate",
-    "build:core": "NODE_OPTIONS=--max_old_space_size=8192 nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw --configuration=production",
+    "build:core": "NODE_OPTIONS=--max-old-space-size=8192 nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw --configuration=production",
+    "build:core:new": "NODE_OPTIONS=--max-old-space-size=3584 npm-run-all build:client build:api build:sw",
     "build:affected": "nx affected --target=build --parallel=3 --configuration=production",
     "build:docker": "cross-env NODE_ENV=production npm-run-all db:generate build:client:docker build:api:docker build:sw build:landing generate:version",
     "build:electron": "cross-env NODE_ENV=production npm-run-all build:electron:jetstream-app build:electron:css build:electron:jetstream build:electron:worker build:electron:preferences generate:version",
@@ -104,6 +105,7 @@
     "@babel/preset-typescript": "7.12.13",
     "@contentful/rich-text-react-renderer": "^15.12.1",
     "@emotion/babel-plugin": "11.11.0",
+    "@flydotio/dockerfile": "^0.5.0",
     "@mands/nx-playwright": "0.6.2",
     "@nx/devkit": "17.2.7",
     "@nx/eslint": "17.2.7",
@@ -211,7 +213,7 @@
     "postcss": "8.4.19",
     "postcss-preset-env": "7",
     "prettier": "2.7.0",
-    "prisma": "^5.6.0",
+    "prisma": "^5.8.0",
     "react-refresh": "^0.10.0",
     "release-it": "^15.6.0",
     "sass": "1.55.0",
@@ -249,7 +251,8 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.27.0",
     "@opentelemetry/sdk-node": "^0.27.0",
     "@popperjs/core": "^2.4.0",
-    "@prisma/client": "^5.6.0",
+    "@prisma/client": "^5.8.0",
+    "@quixo3/prisma-session-store": "^3.1.13",
     "@react-aria/dialog": "^3.1.4",
     "@react-aria/focus": "^3.5.0",
     "@react-aria/overlays": "^3.7.2",
@@ -263,6 +266,7 @@
     "amplitude-js": "^7.4.0",
     "async": "^3.2.0",
     "axios": "^0.27.2",
+    "cache-manager": "^5.3.2",
     "classnames": "^2.2.6",
     "cloudinary": "^1.26.3",
     "cometd": "^7.0.9",
@@ -347,5 +351,13 @@
     "winston": "^3.2.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz",
     "xmlbuilder2": "^2.4.0"
+  },
+  "dockerfile": {
+    "secrets": [
+      "CONTENTFUL_TOKEN",
+      "DATABASE_URL",
+      "NX_AMPLITUDE_KEY",
+      "NX_ROLLBAR_KEY"
+    ]
   }
 }

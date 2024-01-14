@@ -267,13 +267,16 @@ export async function getOrgForRequest(
   includeCallOptions?: boolean,
   requestId?: string
 ) {
-  const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
+  // FIXME: we should cache this so that we do not need to hit the DB on every request
+  // the access/refresh tokens get updated over time, so we need to make sure those updates apply to cache
+  // this can probably just be in-memory on the machine with a pretty short TTL since requests are often bursty
+
+  const org = await salesforceOrgsDb.findByUniqueIdForConnection_UNSAFE(user.id, uniqueId);
   if (!org) {
     throw new UserFacingError('An org was not found with the provided id');
   }
 
-  const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix } = org;
-  const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
+  const { accessToken, refreshToken, apiVersion: orgApiVersion, loginUrl, instanceUrl, orgNamespacePrefix } = org;
 
   const connData: jsforce.ConnectionOptions = {
     oauth2: getJsforceOauth2(loginUrl),
@@ -281,7 +284,7 @@ export async function getOrgForRequest(
     accessToken,
     refreshToken,
     maxRequest: 5,
-    version: apiVersion || org.apiVersion || ENV.SFDC_API_VERSION,
+    version: apiVersion || orgApiVersion || ENV.SFDC_API_VERSION,
     callOptions: {
       // Magical metadata shows up when using this
       // http://www.fishofprey.com/2016/03/salesforce-forcecom-ide-superpowers.html

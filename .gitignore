@@ -7,6 +7,7 @@
 /logs
 
 .env
+.env.staging
 .env.temp
 
 # dependencies
@@ -57,4 +58,5 @@ package-lock.json
 **/playwright-report
 **/playwright/.cache
 
-.nx/cache
+.nx
+prisma/dev.db

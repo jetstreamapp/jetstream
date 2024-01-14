@@ -1,9 +1,10 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, logger, pgPool } from '@jetstream/api-config';
+import { ENV, logger, prisma } from '@jetstream/api-config';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
-import * as pgSimple from 'connect-pg-simple';
+// import * as pgSimple from 'connect-pg-simple';
+import { PrismaSessionStore } from '@quixo3/prisma-session-store';
 import * as cors from 'cors';
 import * as express from 'express';
 import proxy from 'express-http-proxy';
@@ -50,12 +51,13 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 } else {
   logger.info(`Worker ${process.pid} started`);
 
-  const pgSession = pgSimple(session);
+  // const pgSession = pgSimple(session);
 
   const sessionMiddleware = session({
-    store: new pgSession({
-      pool: pgPool,
-      tableName: 'sessions',
+    store: new PrismaSessionStore(prisma, {
+      checkPeriod: 2 * 60 * 1000, // 120 seconds
+      dbRecordIdIsSessionId: true,
+      dbRecordIdFunction: undefined,
     }),
     cookie: {
       path: '/',

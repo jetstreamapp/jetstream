@@ -32,9 +32,10 @@ export async function getAnalyticSummary(): Promise<AnalyticStat[]> {
   };
 
   // FIXME: this should call Amplitude API instead of storing/getting from DB
-  const results = process.env.CI
-    ? FALLBACK_SUMMARY
-    : await import('@prisma/client').then(({ PrismaClient }) => {
+  let results = FALLBACK_SUMMARY;
+  if (!process.env.CI) {
+    try {
+      results = await import('@prisma/client').then(({ PrismaClient }) => {
         return new PrismaClient({ log: ['info'] }).analyticsSummary.findMany().then((result) =>
           result.reduce((acc, item) => {
             acc[item.type] = item;
@@ -42,6 +43,10 @@ export async function getAnalyticSummary(): Promise<AnalyticStat[]> {
           }, FALLBACK_SUMMARY)
         );
       });
+    } catch (ex) {
+      console.log('Error fetching analytics summary - using fallback', ex);
+    }
+  }
 
   const summaryStats: AnalyticStat[] = [
     {

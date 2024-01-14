@@ -12,7 +12,7 @@ services:
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
-      JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
       JETSTREAM_SESSION_SECRET: '${JETSTREAM_SESSION_SECRET}'
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
@@ -63,7 +63,7 @@ services:
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
-      JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
 volumes:
   db:
     driver: local

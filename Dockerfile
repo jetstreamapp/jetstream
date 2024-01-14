@@ -1,41 +1,79 @@
-# docker build -f Dockerfile . -t jetstream
-# docker-compose up
+# syntax = docker/dockerfile:1
 
-# Login and run DB migrations (TODO: figure out how to automate this)
-# https://medium.com/@sumankpaul/run-db-migration-script-in-docker-compose-ce8e447a77ba
-# docker ps
-# docker exec -it 791 bash
-# npx prisma migrate deploy
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=20.10.0
+ARG ENVIRONMENT=production
+ARG CONTENTFUL_SPACE=wuv9tl5d77ll
+ARG CONTENTFUL_TOKEN=0HoGc9QPgrk3kXSIO6YvAZ0JMcD8CkGKLQF9-su9-tg
+ARG CONTENTFUL_HOST=https://api.contentful.com
 
-# TODO: auth redirect flow is broken, need to fix it
+FROM node:${NODE_VERSION}-slim as base
 
-FROM node:16
+LABEL fly_launch_runtime="Node.js"
 
-WORKDIR /usr/src/app
+# Node/Prisma app lives here
+WORKDIR /app
 
-# Copy application
-COPY ./dist/apps/api ./dist/apps/api/
-COPY ./dist/apps/jetstream ./dist/apps/jetstream/
-COPY ./dist/apps/download-zip-sw ./dist/apps/download-zip-sw/
-COPY ./dist/apps/landing ./dist/apps/landing/
+# Set production environment
+ENV NODE_ENV=production
+ARG YARN_VERSION=1.22.19
+RUN npm install -g yarn@$YARN_VERSION --force
 
-# Copy supporting files
-COPY ./dist/apps/api/package.json .
-COPY ./yarn.lock .
-COPY ./.env .
-COPY ./ecosystem.config.js .
-COPY ./prisma ./prisma/
 
-# Install core dependencies
-RUN yarn
+# Throw-away build stage to reduce size of final image
+FROM base as build
 
-# Install other dependencies that were not calculated by nx, but are required
-RUN yarn add dotenv prisma@^3.13.0
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp openssl pkg-config python-is-python3
 
-# Generate prisma client - ensure that there are no OS differences
-RUN npx prisma generate
+# Install node modules
+COPY --link package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production=false
 
+# Generate Prisma Client
+COPY --link prisma .
+RUN yarn run db:generate
+
+# Copy application code
+COPY --link . .
+
+# Build application
+RUN --mount=type=secret,id=CONTENTFUL_TOKEN \
+    --mount=type=secret,id=DATABASE_URL \
+    --mount=type=secret,id=NX_AMPLITUDE_KEY \
+    --mount=type=secret,id=NX_ROLLBAR_KEY \
+    CONTENTFUL_TOKEN="$(cat /run/secrets/CONTENTFUL_TOKEN)" \
+    DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" \
+    NX_AMPLITUDE_KEY="$(cat /run/secrets/NX_AMPLITUDE_KEY)" \
+    NX_ROLLBAR_KEY="$(cat /run/secrets/NX_ROLLBAR_KEY)" \
+    yarn run build:core:new
+
+RUN --mount=type=secret,id=CONTENTFUL_TOKEN \
+    --mount=type=secret,id=DATABASE_URL \
+    --mount=type=secret,id=NX_AMPLITUDE_KEY \
+    --mount=type=secret,id=NX_ROLLBAR_KEY \
+    CONTENTFUL_TOKEN="$(cat /run/secrets/CONTENTFUL_TOKEN)" \
+    DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" \
+    NX_AMPLITUDE_KEY="$(cat /run/secrets/NX_AMPLITUDE_KEY)" \
+    NX_ROLLBAR_KEY="$(cat /run/secrets/NX_ROLLBAR_KEY)" \
+    yarn run build:landing
+
+# Remove development dependencies
+RUN yarn install --production=true
+
+
+# Final stage for app image
+FROM base
+
+# Install packages needed for deployment
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y openssl && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Copy built application
+COPY --from=build /app /app
+
+# Start the server by default, this can be overwritten at runtime
 EXPOSE 3333
-EXPOSE 9229
-
-CMD [ "node", "--inspect=0.0.0.0", "dist/apps/api/main.js" ]
+CMD [ "yarn", "run", "start:prod" ]

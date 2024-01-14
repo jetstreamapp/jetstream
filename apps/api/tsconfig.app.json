@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "target": "es2022",
     "allowSyntheticDefaultImports": true,
     "outDir": "../../dist/out-tsc",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]

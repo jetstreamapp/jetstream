@@ -47,7 +47,7 @@ async function initWorker() {
   logger.info('[STARTING WORKER]');
   try {
     boss = new PgBoss({
-      connectionString: ENV.JETSTREAM_POSTGRES_DBURI,
+      connectionString: ENV.DATABASE_URL,
       application_name: 'jetstream-worker',
     });
 

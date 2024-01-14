@@ -3,8 +3,49 @@ import { ENV, prisma } from '@jetstream/api-config';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
+import { caching } from 'cache-manager';
 import parseISO from 'date-fns/parseISO';
 import { isUndefined } from 'lodash';
+
+interface CachedOrg {
+  jetstreamUserId: string;
+  id: string;
+  uniqueId: string;
+  accessToken: string;
+  refreshToken: string;
+  loginUrl: string;
+  instanceUrl: string;
+  apiVersion: string | null;
+  orgNamespacePrefix: string | null;
+}
+
+/**
+ * Cache recently accessed orgs in memory for faster access since they are needed every request
+ * and it is very common that a user would need to make many requests in a row to the same org
+ *
+ * SFDC accessToken is good for 2 minutes, but will reset TTL if used in the last 50% of the cache's lifetime
+ */
+
+const memoryCache = await initCache();
+
+async function initCache() {
+  const orgCache = await caching('memory', {
+    max: 100,
+    ttl: 1000 * 60 * 5, // 5 minutes
+  });
+  return orgCache;
+}
+
+async function getFromCache(jetstreamUserId: string, uniqueId: string) {
+  const cacheKey = `${jetstreamUserId}-${uniqueId}`;
+  return memoryCache.get<CachedOrg>(cacheKey);
+}
+
+async function setCache(jetstreamUserId: string, uniqueId: string, org: CachedOrg) {
+  const cacheKey = `${jetstreamUserId}-${uniqueId}`;
+  await memoryCache.set(cacheKey, org);
+  return org;
+}
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   uniqueId: true,
@@ -63,6 +104,54 @@ export function decryptAccessToken(encryptedAccessToken: string) {
 }
 
 /**
+ * Prefers cached orgs over db orgs
+ * Only returns data needed for initializing a JSForce connection
+ *
+ * @param jetstreamUserId
+ * @param uniqueId
+ * @returns
+ */
+export async function findByUniqueIdForConnection_UNSAFE(jetstreamUserId: string, uniqueId: string) {
+  const cachedOrg = await getFromCache(jetstreamUserId, uniqueId);
+
+  if (cachedOrg) {
+    return cachedOrg;
+  }
+
+  const org = await prisma.salesforceOrg.findUnique({
+    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+    select: {
+      id: true,
+      uniqueId: true,
+      accessToken: true,
+      loginUrl: true,
+      instanceUrl: true,
+      orgNamespacePrefix: true,
+      apiVersion: true,
+    },
+  });
+
+  if (!org) {
+    throw new Error('An org does not exist with the provided input');
+  }
+
+  const { id, accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix, apiVersion } = org;
+  const [accessToken, refreshToken] = decryptAccessToken(encryptedAccessToken);
+
+  return setCache(jetstreamUserId, uniqueId, {
+    jetstreamUserId,
+    id,
+    uniqueId,
+    accessToken,
+    refreshToken,
+    loginUrl,
+    instanceUrl,
+    orgNamespacePrefix,
+    apiVersion,
+  });
+}
+
+/**
  * Finds by unique id and returns all fields
  * This is unsafe to send to the browser and should only be used internally
  *
@@ -76,7 +165,23 @@ export async function findByUniqueId_UNSAFE(jetstreamUserId: string, uniqueId: s
   });
 }
 
-export async function updateAccessToken_UNSAFE(org: SalesforceOrg, accessToken: string, refreshToken: string) {
+export async function updateAccessToken_UNSAFE(org: CachedOrg, accessToken: string, refreshToken: string) {
+  const cachedOrg = await getFromCache(org.jetstreamUserId, org.uniqueId);
+
+  if (cachedOrg) {
+    await setCache(org.jetstreamUserId, org.uniqueId, {
+      jetstreamUserId: org.jetstreamUserId,
+      id: org.id,
+      uniqueId: org.uniqueId,
+      accessToken,
+      refreshToken,
+      loginUrl: org.loginUrl,
+      instanceUrl: org.instanceUrl,
+      orgNamespacePrefix: org.orgNamespacePrefix,
+      apiVersion: org.apiVersion,
+    });
+  }
+
   return await prisma.salesforceOrg.update({
     where: { id: org.id },
     data: {
@@ -111,7 +216,7 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
     where: findUniqueOrg({ jetstreamUserId, uniqueId: salesforceOrgUi.uniqueId! }),
   });
 
-  let orgToDelete: Maybe<{ id: number }>;
+  let orgToDelete: Maybe<{ id: string }>;
   /**
    * After a sandbox refresh, the orgId will change but the username will remain the same
    * There cannot be two different orgs with the same username since this is globally unique on Salesforce

@@ -3,7 +3,7 @@ import { ENV } from '../config/env-config';
 import { logger } from './logger.config';
 
 export const pool = new Pool({
-  connectionString: ENV.JETSTREAM_POSTGRES_DBURI,
+  connectionString: ENV.DATABASE_URL,
   application_name: 'jetstream-worker',
 });
 
