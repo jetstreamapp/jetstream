@@ -58,3 +58,7 @@ package-lock.json
 **/playwright/.cache
 
 .nx/cache
+
+.sfdx
+
+prisma/*.db

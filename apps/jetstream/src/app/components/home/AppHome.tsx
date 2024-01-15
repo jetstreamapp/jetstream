@@ -64,6 +64,34 @@ export const AppHome = () => {
           grid-template-columns: repeat(auto-fit, minmax(5em, 30em));
           justify-content: center;
         `}
+        className="slds-m-bottom_medium"
+      >
+        <article
+          css={css`
+            background-color: white;
+          `}
+          className="slds-box slds-box_x-small slds-tile slds-media"
+        >
+          <div className="slds-media__figure">
+            <Icon
+              type="standard"
+              icon="default"
+              containerClassname="slds-icon_container"
+              className={classNames('slds-icon slds-icon_small', `slds-icon-standard-default`)}
+            />
+          </div>
+          <Link to={APP_ROUTES.ORGS.ROUTE} className="slds-text-heading_small">
+            {APP_ROUTES.ORGS.DESCRIPTION}
+          </Link>
+        </article>
+      </div>
+      <div
+        css={css`
+          display: grid;
+          gap: 1em;
+          grid-template-columns: repeat(auto-fit, minmax(5em, 30em));
+          justify-content: center;
+        `}
       >
         {HOME_ITEMS.map((card) => (
           <div

@@ -154,6 +154,9 @@ export const DATE_FORMATS = {
 };
 
 export const ANALYTICS_KEYS = {
+  /** Org List */
+  org_list_exported_history: 'org_list_exported_history',
+  org_list_imported_history: 'org_list_imported_history',
   /** Browser Notifications */
   notifications_modal_opened: 'notifications_modal_opened',
   notifications_permission_requested: 'notifications_permission_requested',

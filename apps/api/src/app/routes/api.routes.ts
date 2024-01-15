@@ -49,6 +49,7 @@ routes.get(
 routes.post('/orgs/health-check', ensureOrgExists, orgsController.checkOrgHealth);
 
 routes.get('/orgs', orgsController.getOrgs);
+routes.put('/orgs/:uniqueId/refresh', ensureOrgExists, orgsController.refreshOrgInfo);
 routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
 

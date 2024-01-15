@@ -1,8 +1,9 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { SObjectOrganization, SalesforceOrgUi, UserProfileServer } from '@jetstream/types';
+import { UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
 import * as jsforce from 'jsforce';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { addCompanyInformationAndSaveOrg } from '../services/sf-misc';
 import { getJsforceOauth2 } from '../utils/auth-utils';
 import { OauthLinkParams } from './auth.controller';
 
@@ -65,15 +66,6 @@ export async function salesforceOauthCallback(req: express.Request, res: express
       userId: user.id,
     });
 
-    // TODO: figure out what other data we need
-    // try {
-    // TODO: what about if a user is assigned a permission set that gives PermissionsModifyAllData?
-    //   const data = await getExtendedOrgInfo(conn, returnObject);
-    //   returnObject = Object.assign({}, returnObject, data);
-    // } catch (ex) {
-    //   logger.log('Error adding extended org data');
-    // }
-
     returnParams.data = JSON.stringify(salesforceOrg);
     return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
   } catch (ex) {
@@ -98,44 +90,10 @@ export async function initConnectionFromOAuthResponse({
   loginUrl: string;
   userId: string;
 }) {
-  const identity = await conn.identity();
-  let companyInfoRecord: SObjectOrganization | undefined;
-
-  try {
-    const results = await conn.query<SObjectOrganization>(
-      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
-    );
-    if (results.totalSize > 0) {
-      companyInfoRecord = results.records[0];
-    }
-  } catch (ex) {
-    logger.warn('Error getting org info %o', ex);
-  }
-
-  const orgName = companyInfoRecord?.Name || 'Unknown Organization';
-
-  const salesforceOrgUi: Partial<SalesforceOrgUi> = {
-    uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
+  return addCompanyInformationAndSaveOrg(userId, `${userInfo.organizationId}-${userInfo.id}`, conn, {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken!),
     instanceUrl: conn.instanceUrl,
     loginUrl,
-    userId: identity.user_id,
-    email: identity.email,
-    organizationId: identity.organization_id,
-    username: identity.username,
-    displayName: identity.display_name,
-    thumbnail: identity.photos?.thumbnail,
-    orgName,
-    orgCountry: companyInfoRecord?.Country,
-    orgOrganizationType: companyInfoRecord?.OrganizationType,
-    orgInstanceName: companyInfoRecord?.InstanceName,
-    orgIsSandbox: companyInfoRecord?.IsSandbox,
-    orgLanguageLocaleKey: companyInfoRecord?.LanguageLocaleKey,
-    orgNamespacePrefix: companyInfoRecord?.NamespacePrefix,
-    orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
-  };
-
-  const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
-  return salesforceOrg;
+  });
 }

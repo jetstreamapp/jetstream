@@ -1,11 +1,69 @@
+import { logger } from '@jetstream/api-config';
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf } from '@jetstream/types';
+import { ListMetadataResult, MapOf, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
 import type { PackageTypeMembers, RetrieveRequest } from 'jsforce';
+import * as jsforce from 'jsforce';
 import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
+import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { UserFacingError } from '../utils/error-handler';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
+
+/**
+ * Fetches identify and company information from Salesforce and saves it to the database
+ *
+ * If additional data points are required, pass in a partial SalesforceOrgUi object
+ *
+ * @returns
+ */
+export async function addCompanyInformationAndSaveOrg(
+  userId: string,
+  orgUniqueId: string,
+  conn: jsforce.Connection,
+  salesforceOrgUi: Partial<SalesforceOrgUi> = {}
+) {
+  const identity = await conn.identity();
+
+  let companyInfoRecord: SObjectOrganization | undefined;
+
+  try {
+    const results = await conn.query<SObjectOrganization>(
+      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
+    );
+    if (results.totalSize > 0) {
+      companyInfoRecord = results.records[0];
+    }
+  } catch (ex) {
+    logger.warn('Error getting org info %o', ex);
+  }
+
+  const orgName = companyInfoRecord?.Name || salesforceOrgUi.orgName || 'Unknown Organization';
+
+  salesforceOrgUi = {
+    ...salesforceOrgUi,
+    uniqueId: orgUniqueId,
+    orgName,
+    /** User Info */
+    userId: identity.user_id,
+    email: identity.email,
+    organizationId: identity.organization_id,
+    username: identity.username,
+    displayName: identity.display_name,
+    thumbnail: identity.photos?.thumbnail,
+    /** Company Info */
+    orgCountry: companyInfoRecord?.Country,
+    orgOrganizationType: companyInfoRecord?.OrganizationType,
+    orgInstanceName: companyInfoRecord?.InstanceName,
+    orgIsSandbox: companyInfoRecord?.IsSandbox,
+    orgLanguageLocaleKey: companyInfoRecord?.LanguageLocaleKey,
+    orgNamespacePrefix: companyInfoRecord?.NamespacePrefix,
+    orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
+  };
+
+  const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
+  return salesforceOrg;
+}
 
 export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: string, otherFields: MapOf<string> = {}, prettyPrint = true) {
   // prettier-ignore

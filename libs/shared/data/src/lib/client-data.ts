@@ -106,6 +106,10 @@ export async function getOrgs(): Promise<SalesforceOrgUi[]> {
   return handleRequest({ method: 'GET', url: '/api/orgs' }).then(unwrapResponseIgnoreCache);
 }
 
+export async function refreshOrg(org: SalesforceOrgUi): Promise<void> {
+  return handleRequest({ method: 'PUT', url: `/api/orgs/${org.uniqueId}/refresh` }, { org }).then(unwrapResponseIgnoreCache);
+}
+
 export async function updateOrg(org: SalesforceOrgUi, partialOrg: Partial<SalesforceOrgUi>): Promise<void> {
   return handleRequest({ method: 'PATCH', url: `/api/orgs/${org.uniqueId}`, data: partialOrg }).then(unwrapResponseIgnoreCache);
 }

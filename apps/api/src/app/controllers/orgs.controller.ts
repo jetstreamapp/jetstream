@@ -5,6 +5,7 @@ import { SalesforceOrg } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
 import * as jsforce from 'jsforce';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { addCompanyInformationAndSaveOrg } from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -14,6 +15,20 @@ export async function getOrgs(req: Request, res: Response, next: NextFunction) {
     const orgs = await salesforceOrgsDb.findByUserId(user.id);
 
     sendJson(res, orgs);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+}
+
+export async function refreshOrgInfo(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as UserProfileServer;
+    const { uniqueId } = req.params;
+    const conn: jsforce.Connection = res.locals.jsforceConn;
+
+    const updatedOrg = await addCompanyInformationAndSaveOrg(user.id, uniqueId, conn);
+
+    sendJson(res, updatedOrg, 201);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }

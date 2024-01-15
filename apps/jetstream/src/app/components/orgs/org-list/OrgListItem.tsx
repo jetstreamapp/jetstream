@@ -1,5 +1,6 @@
 import { SerializedStyles, css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { addOrg, getOrgType, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
@@ -10,28 +11,22 @@ import {
   ColorSwatches,
   CopyToClipboard,
   DropDown,
+  FileDownloadModal,
   Grid,
   GridCol,
   Icon,
   Input,
   SalesforceLogin,
+  Spinner,
+  fireToast,
 } from '@jetstream/ui';
 import { useEffect, useState } from 'react';
-
-/**
- *
- * TODO:
- * Allow changing group names (and likely means groups should somehow be stored in the db)
- * Do we want to allow creating new groups?
- *
- * Allow copying query history from one org to another
- *
- * Allow exporting query history and saved queries
- * Allow importing query history and saved queries (could do this instead of copying)
- *
- * Are we showing all the important information?
- *
- */
+import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../../../app-state';
+import { useAmplitude } from '../../core/analytics';
+import * as fromJetstreamEvents from '../../core/jetstream-events';
+import { OrgImportHistoryModal } from './OrgImportHistoryModal';
+import { exportOrgHistory, generateHistoryFile } from './org-list.utils';
 
 function getSelectedItemStyle(color?: Maybe<string>, connectionError?: Maybe<string>): SerializedStyles | undefined {
   if (!color || !!connectionError) {
@@ -69,25 +64,29 @@ function getColor(color: string) {
 
 interface OrgListItemProps {
   org: SalesforceOrgUi;
-  serverUrl: string;
   onRefreshOrgInfo: (org: SalesforceOrgUi) => Promise<void>;
+  onVerifyOrg: (org: SalesforceOrgUi) => Promise<void>;
   onRemoveOrg: (org: SalesforceOrgUi) => Promise<void>;
   onUpdateOrg: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => Promise<void>;
 }
-export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onUpdateOrg }: OrgListItemProps) {
+export function OrgListItem({ org, onRefreshOrgInfo, onVerifyOrg, onRemoveOrg, onUpdateOrg }: OrgListItemProps) {
+  const { trackEvent } = useAmplitude();
+  const [{ google_apiKey, google_appId, google_clientId, serverUrl }] = useRecoilState(applicationCookieState);
+
   const [listItemStyle, setListItemStyle] = useState(() => getSelectedItemStyle(org.color, org.connectionError));
   const [orgType] = useState(() => getOrgType(org));
-
   const [labelEditMode, setLabelEditMode] = useState(false);
   const [orgLabel, setOrgLabel] = useState(org.label);
-
   const [orgColor, setOrgColor] = useState(org.color || EMPTY_COLOR);
-
   const [colorExpanded, setColorExpanded] = useState(false);
-
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
-
   const [isDirty, setIsDirty] = useState(false);
+
+  const [exportHistoryModalOpen, setExportHistoryModalOpen] = useState(false);
+  const [importHistoryModalOpen, setImportHistoryModalOpen] = useState(false);
+
+  const [exportFile, setExportFile] = useState<ArrayBuffer | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const tempIsDirty = orgLabel !== org.label;
@@ -140,16 +139,52 @@ export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onU
     }
   }
 
-  function handleOrgAction(action: 'refresh' | 'verify' | 'clear-cache' | 'delete') {
+  async function handleExportHistory() {
+    try {
+      setLoading(true);
+      const orgHistory = await exportOrgHistory(org);
+      setExportFile(await generateHistoryFile(org, orgHistory));
+      setExportHistoryModalOpen(true);
+    } catch (ex) {
+      logger.warn(ex);
+      // TODO: rollbar?
+      fireToast({
+        message: `There was a problem exporting your org history.`,
+        type: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeFileModal(canceled?: boolean) {
+    setExportHistoryModalOpen(false);
+    setExportFile(null);
+    if (!canceled) {
+      trackEvent(ANALYTICS_KEYS.org_list_exported_history);
+    }
+  }
+
+  async function handleOrgAction(action: 'refresh' | 'verify' | 'import-history' | 'export-history' | 'clear-cache' | 'delete') {
     switch (action) {
       case 'refresh':
-        onRefreshOrgInfo(org);
+        setLoading(true);
+        await onRefreshOrgInfo(org);
+        setLoading(false);
         break;
       case 'verify':
-        //FIXME: add something to verify org
+        setLoading(true);
+        await onVerifyOrg(org);
+        setLoading(false);
+        break;
+      case 'export-history':
+        handleExportHistory();
+        break;
+      case 'import-history':
+        setImportHistoryModalOpen(true);
         break;
       case 'clear-cache':
-        handleClearCache();
+        await handleClearCache();
         break;
       case 'delete':
         setRemoveOrgActive(true);
@@ -164,8 +199,26 @@ export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onU
     });
   }
 
+  const orgExtraData = [org.orgInstanceName, org.orgCountry, org.orgLanguageLocaleKey].filter((item) => !!item).join(' | ');
+
   return (
-    <li key={org.uniqueId} className="slds-item read-only slds-card" css={listItemStyle}>
+    <li key={org.uniqueId} className="slds-item read-only slds-card slds-is-relative" css={listItemStyle}>
+      {loading && <Spinner />}
+      {exportHistoryModalOpen && exportFile && (
+        <FileDownloadModal
+          modalHeader="Download Org History"
+          org={org}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
+          fileNameParts={['org-history']}
+          allowedTypes={['zip']}
+          data={exportFile}
+          onModalClose={(canceled) => closeFileModal(canceled)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+        />
+      )}
+      {importHistoryModalOpen && <OrgImportHistoryModal onClose={() => setImportHistoryModalOpen(false)} org={org} />}
       <Grid align="spread">
         <p className="slds-truncate slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-vertical_xx-small">
           {/* <span className="slds-text-color_weak">{org.username}</span> */}
@@ -179,7 +232,9 @@ export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onU
           items={[
             // { id: 're-authenticate', value: 'Re-Authenticate' },
             { id: 'refresh', value: 'Refresh Org Info' },
-            { id: 'verify', value: 'Verify Connection' },
+            { id: 'verify', value: 'Verify Connection', trailingDivider: true },
+            { id: 'export-history', value: 'Export History' },
+            { id: 'import-history', value: 'Import History', trailingDivider: true },
             { id: 'clear-cache', value: 'Clear Cached Data', trailingDivider: true },
             { id: 'delete', value: 'Delete', spanClassName: 'slds-text-color_error' },
           ]}
@@ -236,19 +291,13 @@ export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onU
         </Grid>
       )}
 
-      {/* dropdown menu - delete, edit, etc
-                        position: absolute;
-                        top: var(--lwc-spacingXSmall,0.5rem);
-                        right: var(--lwc-spacingXSmall,0.5rem);
-                        line-height: var(--lwc-spacingNone, 0);
-                    */}
       {org.username !== org.label && <p className="slds-truncate">{org.username}</p>}
       <p className="slds-truncate slds-p-vertical_xx-small" title={org.organizationId}>
         <span className="slds-text-color_weak">{org.organizationId}</span>
         <CopyToClipboard content={org.organizationId} className="slds-m-left_xx-small" />
       </p>
-      <p className="slds-line-clamp_small slds-p-vertical_xx-small" title={org.instanceUrl}>
-        <span className="slds-text-color_weak">{org.orgInstanceName}</span>
+      <p className="slds-line-clamp_small slds-p-vertical_xx-small" title={orgExtraData}>
+        <span className="slds-text-color_weak slds-m-right_x-small">{orgExtraData}</span>
       </p>
       <p className="slds-line-clamp_small slds-p-vertical_xx-small" title={org.instanceUrl}>
         <SalesforceLogin serverUrl={serverUrl} omitIcon org={org} title="Login" returnUrl="/lightning/page/home">
@@ -260,7 +309,10 @@ export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onU
           <p className="slds-line-clamp_small slds-p-vertical_xx-small" title={org.connectionError}>
             <span className="slds-text-color_error">{org.connectionError}</span>
           </p>
-          {/* TODO: add reconnect button */}
+          <button className="slds-button slds-button_neutral slds-m-right_x-small" onClick={() => onVerifyOrg(org)}>
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Retry Connection
+          </button>
         </div>
       )}
       <Grid
@@ -313,20 +365,7 @@ export function OrgListItem({ org, serverUrl, onRefreshOrgInfo, onRemoveOrg, onU
         </>
       )}
 
-      <Grid>
-        {/* <SalesforceLogin
-                          serverUrl={serverUrl}
-                          className="slds-button"
-                          org={org}
-                          title="Login to Salesforce Home"
-                          returnUrl="/lightning/page/home"
-                        >
-                          Open
-                        </SalesforceLogin> */}
-        {/* this should be in a menu */}
-        {/* <button className="slds-button">Refresh Details</button> */}
-        {/* <button className="slds-button">Select Org</button> */}
-      </Grid>
+      <Grid></Grid>
     </li>
   );
 }
