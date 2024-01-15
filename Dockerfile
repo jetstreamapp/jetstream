@@ -40,21 +40,17 @@ COPY --link . .
 
 # Build application
 RUN --mount=type=secret,id=CONTENTFUL_TOKEN \
-    --mount=type=secret,id=DATABASE_URL \
     --mount=type=secret,id=NX_AMPLITUDE_KEY \
     --mount=type=secret,id=NX_ROLLBAR_KEY \
     CONTENTFUL_TOKEN="$(cat /run/secrets/CONTENTFUL_TOKEN)" \
-    DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" \
     NX_AMPLITUDE_KEY="$(cat /run/secrets/NX_AMPLITUDE_KEY)" \
     NX_ROLLBAR_KEY="$(cat /run/secrets/NX_ROLLBAR_KEY)" \
     yarn run build:core:new
 
 RUN --mount=type=secret,id=CONTENTFUL_TOKEN \
-    --mount=type=secret,id=DATABASE_URL \
     --mount=type=secret,id=NX_AMPLITUDE_KEY \
     --mount=type=secret,id=NX_ROLLBAR_KEY \
     CONTENTFUL_TOKEN="$(cat /run/secrets/CONTENTFUL_TOKEN)" \
-    DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" \
     NX_AMPLITUDE_KEY="$(cat /run/secrets/NX_AMPLITUDE_KEY)" \
     NX_ROLLBAR_KEY="$(cat /run/secrets/NX_ROLLBAR_KEY)" \
     yarn run build:landing
