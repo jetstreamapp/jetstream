@@ -58,6 +58,12 @@
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   },
+  "json.schemas": [
+    {
+      "fileMatch": ["apps/jetstream-web-extension/public/manifest.json"],
+      "url": "https://json.schemastore.org/chrome-manifest.json"
+    }
+  ],
   "typescript.updateImportsOnFileMove.enabled": "always",
   "editor.tabCompletion": "on",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
