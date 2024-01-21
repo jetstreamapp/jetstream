@@ -228,10 +228,13 @@
     "url-loader": "^4.1.1",
     "vite": "5.0.10",
     "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-pwa": "^0.17.4",
     "vite-tsconfig-paths": "4.2.0",
     "vitest": "0.34.6",
     "webpack": "5.88.1",
     "webpack-merge": "^5.8.0",
+    "workbox-precaching": "^7.0.0",
+    "workbox-window": "^7.0.0",
     "worker-loader": "^2.0.0",
     "zx": "^4.3.0"
   },

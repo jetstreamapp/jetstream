@@ -18,6 +18,7 @@ import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';
+import { ServiceWorkerManager } from './components/core/ServiceWorkerManager';
 import './components/core/monaco-loader';
 
 /**
@@ -55,6 +56,7 @@ export const App = () => {
                     <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                    <ServiceWorkerManager />
                     <Suspense fallback={<AppLoading />}>
                       <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                         <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
