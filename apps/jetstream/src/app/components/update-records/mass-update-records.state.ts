@@ -1,9 +1,9 @@
+import { MetadataRow } from '@jetstream/core/shared-ui';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { ListItem } from '@jetstream/types';
 import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import intersectionBy from 'lodash/intersectionBy';
 import { atom, selector } from 'recoil';
-import { MetadataRow } from '../shared/mass-update-records/mass-update-records.types';
 
 export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'mass-update-records.sObjectsState',

@@ -1,9 +1,9 @@
+import * as fromJetstreamEvents from '@jetstream/core/app';
 import { queryAll } from '@jetstream/shared/data';
 import { getApexLogsToDeleteQuery } from '@jetstream/shared/ui-utils';
 import { AsyncJobNew, SalesforceOrgUi } from '@jetstream/types';
 import { Modal, RadioButton, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 
 type WhichUsers = 'ALL' | 'CURRENT';
 type Status = 'NOT_STARTED' | 'LOADING' | 'ERROR';

@@ -1,4 +1,6 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { useAmplitude } from '@jetstream/core/app';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -32,8 +34,6 @@ import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';

@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -17,7 +18,6 @@ import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { useAmplitude } from '../core/analytics';
 import './DeployMetadataSelection.scss';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';

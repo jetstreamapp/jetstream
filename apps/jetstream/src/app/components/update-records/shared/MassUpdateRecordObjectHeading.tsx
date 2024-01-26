@@ -1,7 +1,7 @@
+import { ValidationResults } from '@jetstream/core/shared-ui';
 import { Maybe } from '@jetstream/types';
 import { Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
-import { ValidationResults } from '../../shared/mass-update-records/mass-update-records.types';
 
 export interface MassUpdateRecordObjectHeadingProps {
   sobject: string;

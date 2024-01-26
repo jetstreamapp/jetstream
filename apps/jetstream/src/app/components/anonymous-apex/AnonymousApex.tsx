@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { useSetTraceFlag } from '@jetstream/connected-ui';
+import { useAmplitude } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
@@ -28,7 +29,6 @@ import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { STORAGE_KEYS, applicationCookieState, selectedOrgState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';

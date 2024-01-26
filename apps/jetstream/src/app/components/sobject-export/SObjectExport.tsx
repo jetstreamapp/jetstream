@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
@@ -28,7 +29,6 @@ import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import { ExportHeaderOption, ExportOptions, ExportWorksheetLayout, SavedExportOptions } from './sobject-export-types';
 import { getAttributes, getSobjectMetadata, prepareExport } from './sobject-export-utils';
 

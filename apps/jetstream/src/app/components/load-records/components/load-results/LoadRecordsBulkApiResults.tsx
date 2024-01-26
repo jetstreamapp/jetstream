@@ -1,4 +1,7 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { useAmplitude } from '@jetstream/core/app';
+import { DownloadAction, DownloadType, LoadRecordsBulkApiResultsTable, LoadRecordsResultsModal } from '@jetstream/core/shared-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
@@ -17,10 +20,6 @@ import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Toolti
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../../app-state';
-import { useAmplitude } from '../../../core/analytics';
-import * as fromJetstreamEvents from '../../../core/jetstream-events';
-import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
-import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
 import {
   ApiMode,
   DownloadModalData,
@@ -33,7 +32,6 @@ import {
 } from '../../load-records-types';
 import { loadBulkApiData, prepareData } from '../../utils/load-records-process';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
-import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 

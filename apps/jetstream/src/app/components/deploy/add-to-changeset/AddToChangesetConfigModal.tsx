@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
+import { applicationCookieState } from '@jetstream/core/app';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ChangeSet, ListItem, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { useChangesetList } from '../utils/useChangesetList';
 

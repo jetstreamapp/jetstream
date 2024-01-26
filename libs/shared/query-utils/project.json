@@ -1,0 +1,20 @@
+{
+  "name": "query-utils",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/query-utils/src",
+  "projectType": "library",
+  "generators": {},
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "options": {
+        "jestConfig": "libs/shared/query-utils/jest.config.ts"
+      },
+      "outputs": ["{workspaceRoot}/coverage/libs/shared/query-utils"]
+    }
+  },
+  "tags": ["scope:allow-worker-import", "scope:any"]
+}

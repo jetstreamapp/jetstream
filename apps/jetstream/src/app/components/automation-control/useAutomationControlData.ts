@@ -1,9 +1,9 @@
+import { useAmplitude } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { useAmplitude } from '../core/analytics';
 import {
   fetchAutomationData,
   getAdditionalItemsWorkflowRuleText,

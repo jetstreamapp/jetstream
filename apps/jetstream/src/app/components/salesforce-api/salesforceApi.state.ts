@@ -1,3 +1,4 @@
+import { WhichOrgType } from '@jetstream/core/query';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { getMapOf, truncate } from '@jetstream/shared/utils';
@@ -15,7 +16,6 @@ import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
 import * as fromAppState from '../../app-state';
-import { WhichOrgType } from '../query/QueryHistory/query-history.state';
 
 let didRunCleanup = false;
 

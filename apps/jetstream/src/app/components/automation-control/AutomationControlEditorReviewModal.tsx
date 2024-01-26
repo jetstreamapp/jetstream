@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -6,7 +7,6 @@ import { AutoFullHeightContainer, DataTable, Icon, Modal, Spinner } from '@jetst
 import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Column } from 'react-data-grid';
 import ConfirmPageChange from '../core/ConfirmPageChange';
-import { useAmplitude } from '../core/analytics';
 import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './automation-control-data-utils';
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {

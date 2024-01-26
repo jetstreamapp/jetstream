@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -7,7 +8,6 @@ import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/typ
 import { Alert, ButtonGroupContainer, DropDown, Grid, GridCol, Icon, SearchInput, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
 import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
 import LoadRecordsRefreshCachePopover from '../components/LoadRecordsRefreshCachePopover';

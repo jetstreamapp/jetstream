@@ -1,3 +1,5 @@
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { applicationCookieState } from '@jetstream/core/app';
 import { getPackageXml } from '@jetstream/shared/data';
 import { saveFile } from '@jetstream/shared/ui-utils';
 import {
@@ -16,8 +18,6 @@ import { FileFauxDownloadModal } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
 
 export interface DownloadPackageWithFileSelectorProps {
   type: 'manifest' | 'package';

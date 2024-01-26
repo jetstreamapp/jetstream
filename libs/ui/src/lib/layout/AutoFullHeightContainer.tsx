@@ -1,7 +1,8 @@
-import { css, SerializedStyles } from '@emotion/react';
+import { Interpolation, SerializedStyles, Theme, css } from '@emotion/react';
 import { Component } from 'react';
 
 export interface AutoFullHeightContainerProps {
+  css?: Interpolation<Theme>;
   className?: string;
   baseCss?: SerializedStyles;
   /** Number of pixels from the bottom of the page to compensate for  */

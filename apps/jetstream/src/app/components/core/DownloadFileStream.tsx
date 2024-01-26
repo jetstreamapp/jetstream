@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventStreamFilePayload } from '@jetstream/types';
 import { useEffect, useState } from 'react';
 import { Observable } from 'rxjs';
-import * as fromJetstreamEvents from './jetstream-events';
 
 /**
  * This allows streaming a file download from the server.

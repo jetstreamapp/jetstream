@@ -1,9 +1,9 @@
+import { CreateFieldsResults, getFriendlyStatus } from '@jetstream/core/shared-ui';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { CreateFieldsResults, getFriendlyStatus } from '../shared/create-fields/useCreateFields';
 
 export interface CreateFieldsDeployModalRowProps {
   selectedOrg: SalesforceOrgUi;

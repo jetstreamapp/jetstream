@@ -1,4 +1,6 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { applicationCookieState } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { unSanitizeXml } from '@jetstream/shared/utils';
@@ -9,8 +11,6 @@ import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';
 import ViewOrCompareMetadataSidebar from './ViewOrCompareMetadataSidebar';

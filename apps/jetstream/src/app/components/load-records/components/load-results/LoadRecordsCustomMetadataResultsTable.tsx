@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
+import { DownloadType } from '@jetstream/core/shared-ui';
 import { convertDateToLocale, formatNumber } from '@jetstream/shared/ui-utils';
 import { DeployResult } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { DownloadType } from '../../../shared/load-records-results/load-records-results-types';
 
 const LOADING_STATUSES = new Set(['Pending', 'InProgress', 'Canceling']);
 const FAILED_STATUSES = new Set(['Failed', 'Canceled']);

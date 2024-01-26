@@ -1,11 +1,11 @@
+import { applicationCookieState } from '@jetstream/core/app';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
 import { getStatusValue, useDeployMetadataBetweenOrgs } from '../utils/useDeployMetadataBetweenOrgs';
 
 export interface DeployMetadataToOrgStatusModalProps {

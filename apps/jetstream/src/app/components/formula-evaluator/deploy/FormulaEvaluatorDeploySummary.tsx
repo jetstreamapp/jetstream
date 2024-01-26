@@ -1,14 +1,13 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 import { css } from '@emotion/react';
+import { applicationCookieState } from '@jetstream/core/app';
+import { CreateFieldsResults, FieldPermissionRecord, FieldValues, LayoutResult } from '@jetstream/core/shared-ui';
 import { getMapOf } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import { FieldPermissionRecord, FieldValues, LayoutResult } from '../../shared/create-fields/create-fields-types';
-import { CreateFieldsResults } from '../../shared/create-fields/useCreateFields';
 
 type DeployedItem = { id: string; label: string };
 

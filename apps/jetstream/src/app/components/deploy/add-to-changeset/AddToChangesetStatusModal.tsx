@@ -1,11 +1,11 @@
+import { applicationCookieState } from '@jetstream/core/app';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import { getDeploymentStatusUrl, getLightningChangesetUrl } from '../utils/deploy-metadata.utils';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { getDeploymentStatusUrl, getLightningChangesetUrl } from '../utils/deploy-metadata.utils';
 import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';
 
 export interface AddToChangesetStatusModalProps {

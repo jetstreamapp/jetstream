@@ -20,7 +20,11 @@
     "useDefineForClassFields": true
   },
   "files": [],
-  "include": ["src"],
+  "include": [
+    "src",
+    "../../libs/core/app-shared-ui/src/lib/load-records-results/LoadRecordsResultsModal.tsx",
+    "../../libs/core/app-shared-ui/src/lib/mass-update-records/MassUpdateRecordTransformationText.tsx"
+  ],
   "exclude": ["**/*.js/*.worker.ts"],
   "references": [
     {

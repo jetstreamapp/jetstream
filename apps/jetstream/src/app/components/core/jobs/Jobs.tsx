@@ -1,4 +1,6 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { applicationCookieState } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
@@ -22,9 +24,7 @@ import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { applicationCookieState } from '../../../app-state';
 import { electronMessagesReadyPromise, externalMessagePorts } from '../electron-utils';
-import * as fromJetstreamEvents from '../jetstream-events';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';

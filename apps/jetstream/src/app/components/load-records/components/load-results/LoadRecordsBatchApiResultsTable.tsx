@@ -1,11 +1,10 @@
 import { css } from '@emotion/react';
+import { DownloadType, LoadRecordsResultsTableProcessingErrRow, PrepareDataResponseError } from '@jetstream/core/shared-ui';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import { Grid, Icon, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { DownloadType, PrepareDataResponseError } from '../../../shared/load-records-results/load-records-results-types';
-import LoadRecordsResultsTableProcessingErrRow from '../../../shared/load-records-results/LoadRecordsResultsTableProcessingErrRow';
 import { LoadDataBatchApiProgress } from '../../load-records-types';
 
 export interface LoadRecordsBatchApiResultsTableProps {

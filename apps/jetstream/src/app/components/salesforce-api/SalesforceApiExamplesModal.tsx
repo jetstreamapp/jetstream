@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
@@ -7,8 +8,7 @@ import { AutoFullHeightContainer, ColumnWithFilter, DataTree, Grid, Icon, Modal,
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useAmplitude } from '../core/analytics';
-import ErrorBoundaryFallback from '../core/ErrorBoundaryFallback';
+import { ErrorBoundaryFallback } from '@jetstream/ui';
 
 const groupedRows = ['groupName'] as const;
 

@@ -1,17 +1,17 @@
 /* eslint-disable no-restricted-globals */
+import { appVersionState, useAmplitude, usePageViews, userProfileState } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
+import { checkHeartbeat, getUserProfile, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApplicationCookie, ElectronPreferences, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
-import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
+import React, { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import * as fromAppState from '../../app-state';
-import { useAmplitude, usePageViews } from './analytics';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -46,8 +46,9 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
-  const { version } = useRecoilValue(fromAppState.appVersionState);
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useRecoilState(userProfileState);
+  const [appVersion, setAppVersion] = useRecoilState(appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const [electronPreferencesState, setElectronPreferencesState] = useRecoilState(fromAppState.electronPreferences);
@@ -55,19 +56,36 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   const electronPreferences = useObservable(preferencesChanged$);
 
   useEffect(() => {
-    console.log('APP VERSION', version);
-  }, [version]);
+    getUserProfile()
+      .then((profile) => {
+        setUserProfile(profile);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [setUserProfile]);
+
+  useEffect(() => {
+    checkHeartbeat()
+      .then((version) => {
+        setAppVersion(version);
+        console.log('APP VERSION', version);
+      })
+      .catch(() => {
+        setAppVersion({ version: 'unknown' });
+      });
+  }, [setAppVersion]);
 
   useRollbar(
     {
       accessToken: environment.rollbarClientAccessToken,
       environment: appCookie.environment,
       userProfile: userProfile,
-      version,
+      version: appVersion.version,
     },
     electronPreferencesState && !electronPreferencesState.crashReportingOptIn
   );
-  useAmplitude(electronPreferencesState && !electronPreferencesState.analyticsOptIn);
+  useAmplitude(environment, electronPreferencesState && !electronPreferencesState.analyticsOptIn);
   usePageViews();
 
   useEffect(() => {
@@ -114,8 +132,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
         const { version: serverVersion } = await checkHeartbeat();
         // TODO: inform user that there is a new version and that they should refresh their browser.
         // We could force refresh, but don't want to get into some weird infinite refresh state
-        if (version !== serverVersion) {
-          console.log('VERSION MISMATCH', { serverVersion, version });
+        if (appVersion.version !== serverVersion) {
+          console.log('VERSION MISMATCH', { serverVersion, version: appVersion.version });
         }
       }
     } catch (ex) {
@@ -127,6 +145,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
     document.addEventListener('visibilitychange', handleWindowFocus);
     return () => document.removeEventListener('visibilitychange', handleWindowFocus);
   }, [handleWindowFocus]);
+
+  if (loading) {
+    return null;
+  }
 
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <Fragment>{children}</Fragment>;

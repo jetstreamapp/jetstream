@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -6,7 +7,6 @@ import { Alert, EmptyState, Icon, NoAccess2Illustration, fireToast } from '@jets
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import * as fromAppState from '../../app-state';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
 

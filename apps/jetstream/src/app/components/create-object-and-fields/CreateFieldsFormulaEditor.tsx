@@ -1,4 +1,17 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
+import {
+  FieldDefinition,
+  FieldValue,
+  FieldValueState,
+  FieldValues,
+  FormulaEvaluatorRecordSearch,
+  FormulaEvaluatorResults,
+  FormulaEvaluatorUserSearch,
+  ManualFormulaRecord,
+  SalesforceFieldType,
+  getFormulaData,
+} from '@jetstream/core/shared-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -10,21 +23,8 @@ import * as formulon from 'formulon';
 import { Field, FieldType } from 'jsforce';
 import type { editor } from 'monaco-editor';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../core/analytics';
 import { registerCompletions } from '../formula-evaluator/formula-evaluator.editor-utils';
 import { NullNumberBehavior } from '../formula-evaluator/formula-evaluator.state';
-import {
-  FieldDefinition,
-  FieldValue,
-  FieldValueState,
-  FieldValues,
-  ManualFormulaRecord,
-  SalesforceFieldType,
-} from '../shared/create-fields/create-fields-types';
-import FormulaEvaluatorRecordSearch from '../shared/formula-evaluator/FormulaEvaluatorRecordSearch';
-import FormulaEvaluatorResults from '../shared/formula-evaluator/FormulaEvaluatorResults';
-import FormulaEvaluatorUserSearch from '../shared/formula-evaluator/FormulaEvaluatorUserSearch';
-import { getFormulaData } from '../shared/formula-evaluator/formula-evaluator.utils';
 import CreateFieldsFormulaEditorManualField from './CreateFieldsFormulaEditorManualField';
 
 export interface CreateFieldsFormulaEditorProps {

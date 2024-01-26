@@ -1,15 +1,17 @@
 import { css } from '@emotion/react';
+import {
+  MetadataRow,
+  TransformationCriteria,
+  TransformationOption,
+  startsWithWhereRgx,
+  transformationCriteriaListItems,
+  transformationOptionListItems,
+} from '@jetstream/core/shared-ui';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import { ComboboxWithItems, Grid, Input, Section, Textarea } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { isQueryValid } from 'soql-parser-js';
-import { MetadataRow, TransformationCriteria, TransformationOption } from '../../shared/mass-update-records/mass-update-records.types';
-import {
-  startsWithWhereRgx,
-  transformationCriteriaListItems,
-  transformationOptionListItems,
-} from '../../shared/mass-update-records/mass-update-records.utils';
 
 export interface MassUpdateRecordsApplyToAllRowProps {
   commonFields: ListItem[];

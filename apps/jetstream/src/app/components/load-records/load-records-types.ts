@@ -1,3 +1,4 @@
+import { DownloadType, PrepareDataResponseError } from '@jetstream/core/shared-ui';
 import {
   BulkJobWithBatches,
   EntityParticleRecord,
@@ -9,7 +10,6 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import type { FieldType } from 'jsforce';
-import { DownloadType, PrepareDataResponseError } from '../shared/load-records-results/load-records-results-types';
 
 export type LocalOrGoogle = 'local' | 'google';
 

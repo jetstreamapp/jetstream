@@ -1,5 +1,3 @@
-const x = false; // here for local dev refresh
-
 export interface FormulaFieldsByType {
   objectFields: string[];
   customLabels: string[];

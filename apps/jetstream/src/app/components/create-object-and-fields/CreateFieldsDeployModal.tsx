@@ -1,4 +1,7 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { useAmplitude } from '@jetstream/core/app';
+import { FieldValues, prepareDownloadResultsFile, useCreateFields } from '@jetstream/core/shared-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -7,11 +10,6 @@ import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import ConfirmPageChange from '../core/ConfirmPageChange';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
-import { FieldValues } from '../shared/create-fields/create-fields-types';
-import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
-import useCreateFields from '../shared/create-fields/useCreateFields';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
 
 export interface CreateFieldsDeployModalProps {

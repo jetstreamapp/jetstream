@@ -1,3 +1,4 @@
+import { ViewEditCloneRecord } from '@jetstream/core/ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeGlobal } from '@jetstream/shared/data';
@@ -9,7 +10,6 @@ import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
-import ViewEditCloneRecord from '../ViewEditCloneRecord';
 
 type RecentRecordMap = MapOf<RecentRecord[]>;
 interface RecentRecord {

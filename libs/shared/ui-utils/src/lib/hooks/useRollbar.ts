@@ -1,6 +1,6 @@
 import { logBuffer, logger } from '@jetstream/shared/client-logger';
 import { NOOP } from '@jetstream/shared/utils';
-import { Environment, UserProfileUi } from '@jetstream/types';
+import { Environment, Maybe, UserProfileUi } from '@jetstream/types';
 import isBoolean from 'lodash/isBoolean';
 import { useState } from 'react';
 import Rollbar, { LogArgument } from 'rollbar';
@@ -11,7 +11,7 @@ const ignoredMessagesSet = new Set(['expired access/refresh token', 'socket hang
 interface RollbarProperties {
   accessToken?: string;
   environment?: Environment;
-  userProfile?: UserProfileUi;
+  userProfile?: Maybe<UserProfileUi>;
   version?: string;
 }
 

@@ -1,3 +1,4 @@
+import { useAmplitude } from '@jetstream/core/app';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getMapOf, pluralizeIfMultiple } from '@jetstream/shared/utils';
@@ -19,7 +20,6 @@ import { Link } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { useAmplitude } from '../core/analytics';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';

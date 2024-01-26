@@ -1,13 +1,12 @@
 import { css } from '@emotion/react';
+import { applicationCookieState, useAmplitude } from '@jetstream/core/app';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, Modal, PreviewIllustration, SalesforceLogin, Spinner, Tabs, TabsRef } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
-import { useAmplitude } from '../../core/analytics';
 import DeployMetadataProgressSummary from '../../deploy/utils/DeployMetadataProgressSummary';
 import DeployMetadataResultsTables from '../../deploy/utils/DeployMetadataResultsTables';
 import { CreateNewObjectForm } from './CreateNewObjectForm';

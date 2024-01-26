@@ -1,3 +1,4 @@
+import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords } from '@jetstream/core/shared-ui';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -17,9 +18,6 @@ import { Link } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromMassUpdateState from '../mass-update-records.state';
-import MassUpdateRecordsDeploymentRow from '../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
-import { useDeployRecords } from '../../shared/mass-update-records/useDeployRecords';
-import { DeployResults, MetadataRow } from '../../shared/mass-update-records/mass-update-records.types';
 
 const HEIGHT_BUFFER = 170;
 const MAX_BATCH_SIZE = 10000;

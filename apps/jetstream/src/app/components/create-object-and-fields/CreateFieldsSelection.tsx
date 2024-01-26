@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { filterCreateFieldsSobjects } from '@jetstream/core/shared-ui';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
@@ -20,7 +21,6 @@ import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { filterCreateFieldsSobjects } from '../shared/create-fields/create-fields-utils';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateNewObject from './create-new-object/CreateNewObject';
 

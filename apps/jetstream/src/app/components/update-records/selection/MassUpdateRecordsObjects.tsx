@@ -1,12 +1,7 @@
+import { MetadataRow, TransformationCriteria, TransformationOption, TransformationOptions } from '@jetstream/core/shared-ui';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, EmptyState, OpenRoadIllustration } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
-import {
-  MetadataRow,
-  TransformationCriteria,
-  TransformationOption,
-  TransformationOptions,
-} from '../../shared/mass-update-records/mass-update-records.types';
 import MassUpdateRecordsApplyToAllRow from './MassUpdateRecordsApplyToAllRow';
 import MassUpdateRecordsObject from './MassUpdateRecordsObject';
 

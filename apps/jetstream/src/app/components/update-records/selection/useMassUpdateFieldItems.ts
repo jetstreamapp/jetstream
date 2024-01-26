@@ -1,3 +1,12 @@
+import { useAmplitude } from '@jetstream/core/app';
+import {
+  MetadataRow,
+  TransformationCriteria,
+  TransformationOption,
+  TransformationOptions,
+  getValidationSoqlQuery,
+  isValidRow,
+} from '@jetstream/core/shared-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
@@ -13,15 +22,7 @@ import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeSObjectResult, Field } from 'jsforce';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { useAmplitude } from '../../core/analytics';
 import * as fromMassUpdateState from '../mass-update-records.state';
-import {
-  MetadataRow,
-  TransformationCriteria,
-  TransformationOption,
-  TransformationOptions,
-} from '../../shared/mass-update-records/mass-update-records.types';
-import { getValidationSoqlQuery, isValidRow } from '../../shared/mass-update-records/mass-update-records.utils';
 
 type Action =
   | { type: 'RESET' }

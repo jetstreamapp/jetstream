@@ -1,6 +1,9 @@
+import { Query, QueryBuilder, QueryResults } from '@jetstream/core/query';
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useRecoilValue } from 'recoil';
+import { selectedOrgState } from './app-state';
 import lazy from './components/core/LazyLoad';
 import { APP_ROUTES } from './components/core/app-routes';
 import { AppHome } from './components/home/AppHome';
@@ -9,9 +12,11 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
 
-const Query = lazy(() => import('./components/query/Query'));
-const QueryBuilder = lazy(() => import('./components/query/QueryBuilder/QueryBuilder'));
-const QueryResults = lazy(() => import('./components/query/QueryResults/QueryResults'));
+// const queryImportPromise = import('@jetstream/core/query');
+
+// const Query = lazy(() => queryImportPromise.then(({ Query }) => ({ default: Query })));
+// const QueryBuilder = lazy(() => queryImportPromise.then(({ QueryBuilder }) => ({ default: QueryBuilder })));
+// const QueryResults = lazy(() => queryImportPromise.then(({ QueryResults }) => ({ default: QueryResults })));
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const AutomationControlSelection = lazy(() => import('./components/automation-control/AutomationControlSelection'));
@@ -56,12 +61,13 @@ export interface AppRoutesProps {
 
 export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
   const location = useLocation();
+  const selectedOrg = useRecoilValue(selectedOrgState);
 
   // Preload sub-pages if user is on parent page
   useEffect(() => {
-    if (location.pathname.includes('/query')) {
-      QueryResults.preload();
-    } else if (location.pathname.includes('/automation-control')) {
+    /**if (location.pathname.includes('/query')) {
+    } else  */
+    if (location.pathname.includes('/automation-control')) {
       AutomationControlEditor.preload();
     } else if (location.pathname.includes('/permissions-manager')) {
       ManagePermissionsEditor.preload();
@@ -83,12 +89,12 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         path={APP_ROUTES.QUERY.ROUTE}
         element={
           <OrgSelectionRequired>
-            <Query />
+            <Query selectedOrg={selectedOrg} />
           </OrgSelectionRequired>
         }
       >
-        <Route index element={<QueryBuilder />} />
-        <Route path="results" element={<QueryResults />} />
+        <Route index element={<QueryBuilder selectedOrg={selectedOrg} />} />
+        <Route path="results" element={<QueryResults selectedOrg={selectedOrg} />} />
         <Route path="*" element={<Navigate to=".." />} />
       </Route>
       <Route

@@ -27,9 +27,7 @@ export default defineConfig({
     assetsDir: './',
     sourcemap: true,
     rollupOptions: {
-      output: {
-        sourcemap: true,
-      },
+      output: {},
     },
   },
 
@@ -49,6 +47,7 @@ export default defineConfig({
   ],
 
   worker: {
+    format: 'es',
     plugins: () => [nxViteTsPaths()],
   },
 });

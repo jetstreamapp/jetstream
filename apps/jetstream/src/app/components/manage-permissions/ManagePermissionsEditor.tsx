@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import * as fromJetstreamEvents from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { getMapOf, multiWordObjectFilter } from '@jetstream/shared/utils';
 import { MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -22,7 +23,6 @@ import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import ConfirmPageChange from '../core/ConfirmPageChange';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';

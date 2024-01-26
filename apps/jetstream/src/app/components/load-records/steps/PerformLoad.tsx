@@ -1,3 +1,4 @@
+import { useAmplitude } from '@jetstream/core/app';
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
@@ -7,7 +8,6 @@ import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
-import { useAmplitude } from '../../core/analytics';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';

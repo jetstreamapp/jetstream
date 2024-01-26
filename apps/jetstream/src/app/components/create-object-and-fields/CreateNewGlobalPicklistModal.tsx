@@ -1,4 +1,6 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
+import { createGlobalPicklist, generateApiNameFromLabel } from '@jetstream/core/shared-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
@@ -7,8 +9,6 @@ import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Tex
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
-import { createGlobalPicklist, generateApiNameFromLabel } from '../shared/create-fields/create-fields-utils';
 
 interface PicklistData {
   label: string;

@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { useAmplitude } from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
@@ -9,7 +10,6 @@ import { AutoFullHeightContainer } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
 import SalesforceApiRequest from './SalesforceApiRequest';
 import SalesforceApiResponse from './SalesforceApiResponse';
 import * as fromSalesforceApiHistory from './salesforceApi.state';

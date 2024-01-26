@@ -1,3 +1,4 @@
+import { applicationCookieState } from '@jetstream/core/app';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
@@ -6,7 +7,6 @@ import JSZip from 'jszip';
 import isString from 'lodash/isString';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
 import { FileItemMetadata, FileListItem, FilePropertiesWithContent, OrgType } from './viewOrCompareMetadataTypes';
 import { buildTree, populateFileContents } from './viewOrCompareMetadataUtils';
 

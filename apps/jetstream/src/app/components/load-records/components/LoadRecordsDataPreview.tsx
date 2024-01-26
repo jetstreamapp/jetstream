@@ -4,14 +4,23 @@ import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, getMapOf } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
+import {
+  Alert,
+  AutoFullHeightContainer,
+  DataTable,
+  ErrorBoundaryFallback,
+  Grid,
+  GridCol,
+  RowWithKey,
+  Spinner,
+  getColumnsForGenericTable,
+} from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useRecoilState } from 'recoil';
-import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
 import * as fromLoadRecordsState from '../load-records.state';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;

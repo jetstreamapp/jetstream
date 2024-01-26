@@ -1,13 +1,16 @@
-import { SalesforceOrgUi } from '@jetstream/types';
-import { Grid, Icon, Tooltip } from '@jetstream/ui';
-import { FunctionComponent } from 'react';
-import { FieldDefinitionType, FieldValue, FieldValues, SalesforceFieldType } from '../shared/create-fields/create-fields-types';
 import {
+  FieldDefinitionType,
+  FieldValue,
+  FieldValues,
+  SalesforceFieldType,
   baseFields,
   fieldDefinitions,
   fieldTypeDependencies,
   getAdditionalFieldDependencies,
-} from '../shared/create-fields/create-fields-utils';
+} from '@jetstream/core/shared-ui';
+import { SalesforceOrgUi } from '@jetstream/types';
+import { Grid, Icon, Tooltip } from '@jetstream/ui';
+import { FunctionComponent } from 'react';
 import CreateFieldsRowField from './CreateFieldsRowField';
 import CreateFieldsRowPicklistOption from './CreateFieldsRowPicklistOption';
 

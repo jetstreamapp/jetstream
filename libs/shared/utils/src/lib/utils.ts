@@ -854,3 +854,10 @@ export function getFullNameFromListMetadata({
   }
   return fullName;
 }
+
+export function getErrorMessage(ex: unknown) {
+  if (ex instanceof Error) {
+    return ex.message;
+  }
+  return String(ex);
+}

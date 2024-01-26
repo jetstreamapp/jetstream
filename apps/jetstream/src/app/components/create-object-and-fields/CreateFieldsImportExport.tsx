@@ -1,3 +1,13 @@
+import * as fromJetstreamEvents from '@jetstream/core/app';
+import { useAmplitude } from '@jetstream/core/app';
+import {
+  FieldValues,
+  allFields,
+  ensureValidSecondaryType,
+  ensureValidType,
+  fieldDefinitions,
+  getRowsForExport,
+} from '@jetstream/core/shared-ui';
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { REGEX, ensureBoolean } from '@jetstream/shared/utils';
@@ -16,16 +26,6 @@ import {
 import { Fragment, FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
-import { FieldValues } from '../shared/create-fields/create-fields-types';
-import {
-  allFields,
-  ensureValidSecondaryType,
-  ensureValidType,
-  fieldDefinitions,
-  getRowsForExport,
-} from '../shared/create-fields/create-fields-utils';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 
 export interface CreateFieldsImportExportProps {

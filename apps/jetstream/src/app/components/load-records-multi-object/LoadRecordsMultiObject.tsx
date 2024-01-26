@@ -1,3 +1,4 @@
+import { useAmplitude } from '@jetstream/core/app';
 import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent, InputReadGoogleSheet, SalesforceOrgUi } from '@jetstream/types';
@@ -24,7 +25,6 @@ import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } 
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
 import { LocalOrGoogle } from '../load-records/load-records-types';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';

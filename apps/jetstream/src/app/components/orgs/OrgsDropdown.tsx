@@ -1,8 +1,9 @@
+import * as fromJetstreamEvents from '@jetstream/core/app';
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Icon, Tooltip, Grid } from '@jetstream/ui';
+import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
@@ -11,7 +12,6 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { Observable } from 'rxjs';
 import * as fromAppState from '../../app-state';
 import OrgsCombobox from '../../components/core/OrgsCombobox';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';

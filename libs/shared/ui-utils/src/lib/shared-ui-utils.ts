@@ -712,7 +712,7 @@ export function getLowercaseFieldFunctionMap() {
   ].reduce((acc, item) => {
     acc[item.toLowerCase()] = item;
     return acc;
-  }, {});
+  }, {} as MapOf<string>);
 }
 
 function getLiteralType(selected: ExpressionConditionRowSelectedItems, functionName?: Maybe<string>): LiteralType {

@@ -1,3 +1,4 @@
+import * as fromQueryState from '@jetstream/core/query';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -7,7 +8,6 @@ import * as fromDeployMetadataState from '../deploy/deploy-metadata.state';
 import * as fromFormulaState from '../formula-evaluator/formula-evaluator.state';
 import * as fromLoadState from '../load-records/load-records.state';
 import * as fromPermissionsState from '../manage-permissions/manage-permissions.state';
-import * as fromQueryState from '../query/query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AppStateResetOnOrgChangeProps {}
