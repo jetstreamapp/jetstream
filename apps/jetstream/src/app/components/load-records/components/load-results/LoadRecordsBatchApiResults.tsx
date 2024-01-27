@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import * as fromJetstreamEvents from '@jetstream/core/app';
 import { useAmplitude } from '@jetstream/core/app';
+import { LoadRecordsResultsModal } from '@jetstream/core/shared-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
@@ -9,7 +10,6 @@ import { InsertUpdateUpsertDelete, Maybe, RecordResultWithRecord, SalesforceOrgU
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import LoadRecordsResultsModal from '../../../../../../../../libs/core/app-shared-ui/src/lib/load-records-results/LoadRecordsResultsModal';
 import { applicationCookieState } from '../../../../app-state';
 import {
   ApiMode,

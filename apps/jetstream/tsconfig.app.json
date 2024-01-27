@@ -5,15 +5,7 @@
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.spec.tsx", "**/*.test.tsx", "jest.config.ts"],
-  "include": [
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.ts",
-    "**/*.tsx",
-    "../../custom-typings/index.d.ts",
-    "../../libs/core/app-shared-ui/src/lib/load-records-results/LoadRecordsResultsModal.tsx",
-    "../../libs/core/app-shared-ui/src/lib/mass-update-records/MassUpdateRecordTransformationText.tsx"
-  ],
+  "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "../../custom-typings/index.d.ts"],
   "files": [
     "../../node_modules/@nx/react/typings/cssmodule.d.ts",
     "../../node_modules/@nx/react/typings/image.d.ts",

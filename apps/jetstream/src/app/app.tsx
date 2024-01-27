@@ -1,6 +1,7 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
+import { AppLoading, NotificationsRequestModal } from '@jetstream/core/shared-ui';
 import { ErrorBoundaryFallback } from '@jetstream/ui';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useEffect, useState } from 'react';
@@ -12,12 +13,10 @@ import { RecoilRoot } from 'recoil';
 import { environment } from '../environments/environment';
 import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
-import AppLoading from './components/core/AppLoading';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import { DownloadFileStream } from './components/core/DownloadFileStream';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
-import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import './components/core/monaco-loader';
 
 /**
@@ -40,7 +39,7 @@ export const App = () => {
   return (
     <ConfirmationServiceProvider>
       <RecoilRoot>
-        <Suspense fallback={<AppLoading name="suspense 1" />}>
+        <Suspense fallback={<AppLoading />}>
           <AppInitializer onUserProfile={setUserProfile}>
             <OverlayProvider>
               <DndProvider backend={HTML5Backend}>
@@ -55,7 +54,7 @@ export const App = () => {
                     <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                    <Suspense fallback={<AppLoading name="suspense 2" />}>
+                    <Suspense fallback={<AppLoading />}>
                       <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                         <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
                       </ErrorBoundary>

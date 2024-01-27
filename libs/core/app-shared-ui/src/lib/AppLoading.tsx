@@ -3,12 +3,7 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 
 const delayMs = 300;
 
-interface AppLoading {
-  name?: string;
-}
-
-export const AppLoading: FunctionComponent = ({ name }: AppLoading) => {
-  console.log('name', name, 'AppLoading');
+export const AppLoading: FunctionComponent = () => {
   const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
 

@@ -1,3 +1,4 @@
+import { NotificationsRequestModal } from '@jetstream/core/shared-ui';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -8,7 +9,6 @@ import { applicationCookieState, selectUserPreferenceState } from '../../app-sta
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
-import NotificationsRequestModal from './NotificationsRequestModal';
 import { APP_ROUTES } from './app-routes';
 import Jobs from './jobs/Jobs';
 import { RecordSearchPopover } from './record-lookup/RecordSearchPopover';

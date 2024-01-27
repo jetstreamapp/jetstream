@@ -1,6 +1,6 @@
 import * as fromJetstreamEvents from '@jetstream/core/app';
 import { applicationCookieState, useAmplitude } from '@jetstream/core/app';
-import { DownloadType, useDeployMetadataPackage } from '@jetstream/core/shared-ui';
+import { DownloadType, LoadRecordsResultsModal, useDeployMetadataPackage } from '@jetstream/core/shared-ui';
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
@@ -8,7 +8,6 @@ import { DeployMessage, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jet
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import LoadRecordsResultsModal from '../../../../../../../libs/core/app-shared-ui/src/lib/load-records-results/LoadRecordsResultsModal';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';

@@ -1,13 +1,14 @@
-import { useAmplitude } from '@jetstream/core/app';
+import { useAmplitude, useUserPreferenceState } from '@jetstream/core/app';
 import { ANALYTICS_KEYS, FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useUserPreferenceState } from '../../app-state';
 import NotificationExampleImage from './jetstream-sample-notification.png';
 
+const defaultFlags = new Set<string>();
+
 export interface NotificationsRequestModalProps {
-  featureFlags: Set<string>;
+  featureFlags?: Set<string>;
   loadDelay?: number;
   /** Allow permission modal to be opened even if initially denied */
   userInitiated?: boolean;
@@ -20,7 +21,7 @@ export interface NotificationsRequestModalProps {
  * to choose the filename upfront, then we can use it later
  */
 export const NotificationsRequestModal: FunctionComponent<NotificationsRequestModalProps> = ({
-  featureFlags,
+  featureFlags = defaultFlags,
   loadDelay = 0,
   userInitiated = false,
   onClose,
