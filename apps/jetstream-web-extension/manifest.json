@@ -6,8 +6,15 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "permissions": ["cookies", "activeTab"],
+  "permissions": ["storage", "cookies", "activeTab"],
   "host_permissions": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"],
+  "background": {
+    "service_worker": "serviceWorker.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "content_scripts": [
     {
       "matches": [
@@ -18,16 +25,12 @@
         "https://*.visualforce.com/*"
       ],
       "all_frames": true,
-      "js": ["main.js", "modulepreload-polyfill.js"]
+      "js": ["contentScript.js"]
     }
   ],
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
   "web_accessible_resources": [
     {
-      "resources": ["*.html", "*.css", "*.js", "*.map"],
+      "resources": ["*.html", "*.js", "*.css", "*.map", "/assets/"],
       "matches": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"]
     }
   ],

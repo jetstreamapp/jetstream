@@ -5,31 +5,53 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
+      "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/apps/jetstream-web-extension"
+        "compiler": "babel",
+        "outputPath": "dist/apps/jetstream-web-extension",
+        "baseHref": "/",
+        "tsConfig": "apps/jetstream-web-extension/tsconfig.app.json",
+        "assets": ["apps/jetstream-web-extension/src/favicon.ico", "apps/jetstream-web-extension/src/assets"],
+        "styles": [],
+        "scripts": [],
+        "webpackConfig": "apps/jetstream-web-extension/webpack.config.js"
       },
       "configurations": {
         "development": {
-          "mode": "development"
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
         },
         "production": {
-          "mode": "production"
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
+              "with": "apps/jetstream-web-extension/src/environments/environment.prod.ts"
+            }
+          ],
+          "optimization": false,
+          "outputHashing": "none",
+          "sourceMap": true,
+          "namedChunks": false,
+          "extractLicenses": false,
+          "vendorChunk": false
         }
       }
     },
     "serve": {
-      "executor": "@nx/vite:dev-server",
+      "executor": "@nx/webpack:dev-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "jetstream-web-extension:build"
+        "buildTarget": "jetstream-web-extension:build",
+        "port": 4201,
+        "hmr": true
       },
       "configurations": {
         "development": {
-          "buildTarget": "jetstream-web-extension:build:development",
-          "hmr": true
+          "buildTarget": "jetstream-web-extension:build:development"
         },
         "production": {
           "buildTarget": "jetstream-web-extension:build:production",
@@ -37,31 +59,16 @@
         }
       }
     },
-    "preview": {
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "jetstream-web-extension:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "jetstream-web-extension:build:development"
-        },
-        "production": {
-          "buildTarget": "jetstream-web-extension:build:production"
-        }
-      }
-    },
-    "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{options.reportsDirectory}"],
-      "options": {
-        "reportsDirectory": "../../coverage/apps/jetstream-web-extension"
-      }
-    },
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/jetstream-web-extension/jest.config.ts"
+      }
     }
   },
   "tags": []
