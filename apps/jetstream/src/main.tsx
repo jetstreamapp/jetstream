@@ -6,7 +6,9 @@ import { CONFIG } from './app/components/core/config';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
 // import React from 'react';
 // import { render } from 'react-dom';
+import { AppLoading } from '@jetstream/core/shared-ui';
 import classNames from 'classnames';
+import { Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RecoilRoot } from 'recoil';
 import App from './app/app';
@@ -22,9 +24,11 @@ if (location.hostname === 'localhost' && !location.pathname.includes('/app')) {
 createRoot(container).render(
   <div className={classNames('app', { 'is-electron': window.electron?.isElectron })}>
     <RecoilRoot>
-      <CONFIG.Router basename={CONFIG.baseName}>
-        <App />
-      </CONFIG.Router>
+      <Suspense fallback={<AppLoading />}>
+        <CONFIG.Router basename={CONFIG.baseName}>
+          <App />
+        </CONFIG.Router>
+      </Suspense>
     </RecoilRoot>
   </div>
 );

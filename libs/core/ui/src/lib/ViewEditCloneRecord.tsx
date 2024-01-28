@@ -194,7 +194,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       );
 
       if (action !== 'create' && recordId) {
-        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
+        // FIXME: if this fails, we are left in a broken state without any user notification
+        record = (await sobjectOperation<Record[]>(selectedOrg, sobjectName, 'retrieve', { ids: recordId }))[0];
       }
 
       let recordTypeId = record?.RecordTypeId;
@@ -232,7 +233,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       }
 
       // Query all related records so that related record name can be shown in the UI
-      if (recordId) {
+      if (recordId && action !== 'clone') {
         try {
           const { queryResults } = await query(
             selectedOrg,

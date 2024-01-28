@@ -1,4 +1,3 @@
-/// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   base64ToArrayBuffer,
@@ -41,33 +40,41 @@ import type {
 } from '@jetstream/types';
 import type { Record } from 'jsforce';
 import isString from 'lodash/isString';
-// import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
+import { Subject } from 'rxjs';
 
-declare const self: DedicatedWorkerGlobalScope;
-logger.log('[JOBS WORKER] INITIALIZED');
+logger.log('[JOBS HANDLER] INITIALIZED');
+
+type WorkerJob = WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload>;
+type WorkerResponse = WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse>;
+
+// Used to add jobs to queue and process the jobs
+const jobHandler = new Subject<WorkerJob>();
+const jobHandler$ = jobHandler.asObservable();
+
+// Used to reply to jobs and indicate they are done - components subscribe to this
+const jobSubscriber = new Subject<WorkerResponse>();
+const jobSubscriber$ = jobSubscriber.asObservable();
 
 // Updated if a job is attempted to be cancelled, the job will check this on each iteration and cancel if possible
 const cancelledJobIds = new Set<string>();
 
-self.addEventListener('error', (event) => {
-  console.log('WORKER ERROR', event);
-});
+jobHandler$.subscribe(handleMessage);
 
-// Respond to message from parent thread
-self.addEventListener('message', (event) => {
-  const payload: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload> = event.data;
+// Add worker job to queue
+export function postJobMessage(message: WorkerJob) {
+  jobHandler.next(message);
+}
+
+// Get observable to subscribe to worker job responses
+export function getJobHandler() {
+  return jobSubscriber$;
+}
+
+async function handleMessage(payload: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload>) {
   logger.info({ payload });
-  handleMessage(payload.name, payload.data, event.ports?.[0]);
-});
-
-async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload, port?: MessagePort) {
+  const { name, data: payloadData } = payload;
   const { org, job } = payloadData || {};
   switch (name) {
-    // case 'isElectron': {
-    //   initForElectron(axiosElectronAdapter);
-    //   initMessageHandler(port);
-    //   break;
-    // }
     case 'CancelJob': {
       const { job } = payloadData as AsyncJobWorkerMessagePayload<CancelJob>;
       cancelledJobIds.add(job.id);
@@ -96,10 +103,10 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         }
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
-        replyToMessage(name, response);
+        jobSubscriber.next({ name, data: response });
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
-        replyToMessage(name, response, ex.message);
+        jobSubscriber.next({ name, data: response, error: ex.message });
       }
       break;
     }
@@ -138,7 +145,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
               progress: Math.floor((downloadedRecords.length / Math.max(totalRecordCount, records.length)) * 100),
             };
             const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true, results };
-            replyToMessage(name, response);
+            jobSubscriber.next({ name, data: response });
 
             const { queryResults } = await queryMore(org, nextRecordsUrl, isTooling).then(replaceSubqueryQueryResultsWithRecords);
             done = queryResults.done;
@@ -157,12 +164,12 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           const batchResult = await bulkApiAddBatchToJob(org, jobId, soql, true);
 
           const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
-          replyToMessage(name, response, undefined);
+          jobSubscriber.next({ name, data: response });
 
           const finalResults = await pollBulkApiJobUntilDone(org, jobInfo, 1, {
             onChecked: () => {
               const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
-              replyToMessage(name, response, undefined);
+              jobSubscriber.next({ name, data: response });
             },
           });
 
@@ -184,7 +191,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             fileFormat,
             googleFolder,
           };
-          replyToMessage(name, { job, results });
+          jobSubscriber.next({ name, data: { job, results } });
           return;
         }
 
@@ -221,13 +228,13 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             throw new Error('A valid file type type has not been selected');
         }
 
-        const results = { done: true, progress: 100, fileData, mimeType: '', fileName, fileFormat, googleFolder };
+        const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
 
         const response: AsyncJobWorkerMessageResponse = { job, results };
-        replyToMessage(name, response);
+        jobSubscriber.next({ name, data: response });
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
-        replyToMessage(name, response, ex.message);
+        jobSubscriber.next({ name, data: response, error: ex.message });
       }
       break;
     }
@@ -236,10 +243,10 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
       try {
         const { job } = payloadData as AsyncJobWorkerMessagePayload<UploadToGoogleJob>;
         const response: AsyncJobWorkerMessageResponse = { job, results: job.meta };
-        replyToMessage(name, response);
+        jobSubscriber.next({ name, data: response });
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
-        replyToMessage(name, response, ex.message);
+        jobSubscriber.next({ name, data: response, error: ex.message });
       }
       break;
     }
@@ -266,7 +273,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           }
           default: {
             const response: AsyncJobWorkerMessageResponse = { job };
-            replyToMessage(name, response, 'An invalid metadata type was provided');
+            jobSubscriber.next({ name, data: response, error: 'An invalid metadata type was provided' });
             return;
           }
         }
@@ -281,7 +288,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           },
           onChecked: () => {
             const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
-            replyToMessage(name, response, undefined);
+            jobSubscriber.next({ name, data: response });
           },
         });
 
@@ -291,14 +298,14 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
             job,
             results: { fileData, mimeType, fileName, fileFormat, uploadToGoogle, googleFolder },
           };
-          replyToMessage(name, response, undefined, fileData);
+          jobSubscriber.next({ name, data: response });
         } else {
           const response: AsyncJobWorkerMessageResponse = { job };
-          replyToMessage(name, response, 'No file was provided from Salesforce');
+          jobSubscriber.next({ name, data: response, error: 'No file was provided from Salesforce' });
         }
       } catch (ex) {
         const response: AsyncJobWorkerMessageResponse = { job };
-        replyToMessage(name, response, ex.message);
+        jobSubscriber.next({ name, data: response, error: ex.message });
         if (cancelledJobIds.has(job.id)) {
           cancelledJobIds.delete(job.id);
         }
@@ -308,9 +315,4 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
     default:
       break;
   }
-}
-
-function replyToMessage(name: string, data: any, error?: any, transferrable?: any) {
-  transferrable = transferrable ? [transferrable] : undefined;
-  self.postMessage({ name, data, error }, transferrable);
 }

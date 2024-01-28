@@ -1,14 +1,14 @@
 import { ORG_VERSION_PLACEHOLDER } from '@jetstream/shared/constants';
 import { toBoolean } from '@jetstream/shared/utils';
-import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
+import { CompositeResponse, GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { NextFunction, Request, Response } from 'express';
 import { body, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { isObject, isString } from 'lodash';
+import * as request from 'superagent';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import * as request from 'superagent';
 
 const SESSION_ID_RGX = /\{sessionId\}/i;
 
@@ -183,51 +183,103 @@ export async function recordOperation(req: Request, res: Response, next: NextFun
     // FIXME: add express validator to operation
     const { sobject, operation } = req.params;
     const { externalId } = req.query;
-    // FIXME: move to express validator to do data conversion
+
     const allOrNone = toBoolean(req.query.allOrNone as string, true);
-    // TODO: validate combination based on operation or add validation to case statement
-    // ids and records can be one or an array
-    const { ids, records } = req.body;
+    const isTooling = toBoolean(req.query.isTooling as string, false);
+    let { ids, records } = req.body;
 
     const conn: jsforce.Connection = res.locals.jsforceConn;
-    const sobjectOperation = conn.sobject(sobject);
 
-    // FIXME: submit PR to fix these types - allOrNone / allowRecursive
-    const options: any = { allOrNone };
+    if (ids) {
+      ids = Array.isArray(ids) ? ids : [ids];
+    }
+    if (records) {
+      records = Array.isArray(records) ? records : [records];
+    }
 
     let operationPromise: Promise<unknown>;
+    const baseUrl = `/services/data/v${conn.version}`;
+    const headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
 
     switch (operation) {
-      case 'retrieve':
-        if (!ids) {
+      case 'retrieve': {
+        if (!Array.isArray(ids)) {
           return next(new UserFacingError(`The ids property must be included`));
         }
-        operationPromise = sobjectOperation.retrieve(ids, options);
+        operationPromise = conn
+          .request<CompositeResponse>({
+            method: 'POST',
+            headers,
+            url: `/composite`,
+            body: JSON.stringify({
+              allOrNone,
+              compositeRequest: ids
+                .map((id) => (isTooling ? `${baseUrl}/tooling/sobjects/${sobject}/${id}` : `${baseUrl}/sobjects/${sobject}/${id}`))
+                .map((url, i) => ({ method: 'GET', url: url, referenceId: `${i}` })),
+            }),
+          })
+          .then((response) => response.compositeResponse.map((item) => item.body));
         break;
-      case 'create':
-        if (!records) {
+      }
+      case 'create': {
+        if (!Array.isArray(records)) {
           return next(new UserFacingError(`The records property must be included`));
         }
-        operationPromise = sobjectOperation.create(records, options);
+        operationPromise = conn.request({
+          method: 'POST',
+          headers,
+          url: isTooling ? `${baseUrl}/tooling/composite/sobjects` : `${baseUrl}/composite/sobjects`,
+          body: JSON.stringify({
+            allOrNone,
+            records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: undefined })),
+          }),
+        });
         break;
-      case 'update':
-        if (!records) {
+      }
+      case 'update': {
+        if (!Array.isArray(records)) {
           return next(new UserFacingError(`The records property must be included`));
         }
-        operationPromise = sobjectOperation.update(records, options);
+        operationPromise = conn.request({
+          method: 'PATCH',
+          headers,
+          url: isTooling ? `${baseUrl}/tooling/composite/sobjects` : `${baseUrl}/composite/sobjects`,
+          body: JSON.stringify({
+            allOrNone,
+            records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: record.Id })),
+          }),
+        });
         break;
-      case 'upsert':
-        if (!records || !externalId) {
+      }
+      case 'upsert': {
+        if (!Array.isArray(records) || !externalId) {
           return next(new UserFacingError(`The records and external id properties must be included`));
         }
-        operationPromise = sobjectOperation.upsert(records, externalId as string, options);
+        operationPromise = conn.request({
+          method: 'PATCH',
+          headers,
+          url: isTooling
+            ? `${baseUrl}/tooling/composite/sobjects/${sobject}/${externalId}`
+            : `${baseUrl}/composite/sobjects/${sobject}/${externalId}`,
+          body: JSON.stringify({
+            allOrNone,
+            records: records.map((record) => ({ ...record, attributes: { type: sobject } })),
+          }),
+        });
         break;
-      case 'delete':
-        if (!ids) {
+      }
+      case 'delete': {
+        if (!Array.isArray(ids)) {
           return next(new UserFacingError(`The ids property must be included`));
         }
-        operationPromise = sobjectOperation.delete(ids, options);
+        operationPromise = conn.request({
+          method: 'DELETE',
+          url: isTooling
+            ? `${baseUrl}/tooling/composite/sobjects?ids=${ids.join(',')}`
+            : `${baseUrl}/composite/sobjects?ids=${ids.join(',')}`,
+        });
         break;
+      }
       default:
         return next(new UserFacingError(`The operation ${operation} is not valid`));
     }

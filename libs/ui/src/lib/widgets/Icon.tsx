@@ -1,9 +1,6 @@
-// https://www.lightningdesignsystem.com/components/icons/
-
-import { IconName, IconType } from '@jetstream/icon-factory';
-import React, { FunctionComponent, Suspense } from 'react';
-
-const IconLazyWrapper = React.lazy(() => import('./IconLazyWrapper'));
+import { IconName, IconType, getIcon } from '@jetstream/icon-factory';
+import classNames from 'classnames';
+import { FunctionComponent, HTMLAttributes } from 'react';
 
 export interface IconProps {
   containerClassname?: string; // container classname, only used if not omitted
@@ -11,19 +8,34 @@ export interface IconProps {
   omitContainer?: boolean;
   title?: string;
   type: IconType;
-  icon: IconName;
+  icon: IconName; // TODO: see if we can add some types
   description?: string;
+  spanProps?: HTMLAttributes<HTMLSpanElement>;
 }
-/**
- * This component lazy loads the actual icon class to allow code splitting
- * to reduce the size of the main bundle
- */
-export const Icon: FunctionComponent<IconProps> = (props) => {
-  return (
-    <Suspense fallback={<svg />}>
-      <IconLazyWrapper {...props} />
-    </Suspense>
-  );
+
+export const Icon: FunctionComponent<IconProps> = ({
+  containerClassname,
+  className,
+  title,
+  omitContainer = false,
+  type,
+  icon,
+  description,
+  spanProps,
+}) => {
+  containerClassname = containerClassname || '';
+  className = className || '';
+  const svg = getIcon(type, icon, className);
+  if (omitContainer) {
+    return svg;
+  } else {
+    return (
+      <span className={classNames('slds-icon_container', containerClassname)} title={title || description} {...spanProps}>
+        {svg}
+        {(description || title) && <span className="slds-assistive-text">{description || title}</span>}
+      </span>
+    );
+  }
 };
 
 export default Icon;

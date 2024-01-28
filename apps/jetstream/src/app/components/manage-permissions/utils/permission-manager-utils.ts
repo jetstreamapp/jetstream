@@ -273,14 +273,18 @@ export async function updatePermissionSetRecords(
         Id: id,
       })),
       200
-    ).map((records) => sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false })),
+    )
+      .filter((records) => records.length > 0)
+      .map((records) => sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false })),
     ...splitArrayToMaxSize(
       permissionSetIds.map((id) => ({
         attributes: { type: 'PermissionSet' },
         Id: id,
       })),
       200
-    ).map((records) => sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false })),
+    )
+      .filter((records) => records.length > 0)
+      .map((records) => sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false })),
   ]);
 }
 

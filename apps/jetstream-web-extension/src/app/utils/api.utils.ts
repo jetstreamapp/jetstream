@@ -1,6 +1,6 @@
 import { QueryResults, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { flattenQueryColumn } from '@jetstream/shared/utils';
-import { ApiResponse, GenericRequestPayload, Maybe, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
+import { ApiResponse, CompositeResponse, GenericRequestPayload, Maybe, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
 import type { DescribeGlobalResult, DescribeSObjectResult, IdentityInfo, QueryResult } from 'jsforce';
 import { Query, parseQuery } from 'soql-parser-js';
 import { SessionInfo } from '../extension.types';
@@ -30,6 +30,7 @@ export interface QueryColumnMetadata {
 
 export class ApiClient {
   readonly apiVersion;
+  readonly baseUrlWithoutPath: string;
   readonly baseUrl: string;
   readonly sessionInfo: SessionInfo;
   readonly org: SalesforceOrgUi;
@@ -38,7 +39,8 @@ export class ApiClient {
     this.apiVersion = apiVersion;
     this.org = org;
     this.sessionInfo = sessionInfo;
-    this.baseUrl = `https://${sessionInfo.hostname}/services/data/v${apiVersion}`;
+    this.baseUrlWithoutPath = `https://${sessionInfo.hostname}`;
+    this.baseUrl = `${this.baseUrlWithoutPath}/services/data/v${apiVersion}`;
   }
 
   // TODO: we should move logic to a different file
@@ -112,8 +114,8 @@ export class ApiClient {
     sobject,
     operation,
     externalId,
-    allOrNone,
-    isTooling,
+    allOrNone = true,
+    isTooling = false,
     ids,
     records,
   }: {
@@ -125,72 +127,119 @@ export class ApiClient {
     isTooling?: Maybe<boolean>;
     records: Maybe<any | any[]>;
   }) {
-    // TODO: options
-    const options: any = { allOrNone };
-
     let operationPromise: Promise<unknown> | undefined;
+
+    const request = {
+      allOrNone,
+      records: [
+        {
+          attributes: { type: 'Account' },
+          Name: 'example.com',
+          BillingCity: 'San Francisco',
+        },
+        {
+          attributes: { type: 'Contact' },
+          LastName: 'Johnson',
+          FirstName: 'Erica',
+        },
+      ],
+    };
+
+    if (ids) {
+      ids = Array.isArray(ids) ? ids : [ids];
+    }
+    if (records) {
+      records = Array.isArray(records) ? records : [records];
+    }
+
+    // POST https://MyDomainName.my.salesforce.com/services/data/v60.0/composite/sobjects/
+
     switch (operation) {
       case 'retrieve': {
-        if (!ids) {
+        if (!Array.isArray(ids)) {
           throw new Error(`The ids property must be included`);
         }
-        if (Array.isArray(ids)) {
-          // TODO:
-        }
-        const url = isTooling ? `${this.baseUrl}/tooling/sobjects/${sobject}/${ids}` : `${this.baseUrl}/sobjects/${sobject}/${ids}`;
-        operationPromise = apiRequest({ method: 'GET', sessionInfo: this.sessionInfo, url });
+
+        operationPromise = apiRequest<CompositeResponse>({
+          method: 'POST',
+          sessionInfo: this.sessionInfo,
+          url: `${this.baseUrl}/composite`,
+          body: {
+            allOrNone,
+            compositeRequest: ids
+              .map((id) =>
+                isTooling
+                  ? `/services/data/v${this.apiVersion}/tooling/sobjects/${sobject}/${id}`
+                  : `/services/data/v${this.apiVersion}/sobjects/${sobject}/${id}`
+              )
+              .map((url, i) => ({ method: 'GET', url: url, referenceId: `${i}` })),
+          },
+        }).then((response) => response.compositeResponse.map((item) => item.body));
 
         break;
       }
       case 'create': {
-        if (!records) {
+        if (!Array.isArray(records)) {
           throw new Error(`The records property must be included`);
         }
-        if (Array.isArray(records)) {
-          // TODO:
-        }
-        const url = isTooling ? `${this.baseUrl}/tooling/sobjects/${sobject}` : `${this.baseUrl}/sobjects/${sobject}`;
-        operationPromise = apiRequest({ method: 'POST', sessionInfo: this.sessionInfo, url, body: records });
+
+        operationPromise = apiRequest({
+          method: 'POST',
+          sessionInfo: this.sessionInfo,
+          url: isTooling ? `${this.baseUrl}/tooling/composite/sobjects` : `${this.baseUrl}/composite/sobjects`,
+          body: {
+            allOrNone,
+            records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: undefined })),
+          },
+        });
         break;
       }
       case 'update': {
-        if (!records) {
+        if (!Array.isArray(records)) {
           throw new Error(`The records property must be included`);
         }
-        if (Array.isArray(records) && records.length > 1) {
-          // TODO:
-        } else {
-          const record = Array.isArray(records) ? records[0] : records;
-          const recordId = record.Id;
-          delete record.Id;
-          const url = isTooling
-            ? `${this.baseUrl}/tooling/sobjects/${sobject}/${recordId}`
-            : `${this.baseUrl}/sobjects/${sobject}/${recordId}`;
-          operationPromise = apiRequest({ method: 'PATCH', sessionInfo: this.sessionInfo, url, body: record });
-        }
+
+        operationPromise = apiRequest({
+          method: 'PATCH',
+          sessionInfo: this.sessionInfo,
+          url: isTooling ? `${this.baseUrl}/tooling/composite/sobjects` : `${this.baseUrl}/composite/sobjects`,
+          body: {
+            allOrNone,
+            records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: record.Id })),
+          },
+        });
+
         break;
       }
       case 'upsert': {
-        if (!records || !externalId) {
+        if (!Array.isArray(records) || !externalId) {
           throw new Error(`The records and external id properties must be included`);
         }
-        if (Array.isArray(records)) {
-          // TODO:
-        }
-        // TODO: get external if from record and make request
-        const url = isTooling ? `${this.baseUrl}/tooling/sobjects/${sobject}/${externalId}` : `${this.baseUrl}/sobjects/${sobject}`;
-        operationPromise = apiRequest({ method: 'PATCH', sessionInfo: this.sessionInfo, url, body: records });
+        operationPromise = apiRequest({
+          method: 'PATCH',
+          sessionInfo: this.sessionInfo,
+          url: isTooling
+            ? `${this.baseUrl}/tooling/composite/sobjects/${sobject}/${externalId}`
+            : `${this.baseUrl}/composite/sobjects/${sobject}/${externalId}`,
+          body: {
+            allOrNone,
+            records: records.map((record) => ({ ...record, attributes: { type: sobject } })),
+          },
+        });
         break;
       }
       case 'delete': {
-        if (!ids) {
+        if (!Array.isArray(ids)) {
           throw new Error(`The ids property must be included`);
         }
-        if (Array.isArray(ids)) {
-          // TODO:
-        }
-        const url = isTooling ? `${this.baseUrl}/tooling/sobjects/${sobject}${ids}` : `${this.baseUrl}/sobjects/${sobject}${ids}`;
-        operationPromise = apiRequest({ method: 'DELETE', sessionInfo: this.sessionInfo, url });
+
+        operationPromise = apiRequest({
+          method: 'DELETE',
+          sessionInfo: this.sessionInfo,
+          url: isTooling
+            ? `${this.baseUrl}/tooling/composite/sobjects?ids=${ids.join(',')}`
+            : `${this.baseUrl}/composite/sobjects?ids=${ids.join(',')}`,
+        });
 
         break;
       }
