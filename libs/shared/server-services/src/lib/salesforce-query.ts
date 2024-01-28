@@ -1,30 +1,9 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
+import { QueryResults, QueryResultsColumns } from '@jetstream/api-interfaces';
+import { flattenQueryColumn } from '@jetstream/shared/utils';
+import { QueryColumnsSfdc } from '@jetstream/types';
 import type { Connection } from 'jsforce';
-import { parseQuery, Query } from 'soql-parser-js';
-
-export interface QueryColumnsSfdc {
-  columnMetadata: QueryColumnMetadata[];
-  entityName: string;
-  groupBy: boolean;
-  idSelected: boolean;
-  keyPrefix: string;
-}
-
-export interface QueryColumnMetadata {
-  aggregate: boolean;
-  apexType: string;
-  booleanType: boolean;
-  columnName: string;
-  custom: boolean;
-  displayName: string;
-  foreignKeyName?: any;
-  insertable: boolean;
-  joinColumns: QueryColumnMetadata[];
-  numberType: boolean;
-  textType: boolean;
-  updatable: boolean;
-}
+import { Query, parseQuery } from 'soql-parser-js';
 
 export async function queryRecords(
   conn: Connection,
@@ -74,57 +53,4 @@ export async function queryRecords(
 export async function queryMoreRecords(conn: Connection, nextRecordsUrl: string, isTooling = false): Promise<QueryResults> {
   const queryResults = await (isTooling ? conn.tooling.queryMore(nextRecordsUrl) : conn.queryMore(nextRecordsUrl));
   return { queryResults };
-}
-
-////////// PRIVATE ///////////////
-
-/**
- *
- * @param column
- * @param prevColumnPath
- */
-
-function flattenQueryColumn(column: QueryColumnMetadata, prevColumnPath?: string): QueryResultsColumn[] {
-  let output: QueryResultsColumn[] = [];
-  const currColumnPath = `${prevColumnPath ? `${prevColumnPath}.` : ''}${column.columnName}`;
-
-  if (Array.isArray(column.joinColumns) && column.joinColumns.length > 0) {
-    if (column.foreignKeyName) {
-      // Parent Query
-      output = output.concat(column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)));
-    } else {
-      // Child query
-      output.push({
-        columnFullPath: currColumnPath,
-        aggregate: column.aggregate,
-        apexType: column.apexType,
-        booleanType: column.booleanType,
-        columnName: column.columnName,
-        custom: column.custom,
-        displayName: column.displayName,
-        foreignKeyName: column.foreignKeyName,
-        insertable: column.insertable,
-        numberType: column.numberType,
-        textType: column.textType,
-        updatable: column.updatable,
-        childColumnPaths: column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)),
-      });
-    }
-  } else {
-    output.push({
-      columnFullPath: currColumnPath,
-      aggregate: column.aggregate,
-      apexType: column.apexType,
-      booleanType: column.booleanType,
-      columnName: column.columnName,
-      custom: column.custom,
-      displayName: column.displayName,
-      foreignKeyName: column.foreignKeyName,
-      insertable: column.insertable,
-      numberType: column.numberType,
-      textType: column.textType,
-      updatable: column.updatable,
-    });
-  }
-  return output;
 }

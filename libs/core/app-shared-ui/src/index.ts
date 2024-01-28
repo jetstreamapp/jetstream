@@ -1,4 +1,5 @@
 export * from './lib/AppLoading';
+export * from './lib/HeaderNavbar';
 export * from './lib/NotificationsRequestModal';
 export * from './lib/create-fields/create-fields-types';
 export * from './lib/create-fields/create-fields-utils';

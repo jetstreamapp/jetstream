@@ -11,6 +11,7 @@ import {
   ListItemGroup,
   MapOf,
   Maybe,
+  QueryColumnMetadata,
   QueryFieldWithPolymorphic,
   Record,
   SoapNil,
@@ -860,4 +861,52 @@ export function getErrorMessage(ex: unknown) {
     return ex.message;
   }
   return String(ex);
+}
+
+/**
+ * Flattens query columns returned by salesforce query API
+ */
+export function flattenQueryColumn(column: QueryColumnMetadata, prevColumnPath?: string): QueryResultsColumn[] {
+  let output: QueryResultsColumn[] = [];
+  const currColumnPath = `${prevColumnPath ? `${prevColumnPath}.` : ''}${column.columnName}`;
+
+  if (Array.isArray(column.joinColumns) && column.joinColumns.length > 0) {
+    if (column.foreignKeyName) {
+      // Parent Query
+      output = output.concat(column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)));
+    } else {
+      // Child query
+      output.push({
+        columnFullPath: currColumnPath,
+        aggregate: column.aggregate,
+        apexType: column.apexType,
+        booleanType: column.booleanType,
+        columnName: column.columnName,
+        custom: column.custom,
+        displayName: column.displayName,
+        foreignKeyName: column.foreignKeyName,
+        insertable: column.insertable,
+        numberType: column.numberType,
+        textType: column.textType,
+        updatable: column.updatable,
+        childColumnPaths: column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)),
+      });
+    }
+  } else {
+    output.push({
+      columnFullPath: currColumnPath,
+      aggregate: column.aggregate,
+      apexType: column.apexType,
+      booleanType: column.booleanType,
+      columnName: column.columnName,
+      custom: column.custom,
+      displayName: column.displayName,
+      foreignKeyName: column.foreignKeyName,
+      insertable: column.insertable,
+      numberType: column.numberType,
+      textType: column.textType,
+      updatable: column.updatable,
+    });
+  }
+  return output;
 }

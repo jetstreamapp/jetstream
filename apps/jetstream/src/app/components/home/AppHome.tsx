@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
+import { APP_ROUTES } from '@jetstream/core/app';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { Badge, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { APP_ROUTES } from '../core/app-routes';
 
 const HOME_ITEMS = [
   {

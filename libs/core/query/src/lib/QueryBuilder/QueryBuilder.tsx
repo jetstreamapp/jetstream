@@ -320,6 +320,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = ({ selectedOrg
           bottomBuffer={0}
           className="slds-p-horizontal_x-small slds-scrollable_none"
           bufferIfNotRendered={HEIGHT_BUFFER}
+          delayForSecondTopCalc
         >
           <Split
             sizes={[17, 33, 50]}

@@ -12,6 +12,7 @@
   },
   "files": [],
   "include": [],
+  "exclude": ["**/*.js/*.worker.ts"],
   "references": [
     {
       "path": "./tsconfig.lib.json"

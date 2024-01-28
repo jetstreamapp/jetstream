@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@jetstream/core/app';
 import { Query, QueryBuilder, QueryResults } from '@jetstream/core/query';
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { useEffect } from 'react';
@@ -5,7 +6,6 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import { selectedOrgState } from './app-state';
 import lazy from './components/core/LazyLoad';
-import { APP_ROUTES } from './components/core/app-routes';
 import { AppHome } from './components/home/AppHome';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 

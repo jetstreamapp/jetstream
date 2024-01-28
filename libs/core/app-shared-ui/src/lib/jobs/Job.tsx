@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import formatDate from 'date-fns/format';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import isString from 'lodash/isString';
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { downloadJob } from './job-utils';
 
 const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete']);

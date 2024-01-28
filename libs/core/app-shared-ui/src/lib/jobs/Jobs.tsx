@@ -21,26 +21,26 @@ import {
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { electronMessagesReadyPromise, externalMessagePorts } from '../electron-utils';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
+// import { electronMessagesReadyPromise, externalMessagePorts } from '../electron-utils';
 
-const jobsWorker = new Worker(new URL('../../../workers/jobs.worker.ts', import.meta.url), { type: 'module' });
+const jobsWorker = new Worker(new URL('./jobs.worker.ts', import.meta.url), { type: 'module' });
 
-if (jobsWorker && window.electron?.isElectron) {
-  (async () => {
-    await electronMessagesReadyPromise;
-    externalMessagePorts.jobsWorkerPort
-      ? jobsWorker.postMessage({ name: 'isElectron' }, [externalMessagePorts.jobsWorkerPort])
-      : jobsWorker.postMessage({ name: 'isElectron' });
-  })();
-}
+// if (jobsWorker && window.electron?.isElectron) {
+//   (async () => {
+//     await electronMessagesReadyPromise;
+//     externalMessagePorts.jobsWorkerPort
+//       ? jobsWorker.postMessage({ name: 'isElectron' }, [externalMessagePorts.jobsWorkerPort])
+//       : jobsWorker.postMessage({ name: 'isElectron' });
+//   })();
+// }
 
-export const Jobs: FunctionComponent = () => {
+export const Jobs = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
