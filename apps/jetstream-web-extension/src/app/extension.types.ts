@@ -1,43 +1,45 @@
 import { Maybe } from '@jetstream/types';
+import { ApiClient } from './utils/api.utils';
 
-export type Message = 'getSalesforceHostWithApiAccess' | 'getSession' | 'getPageUrl';
-export type MessagePayload = GetSalesforceHostWithApiAccessPayload | GetSessionPayload | GetPageUrlPayload;
-export type MessageResponse = GetSalesforceHostWithApiAccessResponse | GetSessionPayloadResponse | GetPageUrlResponse;
-
-export interface MessagePayloadBase {
-  message: Message;
+export type Message = GetSfHost | GetSession | GetPageUrl | InitOrg;
+export type MessageRequest = Message['request'];
+export interface MessageResponse<T extends Message['response'] = Message['response']> {
+  data: T;
 }
 
-export interface GetSalesforceHostWithApiAccessPayload extends MessagePayloadBase {
-  message: 'getSalesforceHostWithApiAccess';
-  url: string;
+export interface SessionInfo {
+  hostname: string;
+  key: string;
 }
 
-export interface GetSalesforceHostWithApiAccessResponse {
-  data: Maybe<string>;
+export interface GetSfHost {
+  request: {
+    message: 'GET_SF_HOST';
+    data: { url: string };
+  };
+  response: Maybe<string>;
 }
 
-///
-
-export interface GetSessionPayload extends MessagePayloadBase {
-  message: 'getSession';
-  salesforceHost: string;
+export interface GetSession {
+  request: {
+    message: 'GET_SESSION';
+    data: { salesforceHost: string };
+  };
+  response: Maybe<SessionInfo>;
 }
 
-export interface GetSessionPayloadResponse {
-  data: {
-    hostname: string;
-    key: string;
-  } | null;
+export interface GetPageUrl {
+  request: {
+    message: 'GET_PAGE_URL';
+    data: { page: string };
+  };
+  response: Maybe<string>;
 }
 
-///
-
-export interface GetPageUrlPayload extends MessagePayloadBase {
-  message: 'getPageUrl';
-  page: string;
-}
-
-export interface GetPageUrlResponse {
-  data: string;
+export interface InitOrg {
+  request: {
+    message: 'INIT_ORG';
+    data: { sessionInfo: SessionInfo };
+  };
+  response: ApiClient;
 }

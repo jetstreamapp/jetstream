@@ -7,7 +7,14 @@
     "default_popup": "popup.html"
   },
   "permissions": ["storage", "cookies", "activeTab"],
-  "host_permissions": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"],
+  "host_permissions": [
+    "https://*.cloudforce.com/*",
+    "https://*.force.com/*",
+    "https://*.lightning.force.com/*",
+    "https://*.salesforce.com/*",
+    "https://*.visual.force.com/*",
+    "https://*.visualforce.com/*"
+  ],
   "background": {
     "service_worker": "serviceWorker.js"
   },
@@ -18,10 +25,11 @@
   "content_scripts": [
     {
       "matches": [
+        "https://*.cloudforce.com/*",
+        "https://*.force.com/*",
+        "https://*.lightning.force.com/*",
         "https://*.salesforce.com/*",
         "https://*.visual.force.com/*",
-        "https://*.lightning.force.com/*",
-        "https://*.cloudforce.com/*",
         "https://*.visualforce.com/*"
       ],
       "all_frames": true,
@@ -30,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["*.html", "*.js", "*.css", "*.map", "/assets/"],
+      "resources": ["*.html", "*.js", "*.css", "*.map", "*.png", "*.svg", "/app/", "/assets/"],
       "matches": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"]
     }
   ],

@@ -1,12 +1,13 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "allowJs": false,
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
+    "strictNullChecks": true,
     "jsxImportSource": "@emotion/react",
-    "types": ["chrome-types", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
+    "types": ["chrome-types", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive", "@jetstream-types"]
   },
   "files": [],
   "include": [],
@@ -17,6 +18,5 @@
     {
       "path": "./tsconfig.spec.json"
     }
-  ],
-  "extends": "../../tsconfig.base.json"
+  ]
 }

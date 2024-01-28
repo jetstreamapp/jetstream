@@ -23,15 +23,10 @@
           "extractLicenses": false,
           "optimization": false,
           "sourceMap": true,
-          "vendorChunk": true
+          "vendorChunk": false
         },
         "production": {
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
-              "with": "apps/jetstream-web-extension/src/environments/environment.prod.ts"
-            }
-          ],
+          "fileReplacements": [],
           "optimization": false,
           "outputHashing": "none",
           "sourceMap": true,

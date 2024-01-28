@@ -3,66 +3,207 @@
  * This file is based on the Salesforce Inspector extension for Chrome. (MIT license)
  * Credit: https://github.com/sorenkrabbe/Chrome-Salesforce-inspector/blob/master/addon/background.js
  */
-// import 'chrome-types';
-/// <reference types="chrome"/>
-import { MessagePayload, MessageResponse } from './extension.types';
+/// <reference types="chrome" />
+/// <reference lib="WebWorker" />
+import '@cooby/crx-load-script-webpack-plugin/lib/loadScript'; // TODO: remove in production build
+import { HTTP } from '@jetstream/shared/constants';
+import { ensureBoolean } from '@jetstream/shared/utils';
+import { GetPageUrl, GetSession, GetSfHost, InitOrg, Message, MessageResponse } from './extension.types';
 import { initializeStorageWithDefaults } from './storage';
+import { ApiClient, initApiClient } from './utils/api.utils';
 
 console.log('Jetstream Service worker loaded.');
 
-function getCookieStoreId(sender: chrome.runtime.MessageSender) {
-  return (sender?.tab as any)?.cookieStoreId;
-}
-
-const handleError = (sendResponse: (response: MessageResponse) => void) => (err: unknown) => {
-  console.log('ERROR', err);
-  sendResponse({ data: null });
-};
+const connections = new Map<string, ApiClient>();
 
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorageWithDefaults({});
   console.log('Jetstream Extension successfully installed!');
 });
 
-chrome.runtime.onMessage.addListener((request: MessagePayload, sender, sendResponse: (response: MessageResponse) => void) => {
-  console.log('MESSAGE', { request, sender });
-  // Perform cookie operations in the background page, because not all foreground pages have access to the cookie API.
-  // Firefox does not support incognito split mode, so we use sender.tab.cookieStoreId to select the right cookie store.
-  // Chrome does not support sender.tab.cookieStoreId, which means it is undefined, and we end up using the default cookie store according to incognito split mode.
-  if (request.message === 'getSalesforceHostWithApiAccess') {
-    // When on a *.visual.force.com page, the session in the cookie does not have API access,
-    // so we read the corresponding session from *.salesforce.com page.
-    // The first part of the session cookie is the OrgID,
-    // which we use as key to support being logged in to multiple orgs at once.
-    // http://salesforce.stackexchange.com/questions/23277/different-session-ids-in-different-contexts
-    // There is no straight forward way to unambiguously understand if the user authenticated against salesforce.com or cloudforce.com
-    // (and thereby the domain of the relevant cookie) cookie domains are therefore tried in sequence.
-    chrome.cookies
-      .get({ url: request.url, name: 'sid', storeId: getCookieStoreId(sender) })
-      .then((cookie) => cookie?.value?.split('!')?.[0])
-      .then(async (orgId) =>
-        Promise.all([
-          chrome.cookies.getAll({ name: 'sid', domain: 'salesforce.com', secure: true, storeId: getCookieStoreId(sender) }),
-          chrome.cookies.getAll({ name: 'sid', domain: 'cloudforce.com', secure: true, storeId: getCookieStoreId(sender) }),
-        ]).then((results) => results.flat().find(({ value }) => value.startsWith(orgId + '!'))?.domain)
-      )
-      .then((domainWithApiAccess) => sendResponse({ data: domainWithApiAccess }))
-      .catch(handleError(sendResponse));
-    return true; // indicate that sendResponse will be called asynchronously
-  } else if (request.message === 'getSession') {
-    chrome.cookies
-      .get({ url: `https://${request.salesforceHost}`, name: 'sid', storeId: getCookieStoreId(sender) })
-      .then((sessionCookie) => {
-        if (!sessionCookie) {
-          return sendResponse({ data: null });
-        }
-        sendResponse({ data: { key: sessionCookie.value, hostname: sessionCookie.domain } });
-      })
-      .catch(handleError(sendResponse));
-    return true; // Tell Chrome that we want to call sendResponse asynchronously.
-  } else if (request.message === 'getPageUrl') {
-    sendResponse({ data: chrome.runtime.getURL('query.html') });
-    return true; // Tell Chrome that we want to call sendResponse asynchronously.
+chrome.runtime.onMessage.addListener(
+  (request: Message['request'], sender: chrome.runtime.MessageSender, sendResponse: (response: MessageResponse) => void) => {
+    console.log('MESSAGE', request);
+    switch (request.message) {
+      case 'GET_SF_HOST': {
+        handleGetSalesforceHostWithApiAccess(request.data, sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
+      case 'GET_SESSION': {
+        handleGetSession(request.data, sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
+      case 'GET_PAGE_URL': {
+        handleResponse(handleGetPageUrl(request.data.page), sendResponse);
+        return true; // indicate that sendResponse will be called asynchronously
+      }
+      case 'INIT_ORG': {
+        handleInitOrg(request.data, sender)
+          .then((data) => {
+            handleResponse(data, sendResponse);
+          })
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
+      default:
+        console.warn(`Unknown message`, request);
+        return false;
+    }
   }
-  return false;
+);
+
+self.addEventListener('fetch', (event: FetchEvent) => {
+  console.log('[FETCH]', event);
+  const url = new URL(event.request.url);
+  const pathname = url.pathname;
+  if (!url.origin.startsWith('chrome-extension') || !url.pathname.startsWith('/api')) {
+    return;
+  }
+  const orgHeader = event.request.headers.get(HTTP.HEADERS.X_SFDC_ID);
+  if (!orgHeader) {
+    return;
+  }
+  const apiClient = connections.get(orgHeader)!;
+  if (!apiClient) {
+    event.respondWith(new Response('Not found', { status: 404 }));
+    return;
+  }
+
+  event.respondWith(
+    (async () => {
+      const router = {
+        '/api/describe': {
+          handler: () => apiClient.describe(ensureBoolean(url.searchParams.get('isTooling'))),
+        },
+        '/api/describe/:sobject': {
+          handler: (sobject: string) => apiClient.describeSobject(sobject, ensureBoolean(url.searchParams.get('isTooling'))),
+        },
+        '/api/query': {
+          handler: async () =>
+            apiClient.query(
+              (await event.request.json()).query,
+              ensureBoolean(url.searchParams.get('isTooling')),
+              ensureBoolean(url.searchParams.get('includeDeletedRecords'))
+            ),
+        },
+        '/api/query-more': {
+          handler: async () => apiClient.queryMore(url.searchParams.get('nextRecordsUrl')!),
+        },
+        '/api/record/:retrieve/:sobject': {
+          handler: async (operation: string, sobject: string) => {
+            const { ids, records } = await event.request.json();
+            return apiClient.recordOperation({
+              operation,
+              sobject,
+              ids,
+              records,
+              externalId: url.searchParams.get('externalId'),
+              allOrNone: ensureBoolean(url.searchParams.get('allOrNone')),
+              isTooling: ensureBoolean(url.searchParams.get('isTooling')),
+            });
+          },
+        },
+        '/api/request': {
+          handler: async () => apiClient.manualRequest(await event.request.json()),
+        },
+        '/api/request-manual': {
+          handler: async () => apiClient.manualRequest(await event.request.json()),
+        },
+        // /services/data/v54.0/ui-api/object-info/Account/picklist-values/012000000000000AAA
+        // http://localhost:3333/static/sfdc/login
+        // /api/bulk
+        // /api/record/retrieve/Account -> {"ids":"0016g00000ETu0HAAT"}
+        // /api/request
+        // /api/request-manual
+      } as const;
+
+      if (pathname in router) {
+        const response = await router[pathname].handler();
+        return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+      } else {
+        let match = pathname.match(/^\/api\/describe\/(.+)$/);
+        if (match) {
+          const response = await router['/api/describe/:sobject'].handler(match[1]);
+          return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+        }
+
+        match = pathname.match(/^\/api\/record\/([^/]+)\/([^/]+)$/);
+        if (match) {
+          const response = await router['/api/record/:retrieve/:sobject'].handler(match[1], match[2]);
+          return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+        }
+      }
+      console.log('UNKNOWN PATH', url.pathname);
+      return fetch(event.request);
+    })()
+  );
 });
+
+/**
+ * HELPER FUNCTIONS
+ */
+
+function getCookieStoreId(sender: chrome.runtime.MessageSender) {
+  return (sender?.tab as any)?.cookieStoreId;
+}
+
+const handleResponse = (data: Message['response'], sendResponse: (response: MessageResponse) => void) => {
+  console.log('RESPONSE', data);
+  sendResponse({ data });
+};
+
+const handleError = (sendResponse: (response: MessageResponse) => void) => (err: unknown) => {
+  console.log('ERROR', err);
+  sendResponse({ data: null });
+};
+
+/**
+ * HANDLERS
+ */
+
+async function handleGetSalesforceHostWithApiAccess(
+  { url }: GetSfHost['request']['data'],
+  sender: chrome.runtime.MessageSender
+): Promise<GetSfHost['response']> {
+  const orgId = await chrome.cookies
+    .get({ url, name: 'sid', storeId: getCookieStoreId(sender) })
+    .then((cookie) => cookie?.value?.split('!')?.[0]);
+
+  const results = await Promise.all([
+    chrome.cookies.getAll({ name: 'sid', domain: 'salesforce.com', secure: true, storeId: getCookieStoreId(sender) }),
+    chrome.cookies.getAll({ name: 'sid', domain: 'cloudforce.com', secure: true, storeId: getCookieStoreId(sender) }),
+  ]);
+  return results.flat().find(({ value }) => value.startsWith(orgId + '!'))?.domain;
+}
+
+async function handleGetSession(
+  { salesforceHost }: GetSession['request']['data'],
+  sender: chrome.runtime.MessageSender
+): Promise<GetSession['response']> {
+  const sessionCookie = await chrome.cookies.get({
+    url: `https://${salesforceHost}`,
+    name: 'sid',
+    storeId: getCookieStoreId(sender),
+  });
+  if (!sessionCookie) {
+    return null;
+  }
+  return { key: sessionCookie.value, hostname: sessionCookie.domain };
+}
+
+function handleGetPageUrl(page: string): GetPageUrl['response'] {
+  return chrome.runtime.getURL(page);
+}
+
+async function handleInitOrg(
+  { sessionInfo }: InitOrg['request']['data'],
+  sender: chrome.runtime.MessageSender
+): Promise<InitOrg['response']> {
+  const apiClient = await initApiClient(sessionInfo);
+  connections.set(apiClient.org.uniqueId, apiClient);
+  return apiClient;
+}
