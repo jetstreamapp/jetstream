@@ -10,7 +10,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { GetPageUrl, GetSession, GetSfHost, InitOrg, Message, MessageResponse } from './extension.types';
 import { initializeStorageWithDefaults } from './storage';
-import { ApiClient, initApiClient } from './utils/api.utils';
+import { ApiClient, initApiClient } from './utils/api-client';
 
 console.log('Jetstream Service worker loaded.');
 
@@ -73,15 +73,19 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     return;
   }
 
+  // TODO: use zod to validate input on web extension and server
+
   event.respondWith(
     (async () => {
       const router = {
+        // DESCRIBE
         '/api/describe': {
           handler: () => apiClient.describe(ensureBoolean(url.searchParams.get('isTooling'))),
         },
         '/api/describe/:sobject': {
           handler: (sobject: string) => apiClient.describeSobject(sobject, ensureBoolean(url.searchParams.get('isTooling'))),
         },
+        // QUERY
         '/api/query': {
           handler: async () =>
             apiClient.query(
@@ -93,6 +97,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
         '/api/query-more': {
           handler: async () => apiClient.queryMore(url.searchParams.get('nextRecordsUrl')!),
         },
+        // SOBJECT
         '/api/record/:retrieve/:sobject': {
           handler: async (operation: string, sobject: string) => {
             const { ids, records } = await event.request.json();
@@ -107,15 +112,40 @@ self.addEventListener('fetch', (event: FetchEvent) => {
             });
           },
         },
+        // MANUAL REQUEST
         '/api/request': {
           handler: async () => apiClient.manualRequest(await event.request.json()),
         },
         '/api/request-manual': {
           handler: async () => apiClient.manualRequest(await event.request.json()),
         },
+        // BULK API
+        '/api/bulk': {
+          handler: async () => apiClient.bulkCreateJob(await event.request.json()),
+        },
+        '/api/bulk/:jobId[GET]': {
+          handler: async (jobId: string) => apiClient.bulkGetJob(jobId),
+        },
+        '/api/bulk/:jobId[POST]': {
+          handler: async (jobId: string) =>
+            apiClient.bulkAddToJob(await event.request.text(), jobId, ensureBoolean(url.searchParams.get('closeJob'))),
+        },
+        '/api/bulk/:jobId/:action[DELETE]': {
+          handler: async (jobId: string, action: 'Closed' | 'Aborted' = 'Closed') => apiClient.bulkCloseJob(jobId, action),
+        },
+        // TODO:
+        // '/bulk/:jobId/:batchId[GET]': {
+        //   handler: async (jobId: string, batchId: string) => apiClient.bulkApiDownloadResults(jobId, action),
+        // },
+
         // /services/data/v54.0/ui-api/object-info/Account/picklist-values/012000000000000AAA
         // http://localhost:3333/static/sfdc/login
-        // /api/bulk
+        // GET /bulk
+        // GET /bulk/:jobId
+        // POST /bulk/:jobId
+        // POST /bulk/zip/:jobId
+        // GET /bulk/:jobId/:batchId
+        // DELETE /bulk/:jobId/:action
         // /api/record/retrieve/Account -> {"ids":"0016g00000ETu0HAAT"}
         // /api/request
         // /api/request-manual
@@ -135,6 +165,31 @@ self.addEventListener('fetch', (event: FetchEvent) => {
         if (match) {
           const response = await router['/api/record/:retrieve/:sobject'].handler(match[1], match[2]);
           return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+        }
+
+        match = pathname.match(/^\/api\/bulk\/([^/]+)\/([^/]+)$/);
+        if (match) {
+          if (event.request.method === 'GET') {
+            // TODO: download results file
+          } else if (event.request.method === 'DELETE') {
+            const response = await router['/api/bulk/:jobId/:action[DELETE]'].handler(match[1], match[2] as 'Closed' | 'Aborted');
+            return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+          }
+          // ensure no other matches are attempted
+          return fetch(event.request);
+        }
+
+        match = pathname.match(/^\/api\/bulk\/(.+)$/);
+        if (match) {
+          if (event.request.method === 'GET') {
+            const response = await router['/api/bulk/:jobId[GET]'].handler(match[1]);
+            return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+          } else if (event.request.method === 'POST') {
+            const response = await router['/api/bulk/:jobId[POST]'].handler(match[1]);
+            return new Response(JSON.stringify(response), { headers: { 'Content-Type': 'application/json' }, status: 200 });
+          }
+          // ensure no other matches are attempted
+          return fetch(event.request);
         }
       }
       console.log('UNKNOWN PATH', url.pathname);

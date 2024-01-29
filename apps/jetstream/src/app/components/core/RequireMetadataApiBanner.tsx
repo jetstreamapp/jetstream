@@ -1,8 +1,8 @@
+import { useOrgPermissions } from '@jetstream/core/shared-ui';
+import { Alert } from '@jetstream/ui';
+import { useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromAppState from '../../app-state';
-import { useOrgPermissions } from '../orgs/useOrgPermissions';
-import { useState } from 'react';
-import { Alert } from '@jetstream/ui';
 
 interface RequireMetadataApiBannerProps {
   /**

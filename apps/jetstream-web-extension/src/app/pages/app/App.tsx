@@ -16,6 +16,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import { AppHome } from '../../components/AppHome';
 import AppInitializer from '../../components/AppInitializer';
+import { OrgPreview } from '../../components/OrgPreview';
 import '../../components/monaco-loader';
 import { sendMessage } from '../../utils';
 
@@ -111,7 +112,7 @@ export function App() {
                   <HeaderNavbar
                     selectedOrg={selectedOrg}
                     unavailableRoutes={unavailableRoutesDefault}
-                    // orgsDropdown={<OrgsDropdown />}
+                    orgsDropdown={<OrgPreview selectedOrg={selectedOrg} />}
                     // userProfile={userProfile}
                     // featureFlags={featureFlags}
                   />

@@ -23,3 +23,4 @@ export * from './lib/mass-update-records/mass-update-records.utils';
 export * from './lib/mass-update-records/useDeployRecords';
 export * from './lib/query/query-soql-utils';
 export * from './lib/useDeployMetadataPackage';
+export * from './lib/useOrgPermissions';

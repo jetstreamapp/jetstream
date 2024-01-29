@@ -1,4 +1,5 @@
 import * as fromJetstreamEvents from '@jetstream/core/app';
+import { useOrgPermissions } from '@jetstream/core/shared-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
@@ -15,7 +16,6 @@ import OrgsCombobox from '../../components/core/OrgsCombobox';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
-import { useOrgPermissions } from './useOrgPermissions';
 
 interface OrgsDropdownProps {
   addOrgsButtonClassName?: string;

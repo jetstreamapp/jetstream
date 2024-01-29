@@ -1,5 +1,5 @@
 import { Maybe } from '@jetstream/types';
-import { ApiClient } from './utils/api.utils';
+import { ApiClient } from './utils/api-client';
 
 export type Message = GetSfHost | GetSession | GetPageUrl | InitOrg;
 export type MessageRequest = Message['request'];

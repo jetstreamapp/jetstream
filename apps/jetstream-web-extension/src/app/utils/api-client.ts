@@ -1,9 +1,24 @@
 import { QueryResults, QueryResultsColumns } from '@jetstream/api-interfaces';
-import { flattenQueryColumn } from '@jetstream/shared/utils';
-import { ApiResponse, CompositeResponse, GenericRequestPayload, Maybe, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
+import { HTTP } from '@jetstream/shared/constants';
+import { bulkApiEnsureTyped, ensureArray, flattenQueryColumn } from '@jetstream/shared/utils';
+import {
+  ApiResponse,
+  BulkApiCreateJobRequestPayload,
+  BulkJobBatchInfoUntyped,
+  BulkJobUntyped,
+  CompositeResponse,
+  GenericRequestPayload,
+  Maybe,
+  SObjectOrganization,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import type { DescribeGlobalResult, DescribeSObjectResult, IdentityInfo, QueryResult } from 'jsforce';
 import { Query, parseQuery } from 'soql-parser-js';
+// import { convert as xmlConverter } from 'xmlbuilder2';
 import { SessionInfo } from '../extension.types';
+import { prepareBulkApiRequestPayload, prepareCloseOrAbortJobPayload } from './api.bulk.utils';
+
+const { HEADERS, CONTENT_TYPE } = HTTP;
 
 export interface QueryColumnsSfdc {
   columnMetadata: QueryColumnMetadata[];
@@ -128,22 +143,6 @@ export class ApiClient {
     records: Maybe<any | any[]>;
   }) {
     let operationPromise: Promise<unknown> | undefined;
-
-    const request = {
-      allOrNone,
-      records: [
-        {
-          attributes: { type: 'Account' },
-          Name: 'example.com',
-          BillingCity: 'San Francisco',
-        },
-        {
-          attributes: { type: 'Contact' },
-          LastName: 'Johnson',
-          FirstName: 'Erica',
-        },
-      ],
-    };
 
     if (ids) {
       ids = Array.isArray(ids) ? ids : [ids];
@@ -280,6 +279,117 @@ export class ApiClient {
 
     return { data };
   }
+
+  async bulkCreateJob(options: BulkApiCreateJobRequestPayload) {
+    const result = await apiRequest({
+      sessionInfo: this.sessionInfo,
+      url: `${this.baseUrlWithoutPath}/services/async/${this.apiVersion}/job`,
+      method: 'POST',
+      body: prepareBulkApiRequestPayload(options),
+      headers: { [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML },
+    }).then(({ jobInfo }: { jobInfo: BulkJobUntyped }) => bulkApiEnsureTyped(jobInfo));
+
+    return result;
+  }
+
+  async bulkGetJob(jobId: string) {
+    const [jobResults, batchesResults] = await Promise.all([
+      apiRequest({
+        sessionInfo: this.sessionInfo,
+        url: `${this.baseUrlWithoutPath}/services/async/${this.apiVersion}/job/${jobId}`,
+        method: 'GET',
+        headers: { Accept: CONTENT_TYPE.XML },
+      }).then(({ jobInfo }: { jobInfo: BulkJobUntyped }) => bulkApiEnsureTyped(jobInfo)),
+      apiRequest({
+        sessionInfo: this.sessionInfo,
+        url: `${this.baseUrlWithoutPath}/services/async/${this.apiVersion}/job/${jobId}/batch`,
+        method: 'GET',
+        headers: { Accept: CONTENT_TYPE.XML },
+      })
+        .then(({ batchInfoList }: { batchInfoList: { batchInfo: BulkJobBatchInfoUntyped[] } }) => ensureArray(batchInfoList.batchInfo))
+        .then((batchInfoItems) => batchInfoItems.map((batchInfo) => bulkApiEnsureTyped(batchInfo))),
+    ]);
+
+    return { ...jobResults, batches: batchesResults || [] };
+  }
+
+  async bulkCloseJob(jobId: string, state: 'Closed' | 'Aborted' = 'Closed') {
+    const result = await apiRequest({
+      sessionInfo: this.sessionInfo,
+      url: `${this.baseUrlWithoutPath}/services/async/${this.apiVersion}/job/${jobId}`,
+      method: 'POST',
+      body: prepareCloseOrAbortJobPayload(state),
+      headers: { [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML },
+    }).then(({ jobInfo }: { jobInfo: BulkJobUntyped }) => bulkApiEnsureTyped(jobInfo));
+
+    return result;
+  }
+
+  async bulkAddToJob(csv: string | Buffer | ArrayBuffer, jobId: string, closeJob = false) {
+    const result = await apiRequest<string>({
+      sessionInfo: this.sessionInfo,
+      url: `${this.baseUrlWithoutPath}/services/async/${this.apiVersion}/job/${jobId}/batch`,
+      method: 'POST',
+      body: csv,
+      headers: { [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.CSV, Accept: CONTENT_TYPE.XML },
+      outputType: 'text',
+    });
+    // FIXME: we need to convert xml to json but should not use xmlbuilder2
+    // .then((res) => xmlConverter(res, { format: 'object', wellFormed: true }) as any)
+    // .then(({ batchInfo }: { batchInfo: BulkJobBatchInfoUntyped }) => bulkApiEnsureTyped(batchInfo));
+
+    if (closeJob) {
+      await this.bulkCloseJob(jobId, 'Closed');
+    }
+
+    return result;
+  }
+
+  // Download JSON results
+  async bulkApiDownloadResults(jobId: string, batchId: string, type: string, isQuery: boolean, fileName?: string) {
+    // TODO: figure out if/how this is going to work
+    // possible notes here https://stackoverflow.com/questions/50664264/fetch-response-stream-manipulation
+  }
+
+  // Stream results from SFDC to user
+  async bulkApiDownloadResultsFile(jobId: string, batchId: string, type: string, isQuery: boolean, fileName?: string) {
+    // TODO: this one is complicated - return stream and add stuff to it
+    const resultId = '';
+
+    if (isQuery) {
+      // sfBulkGetQueryResultsJobIds
+      //   const results = await request
+      //   .get(`${conn.instanceUrl}/services/async/${conn.version}/job/${jobId}/batch/${batchId}/result`)
+      //   .set({ Accept: CONTENT_TYPE.XML, [HEADERS.X_SFDC_Session]: conn.accessToken })
+      //   .then((res) => {
+      //     // https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_code_curl_walkthrough.htm
+      //     // {result-list: Object {@xmlns: "http://www.force.com/2009/06/asyncapi/dataload", result: "752x00000004CJE"}}
+      //     const resultXml = xmlConverter((res.body as Buffer).toString(), { format: 'object', wellFormed: true }) as any;
+      //     let resultIds = resultXml['result-list'].result;
+      //     // FIXME: there could potentially be multiple results
+      //     if (!Array.isArray(resultIds) && resultIds) {
+      //       resultIds = [resultIds];
+      //     }
+      //     return resultIds || [];
+      //   });
+      // return results;
+      // resultId = (await sfBulkGetQueryResultsJobIds(conn, jobId, batchId))[0];
+    }
+
+    const result = await apiRequest<ReadableStream<Uint8Array>>({
+      sessionInfo: this.sessionInfo,
+      url: `${this.baseUrlWithoutPath}/services/async/${this.apiVersion}/job/${jobId}/batch/${batchId}/${type}${
+        resultId ? `/${resultId}` : ''
+      }`,
+      method: 'GET',
+      headers: { [HEADERS.CONTENT_TYPE]: CONTENT_TYPE.XML_UTF8, Accept: CONTENT_TYPE.CSV },
+      outputType: 'stream',
+    });
+
+    return result;
+  }
+
+  // TODO: sfBulkAddBatchWithZipAttachmentToJob
 }
 
 async function apiRequest<T = unknown>({
@@ -288,12 +398,14 @@ async function apiRequest<T = unknown>({
   url,
   body,
   headers,
+  outputType,
 }: {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   url: string;
   body?: any;
   headers?: Record<string, string>;
   sessionInfo: SessionInfo;
+  outputType?: 'json' | 'text' | 'arrayBuffer' | 'stream';
 }): Promise<T> {
   console.log('[REQUEST][%s][%s]', method, url, body);
   return fetch(url, {
@@ -301,15 +413,24 @@ async function apiRequest<T = unknown>({
     body: body ? JSON.stringify(body) : undefined,
     headers: {
       Authorization: `Bearer ${sessionInfo.key}`,
-      'Content-Type': 'application/json; charset=UTF-8',
-      Accept: 'application/json; charset=UTF-8',
-      'X-SFDC-Session': sessionInfo.key,
+      [HEADERS.CONTENT_TYPE]: 'application/json; charset=UTF-8',
+      [HEADERS.ACCEPT]: 'application/json; charset=UTF-8',
+      [HEADERS.X_SFDC_Session]: sessionInfo.key,
       ...headers,
     },
   })
     .then(async (response) => {
       if (response.ok) {
-        return response.json();
+        outputType = outputType || 'json';
+        if (outputType === 'text') {
+          return response.text();
+        } else if (outputType === 'arrayBuffer') {
+          return response.arrayBuffer();
+        } else if (outputType === 'stream') {
+          return response.body;
+        } else {
+          return response.json();
+        }
       }
       throw new Error(await response.text());
     })
