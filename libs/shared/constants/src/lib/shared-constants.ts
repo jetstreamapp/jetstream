@@ -69,6 +69,7 @@ export const HTTP = {
   },
   CONTENT_TYPE: {
     JSON: 'application/json',
+    FORM_URL: 'application/x-www-form-urlencoded',
     XML: 'application/xml',
     XML_UTF8: 'application/xml; charset=UTF-8',
     CSV: 'text/csv; charset=UTF-8',

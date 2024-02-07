@@ -1,14 +1,21 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { HTTP, LOG_LEVELS, MIME_TYPES } from '@jetstream/shared/constants';
 import { ensureArray, getValueOrSoapNull, sanitizeForXml, splitArrayToMaxSize, toBoolean } from '@jetstream/shared/utils';
-import { AnonymousApexResponse, AnonymousApexSoapResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
+import { AnonymousApexResponse, ApexCompletionResponse, ListMetadataResult, MapOf } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
 import type { DeployOptions, RetrieveRequest } from 'jsforce';
 import * as jsforce from 'jsforce';
-import * as JSZip from 'jszip';
+import JSZip from 'jszip';
 import { isObject, isString, toNumber } from 'lodash';
-import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/sf-misc';
+import xml2js from 'xml2js';
+import {
+  SalesforceRequestViaAxiosOptions,
+  buildPackageXml,
+  getRetrieveRequestFromListMetadata,
+  getRetrieveRequestFromManifest,
+  salesforceRequestViaAxios,
+} from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -329,7 +336,8 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
     let { apex, logLevel }: { apex: string; logLevel?: string } = req.body;
     logLevel = logLevel || 'FINEST';
     const conn: jsforce.Connection = res.locals.jsforceConn;
-    const requestOptions: jsforce.RequestInfo = {
+    const requestOptions: SalesforceRequestViaAxiosOptions = {
+      conn,
       method: 'POST',
       url: `${conn.instanceUrl}/services/Soap/s/${conn.version}`,
       headers: {
@@ -381,7 +389,7 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
         </apex:categories>
       </apex:DebuggingHeader>
       <apex:SessionHeader>
-        <apex:sessionId>${conn.accessToken}</apex:sessionId>
+        <apex:sessionId>{sessionId}</apex:sessionId>
       </apex:SessionHeader>
   </soapenv:Header>
   <soapenv:Body>
@@ -392,22 +400,26 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
 </soapenv:Envelope>`,
     };
 
-    const soapResponse = await conn.request<AnonymousApexSoapResponse>(requestOptions, { responseType: 'text/xml' });
-    const header = soapResponse['soapenv:Envelope']['soapenv:Header'];
-    const body = soapResponse?.['soapenv:Envelope']?.['soapenv:Body']?.executeAnonymousResponse?.result;
-    const results: AnonymousApexResponse = {
-      debugLog: header?.DebuggingInfo?.debugLog || '',
-      result: {
-        column: toNumber(getValueOrSoapNull(body.column) || -1),
-        compileProblem: getValueOrSoapNull(body.compileProblem) || null,
-        compiled: toBoolean(getValueOrSoapNull(body.compiled)) || false,
-        exceptionMessage: getValueOrSoapNull(body.exceptionMessage) || null,
-        exceptionStackTrace: getValueOrSoapNull(body.exceptionStackTrace) || null,
-        line: toNumber(getValueOrSoapNull(body.line)) || -1,
-        success: toBoolean(getValueOrSoapNull(body.success)) || false,
-      },
-    };
-    sendJson(res, results);
+    const response = await salesforceRequestViaAxios(requestOptions);
+    if (!response.error) {
+      const soapResponse = await xml2js.parseStringPromise(response.body, { explicitArray: false });
+      const header = soapResponse['soapenv:Envelope']['soapenv:Header'];
+      const body = soapResponse['soapenv:Envelope']?.['soapenv:Body']?.executeAnonymousResponse?.result;
+      const results: AnonymousApexResponse = {
+        debugLog: header?.DebuggingInfo?.debugLog || '',
+        result: {
+          column: toNumber(getValueOrSoapNull(body.column) || -1),
+          compileProblem: getValueOrSoapNull(body.compileProblem) || null,
+          compiled: toBoolean(getValueOrSoapNull(body.compiled)) || false,
+          exceptionMessage: getValueOrSoapNull(body.exceptionMessage) || null,
+          exceptionStackTrace: getValueOrSoapNull(body.exceptionStackTrace) || null,
+          line: toNumber(getValueOrSoapNull(body.line)) || -1,
+          success: toBoolean(getValueOrSoapNull(body.success)) || false,
+        },
+      };
+      sendJson(res, results);
+    }
+    next(new UserFacingError(response.errorMessage));
   } catch (ex) {
     next(ex);
   }

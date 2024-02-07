@@ -1,4 +1,4 @@
-import * as Rollbar from 'rollbar';
+import Rollbar from 'rollbar';
 import { ENV } from './env-config';
 
 export const rollbarServer = new Rollbar({
