@@ -404,6 +404,7 @@ export function getDataGraph(
           }: { transformedRecord: MapOf<any>; externalIdValue: string | null; recordIdForUpdate: string | null; dependencies: string[] },
           header
         ) => {
+          const isRelatedField = header.includes('.');
           const field = dataset.fieldsByName[header.toLowerCase()];
           let value = record[header];
           const valueIsNull = isNil(value) || (isString(value) && !value);
@@ -423,7 +424,7 @@ export function getDataGraph(
             } else if (insertNulls) {
               transformedRecord[field.name] = null;
             }
-          } else if (dataset.operation === 'UPSERT' && lowercaseExternalId === field.name.toLowerCase()) {
+          } else if (dataset.operation === 'UPSERT' && !isRelatedField && lowercaseExternalId === field.name.toLowerCase()) {
             // External id used for upsert, this needs to be omitted from the record as the value is included in the URL
             externalIdValue = value;
           } else if (insertNulls || !valueIsNull) {
@@ -443,7 +444,7 @@ export function getDataGraph(
           }
 
           // for updates, we need to know the url to update the record - this could be a relationship id or hard-coded id
-          if (dataset.operation === 'UPDATE' && field.name.toLowerCase() === 'id') {
+          if (dataset.operation === 'UPDATE' && !isRelatedField && field.name.toLowerCase() === 'id') {
             recordIdForUpdate = transformedRecord[field.name];
           }
 
