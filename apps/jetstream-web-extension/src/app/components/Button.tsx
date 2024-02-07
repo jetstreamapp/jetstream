@@ -1,6 +1,8 @@
 /* eslint-disable no-restricted-globals */
 import { css } from '@emotion/react';
+import { JetstreamIcon, JetstreamLogo } from '@jetstream/core/ui';
 import { Maybe } from '@jetstream/types';
+import { Grid, GridCol, Icon } from '@jetstream/ui';
 import { useEffect, useState } from 'react';
 import { sendMessage } from '../utils';
 
@@ -13,7 +15,7 @@ export function Button() {
    * increases friction, but more secure
    */
   const [sfHost, setSfHost] = useState<Maybe<string>>(null);
-  const [queryUrl, setQueryUrl] = useState<Maybe<string>>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (isOnSalesforcePage) {
@@ -55,51 +57,91 @@ export function Button() {
   }
 
   return (
-    <div
-      // css={css`
-      //   position: fixed;
-      //   top: 0;
-      //   left: 0;
-      //   right: 0;
-      //   bottom: 0;
-      //   background: rgba(0, 0, 0, 0.5);
-      //   z-index: 10000;
-      //   display: flex;
-      //   justify-content: center;
-      //   align-items: center;
-      //   color: white;
-      //   font-size: 20px;
-      // `}
-      css={css`
+    <>
+      <button
+        css={css`
         z-index: 1000;
         display: block;
         position: fixed;
-        top: 160px;
-        right: 0px;
         vertical-align: middle;
+        pointer: cursor;
+        top: 160px;
+        right: ${isOpen ? '0px;' : '-5px;'};
+        opacity: ${isOpen ? '1;' : '0.25;'};
+        width: 25px;
+        transition: transform 0.3s ease;
+        transform: ${isOpen ? 'scale(1.5);' : 'scale(1);'}
+        transform-origin: top right;
+
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        outline: none;
+        text-align: center;
+
+        &:hover {
+          opacity: 1;
+          right: 0px;
+          transform: scale(1.5);
+        }
       `}
-    >
-      <a
-        css={css`
-          box-sizing: border-box;
-          width: 15px;
-          height: 33px;
-          background-color: rgb(34, 107, 134);
-          border-top-left-radius: 5px;
-          border-bottom-left-radius: 5px;
-          box-shadow: rgb(160, 166, 171) -2px 0px 2px;
-          opacity: 0.4;
-          padding: 3px 1px 2px 0px;
-          border-width: 4px;
-          border-style: solid none solid solid;
-          border-color: rgb(255, 255, 255);
-        `}
-        // onClick={handleClick}
-        href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}`}
+        onClick={() => setIsOpen(true)}
       >
-        click me
-      </a>
-    </div>
+        {/* href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}`} */}
+        <JetstreamIcon />
+      </button>
+      {isOpen && (
+        <section
+          css={css`
+            z-index: 1000;
+            display: block;
+            position: fixed;
+            top: 160px;
+            right: 0;
+            width: 250px;
+          `}
+          className="slds-popover"
+        >
+          <button
+            className="slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close"
+            title="Close dialog"
+            onClick={() => setIsOpen(false)}
+          >
+            <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
+            <span className="slds-assistive-text">Close dialog</span>
+          </button>
+          <header className="slds-p-horizontal_x-small slds-grid">
+            <JetstreamLogo />
+          </header>
+          <div className="slds-popover__body slds-p-around_small slds-is-relative">
+            <Grid vertical gutters>
+              <GridCol>
+                <a
+                  href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&page=query`}
+                  className="slds-button slds-button_neutral slds-button_stretch"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View Current Record
+                </a>
+              </GridCol>
+              <GridCol>
+                <a
+                  href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&page=view-record&recordId=123TODO`}
+                  className="slds-button slds-button_neutral slds-button_stretch"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Query Builder
+                </a>
+              </GridCol>
+            </Grid>
+          </div>
+        </section>
+      )}
+    </>
   );
 }
 

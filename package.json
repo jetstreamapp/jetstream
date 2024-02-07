@@ -45,7 +45,7 @@
     "build:client:stats": "nx build jetstream --prod --statsJson --emptyOutDir",
     "build:client:test": "nx build jetstream --configuration=test --verbose --emptyOutDir",
     "build:web-extension": "nx build jetstream-web-extension --emptyOutDir",
-    "build:web-extension:watch": "nx watch --projects=jetstream-web-extension -- yarn build:web-extension --configuration=development --emptyOutDir",
+    "build:web-extension:watch": "yarn build:web-extension && nx watch --projects=jetstream-web-extension -- yarn build:web-extension --configuration=development --emptyOutDir",
     "build:ui": "nx build ui --configuration=docker",
     "build:ui:test": "nx build ui --configuration=test",
     "build:api": "nx build api --prod",
