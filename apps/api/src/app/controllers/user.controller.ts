@@ -61,6 +61,9 @@ export async function emailSupport(req: express.Request, res: express.Response) 
 export async function getUserProfile(req: express.Request, res: express.Response) {
   const auth0User = req.user as UserProfileServer;
   const user = await userDbService.findByUserId(auth0User.id);
+  if (!user) {
+    throw new UserFacingError('User not found');
+  }
   const userProfileUi: UserProfileUi = {
     ...(auth0User._json as any),
     id: user.id,
@@ -68,7 +71,7 @@ export async function getUserProfile(req: express.Request, res: express.Response
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     preferences: {
-      skipFrontdoorLogin: user.preferences.skipFrontdoorLogin,
+      skipFrontdoorLogin: user.preferences?.skipFrontdoorLogin,
     },
   };
   sendJson(res, userProfileUi);
@@ -77,17 +80,20 @@ export async function getUserProfile(req: express.Request, res: express.Response
 async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: UserProfileAuth0Ui) {
   auth0User = auth0User || (await auth0Service.getUser(sessionUser));
   const jetstreamUser = await userDbService.findByUserId(sessionUser.id);
+  if (!jetstreamUser) {
+    throw new UserFacingError('User not found');
+  }
   const response: UserProfileUiWithIdentities = {
     id: jetstreamUser.id,
     userId: sessionUser.id,
-    name: jetstreamUser.name,
+    name: jetstreamUser.name || '',
     email: jetstreamUser.email,
     emailVerified: auth0User.email_verified,
-    username: auth0User.username,
+    username: auth0User.username || '',
     nickname: auth0User.nickname,
     picture: auth0User.picture,
     preferences: {
-      skipFrontdoorLogin: jetstreamUser.preferences.skipFrontdoorLogin,
+      skipFrontdoorLogin: jetstreamUser.preferences?.skipFrontdoorLogin ?? false,
     },
     identities: auth0User.identities,
     createdAt: jetstreamUser.createdAt.toISOString(),
