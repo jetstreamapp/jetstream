@@ -12,14 +12,14 @@
         "platform": "node",
         "outputPath": "dist/apps/api",
         "format": ["cjs"],
-        "bundle": false,
+        "bundle": true,
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",
         "assets": [
           {
             "glob": "**/*",
             "input": "apps/api/src/assets",
-            "output": "apps/api/src/assets",
+            "output": "assets",
             "ignore": [".gitkeep"]
           }
         ],
@@ -41,7 +41,7 @@
             {
               "glob": "**/*",
               "input": "apps/api/src/assets",
-              "output": "apps/api/src/assets",
+              "output": "assets",
               "ignore": [".gitkeep"]
             }
           ],

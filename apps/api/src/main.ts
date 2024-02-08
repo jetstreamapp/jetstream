@@ -312,22 +312,16 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   });
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
+  app.use(express.static(join(__dirname, '../landing/exported')));
+  // SERVICE WORKER FOR DOWNLOAD ZIP
+  app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
+    res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
+  });
 
   if (environment.production || ENV.IS_CI) {
-    app.use(express.static(join(__dirname, '../landing/exported')));
     app.use(express.static(join(__dirname, '../jetstream')));
-    // SERVICE WORKER FOR DOWNLOAD ZIP
-    app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
-      res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
-    });
     app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
       res.sendFile(join(__dirname, '../jetstream/index.html'));
-    });
-  } else {
-    // localhost will only use landing page resources
-    app.use(express.static(join(__dirname, '../../../dist/apps/landing/exported')));
-    app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
-      res.sendFile(join(__dirname, '../../../dist/apps/download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
     });
   }
 
