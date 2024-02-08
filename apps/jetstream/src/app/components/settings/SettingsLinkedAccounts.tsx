@@ -1,10 +1,10 @@
-import { Auth0ConnectionName, UserProfileAuth0Identity, UserProfileAuth0Ui } from '@jetstream/types';
+import { Auth0ConnectionName, UserProfileAuth0Identity, UserProfileUiWithIdentities } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import SettingsIdentityCard from './SettingsIdentityCard';
 
 export interface SettingsLinkedAccountsProps {
-  fullUserProfile: UserProfileAuth0Ui;
+  fullUserProfile: UserProfileUiWithIdentities;
   onLink: (connection: Auth0ConnectionName) => void;
   onUnlink: (identity: UserProfileAuth0Identity) => void;
   onResendVerificationEmail: (identity: UserProfileAuth0Identity) => void;

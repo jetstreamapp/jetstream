@@ -191,6 +191,13 @@ export const salesforceOrgsOmitSelectedState = selector({
   },
 });
 
+export const selectSkipFrontdoorAuth = selector({
+  key: 'selectSkipFrontdoorAuth',
+  get: ({ get }) => {
+    return get(userProfileState)?.preferences?.skipFrontdoorLogin || false;
+  },
+});
+
 export const salesforceOrgsById = selector({
   key: 'salesforceOrgsById',
   get: ({ get }) => {

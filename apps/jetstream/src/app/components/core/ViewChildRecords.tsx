@@ -22,9 +22,9 @@ import {
 import type { ChildRelationship, QueryResult } from 'jsforce';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { composeQuery, getField } from 'soql-parser-js';
-import { applicationCookieState } from '../../app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../app-state';
 import { useAmplitude } from './analytics';
 
 function getRowId(row: Record<ChildRecordRow>): string {
@@ -88,6 +88,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [loading, setLoading] = useState<boolean>(true);
   const [rows, setRows] = useState<Record<ChildRecordRow>[]>([]);
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
@@ -122,6 +123,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
               <SalesforceLogin
                 serverUrl={serverUrl}
                 org={selectedOrg}
+                skipFrontDoorAuth={skipFrontDoorAuth}
                 returnUrl={`/${row.Id}`}
                 iconPosition="right"
                 title="View record in Salesforce"

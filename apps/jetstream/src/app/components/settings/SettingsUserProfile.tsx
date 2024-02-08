@@ -1,9 +1,9 @@
-import { UserProfileAuth0Ui } from '@jetstream/types';
+import { UserProfileUiWithIdentities } from '@jetstream/types';
 import { Form, FormRow, FormRowItem, Grid, Input, ReadOnlyFormItem } from '@jetstream/ui';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent, useMemo } from 'react';
 
 export interface SettingsUserProfileProps {
-  fullUserProfile: UserProfileAuth0Ui;
+  fullUserProfile: UserProfileUiWithIdentities;
   name: string;
   editMode: boolean;
   onEditMode: (value: true) => void;
@@ -23,6 +23,11 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
 }) => {
   const invalidName = !name || name.length > 255;
 
+  const blockNameEdit = useMemo(
+    () => fullUserProfile.identities.some((identity) => identity.provider !== 'auth0'),
+    [fullUserProfile.identities]
+  );
+
   return (
     <Fragment>
       <Grid className="slds-m-top_large" verticalAlign="center">
@@ -39,7 +44,7 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
           <FormRow>
             <FormRowItem>
               {!editMode && (
-                <ReadOnlyFormItem label="Name" horizontal onEditMore={() => onEditMode(true)}>
+                <ReadOnlyFormItem label="Name" horizontal omitEdit={blockNameEdit} onEditMore={() => onEditMode(true)}>
                   {fullUserProfile.name}
                 </ReadOnlyFormItem>
               )}

@@ -49,6 +49,7 @@ export const CreateFieldsDeployModalRow: FunctionComponent<CreateFieldsDeployMod
             <SalesforceLogin
               org={selectedOrg}
               serverUrl={serverUrl}
+              skipFrontDoorAuth
               iconPosition="right"
               returnUrl={`/lightning/setup/ObjectManager/${result.sobject}/FieldsAndRelationships/${result.fieldId}/view`}
             >

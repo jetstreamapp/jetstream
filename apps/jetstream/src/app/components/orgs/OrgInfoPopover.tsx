@@ -4,8 +4,8 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import {
   ButtonGroupContainer,
   Checkbox,
-  ColorSwatches,
   ColorSwatchItem,
+  ColorSwatches,
   Grid,
   GridCol,
   Icon,
@@ -17,8 +17,8 @@ import {
 import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../app-state';
 
 const EMPTY_COLOR = '_none_';
 
@@ -49,7 +49,7 @@ export interface OrgInfoPopoverProps {
   onUpdateOrg: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
 }
 
-function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof SalesforceOrgUi, label?: string) {
+function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: boolean, prop: keyof SalesforceOrgUi, label?: string) {
   label = label || startCase(prop);
   let value: string | number | boolean | ReactNode = org[prop];
   let tooltip = '';
@@ -59,14 +59,20 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, prop: keyof Salesfo
   if (prop === 'organizationId') {
     tooltip = String(value);
     value = (
-      <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl="/lightning/setup/CompanyProfileInfo/home" omitIcon>
+      <SalesforceLogin
+        serverUrl={serverUrl}
+        skipFrontDoorAuth={skipFrontDoorAuth}
+        org={org}
+        returnUrl="/lightning/setup/CompanyProfileInfo/home"
+        omitIcon
+      >
         {value}
       </SalesforceLogin>
     );
   } else if (prop === 'userId') {
     tooltip = String(value);
     value = (
-      <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
+      <SalesforceLogin serverUrl={serverUrl} skipFrontDoorAuth={skipFrontDoorAuth} org={org} returnUrl={`/${value}`} omitIcon>
         {value}
       </SalesforceLogin>
     );
@@ -96,7 +102,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   onRemoveOrg,
   onUpdateOrg,
 }) => {
-  const [applicationState] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
   const [orgColor, setOrgColor] = useState(org.color || EMPTY_COLOR);
   const [removeOrgActive, setRemoveOrgActive] = useState(false);
@@ -117,7 +124,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }, [org]);
 
   function handleFixOrg() {
-    addOrg({ serverUrl: applicationState.serverUrl, loginUrl: org.instanceUrl }, (addedOrg: SalesforceOrgUi) => {
+    addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl }, (addedOrg: SalesforceOrgUi) => {
       onAddOrg(addedOrg, true);
     });
   }
@@ -197,7 +204,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
             <div className="slds-p-around_xx-small">
               <ButtonGroupContainer className="slds-button_stretch">
                 <SalesforceLogin
-                  serverUrl={applicationState.serverUrl}
+                  serverUrl={serverUrl}
+                  skipFrontDoorAuth={skipFrontDoorAuth}
                   className="slds-button slds-button_neutral slds-button_stretch"
                   org={org}
                   title="Login to Salesforce Home"
@@ -206,7 +214,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
                   Home Page
                 </SalesforceLogin>
                 <SalesforceLogin
-                  serverUrl={applicationState.serverUrl}
+                  serverUrl={serverUrl}
+                  skipFrontDoorAuth={skipFrontDoorAuth}
                   className="slds-button slds-button_neutral slds-button_stretch"
                   org={org}
                   returnUrl="/lightning/setup/SetupOneHome/home"
@@ -267,16 +276,16 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
                   <ColorSwatches items={ORG_COLORS} selectedItem={orgColor} onSelection={handleColorSelection} />
                 </td>
               </tr>
-              {getOrgProp(applicationState.serverUrl, org, 'orgName', 'Org Name')}
-              {getOrgProp(applicationState.serverUrl, org, 'organizationId', 'Org Id')}
-              {getOrgProp(applicationState.serverUrl, org, 'orgInstanceName', 'Instance')}
-              {getOrgProp(applicationState.serverUrl, org, 'instanceUrl')}
-              {getOrgProp(applicationState.serverUrl, org, 'orgOrganizationType', 'Org Type')}
-              {getOrgProp(applicationState.serverUrl, org, 'orgIsSandbox', 'Is Sandbox')}
-              {getOrgProp(applicationState.serverUrl, org, 'orgTrialExpirationDate', 'Trial Expiration')}
-              {getOrgProp(applicationState.serverUrl, org, 'userId')}
-              {getOrgProp(applicationState.serverUrl, org, 'username')}
-              {getOrgProp(applicationState.serverUrl, org, 'email')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgName', 'Org Name')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'organizationId', 'Org Id')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgInstanceName', 'Instance')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'instanceUrl')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgOrganizationType', 'Org Type')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgIsSandbox', 'Is Sandbox')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgTrialExpirationDate', 'Trial Expiration')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'userId')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'username')}
+              {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'email')}
             </tbody>
           </table>
           <div className="slds-p-horizontal_xx-small slds-p-top_xx-small">

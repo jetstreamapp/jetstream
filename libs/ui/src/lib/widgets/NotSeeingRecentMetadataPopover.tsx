@@ -61,6 +61,7 @@ export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMe
             <SalesforceLogin
               serverUrl={serverUrl}
               org={org}
+              skipFrontDoorAuth
               returnUrl={viewInSalesforceSetup.link}
               title={viewInSalesforceSetup.title}
               iconPosition="right"

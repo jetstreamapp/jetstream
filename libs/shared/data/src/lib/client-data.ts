@@ -25,8 +25,8 @@ import {
   SalesforceApiRequest,
   SalesforceOrgUi,
   SobjectOperation,
-  UserProfileAuth0Ui,
   UserProfileUi,
+  UserProfileUiWithIdentities,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import type {
@@ -86,19 +86,19 @@ export async function deleteUserProfile(reason?: string): Promise<void> {
   return handleRequest({ method: 'DELETE', url: '/api/me', data: { reason } }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getFullUserProfile(): Promise<UserProfileAuth0Ui> {
+export async function getFullUserProfile(): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'GET', url: '/api/me/profile' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function updateUserProfile(userProfile: { name: string }): Promise<UserProfileAuth0Ui> {
+export async function updateUserProfile(userProfile: { name: string }): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
 }
 
-export async function unlinkIdentityFromProfile(identity: { provider: string; userId: string }): Promise<UserProfileAuth0Ui> {
+export async function unlinkIdentityFromProfile(identity: { provider: string; userId: string }): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'DELETE', url: '/api/me/profile/identity', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
-export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<UserProfileAuth0Ui> {
+export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<void> {
   return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
 }
 

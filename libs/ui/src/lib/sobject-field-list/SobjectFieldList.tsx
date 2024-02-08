@@ -226,6 +226,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 <SalesforceLogin
                   serverUrl={serverUrl}
                   org={org}
+                  skipFrontDoorAuth
                   returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
                   omitIcon
                   title={`View object in Salesforce setup`}

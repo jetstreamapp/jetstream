@@ -5,8 +5,8 @@ import { MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import { FieldPermissionRecord, FieldValues, LayoutResult } from '../../shared/create-fields/create-fields-types';
 import { CreateFieldsResults } from '../../shared/create-fields/useCreateFields';
 
@@ -33,7 +33,8 @@ export function FormulaEvaluatorDeploySummary({
   deployed,
   results,
 }: FormulaEvaluatorDeploySummaryProps) {
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   let flsResults: MapOf<FieldPermissionRecord> = {};
   let layoutResults: MapOf<LayoutResult> = {};
 
@@ -68,6 +69,7 @@ export function FormulaEvaluatorDeploySummary({
             <SalesforceLogin
               org={selectedOrg}
               serverUrl={serverUrl}
+              skipFrontDoorAuth={skipFrontDoorAuth}
               iconPosition="right"
               returnUrl={`/lightning/setup/ObjectManager/${sobject}/FieldsAndRelationships/${results?.fieldId}/view`}
             >

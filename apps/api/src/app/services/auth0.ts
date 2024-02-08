@@ -1,5 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileServer } from '@jetstream/types';
+import { UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileServer, UserProfileUiWithIdentities } from '@jetstream/types';
 import axios, { AxiosError } from 'axios';
 import { addHours, addSeconds, formatISO, isBefore } from 'date-fns';
 import * as userDb from '../db/user.db';
@@ -76,10 +76,13 @@ export async function updateUserLastActivity(user: UserProfileServer, lastActivi
   ).data;
 }
 
-export async function updateUser(user: UserProfileServer, userProfile: { name: string }): Promise<UserProfileAuth0Ui> {
+export async function updateUser(user: UserProfileServer, userProfile: UserProfileUiWithIdentities): Promise<UserProfileAuth0Ui> {
   await initAuthorizationToken(user);
-  // update on Auth0
-  await axiosAuth0.patch<UserProfileAuth0Ui>(`/api/v2/users/${user.id}`, userProfile);
+
+  if (user.displayName !== userProfile.name) {
+    // update on Auth0 if name changed (not allowed for OAuth connections)
+    await axiosAuth0.patch<UserProfileAuth0Ui>(`/api/v2/users/${user.id}`, { name: userProfile.name });
+  }
   // update locally
   await userDb.updateUser(user, userProfile);
   // re-fetch user from Auth0
