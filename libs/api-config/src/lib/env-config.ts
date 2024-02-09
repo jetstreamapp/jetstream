@@ -1,5 +1,5 @@
 import { ensureBoolean, ensureStringValue } from '@jetstream/shared/utils';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileServer, UserProfileUi } from '@jetstream/types';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
 import { join } from 'path';
@@ -41,11 +41,21 @@ const EXAMPLE_USER: UserProfileServer = {
   user_id: 'EXAMPLE_USER',
 };
 
+const EXAMPLE_USER_PROFILE: UserProfileUi = {
+  ...EXAMPLE_USER._json,
+  id: 'EXAMPLE_USER',
+  userId: 'EXAMPLE_USER',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  preferences: { skipFrontdoorLogin: false },
+};
+
 export const ENV = {
   IS_CI: ensureBoolean(process.env.CI),
   // LOCAL OVERRIDE
   EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),
   EXAMPLE_USER: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER : null,
+  EXAMPLE_USER_PROFILE: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER_PROFILE : null,
   // SYSTEM
   NODE_ENV: process.env.NODE_ENV,
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',

@@ -1,4 +1,4 @@
-import { logger, mailgun } from '@jetstream/api-config';
+import { ENV, logger, mailgun } from '@jetstream/api-config';
 import { UserProfileAuth0Ui, UserProfileServer, UserProfileUi, UserProfileUiWithIdentities } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import * as express from 'express';
@@ -60,6 +60,13 @@ export async function emailSupport(req: express.Request, res: express.Response) 
 
 export async function getUserProfile(req: express.Request, res: express.Response) {
   const auth0User = req.user as UserProfileServer;
+
+  // use fallback locally and on CI
+  if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER_PROFILE && req.hostname === 'localhost') {
+    sendJson(res, ENV.EXAMPLE_USER_PROFILE);
+    return;
+  }
+
   const user = await userDbService.findByUserId(auth0User.id);
   if (!user) {
     throw new UserFacingError('User not found');
