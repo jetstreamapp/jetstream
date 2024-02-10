@@ -23,23 +23,10 @@ const userSelect: Prisma.UserSelect = {
  * Find by Auth0 userId, not Jetstream Id
  */
 export async function findByUserId(userId: string) {
-  let user = await prisma.user.findUnique({
-    where: { userId: userId },
+  const user = await prisma.user.findUnique({
+    where: { userId },
     select: userSelect,
   });
-  // ensure user preference exists if not already created
-  if (user && !user.preferences) {
-    await prisma.userPreference.create({
-      data: {
-        userId: user.userId,
-        skipFrontdoorLogin: false,
-      },
-    });
-    user = await prisma.user.findUnique({
-      where: { userId: userId },
-      select: userSelect,
-    });
-  }
   return user;
 }
 
@@ -86,9 +73,9 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
         data: {
           appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
           preferences: {
-            connectOrCreate: {
+            upsert: {
               create: { skipFrontdoorLogin: false },
-              where: { userId: user.id },
+              update: { skipFrontdoorLogin: false },
             },
           },
         },

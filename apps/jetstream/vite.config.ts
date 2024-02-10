@@ -26,11 +26,8 @@ export default defineConfig({
     // Put all assets at the root of the app instead of under /assets
     assetsDir: './',
     sourcemap: true,
-    rollupOptions: {
-      output: {
-        sourcemap: true,
-      },
-    },
+    emptyOutDir: true,
+    rollupOptions: {},
   },
 
   plugins: [
