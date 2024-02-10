@@ -1,6 +1,12 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { deleteUserProfile, getFullUserProfile, resendVerificationEmail, updateUserProfile } from '@jetstream/shared/data';
+import {
+  deleteUserProfile,
+  getFullUserProfile,
+  getUserProfile as getUserProfileUi,
+  resendVerificationEmail,
+  updateUserProfile,
+} from '@jetstream/shared/data';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import {
   Auth0ConnectionName,
@@ -23,6 +29,8 @@ import {
 } from '@jetstream/ui';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useSetRecoilState } from 'recoil';
+import { userProfileState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import LoggerConfig from './LoggerConfig';
 import SettingsDeleteAccount from './SettingsDeleteAccount';
@@ -31,11 +39,6 @@ import SettingsUserProfile from './SettingsUserProfile';
 import { useLinkAccount } from './useLinkAccount';
 
 const HEIGHT_BUFFER = 170;
-
-type UpdateUserRequest = {
-  name: string;
-  preferences: UserProfileUi['preferences'];
-};
 
 export interface SettingsProps {
   userProfile: Maybe<UserProfileUi>;
@@ -49,6 +52,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
+  const setUserProfile = useSetRecoilState(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const [editMode, setEditMode] = useState(false);
@@ -94,6 +98,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
       }
       setLoading(true);
       const userProfile = await updateUserProfile(_modifiedUser);
+      setUserProfile(await getUserProfileUi());
       setFullUserProfile(userProfile);
       trackEvent(ANALYTICS_KEYS.settings_update_user);
     } catch (ex) {

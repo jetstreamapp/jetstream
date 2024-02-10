@@ -26,6 +26,7 @@ const getRowId = ({ key }: TableRowOrItemOrChild) => key;
 
 export interface AutomationControlEditorTableProps {
   serverUrl: string;
+  skipFrontdoorLogin: boolean;
   selectedOrg: SalesforceOrgUi;
   rows: TableRowOrItemOrChild[];
   quickFilterText?: string | null;
@@ -34,7 +35,7 @@ export interface AutomationControlEditorTableProps {
 }
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
-  ({ serverUrl, selectedOrg, rows, quickFilterText, toggleRowExpand, updateIsActiveFlag }, ref) => {
+  ({ serverUrl, skipFrontdoorLogin, selectedOrg, rows, quickFilterText, toggleRowExpand, updateIsActiveFlag }, ref) => {
     const columns = useMemo(() => {
       return [
         {
@@ -96,6 +97,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
       <div className="h-100">
         <DataTable
           serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
           org={selectedOrg}
           data={rows}
           columns={columns}

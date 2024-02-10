@@ -8,11 +8,25 @@ import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-table-types';
 import { useDataTable } from './useDataTable';
 
-export interface DataTreeProps<T = RowWithKey, TContext = Record<string, any>>
+interface PropsWithServer {
+  serverUrl: string;
+  skipFrontdoorLogin: boolean;
+}
+
+interface PropsWithoutServer {
+  serverUrl?: never;
+  skipFrontdoorLogin?: never;
+}
+
+export type DataTreeProps<T = RowWithKey, TContext = Record<string, any>> = DataTreePropsBase<T, TContext> &
+  (PropsWithServer | PropsWithoutServer);
+
+interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>>
   extends Omit<TreeDataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter'> {
   data: T[];
   columns: ColumnWithFilter<T>[];
   serverUrl?: string;
+  skipFrontdoorLogin?: boolean;
   org?: SalesforceOrgUi;
   quickFilterText?: string | null;
   includeQuickFilter?: boolean;
@@ -34,6 +48,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
       data,
       columns: _columns,
       serverUrl,
+      skipFrontdoorLogin,
       org,
       quickFilterText,
       includeQuickFilter,
@@ -66,6 +81,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
       data,
       columns: _columns,
       serverUrl,
+      skipFrontdoorLogin,
       org,
       quickFilterText,
       includeQuickFilter,

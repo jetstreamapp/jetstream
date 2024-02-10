@@ -8,12 +8,27 @@ import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, RowWithKey } from './data-table-types';
 import { useDataTable } from './useDataTable';
 
-export interface DataTableProps<T = RowWithKey, TContext = Record<string, any>>
+interface PropsWithServer {
+  serverUrl: string;
+  skipFrontdoorLogin: boolean;
+}
+
+interface PropsWithoutServer {
+  serverUrl?: never;
+  skipFrontdoorLogin?: never;
+}
+
+export type DataTableProps<T = RowWithKey, TContext = Record<string, any>> = DataTablePropsBase<T, TContext> &
+  (PropsWithServer | PropsWithoutServer);
+
+interface DataTablePropsBase<T = RowWithKey, TContext = Record<string, any>>
   extends Omit<DataGridProps<T>, 'columns' | 'rows' | 'rowKeyGetter' | 'onColumnsReorder'> {
   data: T[];
   columns: ColumnWithFilter<T>[];
-  serverUrl?: string;
   org?: SalesforceOrgUi;
+  // Both of these are required if one is present, since the server url is most likely used for frontdoor login
+  // serverUrl
+  // skipFrontdoorLogin
   quickFilterText?: string | null;
   includeQuickFilter?: boolean;
   context?: TContext;
@@ -35,6 +50,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       data,
       columns: _columns,
       serverUrl,
+      skipFrontdoorLogin,
       org,
       quickFilterText,
       includeQuickFilter,
@@ -68,6 +84,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       data,
       columns: _columns,
       serverUrl,
+      skipFrontdoorLogin,
       org,
       quickFilterText,
       includeQuickFilter,

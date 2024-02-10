@@ -22,7 +22,7 @@ import {
 import type { ChildRelationship, QueryResult } from 'jsforce';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { composeQuery, getField } from 'soql-parser-js';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '../../app-state';
 import { useAmplitude } from './analytics';
@@ -87,7 +87,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
 }) => {
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [loading, setLoading] = useState<boolean>(true);
   const [rows, setRows] = useState<Record<ChildRecordRow>[]>([]);
@@ -171,7 +171,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         name: 'Created',
       },
     ],
-    [selectedOrg, serverUrl]
+    [selectedOrg, serverUrl, skipFrontDoorAuth]
   );
 
   const fetchChildRecords = useCallback(
@@ -351,6 +351,8 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         <DataTree
           columns={columns}
           data={rows}
+          serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontDoorAuth}
           getRowKey={getRowId}
           includeQuickFilter
           groupBy={groupedRows}

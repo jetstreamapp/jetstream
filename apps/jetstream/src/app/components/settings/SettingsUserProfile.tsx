@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { UserProfileUiWithIdentities } from '@jetstream/types';
 import { Form, FormRow, FormRowItem, Grid, Input, ReadOnlyFormItem } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useMemo } from 'react';
@@ -39,7 +40,12 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
           <button className="slds-button slds-button_neutral slds-m-left_small">Change picture</button>
         </div> */}
       </Grid>
-      <Grid className="slds-m-top_small slds-m-bottom_large">
+      <div
+        className="slds-m-top_small slds-m-bottom_large"
+        css={css`
+          max-width: 33rem;
+        `}
+      >
         <Form>
           <FormRow>
             <FormRowItem>
@@ -82,7 +88,7 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
             </FormRow>
           )}
         </Form>
-      </Grid>
+      </div>
     </Fragment>
   );
 };

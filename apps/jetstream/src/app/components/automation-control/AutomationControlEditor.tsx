@@ -29,8 +29,8 @@ import {
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { useAmplitude } from '../core/analytics';
 import * as fromJetstreamEvents from '../core/jetstream-events';
@@ -60,7 +60,9 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   const { trackEvent } = useAmplitude();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
+
   const selectedSObjects = useRecoilValue(fromAutomationCtlState.selectedSObjectsState);
   const selectedAutomationTypes = useRecoilValue(fromAutomationCtlState.selectedAutomationTypes);
 
@@ -368,6 +370,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
             >
               <AutomationControlEditorTable
                 serverUrl={serverUrl}
+                skipFrontdoorLogin={skipFrontdoorLogin}
                 selectedOrg={selectedOrg}
                 rows={visibleRows}
                 quickFilterText={quickFilterText}
