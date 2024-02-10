@@ -1,7 +1,7 @@
 import { ENV } from '@jetstream/api-config';
-import * as express from 'express';
+import express from 'express';
 import Router from 'express-promise-router';
-import * as multer from 'multer';
+import multer from 'multer';
 import * as imageController from '../controllers/image.controller';
 import * as orgsController from '../controllers/orgs.controller';
 import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';

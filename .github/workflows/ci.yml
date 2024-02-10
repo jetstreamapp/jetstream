@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout [master]
         with:
           fetch-depth: 0
@@ -30,9 +30,9 @@ jobs:
         run: git branch --track main origin/main
 
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
-        uses: nrwl/nx-set-shas@v3
+        uses: nrwl/nx-set-shas@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'yarn'
@@ -46,7 +46,7 @@ jobs:
         run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
 
       - name: Uploading artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist-artifacts
           path: dist
@@ -98,12 +98,12 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout [master]
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'yarn'
@@ -112,7 +112,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Download artifacts from build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dist-artifacts
           path: dist
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload test results
         if: always() # This ensures step will always run even if prior steps fail
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: |

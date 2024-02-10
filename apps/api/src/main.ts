@@ -3,15 +3,15 @@ import { ENV, logger, pgPool } from '@jetstream/api-config';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
-import * as pgSimple from 'connect-pg-simple';
-import * as cors from 'cors';
-import * as express from 'express';
+import pgSimple from 'connect-pg-simple';
+import cors from 'cors';
+import express from 'express';
 import proxy from 'express-http-proxy';
-import * as session from 'express-session';
-import * as helmet from 'helmet';
+import session from 'express-session';
+import helmet from 'helmet';
 import { cpus } from 'os';
-import * as passport from 'passport';
-import * as Auth0Strategy from 'passport-auth0';
+import passport from 'passport';
+import Auth0Strategy from 'passport-auth0';
 import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
@@ -312,22 +312,16 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   });
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
+  app.use(express.static(join(__dirname, '../landing/exported')));
+  // SERVICE WORKER FOR DOWNLOAD ZIP
+  app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
+    res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
+  });
 
   if (environment.production || ENV.IS_CI) {
-    app.use(express.static(join(__dirname, '../landing/exported')));
     app.use(express.static(join(__dirname, '../jetstream')));
-    // SERVICE WORKER FOR DOWNLOAD ZIP
-    app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
-      res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
-    });
     app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
       res.sendFile(join(__dirname, '../jetstream/index.html'));
-    });
-  } else {
-    // localhost will only use landing page resources
-    app.use(express.static(join(__dirname, '../../../dist/apps/landing/exported')));
-    app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
-      res.sendFile(join(__dirname, '../../../dist/apps/download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
     });
   }
 

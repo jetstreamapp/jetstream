@@ -8,20 +8,20 @@ The Jetstream platform makes managing your Salesforce instances a breeze. Use Je
 
 Learn more by [reading the docs](https://docs.getjetstream.app/).
 
-**JETSTREAM IS SOURCE-AVAILABLE AND FREE TO USE. IF YOUR COMPANY IS GETTING VALUE, PLEASE CONSIDER SPONSORING THE PROJECT ❤️**
+**JETSTREAM IS SOURCE-AVAILABLE AND FREE TO USE. IF YOUR COMPANY IS GETTING VALUE, CONSIDER SPONSORING THE PROJECT ❤️**
+
+Jetstream wouldn't be possible without your contributions.
 
 [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/jetstreamapp)
 
 There are multiple ways to use Jetstream.
 
 1. Use the hosted version at https://getjetstream.app
-2. Use the desktop version **TODO: COMING SOON**
-3. Run locally
+2. Run locally
    1. Using nodejs
       1. Building yourself (recommended if you want to contribute to the Jetstream codebase)
-      2. Using the pre-built version **TODO: COMING SOON**
    2. Using Docker
-4. Want to self-host behind your company firewall? Reach out to the team for assistance.
+3. Want to self-host behind your company firewall? Reach out to the team for assistance.
 
 # Overview of the codebase structure
 
@@ -73,13 +73,39 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 
 **Pre-req**
 
-1. Make sure you have node 16 or 18 installed.
-2. If you want to run the dev server, make sure you have yarn installed.
+1. Make sure you have node 20 installed.
+2. If you are using docker, make sure you have Docker installed.
+3. If you want to run the dev server, make sure you have yarn version 1 installed.
 
 📓 You can choose to skip authentication locally by setting the environment variable `EXAMPLE_USER_OVERRIDE=true`. This is set to true by default in the `.env.example` file.
 🌟 To use this, don't click the login button, but instead just go to `http://localhost:3333/app` or `http://localhost:4200/app` (if running the react development server) directly.
 
-The easiest way to run Jetstream locally is to download the pre-built and transpiled javascript files and run them using NodeJs.
+### Using Docker
+
+If you have docker and just want to run the application locally, using docker is the easiest option.
+
+Build the docker image (this takes a while the first time).
+
+```shell
+docker build -t jetstream-app .
+```
+
+Use docker compose to create a dockerized postgres database and run the app.
+
+```shell
+docker compose up
+```
+
+- Jetstream will be running at `http://localhost:3333`
+- Postgres will be running on port `5555` if you wanted to connect to it locally.
+- When you click "Login", you should immediately be logged in without having to sign in.
+  - You can set `EXAMPLE_USER_OVERRIDE` if you want to disable this behavior
+- If assets on the page don't load, do a hard refresh (hold cmd or shift and press refresh)
+  - This might happen if you have re-built the image and the browser has cached the page with now missing resources.
+
+### Running without Docker
+
+Use this option if you want to contribute to the codebase.
 
 Jetstream relies on a Postgres database, so you either need to [run Postgresql locally](https://www.postgresql.org/download/) or use a managed provider such as one from the list below. Optionally you can run jetstream in a Docker container which includes Postgresql.
 
@@ -105,12 +131,6 @@ If you want to create your own:
          4. Perform requests at any time `refresh_token, offline_access`
       3. All other defaults are fine
 3. Update the file named `.env` and replace `SFDC_CONSUMER_KEY` and `SFDC_CONSUMER_SECRET` with the values from your connected app.
-
-### Download pre-built application
-
-This is the fastest 🏃 way to run Jetstream locally.
-
-TODO: instructions to download and instructions to run
 
 ### Building
 
@@ -166,7 +186,7 @@ TODO: instructions to download and instructions to run
 
 ## Desktop Application
 
-**TODO: THIS HAS NOT BEEN ENTIRELY WORKED OUT YET**
+This is a work in progress and may be removed as an available option.
 
 ### Local development
 
