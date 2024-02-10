@@ -4,8 +4,8 @@ import { getMapOf } from '@jetstream/shared/utils';
 import { DeployMessage, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
@@ -49,7 +49,8 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
 }) => {
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -292,7 +293,13 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
         {hasLoaded && results && (
           <Fragment>
             {deployStatusUrl && (
-              <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={deployStatusUrl} iconPosition="right">
+              <SalesforceLogin
+                serverUrl={serverUrl}
+                org={selectedOrg}
+                skipFrontDoorAuth={skipFrontDoorAuth}
+                returnUrl={deployStatusUrl}
+                iconPosition="right"
+              >
                 View job in Salesforce
               </SalesforceLogin>
             )}

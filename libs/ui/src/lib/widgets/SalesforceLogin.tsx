@@ -24,7 +24,7 @@ function getLoginUrl({
   returnUrl,
 }: Pick<SalesforceLoginProps, 'skipFrontDoorAuth' | 'org' | 'serverUrl' | 'returnUrl'>) {
   if (skipFrontDoorAuth) {
-    return `${org.instanceUrl}/${returnUrl}`;
+    return `${org.instanceUrl}${returnUrl}`;
   } else {
     if (serverUrl) {
       let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;

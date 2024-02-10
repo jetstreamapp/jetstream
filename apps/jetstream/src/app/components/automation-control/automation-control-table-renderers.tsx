@@ -21,7 +21,7 @@ export const ExpandingLabelRenderer: FunctionComponent<{
 
   const wrappedValue =
     !isTableRow(row) && row.link && serverUrl && selectedOrg ? (
-      <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={row.link} iconPosition="right" title={value}>
+      <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={row.link} iconPosition="right" title={value} skipFrontDoorAuth>
         {value}
       </SalesforceLogin>
     ) : (

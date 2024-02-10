@@ -85,6 +85,7 @@ export interface FilterContextProps {
 
 export interface SubqueryContext<TRow = any> {
   serverUrl: string;
+  skipFrontdoorLogin: boolean;
   org: SalesforceOrgUi;
   isTooling: boolean;
   columnDefinitions?: MapOf<ColumnWithFilter<TRow, unknown>[]>;

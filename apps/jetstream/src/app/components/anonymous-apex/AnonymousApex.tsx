@@ -27,7 +27,7 @@ import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { STORAGE_KEYS, applicationCookieState, selectedOrgState } from '../../app-state';
+import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
@@ -55,7 +55,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>();
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
@@ -273,6 +274,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                   className="slds-m-right_x-small"
                   serverUrl={serverUrl}
                   org={selectedOrg}
+                  skipFrontDoorAuth={skipFrontDoorAuth}
                   returnUrl="/_ui/common/apex/debug/ApexCSIPage"
                   omitIcon
                   title="Open developer console"

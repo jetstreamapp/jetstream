@@ -87,6 +87,7 @@ function getTagline(
         serverUrl={serverUrl}
         org={selectedOrg}
         returnUrl={`/${recordId}`}
+        skipFrontDoorAuth
         iconPosition="right"
         title="View record in Salesforce"
       >
@@ -99,6 +100,7 @@ function getTagline(
         serverUrl={serverUrl}
         org={selectedOrg}
         returnUrl={`/${recordId}`}
+        skipFrontDoorAuth
         iconPosition="right"
         title="View record in Salesforce"
       >

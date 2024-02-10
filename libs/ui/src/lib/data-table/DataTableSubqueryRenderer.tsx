@@ -125,8 +125,17 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
         if (!props) {
           return null;
         }
-        const { serverUrl, org, columnDefinitions, onSubqueryFieldReorder, isTooling, google_apiKey, google_appId, google_clientId } =
-          props;
+        const {
+          serverUrl,
+          skipFrontdoorLogin,
+          org,
+          columnDefinitions,
+          onSubqueryFieldReorder,
+          isTooling,
+          google_apiKey,
+          google_appId,
+          google_clientId,
+        } = props;
 
         if (!columnDefinitions || !columnDefinitions[column.key]) {
           return null;
@@ -148,6 +157,7 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
                 org={org}
                 downloadModalIsActive={downloadModalIsActive}
                 serverUrl={serverUrl}
+                skipFrontdoorLogin={skipFrontdoorLogin}
                 google_apiKey={google_apiKey}
                 google_appId={google_appId}
                 google_clientId={google_clientId}
@@ -202,6 +212,7 @@ function ModalDataTable({
   org,
   downloadModalIsActive,
   serverUrl,
+  skipFrontdoorLogin,
   google_apiKey,
   google_appId,
   google_clientId,
@@ -315,6 +326,7 @@ function ModalDataTable({
             <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={300}>
               <DataTable
                 serverUrl={serverUrl}
+                skipFrontdoorLogin={skipFrontdoorLogin}
                 org={org}
                 data={rows}
                 columns={columns}

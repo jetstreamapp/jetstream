@@ -5,7 +5,7 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, Modal, PreviewIllustration, SalesforceLogin, Spinner, Tabs, TabsRef } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import { useAmplitude } from '../../core/analytics';
 import DeployMetadataProgressSummary from '../../deploy/utils/DeployMetadataProgressSummary';
@@ -26,6 +26,7 @@ export interface CreateNewObjectModalProps {
 export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> = ({ selectedOrg, onClose }) => {
   const { trackEvent } = useAmplitude();
   const [{ defaultApiVersion, serverUrl }] = useRecoilState(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
 
   const modalRef = useRef();
   const modalBodyRef = useRef<HTMLDivElement>(null);
@@ -185,6 +186,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                             <SalesforceLogin
                               serverUrl={serverUrl}
                               org={selectedOrg}
+                              skipFrontDoorAuth={skipFrontDoorAuth}
                               returnUrl={`/lightning/setup/ObjectManager/${apiName}/Details/view`}
                               title={`View object in Salesforce setup`}
                               iconPosition="right"

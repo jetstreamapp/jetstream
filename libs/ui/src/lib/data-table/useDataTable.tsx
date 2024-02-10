@@ -32,6 +32,7 @@ export interface UseDataTableProps {
   data: any[];
   columns: ColumnWithFilter<any>[];
   serverUrl?: string;
+  skipFrontdoorLogin?: boolean;
   org?: SalesforceOrgUi;
   quickFilterText?: string | null;
   includeQuickFilter?: boolean;
@@ -53,6 +54,7 @@ export function useDataTable<T = RowWithKey>({
   data,
   columns: _columns,
   serverUrl,
+  skipFrontdoorLogin,
   org,
   quickFilterText,
   includeQuickFilter,
@@ -259,7 +261,7 @@ export function useDataTable<T = RowWithKey>({
   );
 
   if (serverUrl && org) {
-    configIdLinkRenderer(serverUrl, org);
+    configIdLinkRenderer(serverUrl, org, skipFrontdoorLogin);
   }
   return {
     gridId,

@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { Maybe, UserProfileAuth0Identity, UserProfileAuth0Ui } from '@jetstream/types';
+import { Maybe, UserProfileAuth0Identity, UserProfileUiWithIdentities } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
@@ -19,7 +19,7 @@ function getProviderName(identity: UserProfileAuth0Identity) {
   }
 }
 
-function getUsername(identity: UserProfileAuth0Identity, fallback: UserProfileAuth0Ui) {
+function getUsername(identity: UserProfileAuth0Identity, fallback: UserProfileUiWithIdentities) {
   if (!identity.isSocial) {
     return null;
   }
@@ -42,7 +42,7 @@ function getUsername(identity: UserProfileAuth0Identity, fallback: UserProfileAu
 
 export interface SettingsIdentityCardProps {
   identity: UserProfileAuth0Identity;
-  fallback: UserProfileAuth0Ui;
+  fallback: UserProfileUiWithIdentities;
   omitUnlink?: boolean;
   onUnlink: (identity: UserProfileAuth0Identity) => void;
   onResendVerificationEmail: (identity: UserProfileAuth0Identity) => void;
@@ -62,7 +62,7 @@ export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> 
   const name = profileData?.name || fallback.name;
   const email = profileData?.email || fallback.email;
   const picture = profileData?.picture || fallback.picture;
-  const emailVerified = profileData?.email_verified || fallback.email_verified;
+  const emailVerified = profileData?.email_verified || fallback.emailVerified;
 
   async function confirmUnlink() {
     if (

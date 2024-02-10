@@ -1,10 +1,24 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { deleteUserProfile, getFullUserProfile, resendVerificationEmail, updateUserProfile } from '@jetstream/shared/data';
+import {
+  deleteUserProfile,
+  getFullUserProfile,
+  getUserProfile as getUserProfileUi,
+  resendVerificationEmail,
+  updateUserProfile,
+} from '@jetstream/shared/data';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { Auth0ConnectionName, Maybe, UserProfileAuth0Identity, UserProfileAuth0Ui, UserProfileUi } from '@jetstream/types';
+import {
+  Auth0ConnectionName,
+  Maybe,
+  UserProfileAuth0Identity,
+  UserProfileAuth0Ui,
+  UserProfileUi,
+  UserProfileUiWithIdentities,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  CheckboxToggle,
   Page,
   PageHeader,
   PageHeaderRow,
@@ -15,6 +29,8 @@ import {
 } from '@jetstream/ui';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useSetRecoilState } from 'recoil';
+import { userProfileState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import LoggerConfig from './LoggerConfig';
 import SettingsDeleteAccount from './SettingsDeleteAccount';
@@ -36,8 +52,9 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
-  const [fullUserProfile, setFullUserProfile] = useState<UserProfileAuth0Ui>();
-  const [modifiedUser, setModifiedUser] = useState<Pick<UserProfileAuth0Ui, 'name'>>();
+  const setUserProfile = useSetRecoilState(userProfileState);
+  const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
+  const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const [editMode, setEditMode] = useState(false);
   const { linkAccount, unlinkAccount, loading: linkAccountLoading } = useLinkAccount();
 
@@ -69,17 +86,19 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
 
   useEffect(() => {
     if (fullUserProfile) {
-      setModifiedUser({ name: fullUserProfile.name });
+      setModifiedUser({ ...fullUserProfile });
     }
   }, [fullUserProfile]);
 
-  async function handleSave() {
+  async function handleSave(_modifiedUser?: UserProfileUiWithIdentities) {
     try {
-      if (!modifiedUser) {
+      _modifiedUser = _modifiedUser || modifiedUser;
+      if (!_modifiedUser) {
         return;
       }
       setLoading(true);
-      const userProfile = await updateUserProfile(modifiedUser);
+      const userProfile = await updateUserProfile(_modifiedUser);
+      setUserProfile(await getUserProfileUi());
       setFullUserProfile(userProfile);
       trackEvent(ANALYTICS_KEYS.settings_update_user);
     } catch (ex) {
@@ -97,7 +116,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
 
   function handleCancelEdit() {
     setEditMode(false);
-    fullUserProfile && setModifiedUser({ name: fullUserProfile.name });
+    fullUserProfile && setModifiedUser({ ...fullUserProfile });
   }
 
   async function handleUnlinkAccount(identity: UserProfileAuth0Identity) {
@@ -132,7 +151,13 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
   }
 
   function handleProfileChange(modified: Pick<UserProfileAuth0Ui, 'name'>) {
-    setModifiedUser(modified);
+    setModifiedUser((priorValue) => ({ ...fullUserProfile, ...priorValue, ...modified } as UserProfileUiWithIdentities));
+  }
+
+  function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
+    const _modifiedUser = { ...modifiedUser, preferences: { skipFrontdoorLogin } } as UserProfileUiWithIdentities;
+    setModifiedUser(_modifiedUser);
+    handleSave(_modifiedUser);
   }
 
   function handleLinkAccount(connection: Auth0ConnectionName) {
@@ -192,6 +217,15 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
               onSave={handleSave}
               onCancel={handleCancelEdit}
             />
+
+            <CheckboxToggle
+              id="frontdoor-toggle"
+              checked={modifiedUser?.preferences?.skipFrontdoorLogin || false}
+              label="Don't Auto-Login on Link Clicks"
+              labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
+              onChange={handleFrontdoorLoginChange}
+            />
+
             <SettingsLinkedAccounts
               fullUserProfile={fullUserProfile}
               onLink={handleLinkAccount}

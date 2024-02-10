@@ -38,7 +38,7 @@ export const DeployMetadataHistoryViewResults: FunctionComponent<DeployMetadataH
       statusUrls={
         <div>
           {item.url && (
-            <SalesforceLogin org={destinationOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={item.url}>
+            <SalesforceLogin org={destinationOrg} serverUrl={serverUrl} skipFrontDoorAuth iconPosition="right" returnUrl={item.url}>
               View the deployment details.
             </SalesforceLogin>
           )}

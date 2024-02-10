@@ -1,9 +1,10 @@
-import { UserProfileAuth0Ui } from '@jetstream/types';
+import { css } from '@emotion/react';
+import { UserProfileUiWithIdentities } from '@jetstream/types';
 import { Form, FormRow, FormRowItem, Grid, Input, ReadOnlyFormItem } from '@jetstream/ui';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment, FunctionComponent, useMemo } from 'react';
 
 export interface SettingsUserProfileProps {
-  fullUserProfile: UserProfileAuth0Ui;
+  fullUserProfile: UserProfileUiWithIdentities;
   name: string;
   editMode: boolean;
   onEditMode: (value: true) => void;
@@ -23,6 +24,11 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
 }) => {
   const invalidName = !name || name.length > 255;
 
+  const blockNameEdit = useMemo(
+    () => fullUserProfile.identities.some((identity) => identity.provider !== 'auth0'),
+    [fullUserProfile.identities]
+  );
+
   return (
     <Fragment>
       <Grid className="slds-m-top_large" verticalAlign="center">
@@ -34,12 +40,17 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
           <button className="slds-button slds-button_neutral slds-m-left_small">Change picture</button>
         </div> */}
       </Grid>
-      <Grid className="slds-m-top_small slds-m-bottom_large">
+      <div
+        className="slds-m-top_small slds-m-bottom_large"
+        css={css`
+          max-width: 33rem;
+        `}
+      >
         <Form>
           <FormRow>
             <FormRowItem>
               {!editMode && (
-                <ReadOnlyFormItem label="Name" horizontal onEditMore={() => onEditMode(true)}>
+                <ReadOnlyFormItem label="Name" horizontal omitEdit={blockNameEdit} onEditMore={() => onEditMode(true)}>
                   {fullUserProfile.name}
                 </ReadOnlyFormItem>
               )}
@@ -77,7 +88,7 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
             </FormRow>
           )}
         </Form>
-      </Grid>
+      </div>
     </Fragment>
   );
 };

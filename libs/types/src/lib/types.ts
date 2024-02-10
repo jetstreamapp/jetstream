@@ -127,6 +127,23 @@ export type UserProfileAuth0Ui = Pick<
   'user_id' | 'email' | 'email_verified' | 'identities' | 'name' | 'nickname' | 'picture' | 'app_metadata' | 'username'
 >;
 
+export interface UserProfileUiWithIdentities {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  picture?: string;
+  username: string;
+  nickname: string;
+  preferences: {
+    skipFrontdoorLogin: boolean;
+  };
+  identities: UserProfileAuth0Identity[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfileUi {
   email: string;
   email_verified: boolean;
@@ -137,11 +154,18 @@ export interface UserProfileUi {
   picture?: string | null;
   sub: string; // userid
   updated_at: string;
+  id: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  preferences: {
+    skipFrontdoorLogin: boolean;
+  };
 }
 
 // SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
 export interface UserProfileServer {
-  _json: UserProfileUi;
+  _json: Omit<UserProfileUi, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'preferences'>;
   _raw: string | null;
   id: string;
   displayName: string;
