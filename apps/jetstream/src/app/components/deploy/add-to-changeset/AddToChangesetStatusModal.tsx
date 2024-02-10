@@ -2,10 +2,10 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import { getDeploymentStatusUrl, getLightningChangesetUrl } from '../utils/deploy-metadata.utils';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { getDeploymentStatusUrl, getLightningChangesetUrl } from '../utils/deploy-metadata.utils';
 import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';
 
 export interface AddToChangesetStatusModalProps {
@@ -32,7 +32,8 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   onClose,
   onDownload,
 }) => {
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useAddItemsToChangeset(selectedOrg, {
     changesetName,
@@ -73,14 +74,26 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
         <Fragment>
           {changeset?.link && (
             <div>
-              <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={getLightningChangesetUrl(changeset)}>
+              <SalesforceLogin
+                org={selectedOrg}
+                serverUrl={serverUrl}
+                skipFrontDoorAuth={skipFrontDoorAuth}
+                iconPosition="right"
+                returnUrl={getLightningChangesetUrl(changeset)}
+              >
                 View the outbound changeset.
               </SalesforceLogin>
             </div>
           )}
           {deployStatusUrl && (
             <div>
-              <SalesforceLogin org={selectedOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={deployStatusUrl}>
+              <SalesforceLogin
+                org={selectedOrg}
+                serverUrl={serverUrl}
+                skipFrontDoorAuth={skipFrontDoorAuth}
+                iconPosition="right"
+                returnUrl={deployStatusUrl}
+              >
                 View the deployment details.
               </SalesforceLogin>
             </div>

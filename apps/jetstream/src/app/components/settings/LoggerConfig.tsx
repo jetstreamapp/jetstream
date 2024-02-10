@@ -19,18 +19,21 @@ export const LoggerConfig: FunctionComponent = () => {
   }
 
   return (
-    <Grid verticalAlign="start">
-      <div>
-        <CheckboxToggle id="logging-toggle" checked={isEnabled} label="Logging" onChange={handleChange} />
-      </div>
-      {isEnabled && (
-        <div className="slds-m-left_medium">
-          <button className="slds-button slds-button_neutral" onClick={handleLogBuffer}>
-            Print Prior Logs
-          </button>
+    <>
+      <Grid verticalAlign="start">
+        <div>
+          <CheckboxToggle id="logging-toggle" checked={isEnabled} label="Logging" onChange={handleChange} />
         </div>
-      )}
-    </Grid>
+        {isEnabled && (
+          <div className="slds-m-left_medium">
+            <button className="slds-button slds-button_neutral" onClick={handleLogBuffer}>
+              Print Prior Logs
+            </button>
+          </div>
+        )}
+      </Grid>
+      <p className="slds-text-color_wea">This controls logs tracked in your browser, enabled if requested by Jetstream Support.</p>
+    </>
   );
 };
 

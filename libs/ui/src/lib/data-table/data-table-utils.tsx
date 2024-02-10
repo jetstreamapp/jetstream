@@ -680,7 +680,7 @@ export function getSubqueryModalTagline(parentRecord: any) {
  * @param record
  * @returns
  */
-export function getSfdcRetUrl(record: any, id?: string): { skipFrontDoorAuth: boolean; url: string } {
+export function getSfdcRetUrl(record: any, id?: string, skipFrontdoorLoginOverride?: boolean): { skipFrontDoorAuth: boolean; url: string } {
   try {
     id = id || getIdFromRecordUrl(record?.attributes?.url || record?._record?.attributes?.url);
     const baseRecordType = record?.attributes?.type || record?._record?.attributes?.type;
@@ -688,7 +688,7 @@ export function getSfdcRetUrl(record: any, id?: string): { skipFrontDoorAuth: bo
 
     if (baseRecordType === 'Group') {
       return {
-        skipFrontDoorAuth: true,
+        skipFrontDoorAuth: skipFrontdoorLoginOverride ?? true,
         url: `/lightning/setup/PublicGroups/page?address=${encodeURIComponent(`/setup/own/groupdetail.jsp?id=${id}`)}`,
       };
     }
@@ -696,16 +696,16 @@ export function getSfdcRetUrl(record: any, id?: string): { skipFrontDoorAuth: bo
     switch (relatedRecordType) {
       case 'RecordType': {
         return {
-          skipFrontDoorAuth: false,
+          skipFrontDoorAuth: skipFrontdoorLoginOverride ?? false,
           url: `/lightning/setup/ObjectManager/${relatedRecordType}/RecordTypes/${id}/view`,
         };
       }
       default:
-        return { skipFrontDoorAuth: false, url: `/${id}` };
+        return { skipFrontDoorAuth: skipFrontdoorLoginOverride ?? false, url: `/${id}` };
     }
   } catch (ex) {
     logger.error('Error formatting Salesforce URL', ex);
-    return { skipFrontDoorAuth: false, url: `/${id}` };
+    return { skipFrontDoorAuth: skipFrontdoorLoginOverride ?? false, url: `/${id}` };
   }
 }
 

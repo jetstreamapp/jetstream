@@ -40,14 +40,16 @@ import { getRowId, getSfdcRetUrl, isFilterActive, resetFilter } from './data-tab
 
 let _serverUrl: string;
 let _org: SalesforceOrgUi;
+let _skipFrontdoorLogin = false;
 
-export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi) {
+export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi, skipFrontdoorLogin?: boolean) {
   if (_serverUrl !== serverUrl) {
     _serverUrl = serverUrl;
   }
   if (_org !== org) {
     _org = org;
   }
+  _skipFrontdoorLogin = skipFrontdoorLogin ?? _skipFrontdoorLogin;
 }
 
 // HEADER RENDERERS
@@ -580,7 +582,7 @@ export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = 
     onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
   };
   const recordId = row[column.key];
-  const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId);
+  const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId, _skipFrontdoorLogin);
   return (
     <RecordLookupPopover
       org={_org}

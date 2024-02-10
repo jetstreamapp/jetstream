@@ -3,8 +3,8 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ChangeSet, ListItem, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { useChangesetList } from '../utils/useChangesetList';
 
@@ -32,7 +32,8 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   onDeploy,
 }) => {
   const modalBodyRef = useRef<HTMLDivElement>(null);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');
@@ -105,6 +106,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 <SalesforceLogin
                   serverUrl={serverUrl}
                   org={selectedOrg}
+                  skipFrontDoorAuth={skipFrontDoorAuth}
                   returnUrl={`/lightning/setup/OutboundChangeSet/home`}
                   iconPosition="right"
                 >

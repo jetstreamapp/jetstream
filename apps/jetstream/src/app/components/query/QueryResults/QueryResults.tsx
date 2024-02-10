@@ -37,7 +37,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from 'soql-parser-js';
-import { applicationCookieState, selectedOrgState } from '../../../app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../../app-state';
 import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
@@ -100,7 +100,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistory.queryHistoryState);
   const bulkDeleteJob = useObservable(
@@ -660,6 +661,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               google_clientId={google_clientId}
               isTooling={isTooling}
               serverUrl={serverUrl}
+              skipFrontdoorLogin={skipFrontdoorLogin}
               queryResults={queryResults}
               fieldMetadata={fieldMetadata}
               fieldMetadataSubquery={fieldMetadataSubquery}

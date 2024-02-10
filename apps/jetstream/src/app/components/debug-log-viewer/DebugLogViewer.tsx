@@ -22,7 +22,7 @@ import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
@@ -42,6 +42,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const logCache = useRef<MapOf<string>>({});
   const logRef = useRef<editor.IStandaloneCodeEditor>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [showLogsFromAllUsers, setShowLogsFromAllUsers] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
@@ -227,6 +228,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 className="slds-m-right_x-small"
                 serverUrl={serverUrl}
                 org={selectedOrg}
+                skipFrontDoorAuth={skipFrontDoorAuth}
                 returnUrl="/lightning/setup/ApexDebugLogs/home"
                 omitIcon
                 title="View debug logs in Salesforce"

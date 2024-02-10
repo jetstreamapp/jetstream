@@ -1,9 +1,9 @@
+import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
+import { Checkbox, SalesforceLogin } from '@jetstream/ui';
 import isBoolean from 'lodash/isBoolean';
 import isObjectLike from 'lodash/isObjectLike';
 import uniqueId from 'lodash/uniqueId';
-import React, { ReactNode } from 'react';
-import { Checkbox, SalesforceLogin } from '@jetstream/ui';
-import { QueryFieldHeader, SalesforceOrgUi } from '@jetstream/types';
+import { ReactNode } from 'react';
 
 export function getQueryResultsCellContents(
   field: QueryFieldHeader,
@@ -42,7 +42,7 @@ export function getQueryResultsCellContents(
     case 'id':
       content = (
         <div className="slds-line-clamp_medium" title={`${value}`}>
-          <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={`/${value}`} omitIcon>
+          <SalesforceLogin serverUrl={serverUrl} org={org} skipFrontDoorAuth returnUrl={`/${value}`} omitIcon>
             {value as ReactNode}
           </SalesforceLogin>
         </div>

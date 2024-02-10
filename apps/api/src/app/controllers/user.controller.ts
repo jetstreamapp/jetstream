@@ -1,15 +1,16 @@
-import { logger, mailgun } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { ENV, logger, mailgun } from '@jetstream/api-config';
+import { UserProfileAuth0Ui, UserProfileServer, UserProfileUi, UserProfileUiWithIdentities } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import * as express from 'express';
 import { body, query as queryString } from 'express-validator';
 import { deleteUserAndOrgs } from '../db/transactions.db';
+import * as userDbService from '../db/user.db';
 import * as auth0Service from '../services/auth0';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
-  updateProfile: [body('name').isString().isLength({ min: 1, max: 255 })],
+  updateProfile: [body('name').isString().isLength({ min: 1, max: 255 }), body('preferences').isObject().optional()],
   unlinkIdentity: [queryString('provider').isString().isLength({ min: 1 }), queryString('userId').isString().isLength({ min: 1 })],
   resendVerificationEmail: [queryString('provider').isString().isLength({ min: 1 }), queryString('userId').isString().isLength({ min: 1 })],
   deleteAccount: [body('reason').isString().optional()],
@@ -58,16 +59,62 @@ export async function emailSupport(req: express.Request, res: express.Response) 
 }
 
 export async function getUserProfile(req: express.Request, res: express.Response) {
-  const user = req.user as UserProfileServer;
-  sendJson(res, user._json);
+  const auth0User = req.user as UserProfileServer;
+
+  // use fallback locally and on CI
+  if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER_PROFILE && req.hostname === 'localhost') {
+    sendJson(res, ENV.EXAMPLE_USER_PROFILE);
+    return;
+  }
+
+  const user = await userDbService.findByUserId(auth0User.id);
+  if (!user) {
+    throw new UserFacingError('User not found');
+  }
+  const userProfileUi: UserProfileUi = {
+    ...(auth0User._json as any),
+    id: user.id,
+    userId: user.userId,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    preferences: {
+      skipFrontdoorLogin: user.preferences?.skipFrontdoorLogin,
+    },
+  };
+  sendJson(res, userProfileUi);
+}
+
+async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: UserProfileAuth0Ui) {
+  auth0User = auth0User || (await auth0Service.getUser(sessionUser));
+  const jetstreamUser = await userDbService.findByUserId(sessionUser.id);
+  if (!jetstreamUser) {
+    throw new UserFacingError('User not found');
+  }
+  const response: UserProfileUiWithIdentities = {
+    id: jetstreamUser.id,
+    userId: sessionUser.id,
+    name: jetstreamUser.name || '',
+    email: jetstreamUser.email,
+    emailVerified: auth0User.email_verified,
+    username: auth0User.username || '',
+    nickname: auth0User.nickname,
+    picture: auth0User.picture,
+    preferences: {
+      skipFrontdoorLogin: jetstreamUser.preferences?.skipFrontdoorLogin ?? false,
+    },
+    identities: auth0User.identities,
+    createdAt: jetstreamUser.createdAt.toISOString(),
+    updatedAt: jetstreamUser.updatedAt.toISOString(),
+  };
+  return response;
 }
 
 /** Get profile from Auth0 */
 export async function getFullUserProfile(req: express.Request, res: express.Response) {
   const user = req.user as UserProfileServer;
   try {
-    const auth0User = await auth0Service.getUser(user);
-    sendJson(res, auth0User);
+    const response = await getFullUserProfileFn(user);
+    sendJson(res, response);
   } catch (ex) {
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
@@ -86,11 +133,14 @@ export async function getFullUserProfile(req: express.Request, res: express.Resp
 
 export async function updateProfile(req: express.Request, res: express.Response) {
   const user = req.user as UserProfileServer;
-  const userProfile = { name: req.body.name };
+  const userProfile = req.body as UserProfileUiWithIdentities;
 
   try {
+    // check for name change, if so call auth0 to update
     const auth0User = await auth0Service.updateUser(user, userProfile);
-    sendJson(res, auth0User);
+    // update name and preferences locally
+    const response = await getFullUserProfileFn(user, auth0User);
+    sendJson(res, response);
   } catch (ex) {
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
@@ -114,7 +164,8 @@ export async function unlinkIdentity(req: express.Request, res: express.Response
     const userId = req.query.userId as string;
 
     const auth0User = await auth0Service.unlinkIdentity(user, { provider, userId });
-    sendJson(res, auth0User);
+    const response = await getFullUserProfileFn(user, auth0User);
+    sendJson(res, response);
   } catch (ex) {
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
@@ -136,8 +187,8 @@ export async function resendVerificationEmail(req: express.Request, res: express
   const provider = req.query.provider as string;
   const userId = req.query.userId as string;
   try {
-    const auth0User = await auth0Service.resendVerificationEmail(user, { provider, userId });
-    sendJson(res, auth0User);
+    await auth0Service.resendVerificationEmail(user, { provider, userId });
+    sendJson(res);
   } catch (ex) {
     if (ex.isAxiosError) {
       const error: AxiosError = ex;

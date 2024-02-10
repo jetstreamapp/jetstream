@@ -52,6 +52,7 @@ export interface SalesforceRecordDataTableProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
   serverUrl: string;
+  skipFrontdoorLogin: boolean;
   defaultApiVersion: string;
   google_apiKey: string;
   google_appId: string;
@@ -84,6 +85,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     google_clientId,
     isTooling,
     serverUrl,
+    skipFrontdoorLogin,
     queryResults,
     fieldMetadata,
     fieldMetadataSubquery,
@@ -438,6 +440,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
           <DataTableSubqueryContext.Provider
             value={{
               serverUrl,
+              skipFrontdoorLogin,
               org,
               isTooling,
               columnDefinitions: subqueryColumnsMap,
@@ -449,6 +452,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
           >
             <DataTable
               serverUrl={serverUrl}
+              skipFrontdoorLogin={skipFrontdoorLogin}
               org={org}
               data={rows || []}
               columns={columns || []}
