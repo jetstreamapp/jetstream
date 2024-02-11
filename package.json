@@ -30,7 +30,7 @@
     "start:cron:inactive-account-warning": "node dist/apps/cron-tasks/inactive-account-warning.js",
     "start:cron:inactive-account-deletion": "node dist/apps/cron-tasks/inactive-account-deletion.js",
     "start:cron:save-analytics-summary": "node dist/apps/cron-tasks/save-analytics-summary.js",
-    "build": "cross-env NODE_ENV=production npm-run-all db:generate build:core build:landing",
+    "build": "cross-env NODE_ENV=production npm-run-all generate:version db:generate build:core build:landing",
     "build:pre-deploy": "cross-env NODE_ENV=production npm-run-all --parallel rollbar:upload-sourcemaps db:migrate",
     "build:core": "NODE_OPTIONS=--max_old_space_size=8192 nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw --configuration=production",
     "build:affected": "nx affected --target=build --parallel=3 --configuration=production",

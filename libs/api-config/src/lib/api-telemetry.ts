@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { credentials, Metadata } from '@grpc/grpc-js';
+import { UserProfileServer } from '@jetstream/types';
+import telemetryApi from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { Resource } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import * as process from 'process';
 import { logger } from './api-logger';
 import { ENV } from './env-config';
-import telemetryApi from '@opentelemetry/api';
-import { UserProfileServer } from '@jetstream/types';
 
 // Metadata is passed into to the tracer to provide both the dataset name and the API key required for Honeycomb.
 //
