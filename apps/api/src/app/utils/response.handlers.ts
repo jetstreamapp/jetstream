@@ -1,4 +1,4 @@
-import { ENV, logger, rollbarServer } from '@jetstream/api-config';
+import { ENV, logger, prisma, rollbarServer } from '@jetstream/api-config';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { SalesforceOrg } from '@prisma/client';
 import * as express from 'express';
@@ -7,7 +7,7 @@ import { AuthenticationError, NotFoundError, UserFacingError } from './error-han
 
 export async function healthCheck(req: express.Request, res: express.Response) {
   try {
-    await this.prismaService.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({
       error: false,
       uptime: process.uptime(),
