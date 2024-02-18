@@ -320,7 +320,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 
   if (environment.production || ENV.IS_CI) {
     app.use(express.static(join(__dirname, '../jetstream')));
-    app.use('/app', logRoute, (req: express.Request, res: express.Response) => {
+    app.use('/app', (req: express.Request, res: express.Response) => {
       res.sendFile(join(__dirname, '../jetstream/index.html'));
     });
   }

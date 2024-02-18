@@ -9,7 +9,8 @@
   "version": "3.10.3",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
-    "node": "20"
+    "node": "20",
+    "yarn": "1.22.21"
   },
   "scripts": {
     "init:project": "ts-node ./scripts/init-project.ts",
