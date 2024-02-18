@@ -10,6 +10,17 @@ export function healthCheck(req: express.Request, res: express.Response) {
 }
 
 export function sendJson<ResponseType = any>(res: express.Response, content?: ResponseType, status = 200) {
+  if (res.headersSent) {
+    logger.warn('Response headers already sent', { requestId: res.locals.requestId });
+    try {
+      rollbarServer.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
+        requestId: res.locals.requestId,
+      });
+    } catch (ex) {
+      logger.error('Error sending to Rollbar', ex, { requestId: res.locals.requestId });
+    }
+    return;
+  }
   res.status(status);
   return res.json({ data: content || {} });
 }
@@ -44,6 +55,16 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     country: req.headers[HTTP.HEADERS.CF_IPCountry],
     ...userInfo,
   });
+
+  if (res.headersSent) {
+    logger.warn('Response headers already sent', { requestId: res.locals.requestId });
+    try {
+      rollbarServer.warn('Error not handled by error handler, headers already sent', req, userInfo, err, new Error('headers already sent'));
+    } catch (ex) {
+      logger.error('Error sending to Rollbar', ex, { requestId: res.locals.requestId });
+    }
+    return;
+  }
 
   const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
 

@@ -418,8 +418,9 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
         },
       };
       sendJson(res, results);
+    } else {
+      next(new UserFacingError(response.errorMessage));
     }
-    next(new UserFacingError(response.errorMessage));
   } catch (ex) {
     next(ex);
   }
