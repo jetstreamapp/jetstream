@@ -5,8 +5,21 @@ import * as express from 'express';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
-export function healthCheck(req: express.Request, res: express.Response) {
-  return res.status(200).end();
+export async function healthCheck(req: express.Request, res: express.Response) {
+  try {
+    await this.prismaService.$queryRaw`SELECT 1`;
+    res.status(200).json({
+      error: false,
+      uptime: process.uptime(),
+      message: 'Healthy',
+    });
+  } catch (ex) {
+    res.status(500).json({
+      error: true,
+      uptime: process.uptime(),
+      message: `Unhealthy: ${ex.message}`,
+    });
+  }
 }
 
 export function sendJson<ResponseType = any>(res: express.Response, content?: ResponseType, status = 200) {
