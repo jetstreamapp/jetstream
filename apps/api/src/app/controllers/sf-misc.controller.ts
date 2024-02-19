@@ -1,10 +1,11 @@
-import { ApiConnection, FetchResponse } from '@jetstream/salesforce-api';
+import { FetchResponse } from '@jetstream/salesforce-api';
 import { toBoolean } from '@jetstream/shared/utils';
 import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction } from 'express';
 import { body, query } from 'express-validator';
 import { isObject, isString } from 'lodash';
 import { Readable } from 'stream';
+import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -36,10 +37,10 @@ export const routeValidators = {
   ],
 };
 
-export async function getFrontdoorLoginUrl(req: Request, res: Response, next: NextFunction) {
+export async function getFrontdoorLoginUrl(req: Request<unknown, unknown, { returnUrl: string }>, res: Response, next: NextFunction) {
   try {
     const { returnUrl } = req.query;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     // ensure that our token is valid and not expired
     await jetstreamConn.org.identity();
     res.redirect(jetstreamConn.org.getFrontdoorLoginUrl(returnUrl as string));
@@ -53,10 +54,10 @@ export async function getFrontdoorLoginUrl(req: Request, res: Response, next: Ne
  * Query parameter of url is required (e.x. `/services/data/v54.0/sobjects/Attachment/00P6g000007BzmTEAS/Body`)
  * @returns
  */
-export async function streamFileDownload(req: Request, res: Response, next: NextFunction) {
+export async function streamFileDownload(req: Request<unknown, unknown, { url: string }>, res: Response, next: NextFunction) {
   try {
     const { url } = req.query;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     const results = await jetstreamConn.org.streamDownload(url as string);
     Readable.fromWeb(results as any).pipe(res);
@@ -67,11 +68,11 @@ export async function streamFileDownload(req: Request, res: Response, next: Next
 
 // https://github.com/jsforce/jsforce/issues/934
 // TODO: the api version in the urls needs to match - we should not have this hard-coded on front-end
-export async function salesforceRequest(req: Request, res: Response, next: NextFunction) {
+export async function salesforceRequest(req: Request<unknown, GenericRequestPayload, unknown>, res: Response, next: NextFunction) {
   try {
-    const payload = req.body as GenericRequestPayload;
+    const payload = req.body;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.request.manualRequest(payload);
 
     sendJson(res, results);
@@ -82,12 +83,12 @@ export async function salesforceRequest(req: Request, res: Response, next: NextF
 
 // TODO: combine with salesforceRequest and rename
 // The request payload and response are slightly different, but the logic is the same
-export async function salesforceRequestManual(req: Request, res: Response, next: NextFunction) {
+export async function salesforceRequestManual(req: Request<unknown, ManualRequestPayload, unknown>, res: Response, next: NextFunction) {
   try {
     // const { method, headers, body, url } = req.body as ManualRequestPayload;
-    const payload = req.body as ManualRequestPayload;
+    const payload = req.body;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.request.manualRequest<FetchResponse>(payload, 'response').then(async (response) => ({
       error: response.status < 200 || response.status > 300,
       status: response.status,
@@ -102,23 +103,31 @@ export async function salesforceRequestManual(req: Request, res: Response, next:
   }
 }
 
-export async function recordOperation(req: Request, res: Response, next: NextFunction) {
+export async function recordOperation(
+  req: Request<
+    { sobject: string; operation: string },
+    { ids?: string | string[]; records: any },
+    { externalId: string; allOrNone: string }
+  >,
+  res: Response,
+  next: NextFunction
+) {
   try {
     // FIXME: add express validator to operation
     const { sobject, operation } = req.params;
     const { externalId } = req.query;
     // FIXME: move to express validator to do data conversion
-    const allOrNone = toBoolean(req.query.allOrNone as string, true);
+    const allOrNone = toBoolean(req.query.allOrNone, true);
     // TODO: validate combination based on operation or add validation to case statement
     // ids and records can be one or an array
     const { ids, records } = req.body;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     const results = await jetstreamConn.sobject.recordOperation({
       sobject,
       operation,
-      externalId: externalId as string,
+      externalId: externalId,
       records,
       allOrNone,
       ids,

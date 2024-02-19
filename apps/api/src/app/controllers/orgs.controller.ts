@@ -1,10 +1,9 @@
 import { logger } from '@jetstream/api-config';
-import { ApiConnection } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { UserProfileServer } from '@jetstream/types';
-import { SalesforceOrg } from '@prisma/client';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction } from 'express';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -50,9 +49,9 @@ export async function deleteOrg(req: Request, res: Response, next: NextFunction)
 export async function checkOrgHealth(req: Request, res: Response, next: NextFunction) {
   try {
     const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-    const org = res.locals.org as SalesforceOrg;
+    const org = res.locals.org;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     let connectionError = org.connectionError;
 

@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction } from 'express';
 import { isString } from 'lodash';
 import * as passport from 'passport';
 import { URL } from 'url';
 import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
 import { checkAuth } from '../routes/route.middleware';
+import { Request, Response } from '../types/types';
 // import { sendWelcomeEmail } from '../services/worker-jobs';
 import { linkIdentity } from '../services/auth0';
 import { AuthenticationError } from '../utils/error-handler';

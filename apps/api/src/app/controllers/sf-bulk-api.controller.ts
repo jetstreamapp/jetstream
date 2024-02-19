@@ -1,12 +1,12 @@
 import { logger } from '@jetstream/api-config';
-import { ApiConnection } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, BulkApiDownloadType } from '@jetstream/types';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction } from 'express';
 import { body, param, query } from 'express-validator';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 import { Readable } from 'stream';
+import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -44,11 +44,11 @@ export const routeValidators = {
 };
 
 // https://github.com/jsforce/jsforce/issues/934
-export async function createJob(req: Request, res: Response, next: NextFunction) {
+export async function createJob(req: Request<unknown, BulkApiCreateJobRequestPayload>, res: Response, next: NextFunction) {
   try {
-    const options = req.body as BulkApiCreateJobRequestPayload;
+    const options = req.body;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.createJob(options);
 
     sendJson(res, results);
@@ -57,11 +57,11 @@ export async function createJob(req: Request, res: Response, next: NextFunction)
   }
 }
 
-export async function getJob(req: Request, res: Response, next: NextFunction) {
+export async function getJob(req: Request<{ jobId: string }>, res: Response, next: NextFunction) {
   try {
     const jobId = req.params.jobId;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.getJob(jobId);
 
     sendJson(res, results);
@@ -70,12 +70,12 @@ export async function getJob(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function closeOrAbortJob(req: Request, res: Response, next: NextFunction) {
+export async function closeOrAbortJob(req: Request<{ jobId: string; action: string }>, res: Response, next: NextFunction) {
   try {
     const jobId = req.params.jobId;
     const action: 'Closed' | 'Aborted' = req.params.action === 'abort' ? 'Aborted' : 'Closed';
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.closeJob(jobId, action);
 
     sendJson(res, results);
@@ -84,13 +84,17 @@ export async function closeOrAbortJob(req: Request, res: Response, next: NextFun
   }
 }
 
-export async function addBatchToJob(req: Request, res: Response, next: NextFunction) {
+export async function addBatchToJob(
+  req: Request<{ jobId: string }, string | Buffer, { closeJob: boolean }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const jobId = req.params.jobId;
     const csv = req.body;
-    const closeJob = req.query.closeJob as any;
+    const closeJob = req.query.closeJob;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, ensureBoolean(closeJob));
 
     sendJson(res, results);
@@ -99,14 +103,18 @@ export async function addBatchToJob(req: Request, res: Response, next: NextFunct
   }
 }
 
-export async function addBatchToJobWithBinaryAttachment(req: Request, res: Response, next: NextFunction) {
+export async function addBatchToJobWithBinaryAttachment(
+  req: Request<{ jobId: string }, string | Buffer, { closeJob: boolean }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const jobId = req.params.jobId;
     const zip = req.body;
-    const closeJob = req.query.closeJob as any;
+    const closeJob = req.query.closeJob;
 
     // TODO: how is this different from addBatchToJob?
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.addBatchToJob(zip, jobId, ensureBoolean(closeJob));
 
     sendJson(res, results);
@@ -122,14 +130,18 @@ export async function addBatchToJobWithBinaryAttachment(req: Request, res: Respo
  *  THIS IS USED BY BULK QUERY DOWNLOAD
  *
  */
-export async function downloadResultsFile(req: Request, res: Response, next: NextFunction) {
+export async function downloadResultsFile(
+  req: Request<{ jobId: string; batchId: string }, string | Buffer, { type: BulkApiDownloadType; isQuery?: string; fileName?: string }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const jobId = req.params.jobId;
     const batchId = req.params.batchId;
-    const type = req.query.type as BulkApiDownloadType;
-    const isQuery = ensureBoolean(req.query.isQuery as string);
+    const type = req.query.type;
+    const isQuery = ensureBoolean(req.query.isQuery);
     const fileName = req.query.fileName || `${type}.csv`;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     res.setHeader(HTTP.HEADERS.CONTENT_TYPE, HTTP.CONTENT_TYPE.CSV);
     res.setHeader(HTTP.HEADERS.CONTENT_DISPOSITION, `attachment; filename="${fileName}"`);
@@ -150,14 +162,18 @@ export async function downloadResultsFile(req: Request, res: Response, next: Nex
 /**
  * Download requests or results as JSON, streamed from Salesforce as CSV, and transformed to JSON
  */
-export async function downloadResults(req: Request, res: Response, next: NextFunction) {
+export async function downloadResults(
+  req: Request<{ jobId: string; batchId: string }, string | Buffer, { type: BulkApiDownloadType; isQuery?: string }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const jobId = req.params.jobId;
     const batchId = req.params.batchId;
-    const type = req.query.type as BulkApiDownloadType;
-    const isQuery = ensureBoolean(req.query.isQuery as string);
+    const type = req.query.type;
+    const isQuery = ensureBoolean(req.query.isQuery);
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
       delimiter: ',',

@@ -1,17 +1,19 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { SObjectOrganization, SalesforceOrgUi, UserProfileServer } from '@jetstream/types';
-import * as express from 'express';
+import { CallbackParamsType } from 'openid-client';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
+import { Request, Response } from '../types/types';
 import { OauthLinkParams } from './auth.controller';
+
 /**
  * Prepare SFDC auth and redirect to Salesforce
  * @param req
  * @param res
  */
-export function salesforceOauthInitAuth(req: express.Request, res: express.Response) {
-  const loginUrl = req.query.loginUrl as string;
+export function salesforceOauthInitAuth(req: Request<unknown, unknown, { loginUrl: string }>, res: Response) {
+  const loginUrl = req.query.loginUrl;
   const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl);
   req.session.orgAuth = { code_verifier, nonce, state, loginUrl };
   res.redirect(authorizationUrl);
@@ -22,7 +24,7 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  * @param req
  * @param res
  */
-export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
+export async function salesforceOauthCallback(req: Request<unknown, unknown, CallbackParamsType>, res: Response) {
   const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',

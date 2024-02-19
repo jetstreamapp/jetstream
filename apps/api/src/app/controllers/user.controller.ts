@@ -1,11 +1,11 @@
 import { ENV, logger, mailgun } from '@jetstream/api-config';
 import { UserProfileAuth0Ui, UserProfileServer, UserProfileUi, UserProfileUiWithIdentities } from '@jetstream/types';
 import { AxiosError } from 'axios';
-import * as express from 'express';
 import { body, query as queryString } from 'express-validator';
 import { deleteUserAndOrgs } from '../db/transactions.db';
 import * as userDbService from '../db/user.db';
 import * as auth0Service from '../services/auth0';
+import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -16,7 +16,7 @@ export const routeValidators = {
   deleteAccount: [body('reason').isString().optional()],
 };
 
-export async function emailSupport(req: express.Request, res: express.Response) {
+export async function emailSupport(req: Request<unknown, { emailBody?: any }, unknown>, res: Response) {
   const user = req.user as UserProfileServer;
   const files = Array.isArray(req.files) ? req.files : [];
   const { emailBody } = req.body || {};
@@ -58,7 +58,7 @@ export async function emailSupport(req: express.Request, res: express.Response) 
   }
 }
 
-export async function getUserProfile(req: express.Request, res: express.Response) {
+export async function getUserProfile(req: Request<unknown, unknown, unknown>, res: Response) {
   const auth0User = req.user as UserProfileServer;
 
   // use fallback locally and on CI
@@ -110,7 +110,7 @@ async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: 
 }
 
 /** Get profile from Auth0 */
-export async function getFullUserProfile(req: express.Request, res: express.Response) {
+export async function getFullUserProfile(req: Request<unknown, unknown, unknown>, res: Response) {
   const user = req.user as UserProfileServer;
   try {
     const response = await getFullUserProfileFn(user);
@@ -131,7 +131,7 @@ export async function getFullUserProfile(req: express.Request, res: express.Resp
   }
 }
 
-export async function updateProfile(req: express.Request, res: express.Response) {
+export async function updateProfile(req: Request<unknown, unknown, unknown>, res: Response) {
   const user = req.user as UserProfileServer;
   const userProfile = req.body as UserProfileUiWithIdentities;
 
@@ -157,11 +157,11 @@ export async function updateProfile(req: express.Request, res: express.Response)
   }
 }
 
-export async function unlinkIdentity(req: express.Request, res: express.Response) {
+export async function unlinkIdentity(req: Request<unknown, unknown, { provider: string; userId: string }>, res: Response) {
   const user = req.user as UserProfileServer;
   try {
-    const provider = req.query.provider as string;
-    const userId = req.query.userId as string;
+    const provider = req.query.provider;
+    const userId = req.query.userId;
 
     const auth0User = await auth0Service.unlinkIdentity(user, { provider, userId });
     const response = await getFullUserProfileFn(user, auth0User);
@@ -182,10 +182,10 @@ export async function unlinkIdentity(req: express.Request, res: express.Response
   }
 }
 
-export async function resendVerificationEmail(req: express.Request, res: express.Response) {
+export async function resendVerificationEmail(req: Request<unknown, unknown, { provider: string; userId: string }>, res: Response) {
   const user = req.user as UserProfileServer;
-  const provider = req.query.provider as string;
-  const userId = req.query.userId as string;
+  const provider = req.query.provider;
+  const userId = req.query.userId;
   try {
     await auth0Service.resendVerificationEmail(user, { provider, userId });
     sendJson(res);
@@ -205,10 +205,10 @@ export async function resendVerificationEmail(req: express.Request, res: express
   }
 }
 
-export async function deleteAccount(req: express.Request, res: express.Response) {
+export async function deleteAccount(req: Request<unknown, { reason?: string }, unknown>, res: Response) {
   const user = req.user as UserProfileServer;
   try {
-    const reason = req.body.reason as string | undefined;
+    const reason = req.body.reason;
 
     // delete from Auth0
     await auth0Service.deleteUser(user);

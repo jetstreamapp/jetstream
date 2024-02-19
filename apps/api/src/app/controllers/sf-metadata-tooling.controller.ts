@@ -1,13 +1,13 @@
 import { ENV } from '@jetstream/api-config';
-import { ApiConnection } from '@jetstream/salesforce-api';
 import { LOG_LEVELS } from '@jetstream/shared/constants';
 import { ListMetadataResult, MapOf } from '@jetstream/types';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction } from 'express';
 import { body, param, query } from 'express-validator';
 import type { DeployOptions, RetrieveRequest } from 'jsforce';
 import JSZip from 'jszip';
 import { isObject, isString } from 'lodash';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/salesforce.service';
+import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -65,7 +65,7 @@ export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
 
 export async function describeMetadata(req: Request, res: Response, next: NextFunction) {
   try {
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.describe();
 
     sendJson(res, results);
@@ -74,9 +74,13 @@ export async function describeMetadata(req: Request, res: Response, next: NextFu
   }
 }
 
-export async function listMetadata(req: Request, res: Response, next: NextFunction) {
+export async function listMetadata(
+  req: Request<unknown, { types: { type: string; folder?: string }[] }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.list(req.body.types);
 
     sendJson(res, results);
@@ -85,12 +89,12 @@ export async function listMetadata(req: Request, res: Response, next: NextFuncti
   }
 }
 
-export async function readMetadata(req: Request, res: Response, next: NextFunction) {
+export async function readMetadata(req: Request<{ type: string }, { fullNames: string[] }>, res: Response, next: NextFunction) {
   try {
-    const fullNames: string[] = req.body.fullNames;
+    const fullNames = req.body.fullNames;
     const metadataType = req.params.type;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.read(metadataType, fullNames);
 
     sendJson(res, results);
@@ -99,12 +103,16 @@ export async function readMetadata(req: Request, res: Response, next: NextFuncti
   }
 }
 
-export async function deployMetadata(req: Request, res: Response, next: NextFunction) {
+export async function deployMetadata(
+  req: Request<{ type: string }, { files: { fullFilename: string; content: string }[]; options: DeployOptions }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const files: { fullFilename: string; content: string }[] = req.body.files;
-    const options = req.body.options as DeployOptions;
+    const files = req.body.files;
+    const options = req.body.options;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.deployMetadata(files, options);
 
     sendJson(res, results);
@@ -113,13 +121,13 @@ export async function deployMetadata(req: Request, res: Response, next: NextFunc
   }
 }
 
-export async function deployMetadataZip(req: Request, res: Response, next: NextFunction) {
+export async function deployMetadataZip(req: Request<unknown, ArrayBuffer, { options: string }>, res: Response, next: NextFunction) {
   try {
-    const metadataPackage = req.body as ArrayBuffer; // buffer
+    const metadataPackage = req.body; // buffer
     // this is validated as valid JSON previously
-    const options = JSON.parse(req.query.options as string);
+    const options = JSON.parse(req.query.options);
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.deploy(metadataPackage, options);
 
     sendJson(res, results);
@@ -128,12 +136,16 @@ export async function deployMetadataZip(req: Request, res: Response, next: NextF
   }
 }
 
-export async function checkMetadataResults(req: Request, res: Response, next: NextFunction) {
+export async function checkMetadataResults(
+  req: Request<{ id: string }, unknown, { includeDetails: boolean }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const id = req.params.id;
-    const includeDetails: boolean = req.query.includeDetails as any; // express validator conversion
+    const includeDetails = req.query.includeDetails; // express validator conversion
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.checkDeployStatus(id, includeDetails);
 
     sendJson(res, results);
@@ -142,11 +154,15 @@ export async function checkMetadataResults(req: Request, res: Response, next: Ne
   }
 }
 
-export async function retrievePackageFromLisMetadataResults(req: Request, res: Response, next: NextFunction) {
+export async function retrievePackageFromLisMetadataResults(
+  req: Request<unknown, MapOf<ListMetadataResult[]>>,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const types: MapOf<ListMetadataResult[]> = req.body;
+    const types = req.body;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.retrieve(getRetrieveRequestFromListMetadata(types, jetstreamConn.sessionInfo.apiVersion));
 
     sendJson(res, results);
@@ -155,10 +171,14 @@ export async function retrievePackageFromLisMetadataResults(req: Request, res: R
   }
 }
 
-export async function retrievePackageFromExistingServerPackages(req: Request, res: Response, next: NextFunction) {
+export async function retrievePackageFromExistingServerPackages(
+  req: Request<unknown, { packageNames: string[] }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const packageNames: string[] = req.body.packageNames;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const packageNames = req.body.packageNames;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     const retrieveRequest: RetrieveRequest = {
       apiVersion: jetstreamConn.sessionInfo.apiVersion,
@@ -174,10 +194,10 @@ export async function retrievePackageFromExistingServerPackages(req: Request, re
   }
 }
 
-export async function retrievePackageFromManifest(req: Request, res: Response, next: NextFunction) {
+export async function retrievePackageFromManifest(req: Request<unknown, { packageManifest: string }>, res: Response, next: NextFunction) {
   try {
-    const packageManifest: string = req.body.packageManifest;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const packageManifest = req.body.packageManifest;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.retrieve(getRetrieveRequestFromManifest(packageManifest));
 
     sendJson(res, results);
@@ -186,11 +206,11 @@ export async function retrievePackageFromManifest(req: Request, res: Response, n
   }
 }
 
-export async function checkRetrieveStatus(req: Request, res: Response, next: NextFunction) {
+export async function checkRetrieveStatus(req: Request<unknown, unknown, { id: string }>, res: Response, next: NextFunction) {
   try {
-    const id: string = req.query.id as string;
+    const id: string = req.query.id;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
 
     sendJson(res, results);
@@ -202,14 +222,26 @@ export async function checkRetrieveStatus(req: Request, res: Response, next: Nex
 // TODO: split this into one option to deploy to a changeset
 // TODO: get from new shared service (code copied over)
 // and another to deploy as-is
-export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response, next: NextFunction) {
+export async function checkRetrieveStatusAndRedeploy(
+  req: Request<
+    unknown,
+    {
+      deployOptions: DeployOptions;
+      replacementPackageXml: string;
+      changesetName: string;
+    },
+    { id: string }
+  >,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const id: string = req.query.id as string;
-    const deployOptions: DeployOptions = req.body.deployOptions;
-    const replacementPackageXml: string = req.body.replacementPackageXml;
-    const changesetName: string = req.body.changesetName;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
-    const targetJetstreamConn = res.locals.targetJetstreamConn as ApiConnection;
+    const id = req.query.id;
+    const deployOptions = req.body.deployOptions;
+    const replacementPackageXml = req.body.replacementPackageXml;
+    const changesetName = req.body.changesetName;
+    const jetstreamConn = res.locals.jetstreamConn;
+    const targetJetstreamConn = res.locals.targetJetstreamConn;
 
     // const results = correctInvalidXmlResponseTypes(await conn.metadata.checkRetrieveStatus(id));
     const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
@@ -253,11 +285,21 @@ export async function checkRetrieveStatusAndRedeploy(req: Request, res: Response
   }
 }
 
-export async function getPackageXml(req: Request, res: Response, next: NextFunction) {
+export async function getPackageXml(
+  req: Request<
+    unknown,
+    {
+      metadata: MapOf<ListMetadataResult[]>;
+      otherFields: MapOf<string>;
+    }
+  >,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const types: MapOf<ListMetadataResult[]> = req.body.metadata;
-    const otherFields: MapOf<string> = req.body.otherFields;
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const types = req.body.metadata;
+    const otherFields = req.body.otherFields;
+    const jetstreamConn = res.locals.jetstreamConn;
 
     sendJson(res, buildPackageXml(types, jetstreamConn.sessionInfo.apiVersion, otherFields));
   } catch (ex) {
@@ -269,12 +311,12 @@ export async function getPackageXml(req: Request, res: Response, next: NextFunct
 /**
  * This uses the SOAP api to allow returning logs
  */
-export async function anonymousApex(req: Request, res: Response, next: NextFunction) {
+export async function anonymousApex(req: Request<unknown, { apex: string; logLevel?: string }>, res: Response, next: NextFunction) {
   try {
     // eslint-disable-next-line prefer-const
-    let { apex, logLevel }: { apex: string; logLevel?: string } = req.body;
+    let { apex, logLevel } = req.body;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.apex.anonymousApex({ apex, logLevel });
 
     sendJson(res, results);
@@ -283,11 +325,11 @@ export async function anonymousApex(req: Request, res: Response, next: NextFunct
   }
 }
 
-export async function apexCompletions(req: Request, res: Response, next: NextFunction) {
+export async function apexCompletions(req: Request<{ type: string }>, res: Response, next: NextFunction) {
   try {
     const type = req.params.type;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.apex.apexCompletions(type);
 
     sendJson(res, results);

@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
 import * as salesforceApiDb from '../db/salesforce-api.db';
+import { Request, Response } from '../types/types';
 import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {

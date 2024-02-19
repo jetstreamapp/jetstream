@@ -36,7 +36,7 @@ routes.use(
       (req as any).locals = {
         jetstreamConn: result.jetstreamConn,
       };
-      return result.connection.instanceUrl;
+      return result.jetstreamConn.sessionInfo.instanceUrl;
     },
     pathRewrite: {
       '^/platform-event': `/cometd/${ENV.SFDC_API_VERSION}`,

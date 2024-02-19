@@ -1,6 +1,6 @@
-import { ApiConnection } from '@jetstream/salesforce-api';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction } from 'express';
 import { body, query as queryString } from 'express-validator';
+import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -9,10 +9,10 @@ export const routeValidators = {
   queryMore: [queryString('nextRecordsUrl').isString()],
 };
 
-export async function describe(req: Request, res: Response, next: NextFunction) {
+export async function describe(req: Request<unknown, unknown, { isTooling?: 'true' }>, res: Response, next: NextFunction) {
   try {
     const isTooling = req.query.isTooling === 'true';
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.sobject.describe(isTooling);
     sendJson(res, results);
   } catch (ex) {
@@ -20,10 +20,14 @@ export async function describe(req: Request, res: Response, next: NextFunction) 
   }
 }
 
-export async function describeSObject(req: Request, res: Response, next: NextFunction) {
+export async function describeSObject(
+  req: Request<{ sobject: string }, unknown, { isTooling?: 'true' }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const isTooling = req.query.isTooling === 'true';
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.sobject.describeSobject(req.params.sobject, isTooling);
 
     sendJson(res, results);
@@ -32,13 +36,17 @@ export async function describeSObject(req: Request, res: Response, next: NextFun
   }
 }
 
-export async function query(req: Request, res: Response, next: NextFunction) {
+export async function query(
+  req: Request<unknown, { query: string }, { isTooling?: 'true'; includeDeletedRecords?: 'true' }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const isTooling = req.query.isTooling === 'true';
     const includeDeletedRecords = req.query.includeDeletedRecords === 'true';
     const query = req.body.query;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.query.query(query, isTooling, includeDeletedRecords);
 
     sendJson(res, results);
@@ -47,12 +55,16 @@ export async function query(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function queryMore(req: Request, res: Response, next: NextFunction) {
+export async function queryMore(
+  req: Request<unknown, unknown, { isTooling?: 'true'; nextRecordsUrl: string }>,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const isTooling = req.query.isTooling === 'true';
     const nextRecordsUrl = req.query.nextRecordsUrl as string;
 
-    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.query.queryMore(nextRecordsUrl, isTooling);
 
     sendJson(res, results);
