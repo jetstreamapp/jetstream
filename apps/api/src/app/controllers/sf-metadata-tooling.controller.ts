@@ -137,13 +137,13 @@ export async function deployMetadataZip(req: Request<unknown, ArrayBuffer, { opt
 }
 
 export async function checkMetadataResults(
-  req: Request<{ id: string }, unknown, { includeDetails: boolean }>,
+  req: Request<{ id: string }, unknown, { includeDetails: any }>,
   res: Response,
   next: NextFunction
 ) {
   try {
     const id = req.params.id;
-    const includeDetails = req.query.includeDetails; // express validator conversion
+    const includeDetails = req.query.includeDetails as boolean; // express validator conversion
 
     const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.checkDeployStatus(id, includeDetails);

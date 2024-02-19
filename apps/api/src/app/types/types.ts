@@ -2,7 +2,11 @@ import { ApiConnection } from '@jetstream/salesforce-api';
 import { SalesforceOrg } from '@prisma/client';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 
-export type Request<Params = Record<string, string>, ReqBody = any, Query = Record<string, string | undefined>> = ExpressRequest<
+export type Request<
+  Params extends Record<string, string> | unknown = Record<string, string>,
+  ReqBody = any,
+  Query extends Record<string, string | undefined> | unknown = Record<string, string | undefined>
+> = ExpressRequest<
   Params,
   unknown,
   ReqBody,

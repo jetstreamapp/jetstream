@@ -85,14 +85,14 @@ export async function closeOrAbortJob(req: Request<{ jobId: string; action: stri
 }
 
 export async function addBatchToJob(
-  req: Request<{ jobId: string }, string | Buffer, { closeJob: boolean }>,
+  req: Request<{ jobId: string }, string | Buffer, { closeJob: any }>,
   res: Response,
   next: NextFunction
 ) {
   try {
     const jobId = req.params.jobId;
     const csv = req.body;
-    const closeJob = req.query.closeJob;
+    const closeJob = req.query.closeJob as boolean;
 
     const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, ensureBoolean(closeJob));
@@ -104,14 +104,14 @@ export async function addBatchToJob(
 }
 
 export async function addBatchToJobWithBinaryAttachment(
-  req: Request<{ jobId: string }, string | Buffer, { closeJob: boolean }>,
+  req: Request<{ jobId: string }, string | Buffer, { closeJob: any }>,
   res: Response,
   next: NextFunction
 ) {
   try {
     const jobId = req.params.jobId;
     const zip = req.body;
-    const closeJob = req.query.closeJob;
+    const closeJob = req.query.closeJob as boolean;
 
     // TODO: how is this different from addBatchToJob?
     const jetstreamConn = res.locals.jetstreamConn;

@@ -24,7 +24,8 @@ export function salesforceOauthInitAuth(req: Request<unknown, unknown, { loginUr
  * @param req
  * @param res
  */
-export async function salesforceOauthCallback(req: Request<unknown, unknown, CallbackParamsType>, res: Response) {
+export async function salesforceOauthCallback(req: Request<unknown, unknown, any>, res: Response) {
+  const queryParams = req.query as CallbackParamsType;
   const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',
@@ -37,19 +38,19 @@ export async function salesforceOauthCallback(req: Request<unknown, unknown, Cal
     req.session.orgAuth = undefined;
 
     // ERROR PATH
-    if (req.query.error) {
-      returnParams.error = (req.query.error as string) || 'Unexpected Error';
-      returnParams.message = req.query.error_description
-        ? (req.query.error_description as string)
+    if (queryParams.error) {
+      returnParams.error = (queryParams.error as string) || 'Unexpected Error';
+      returnParams.message = queryParams.error_description
+        ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query, requestId: res.locals.requestId });
+      logger.info('[OAUTH][ERROR] %s', queryParams.error, { ...req.query, requestId: res.locals.requestId });
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     } else if (!orgAuth) {
       returnParams.error = 'Authentication Error';
-      returnParams.message = req.query.error_description
-        ? (req.query.error_description as string)
+      returnParams.message = queryParams.error_description
+        ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query, requestId: res.locals.requestId });
+      logger.info('[OAUTH][ERROR] %s', queryParams.error, { ...req.query, requestId: res.locals.requestId });
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
