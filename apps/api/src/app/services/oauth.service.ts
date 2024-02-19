@@ -82,6 +82,7 @@ export async function salesforceOauthCallback(
  */
 export async function salesforceLoginUsernamePassword_UNSAFE(loginUrl: string, username: string, password: string) {
   return await fetch(`${loginUrl}/services/oauth2/token`, {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
