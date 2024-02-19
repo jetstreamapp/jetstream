@@ -1,11 +1,10 @@
 import { ENV, logger } from '@jetstream/api-config';
+import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { SObjectOrganization, SalesforceOrgUi, UserProfileServer } from '@jetstream/types';
 import * as express from 'express';
-import * as jsforce from 'jsforce';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { getJsforceOauth2 } from '../utils/auth-utils';
+import * as oauthService from '../services/oauth.service';
 import { OauthLinkParams } from './auth.controller';
-
 /**
  * Prepare SFDC auth and redirect to Salesforce
  * @param req
@@ -13,20 +12,9 @@ import { OauthLinkParams } from './auth.controller';
  */
 export function salesforceOauthInitAuth(req: express.Request, res: express.Response) {
   const loginUrl = req.query.loginUrl as string;
-  const clientUrl = req.query.clientUrl as string;
-  const state = new URLSearchParams({ loginUrl, clientUrl }).toString();
-
-  let options = {
-    scope: 'api web refresh_token',
-    state,
-    prompt: 'login',
-  };
-
-  if (req.query.username) {
-    options = Object.assign(options, { login_hint: req.query.username });
-  }
-
-  res.redirect(getJsforceOauth2(loginUrl).getAuthorizationUrl(options));
+  const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl);
+  req.session.orgAuth = { code_verifier, nonce, state, loginUrl };
+  res.redirect(authorizationUrl);
 }
 
 /**
@@ -35,16 +23,17 @@ export function salesforceOauthInitAuth(req: express.Request, res: express.Respo
  * @param res
  */
 export async function salesforceOauthCallback(req: express.Request, res: express.Response) {
-  const user = req.user as UserProfileServer;
-  const state = new URLSearchParams(req.query.state as string);
-  const loginUrl = state.get('loginUrl');
-  const clientUrl = state.get('clientUrl') || new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
+  const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',
     clientUrl,
   };
 
   try {
+    const user = req.user as UserProfileServer;
+    const orgAuth = req.session.orgAuth;
+    req.session.orgAuth = undefined;
+
     // ERROR PATH
     if (req.query.error) {
       returnParams.error = (req.query.error as string) || 'Unexpected Error';
@@ -52,57 +41,58 @@ export async function salesforceOauthCallback(req: express.Request, res: express
         ? (req.query.error_description as string)
         : 'There was an error authenticating with Salesforce.';
       logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query, requestId: res.locals.requestId });
-      return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
+      return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+    } else if (!orgAuth) {
+      returnParams.error = 'Authentication Error';
+      returnParams.message = req.query.error_description
+        ? (req.query.error_description as string)
+        : 'There was an error authenticating with Salesforce.';
+      logger.info('[OAUTH][ERROR] %s', req.query.error, { ...req.query, requestId: res.locals.requestId });
+      return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
-    const conn = new jsforce.Connection({ oauth2: getJsforceOauth2(loginUrl as string) });
-    const userInfo = await conn.authorize(req.query.code as string);
+    const { code_verifier, nonce, state, loginUrl } = orgAuth;
+
+    const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(loginUrl, req.query, {
+      code_verifier,
+      nonce,
+      state,
+    });
+
+    const jetstreamConn = new ApiConnection({
+      apiRequestAdapter: getApiRequestFactoryFn(fetch),
+      userId: userInfo.user_id,
+      organizationId: userInfo.organization_id,
+      accessToken: access_token,
+      apiVersion: ENV.SFDC_API_VERSION,
+      instanceUrl: userInfo.urls.custom_domain || loginUrl,
+      refreshToken: refresh_token,
+    });
 
     const salesforceOrg = await initConnectionFromOAuthResponse({
-      conn,
-      userInfo,
-      loginUrl: loginUrl as string,
+      jetstreamConn,
       userId: user.id,
     });
 
-    // TODO: figure out what other data we need
-    // try {
-    // TODO: what about if a user is assigned a permission set that gives PermissionsModifyAllData?
-    //   const data = await getExtendedOrgInfo(conn, returnObject);
-    //   returnObject = Object.assign({}, returnObject, data);
-    // } catch (ex) {
-    //   logger.log('Error adding extended org data');
-    // }
-
     returnParams.data = JSON.stringify(salesforceOrg);
-    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
+    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
   } catch (ex) {
     const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-    logger.info('[OAUTH][ERROR] %o', ex.message, { userInfo, requestId: res.locals.requestId });
+    logger.info('[OAUTH][ERROR] %s', ex.message, { userInfo, requestId: res.locals.requestId });
     returnParams.error = ex.message || 'Unexpected Error';
     returnParams.message = req.query.error_description
       ? (req.query.error_description as string)
       : 'There was an error authenticating with Salesforce.';
-    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString()}`);
+    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
   }
 }
 
-export async function initConnectionFromOAuthResponse({
-  conn,
-  userInfo,
-  loginUrl,
-  userId,
-}: {
-  conn: jsforce.Connection;
-  userInfo: jsforce.UserInfo;
-  loginUrl: string;
-  userId: string;
-}) {
-  const identity = await conn.identity();
+export async function initConnectionFromOAuthResponse({ jetstreamConn, userId }: { jetstreamConn: ApiConnection; userId: string }) {
+  const identity = await jetstreamConn.org.identity();
   let companyInfoRecord: SObjectOrganization | undefined;
 
   try {
-    const results = await conn.query<SObjectOrganization>(
+    const { queryResults: results } = await jetstreamConn.query.query<SObjectOrganization>(
       `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
     );
     if (results.totalSize > 0) {
@@ -115,11 +105,11 @@ export async function initConnectionFromOAuthResponse({
   const orgName = companyInfoRecord?.Name || 'Unknown Organization';
 
   const salesforceOrgUi: Partial<SalesforceOrgUi> = {
-    uniqueId: `${userInfo.organizationId}-${userInfo.id}`,
+    uniqueId: `${jetstreamConn.sessionInfo.organizationId}-${jetstreamConn.sessionInfo.userId}`,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    accessToken: salesforceOrgsDb.encryptAccessToken(conn.accessToken, conn.refreshToken!),
-    instanceUrl: conn.instanceUrl,
-    loginUrl,
+    accessToken: salesforceOrgsDb.encryptAccessToken(jetstreamConn.sessionInfo.accessToken, jetstreamConn.sessionInfo.refreshToken!),
+    instanceUrl: jetstreamConn.sessionInfo.instanceUrl,
+    loginUrl: jetstreamConn.sessionInfo.instanceUrl,
     userId: identity.user_id,
     email: identity.email,
     organizationId: identity.organization_id,

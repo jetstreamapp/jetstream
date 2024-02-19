@@ -1,13 +1,12 @@
 import { logger } from '@jetstream/api-config';
-import * as services from '@jetstream/server-services';
+import { ApiConnection } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfo } from '@jetstream/types';
+import { BulkApiCreateJobRequestPayload, BulkApiDownloadType } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, param, query } from 'express-validator';
-import * as jsforce from 'jsforce';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import { sfBulkDownloadRecords, sfBulkGetQueryResultsJobIds } from '../services/sf-bulk';
+import { Readable } from 'stream';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -48,9 +47,9 @@ export const routeValidators = {
 export async function createJob(req: Request, res: Response, next: NextFunction) {
   try {
     const options = req.body as BulkApiCreateJobRequestPayload;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results = await services.sfBulkCreateJob(conn, options);
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.bulk.createJob(options);
 
     sendJson(res, results);
   } catch (ex) {
@@ -61,11 +60,11 @@ export async function createJob(req: Request, res: Response, next: NextFunction)
 export async function getJob(req: Request, res: Response, next: NextFunction) {
   try {
     const jobId = req.params.jobId;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const jobInfo = await services.sfBulkGetJobInfo(conn, jobId);
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.bulk.getJob(jobId);
 
-    sendJson(res, jobInfo);
+    sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
@@ -75,11 +74,11 @@ export async function closeOrAbortJob(req: Request, res: Response, next: NextFun
   try {
     const jobId = req.params.jobId;
     const action: 'Closed' | 'Aborted' = req.params.action === 'abort' ? 'Aborted' : 'Closed';
-    const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const jobInfo = await services.sfBulkCloseOrAbortJob(conn, jobId, action);
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.bulk.closeJob(jobId, action);
 
-    sendJson(res, jobInfo);
+    sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
@@ -90,15 +89,9 @@ export async function addBatchToJob(req: Request, res: Response, next: NextFunct
     const jobId = req.params.jobId;
     const csv = req.body;
     const closeJob = req.query.closeJob as any;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results: BulkJobBatchInfo = await services.sfBulkAddBatchToJob(conn, csv, jobId, closeJob);
-
-    // try {
-    //   results = await sfBulkGetJobInfo(conn, jobId);
-    // } catch (ex) {
-    //   // ignore error
-    // }
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, ensureBoolean(closeJob));
 
     sendJson(res, results);
   } catch (ex) {
@@ -111,9 +104,10 @@ export async function addBatchToJobWithBinaryAttachment(req: Request, res: Respo
     const jobId = req.params.jobId;
     const zip = req.body;
     const closeJob = req.query.closeJob as any;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    const results: BulkJobBatchInfo = await services.sfBulkAddBatchWithZipAttachmentToJob(conn, zip, jobId, closeJob);
+    // TODO: how is this different from addBatchToJob?
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.bulk.addBatchToJob(zip, jobId, ensureBoolean(closeJob));
 
     sendJson(res, results);
   } catch (ex) {
@@ -125,7 +119,7 @@ export async function addBatchToJobWithBinaryAttachment(req: Request, res: Respo
  * Download request or results as a CSV file directly streamed from SFDC
  * this should only be called from a link and not a JSON API call
  *
- *  This is not used AFAIK
+ *  THIS IS USED BY BULK QUERY DOWNLOAD
  *
  */
 export async function downloadResultsFile(req: Request, res: Response, next: NextFunction) {
@@ -135,7 +129,7 @@ export async function downloadResultsFile(req: Request, res: Response, next: Nex
     const type = req.query.type as BulkApiDownloadType;
     const isQuery = ensureBoolean(req.query.isQuery as string);
     const fileName = req.query.fileName || `${type}.csv`;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
 
     res.setHeader(HTTP.HEADERS.CONTENT_TYPE, HTTP.CONTENT_TYPE.CSV);
     res.setHeader(HTTP.HEADERS.CONTENT_DISPOSITION, `attachment; filename="${fileName}"`);
@@ -143,10 +137,11 @@ export async function downloadResultsFile(req: Request, res: Response, next: Nex
     let resultId: string | undefined;
 
     if (isQuery) {
-      resultId = (await sfBulkGetQueryResultsJobIds(conn, jobId, batchId))[0];
+      resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
     }
 
-    sfBulkDownloadRecords(conn, jobId, batchId, type, resultId).buffer(false).pipe(res);
+    const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
+    Readable.fromWeb(results as any).pipe(res);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
@@ -161,7 +156,8 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
     const batchId = req.params.batchId;
     const type = req.query.type as BulkApiDownloadType;
     const isQuery = ensureBoolean(req.query.isQuery as string);
-    const conn: jsforce.Connection = res.locals.jsforceConn;
+
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
 
     const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
       delimiter: ',',
@@ -176,11 +172,14 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
         return data;
       },
     });
+
     if (isQuery) {
-      const resultIds = await sfBulkGetQueryResultsJobIds(conn, jobId, batchId);
-      sfBulkDownloadRecords(conn, jobId, batchId, type, resultIds[0]).buffer(false).pipe(csvParseStream);
+      const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
+      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
+      Readable.fromWeb(results as any).pipe(csvParseStream);
     } else {
-      sfBulkDownloadRecords(conn, jobId, batchId, type).buffer(false).pipe(csvParseStream);
+      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
+      Readable.fromWeb(results as any).pipe(csvParseStream);
     }
 
     let isFirstChunk = true;

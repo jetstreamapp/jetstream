@@ -1,9 +1,9 @@
 import { logger } from '@jetstream/api-config';
+import { ApiConnection } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { UserProfileServer } from '@jetstream/types';
 import { SalesforceOrg } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
-import * as jsforce from 'jsforce';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -50,13 +50,14 @@ export async function deleteOrg(req: Request, res: Response, next: NextFunction)
 export async function checkOrgHealth(req: Request, res: Response, next: NextFunction) {
   try {
     const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
     const org = res.locals.org as SalesforceOrg;
+
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
 
     let connectionError = org.connectionError;
 
     try {
-      await conn.identity();
+      await jetstreamConn.org.identity();
       connectionError = null;
       logger.warn('[ORG CHECK][VALID ORG]', { requestId: res.locals.requestId });
     } catch (ex) {

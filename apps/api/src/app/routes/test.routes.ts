@@ -1,8 +1,9 @@
 import { ENV } from '@jetstream/api-config';
+import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import * as express from 'express';
 import Router from 'express-promise-router';
-import * as jsforce from 'jsforce';
 import { initConnectionFromOAuthResponse } from '../controllers/oauth.controller';
+import { salesforceLoginUsernamePassword_UNSAFE } from '../services/oauth.service';
 import { NotAllowedError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -38,20 +39,24 @@ routes.post(
     const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD;
     const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL;
 
-    const conn = new jsforce.Connection({
-      oauth2: {
-        clientId: ENV.SFDC_CONSUMER_KEY,
-        clientSecret: ENV.SFDC_CONSUMER_SECRET,
-        loginUrl: E2E_LOGIN_URL,
-      },
+    const result = await salesforceLoginUsernamePassword_UNSAFE(E2E_LOGIN_URL, E2E_LOGIN_USERNAME!, E2E_LOGIN_PASSWORD!);
+    const [userId, organizationId] = result.id.split('/');
+
+    const jetstreamConn = new ApiConnection({
+      apiRequestAdapter: getApiRequestFactoryFn(fetch),
+      userId: 'EXAMPLE_USER',
+      organizationId,
+      accessToken: result.access_token,
+      apiVersion: ENV.SFDC_API_VERSION,
+      instanceUrl: E2E_LOGIN_URL,
+      refreshToken: result.refresh_token,
     });
-    const userInfo = await conn.loginByOAuth2(E2E_LOGIN_USERNAME!, E2E_LOGIN_PASSWORD!);
+
     const salesforceOrg = await initConnectionFromOAuthResponse({
-      conn,
-      userInfo,
-      loginUrl: E2E_LOGIN_URL!,
+      jetstreamConn,
       userId: 'EXAMPLE_USER',
     });
+
     sendJson(res, salesforceOrg);
   }
 );

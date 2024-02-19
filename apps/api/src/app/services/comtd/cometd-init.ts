@@ -2,20 +2,20 @@
  * ENDED UP NOT USING THIS STUFF
  */
 import { ENV, logger } from '@jetstream/api-config';
+import { ApiConnection } from '@jetstream/salesforce-api';
 import { UserProfileServer } from '@jetstream/types';
 import { CometD } from 'cometd';
-import * as jsforce from 'jsforce';
 import { CometdReplayExtension } from './cometd-replay-extension';
 
-export function initCometD(user: UserProfileServer, cometd: CometD, connection: jsforce.Connection) {
+export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamConn: ApiConnection) {
   return new Promise<void>((resolve, reject) => {
     if (cometd.isDisconnected()) {
       // This appears to be unsupported
       cometd.unregisterTransport('websocket');
       cometd.configure({
-        url: `${connection.instanceUrl}/cometd/${connection.version || ENV.SFDC_API_VERSION}`,
+        url: `${jetstreamConn.sessionInfo.instanceUrl}/cometd/${jetstreamConn.sessionInfo.apiVersion || ENV.SFDC_API_VERSION}`,
         requestHeaders: {
-          Authorization: `Bearer ${connection.accessToken}`,
+          Authorization: `Bearer ${jetstreamConn.sessionInfo.accessToken}`,
         },
         appendMessageTypeToURL: false,
       });

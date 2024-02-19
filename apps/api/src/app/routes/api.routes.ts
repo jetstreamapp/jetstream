@@ -137,18 +137,13 @@ routes.post(
   metadataToolingController.getPackageXml
 );
 
-routes.post(
-  '/request',
-  ensureOrgExists,
-  validate(sfMiscController.routeValidators.makeJsforceRequest),
-  sfMiscController.makeJsforceRequest
-);
+routes.post('/request', ensureOrgExists, validate(sfMiscController.routeValidators.salesforceRequest), sfMiscController.salesforceRequest);
 
 routes.post(
   '/request-manual',
   ensureOrgExists,
-  validate(sfMiscController.routeValidators.makeJsforceRequestViaAxios),
-  sfMiscController.makeJsforceRequestViaAxios
+  validate(sfMiscController.routeValidators.salesforceRequestManual),
+  sfMiscController.salesforceRequestManual
 );
 
 routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators.createJob), bulkApiController.createJob);

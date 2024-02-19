@@ -1,18 +1,17 @@
+import { ApiConnection, FetchResponse } from '@jetstream/salesforce-api';
 import { toBoolean } from '@jetstream/shared/utils';
 import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
 import { NextFunction, Request, Response } from 'express';
 import { body, query } from 'express-validator';
-import * as jsforce from 'jsforce';
 import { isObject, isString } from 'lodash';
-import * as request from 'superagent';
-import { salesforceRequestViaAxios } from '../services/sf-misc';
+import { Readable } from 'stream';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
   getFrontdoorLoginUrl: [],
   streamFileDownload: [query('url').isString()],
-  makeJsforceRequest: [
+  salesforceRequest: [
     body('url').isString(),
     body('method').isIn(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
     body('method')
@@ -23,7 +22,7 @@ export const routeValidators = {
     body('headers').optional(),
     body('options').optional(),
   ],
-  makeJsforceRequestViaAxios: [
+  salesforceRequestManual: [
     body('url').isString(),
     body('method').isIn(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
     body('method')
@@ -40,14 +39,10 @@ export const routeValidators = {
 export async function getFrontdoorLoginUrl(req: Request, res: Response, next: NextFunction) {
   try {
     const { returnUrl } = req.query;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
     // ensure that our token is valid and not expired
-    await conn.identity();
-    let url = `${conn.instanceUrl}/secur/frontdoor.jsp?sid=${conn.accessToken}`;
-    if (returnUrl) {
-      url += `&retURL=${returnUrl}`;
-    }
-    res.redirect(url);
+    await jetstreamConn.org.identity();
+    res.redirect(jetstreamConn.org.getFrontdoorLoginUrl(returnUrl as string));
   } catch (ex) {
     next(ex);
   }
@@ -61,14 +56,10 @@ export async function getFrontdoorLoginUrl(req: Request, res: Response, next: Ne
 export async function streamFileDownload(req: Request, res: Response, next: NextFunction) {
   try {
     const { url } = req.query;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
-    // ensure that our token is valid and not expired
-    await conn.identity();
-    return request
-      .get(`${conn.instanceUrl}${url}`)
-      .set({ ['Authorization']: `Bearer ${conn.accessToken}`, ['X-SFDC-Session']: conn.accessToken })
-      .buffer(false)
-      .pipe(res);
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+
+    const results = await jetstreamConn.org.streamDownload(url as string);
+    Readable.fromWeb(results as any).pipe(res);
   } catch (ex) {
     next(ex);
   }
@@ -76,22 +67,12 @@ export async function streamFileDownload(req: Request, res: Response, next: Next
 
 // https://github.com/jsforce/jsforce/issues/934
 // TODO: the api version in the urls needs to match - we should not have this hard-coded on front-end
-export async function makeJsforceRequest(req: Request, res: Response, next: NextFunction) {
+export async function salesforceRequest(req: Request, res: Response, next: NextFunction) {
   try {
-    const { url, method, isTooling, body, headers, options } = req.body as GenericRequestPayload;
-    const conn: jsforce.Connection | jsforce.Tooling = isTooling ? res.locals.jsforceConn.tooling : res.locals.jsforceConn;
+    const payload = req.body as GenericRequestPayload;
 
-    const requestOptions: jsforce.RequestInfo = {
-      method,
-      url,
-      body: isObject(body) ? JSON.stringify(body) : body,
-      headers:
-        (isObject(headers) || isObject(body)) && !headers?.['Content-Type']
-          ? { ...headers, ['Content-Type']: 'application/json' }
-          : headers,
-    };
-
-    const results = await conn.request(requestOptions, options);
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.request.manualRequest(payload);
 
     sendJson(res, results);
   } catch (ex) {
@@ -99,20 +80,23 @@ export async function makeJsforceRequest(req: Request, res: Response, next: Next
   }
 }
 
-export async function makeJsforceRequestViaAxios(req: Request, res: Response, next: NextFunction) {
+// TODO: combine with salesforceRequest and rename
+// The request payload and response are slightly different, but the logic is the same
+export async function salesforceRequestManual(req: Request, res: Response, next: NextFunction) {
   try {
-    const { method, headers, body, url } = req.body as ManualRequestPayload;
-    const conn: jsforce.Connection = res.locals.jsforceConn;
+    // const { method, headers, body, url } = req.body as ManualRequestPayload;
+    const payload = req.body as ManualRequestPayload;
 
-    const response = await salesforceRequestViaAxios({
-      conn,
-      url,
-      method,
-      headers,
-      body,
-    });
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
+    const results = await jetstreamConn.request.manualRequest<FetchResponse>(payload, 'response').then(async (response) => ({
+      error: response.status < 200 || response.status > 300,
+      status: response.status,
+      statusText: response.statusText,
+      headers: JSON.stringify(response.headers || {}, null, 2),
+      body: await response.text(), // FIXME: what should this be?
+    }));
 
-    sendJson<ManualRequestResponse>(res, response);
+    sendJson<ManualRequestResponse>(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
@@ -129,50 +113,17 @@ export async function recordOperation(req: Request, res: Response, next: NextFun
     // ids and records can be one or an array
     const { ids, records } = req.body;
 
-    const conn: jsforce.Connection = res.locals.jsforceConn;
-    const sobjectOperation = conn.sobject(sobject);
+    const jetstreamConn = res.locals.jetstreamConn as ApiConnection;
 
-    // FIXME: submit PR to fix these types - allOrNone / allowRecursive
-    const options: any = { allOrNone };
-
-    let operationPromise: Promise<unknown>;
-
-    switch (operation) {
-      case 'retrieve':
-        if (!ids) {
-          return next(new UserFacingError(`The ids property must be included`));
-        }
-        operationPromise = sobjectOperation.retrieve(ids, options);
-        break;
-      case 'create':
-        if (!records) {
-          return next(new UserFacingError(`The records property must be included`));
-        }
-        operationPromise = sobjectOperation.create(records, options);
-        break;
-      case 'update':
-        if (!records) {
-          return next(new UserFacingError(`The records property must be included`));
-        }
-        operationPromise = sobjectOperation.update(records, options);
-        break;
-      case 'upsert':
-        if (!records || !externalId) {
-          return next(new UserFacingError(`The records and external id properties must be included`));
-        }
-        operationPromise = sobjectOperation.upsert(records, externalId as string, options);
-        break;
-      case 'delete':
-        if (!ids) {
-          return next(new UserFacingError(`The ids property must be included`));
-        }
-        operationPromise = sobjectOperation.delete(ids, options);
-        break;
-      default:
-        return next(new UserFacingError(`The operation ${operation} is not valid`));
-    }
-
-    const results = await operationPromise;
+    const results = await jetstreamConn.sobject.recordOperation({
+      sobject,
+      operation,
+      externalId: externalId as string,
+      records,
+      allOrNone,
+      ids,
+      //  isTooling,
+    });
 
     sendJson(res, results);
   } catch (ex) {

@@ -29,6 +29,7 @@ import { environment } from './environments/environment';
 declare module 'express-session' {
   interface SessionData {
     activityExp: number;
+    orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string };
   }
 }
 

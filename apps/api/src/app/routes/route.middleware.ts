@@ -1,4 +1,5 @@
 import { ENV, logger, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { ApplicationCookie, UserProfileServer } from '@jetstream/types';
@@ -6,12 +7,10 @@ import { AxiosError } from 'axios';
 import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
 import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
-import * as jsforce from 'jsforce';
 import { isNumber } from 'lodash';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { updateUserLastActivity } from '../services/auth0';
-import { getJsforceOauth2 } from '../utils/auth-utils';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -165,9 +164,9 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       res.locals = res.locals || {};
       const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION, res.locals.requestId);
       if (results) {
-        const { org, connection } = results;
+        const { org, jetstreamConn } = results;
         res.locals.org = org;
-        res.locals.jsforceConn = connection;
+        res.locals.jetstreamConn = jetstreamConn;
       }
     }
     if (req.get(HTTP.HEADERS.X_SFDC_ID_TARGET) || req.query[HTTP.HEADERS.X_SFDC_ID_TARGET]) {
@@ -180,9 +179,9 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       );
       if (results) {
         if (results) {
-          const { org, connection } = results;
+          const { org, jetstreamConn } = results;
           res.locals.targetOrg = org;
-          res.locals.targetJsforceConn = connection;
+          res.locals.targetJetstreamConn = jetstreamConn;
         }
       }
     }
@@ -194,32 +193,8 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
   next();
 }
 
-/**
- * Add locals to request object
- */
-export async function monkeyPatchOrgsToRequest(req: express.Request, res: express.Response, next: express.NextFunction) {
-  try {
-    if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
-      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION, res.locals.requestId);
-      if (results) {
-        const { org, connection } = results;
-        res.locals = { org, jsforceConn: connection };
-        (req as any).locals = res.locals;
-      } else {
-        logger.info('[INIT-ORG][ERROR] An org did not exist on locals - Monkey Patch', { requestId: res.locals.requestId });
-        return next(new UserFacingError('An org is required for this action'));
-      }
-    }
-  } catch (ex) {
-    logger.warn('[INIT-ORG][ERROR] %o', ex, { requestId: res.locals.requestId });
-    return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
-  }
-
-  next();
-}
-
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!res.locals?.jsforceConn) {
+  if (!res.locals?.jetstreamConn) {
     logger.info('[INIT-ORG][ERROR] An org did not exist on locals', { requestId: res.locals.requestId });
     return next(new UserFacingError('An org is required for this action'));
   }
@@ -227,7 +202,7 @@ export function ensureOrgExists(req: express.Request, res: express.Response, nex
 }
 
 export function ensureTargetOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!res.locals?.targetJsforceConn) {
+  if (!res.locals?.targetJetstreamConn) {
     logger.info('[INIT-ORG][ERROR] A target org did not exist on locals', { requestId: res.locals.requestId });
     return next(new UserFacingError('A target org is required for this action'));
   }
@@ -272,47 +247,46 @@ export async function getOrgForRequest(
     throw new UserFacingError('An org was not found with the provided id');
   }
 
-  const { accessToken: encryptedAccessToken, loginUrl, instanceUrl, orgNamespacePrefix } = org;
+  const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId, organizationId } = org;
   const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
 
-  const connData: jsforce.ConnectionOptions = {
-    oauth2: getJsforceOauth2(loginUrl),
-    instanceUrl,
-    accessToken,
-    refreshToken,
-    maxRequest: 5,
-    version: apiVersion || org.apiVersion || ENV.SFDC_API_VERSION,
-    callOptions: {
-      // Magical metadata shows up when using this
-      // http://www.fishofprey.com/2016/03/salesforce-forcecom-ide-superpowers.html
-      // FIXME: this breaks some orgs
-      // client: `apex_eclipse/v${apiVersion || org.apiVersion || ENV.SFDC_API_VERSION}`,
-      client: 'jetstream',
-    },
+  apiVersion = apiVersion || org.apiVersion || ENV.SFDC_API_VERSION;
+  let callOptions = {
+    client: 'jetstream',
   };
 
   if (orgNamespacePrefix && includeCallOptions) {
-    connData.callOptions = { ...connData.callOptions, defaultNamespace: orgNamespacePrefix } as any;
+    callOptions = { ...callOptions, defaultNamespace: orgNamespacePrefix } as any;
   }
 
-  const conn = new jsforce.Connection(connData);
-
   // Handle org refresh - then remove event listener if refreshed
-  const handleRefresh = async (accessToken) => {
+  const handleRefresh = async (accessToken: string, refreshToken: string) => {
     // Refresh event will be fired when renewed access token
     // to store it in your storage for next request
     try {
-      if (!conn.refreshToken) {
+      if (!refreshToken) {
         return;
       }
-      await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, conn.refreshToken);
+      await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, refreshToken);
       logger.info('[ORG][REFRESH] Org refreshed successfully', { requestId });
     } catch (ex) {
       logger.error('[ORG][REFRESH] Error saving refresh token', ex, { requestId });
     }
   };
 
-  conn.on('refresh', handleRefresh);
+  const jetstreamConn = new ApiConnection(
+    {
+      apiRequestAdapter: getApiRequestFactoryFn(fetch),
+      userId,
+      organizationId,
+      accessToken,
+      apiVersion,
+      callOptions,
+      instanceUrl,
+      refreshToken,
+    },
+    handleRefresh
+  );
 
-  return { org, connection: conn };
+  return { org, jetstreamConn };
 }

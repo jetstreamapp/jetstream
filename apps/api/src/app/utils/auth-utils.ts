@@ -1,5 +1,3 @@
-import { ENV } from '@jetstream/api-config';
-import * as jsforce from 'jsforce';
 import * as Auth0Strategy from 'passport-auth0';
 
 interface AuthorizationParamsOptions {
@@ -12,15 +10,6 @@ interface AuthorizationParamsOptions {
   acr_values?: string;
   maxAge?: number;
   nonce?: string;
-}
-
-export function getJsforceOauth2(loginUrl: string) {
-  return new jsforce.OAuth2({
-    loginUrl,
-    clientId: ENV.SFDC_CONSUMER_KEY,
-    clientSecret: ENV.SFDC_CONSUMER_SECRET,
-    redirectUri: ENV.SFDC_CALLBACK_URL,
-  });
 }
 
 // Monkey Patch Auth0Strategy to allow directing a user to the login page
