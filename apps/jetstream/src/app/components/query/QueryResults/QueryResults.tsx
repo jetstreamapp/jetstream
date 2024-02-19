@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
-import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { query, sobjectOperation } from '@jetstream/shared/data';
@@ -16,7 +15,16 @@ import {
   useObservable,
 } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { AsyncJob, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import {
+  AsyncJob,
+  CloneEditView,
+  QueryResults as IQueryResults,
+  MapOf,
+  Maybe,
+  Record,
+  SalesforceOrgUi,
+  SobjectCollectionResponse,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,

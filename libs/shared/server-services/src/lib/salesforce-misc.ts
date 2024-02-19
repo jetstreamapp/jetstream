@@ -18,7 +18,7 @@ export async function getFrontdoorLoginUrl(conn: jsforce.Connection, returnUrl?:
   return url;
 }
 
-export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[]): T[] {
+export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[] | T): T[] {
   if (!Array.isArray(item)) {
     if (item) {
       item = [item] as any;
@@ -26,7 +26,7 @@ export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[]): T[] {
       return []; // null response
     }
   }
-  return item.map(correctInvalidXmlResponseTypes);
+  return (item as T[]).map(correctInvalidXmlResponseTypes);
 }
 
 export function correctInvalidXmlResponseTypes<T = any>(item: T): T {

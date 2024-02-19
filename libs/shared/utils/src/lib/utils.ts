@@ -1,4 +1,3 @@
-import { QueryResults, QueryResultsColumn } from '@jetstream/api-interfaces';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import {
   BulkJob,
@@ -11,7 +10,10 @@ import {
   ListItemGroup,
   MapOf,
   Maybe,
+  QueryColumnMetadata,
   QueryFieldWithPolymorphic,
+  QueryResults,
+  QueryResultsColumn,
   Record,
   SoapNil,
 } from '@jetstream/types';
@@ -392,11 +394,13 @@ export function ensureBoolean(value: Maybe<string | boolean>) {
   return false;
 }
 
-export function ensureArray<T = unknown>(value: T): T {
+export function ensureArray<T>(value: T[]): T[];
+export function ensureArray<T>(value: T | T[]): T[];
+export function ensureArray<T = unknown>(value: T): T[] {
   if (isNil(value)) {
     return [] as any;
   }
-  return (Array.isArray(value) ? value : [value]) as T;
+  return (Array.isArray(value) ? value : [value]) as T[];
 }
 
 export function ensureStringValue(value: Maybe<string>, allowedValues: string[], fallback?: string): string | undefined {
@@ -655,7 +659,7 @@ function buildDateFromString(value: string, dateFormat: string, representation: 
       return formatISODate(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
     }
     default:
-      break;
+      return null;
   }
 }
 
@@ -853,4 +857,66 @@ export function getFullNameFromListMetadata({
     return `${objectName}${namespace}__${layoutName}`;
   }
   return fullName;
+}
+
+/**
+ * Flattens query columns returned by salesforce query API
+ */
+export function flattenQueryColumn(column: QueryColumnMetadata, prevColumnPath?: string): QueryResultsColumn[] {
+  let output: QueryResultsColumn[] = [];
+  const currColumnPath = `${prevColumnPath ? `${prevColumnPath}.` : ''}${column.columnName}`;
+
+  if (Array.isArray(column.joinColumns) && column.joinColumns.length > 0) {
+    if (column.foreignKeyName) {
+      // Parent Query
+      output = output.concat(column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)));
+    } else {
+      // Child query
+      output.push({
+        columnFullPath: currColumnPath,
+        aggregate: column.aggregate,
+        apexType: column.apexType,
+        booleanType: column.booleanType,
+        columnName: column.columnName,
+        custom: column.custom,
+        displayName: column.displayName,
+        foreignKeyName: column.foreignKeyName,
+        insertable: column.insertable,
+        numberType: column.numberType,
+        textType: column.textType,
+        updatable: column.updatable,
+        childColumnPaths: column.joinColumns.flatMap((joinColumn) => flattenQueryColumn(joinColumn, currColumnPath)),
+      });
+    }
+  } else {
+    output.push({
+      columnFullPath: currColumnPath,
+      aggregate: column.aggregate,
+      apexType: column.apexType,
+      booleanType: column.booleanType,
+      columnName: column.columnName,
+      custom: column.custom,
+      displayName: column.displayName,
+      foreignKeyName: column.foreignKeyName,
+      insertable: column.insertable,
+      numberType: column.numberType,
+      textType: column.textType,
+      updatable: column.updatable,
+    });
+  }
+  return output;
+}
+
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }

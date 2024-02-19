@@ -50,7 +50,6 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 ├── electron-scripts
 ├── libs (CORE LIBRARIES SHARED ACROSS ALL APPLICATIONS)
 │   ├── api-config
-│   ├── api-interfaces
 │   ├── connected (FRONTEND DATA LIBRARY)
 │   ├── icon-factory (SFDC ICONS)
 │   ├── monaco-configuration

@@ -1,0 +1,64 @@
+import { flattenQueryColumn } from '@jetstream/shared/utils';
+import { QueryColumnsSfdc, QueryResults, QueryResultsColumns } from '@jetstream/types';
+import type { QueryResult } from 'jsforce';
+import { Query, parseQuery } from 'soql-parser-js';
+import { ApiConnection } from './connection';
+import { SalesforceApi } from './utils';
+
+export class ApiQuery extends SalesforceApi {
+  constructor(connection: ApiConnection) {
+    super(connection);
+  }
+
+  async query<T = any>(soql: string, isTooling = false, includeDeletedRecords = false): Promise<QueryResults<T>> {
+    const queryVerb = includeDeletedRecords ? 'queryAll' : 'query';
+    const url = isTooling
+      ? `/tooling/${queryVerb}?${new URLSearchParams({ q: soql }).toString()}`
+      : `/${queryVerb}?${new URLSearchParams({ q: soql }).toString()}`;
+    const queryResults = await this.apiRequest<QueryResult<T>>({
+      sessionInfo: this.sessionInfo,
+      url,
+    });
+
+    let columns: QueryResultsColumns | undefined;
+    let parsedQuery: Query | undefined;
+
+    try {
+      const tempColumns = await this.apiRequest<QueryColumnsSfdc>({
+        method: 'GET',
+        sessionInfo: this.sessionInfo,
+        url: `${isTooling ? '/tooling' : ''}/query/?${new URLSearchParams({
+          q: soql,
+          columns: 'true',
+        }).toString()}`,
+      });
+
+      columns = {
+        entityName: tempColumns.entityName,
+        groupBy: tempColumns.groupBy,
+        idSelected: tempColumns.idSelected,
+        keyPrefix: tempColumns.keyPrefix,
+        columns: tempColumns.columnMetadata?.flatMap((column) => flattenQueryColumn(column)),
+      };
+    } catch (ex) {
+      console.warn('Error fetching columns', ex);
+    }
+
+    // Attempt to parse columns from query
+    try {
+      parsedQuery = parseQuery(soql);
+    } catch (ex) {
+      console.info('Error parsing query');
+    }
+
+    return { queryResults, columns, parsedQuery };
+  }
+
+  async queryMore<T = any>(queryLocator: string, isTooling = false): Promise<QueryResult<T>> {
+    const url = isTooling ? `/tooling/query/${queryLocator}` : `${this.instanceUrl}/query/${queryLocator}`;
+    return await this.apiRequest<QueryResult<T>>({
+      sessionInfo: this.sessionInfo,
+      url,
+    });
+  }
+}

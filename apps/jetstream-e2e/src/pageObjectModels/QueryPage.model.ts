@@ -1,8 +1,7 @@
-import { QueryResults } from '@jetstream/api-interfaces';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { isRecordWithId } from '@jetstream/shared/utils';
-import { QueryFilterOperator } from '@jetstream/types';
-import { APIRequestContext, expect, Locator, Page } from '@playwright/test';
+import { QueryFilterOperator, QueryResults } from '@jetstream/types';
+import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
 import isNumber from 'lodash/isNumber';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 
