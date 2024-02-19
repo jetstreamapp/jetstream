@@ -33,7 +33,7 @@ export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
       }
     }
     await localforage.setItem(INDEXED_DB.KEYS.queryHistory, JSON.parse(JSON.stringify(queryHistory)));
-    logger.log('[QUERY-HISTORY][REMOVED]', queryHistory);
+    logger.log('[QUERY-HISTORY][REMOVED]');
   } catch (ex) {
     logger.log('[QUERY-HISTORY][ERROR]', ex);
   }

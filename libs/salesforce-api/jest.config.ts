@@ -1,11 +1,11 @@
 /* eslint-disable */
 export default {
-  displayName: 'temp-lib',
+  displayName: 'salesforce-api',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/libs/temp-lib',
+  coverageDirectory: '../../coverage/libs/salesforce-api',
 };

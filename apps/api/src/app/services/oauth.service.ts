@@ -77,10 +77,30 @@ export async function salesforceOauthCallback(
   };
 }
 
+export async function salesforceOauthRefresh(loginUrl: string, refreshToken: string) {
+  const authClient = getSalesforceAuthClient(loginUrl);
+  const tokenSet = await authClient.refresh(refreshToken);
+  const { access_token } = tokenSet;
+  return {
+    access_token,
+  };
+}
+
 /**
  * Login to Salesforce using username and password
  */
-export async function salesforceLoginUsernamePassword_UNSAFE(loginUrl: string, username: string, password: string) {
+export async function salesforceLoginUsernamePassword_UNSAFE(
+  loginUrl: string,
+  username: string,
+  password: string
+): Promise<{
+  access_token: string;
+  instance_url: string;
+  id: string;
+  token_type: string;
+  issued_at: string;
+  signature: string;
+}> {
   return await fetch(`${loginUrl}/services/oauth2/token`, {
     method: 'POST',
     headers: {

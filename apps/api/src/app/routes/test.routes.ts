@@ -39,17 +39,22 @@ routes.post(
     const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD;
     const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL;
 
-    const result = await salesforceLoginUsernamePassword_UNSAFE(E2E_LOGIN_URL, E2E_LOGIN_USERNAME!, E2E_LOGIN_PASSWORD!);
-    const [userId, organizationId] = result.id.split('/');
+    const { id, access_token, instance_url } = await salesforceLoginUsernamePassword_UNSAFE(
+      E2E_LOGIN_URL,
+      E2E_LOGIN_USERNAME!,
+      E2E_LOGIN_PASSWORD!
+    );
+    const [userId, organizationId] = new URL(id).pathname.split('/').reverse();
+
+    console.log({ organizationId, userId });
 
     const jetstreamConn = new ApiConnection({
       apiRequestAdapter: getApiRequestFactoryFn(fetch),
-      userId: 'EXAMPLE_USER',
+      userId,
       organizationId,
-      accessToken: result.access_token,
+      accessToken: access_token,
       apiVersion: ENV.SFDC_API_VERSION,
-      instanceUrl: E2E_LOGIN_URL,
-      refreshToken: result.refresh_token,
+      instanceUrl: instance_url,
     });
 
     const salesforceOrg = await initConnectionFromOAuthResponse({

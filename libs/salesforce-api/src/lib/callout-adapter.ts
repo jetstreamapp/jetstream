@@ -29,9 +29,6 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
       if (url.startsWith('/')) {
         url = `${instanceUrl}${basePath}${url}`;
       }
-      console.log('[NEW CONN]', method, url);
-      console.log(body);
-
       if (isObject(body) && !rawBody) {
         body = JSON.stringify(body);
       }
@@ -112,7 +109,6 @@ function exchangeRefreshToken(fetch: fetchFn, sessionInfo: ApiRequestOptions['se
   })
     .then((response) => response.json())
     .then((response) => {
-      // FIXME: these should be typed somewhere with auth code
       return response as { access_token: string };
     });
 }

@@ -14,7 +14,7 @@ interface ApiConnectionOptions {
   organizationId: string;
   instanceUrl: string;
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   apiVersion: string;
   callOptions?: Record<string, any>;
 }
