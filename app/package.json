@@ -6,7 +6,7 @@
   "license": "PRIVATE",
   "repository": "https://github.com/jetstreamapp/jetstream",
   "engines": {
-    "node": "21",
+    "node": ">= 20",
     "yarn": "1.22.21"
   },
   "private": true,
