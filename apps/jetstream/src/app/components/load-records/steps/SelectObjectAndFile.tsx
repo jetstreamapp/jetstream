@@ -3,7 +3,14 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { GoogleApiClientConfig, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { InputReadFileContent, InputReadGoogleSheet, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import {
+  DescribeGlobalSObjectResult,
+  InputReadFileContent,
+  InputReadGoogleSheet,
+  InsertUpdateUpsertDelete,
+  Maybe,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import {
   Alert,
   ConnectedSobjectList,
@@ -14,7 +21,6 @@ import {
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import isString from 'lodash/isString';
 import { FunctionComponent } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';

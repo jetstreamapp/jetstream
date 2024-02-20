@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -14,7 +14,6 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';

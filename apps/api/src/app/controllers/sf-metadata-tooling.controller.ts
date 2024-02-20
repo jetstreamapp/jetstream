@@ -1,9 +1,8 @@
 import { ENV } from '@jetstream/api-config';
 import { LOG_LEVELS } from '@jetstream/shared/constants';
-import { ListMetadataResult, MapOf } from '@jetstream/types';
+import { DeployOptions, ListMetadataResult, MapOf, RetrieveRequest } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { body, param, query } from 'express-validator';
-import type { DeployOptions, RetrieveRequest } from 'jsforce';
 import JSZip from 'jszip';
 import { isObject, isString } from 'lodash';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/salesforce.service';

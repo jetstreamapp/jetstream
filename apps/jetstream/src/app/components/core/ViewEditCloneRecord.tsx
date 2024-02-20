@@ -8,7 +8,9 @@ import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect } from '@j
 import {
   AsyncJobNew,
   BulkDownloadJob,
+  ChildRelationship,
   CloneEditView,
+  Field,
   FileExtCsvXLSXJsonGSheet,
   MapOf,
   Maybe,
@@ -34,7 +36,6 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import type { ChildRelationship, Field } from 'jsforce';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';

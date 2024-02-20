@@ -1,6 +1,7 @@
-import type { QueryResult, SalesforceId } from 'jsforce';
 import type { Query } from 'soql-parser-js';
-import { InsertUpdateUpsertDeleteQuery, SalesforceOrgEdition } from './salesforce/types';
+import { SalesforceOrgEdition } from './salesforce/misc.types';
+import { QueryResult } from './salesforce/query.types';
+import { InsertUpdateUpsertDeleteQuery, RecordAttributes, SalesforceId } from './salesforce/record.types';
 
 export interface RequestResult<T> {
   data: T;
@@ -65,15 +66,9 @@ export type Development = 'development';
 export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
 
 export interface MapOf<T> {
   [key: string]: T;
-}
-
-export interface RecordAttributes {
-  type: string;
-  url: string;
 }
 
 export interface ApplicationCookie {

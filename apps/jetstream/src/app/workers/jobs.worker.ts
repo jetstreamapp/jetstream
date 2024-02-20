@@ -34,13 +34,13 @@ import type {
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
   CancelJob,
+  Record,
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import type { Record } from 'jsforce';
 import isString from 'lodash/isString';
 import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 

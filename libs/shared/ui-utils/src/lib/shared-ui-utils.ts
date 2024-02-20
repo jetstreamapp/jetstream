@@ -18,6 +18,7 @@ import type {
   ExpressionConditionType,
   ExpressionGroupType,
   ExpressionType,
+  Field,
   ListItem,
   MapOf,
   Maybe,
@@ -36,7 +37,6 @@ import type {
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import type { Field } from 'jsforce';
 import safeGet from 'lodash/get';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';

@@ -1,7 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, describeSObject, manualRequest, queryAllWithCache } from '@jetstream/shared/data';
-import { SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeSObjectResult, Field } from 'jsforce';
+import { DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
 import type * as monaco from 'monaco-editor';
 import { composeQuery, getField } from 'soql-parser-js';
 import { CharacterInfo, CustomPermission, ExternalString, SpecialWordType } from './formula-evaluator.types';

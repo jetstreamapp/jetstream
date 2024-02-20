@@ -5,7 +5,9 @@ import type {
   CompositeRequestBody,
   CompositeResponse,
   DebugLevel,
+  DescribeSObjectResult,
   DescribeSObjectResultWithExtendedField,
+  Field,
   FieldWithExtendedType,
   FieldWrapper,
   MapOf,
@@ -17,7 +19,6 @@ import type {
 import copyToClipboard from 'copy-to-clipboard';
 import addHours from 'date-fns/addHours';
 import formatISO from 'date-fns/formatISO';
-import type { DescribeSObjectResult, Field } from 'jsforce';
 import { composeQuery, getField } from 'soql-parser-js';
 import {
   isRelationshipField,

@@ -1,6 +1,5 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf } from '@jetstream/types';
-import type { PackageTypeMembers, RetrieveRequest } from 'jsforce';
+import { ListMetadataResult, MapOf, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
 import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from '../utils/error-handler';

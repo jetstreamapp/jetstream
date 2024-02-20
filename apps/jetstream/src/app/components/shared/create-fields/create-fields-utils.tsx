@@ -2,8 +2,15 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, genericRequest, queryAllFromList, queryWithCache } from '@jetstream/shared/data';
 import { REGEX, ensureBoolean, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeResponse, GlobalValueSetRequest, MapOf, Maybe, SalesforceOrgUi, ToolingApiResponse } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import {
+  CompositeResponse,
+  DescribeGlobalSObjectResult,
+  GlobalValueSetRequest,
+  MapOf,
+  Maybe,
+  SalesforceOrgUi,
+  ToolingApiResponse,
+} from '@jetstream/types';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';

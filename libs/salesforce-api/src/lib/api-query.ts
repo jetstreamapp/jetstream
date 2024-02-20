@@ -1,6 +1,5 @@
 import { flattenQueryColumn } from '@jetstream/shared/utils';
-import { QueryColumnsSfdc, QueryResults, QueryResultsColumns } from '@jetstream/types';
-import type { QueryResult } from 'jsforce';
+import { QueryColumnsSfdc, QueryResult, QueryResults, QueryResultsColumns } from '@jetstream/types';
 import { Query, parseQuery } from 'soql-parser-js';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';

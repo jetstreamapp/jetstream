@@ -1,9 +1,8 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Field, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip, fireToast } from '@jetstream/ui';
-import type { Field } from 'jsforce';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';

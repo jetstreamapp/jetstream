@@ -1,5 +1,4 @@
-import { CompositeResponse, Maybe } from '@jetstream/types';
-import type { DescribeGlobalResult, DescribeSObjectResult } from 'jsforce';
+import { CompositeResponse, DescribeGlobalResult, DescribeSObjectResult, Maybe } from '@jetstream/types';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 

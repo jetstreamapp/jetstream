@@ -1,5 +1,4 @@
-import { MapOf, Maybe } from '@jetstream/types';
-import type { QueryResult } from 'jsforce';
+import { MapOf, Maybe, QueryResult } from '@jetstream/types';
 
 export type ValidationRule = 'ValidationRule';
 export type WorkflowRule = 'WorkflowRule';

@@ -2,9 +2,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeMetadata as describeMetadataApi } from '@jetstream/shared/data';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderStringsBy } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeMetadataResult, MapOf, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
-import type { DescribeMetadataResult, MetadataObject } from 'jsforce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { METADATA_TYPES_TO_OMIT } from './utils';
 

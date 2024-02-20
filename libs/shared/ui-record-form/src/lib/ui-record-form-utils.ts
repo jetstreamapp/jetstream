@@ -1,7 +1,6 @@
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
-import { CloneEditView, PicklistFieldValues, Record } from '@jetstream/types';
-import type { DescribeSObjectResult, Field, FieldType } from 'jsforce';
+import { CloneEditView, DescribeSObjectResult, Field, FieldType, PicklistFieldValues, Record } from '@jetstream/types';
 import isString from 'lodash/isString';
 import {
   EditableFieldCheckbox,

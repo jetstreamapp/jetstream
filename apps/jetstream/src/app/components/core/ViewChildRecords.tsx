@@ -5,7 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared/data';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
+import { ChildRelationship, Maybe, QueryResult, Record, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -19,7 +19,6 @@ import {
   Tooltip,
   setColumnFromType,
 } from '@jetstream/ui';
-import type { ChildRelationship, QueryResult } from 'jsforce';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';

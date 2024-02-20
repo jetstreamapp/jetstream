@@ -1,10 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { sobjectOperation } from '@jetstream/shared/data';
 import { getIdAndObjFromRecordUrl, orderStringsBy } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Record, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Icon, Panel, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import type { Record } from 'jsforce';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';

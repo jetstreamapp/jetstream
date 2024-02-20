@@ -1,11 +1,11 @@
 import {
+  DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
   ListItem,
   MapOf,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
 } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import {
   FieldPermissionDefinitionMap,

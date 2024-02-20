@@ -1,9 +1,8 @@
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CloneEditView, MapOf, PicklistFieldValues, Record } from '@jetstream/types';
+import { CloneEditView, Field, MapOf, PicklistFieldValues, Record } from '@jetstream/types';
 import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
-import type { Field } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import UiRecordFormField from './UiRecordFormField';
 import { EditableFields } from './ui-record-form-types';

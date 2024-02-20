@@ -3,6 +3,7 @@ import { sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
+  DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
   MapOf,
@@ -13,7 +14,6 @@ import {
   SalesforceOrgUi,
   TabVisibilityPermissionRecord,
 } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import {
   FieldPermissionDefinitionMap,

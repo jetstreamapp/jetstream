@@ -1,9 +1,8 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, orderStringsBy } from '@jetstream/shared/utils';
-import { Maybe, UpDown } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
-import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
+import { Fragment, FunctionComponent, createRef, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';

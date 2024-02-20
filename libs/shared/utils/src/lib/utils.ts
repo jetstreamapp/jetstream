@@ -12,15 +12,16 @@ import {
   Maybe,
   QueryColumnMetadata,
   QueryFieldWithPolymorphic,
+  QueryResult,
   QueryResults,
   QueryResultsColumn,
   Record,
   SoapNil,
+  FieldType as jsforceFieldType,
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import fromUnixTime from 'date-fns/fromUnixTime';
 import isMatch from 'date-fns/isMatch';
-import type { QueryResult, FieldType as jsforceFieldType } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';

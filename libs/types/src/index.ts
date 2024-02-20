@@ -1,7 +1,12 @@
 export * from './lib/jobs/types';
 export * from './lib/node/types';
-export * from './lib/salesforce/types';
+export * from './lib/salesforce/apex.types';
+export * from './lib/salesforce/bulk.types';
+export * from './lib/salesforce/metadata.types';
+export * from './lib/salesforce/misc.types';
+export * from './lib/salesforce/query.types';
+export * from './lib/salesforce/record.types';
+export * from './lib/salesforce/sobject.types';
+export * from './lib/salesforce/tooling.types';
 export * from './lib/types';
 export * from './lib/ui/types';
-/** This is only so webpack gets changes to this module */
-export const _PLACEHOLDER = null;

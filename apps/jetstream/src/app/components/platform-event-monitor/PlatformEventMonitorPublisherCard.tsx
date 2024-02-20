@@ -1,10 +1,9 @@
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { ListItem, Maybe, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
 import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
-import type { DescribeSObjectResult } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { PlatformEventObject } from './platform-event-monitor.types';
 

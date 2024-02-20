@@ -1,8 +1,7 @@
 import { queryMore } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { QueryResult } from 'jsforce';
+import { Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RenderCellProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';

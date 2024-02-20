@@ -9,12 +9,10 @@ import {
   useNonInitialEffect,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
-import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeSObjectResult, Field } from 'jsforce';
+import { DescribeSObjectResult, Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { useAmplitude } from '../../core/analytics';
-import * as fromMassUpdateState from '../mass-update-records.state';
 import {
   MetadataRow,
   TransformationCriteria,
@@ -22,6 +20,7 @@ import {
   TransformationOptions,
 } from '../../shared/mass-update-records/mass-update-records.types';
 import { getValidationSoqlQuery, isValidRow } from '../../shared/mass-update-records/mass-update-records.utils';
+import * as fromMassUpdateState from '../mass-update-records.state';
 
 type Action =
   | { type: 'RESET' }

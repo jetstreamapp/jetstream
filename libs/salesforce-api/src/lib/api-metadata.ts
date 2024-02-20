@@ -1,6 +1,14 @@
 import { arrayBufferToBase64, ensureArray, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { DeployOptions, DeployResult, RetrieveResult } from '@jetstream/types';
-import type { AsyncResult, DescribeMetadataResult, FileProperties, MetadataInfo, RetrieveRequest } from 'jsforce';
+import {
+  AsyncResult,
+  DeployOptions,
+  DeployResult,
+  DescribeMetadataResult,
+  FileProperties,
+  MetadataInfo,
+  RetrieveRequest,
+  RetrieveResult,
+} from '@jetstream/types';
 import JSZip from 'jszip';
 import { ApiConnection } from './connection';
 import {

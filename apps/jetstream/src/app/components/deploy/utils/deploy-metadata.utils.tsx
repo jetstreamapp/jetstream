@@ -5,6 +5,7 @@ import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChangeSet,
+  DeployOptions,
   DeployResult,
   ListMetadataResult,
   MapOf,
@@ -24,7 +25,6 @@ import {
 } from '@jetstream/ui';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
-import type { DeployOptions } from 'jsforce';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import isString from 'lodash/isString';

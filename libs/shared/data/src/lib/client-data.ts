@@ -4,17 +4,24 @@ import {
   AnonymousApexResponse,
   ApexCompletionResponse,
   ApiResponse,
+  AsyncResult,
   BulkApiCreateJobRequestPayload,
   BulkApiDownloadType,
   BulkJob,
   BulkJobBatchInfo,
   BulkJobWithBatches,
+  ChildRelationship,
   CloudinarySignature,
   CloudinaryUploadResponse,
+  DeployOptions,
   DeployResult,
+  DescribeGlobalResult,
+  DescribeMetadataResult,
+  DescribeSObjectResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
   InputReadFileContent,
+  ListMetadataQuery,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
@@ -29,15 +36,6 @@ import {
   UserProfileUiWithIdentities,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
-import type {
-  AsyncResult,
-  ChildRelationship,
-  DeployOptions,
-  DescribeGlobalResult,
-  DescribeMetadataResult,
-  DescribeSObjectResult,
-  ListMetadataQuery,
-} from 'jsforce';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';

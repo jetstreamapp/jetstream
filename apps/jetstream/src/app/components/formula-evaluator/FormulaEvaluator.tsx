@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
 import {
   Alert,
   AutoFullHeightContainer,
@@ -26,7 +26,6 @@ import {
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';

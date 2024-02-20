@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi, UpDown } from '@jetstream/types';
+import { MapOf, MetadataObject, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -15,9 +15,8 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import type { MetadataObject } from 'jsforce';
 import startCase from 'lodash/startCase';
-import { createRef, Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, createRef, useEffect, useRef, useState } from 'react';
 import { useDescribeMetadata } from './useDescribeMetadata';
 import { getMetadataLabelFromFullName } from './utils';
 

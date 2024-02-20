@@ -1,8 +1,15 @@
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import { ensureArray, getValueOrSoapNull, orderObjectsBy, sanitizeForXml, toBoolean } from '@jetstream/shared/utils';
-import { AnonymousApexResponse, AnonymousApexSoapResponse, ListMetadataResult, MapOf } from '@jetstream/types';
+import {
+  AnonymousApexResponse,
+  AnonymousApexSoapResponse,
+  DeployOptions,
+  ListMetadataResult,
+  MapOf,
+  PackageTypeMembers,
+  RetrieveRequest,
+} from '@jetstream/types';
 import * as jsforce from 'jsforce';
-import { DeployOptions, PackageTypeMembers, RetrieveRequest } from 'jsforce';
 import JSZip from 'jszip';
 import { isObject, isObjectLike, isString, get as lodashGet, toNumber } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';

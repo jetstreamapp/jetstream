@@ -1,9 +1,8 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { ErrorResult, ExpressionType, MapOf, Maybe, Record } from '@jetstream/types';
+import { ErrorResult, ExpressionType, Field, FieldType, MapOf, Maybe, Record } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
-import type { Field, FieldType } from 'jsforce';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';

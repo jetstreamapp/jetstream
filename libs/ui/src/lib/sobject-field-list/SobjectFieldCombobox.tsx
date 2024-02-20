@@ -2,8 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { Field } from 'jsforce';
+import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItemsVirtual';
 

@@ -1,8 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ComboboxWithItemsVirtual from '../form/combobox/ComboboxWithItemsVirtual';
 import { filterSobjectFn, filterToolingSobjectFn } from './ConnectedSobjectList';

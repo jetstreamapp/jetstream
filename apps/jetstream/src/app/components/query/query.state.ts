@@ -1,6 +1,8 @@
 import { queryFilterHasValue } from '@jetstream/shared/ui-utils';
 import { convertFieldWithPolymorphicToQueryFields, orderStringsBy } from '@jetstream/shared/utils';
 import {
+  ChildRelationship,
+  DescribeGlobalSObjectResult,
   ExpressionType,
   ListItem,
   MapOf,
@@ -10,7 +12,6 @@ import {
   QueryOrderByClause,
 } from '@jetstream/types';
 import { isExpressionConditionType } from '@jetstream/ui';
-import type { ChildRelationship, DescribeGlobalSObjectResult } from 'jsforce';
 import { atom, selector } from 'recoil';
 import { FieldType, GroupByFieldClause, GroupByFnClause, OrderByClause, OrderByFieldClause, Subquery, getField } from 'soql-parser-js';
 
