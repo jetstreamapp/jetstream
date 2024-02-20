@@ -70,6 +70,7 @@ export async function salesforceOauthCallback(req: Request<unknown, unknown, any
       apiVersion: ENV.SFDC_API_VERSION,
       instanceUrl: userInfo.urls.custom_domain || loginUrl,
       refreshToken: refresh_token,
+      logging: ENV.ENVIRONMENT === 'development',
     });
 
     const salesforceOrg = await initConnectionFromOAuthResponse({

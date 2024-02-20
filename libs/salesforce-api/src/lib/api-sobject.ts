@@ -8,12 +8,12 @@ export class ApiSObject extends SalesforceApi {
   }
 
   async describe(isTooling = false): Promise<DescribeGlobalResult> {
-    const url = isTooling ? `/tooling/sobjects` : `/sobjects`;
+    const url = this.getRestApiUrl('/sobjects', isTooling);
     return this.apiRequest<DescribeGlobalResult>({ sessionInfo: this.sessionInfo, url });
   }
 
   async describeSobject(sobject: string, isTooling = false): Promise<DescribeSObjectResult> {
-    const url = isTooling ? `/tooling/sobjects/${sobject}/describe` : `/sobjects/${sobject}/describe`;
+    const url = this.getRestApiUrl(`/sobjects/${sobject}/describe`, isTooling);
     return this.apiRequest<DescribeSObjectResult>({ sessionInfo: this.sessionInfo, url });
   }
 
@@ -44,6 +44,7 @@ export class ApiSObject extends SalesforceApi {
     }
 
     // POST https://MyDomainName.my.salesforce.com/services/data/v60.0/composite/sobjects/
+    const BASE_URL = this.getRestApiUrl('/composite/sobjects', isTooling);
 
     switch (operation) {
       case 'retrieve': {
@@ -73,7 +74,7 @@ export class ApiSObject extends SalesforceApi {
         operationPromise = this.apiRequest({
           method: 'POST',
           sessionInfo: this.sessionInfo,
-          url: isTooling ? `/tooling/composite/sobjects` : `/composite/sobjects`,
+          url: BASE_URL,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: undefined })),
@@ -89,7 +90,7 @@ export class ApiSObject extends SalesforceApi {
         operationPromise = this.apiRequest({
           method: 'PATCH',
           sessionInfo: this.sessionInfo,
-          url: isTooling ? `/tooling/composite/sobjects` : `/composite/sobjects`,
+          url: BASE_URL,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: record.Id })),
@@ -105,7 +106,7 @@ export class ApiSObject extends SalesforceApi {
         operationPromise = this.apiRequest({
           method: 'PATCH',
           sessionInfo: this.sessionInfo,
-          url: isTooling ? `/tooling/composite/sobjects/${sobject}/${externalId}` : `/composite/sobjects/${sobject}/${externalId}`,
+          url: `${BASE_URL}/${sobject}/${externalId}`,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject } })),
@@ -121,7 +122,7 @@ export class ApiSObject extends SalesforceApi {
         operationPromise = this.apiRequest({
           method: 'DELETE',
           sessionInfo: this.sessionInfo,
-          url: isTooling ? `/tooling/composite/sobjects?ids=${ids.join(',')}` : `/composite/sobjects?ids=${ids.join(',')}`,
+          url: `${BASE_URL}?ids=${ids.join(',')}`,
         });
 
         break;

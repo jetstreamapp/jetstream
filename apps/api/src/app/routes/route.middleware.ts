@@ -284,6 +284,7 @@ export async function getOrgForRequest(
       callOptions,
       instanceUrl,
       refreshToken,
+      logging: ENV.ENVIRONMENT === 'development',
     },
     handleRefresh
   );

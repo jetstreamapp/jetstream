@@ -10,27 +10,18 @@ const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/fau
  * Requires a fetch compatible function to avoid relying any specific fetch implementation
  */
 export function getApiRequestFactoryFn(fetch: fetchFn) {
-  return (onRefresh?: (accessToken: string) => void) => {
+  return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean) => {
     const apiRequest = async <Response = unknown, ResponseHeader = never>(
-      {
-        method = 'GET',
-        sessionInfo,
-        basePath = `/services/data/v${sessionInfo.apiVersion}`,
-        url,
-        body,
-        headers,
-        outputType,
-        rawBody = false,
-      }: ApiRequestOptions,
+      { method = 'GET', sessionInfo, url, body, headers, outputType, rawBody = false }: ApiRequestOptions,
       attemptRefresh: boolean = true
     ): Promise<Response> => {
       const { accessToken, instanceUrl } = sessionInfo;
-      basePath = basePath || '';
-      if (url.startsWith('/')) {
-        url = `${instanceUrl}${basePath}${url}`;
-      }
+      url = `${instanceUrl}${url}`;
       if (isObject(body) && !rawBody) {
         body = JSON.stringify(body);
+      }
+      if (enableLogging) {
+        console.log(`[API REQUEST]: ${method} ${url}`);
       }
 
       return fetch(url, {
@@ -45,6 +36,16 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
         },
       })
         .then(async (response) => {
+          if (enableLogging) {
+            console.log(`[API RESPONSE]: ${response.status}`);
+            if (response.status !== 204) {
+              response
+                .clone()
+                .text()
+                .then((text) => console.log(text))
+                .catch((_) => {});
+            }
+          }
           if (response.ok) {
             outputType = outputType || 'json';
             if (outputType === 'text') {
@@ -81,7 +82,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             // attemptRefresh
             const { access_token: accessToken } = await exchangeRefreshToken(fetch, sessionInfo);
             onRefresh?.(accessToken);
-            return apiRequest({ method, sessionInfo: { ...sessionInfo, accessToken }, basePath, url, body, headers, outputType }, false);
+            return apiRequest({ method, sessionInfo: { ...sessionInfo, accessToken }, url, body, headers, outputType }, false);
           }
           throw new Error(responseText);
         })

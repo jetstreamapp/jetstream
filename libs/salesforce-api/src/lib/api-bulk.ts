@@ -5,17 +5,14 @@ import { ApiConnection } from './connection';
 import { SalesforceApi, prepareBulkApiRequestPayload, prepareCloseOrAbortJobPayload } from './utils';
 
 export class ApiBulk extends SalesforceApi {
-  basePath: string;
   constructor(connection: ApiConnection) {
     super(connection);
-    this.basePath = `/services/async/${this.apiVersion}`;
   }
 
   async createJob(options: BulkApiCreateJobRequestPayload) {
     const result = await this.apiRequest<{ jobInfo: BulkJobUntyped }>({
       sessionInfo: this.sessionInfo,
-      url: `/job`,
-      basePath: this.basePath,
+      url: this.getBulkApiUrl('/job'),
       method: 'POST',
       body: prepareBulkApiRequestPayload(options),
       headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV, Accept: HTTP.CONTENT_TYPE.XML },
@@ -29,15 +26,13 @@ export class ApiBulk extends SalesforceApi {
     const [jobResults, batchesResults] = await Promise.all([
       this.apiRequest<{ jobInfo: BulkJobUntyped }>({
         sessionInfo: this.sessionInfo,
-        url: `/job/${jobId}`,
-        basePath: this.basePath,
+        url: this.getBulkApiUrl(`/job/${jobId}`),
         outputType: 'xml',
         headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.XML, Accept: HTTP.CONTENT_TYPE.XML },
       }).then(({ jobInfo }) => bulkApiEnsureTyped(jobInfo)),
       this.apiRequest<{ batchInfoList: { batchInfo: BulkJobBatchInfoUntyped[] } }>({
         sessionInfo: this.sessionInfo,
-        url: `/job/${jobId}/batch`,
-        basePath: this.basePath,
+        url: this.getBulkApiUrl(`/job/${jobId}/batch`),
         method: 'GET',
         outputType: 'xml',
         headers: { Accept: HTTP.CONTENT_TYPE.XML },
@@ -52,8 +47,7 @@ export class ApiBulk extends SalesforceApi {
   async closeJob(jobId: string, state: 'Closed' | 'Aborted' = 'Closed') {
     const result = await this.apiRequest<{ jobInfo: BulkJobUntyped }>({
       sessionInfo: this.sessionInfo,
-      url: `/job/${jobId}`,
-      basePath: this.basePath,
+      url: this.getBulkApiUrl(`/job/${jobId}`),
       method: 'POST',
       body: prepareCloseOrAbortJobPayload(state),
       headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV, Accept: HTTP.CONTENT_TYPE.XML },
@@ -66,8 +60,7 @@ export class ApiBulk extends SalesforceApi {
   async addBatchToJob(csv: string | Buffer | ArrayBuffer, jobId: string, closeJob = false) {
     const result = await this.apiRequest<{ batchInfo: BulkJobBatchInfoUntyped }>({
       sessionInfo: this.sessionInfo,
-      url: `/job/${jobId}/batch`,
-      basePath: this.basePath,
+      url: this.getBulkApiUrl(`/job/${jobId}/batch`),
       method: 'POST',
       body: csv,
       headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV, Accept: HTTP.CONTENT_TYPE.XML },
@@ -86,8 +79,7 @@ export class ApiBulk extends SalesforceApi {
   // async addBatchWithZipAttachmentToJob(zip: Buffer | ArrayBuffer, jobId: string, closeJob = false): Promise<BulkJobBatchInfo> {
   //   const results = await this.apiRequest<{ batchInfo: BulkJobBatchInfoUntyped }>({
   //     sessionInfo: this.sessionInfo,
-  //     url: `/job/${jobId}/batch`,
-  //     basePath: this.basePath,
+  //     url: this.getBulkApiUrl(`/job/${jobId}/batch`),
   //     method: 'POST',
   //     body: zip,
   //     headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.ZIP_CSV, Accept: HTTP.CONTENT_TYPE.XML },
@@ -103,8 +95,7 @@ export class ApiBulk extends SalesforceApi {
   async getQueryResultsJobIds(jobId: string, batchId: string): Promise<string[]> {
     const results = await this.apiRequest<{ 'result-list': { result: string | string[] } }>({
       sessionInfo: this.sessionInfo,
-      url: `/job/${jobId}/batch/${batchId}/result`,
-      basePath: this.basePath,
+      url: this.getBulkApiUrl(`/job/${jobId}/batch/${batchId}/result`),
       method: 'GET',
       headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.XML_UTF8, Accept: HTTP.CONTENT_TYPE.XML },
       outputType: 'xml',
@@ -123,8 +114,7 @@ export class ApiBulk extends SalesforceApi {
     const urlSuffix = resultId ? `/${resultId}` : '';
     const results = await this.apiRequest<ReadableStream<Uint8Array>>({
       sessionInfo: this.sessionInfo,
-      url: `/job/${jobId}/batch/${batchId}/${type}${urlSuffix}`,
-      basePath: this.basePath,
+      url: this.getBulkApiUrl(`/job/${jobId}/batch/${batchId}/${type}${urlSuffix}`),
       method: 'GET',
       headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.XML_UTF8, Accept: HTTP.CONTENT_TYPE.CSV },
       outputType: 'stream',

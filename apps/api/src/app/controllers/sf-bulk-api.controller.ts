@@ -212,18 +212,15 @@ export async function downloadResults(
     });
     csvParseStream.on('finish', () => {
       res.write(']}');
-      if (!res.headersSent) {
-        res.status(200).send();
-      } else {
-        logger.warn('Response headers already sent. csvParseStream[finish]', { requestId: res.locals.requestId });
-      }
+      res.end();
+      logger.info('Finished streaming download from Salesforce', { requestId: res.locals.requestId });
     });
     csvParseStream.on('error', (err) => {
       logger.warn('Error streaming files from Salesforce. %o', err, { requestId: res.locals.requestId });
       if (!res.headersSent) {
-        res.status(400).send();
+        res.status(400).json({ error: true, message: 'Error streaming files from Salesforce' });
       } else {
-        logger.warn('Response headers already sent. csvParseStream[error]', { requestId: res.locals.requestId });
+        res.status(400).end();
       }
     });
   } catch (ex) {

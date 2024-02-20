@@ -12,17 +12,20 @@ export class ApiRequest extends SalesforceApi {
 
   async manualRequest<T = unknown>(
     { method, url, body, headers = {}, options }: GenericRequestPayload,
-    outputType: ApiRequestOutputType = 'text'
+    outputType: ApiRequestOutputType = 'text',
+    ensureRestUrl = false
   ): Promise<T> {
     if (options?.responseType) {
       headers = headers || {};
       headers['Content-Type'] = options.responseType;
       headers['Accept'] = '*';
     }
+    if (ensureRestUrl && !url.startsWith('/services')) {
+      url = this.getRestApiUrl(url);
+    }
     const data = await this.apiRequest<T>({
       sessionInfo: this.sessionInfo,
       url,
-      basePath: '',
       method: method,
       body: body,
       headers: headers,

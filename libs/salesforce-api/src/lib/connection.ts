@@ -17,6 +17,7 @@ interface ApiConnectionOptions {
   refreshToken?: string;
   apiVersion: string;
   callOptions?: Record<string, any>;
+  logging?: boolean;
 }
 
 export class ApiConnection {
@@ -33,10 +34,20 @@ export class ApiConnection {
   request: ApiRequest;
 
   constructor(
-    { apiRequestAdapter, userId, organizationId, instanceUrl, apiVersion, accessToken, refreshToken, callOptions }: ApiConnectionOptions,
+    {
+      apiRequestAdapter,
+      userId,
+      organizationId,
+      instanceUrl,
+      apiVersion,
+      accessToken,
+      refreshToken,
+      callOptions,
+      logging,
+    }: ApiConnectionOptions,
     refreshCallback?: (accessToken: string, refreshToken: string) => void
   ) {
-    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this));
+    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), logging);
     this.refreshCallback = refreshCallback;
     this.sessionInfo = {
       userId,
@@ -56,8 +67,6 @@ export class ApiConnection {
     this.request = new ApiRequest(this);
     this.sobject = new ApiSObject(this);
   }
-
-  initAuth() {}
 
   handleRefresh(accessToken: string) {
     // todo: do we need to do anything here?

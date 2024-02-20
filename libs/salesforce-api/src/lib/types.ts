@@ -57,12 +57,6 @@ export type fetchFn = (url: string, options: FetchOptions) => Promise<FetchRespo
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   url: string;
-  /**
-   * If not provided, then `/services/data/v${sessionInfo.apiVersion}` will be used
-   * pass in null or empty string to skip the base path
-   * This will be ignored for absolute URL paths passed in
-   */
-  basePath?: string | null;
   body?: any;
   headers?: Record<string, string>;
   sessionInfo: SessionInfo;

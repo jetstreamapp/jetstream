@@ -73,7 +73,7 @@ export async function salesforceRequest(req: Request<unknown, GenericRequestPayl
     const payload = req.body;
 
     const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.request.manualRequest(payload);
+    const results = await jetstreamConn.request.manualRequest(payload, 'json', true);
 
     sendJson(res, results);
   } catch (ex) {
@@ -83,6 +83,7 @@ export async function salesforceRequest(req: Request<unknown, GenericRequestPayl
 
 // TODO: combine with salesforceRequest and rename
 // The request payload and response are slightly different, but the logic is the same
+// The only difference is the caller is expected to pass in the full url to call (AFAIK)
 export async function salesforceRequestManual(req: Request<unknown, ManualRequestPayload, unknown>, res: Response, next: NextFunction) {
   try {
     // const { method, headers, body, url } = req.body as ManualRequestPayload;

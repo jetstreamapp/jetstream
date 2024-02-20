@@ -11,9 +11,7 @@ export class ApiQuery extends SalesforceApi {
 
   async query<T = any>(soql: string, isTooling = false, includeDeletedRecords = false): Promise<QueryResults<T>> {
     const queryVerb = includeDeletedRecords ? 'queryAll' : 'query';
-    const url = isTooling
-      ? `/tooling/${queryVerb}?${new URLSearchParams({ q: soql }).toString()}`
-      : `/${queryVerb}?${new URLSearchParams({ q: soql }).toString()}`;
+    const url = this.getRestApiUrl(`/${queryVerb}?${new URLSearchParams({ q: soql }).toString()}`, isTooling);
     const queryResults = await this.apiRequest<QueryResult<T>>({
       sessionInfo: this.sessionInfo,
       url,
@@ -26,10 +24,7 @@ export class ApiQuery extends SalesforceApi {
       const tempColumns = await this.apiRequest<QueryColumnsSfdc>({
         method: 'GET',
         sessionInfo: this.sessionInfo,
-        url: `${isTooling ? '/tooling' : ''}/query/?${new URLSearchParams({
-          q: soql,
-          columns: 'true',
-        }).toString()}`,
+        url: this.getRestApiUrl(`/query?${new URLSearchParams({ q: soql, columns: 'true' }).toString()}`, isTooling),
       });
 
       columns = {
@@ -54,10 +49,9 @@ export class ApiQuery extends SalesforceApi {
   }
 
   async queryMore<T = any>(queryLocator: string, isTooling = false): Promise<QueryResult<T>> {
-    const url = isTooling ? `/tooling/query/${queryLocator}` : `${this.instanceUrl}/query/${queryLocator}`;
     return await this.apiRequest<QueryResult<T>>({
       sessionInfo: this.sessionInfo,
-      url,
+      url: this.getRestApiUrl(`/query/${queryLocator}`, isTooling),
     });
   }
 }

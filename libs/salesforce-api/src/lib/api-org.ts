@@ -18,7 +18,6 @@ export class ApiOrg extends SalesforceApi {
     return await this.apiRequest<ReadableStream<Uint8Array>>({
       sessionInfo: this.sessionInfo,
       url,
-      basePath: '',
       outputType: 'stream',
     });
   }
@@ -27,7 +26,6 @@ export class ApiOrg extends SalesforceApi {
     return await this.apiRequest<SalesforceUserIdentity>({
       sessionInfo: this.sessionInfo,
       url: `/id/${this.sessionInfo.organizationId}/${this.sessionInfo.userId}`,
-      basePath: '',
     });
   }
 
@@ -35,7 +33,6 @@ export class ApiOrg extends SalesforceApi {
     return await this.apiRequest<{ label: string; url: string; version: string }[]>({
       sessionInfo: this.sessionInfo,
       url: `/services/data`,
-      basePath: '',
     });
   }
 }

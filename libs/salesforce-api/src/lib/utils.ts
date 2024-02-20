@@ -1,6 +1,6 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureArray } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, DeployResult } from '@jetstream/types';
+import { BulkApiCreateJobRequestPayload, DeployResult, Maybe } from '@jetstream/types';
 import { isObject } from 'lodash';
 import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
@@ -42,12 +42,30 @@ export class SalesforceApi {
     return {
       sessionInfo: this.sessionInfo,
       url: `${SoapPrefixMap[type]}/${this.apiVersion}`,
-      basePath: '',
       method: 'POST',
       headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.XML_TEXT, Accept: HTTP.CONTENT_TYPE.XML, SOAPAction: '""' },
       body: this.createSoapEnvelope(options),
       outputType: 'soap',
     };
+  }
+
+  /**
+   * Construct REST API URL
+   * /services/data/v00.0 + pathSuffix
+   *
+   * @param pathSuffix should start with a slash
+   */
+  getRestApiUrl(pathSuffix = '', isTooling: Maybe<boolean> = false) {
+    let url = `/services/data/v${this.apiVersion}`;
+    if (isTooling) {
+      url += '/tooling';
+    }
+    url += pathSuffix;
+    return url;
+  }
+
+  getBulkApiUrl(pathSuffix = '') {
+    return `/services/async/${this.apiVersion}${pathSuffix}`;
   }
 
   createSoapEnvelope({ body, header, type }: SoapRequestOptions) {

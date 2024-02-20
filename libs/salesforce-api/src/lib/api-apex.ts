@@ -64,7 +64,7 @@ export class ApiApex extends SalesforceApi {
   async apexCompletions(type: string): Promise<ApexCompletionResponse> {
     return this.apiRequest<ApexCompletionResponse>({
       method: 'GET',
-      url: `/tooling/completions?type=${type}`,
+      url: this.getRestApiUrl(`/tooling/completions?type=${type}`),
       sessionInfo: this.sessionInfo,
     });
   }
