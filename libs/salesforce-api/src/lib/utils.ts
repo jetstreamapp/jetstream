@@ -117,7 +117,7 @@ export const SoapPrefixMap: Record<SOAP_TYPE, string> = {
 //   }
 // }
 
-function toSoapXML(name: unknown, value?: unknown): string {
+export function toSoapXML(name: unknown, value?: unknown): string {
   if (isObject(name)) {
     value = name;
     name = null;

@@ -8,10 +8,13 @@ export class ApiOrg extends SalesforceApi {
     super(connection);
   }
 
-  getFrontdoorLoginUrl(returnUrl?: string) {
-    return `${this.sessionInfo.instanceUrl}/secur/frontdoor.jsp?sid=${this.sessionInfo}${
-      isString(returnUrl) && returnUrl ? '&retURL=${returnUrl}' : ''
-    }`;
+  getFrontdoorLoginUrl(returnUrl?: string): string {
+    const url = new URL(`${this.sessionInfo.instanceUrl}/secur/frontdoor.jsp`);
+    url.searchParams.append('sid', this.sessionInfo.accessToken);
+    if (isString(returnUrl) && returnUrl) {
+      url.searchParams.append('retURL', returnUrl);
+    }
+    return url.toString();
   }
 
   async streamDownload(url: string) {
