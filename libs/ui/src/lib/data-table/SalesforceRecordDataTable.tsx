@@ -3,7 +3,7 @@ import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
-import { flattenRecord, getIdFromRecordUrl } from '@jetstream/shared/utils';
+import { flattenRecord, getIdFromRecordUrl, nullifyEmptyStrings } from '@jetstream/shared/utils';
 import { CloneEditView, MapOf, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import type { Field } from 'jsforce';
 import uniqueId from 'lodash/uniqueId';
@@ -314,12 +314,14 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
         }
         setIsSavingRecords(true);
         const modifiedRecords = dirtyRows.map((row) =>
-          Array.from(row._touchedColumns).reduce(
-            (acc, column) => {
-              acc[column] = row[column];
-              return acc;
-            },
-            { attributes: row._record.attributes, Id: getIdFromRecordUrl(row._record.attributes.url) }
+          nullifyEmptyStrings(
+            Array.from(row._touchedColumns).reduce(
+              (acc, column) => {
+                acc[column] = row[column];
+                return acc;
+              },
+              { attributes: row._record.attributes, Id: getIdFromRecordUrl(row._record.attributes.url) }
+            )
           )
         );
         const results = await onUpdateRecords(modifiedRecords);
