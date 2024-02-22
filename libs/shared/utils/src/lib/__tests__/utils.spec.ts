@@ -1,4 +1,4 @@
-import { getExcelSafeSheetName, getFullNameFromListMetadata } from '../utils';
+import { getExcelSafeSheetName, getFullNameFromListMetadata, nullifyEmptyStrings } from '../utils';
 
 describe('utils.getExcelSafeSheetName', () => {
   it('should handle simple cases', () => {
@@ -74,5 +74,64 @@ describe('utils.getFullNameFromListMetadata', () => {
         namespace: 'TEST',
       })
     ).toEqual('AttributeSet__c-Attribute Set Layout');
+  });
+});
+
+describe('utils.nullifyEmptyStrings', () => {
+  it('should nullify empty strings in a map', () => {
+    const input = {
+      name: 'John',
+      age: '',
+      address: {
+        street: '123 Main St',
+        city: '',
+        postalCode: '      ',
+        state: 'CA',
+      },
+    };
+
+    const expectedOutput = {
+      name: 'John',
+      age: null,
+      address: {
+        street: '123 Main St',
+        city: null,
+        postalCode: null,
+        state: 'CA',
+      },
+    };
+
+    expect(nullifyEmptyStrings(input)).toEqual(expectedOutput);
+  });
+
+  it('should nullify empty strings in a map without trimming', () => {
+    const input = {
+      name: 'John',
+      age: '',
+      address: {
+        street: '123 Main St',
+        city: '',
+        postalCode: '      ',
+        state: 'CA',
+      },
+    };
+
+    const expectedOutput = {
+      name: 'John',
+      age: null,
+      address: {
+        street: '123 Main St',
+        city: null,
+        postalCode: '      ',
+        state: 'CA',
+      },
+    };
+
+    expect(nullifyEmptyStrings(input, false)).toEqual(expectedOutput);
+  });
+
+  it('should return the same map if it is null or undefined', () => {
+    expect(nullifyEmptyStrings(null as any)).toBeNull();
+    expect(nullifyEmptyStrings(undefined as any)).toBeUndefined();
   });
 });
