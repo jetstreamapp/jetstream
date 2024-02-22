@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
-import { Maybe, Record } from '@jetstream/types';
+import { Maybe, SalesforceRecord } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -12,9 +12,9 @@ export interface QueryResultsCopyToClipboardProps {
   className?: string;
   hasRecords: boolean;
   fields: Maybe<string[]>;
-  records: Maybe<Record[]>;
-  filteredRows: Record[];
-  selectedRows: Record[];
+  records: Maybe<SalesforceRecord[]>;
+  filteredRows: SalesforceRecord[];
+  selectedRows: SalesforceRecord[];
   isTooling: boolean;
 }
 

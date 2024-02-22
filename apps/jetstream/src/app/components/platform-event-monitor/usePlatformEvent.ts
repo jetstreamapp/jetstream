@@ -2,14 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
 import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
-import {
-  MapOf,
-  Maybe,
-  PlatformEventCollectionResponse,
-  PlatformEventMessage,
-  PlatformEventMessagePayload,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { MapOf, Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { CometD } from 'cometd';
 import orderBy from 'lodash/orderBy';
@@ -201,9 +194,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
 
   const publish = useCallback(
     async (platformEventName: string, body: any): Promise<string> => {
-      const results = (
-        await sobjectOperation<PlatformEventCollectionResponse>(selectedOrg, platformEventName, 'create', { records: [body] })
-      )[0];
+      const results = (await sobjectOperation(selectedOrg, platformEventName, 'create', { records: [body] }))[0];
       trackEvent(ANALYTICS_KEYS.platform_event_publish, { success: results.success });
       const message = results.errors[0].message;
       if (results.success === false) {

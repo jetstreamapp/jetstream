@@ -1,7 +1,7 @@
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
-import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, Record, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
 import { Fragment, FunctionComponent, useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -47,7 +47,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
 
   const [publishLoading, setPublishLoading] = useState(false);
   const [publishKey, setPublishKey] = useState<number>(1);
-  const [publishEventRecord, setPublishEventRecord] = useState<Record>({});
+  const [publishEventRecord, setPublishEventRecord] = useState<SalesforceRecord>({});
   const [publishEventResponse, setPublishEventResponse] = useState<{ success: boolean; eventId?: string; errorMessage?: string } | null>(
     null
   );
@@ -103,7 +103,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   }, [fetchSobjectDescribe, selectedOrg, selectedPublishEvent]);
 
   const publishEvent = useCallback(
-    async (record: Record) => {
+    async (record: SalesforceRecord) => {
       if (!selectedPublishEvent) {
         return;
       }

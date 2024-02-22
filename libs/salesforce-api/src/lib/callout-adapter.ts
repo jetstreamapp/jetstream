@@ -69,7 +69,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             }
           }
 
-          const responseText = await response.text();
+          const responseText = await response.clone().text();
 
           if (
             (response.status === 401 || (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
@@ -83,6 +83,10 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             const { access_token: accessToken } = await exchangeRefreshToken(fetch, sessionInfo);
             onRefresh?.(accessToken);
             return apiRequest({ method, sessionInfo: { ...sessionInfo, accessToken }, url, body, headers, outputType }, false);
+          }
+          // don't throw if caller wants the response back
+          if (outputType === 'response') {
+            return response as Response;
           }
           throw new Error(responseText);
         })

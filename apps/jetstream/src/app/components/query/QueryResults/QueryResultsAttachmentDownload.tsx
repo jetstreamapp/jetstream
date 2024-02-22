@@ -9,7 +9,7 @@ import {
   getZipDownloadUrl,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
-import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
@@ -19,7 +19,7 @@ export interface QueryResultsAttachmentDownloadProps {
   enabled: boolean;
   sobjectName: Maybe<string>;
   missingFields: string[];
-  selectedRecords: Record[];
+  selectedRecords: SalesforceRecord[];
   hasRecords: boolean;
 }
 
@@ -37,7 +37,7 @@ FILE_DOWNLOAD_FIELD_MAP.set('contentversion', { bodyField: 'VersionData', nameFi
 const ROOT_FILENAME = window.electron?.isElectron ? 'jetstream-download://localhost/file/stream-download' : '/api/file/stream-download';
 
 // TODO: duplicate files will overwrite eachother (e.x. contentversion)
-function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: Record): DownZipFile {
+function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: SalesforceRecord): DownZipFile {
   sobjectName = sobjectName.toLowerCase();
   if (FILE_DOWNLOAD_FIELD_MAP.has(sobjectName)) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

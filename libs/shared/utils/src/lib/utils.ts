@@ -15,7 +15,7 @@ import {
   QueryResult,
   QueryResults,
   QueryResultsColumn,
-  Record,
+  SalesforceRecord,
   SoapNil,
   FieldType as jsforceFieldType,
 } from '@jetstream/types';
@@ -146,11 +146,11 @@ export function populateFromMapOf<T>(mapOf: MapOf<T>, items: string[]): T[] {
   return items.map((item) => mapOf[item]).filter((item) => !!item);
 }
 
-export function flattenRecords(records: Record[], fields: string[]): MapOf<string>[] {
+export function flattenRecords(records: SalesforceRecord[], fields: string[]): MapOf<string>[] {
   return records.map((record) => flattenRecord(record, fields));
 }
 
-export function flattenRecord(record: Record, fields: string[], flattObjects = true): MapOf<string> {
+export function flattenRecord(record: SalesforceRecord, fields: string[], flattObjects = true): MapOf<string> {
   return fields.reduce((obj, field) => {
     const value = lodashGet(record, field);
     if (isObject(value) && flattObjects) {

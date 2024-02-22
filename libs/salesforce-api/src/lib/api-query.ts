@@ -48,10 +48,11 @@ export class ApiQuery extends SalesforceApi {
     return { queryResults, columns, parsedQuery };
   }
 
-  async queryMore<T = any>(queryLocator: string, isTooling = false): Promise<QueryResult<T>> {
-    return await this.apiRequest<QueryResult<T>>({
+  async queryMore<T = any>(nextRecordsUrl: string): Promise<QueryResults<T>> {
+    const queryResults = await this.apiRequest<QueryResult<T>>({
       sessionInfo: this.sessionInfo,
-      url: this.getRestApiUrl(`/query/${queryLocator}`, isTooling),
+      url: nextRecordsUrl,
     });
+    return { queryResults };
   }
 }

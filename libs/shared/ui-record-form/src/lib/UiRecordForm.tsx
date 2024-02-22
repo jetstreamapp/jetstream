@@ -1,6 +1,6 @@
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CloneEditView, Field, MapOf, PicklistFieldValues, Record } from '@jetstream/types';
+import { CloneEditView, Field, MapOf, PicklistFieldValues, SalesforceRecord } from '@jetstream/types';
 import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -14,10 +14,10 @@ export interface UiRecordFormProps {
   action: CloneEditView;
   sobjectFields: Field[];
   picklistValues: PicklistFieldValues;
-  record: Record;
+  record: SalesforceRecord;
   saveErrors?: MapOf<string | undefined>;
   disabled?: boolean;
-  onChange: (record: Record) => void;
+  onChange: (record: SalesforceRecord) => void;
   viewRelatedRecord?: (recordId: string, metadata: Field) => void;
 }
 
@@ -38,7 +38,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   const [showFieldTypes, setShowFieldTypes] = useState(false);
   const [limitToRequired, setLimitToRequired] = useState(false);
   const [limitToErrorFields, setLimitToErrorFields] = useState(false);
-  const [modifiedRecord, setModifiedRecord] = useState<Record>({});
+  const [modifiedRecord, setModifiedRecord] = useState<SalesforceRecord>({});
   const [visibleFieldMetadataRows, setVisibleFieldMetadataRows] = useState<EditableFields[][]>();
   const [fieldMetadata, setFieldMetadata] = useState(() => {
     return convertMetadataToEditableFields(sobjectFields, picklistValues, action, record);

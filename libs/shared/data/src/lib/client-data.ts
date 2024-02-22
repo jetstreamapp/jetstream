@@ -27,6 +27,7 @@ import {
   ManualRequestPayload,
   ManualRequestResponse,
   MapOf,
+  OperationReturnType,
   QueryResults,
   RetrieveResult,
   SalesforceApiRequest,
@@ -444,7 +445,8 @@ export async function queryAllUsingOffset<T = any>(
   return results;
 }
 
-export async function sobjectOperation<T = any>(
+// FIXME, we should have
+export async function sobjectOperation<O extends SobjectOperation>(
   org: SalesforceOrgUi,
   sobject: string,
   operation: SobjectOperation,
@@ -456,7 +458,8 @@ export async function sobjectOperation<T = any>(
     externalId?: string;
     allOrNone?: boolean;
   } = {}
-): Promise<T> {
+): Promise<OperationReturnType<O, any>> {
+  // FIXME: add type for R as the first generic type in function
   return handleRequest({ method: 'POST', url: `/api/record/${operation}/${sobject}`, params: { ...query }, data: body }, { org }).then(
     unwrapResponseIgnoreCache
   );

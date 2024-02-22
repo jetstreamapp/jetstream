@@ -15,6 +15,17 @@ export class ApiRequestUtils {
   }
 
   async makeRequest<T>(method: HttpMethod, path: string, data?: unknown): Promise<T> {
+    const response = await this.makeRequestRaw(method, path, data);
+    const results = await response.json();
+    if (!response.ok()) {
+      console.warn('\n\nREQUEST ERROR');
+      console.log(results);
+      throw new Error('Request failed\n\n');
+    }
+    return results.data;
+  }
+
+  async makeRequestRaw(method: HttpMethod, path: string, data?: unknown): Promise<APIResponse> {
     const url = `${this.BASE_URL}${path}`;
     const options = {
       data,
@@ -43,12 +54,6 @@ export class ApiRequestUtils {
       default:
         throw new Error('Invalid method');
     }
-    const results = await response.json();
-    if (!response.ok()) {
-      console.warn('\n\nREQUEST ERROR');
-      console.log(results);
-      throw new Error('Request failed\n\n');
-    }
-    return results.data;
+    return response;
   }
 }

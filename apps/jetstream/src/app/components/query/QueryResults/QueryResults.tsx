@@ -21,8 +21,8 @@ import {
   QueryResults as IQueryResults,
   MapOf,
   Maybe,
-  Record,
   SalesforceOrgUi,
+  SalesforceRecord,
   SobjectCollectionResponse,
 } from '@jetstream/types';
 import {
@@ -99,12 +99,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [parsedQuery, setParsedQuery] = useState<Maybe<Query>>(null);
   const [queryResults, setQueryResults] = useState<IQueryResults | null>(null);
   const [recordCount, setRecordCount] = useState<number | null>(null);
-  const [records, setRecords] = useState<Record[] | null>(null);
+  const [records, setRecords] = useState<SalesforceRecord[] | null>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
   const [fields, setFields] = useState<string[] | null>(null);
   const [subqueryFields, setSubqueryFields] = useState<Maybe<MapOf<string[]>>>(null);
-  const [filteredRows, setFilteredRows] = useState<Record[]>([]);
-  const [selectedRows, setSelectedRows] = useState<Record[]>([]);
+  const [filteredRows, setFilteredRows] = useState<SalesforceRecord[]>([]);
+  const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -393,7 +393,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     const results = (
       await Promise.all(
         splitArrayToMaxSize(modifiedRecords, 200).map((records) =>
-          sobjectOperation<SobjectCollectionResponse>(selectedOrg, type, 'update', { records }, { allOrNone: false })
+          sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false })
         )
       )
     ).flat();

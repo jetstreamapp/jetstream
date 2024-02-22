@@ -1,4 +1,12 @@
-import { CompositeResponse, DescribeGlobalResult, DescribeSObjectResult, Maybe } from '@jetstream/types';
+import {
+  CompositeResponse,
+  DescribeGlobalResult,
+  DescribeSObjectResult,
+  Maybe,
+  OperationReturnType,
+  SalesforceRecord,
+  SobjectOperation,
+} from '@jetstream/types';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 
@@ -17,7 +25,7 @@ export class ApiSObject extends SalesforceApi {
     return this.apiRequest<DescribeSObjectResult>({ sessionInfo: this.sessionInfo, url });
   }
 
-  async recordOperation({
+  async recordOperation<O extends SobjectOperation>({
     sobject,
     operation,
     externalId,
@@ -33,8 +41,8 @@ export class ApiSObject extends SalesforceApi {
     ids?: Maybe<string | string[]>;
     isTooling?: Maybe<boolean>;
     records: Maybe<any | any[]>;
-  }) {
-    let operationPromise: Promise<unknown> | undefined;
+  }): Promise<OperationReturnType<O>> {
+    let operationPromise: Promise<OperationReturnType<O>> | undefined;
 
     if (ids) {
       ids = Array.isArray(ids) ? ids : [ids];
@@ -44,7 +52,7 @@ export class ApiSObject extends SalesforceApi {
     }
 
     // POST https://MyDomainName.my.salesforce.com/services/data/v60.0/composite/sobjects/
-    const BASE_URL = this.getRestApiUrl('/composite/sobjects', isTooling);
+    const BASE_URL = this.getRestApiUrl('/composite', isTooling);
 
     switch (operation) {
       case 'retrieve': {
@@ -52,17 +60,20 @@ export class ApiSObject extends SalesforceApi {
           throw new Error(`The ids property must be included`);
         }
 
-        operationPromise = this.apiRequest<CompositeResponse>({
+        // Returns an array of records
+        operationPromise = this.apiRequest<CompositeResponse<SalesforceRecord>>({
           method: 'POST',
           sessionInfo: this.sessionInfo,
-          url: `/composite`,
+          url: BASE_URL,
           body: {
             allOrNone,
             compositeRequest: ids
-              .map((id) => (isTooling ? `/tooling/sobjects/${sobject}/${id}` : `/sobjects/${sobject}/${id}`))
-              .map((url, i) => ({ method: 'GET', url: url, referenceId: `${i}` })),
+              .map((id) => this.getRestApiUrl(`/sobjects/${sobject}/${id}`, isTooling))
+              .map((url, i) => ({ method: 'GET', url, referenceId: `${i}` })),
           },
-        }).then((response) => response.compositeResponse.map((item) => item.body));
+        }).then((response) => {
+          return response.compositeResponse.map((item) => item.body); //
+        });
 
         break;
       }
@@ -71,10 +82,12 @@ export class ApiSObject extends SalesforceApi {
           throw new Error(`The records property must be included`);
         }
 
+        // FIXME: there was a case where "clone record" included a related field (Parent) and caused this to fail
+        // Returns RecordResult[]
         operationPromise = this.apiRequest({
           method: 'POST',
           sessionInfo: this.sessionInfo,
-          url: BASE_URL,
+          url: `${BASE_URL}/sobjects`, // VALIDATE URL
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: undefined })),
@@ -87,10 +100,11 @@ export class ApiSObject extends SalesforceApi {
           throw new Error(`The records property must be included`);
         }
 
+        // Returns RecordResult[]
         operationPromise = this.apiRequest({
           method: 'PATCH',
           sessionInfo: this.sessionInfo,
-          url: BASE_URL,
+          url: `${BASE_URL}/sobjects`, // VALIDATE URL
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject }, Id: record.Id })),
@@ -103,10 +117,12 @@ export class ApiSObject extends SalesforceApi {
         if (!Array.isArray(records) || !externalId) {
           throw new Error(`The records and external id properties must be included`);
         }
+
+        // Returns RecordResult[]
         operationPromise = this.apiRequest({
           method: 'PATCH',
           sessionInfo: this.sessionInfo,
-          url: `${BASE_URL}/${sobject}/${externalId}`,
+          url: `${BASE_URL}/sobjects/${sobject}/${externalId}`,
           body: {
             allOrNone,
             records: records.map((record) => ({ ...record, attributes: { type: sobject } })),
@@ -119,10 +135,11 @@ export class ApiSObject extends SalesforceApi {
           throw new Error(`The ids property must be included`);
         }
 
+        // Returns RecordResult[]
         operationPromise = this.apiRequest({
           method: 'DELETE',
           sessionInfo: this.sessionInfo,
-          url: `${BASE_URL}?ids=${ids.join(',')}`,
+          url: `${BASE_URL}/sobjects?ids=${ids.join(',')}`,
         });
 
         break;
@@ -135,7 +152,6 @@ export class ApiSObject extends SalesforceApi {
       throw new Error('operationPromise is undefined');
     }
 
-    const data = await operationPromise;
-    return { data };
+    return await operationPromise;
   }
 }

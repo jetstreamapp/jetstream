@@ -14,8 +14,8 @@ import {
   Maybe,
   MimeType,
   QueryResultsColumn,
-  Record,
   SalesforceOrgUi,
+  SalesforceRecord,
 } from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
@@ -67,9 +67,9 @@ export interface RecordDownloadModalProps {
   columns?: QueryResultsColumn[];
   fields: string[];
   subqueryFields?: MapOf<string[]>;
-  records: Record[];
-  filteredRecords?: Record[];
-  selectedRecords?: Record[];
+  records: SalesforceRecord[];
+  filteredRecords?: SalesforceRecord[];
+  selectedRecords?: SalesforceRecord[];
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
   onModalClose: (cancelled?: boolean) => void;

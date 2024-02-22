@@ -1,7 +1,7 @@
 import type { Query } from 'soql-parser-js';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
-import { InsertUpdateUpsertDeleteQuery, RecordAttributes, SalesforceId } from './salesforce/record.types';
+import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
 export interface RequestResult<T> {
   data: T;
@@ -286,9 +286,6 @@ export interface CloudinaryUploadResponse {
   version: number;
   width: number;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Record<T = any> = { attributes?: RecordAttributes; Id?: SalesforceId } & T;
 
 export interface SalesforceOrgUi {
   id?: number;

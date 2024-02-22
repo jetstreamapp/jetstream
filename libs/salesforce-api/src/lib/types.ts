@@ -31,12 +31,16 @@ export interface Headers {
   has(name: string): boolean;
   set(name: string, value: string): void;
   forEach(callbackfn: (value: string, key: string, parent: Headers) => void, thisArg?: any): void;
+  entries(): IterableIterator<[string, string]>;
+  keys(): IterableIterator<string>;
+  values(): IterableIterator<string>;
+  [Symbol.iterator](): IterableIterator<[string, string]>;
 }
 
 export interface FetchOptions {
   method?: FetchMethod;
   body?: BodyInit | null;
-  headers?: Record<string, string> | Headers;
+  headers?: [string, string][] | Record<string, string> | Headers;
 }
 
 export interface FetchResponse<T = unknown> {

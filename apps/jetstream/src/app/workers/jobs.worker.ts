@@ -21,6 +21,7 @@ import {
   sobjectOperation,
 } from '@jetstream/shared/data';
 import {
+  ensureArray,
   flattenRecords,
   getIdFromRecordUrl,
   getMapOfBaseAndSubqueryRecords,
@@ -34,10 +35,10 @@ import type {
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
   CancelJob,
-  Record,
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
+  SalesforceRecord,
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
@@ -79,8 +80,8 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         // TODO: add validation to ensure that we have at least one record
         // also, we are assuming that all records are same SObject
         const MAX_DELETE_RECORDS = 200;
-        let records: Record | Record[] = job.meta; // TODO: add strong type
-        records = Array.isArray(records) ? records : [records];
+        let records: SalesforceRecord | SalesforceRecord[] = job.meta; // TODO: add strong type
+        records = ensureArray(records);
         const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
         const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
 
@@ -89,7 +90,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           try {
             // TODO: add progress notification and allow cancellation
             let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
-            tempResults = Array.isArray(tempResults) ? tempResults : [tempResults];
+            tempResults = ensureArray(tempResults); // FIXME: should not need this anymore after moving off of JSForce
             tempResults.forEach((result) => results.push(result));
           } catch (ex) {
             logger.error('There was a problem deleting these records');

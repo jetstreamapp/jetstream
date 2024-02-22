@@ -1,7 +1,4 @@
 /* eslint-disable prefer-const */
-import { PicklistFieldValues, Record } from '@jetstream/types';
-import { action } from '@storybook/addon-actions';
-import React from 'react';
 import UiRecordFormComponent, { UiRecordFormProps } from './UiRecordForm';
 
 import { Meta, Story } from '@storybook/react';

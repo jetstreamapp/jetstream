@@ -1,6 +1,6 @@
 import { GenericRequestPayload } from '@jetstream/types';
 import { ApiConnection } from './connection';
-import { ApiRequestOutputType } from './types';
+import { ApiRequestOutputType, FetchResponse } from './types';
 import { SalesforceApi } from './utils';
 
 export class ApiRequest extends SalesforceApi {
@@ -14,7 +14,7 @@ export class ApiRequest extends SalesforceApi {
     { method, url, body, headers = {}, options }: GenericRequestPayload,
     outputType: ApiRequestOutputType = 'text',
     ensureRestUrl = false
-  ): Promise<T> {
+  ): Promise<FetchResponse<T>> {
     if (options?.responseType) {
       headers = headers || {};
       headers['Content-Type'] = options.responseType;
@@ -23,7 +23,7 @@ export class ApiRequest extends SalesforceApi {
     if (ensureRestUrl && !url.startsWith('/services')) {
       url = this.getRestApiUrl(url);
     }
-    const data = await this.apiRequest<T>({
+    const data = await this.apiRequest<FetchResponse<T>>({
       sessionInfo: this.sessionInfo,
       url,
       method: method,
@@ -43,6 +43,4 @@ export class ApiRequest extends SalesforceApi {
 
     return data;
   }
-
-  FetchResponse;
 }

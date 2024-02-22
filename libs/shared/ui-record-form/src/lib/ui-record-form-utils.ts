@@ -1,6 +1,6 @@
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
-import { CloneEditView, DescribeSObjectResult, Field, FieldType, PicklistFieldValues, Record } from '@jetstream/types';
+import { CloneEditView, DescribeSObjectResult, Field, FieldType, PicklistFieldValues, SalesforceRecord } from '@jetstream/types';
 import isString from 'lodash/isString';
 import {
   EditableFieldCheckbox,
@@ -54,7 +54,7 @@ export function convertMetadataToEditableFields(
   fields: Field[],
   picklistValues: PicklistFieldValues,
   action: CloneEditView,
-  record: Record,
+  record: SalesforceRecord,
   isCustomMetadata = false
 ): EditableFields[] {
   return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {

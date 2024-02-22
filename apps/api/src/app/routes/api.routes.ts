@@ -54,8 +54,13 @@ routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
 
 routes.get('/images/upload-signature', validate(imageController.routeValidators.getUploadSignature), imageController.getUploadSignature);
 
-routes.get('/describe', ensureOrgExists, sfQueryController.describe);
-routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
+routes.get('/describe', ensureOrgExists, validate(sfQueryController.routeValidators.describe), sfQueryController.describe);
+routes.get(
+  '/describe/:sobject',
+  ensureOrgExists,
+  validate(sfQueryController.routeValidators.describeSObject),
+  sfQueryController.describeSObject
+);
 routes.post('/query', ensureOrgExists, validate(sfQueryController.routeValidators.query), sfQueryController.query);
 routes.get('/query-more', ensureOrgExists, validate(sfQueryController.routeValidators.queryMore), sfQueryController.queryMore);
 

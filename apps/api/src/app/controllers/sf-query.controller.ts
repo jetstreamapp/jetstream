@@ -5,7 +5,13 @@ import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
-  query: [body('query').isString()],
+  describe: [queryString('isTooling').isBoolean().optional()],
+  describeSObject: [queryString('isTooling').isBoolean().optional()],
+  query: [
+    body('query').isString(),
+    queryString('isTooling').isBoolean().optional(),
+    queryString('includeDeletedRecords').isBoolean().optional(),
+  ],
   queryMore: [queryString('nextRecordsUrl').isString()],
 };
 
@@ -61,11 +67,10 @@ export async function queryMore(
   next: NextFunction
 ) {
   try {
-    const isTooling = req.query.isTooling === 'true';
     const nextRecordsUrl = req.query.nextRecordsUrl as string;
 
     const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.query.queryMore(nextRecordsUrl, isTooling);
+    const results = await jetstreamConn.query.queryMore(nextRecordsUrl);
 
     sendJson(res, results);
   } catch (ex) {

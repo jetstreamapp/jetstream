@@ -1,6 +1,6 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import { ErrorResult, ExpressionType, Field, FieldType, MapOf, Maybe, Record } from '@jetstream/types';
+import { ErrorResult, ExpressionType, Field, FieldType, MapOf, Maybe, SalesforceRecord } from '@jetstream/types';
 import formatISO from 'date-fns/formatISO';
 import parseISO from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
@@ -38,7 +38,7 @@ export function composeSoqlQuery(query: Query, whereExpression: ExpressionType, 
  * @param sobjectFields
  * @param record
  */
-export function transformEditForm(sobjectFields: Field[], record: Record): Record {
+export function transformEditForm(sobjectFields: Field[], record: SalesforceRecord): SalesforceRecord {
   record = { ...record };
   const fieldsByName = getMapOf(sobjectFields, 'name');
   Object.keys(record).forEach((fieldName) => {
@@ -67,7 +67,11 @@ export function transformEditForm(sobjectFields: Field[], record: Record): Recor
 /**
  * Combine original record and modified record and set all non-creatable fields to undefined
  */
-export function combineRecordsForClone(sobjectFields: Field[], initialRecord: Record, modifiedRecord: Record): Record {
+export function combineRecordsForClone(
+  sobjectFields: Field[],
+  initialRecord: SalesforceRecord,
+  modifiedRecord: SalesforceRecord
+): SalesforceRecord {
   const clonedRecord = { ...initialRecord, ...modifiedRecord };
   sobjectFields.forEach((field) => {
     if (!field.createable) {
@@ -90,7 +94,7 @@ export function combineRecordsForClone(sobjectFields: Field[], initialRecord: Re
  * @param sobjectFields
  * @param record
  */
-export function validateEditForm(sobjectFields: Field[], record: Record): EditFromErrors {
+export function validateEditForm(sobjectFields: Field[], record: SalesforceRecord): EditFromErrors {
   const fieldsByName = getMapOf(sobjectFields, 'name');
   const output: EditFromErrors = { hasErrors: false, generalErrors: [], fieldErrors: {} };
   output.fieldErrors = Object.keys(record).reduce((fieldErrors: MapOf<string>, fieldName) => {

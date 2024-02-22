@@ -94,7 +94,7 @@ export async function salesforceRequestManual(req: Request<unknown, ManualReques
       error: response.status < 200 || response.status > 300,
       status: response.status,
       statusText: response.statusText,
-      headers: JSON.stringify(response.headers || {}, null, 2),
+      headers: JSON.stringify(Object.fromEntries(response.headers.entries()) || {}, null, 2),
       body: await response.text(), // FIXME: what should this be?
     }));
 
@@ -128,7 +128,7 @@ export async function recordOperation(
     const results = await jetstreamConn.sobject.recordOperation({
       sobject,
       operation,
-      externalId: externalId,
+      externalId,
       records,
       allOrNone,
       ids,

@@ -1,5 +1,9 @@
 export type SalesforceId = string;
 
+export type OperationReturnType<O extends SobjectOperation, R = any> = O extends 'retrieve'
+  ? (SalesforceRecord<R> | ErrorResult['errors'])[] // Failures return RecordResult, successes return SalesforceRecord
+  : RecordResult[];
+
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
 
