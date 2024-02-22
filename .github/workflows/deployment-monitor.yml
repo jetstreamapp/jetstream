@@ -1,0 +1,21 @@
+name: Deployment
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  deploy:
+    name: Wait for Deploy
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/marketplace/actions/render-github-action
+      - name: Wait for Render Deployment
+        uses: bounceapp/render-action@0.6.0
+        with:
+          render-token: ${{ secrets.RENDER_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          service-id: srv-cm55msocmk4c73cnddi0
+          # retries: 20
+          # wait: 16000
+          # sleep: 30000

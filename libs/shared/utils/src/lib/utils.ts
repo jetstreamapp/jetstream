@@ -247,6 +247,29 @@ export function getIdFromRecordUrl(url: string): string {
 }
 
 /**
+ * Convert empty strings to null
+ * Optionally trim all strings as well
+ */
+export function nullifyEmptyStrings<T extends MapOf<unknown>>(value: T, trimStrings = true): T {
+  if (!value) {
+    return value;
+  }
+  return Object.keys(value).reduce((obj, key) => {
+    obj[key] = value[key];
+    if (trimStrings && isString(obj[key])) {
+      obj[key] = (obj[key] as string).trim();
+    }
+    if (obj[key] === '') {
+      obj[key] = null;
+    }
+    if (isObject(obj[key])) {
+      obj[key] = nullifyEmptyStrings(obj[key] as MapOf<unknown>, trimStrings) as unknown;
+    }
+    return obj;
+  }, {}) as T;
+}
+
+/**
  * Remove query wrapper from child records
  * NOTE: this ignores instances where there are more records
  * @param results
