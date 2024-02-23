@@ -33,7 +33,7 @@ export interface MetadataObject {
 
 export interface DescribeMetadataResult {
   metadataObjects: MetadataObject[];
-  organizationNamespace: string;
+  organizationNamespace: string | null;
   partialSaveAllowed: boolean;
   testRequired: boolean;
 }
@@ -58,7 +58,7 @@ export interface ListMetadataQuery {
   folder?: string | undefined;
 }
 
-export interface MetadataInfo {
+export interface MetadataInfo extends Record<string, any> {
   fullName: string;
 }
 

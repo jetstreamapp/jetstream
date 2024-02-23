@@ -10,7 +10,9 @@ import {
   RetrieveResult,
 } from '@jetstream/types';
 import JSZip from 'jszip';
+import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
+import { SoapResponse } from './types';
 import {
   SalesforceApi,
   correctDeployMetadataResultTypes,
@@ -25,27 +27,41 @@ export class ApiMetadata extends SalesforceApi {
 
   async describe(): Promise<DescribeMetadataResult> {
     // for some types, if folder is null then no data will be returned
-    return this.apiRequest<DescribeMetadataResult>(
+    return this.apiRequest<{
+      'ns1:Envelope': {
+        Body: {
+          describeMetadataResponse: {
+            result: DescribeMetadataResult;
+          };
+        };
+        Header?: any;
+      };
+    }>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
         body: {
           describeMetadata: { asOfVersion: this.apiVersion },
         },
       })
-    ).then((response) => {
-      response.metadataObjects = correctInvalidArrayXmlResponseTypes(response.metadataObjects).map((item) => {
-        item.childXmlNames = ensureArray(item.childXmlNames || []);
-        item = correctInvalidXmlResponseTypes(item);
-        return item;
+    )
+      .then((response) => correctInvalidXmlResponseTypes(response['ns1:Envelope'].Body.describeMetadataResponse.result))
+      .then((response) => {
+        response.organizationNamespace = isString(response.organizationNamespace) ? response.organizationNamespace : null;
+        response.partialSaveAllowed = correctInvalidXmlResponseTypes(response.partialSaveAllowed);
+        response.testRequired = correctInvalidXmlResponseTypes(response.testRequired);
+        response.metadataObjects = correctInvalidArrayXmlResponseTypes(response.metadataObjects).map((item) => {
+          item.childXmlNames = ensureArray(item.childXmlNames || []);
+          item = correctInvalidXmlResponseTypes(item);
+          return item;
+        });
+        response.partialSaveAllowed = correctInvalidXmlResponseTypes(response.partialSaveAllowed);
+        response.testRequired = correctInvalidXmlResponseTypes(response.testRequired);
+        return response;
       });
-      response.partialSaveAllowed = correctInvalidXmlResponseTypes(response.partialSaveAllowed);
-      response.testRequired = correctInvalidXmlResponseTypes(response.testRequired);
-      return response;
-    });
   }
 
   async list(types: { type: string; folder?: string }[]): Promise<FileProperties[]> {
-    return this.apiRequest<FileProperties[]>(
+    return this.apiRequest<SoapResponse<'listMetadataResponse', FileProperties[]>>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
         body: {
@@ -56,14 +72,14 @@ export class ApiMetadata extends SalesforceApi {
           },
         },
       })
-    ).then((response) => correctInvalidArrayXmlResponseTypes(response));
+    ).then((response) => correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.listMetadataResponse?.result || []));
   }
 
   async read(type: string, fullNames: string[]): Promise<MetadataInfo[]> {
     return (
       await Promise.all(
         splitArrayToMaxSize(fullNames, 10).map((fullNames) =>
-          this.apiRequest<MetadataInfo[]>(
+          this.apiRequest<SoapResponse<'readMetadataResponse', { records: MetadataInfo[] }>>(
             this.prepareSoapRequestOptions({
               type: 'METADATA',
               body: {
@@ -73,7 +89,9 @@ export class ApiMetadata extends SalesforceApi {
                 },
               },
             })
-          ).then((response) => correctInvalidArrayXmlResponseTypes(response))
+          ).then((response) => {
+            return correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.readMetadataResponse?.result.records || []);
+          })
         )
       )
     ).flat();
@@ -92,9 +110,18 @@ export class ApiMetadata extends SalesforceApi {
    * Deploy metadata
    * Zip should be an array buffer or base64 encoded string
    */
-  async deploy(body: ArrayBuffer | string, options: DeployOptions): Promise<AsyncResult> {
-    const ZipFile = body instanceof ArrayBuffer ? arrayBufferToBase64(body) : body;
-    return this.apiRequest<AsyncResult>(
+  async deploy(body: ArrayBuffer | Buffer | string, options: DeployOptions): Promise<AsyncResult> {
+    let ZipFile: string;
+    if (body instanceof Buffer) {
+      ZipFile = body.toString('base64');
+    } else if (body instanceof ArrayBuffer) {
+      ZipFile = arrayBufferToBase64(body);
+    } else if (isString(body)) {
+      ZipFile = body;
+    } else {
+      throw new Error(`Invalid body type ${typeof body}`);
+    }
+    return this.apiRequest<SoapResponse<'deployResponse', AsyncResult>>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
         body: {
@@ -104,11 +131,13 @@ export class ApiMetadata extends SalesforceApi {
           },
         },
       })
-    ).then(correctInvalidXmlResponseTypes);
+    )
+      .then((result) => result['ns1:Envelope'].Body.deployResponse.result)
+      .then(correctInvalidXmlResponseTypes);
   }
 
   async checkDeployStatus(jobId: string, includeDetails = false): Promise<DeployResult> {
-    return this.apiRequest<DeployResult>(
+    return this.apiRequest<SoapResponse<'checkDeployStatusResponse', DeployResult>>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
         body: {
@@ -118,35 +147,40 @@ export class ApiMetadata extends SalesforceApi {
           },
         },
       })
-    ).then(correctDeployMetadataResultTypes);
+    )
+      .then((result) => result['ns1:Envelope'].Body.checkDeployStatusResponse.result)
+      .then(correctDeployMetadataResultTypes);
   }
 
   async retrieve(request: RetrieveRequest) {
-    return this.apiRequest<AsyncResult>(
+    return this.apiRequest<SoapResponse<'retrieveResponse', AsyncResult>>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
         body: {
           retrieve: { request },
         },
       })
-    ).then(correctInvalidXmlResponseTypes);
+    )
+      .then((results) => {
+        return results;
+      })
+      .then((result) => correctInvalidXmlResponseTypes(result['ns1:Envelope'].Body.retrieveResponse.result));
   }
 
   async checkRetrieveStatus(asyncProcessId: string) {
-    return this.apiRequest<RetrieveResult>(
+    return this.apiRequest<SoapResponse<'checkRetrieveStatusResponse', RetrieveResult>>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
         body: {
           checkRetrieveStatus: { asyncProcessId },
         },
       })
-    ).then((results) => {
-      results.fileProperties = ensureArray(results.fileProperties);
-      results.messages = ensureArray(results.messages);
-      return correctInvalidXmlResponseTypes(results);
-    });
+    )
+      .then((result) => result['ns1:Envelope'].Body.checkRetrieveStatusResponse.result)
+      .then((results) => {
+        results.fileProperties = ensureArray(results.fileProperties);
+        results.messages = ensureArray(results.messages);
+        return correctInvalidXmlResponseTypes(results);
+      });
   }
-
-  // TODO: this needs a second org to work
-  async checkRetrieveStatusAndRedeploy() {}
 }

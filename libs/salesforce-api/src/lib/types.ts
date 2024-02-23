@@ -12,6 +12,13 @@ export interface SessionInfo {
 
 export type SoapNamespace = 'http://soap.sforce.com/2006/04/metadata' | 'http://soap.sforce.com/2006/08/apex';
 
+export type SoapResponse<Key extends string, T> = {
+  'ns1:Envelope': {
+    Body: Record<Key, { result: T }>;
+    Header?: any;
+  };
+};
+
 export interface APIRequestParams<T = unknown> {
   method?: FetchMethod;
   url: string;

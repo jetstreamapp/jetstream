@@ -14,8 +14,8 @@ export class ApiRequestUtils {
     this.request = request;
   }
 
-  async makeRequest<T>(method: HttpMethod, path: string, data?: unknown): Promise<T> {
-    const response = await this.makeRequestRaw(method, path, data);
+  async makeRequest<T>(method: HttpMethod, path: string, data?: unknown, headers?: Record<string, string>): Promise<T> {
+    const response = await this.makeRequestRaw(method, path, data, headers);
     const results = await response.json();
     if (!response.ok()) {
       console.warn('\n\nREQUEST ERROR');
@@ -25,13 +25,14 @@ export class ApiRequestUtils {
     return results.data;
   }
 
-  async makeRequestRaw(method: HttpMethod, path: string, data?: unknown): Promise<APIResponse> {
+  async makeRequestRaw(method: HttpMethod, path: string, data?: unknown, headers?: Record<string, string>): Promise<APIResponse> {
     const url = `${this.BASE_URL}${path}`;
     const options = {
       data,
       headers: {
         [HTTP.HEADERS.ACCEPT]: HTTP.CONTENT_TYPE.JSON,
         [HTTP.HEADERS.X_SFDC_ID]: this.selectedOrgId,
+        ...headers,
       },
     };
     let response: APIResponse;

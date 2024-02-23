@@ -4,7 +4,7 @@ import { DeployOptions, ListMetadataResult, MapOf, RetrieveRequest } from '@jets
 import { NextFunction } from 'express';
 import { body, param, query } from 'express-validator';
 import JSZip from 'jszip';
-import { isObject, isString } from 'lodash';
+import { isString } from 'lodash';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/salesforce.service';
 import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
@@ -37,30 +37,6 @@ export const routeValidators = {
   anonymousApex: [body('apex').isString().isLength({ min: 1 }), body('logLevel').optional().isString().isIn(LOG_LEVELS)],
   apexCompletions: [param('type').isIn(['apex', 'visualforce'])],
 };
-
-export function correctInvalidArrayXmlResponseTypes<T = any[]>(item: T[]): T[] {
-  if (!Array.isArray(item)) {
-    if (item) {
-      item = [item] as any;
-    } else {
-      return []; // null response
-    }
-  }
-  return item.map(correctInvalidXmlResponseTypes);
-}
-
-export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
-  // TODO: what about number types?
-  Object.keys(item!).forEach((key) => {
-    if (isString(item[key]) && (item[key] === 'true' || item[key] === 'false')) {
-      item[key] = item[key] === 'true';
-    } else if (!Array.isArray(item[key]) && isObject(item[key]) && item[key]['$']) {
-      // {$: {"xsi:nil": true}}
-      item[key] = null;
-    }
-  });
-  return item;
-}
 
 export async function describeMetadata(req: Request, res: Response, next: NextFunction) {
   try {
@@ -306,7 +282,6 @@ export async function getPackageXml(
   }
 }
 
-// TODO: use from shared service
 /**
  * This uses the SOAP api to allow returning logs
  */

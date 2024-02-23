@@ -1,7 +1,7 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureArray } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, DeployResult, Maybe } from '@jetstream/types';
-import { isObject } from 'lodash';
+import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
 import { ApiRequestOptions } from './types';
@@ -241,19 +241,27 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
 
 export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[] | T): T[] {
   if (!Array.isArray(item)) {
-    if (item) {
-      item = [item] as any;
-    } else {
+    if (!item || (isObject(item) && item?.['@xsi:nil'] === 'true')) {
       return []; // null response
     }
+    item = [item] as any;
   }
   return (item as T[]).map(correctInvalidXmlResponseTypes);
 }
 
 export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
+  if (isObject(item) && (item?.['@xsi:nil'] === 'true' || isEmpty(item))) {
+    return null as any;
+  }
   // TODO: what about number types?
   Object.keys(item as any).forEach((key: string) => {
-    if (isString((item as any)[key]) && ((item as any)[key] === 'true' || (item as any)[key] === 'false')) {
+    if (
+      !Array.isArray((item as any)[key]) &&
+      isObject((item as any)[key]) &&
+      ((item as any)[key]?.['@xsi:nil'] === 'true' || isEmpty((item as any)[key]))
+    ) {
+      (item as any)[key] = null;
+    } else if (isString((item as any)[key]) && ((item as any)[key] === 'true' || (item as any)[key] === 'false')) {
       (item as any)[key] = (item as any)[key] === 'true';
     } else if (!Array.isArray((item as any)[key]) && isObject((item as any)[key]) && (item as any)[key]['$']) {
       // {$: {"xsi:nil": true}}
