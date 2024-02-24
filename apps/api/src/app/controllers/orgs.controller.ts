@@ -4,9 +4,9 @@ import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { RoutDefinitions, createRoute } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 
-export const routeDefinition: RoutDefinitions = {
+export const routeDefinition = {
   getOrgs: {
     controllerFn: () => getOrgs,
     validators: { hasSourceOrg: false },

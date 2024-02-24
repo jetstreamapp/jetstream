@@ -2,11 +2,11 @@ import { ENV } from '@jetstream/api-config';
 import { v2 as cloudinary } from 'cloudinary';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { RoutDefinitions, createRoute } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 
 cloudinary.config({ secure: true });
 
-export const routeDefinition: RoutDefinitions = {
+export const routeDefinition = {
   getUploadSignature: {
     controllerFn: () => getUploadSignature,
     validators: {

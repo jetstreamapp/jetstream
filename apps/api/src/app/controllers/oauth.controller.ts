@@ -5,10 +5,10 @@ import { CallbackParamsType } from 'openid-client';
 import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
-import { RoutDefinitions, createRoute } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 import { OauthLinkParams } from './auth.controller';
 
-export const routeDefinition: RoutDefinitions = {
+export const routeDefinition = {
   salesforceOauthInitAuth: {
     controllerFn: () => salesforceOauthInitAuth,
     validators: {

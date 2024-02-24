@@ -61,7 +61,14 @@ export const CheckRetrieveStatusAndRedeployRequestSchema = z
 export type CheckRetrieveStatusAndRedeployRequest = z.infer<typeof CheckRetrieveStatusAndRedeployRequestSchema>;
 
 export const GetPackageXmlSchema = z.object({
-  metadata: z.any(), // TODO: define metadata type
+  metadata: z.record(
+    z
+      .object({
+        fullName: z.string(),
+        namespacePrefix: z.string().optional(),
+      })
+      .array()
+  ), // TODO: define metadata type
   otherFields: z.record(z.string()).optional(),
 });
 export type GetPackageXml = z.infer<typeof GetPackageXmlSchema>;

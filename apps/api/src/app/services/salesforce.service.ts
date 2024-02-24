@@ -6,7 +6,12 @@ import { UserFacingError } from '../utils/error-handler';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
-export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: string, otherFields: MapOf<string> = {}, prettyPrint = true) {
+export function buildPackageXml(
+  types: MapOf<Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
+  version: string,
+  otherFields: MapOf<string> = {},
+  prettyPrint = true
+) {
   // prettier-ignore
   const packageNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
     .ele('Package', { xmlns: 'http://soap.sforce.com/2006/04/metadata' });
@@ -38,7 +43,10 @@ export function buildPackageXml(types: MapOf<ListMetadataResult[]>, version: str
   return packageNode.end({ prettyPrint });
 }
 
-export function getRetrieveRequestFromListMetadata(types: MapOf<ListMetadataResult[]>, version: string) {
+export function getRetrieveRequestFromListMetadata(
+  types: MapOf<Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
+  version: string
+) {
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve_request.htm
   const retrieveRequest: RetrieveRequest = {
     apiVersion: version,

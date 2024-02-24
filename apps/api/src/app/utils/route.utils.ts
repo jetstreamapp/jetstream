@@ -7,12 +7,13 @@ import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
 import { Request, Response } from '../types/types';
 import { UserFacingError } from './error-handler';
 
-export type RoutValidator = Parameters<typeof createRoute>[0];
-export type RoutDefinition = {
-  controllerFn: () => ReturnType<typeof createRoute>;
-  validators: RoutValidator;
-};
-export type RoutDefinitions = Record<string, RoutDefinition>;
+// FIXME: when these were used, createRoute did not properly infer types
+// export type RoutValidator = Parameters<typeof createRoute>[0];
+// export type RoutDefinition = {
+//   controllerFn: () => ReturnType<typeof createRoute>;
+//   validators: RoutValidator;
+// };
+// export type RoutDefinitions = Record<string, RoutDefinition>;
 
 export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny> = (
   data: {

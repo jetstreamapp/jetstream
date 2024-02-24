@@ -6,9 +6,9 @@ import { Readable } from 'stream';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import { RoutDefinitions, createRoute } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 
-export const routeDefinition: RoutDefinitions = {
+export const routeDefinition = {
   getFrontdoorLoginUrl: {
     controllerFn: () => getFrontdoorLoginUrl,
     validators: {

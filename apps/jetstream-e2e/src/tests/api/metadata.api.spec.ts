@@ -1,4 +1,12 @@
-import { AsyncResult, DeployResult, DescribeMetadataResult, FileProperties, MetadataInfo, RetrieveResult } from '@jetstream/types';
+import {
+  AnonymousApexResponse,
+  AsyncResult,
+  DeployResult,
+  DescribeMetadataResult,
+  FileProperties,
+  MetadataInfo,
+  RetrieveResult,
+} from '@jetstream/types';
 import { readFileSync } from 'fs-extra';
 import { join } from 'path';
 import { expect, test } from '../../fixtures/fixtures';
@@ -210,18 +218,71 @@ public class AddPrimaryContact implements Queueable {
 
   // TODO: checkRetrieveStatusAndRedeploy (this one will be hard - maybe skip)
 
-  // TODO: getPackageXml
   test('getPackageXml', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<string>('POST', `/api/metadata/package-xml`, {
-      metadata: 'test',
-      otherFields: [],
+      metadata: {
+        ApexClass: [
+          {
+            fullName: 'ApexUtils',
+          },
+        ],
+      },
+      otherFields: {},
     });
 
     expect(results).toBeTruthy();
+    expect(typeof results === 'string').toBeTruthy();
   });
 
+  test('anonymousApex', async ({ apiRequestUtils }) => {
+    const [validWithLogLevel, validWithoutLogLevel, missingApex, invalidLogLevel] = await Promise.all([
+      apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
+        apex: `System.debug('Hello World');`,
+        logLevel: 'DEBUG',
+      }),
+      apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
+        apex: `System.debug('Hello World');`,
+      }),
+      apiRequestUtils.makeRequestRaw('POST', `/api/apex/anonymous`, {
+        apex1: `System.debug('Hello World');`,
+        logLevel: 'DEBUG',
+      }),
+      apiRequestUtils.makeRequestRaw('POST', `/api/apex/anonymous`, {
+        apex: `System.debug('Hello World');`,
+        logLevel: 'SUPERFINE',
+      }),
+    ]);
 
-  // TODO: anonymousApex
+    expect(validWithLogLevel).toBeTruthy();
+    expect(typeof validWithLogLevel.debugLog === 'string').toBeTruthy();
+    expect(validWithLogLevel.result.success).toBeTruthy();
 
-  // TODO: apexCompletions
+    expect(validWithoutLogLevel).toBeTruthy();
+    expect(typeof validWithoutLogLevel.debugLog === 'string').toBeTruthy();
+    expect(validWithoutLogLevel.result.success).toBeTruthy();
+
+    expect(missingApex.ok()).toBeFalsy();
+    expect((await missingApex.text()).includes(`apex`)).toBeTruthy();
+
+    expect(invalidLogLevel.ok()).toBeFalsy();
+    expect((await invalidLogLevel.text()).includes(`logLevel`)).toBeTruthy();
+  });
+
+  // TODO: this one takes a really long time to run
+  // test('apexCompletions', async ({ apiRequestUtils }) => {
+  //   const [apexCompletions, vfCompletions, invalid] = await Promise.all([
+  //     apiRequestUtils.makeRequest<ApexCompletionResponse>('GET', `/api/apex/completions/apex`),
+  //     apiRequestUtils.makeRequest<ApexCompletionResponse>('GET', `/api/apex/completions/visualforce`),
+  //     apiRequestUtils.makeRequestRaw('GET', `/api/apex/completions/invalid`),
+  //   ]);
+
+  //   expect(apexCompletions).toBeTruthy();
+  //   expect(apexCompletions.publicDeclarations).toBeTruthy();
+
+  //   expect(vfCompletions).toBeTruthy();
+  //   expect(vfCompletions.publicDeclarations).toBeTruthy();
+
+  //   expect(invalid.ok()).toBeFalsy();
+  //   expect((await invalid.text()).includes(`type`)).toBeTruthy();
+  // });
 });
