@@ -1,79 +1,89 @@
-import { NextFunction } from 'express';
-import { body, query as queryString } from 'express-validator';
-import { Request, Response } from '../types/types';
+import { ensureBoolean } from '@jetstream/shared/utils';
+import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { RoutDefinitions, createRoute } from '../utils/route.utils';
 
-export const routeValidators = {
-  describe: [queryString('isTooling').isBoolean().optional()],
-  describeSObject: [queryString('isTooling').isBoolean().optional()],
-  query: [
-    body('query').isString(),
-    queryString('isTooling').isBoolean().optional(),
-    queryString('includeDeletedRecords').isBoolean().optional(),
-  ],
-  queryMore: [queryString('nextRecordsUrl').isString()],
+export const routeDefinition: RoutDefinitions = {
+  describe: {
+    controllerFn: () => describe,
+    validators: {
+      query: z.object({ isTooling: z.boolean().optional().transform(ensureBoolean) }),
+    },
+  },
+  describeSObject: {
+    controllerFn: () => describeSObject,
+    validators: {
+      query: z.object({ isTooling: z.boolean().optional().transform(ensureBoolean) }),
+      params: z.object({ sobject: z.string().min(1).max(255) }),
+    },
+  },
+  query: {
+    controllerFn: () => query,
+    validators: {
+      body: z.object({ query: z.string().min(1) }),
+      query: z.object({
+        isTooling: z.string().optional().transform(ensureBoolean),
+        includeDeletedRecords: z.string().optional().transform(ensureBoolean),
+      }),
+    },
+  },
+  queryMore: {
+    controllerFn: () => queryMore,
+    validators: {
+      query: z.object({
+        nextRecordsUrl: z.string().min(1),
+      }),
+    },
+  },
 };
 
-export async function describe(req: Request<unknown, unknown, { isTooling?: 'true' }>, res: Response, next: NextFunction) {
+const describe = createRoute(routeDefinition.describe.validators, async ({ query, jetstreamConn }, req, res, next) => {
   try {
-    const isTooling = req.query.isTooling === 'true';
-    const jetstreamConn = res.locals.jetstreamConn;
+    const isTooling = query.isTooling;
     const results = await jetstreamConn.sobject.describe(isTooling);
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function describeSObject(
-  req: Request<{ sobject: string }, unknown, { isTooling?: 'true' }>,
-  res: Response,
-  next: NextFunction
-) {
+const describeSObject = createRoute(
+  routeDefinition.describeSObject.validators,
+  async ({ params, query, jetstreamConn }, req, res, next) => {
+    try {
+      const isTooling = query.isTooling;
+      const results = await jetstreamConn.sobject.describeSobject(params.sobject, isTooling);
+
+      sendJson(res, results);
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
+    }
+  }
+);
+
+const query = createRoute(routeDefinition.query.validators, async ({ body, query, jetstreamConn }, req, res, next) => {
   try {
-    const isTooling = req.query.isTooling === 'true';
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.sobject.describeSobject(req.params.sobject, isTooling);
+    const isTooling = query.isTooling;
+    const includeDeletedRecords = query.includeDeletedRecords;
+    const soql = body.query;
+
+    const results = await jetstreamConn.query.query(soql, isTooling, includeDeletedRecords);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function query(
-  req: Request<unknown, { query: string }, { isTooling?: 'true'; includeDeletedRecords?: 'true' }>,
-  res: Response,
-  next: NextFunction
-) {
+const queryMore = createRoute(routeDefinition.queryMore.validators, async ({ query, jetstreamConn }, req, res, next) => {
   try {
-    const isTooling = req.query.isTooling === 'true';
-    const includeDeletedRecords = req.query.includeDeletedRecords === 'true';
-    const query = req.body.query;
+    const nextRecordsUrl = query.nextRecordsUrl as string;
 
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.query.query(query, isTooling, includeDeletedRecords);
-
-    sendJson(res, results);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
-  }
-}
-
-export async function queryMore(
-  req: Request<unknown, unknown, { isTooling?: 'true'; nextRecordsUrl: string }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const nextRecordsUrl = req.query.nextRecordsUrl as string;
-
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.query.queryMore(nextRecordsUrl);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});

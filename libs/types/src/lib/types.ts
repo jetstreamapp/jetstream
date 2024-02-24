@@ -336,7 +336,7 @@ export type ManualRequestResponse = {
   error: boolean;
   errorMessage?: Maybe<string>;
   status: number | null;
-  statusText: string | null;
+  statusText?: string | null;
   headers: string | null;
   body?: Maybe<string>;
 };

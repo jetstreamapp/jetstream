@@ -211,6 +211,15 @@ public class AddPrimaryContact implements Queueable {
   // TODO: checkRetrieveStatusAndRedeploy (this one will be hard - maybe skip)
 
   // TODO: getPackageXml
+  test('getPackageXml', async ({ apiRequestUtils }) => {
+    const results = await apiRequestUtils.makeRequest<string>('POST', `/api/metadata/package-xml`, {
+      metadata: 'test',
+      otherFields: [],
+    });
+
+    expect(results).toBeTruthy();
+  });
+
 
   // TODO: anonymousApex
 

@@ -1,12 +1,20 @@
 import * as salesforceApiDb from '../db/salesforce-api.db';
-import { Request, Response } from '../types/types';
+import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { RoutDefinitions, createRoute } from '../utils/route.utils';
 
-export const routeValidators = {
-  getSalesforceApiRequests: [],
+export const routeDefinition: RoutDefinitions = {
+  getSalesforceApiRequests: {
+    controllerFn: () => getSalesforceApiRequests,
+    validators: { hasSourceOrg: false },
+  },
 };
 
-export async function getSalesforceApiRequests(req: Request, res: Response) {
-  const results = await salesforceApiDb.findAll();
-  sendJson(res, results);
-}
+const getSalesforceApiRequests = createRoute(routeDefinition.getSalesforceApiRequests.validators, async ({}, req, res, next) => {
+  try {
+    const results = await salesforceApiDb.findAll();
+    sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex.message));
+  }
+});

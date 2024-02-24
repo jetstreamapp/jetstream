@@ -1,83 +1,111 @@
 import { logger } from '@jetstream/api-config';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
-import { UserProfileServer } from '@jetstream/types';
-import { NextFunction } from 'express';
+import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { RoutDefinitions, createRoute } from '../utils/route.utils';
 
-export async function getOrgs(req: Request, res: Response, next: NextFunction) {
+export const routeDefinition: RoutDefinitions = {
+  getOrgs: {
+    controllerFn: () => getOrgs,
+    validators: { hasSourceOrg: false },
+  },
+  updateOrg: {
+    controllerFn: () => updateOrg,
+    validators: {
+      params: z.object({
+        uniqueId: z.string().min(1),
+      }),
+      body: z.object({
+        label: z.string(),
+        color: z.string().optional(),
+      }),
+      hasSourceOrg: false,
+    },
+  },
+  deleteOrg: {
+    controllerFn: () => deleteOrg,
+    validators: {
+      params: z.object({
+        uniqueId: z.string().min(1),
+      }),
+      hasSourceOrg: false,
+    },
+  },
+  checkOrgHealth: {
+    controllerFn: () => checkOrgHealth,
+    validators: {},
+  },
+};
+
+const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, req, res, next) => {
   try {
-    const user = req.user as UserProfileServer;
     const orgs = await salesforceOrgsDb.findByUserId(user.id);
 
     sendJson(res, orgs);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function updateOrg(req: Request, res: Response, next: NextFunction) {
+const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params, user }, req, res, next) => {
   try {
-    const user = req.user as UserProfileServer;
-
-    const data = { label: req.body.label, color: req.body.color };
-    const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(user.id, req.params.uniqueId, data);
+    const data = { label: body.label, color: body.color };
+    const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(user.id, params.uniqueId, data);
 
     sendJson(res, salesforceOrg, 201);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function deleteOrg(req: Request, res: Response, next: NextFunction) {
+const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, req, res, next) => {
   try {
-    const user = req.user as UserProfileServer;
-    salesforceOrgsDb.deleteSalesforceOrg(user.id, req.params.uniqueId);
+    salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
 
     sendJson(res, undefined, 204);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
 /**
  * Check if the org is still valid
  * This can be used to retry an org that has been marked as invalid
  */
-export async function checkOrgHealth(req: Request, res: Response, next: NextFunction) {
-  try {
-    const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-    const org = res.locals.org;
-
-    const jetstreamConn = res.locals.jetstreamConn;
-
-    let connectionError = org.connectionError;
-
+const checkOrgHealth = createRoute(
+  routeDefinition.checkOrgHealth.validators,
+  async ({ jetstreamConn, org, user, requestId }, req, res, next) => {
     try {
-      await jetstreamConn.org.identity();
-      connectionError = null;
-      logger.warn('[ORG CHECK][VALID ORG]', { requestId: res.locals.requestId });
-    } catch (ex) {
-      connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
-      logger.warn('[ORG CHECK][INVALID ORG] %s', ex.message, { requestId: res.locals.requestId });
-    }
+      const userInfo = user ? { username: (user as any)?.displayName, userId: (user as any)?.user_id } : undefined;
 
-    try {
-      if (connectionError !== org.connectionError) {
-        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
+      let connectionError = org.connectionError;
+
+      try {
+        await jetstreamConn.org.identity();
+        connectionError = null;
+        logger.warn('[ORG CHECK][VALID ORG]', { requestId });
+      } catch (ex) {
+        connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
+        logger.warn('[ORG CHECK][INVALID ORG] %s', ex.message, { requestId });
       }
+
+      try {
+        if (connectionError !== org.connectionError) {
+          await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError });
+        }
+      } catch (ex) {
+        logger.warn('[ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo, requestId });
+      }
+
+      if (connectionError) {
+        throw new UserFacingError('Your org is no longer valid. Reconnect this org to Salesforce.');
+      }
+
+      sendJson(res, undefined, 200);
     } catch (ex) {
-      logger.warn('[ERROR UPDATING INVALID ORG] %s', ex.message, { error: ex.message, userInfo, requestId: res.locals.requestId });
+      next(new UserFacingError(ex.message));
     }
-
-    if (connectionError) {
-      throw new UserFacingError('Your org is no longer valid. Reconnect this org to Salesforce.');
-    }
-
-    sendJson(res, undefined, 200);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
   }
-}
+);

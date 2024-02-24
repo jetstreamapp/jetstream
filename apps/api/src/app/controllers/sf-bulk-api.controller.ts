@@ -1,127 +1,154 @@
 import { logger } from '@jetstream/api-config';
+import { CreateJobRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, BulkApiDownloadType } from '@jetstream/types';
-import { NextFunction } from 'express';
-import { body, param, query } from 'express-validator';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
 import { Readable } from 'stream';
-import { Request, Response } from '../types/types';
+import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { RoutDefinitions, createRoute } from '../utils/route.utils';
 
-export const routeValidators = {
-  createJob: [
-    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY', 'QUERY_ALL']),
-    body('sObject').isString(),
-    body('serialMode').optional().isBoolean(),
-    body('externalIdFieldName').optional().isString(),
-    body('externalId')
-      .if(body('type').isIn(['UPSERT']))
-      .isString(),
-  ],
-  getJob: [param('jobId').isString()],
-  closeJob: [param('jobId').isString()],
-  downloadResults: [
-    param('jobId').isString(),
-    param('batchId').isString(),
-    query('type').isIn(['request', 'result']),
-    query('isQuery').optional().isBoolean(),
-  ],
-  downloadResultsFile: [
-    param('jobId').isString(),
-    param('batchId').isString(),
-    query('type').isIn(['request', 'result']),
-    query('isQuery').optional().isBoolean(),
-    query('fileName').optional().isString(),
-  ],
-  addBatchToJob: [param('jobId').isString(), body().exists({ checkNull: true }), query('closeJob').optional().toBoolean()],
-  addBatchToJobWithBinaryAttachment: [
-    param('jobId').isString(),
-    body().exists({ checkNull: true }),
-    query('closeJob').optional().toBoolean(),
-  ],
+export const routeDefinition: RoutDefinitions = {
+  createJob: {
+    controllerFn: () => createJob,
+    validators: {
+      body: CreateJobRequestSchema,
+    },
+  },
+  getJob: {
+    controllerFn: () => getJob,
+    validators: {
+      params: z.object({ jobId: z.string().min(1) }),
+    },
+  },
+  closeOrAbortJob: {
+    controllerFn: () => closeOrAbortJob,
+    validators: {
+      params: z.object({ jobId: z.string().min(1), action: z.enum(['close', 'abort']).optional() }),
+    },
+  },
+  downloadResults: {
+    controllerFn: () => downloadResults,
+    validators: {
+      params: z.object({
+        jobId: z.string().min(1),
+        batchId: z.string().min(1),
+      }),
+      query: z.object({
+        type: z.enum(['request', 'result']),
+        isQuery: z.string().optional().transform(ensureBoolean),
+      }),
+    },
+  },
+  downloadResultsFile: {
+    controllerFn: () => downloadResultsFile,
+    validators: {
+      params: z.object({
+        jobId: z.string().min(1),
+        batchId: z.string().min(1),
+      }),
+      query: z.object({
+        type: z.enum(['request', 'result']),
+        isQuery: z.string().optional().transform(ensureBoolean),
+        fileName: z.string().optional(),
+      }),
+    },
+  },
+  addBatchToJob: {
+    controllerFn: () => addBatchToJob,
+    validators: {
+      params: z.object({ jobId: z.string().min(1) }),
+      body: z.any(),
+      query: z.object({
+        closeJob: z.string().optional().transform(ensureBoolean),
+      }),
+    },
+  },
+  addBatchToJobWithBinaryAttachment: {
+    controllerFn: () => addBatchToJobWithBinaryAttachment,
+    validators: {
+      params: z.object({ jobId: z.string().min(1), batchId: z.string().min(1) }),
+      body: z.any(),
+      query: z.object({
+        closeJob: z.string().optional().transform(ensureBoolean),
+      }),
+    },
+  },
 };
 
 // https://github.com/jsforce/jsforce/issues/934
-export async function createJob(req: Request<unknown, BulkApiCreateJobRequestPayload>, res: Response, next: NextFunction) {
+const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
-    const options = req.body;
+    const options = body;
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.createJob(options);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function getJob(req: Request<{ jobId: string }>, res: Response, next: NextFunction) {
+const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
   try {
-    const jobId = req.params.jobId;
+    const jobId = params.jobId;
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.getJob(jobId);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function closeOrAbortJob(req: Request<{ jobId: string; action: string }>, res: Response, next: NextFunction) {
+const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
   try {
-    const jobId = req.params.jobId;
-    const action: 'Closed' | 'Aborted' = req.params.action === 'abort' ? 'Aborted' : 'Closed';
+    const jobId = params.jobId;
+    const action: 'Closed' | 'Aborted' = params.action === 'abort' ? 'Aborted' : 'Closed';
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.bulk.closeJob(jobId, action);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function addBatchToJob(
-  req: Request<{ jobId: string }, string | Buffer, { closeJob: any }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const jobId = req.params.jobId;
-    const csv = req.body;
-    const closeJob = req.query.closeJob as boolean;
+const addBatchToJob = createRoute(
+  routeDefinition.addBatchToJob.validators,
+  async ({ body, params, query, user, jetstreamConn }, req, res, next) => {
+    try {
+      const jobId = params.jobId;
+      const csv = body;
+      const closeJob = query.closeJob as boolean;
 
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, ensureBoolean(closeJob));
+      const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, ensureBoolean(closeJob));
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
+      sendJson(res, results);
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
+    }
   }
-}
+);
 
-export async function addBatchToJobWithBinaryAttachment(
-  req: Request<{ jobId: string }, string | Buffer, { closeJob: any }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const jobId = req.params.jobId;
-    const zip = req.body;
-    const closeJob = req.query.closeJob as boolean;
+const addBatchToJobWithBinaryAttachment = createRoute(
+  routeDefinition.addBatchToJobWithBinaryAttachment.validators,
+  async ({ body, params, query, jetstreamConn }, req, res, next) => {
+    try {
+      const jobId = params.jobId;
+      const zip = body;
+      const closeJob = query.closeJob as boolean;
 
-    // TODO: how is this different from addBatchToJob?
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.bulk.addBatchToJob(zip, jobId, ensureBoolean(closeJob));
+      // TODO: how is this different from addBatchToJob?
+      const results = await jetstreamConn.bulk.addBatchToJob(zip, jobId, ensureBoolean(closeJob));
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
+      sendJson(res, results);
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
+    }
   }
-}
+);
 
 /**
  * Download request or results as a CSV file directly streamed from SFDC
@@ -130,100 +157,95 @@ export async function addBatchToJobWithBinaryAttachment(
  *  THIS IS USED BY BULK QUERY DOWNLOAD
  *
  */
-export async function downloadResultsFile(
-  req: Request<{ jobId: string; batchId: string }, string | Buffer, { type: BulkApiDownloadType; isQuery?: string; fileName?: string }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const jobId = req.params.jobId;
-    const batchId = req.params.batchId;
-    const type = req.query.type;
-    const isQuery = ensureBoolean(req.query.isQuery);
-    const fileName = req.query.fileName || `${type}.csv`;
-    const jetstreamConn = res.locals.jetstreamConn;
+const downloadResultsFile = createRoute(
+  routeDefinition.downloadResultsFile.validators,
+  async ({ params, query, jetstreamConn }, req, res, next) => {
+    try {
+      const jobId = params.jobId;
+      const batchId = params.batchId;
+      const type = query.type;
+      const isQuery = ensureBoolean(query.isQuery);
+      const fileName = query.fileName || `${type}.csv`;
 
-    res.setHeader(HTTP.HEADERS.CONTENT_TYPE, HTTP.CONTENT_TYPE.CSV);
-    res.setHeader(HTTP.HEADERS.CONTENT_DISPOSITION, `attachment; filename="${fileName}"`);
+      res.setHeader(HTTP.HEADERS.CONTENT_TYPE, HTTP.CONTENT_TYPE.CSV);
+      res.setHeader(HTTP.HEADERS.CONTENT_DISPOSITION, `attachment; filename="${fileName}"`);
 
-    let resultId: string | undefined;
+      let resultId: string | undefined;
 
-    if (isQuery) {
-      resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
+      if (isQuery) {
+        resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
+      }
+
+      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
+      Readable.fromWeb(results as any).pipe(res);
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
     }
-
-    const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
-    Readable.fromWeb(results as any).pipe(res);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
   }
-}
+);
 
 /**
  * Download requests or results as JSON, streamed from Salesforce as CSV, and transformed to JSON
  */
-export async function downloadResults(
-  req: Request<{ jobId: string; batchId: string }, string | Buffer, { type: BulkApiDownloadType; isQuery?: string }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const jobId = req.params.jobId;
-    const batchId = req.params.batchId;
-    const type = req.query.type;
-    const isQuery = ensureBoolean(req.query.isQuery);
+const downloadResults = createRoute(
+  routeDefinition.downloadResults.validators,
+  async ({ params, query, jetstreamConn, requestId }, req, res, next) => {
+    try {
+      const jobId = params.jobId;
+      const batchId = params.batchId;
+      const type = query.type;
+      const isQuery = ensureBoolean(query.isQuery);
 
-    const jetstreamConn = res.locals.jetstreamConn;
+      const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
+        delimiter: ',',
+        header: true,
+        skipEmptyLines: true,
+        transform: (data, field) => {
+          if (field === 'Success' || field === 'Created') {
+            return toBoolean(data);
+          } else if (field === 'Id' || field === 'Error') {
+            return data || null;
+          }
+          return data;
+        },
+      });
 
-    const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
-      delimiter: ',',
-      header: true,
-      skipEmptyLines: true,
-      transform: (data, field) => {
-        if (field === 'Success' || field === 'Created') {
-          return toBoolean(data);
-        } else if (field === 'Id' || field === 'Error') {
-          return data || null;
+      if (isQuery) {
+        const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
+        const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
+        Readable.fromWeb(results as any).pipe(csvParseStream);
+      } else {
+        const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
+        Readable.fromWeb(results as any).pipe(csvParseStream);
+      }
+
+      let isFirstChunk = true;
+
+      csvParseStream.on('data', (data) => {
+        data = JSON.stringify(data);
+        if (isFirstChunk) {
+          isFirstChunk = false;
+          data = `{"data":[${data}`;
+        } else {
+          data = `,${data}`;
         }
-        return data;
-      },
-    });
-
-    if (isQuery) {
-      const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
-      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
-      Readable.fromWeb(results as any).pipe(csvParseStream);
-    } else {
-      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
-      Readable.fromWeb(results as any).pipe(csvParseStream);
+        res.write(data);
+      });
+      csvParseStream.on('finish', () => {
+        res.write(']}');
+        res.end();
+        logger.info('Finished streaming download from Salesforce', { requestId });
+      });
+      csvParseStream.on('error', (err) => {
+        logger.warn('Error streaming files from Salesforce. %o', err, { requestId });
+        if (!res.headersSent) {
+          res.status(400).json({ error: true, message: 'Error streaming files from Salesforce' });
+        } else {
+          res.status(400).end();
+        }
+      });
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
     }
-
-    let isFirstChunk = true;
-
-    csvParseStream.on('data', (data) => {
-      data = JSON.stringify(data);
-      if (isFirstChunk) {
-        isFirstChunk = false;
-        data = `{"data":[${data}`;
-      } else {
-        data = `,${data}`;
-      }
-      res.write(data);
-    });
-    csvParseStream.on('finish', () => {
-      res.write(']}');
-      res.end();
-      logger.info('Finished streaming download from Salesforce', { requestId: res.locals.requestId });
-    });
-    csvParseStream.on('error', (err) => {
-      logger.warn('Error streaming files from Salesforce. %o', err, { requestId: res.locals.requestId });
-      if (!res.headersSent) {
-        res.status(400).json({ error: true, message: 'Error streaming files from Salesforce' });
-      } else {
-        res.status(400).end();
-      }
-    });
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
   }
-}
+);

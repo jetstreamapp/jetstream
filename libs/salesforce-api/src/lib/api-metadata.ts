@@ -1,7 +1,7 @@
+import { DeployOptions, ListMetadataRequest, ReadMetadataRequest } from '@jetstream/api-types';
 import { arrayBufferToBase64, ensureArray, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   AsyncResult,
-  DeployOptions,
   DeployResult,
   DescribeMetadataResult,
   FileProperties,
@@ -60,7 +60,7 @@ export class ApiMetadata extends SalesforceApi {
       });
   }
 
-  async list(types: { type: string; folder?: string }[]): Promise<FileProperties[]> {
+  async list(types: ListMetadataRequest['types']): Promise<FileProperties[]> {
     return this.apiRequest<SoapResponse<'listMetadataResponse', FileProperties[]>>(
       this.prepareSoapRequestOptions({
         type: 'METADATA',
@@ -75,7 +75,7 @@ export class ApiMetadata extends SalesforceApi {
     ).then((response) => correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.listMetadataResponse?.result || []));
   }
 
-  async read(type: string, fullNames: string[]): Promise<MetadataInfo[]> {
+  async read(type: string, fullNames: ReadMetadataRequest['fullNames']): Promise<MetadataInfo[]> {
     return (
       await Promise.all(
         splitArrayToMaxSize(fullNames, 10).map((fullNames) =>

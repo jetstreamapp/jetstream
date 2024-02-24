@@ -37,7 +37,7 @@ routes.post(
   async (req: express.Request, res: express.Response) => {
     const E2E_LOGIN_USERNAME = process.env.E2E_LOGIN_USERNAME;
     const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD;
-    const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL;
+    const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL!;
 
     const { id, access_token, instance_url } = await salesforceLoginUsernamePassword_UNSAFE(
       E2E_LOGIN_URL,

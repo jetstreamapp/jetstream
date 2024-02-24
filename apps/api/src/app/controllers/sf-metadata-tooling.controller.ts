@@ -1,313 +1,351 @@
 import { ENV } from '@jetstream/api-config';
-import { LOG_LEVELS } from '@jetstream/shared/constants';
-import { DeployOptions, ListMetadataResult, MapOf, RetrieveRequest } from '@jetstream/types';
-import { NextFunction } from 'express';
-import { body, param, query } from 'express-validator';
+import {
+  AnonymousApexSchema,
+  CheckRetrieveStatusAndRedeployRequestSchema,
+  DeployMetadataRequestSchema,
+  DeployOptionsSchema,
+  GetPackageXmlSchema,
+  ListMetadataRequestSchema,
+  ReadMetadataRequestSchema,
+  RetrievePackageFromExistingServerPackagesRequestSchema,
+  RetrievePackageFromLisMetadataResultsRequestSchema,
+} from '@jetstream/api-types';
+import { ensureBoolean } from '@jetstream/shared/utils';
+import { RetrieveRequest } from '@jetstream/types';
 import JSZip from 'jszip';
 import { isString } from 'lodash';
+import { z } from 'zod';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/salesforce.service';
-import { Request, Response } from '../types/types';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { RoutDefinitions, createRoute } from '../utils/route.utils';
 
-export const routeValidators = {
-  listMetadata: [body('types').isArray().isLength({ min: 1 })],
-  readMetadata: [body('fullNames').isArray().isLength({ min: 1 })],
-  deployMetadata: [body('files').isArray().isLength({ min: 1 })],
-  deployMetadataZip: [body().exists({ checkNull: true }), query('options').isJSON()],
-  checkMetadataResults: [param('id').isLength({ min: 15, max: 18 }), query('includeDetails').toBoolean()],
-  retrievePackageFromLisMetadataResults: [body().notEmpty(), body().not().isString(), body().not().isArray()],
-  retrievePackageFromExistingServerPackages: [body('packageNames').isArray().isLength({ min: 1 })],
-  retrievePackageFromManifest: [body('packageManifest').isString()],
-  checkRetrieveStatus: [param('id').isLength({ min: 15, max: 18 })],
-  checkRetrieveStatusAndRedeploy: [
-    param('id').isLength({ min: 15, max: 18 }),
-    body('deployOptions').notEmpty(),
-    // TODO: make changesetName required if replacementPackageXml is specified
-    body('replacementPackageXml').optional().isString(),
-    body('changesetName').optional().isString(),
-  ],
-  getPackageXml: [
-    body('metadata').notEmpty(),
-    body('metadata').not().isString(),
-    body('metadata').not().isArray(),
-    body('otherFields').optional().not().isArray(),
-    body('otherFields').optional().not().isString(),
-  ],
-  anonymousApex: [body('apex').isString().isLength({ min: 1 }), body('logLevel').optional().isString().isIn(LOG_LEVELS)],
-  apexCompletions: [param('type').isIn(['apex', 'visualforce'])],
+export const routeDefinition: RoutDefinitions = {
+  describeMetadata: {
+    controllerFn: () => describeMetadata,
+    validators: {},
+  },
+  listMetadata: {
+    controllerFn: () => listMetadata,
+    validators: {
+      body: ListMetadataRequestSchema,
+    },
+  },
+  readMetadata: {
+    controllerFn: () => readMetadata,
+    validators: {
+      params: z.object({ type: z.string() }),
+      body: ReadMetadataRequestSchema,
+    },
+  },
+  deployMetadata: {
+    controllerFn: () => deployMetadata,
+    validators: {
+      body: DeployMetadataRequestSchema,
+    },
+  },
+  deployMetadataZip: {
+    controllerFn: () => deployMetadataZip,
+    validators: {
+      body: z.any(),
+      query: z.object({ options: z.string() }),
+    },
+  },
+  checkMetadataResults: {
+    controllerFn: () => checkMetadataResults,
+    validators: {
+      params: z.object({ id: z.string().min(15).max(18) }),
+      query: z.object({ includeDetails: z.string().transform(ensureBoolean) }),
+    },
+  },
+  retrievePackageFromLisMetadataResults: {
+    controllerFn: () => retrievePackageFromLisMetadataResults,
+    validators: {
+      body: RetrievePackageFromLisMetadataResultsRequestSchema, // TODO: can we figure out something here?
+    },
+  },
+  retrievePackageFromExistingServerPackages: {
+    controllerFn: () => retrievePackageFromExistingServerPackages,
+    validators: {
+      body: RetrievePackageFromExistingServerPackagesRequestSchema,
+    },
+  },
+  retrievePackageFromManifest: {
+    controllerFn: () => retrievePackageFromManifest,
+    validators: {},
+  },
+  checkRetrieveStatus: {
+    controllerFn: () => checkRetrieveStatus,
+    validators: {
+      params: z.object({ id: z.string().min(15).max(18) }),
+    },
+  },
+  checkRetrieveStatusAndRedeploy: {
+    controllerFn: () => checkRetrieveStatusAndRedeploy,
+    validators: {
+      hasTargetOrg: true,
+      params: z.object({ id: z.string().min(15).max(18) }),
+      body: CheckRetrieveStatusAndRedeployRequestSchema,
+    },
+  },
+  getPackageXml: {
+    controllerFn: () => getPackageXml,
+    validators: {
+      body: GetPackageXmlSchema,
+    },
+  },
+  anonymousApex: {
+    controllerFn: () => anonymousApex,
+    validators: {
+      body: AnonymousApexSchema,
+    },
+  },
+  apexCompletions: {
+    controllerFn: () => apexCompletions,
+    validators: {
+      params: z.object({
+        type: z.enum(['apex', 'visualforce']),
+      }),
+    },
+  },
 };
 
-export async function describeMetadata(req: Request, res: Response, next: NextFunction) {
+// export async function describeMetadata(req: Request, res: Response, next: NextFunction) {
+const describeMetadata = createRoute(routeDefinition.describeMetadata.validators, async ({ jetstreamConn }, req, res, next) => {
   try {
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.describe();
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function listMetadata(
-  req: Request<unknown, { types: { type: string; folder?: string }[] }>,
-  res: Response,
-  next: NextFunction
-) {
+const listMetadata = createRoute(routeDefinition.listMetadata.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.metadata.list(req.body.types);
+    const results = await jetstreamConn.metadata.list(body.types);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function readMetadata(req: Request<{ type: string }, { fullNames: string[] }>, res: Response, next: NextFunction) {
+const readMetadata = createRoute(routeDefinition.readMetadata.validators, async ({ body, params, jetstreamConn }, req, res, next) => {
   try {
-    const fullNames = req.body.fullNames;
-    const metadataType = req.params.type;
+    const fullNames = body.fullNames;
+    const metadataType = params.type;
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.read(metadataType, fullNames);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function deployMetadata(
-  req: Request<{ type: string }, { files: { fullFilename: string; content: string }[]; options: DeployOptions }>,
-  res: Response,
-  next: NextFunction
-) {
+const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
-    const files = req.body.files;
-    const options = req.body.options;
+    const files = body.files;
+    const options = body.options;
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.metadata.deployMetadata(files, options);
 
     sendJson(res, results);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});
 
-export async function deployMetadataZip(req: Request<unknown, ArrayBuffer, { options: string }>, res: Response, next: NextFunction) {
-  try {
-    const metadataPackage = req.body; // buffer
-    // this is validated as valid JSON previously
-    const options = JSON.parse(req.query.options);
+const deployMetadataZip = createRoute(
+  routeDefinition.deployMetadataZip.validators,
+  async ({ body, query, jetstreamConn }, req, res, next) => {
+    try {
+      const metadataPackage = body; // buffer
+      // this is validated as valid JSON previously
+      const options = DeployOptionsSchema.parse(JSON.parse(query.options));
 
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.metadata.deploy(metadataPackage, options);
+      const results = await jetstreamConn.metadata.deploy(metadataPackage, options);
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
+      sendJson(res, results);
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
+    }
   }
-}
+);
 
-export async function checkMetadataResults(
-  req: Request<{ id: string }, unknown, { includeDetails: any }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const id = req.params.id;
-    const includeDetails = req.query.includeDetails as boolean; // express validator conversion
+const checkMetadataResults = createRoute(
+  routeDefinition.checkMetadataResults.validators,
+  async ({ params, query, jetstreamConn }, req, res, next) => {
+    try {
+      const id = params.id;
+      const includeDetails = query.includeDetails;
 
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.metadata.checkDeployStatus(id, includeDetails);
+      const results = await jetstreamConn.metadata.checkDeployStatus(id, includeDetails);
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(new UserFacingError(ex.message));
+      sendJson(res, results);
+    } catch (ex) {
+      next(new UserFacingError(ex.message));
+    }
   }
-}
+);
 
-export async function retrievePackageFromLisMetadataResults(
-  req: Request<unknown, MapOf<ListMetadataResult[]>>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const types = req.body;
+const retrievePackageFromLisMetadataResults = createRoute(
+  routeDefinition.retrievePackageFromLisMetadataResults.validators,
+  async ({ body, jetstreamConn }, req, res, next) => {
+    try {
+      const types = body;
 
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.metadata.retrieve(getRetrieveRequestFromListMetadata(types, jetstreamConn.sessionInfo.apiVersion));
+      const results = await jetstreamConn.metadata.retrieve(
+        getRetrieveRequestFromListMetadata(types, jetstreamConn.sessionInfo.apiVersion)
+      );
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(ex);
+      sendJson(res, results);
+    } catch (ex) {
+      next(ex);
+    }
   }
-}
+);
 
-export async function retrievePackageFromExistingServerPackages(
-  req: Request<unknown, { packageNames: string[] }>,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const packageNames = req.body.packageNames;
-    const jetstreamConn = res.locals.jetstreamConn;
+const retrievePackageFromExistingServerPackages = createRoute(
+  routeDefinition.retrievePackageFromExistingServerPackages.validators,
+  async ({ body, jetstreamConn }, req, res, next) => {
+    try {
+      const packageNames = body.packageNames;
 
-    const retrieveRequest: RetrieveRequest = {
-      apiVersion: jetstreamConn.sessionInfo.apiVersion,
-      packageNames,
-      singlePackage: false,
-    };
+      const retrieveRequest: RetrieveRequest = {
+        apiVersion: jetstreamConn.sessionInfo.apiVersion,
+        packageNames,
+        singlePackage: false,
+      };
 
-    const results = await jetstreamConn.metadata.retrieve(retrieveRequest);
+      const results = await jetstreamConn.metadata.retrieve(retrieveRequest);
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(ex);
+      sendJson(res, results);
+    } catch (ex) {
+      next(ex);
+    }
   }
-}
+);
 
-export async function retrievePackageFromManifest(req: Request<unknown, { packageManifest: string }>, res: Response, next: NextFunction) {
-  try {
-    const packageManifest = req.body.packageManifest;
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.metadata.retrieve(getRetrieveRequestFromManifest(packageManifest));
+const retrievePackageFromManifest = createRoute(
+  routeDefinition.retrievePackageFromManifest.validators,
+  async ({ body, jetstreamConn }, req, res, next) => {
+    try {
+      const packageManifest = body.packageManifest;
+      const results = await jetstreamConn.metadata.retrieve(getRetrieveRequestFromManifest(packageManifest));
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(ex);
+      sendJson(res, results);
+    } catch (ex) {
+      next(ex);
+    }
   }
-}
+);
 
-export async function checkRetrieveStatus(req: Request<unknown, unknown, { id: string }>, res: Response, next: NextFunction) {
-  try {
-    const id: string = req.query.id;
+const checkRetrieveStatus = createRoute(
+  routeDefinition.checkRetrieveStatus.validators,
+  async ({ query, jetstreamConn }, req, res, next) => {
+    try {
+      const id: string = query.id;
 
-    const jetstreamConn = res.locals.jetstreamConn;
-    const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
+      const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
 
-    sendJson(res, results);
-  } catch (ex) {
-    next(ex);
+      sendJson(res, results);
+    } catch (ex) {
+      next(ex);
+    }
   }
-}
+);
 
 // TODO: split this into one option to deploy to a changeset
 // TODO: get from new shared service (code copied over)
 // and another to deploy as-is
-export async function checkRetrieveStatusAndRedeploy(
-  req: Request<
-    unknown,
-    {
-      deployOptions: DeployOptions;
-      replacementPackageXml: string;
-      changesetName: string;
-    },
-    { id: string }
-  >,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const id = req.query.id;
-    const deployOptions = req.body.deployOptions;
-    const replacementPackageXml = req.body.replacementPackageXml;
-    const changesetName = req.body.changesetName;
-    const jetstreamConn = res.locals.jetstreamConn;
-    const targetJetstreamConn = res.locals.targetJetstreamConn;
+const checkRetrieveStatusAndRedeploy = createRoute(
+  routeDefinition.checkRetrieveStatusAndRedeploy.validators,
+  async ({ body, query, jetstreamConn, targetJetstreamConn }, req, res, next) => {
+    try {
+      const id = query.id;
+      const deployOptions = body.deployOptions;
+      const replacementPackageXml = body.replacementPackageXml;
+      const changesetName = body.changesetName;
 
-    // const results = correctInvalidXmlResponseTypes(await conn.metadata.checkRetrieveStatus(id));
-    const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
+      // const results = correctInvalidXmlResponseTypes(await conn.metadata.checkRetrieveStatus(id));
+      const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
 
-    if (isString(results.zipFile)) {
-      // create a new zip in the correct structure to add to changeset
-      if (replacementPackageXml && changesetName) {
-        const oldPackage = await JSZip.loadAsync(results.zipFile, { base64: true });
-        const newPackage = JSZip();
-        newPackage
-          .folder('unpackaged')
-          ?.file(
-            'package.xml',
-            `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
-              jetstreamConn.sessionInfo.apiVersion || ENV.SFDC_API_VERSION
-            }</version>\n</Package>`
+      if (isString(results.zipFile)) {
+        // create a new zip in the correct structure to add to changeset
+        if (replacementPackageXml && changesetName) {
+          const oldPackage = await JSZip.loadAsync(results.zipFile, { base64: true });
+          const newPackage = JSZip();
+          newPackage
+            .folder('unpackaged')
+            ?.file(
+              'package.xml',
+              `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
+                jetstreamConn.sessionInfo.apiVersion || ENV.SFDC_API_VERSION
+              }</version>\n</Package>`
+            );
+
+          oldPackage.forEach((relativePath, file) => {
+            if (file.name === 'package.xml') {
+              newPackage.folder(changesetName)?.file(relativePath, replacementPackageXml);
+            } else if (!file.dir) {
+              newPackage.folder(changesetName)?.file(relativePath, file.async('uint8array'), { binary: true });
+            }
+          });
+          const deployResults = await targetJetstreamConn.metadata.deploy(
+            await newPackage.generateAsync({ type: 'base64', compression: 'STORE', mimeType: 'application/zip', platform: 'UNIX' }),
+            deployOptions
           );
-
-        oldPackage.forEach((relativePath, file) => {
-          if (file.name === 'package.xml') {
-            newPackage.folder(changesetName)?.file(relativePath, replacementPackageXml);
-          } else if (!file.dir) {
-            newPackage.folder(changesetName)?.file(relativePath, file.async('uint8array'), { binary: true });
-          }
-        });
-        const deployResults = await targetJetstreamConn.metadata.deploy(
-          await newPackage.generateAsync({ type: 'base64', compression: 'STORE', mimeType: 'application/zip', platform: 'UNIX' }),
-          deployOptions
-        );
-        sendJson(res, { type: 'deploy', results: deployResults, zipFile: results.zipFile });
+          sendJson(res, { type: 'deploy', results: deployResults, zipFile: results.zipFile });
+        } else {
+          // Deploy package as-is
+          const deployResults = await targetJetstreamConn.metadata.deploy(results.zipFile!, deployOptions);
+          sendJson(res, { type: 'deploy', results: deployResults, zipFile: results.zipFile });
+        }
       } else {
-        // Deploy package as-is
-        const deployResults = await targetJetstreamConn.metadata.deploy(results.zipFile!, deployOptions);
-        sendJson(res, { type: 'deploy', results: deployResults, zipFile: results.zipFile });
+        sendJson(res, { type: 'retrieve', results });
       }
-    } else {
-      sendJson(res, { type: 'retrieve', results });
+    } catch (ex) {
+      next(ex);
     }
-  } catch (ex) {
-    next(ex);
   }
-}
+);
 
-export async function getPackageXml(
-  req: Request<
-    unknown,
-    {
-      metadata: MapOf<ListMetadataResult[]>;
-      otherFields: MapOf<string>;
-    }
-  >,
-  res: Response,
-  next: NextFunction
-) {
+const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
-    const types = req.body.metadata;
-    const otherFields = req.body.otherFields;
-    const jetstreamConn = res.locals.jetstreamConn;
+    const types = body.metadata;
+    const otherFields = body.otherFields;
 
     sendJson(res, buildPackageXml(types, jetstreamConn.sessionInfo.apiVersion, otherFields));
   } catch (ex) {
     next(ex);
   }
-}
+});
 
 /**
  * This uses the SOAP api to allow returning logs
  */
-export async function anonymousApex(req: Request<unknown, { apex: string; logLevel?: string }>, res: Response, next: NextFunction) {
+const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
-    // eslint-disable-next-line prefer-const
-    let { apex, logLevel } = req.body;
+    const { apex, logLevel } = body;
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.apex.anonymousApex({ apex, logLevel });
 
     sendJson(res, results);
   } catch (ex) {
     next(ex);
   }
-}
+});
 
-export async function apexCompletions(req: Request<{ type: string }>, res: Response, next: NextFunction) {
+const apexCompletions = createRoute(routeDefinition.apexCompletions.validators, async ({ params, jetstreamConn }, req, res, next) => {
   try {
-    const type = req.params.type;
+    const type = params.type;
 
-    const jetstreamConn = res.locals.jetstreamConn;
     const results = await jetstreamConn.apex.apexCompletions(type);
 
     sendJson(res, results);
   } catch (ex) {
     next(ex);
   }
-}
+});

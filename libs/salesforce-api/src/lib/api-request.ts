@@ -1,4 +1,4 @@
-import { GenericRequestPayload } from '@jetstream/types';
+import { SalesforceApiRequest } from '@jetstream/api-types';
 import { ApiConnection } from './connection';
 import { ApiRequestOutputType } from './types';
 import { SalesforceApi } from './utils';
@@ -9,7 +9,7 @@ export class ApiRequest extends SalesforceApi {
   }
 
   async manualRequest<T = unknown>(
-    { method, url, body, headers = {}, options }: GenericRequestPayload,
+    { method, url, body, headers = {}, options }: SalesforceApiRequest,
     outputType: ApiRequestOutputType = 'text',
     ensureRestUrl = false
   ): Promise<T> {

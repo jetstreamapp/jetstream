@@ -17,6 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@jetstream/api-config": ["libs/api-config/src/index.ts"],
+      "@jetstream/api-types": ["libs/api-types/src/index.ts"],
       "@jetstream/connected-ui": ["libs/connected/connected-ui/src/index.ts"],
       "@jetstream/electron": ["libs/electron-utils/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
