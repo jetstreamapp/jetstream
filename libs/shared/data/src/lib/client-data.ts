@@ -445,14 +445,13 @@ export async function queryAllUsingOffset<T = any>(
   return results;
 }
 
-// FIXME, we should have
 export async function sobjectOperation<O extends SobjectOperation>(
   org: SalesforceOrgUi,
   sobject: string,
   operation: SobjectOperation,
   body: {
-    ids?: string | string[]; // required for retrieve | create | delete
-    records?: any | any[]; // required for create | update | upsert
+    ids?: string[]; // required for retrieve | create | delete
+    records?: any[]; // required for create | update | upsert
   },
   query: {
     externalId?: string;

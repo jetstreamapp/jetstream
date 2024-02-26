@@ -197,7 +197,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       );
 
       if (action !== 'create' && recordId) {
-        record = (await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: recordId }))[0];
+        record = (await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: [recordId] }))[0];
       }
 
       let recordTypeId = record?.RecordTypeId;
