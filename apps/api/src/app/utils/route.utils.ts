@@ -8,12 +8,12 @@ import { Request, Response } from '../types/types';
 import { UserFacingError } from './error-handler';
 
 // FIXME: when these were used, createRoute did not properly infer types
-// export type RoutValidator = Parameters<typeof createRoute>[0];
-// export type RoutDefinition = {
+// export type RouteValidator = Parameters<typeof createRoute>[0];
+// export type RouteDefinition = {
 //   controllerFn: () => ReturnType<typeof createRoute>;
-//   validators: RoutValidator;
+//   validators: RouteValidator;
 // };
-// export type RoutDefinitions = Record<string, RoutDefinition>;
+// export type RouteDefinitions = Record<string, RouteDefinition>;
 
 export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny> = (
   data: {
@@ -57,7 +57,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       const data = {
         params: params ? params.parse(req.params) : undefined,
         body: body ? body.parse(req.body) : undefined,
-        query: query ? query.parse(req.body) : undefined,
+        query: query ? query.parse(req.query) : undefined,
         jetstreamConn: res.locals.jetstreamConn,
         targetJetstreamConn: res.locals.targetJetstreamConn!,
         org: res.locals.org as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,

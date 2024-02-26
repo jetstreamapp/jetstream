@@ -89,3 +89,31 @@ export interface BulkJobResultRecord {
   Created: boolean;
   Error: string | null;
 }
+
+export interface BulkQuery20Response {
+  id: string;
+  operation: 'query' | 'queryAll';
+  object: string;
+  createdById: string;
+  createdDate: string;
+  systemModstamp: string;
+  state: 'UploadComplete' | 'InProgress' | 'Aborted' | 'JobComplete' | 'Failed';
+  concurrencyMode: 'parallel';
+  contentType: 'CSV';
+  apiVersion: number;
+  lineEnding: 'LF' | 'CRLF';
+  columnDelimiter: 'BACKQUOTE' | 'CARET' | 'COMMA' | 'PIPE' | 'SEMICOLON' | 'TAB';
+}
+
+export interface BulkQuery20Job extends BulkQuery20Response {
+  jobType: string;
+  numberRecordsProcessed: number;
+  retries: number;
+  totalProcessingTime: number;
+  isPkChunkingSupported: boolean;
+}
+
+export interface BulkQuery20JobResults {
+  done: boolean;
+  records: BulkQuery20Response[];
+}

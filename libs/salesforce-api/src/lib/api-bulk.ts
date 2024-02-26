@@ -1,6 +1,12 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { bulkApiEnsureTyped, ensureArray } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, BulkApiDownloadType, BulkJobBatchInfoUntyped, BulkJobUntyped } from '@jetstream/types';
+import {
+  BulkApiCreateJobRequestPayload,
+  BulkApiDownloadType,
+  BulkJobBatchInfoUntyped,
+  BulkJobUntyped,
+  BulkJobWithBatches,
+} from '@jetstream/types';
 import { ApiConnection } from './connection';
 import { SalesforceApi, prepareBulkApiRequestPayload, prepareCloseOrAbortJobPayload } from './utils';
 
@@ -22,7 +28,7 @@ export class ApiBulk extends SalesforceApi {
     return result;
   }
 
-  async getJob(jobId: string) {
+  async getJob(jobId: string): Promise<BulkJobWithBatches> {
     const [jobResults, batchesResults] = await Promise.all([
       this.apiRequest<{ jobInfo: BulkJobUntyped }>({
         sessionInfo: this.sessionInfo,
@@ -57,13 +63,18 @@ export class ApiBulk extends SalesforceApi {
     return result;
   }
 
-  async addBatchToJob(csv: string | Buffer | ArrayBuffer, jobId: string, closeJob = false) {
+  async addBatchToJob(
+    body: string | Buffer | ArrayBuffer,
+    jobId: string,
+    closeJob = false,
+    contentType: typeof HTTP.CONTENT_TYPE.CSV | typeof HTTP.CONTENT_TYPE.ZIP_CSV = HTTP.CONTENT_TYPE.CSV
+  ) {
     const result = await this.apiRequest<{ batchInfo: BulkJobBatchInfoUntyped }>({
       sessionInfo: this.sessionInfo,
       url: this.getBulkApiUrl(`/job/${jobId}/batch`),
       method: 'POST',
-      body: csv,
-      headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.CSV, Accept: HTTP.CONTENT_TYPE.XML },
+      body,
+      headers: { [HTTP.HEADERS.CONTENT_TYPE]: contentType, Accept: HTTP.CONTENT_TYPE.XML },
       outputType: 'xml',
       rawBody: true,
     }).then(({ batchInfo }) => bulkApiEnsureTyped(batchInfo));
@@ -74,23 +85,6 @@ export class ApiBulk extends SalesforceApi {
 
     return result;
   }
-
-  // TODO: do I need this?
-  // async addBatchWithZipAttachmentToJob(zip: Buffer | ArrayBuffer, jobId: string, closeJob = false): Promise<BulkJobBatchInfo> {
-  //   const results = await this.apiRequest<{ batchInfo: BulkJobBatchInfoUntyped }>({
-  //     sessionInfo: this.sessionInfo,
-  //     url: this.getBulkApiUrl(`/job/${jobId}/batch`),
-  //     method: 'POST',
-  //     body: zip,
-  //     headers: { [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.ZIP_CSV, Accept: HTTP.CONTENT_TYPE.XML },
-  //     outputType: 'xml',
-  //   }).then(({ batchInfo }) => bulkApiEnsureTyped(batchInfo));
-
-  //   if (closeJob) {
-  //     await this.closeJob(jobId, 'Closed');
-  //   }
-  //   return results;
-  // }
 
   async getQueryResultsJobIds(jobId: string, batchId: string): Promise<string[]> {
     const results = await this.apiRequest<{ 'result-list': { result: string | string[] } }>({

@@ -189,7 +189,7 @@ public class AddPrimaryContact implements Queueable {
 
   test('retrieve package from package', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<AsyncResult>('POST', `/api/metadata/retrieve/package-names`, {
-      packageNames: 'MyPackage',
+      packageNames: ['MyPackage'],
     });
 
     expect(results).toBeTruthy();

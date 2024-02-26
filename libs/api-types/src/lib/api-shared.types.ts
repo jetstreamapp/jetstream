@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+export const BooleanQueryParamSchema = z
+  .enum(['true', 'false'])
+  .optional()
+  .transform((value) => value === 'true');
+
 export const DeployOptionsSchema = z.object({
   allowMissingFiles: z.boolean().nullish(),
   autoUpdatePackage: z.boolean().nullish(),

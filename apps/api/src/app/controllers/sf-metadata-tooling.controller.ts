@@ -1,6 +1,7 @@
 import { ENV } from '@jetstream/api-config';
 import {
   AnonymousApexSchema,
+  BooleanQueryParamSchema,
   CheckRetrieveStatusAndRedeployRequestSchema,
   DeployMetadataRequestSchema,
   DeployOptionsSchema,
@@ -10,7 +11,6 @@ import {
   RetrievePackageFromExistingServerPackagesRequestSchema,
   RetrievePackageFromLisMetadataResultsRequestSchema,
 } from '@jetstream/api-types';
-import { ensureBoolean } from '@jetstream/shared/utils';
 import { RetrieveRequest } from '@jetstream/types';
 import JSZip from 'jszip';
 import { isString } from 'lodash';
@@ -55,7 +55,7 @@ export const routeDefinition = {
     controllerFn: () => checkMetadataResults,
     validators: {
       params: z.object({ id: z.string().min(15).max(18) }),
-      query: z.object({ includeDetails: z.string().transform(ensureBoolean) }),
+      query: z.object({ includeDetails: BooleanQueryParamSchema }),
     },
   },
   retrievePackageFromLisMetadataResults: {
@@ -72,19 +72,21 @@ export const routeDefinition = {
   },
   retrievePackageFromManifest: {
     controllerFn: () => retrievePackageFromManifest,
-    validators: {},
+    validators: {
+      body: z.object({ packageManifest: z.string() }),
+    },
   },
   checkRetrieveStatus: {
     controllerFn: () => checkRetrieveStatus,
     validators: {
-      params: z.object({ id: z.string().min(15).max(18) }),
+      query: z.object({ id: z.string().min(15).max(18) }),
     },
   },
   checkRetrieveStatusAndRedeploy: {
     controllerFn: () => checkRetrieveStatusAndRedeploy,
     validators: {
       hasTargetOrg: true,
-      params: z.object({ id: z.string().min(15).max(18) }),
+      query: z.object({ id: z.string().min(15).max(18) }),
       body: CheckRetrieveStatusAndRedeployRequestSchema,
     },
   },

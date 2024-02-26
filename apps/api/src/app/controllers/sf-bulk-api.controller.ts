@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/api-config';
-import { CreateJobRequestSchema } from '@jetstream/api-types';
+import { BooleanQueryParamSchema, CreateJobRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
@@ -37,7 +37,7 @@ export const routeDefinition = {
       }),
       query: z.object({
         type: z.enum(['request', 'result']),
-        isQuery: z.string().optional().transform(ensureBoolean),
+        isQuery: BooleanQueryParamSchema,
       }),
     },
   },
@@ -50,7 +50,7 @@ export const routeDefinition = {
       }),
       query: z.object({
         type: z.enum(['request', 'result']),
-        isQuery: z.string().optional().transform(ensureBoolean),
+        isQuery: BooleanQueryParamSchema,
         fileName: z.string().optional(),
       }),
     },
@@ -61,7 +61,7 @@ export const routeDefinition = {
       params: z.object({ jobId: z.string().min(1) }),
       body: z.any(),
       query: z.object({
-        closeJob: z.string().optional().transform(ensureBoolean),
+        closeJob: BooleanQueryParamSchema,
       }),
     },
   },
@@ -71,7 +71,7 @@ export const routeDefinition = {
       params: z.object({ jobId: z.string().min(1), batchId: z.string().min(1) }),
       body: z.any(),
       query: z.object({
-        closeJob: z.string().optional().transform(ensureBoolean),
+        closeJob: BooleanQueryParamSchema,
       }),
     },
   },
@@ -121,9 +121,9 @@ const addBatchToJob = createRoute(
     try {
       const jobId = params.jobId;
       const csv = body;
-      const closeJob = query.closeJob as boolean;
+      const closeJob = query.closeJob;
 
-      const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, ensureBoolean(closeJob));
+      const results = await jetstreamConn.bulk.addBatchToJob(csv, jobId, closeJob);
 
       sendJson(res, results);
     } catch (ex) {
@@ -138,10 +138,9 @@ const addBatchToJobWithBinaryAttachment = createRoute(
     try {
       const jobId = params.jobId;
       const zip = body;
-      const closeJob = query.closeJob as boolean;
+      const closeJob = query.closeJob;
 
-      // TODO: how is this different from addBatchToJob?
-      const results = await jetstreamConn.bulk.addBatchToJob(zip, jobId, ensureBoolean(closeJob));
+      const results = await jetstreamConn.bulk.addBatchToJob(zip, jobId, closeJob, HTTP.CONTENT_TYPE.ZIP_CSV);
 
       sendJson(res, results);
     } catch (ex) {

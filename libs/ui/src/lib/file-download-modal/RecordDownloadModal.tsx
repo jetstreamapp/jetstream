@@ -79,7 +79,8 @@ export interface RecordDownloadModalProps {
 }
 
 const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
-const ALLOW_BULK_API_COUNT = 5_000;
+// const ALLOW_BULK_API_COUNT = 5_000;
+const ALLOW_BULK_API_COUNT = 0;
 const REQUIRE_BULK_API_COUNT = 500_000;
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({

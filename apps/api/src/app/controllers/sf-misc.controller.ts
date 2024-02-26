@@ -1,6 +1,11 @@
-import { RecordOperationRequestSchema, SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
+import {
+  BooleanQueryParamSchema,
+  RecordOperationRequestSchema,
+  SalesforceApiRequestSchema,
+  SalesforceRequestManualRequestSchema,
+} from '@jetstream/api-types';
 import { FetchResponse } from '@jetstream/salesforce-api';
-import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
+import { toBoolean } from '@jetstream/shared/utils';
 import { ManualRequestResponse } from '@jetstream/types';
 import { Readable } from 'stream';
 import { z } from 'zod';
@@ -45,7 +50,7 @@ export const routeDefinition = {
       body: RecordOperationRequestSchema,
       query: z.object({
         externalId: z.string().optional(),
-        allOrNone: z.string().optional().transform(ensureBoolean),
+        allOrNone: BooleanQueryParamSchema,
       }),
     },
   },
@@ -104,18 +109,17 @@ const salesforceRequestManual = createRoute(
       // const { method, headers, body, url } = body as ManualRequestPayload;
       const payload = body;
 
-      const results = await jetstreamConn.request
-        .manualRequest<FetchResponse>(payload, 'response')
-        .then(async ({ status, statusText, headers, text }) => {
-          const response: ManualRequestResponse = {
-            error: status < 200 || status > 300,
-            status,
-            statusText,
-            headers: JSON.stringify(Object.fromEntries(headers.entries()) || {}, null, 2),
-            body: await text(), // FIXME: what should this be?
-          };
-          return response;
-        });
+      const results = await jetstreamConn.request.manualRequest<FetchResponse>(payload, 'response').then(async (apiResponse) => {
+        const { status, statusText, headers } = apiResponse;
+        const response: ManualRequestResponse = {
+          error: status < 200 || status > 300,
+          status,
+          statusText,
+          headers: JSON.stringify(Object.fromEntries(headers.entries()) || {}, null, 2),
+          body: await apiResponse.text(), // FIXME: what should this be?
+        };
+        return response;
+      });
 
       sendJson<ManualRequestResponse>(res, results);
     } catch (ex) {

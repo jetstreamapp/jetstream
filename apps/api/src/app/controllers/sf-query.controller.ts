@@ -1,4 +1,4 @@
-import { ensureBoolean } from '@jetstream/shared/utils';
+import { BooleanQueryParamSchema } from '@jetstream/api-types';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -8,13 +8,13 @@ export const routeDefinition = {
   describe: {
     controllerFn: () => describe,
     validators: {
-      query: z.object({ isTooling: z.boolean().optional().transform(ensureBoolean) }),
+      query: z.object({ isTooling: BooleanQueryParamSchema }),
     },
   },
   describeSObject: {
     controllerFn: () => describeSObject,
     validators: {
-      query: z.object({ isTooling: z.boolean().optional().transform(ensureBoolean) }),
+      query: z.object({ isTooling: BooleanQueryParamSchema }),
       params: z.object({ sobject: z.string().min(1).max(255) }),
     },
   },
@@ -23,8 +23,8 @@ export const routeDefinition = {
     validators: {
       body: z.object({ query: z.string().min(1) }),
       query: z.object({
-        isTooling: z.string().optional().transform(ensureBoolean),
-        includeDeletedRecords: z.string().optional().transform(ensureBoolean),
+        isTooling: BooleanQueryParamSchema,
+        includeDeletedRecords: BooleanQueryParamSchema,
       }),
     },
   },

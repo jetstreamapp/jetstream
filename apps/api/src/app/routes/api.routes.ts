@@ -6,6 +6,7 @@ import { routeDefinition as imageController } from '../controllers/image.control
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
 import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
 import { routeDefinition as bulkApiController } from '../controllers/sf-bulk-api.controller';
+import { routeDefinition as bulkQuery20ApiController } from '../controllers/sf-bulk-query-20-api.controller';
 import { routeDefinition as metadataToolingController } from '../controllers/sf-metadata-tooling.controller';
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
@@ -113,6 +114,19 @@ routes.delete('/bulk/:jobId/:action', bulkApiController.closeOrAbortJob.controll
 routes.post('/bulk/:jobId', bulkApiController.addBatchToJob.controllerFn());
 routes.post('/bulk/zip/:jobId', bulkApiController.addBatchToJobWithBinaryAttachment.controllerFn());
 routes.get('/bulk/:jobId/:batchId', bulkApiController.downloadResults.controllerFn());
+
+/**
+ * ************************************
+ * bulkQuery20ApiController Routes
+ * These use the Bulk Query 2.0 API
+ * ************************************
+ */
+routes.post('/bulk-query', bulkQuery20ApiController.createJob.controllerFn());
+routes.get('/bulk-query', bulkQuery20ApiController.getJobs.controllerFn());
+routes.get('/bulk-query/:jobId/results', bulkQuery20ApiController.downloadResults.controllerFn());
+routes.get('/bulk-query/:jobId', bulkQuery20ApiController.getJob.controllerFn());
+routes.post('/bulk-query/:jobId/abort', bulkQuery20ApiController.abortJob.controllerFn());
+routes.delete('/bulk-query/:jobId', bulkQuery20ApiController.abortJob.controllerFn());
 
 /**
  * ************************************
