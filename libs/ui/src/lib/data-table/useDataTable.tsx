@@ -101,6 +101,7 @@ export function useDataTable<T = RowWithKey>({
   }, [contextMenuAction, contextMenuItems, gridId]);
 
   const [{ columnMap, filters, filterSetValues }, dispatch] = useReducer(reducer, {
+    hasFilters: false,
     columnMap: new Map(),
     filters: {},
     filterSetValues: {},
@@ -327,6 +328,7 @@ function ContextMenuRenderer({ containerId, props, contextMenuItems, contextMenu
 }
 
 interface State<T> {
+  hasFilters: boolean;
   columnMap: Map<string, ColumnWithFilter<T>>;
   filters: Record<string, DataTableFilter[]>;
   filterSetValues: Record<string, string[]>;
@@ -340,6 +342,10 @@ type Action =
 function reducer<T>(state: State<T>, action: Action): State<T> {
   switch (action.type) {
     case 'INIT': {
+      // If there are filters applied, never reset table state if data changes
+      if (state.hasFilters) {
+        return state;
+      }
       const { columns, data, ignoreRowInSetFilter } = action.payload;
 
       const columnMap = new Map(columns.map((column) => [column.key, column]));
@@ -396,6 +402,7 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
       const { column, filter } = action.payload;
       return {
         ...state,
+        hasFilters: true,
         filters: {
           ...state.filters,
           [column]: state.filters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
