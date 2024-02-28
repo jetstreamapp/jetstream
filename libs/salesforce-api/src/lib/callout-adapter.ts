@@ -12,9 +12,11 @@ const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/fau
 export function getApiRequestFactoryFn(fetch: fetchFn) {
   return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean) => {
     const apiRequest = async <Response = unknown, ResponseHeader = never>(
-      { method = 'GET', sessionInfo, url, body, headers, outputType, rawBody = false }: ApiRequestOptions,
+      options: ApiRequestOptions,
       attemptRefresh: boolean = true
     ): Promise<Response> => {
+      let { url, body, outputType } = options;
+      const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
       const { accessToken, instanceUrl } = sessionInfo;
       url = `${instanceUrl}${url}`;
       if (isObject(body) && !rawBody) {
@@ -72,8 +74,8 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
           const responseText = await response.clone().text();
 
           if (
-            (response.status === 401 || (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
             attemptRefresh &&
+            (response.status === 401 || (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
             sessionInfo.sfdcClientId &&
             sessionInfo.sfdcClientSecret &&
             sessionInfo.refreshToken
@@ -82,7 +84,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             // attemptRefresh
             const { access_token: accessToken } = await exchangeRefreshToken(fetch, sessionInfo);
             onRefresh?.(accessToken);
-            return apiRequest({ method, sessionInfo: { ...sessionInfo, accessToken }, url, body, headers, outputType }, false);
+            return apiRequest({ ...options, sessionInfo: { ...sessionInfo, accessToken } });
           }
           // don't throw if caller wants the response back
           if (outputType === 'response') {

@@ -285,6 +285,8 @@ export async function getOrgForRequest(
       instanceUrl,
       refreshToken,
       logging: ENV.ENVIRONMENT === 'development',
+      sfdcClientId: ENV.SFDC_CONSUMER_KEY,
+      sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
     },
     handleRefresh
   );

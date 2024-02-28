@@ -19,6 +19,8 @@ interface ApiConnectionOptions {
   apiVersion: string;
   callOptions?: Record<string, any>;
   logging?: boolean;
+  sfdcClientId?: string;
+  sfdcClientSecret?: string;
 }
 
 export class ApiConnection {
@@ -46,6 +48,8 @@ export class ApiConnection {
       refreshToken,
       callOptions,
       logging,
+      sfdcClientId,
+      sfdcClientSecret,
     }: ApiConnectionOptions,
     refreshCallback?: (accessToken: string, refreshToken: string) => void
   ) {
@@ -59,6 +63,8 @@ export class ApiConnection {
       refreshToken,
       apiVersion,
       callOptions,
+      sfdcClientId,
+      sfdcClientSecret,
     };
 
     this.apex = new ApiApex(this);
