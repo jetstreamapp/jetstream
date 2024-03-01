@@ -1,7 +1,7 @@
 import { HTTP } from '@jetstream/shared/constants';
 import isObject from 'lodash/isObject';
 import { convert as xmlConverter } from 'xmlbuilder2';
-import { ApiRequestOptions, fetchFn } from './types';
+import { ApiRequestOptions, ApiRequestOutputType, fetchFn } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
 
@@ -16,6 +16,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
       const { accessToken, instanceUrl } = sessionInfo;
       url = `${instanceUrl}${url}`;
+      outputType = outputType || 'json';
       if (isObject(body) && !rawBody) {
         body = JSON.stringify(body);
       }
@@ -46,7 +47,6 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             }
           }
           if (response.ok) {
-            outputType = outputType || 'json';
             if (outputType === 'text') {
               return response.text();
             } else if (outputType === 'arrayBuffer') {
@@ -89,7 +89,8 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
           if (outputType === 'response') {
             return response as Response;
           }
-          throw new Error(responseText);
+
+          throw new Error(handleSalesforceApiError(outputType || 'json', responseText));
         })
         .then((response) => {
           return response as Response;
@@ -97,6 +98,21 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
     };
     return apiRequest;
   };
+}
+
+// FIXME: there are very likely many other types of error formats that we need to handle
+function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText?: string) {
+  let output = responseText;
+  if (outputType === 'json' && typeof responseText === 'string') {
+    try {
+      const tempResult = JSON.parse(responseText) as { message: string } | { message: string }[];
+      output = (Array.isArray(tempResult) ? tempResult[0] : tempResult)?.message;
+    } catch (ex) {
+      output = responseText;
+    }
+    output = output || responseText;
+  }
+  return output;
 }
 
 function exchangeRefreshToken(fetch: fetchFn, sessionInfo: ApiRequestOptions['sessionInfo']): Promise<{ access_token: string }> {

@@ -93,6 +93,11 @@ test.describe('API - Query', () => {
     expect(Array.isArray(queryToolingSuccess.columns?.columns)).toBeTruthy();
 
     expect(invalidObj.ok()).toBeFalsy();
+    const response = await invalidObj.json();
+    expect(response.error).toBeTruthy();
+    expect(typeof response.message === 'string').toBeTruthy();
+    expect(response.message.startsWith('\nFirstName, LastName')).toBeTruthy();
+
     expect(invalidParam.ok()).toBeFalsy();
   });
 

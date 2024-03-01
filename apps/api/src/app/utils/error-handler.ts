@@ -13,7 +13,7 @@ export class UserFacingError extends Error {
         })).fieldErrors
       );
 
-      let formattedMessage = errorDetails
+      const formattedMessage = errorDetails
         .flatMap((item) => item)
         .map((item) => item?.message)
         .filter(Boolean)
