@@ -61,7 +61,7 @@ test.describe('API - Bulk', () => {
     expect(createJobResponse.apiVersion).toBeTruthy();
     expect(createJobResponse.object).toEqual('Lead');
     expect(createJobResponse.contentType).toEqual('CSV');
-    expect(createJobResponse.operation).toEqual('query_all');
+    expect(createJobResponse.operation).toEqual('queryAll');
     expect(createJobResponse.state).toEqual('Open');
 
     const addBatchToJobResponse = await apiRequestUtils.makeRequest<BulkJobBatchInfo>(

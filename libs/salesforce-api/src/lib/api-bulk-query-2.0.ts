@@ -131,14 +131,16 @@ export class ApiBulkQuery20 extends SalesforceApi {
       sessionInfo: this.sessionInfo,
       url: this.getRestApiUrl(`/jobs/query/${jobId}`),
       method: 'PATCH',
+      body: { state: 'Aborted' },
     });
   }
 
   async deleteJob(jobId: string) {
-    return this.apiRequest<BulkQuery20Job>({
+    return this.apiRequest<void>({
       sessionInfo: this.sessionInfo,
       url: this.getRestApiUrl(`/jobs/query/${jobId}`),
       method: 'DELETE',
+      outputType: 'void',
     });
   }
 }

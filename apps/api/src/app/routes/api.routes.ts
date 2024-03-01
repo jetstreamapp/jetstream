@@ -126,7 +126,7 @@ routes.get('/bulk-query', bulkQuery20ApiController.getJobs.controllerFn());
 routes.get('/bulk-query/:jobId/results', bulkQuery20ApiController.downloadResults.controllerFn());
 routes.get('/bulk-query/:jobId', bulkQuery20ApiController.getJob.controllerFn());
 routes.post('/bulk-query/:jobId/abort', bulkQuery20ApiController.abortJob.controllerFn());
-routes.delete('/bulk-query/:jobId', bulkQuery20ApiController.abortJob.controllerFn());
+routes.delete('/bulk-query/:jobId', bulkQuery20ApiController.deleteJob.controllerFn());
 
 /**
  * ************************************

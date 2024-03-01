@@ -75,4 +75,4 @@ export interface ApiRequestOptions {
   rawBody?: boolean;
 }
 
-export type ApiRequestOutputType = 'json' | 'text' | 'xml' | 'soap' | 'arrayBuffer' | 'stream' | 'response';
+export type ApiRequestOutputType = 'json' | 'text' | 'xml' | 'soap' | 'arrayBuffer' | 'stream' | 'void' | 'response';

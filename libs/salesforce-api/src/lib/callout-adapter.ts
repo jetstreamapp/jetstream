@@ -11,10 +11,7 @@ const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/fau
  */
 export function getApiRequestFactoryFn(fetch: fetchFn) {
   return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean) => {
-    const apiRequest = async <Response = unknown, ResponseHeader = never>(
-      options: ApiRequestOptions,
-      attemptRefresh: boolean = true
-    ): Promise<Response> => {
+    const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh: boolean = true): Promise<Response> => {
       let { url, body, outputType } = options;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
       const { accessToken, instanceUrl } = sessionInfo;
@@ -66,6 +63,8 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
               // }));
             } else if (outputType === 'response') {
               return response;
+            } else if (outputType === 'void') {
+              return;
             } else {
               return response.json();
             }

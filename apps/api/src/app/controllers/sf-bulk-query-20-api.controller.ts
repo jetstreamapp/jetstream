@@ -112,9 +112,9 @@ const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ par
   try {
     const jobId = params.jobId;
 
-    const results = await jetstreamConn.bulkQuery20.deleteJob(jobId);
+    await jetstreamConn.bulkQuery20.deleteJob(jobId);
 
-    sendJson(res, results);
+    res.status(204).end();
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }

@@ -23,6 +23,13 @@ test.describe('API - Bulk Query 2.0', () => {
     expect(getJobResponse.id).toBeTruthy();
     expect(getJobResponse.numberRecordsProcessed).toEqual(0);
     expect(['UploadComplete', 'InProgress', 'JobComplete'].includes(getJobResponse.state)).toBeTruthy();
+
+    const getJobResponse2 = await apiRequestUtils.makeRequest<BulkQuery20Response>('POST', `/api/bulk-query/${createJobResponse.id}/abort`);
+    expect(getJobResponse2.id).toBeTruthy();
+    expect(getJobResponse2.state).toEqual('Aborted');
+
+    const getJobResponse3 = await apiRequestUtils.makeRequestRaw('DELETE', `/api/bulk-query/${createJobResponse.id}`);
+    expect(getJobResponse3.status()).toEqual(204);
   });
 
   test('Get all jobs', async ({ apiRequestUtils }) => {

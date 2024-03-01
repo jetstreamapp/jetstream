@@ -284,10 +284,15 @@ export function prepareBulkApiRequestPayload({
   const contentType = `<contentType>${hasZipAttachment ? 'ZIP_CSV' : 'CSV'}</contentType>`;
   const assignmentRule = isString(assignmentRuleId) && assignmentRuleId ? `<assignmentRuleId>${assignmentRuleId}</assignmentRuleId>` : '';
 
+  let operation = type.toLowerCase();
+  if (operation === 'query_all') {
+    operation = 'queryAll';
+  }
+
   const xml = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">`,
-    `<operation>${type.toLowerCase()}</operation>`,
+    `<operation>${operation}</operation>`,
     `<object>${sObject}</object>`,
     externalIdFieldName,
     concurrencyMode,
