@@ -34,6 +34,13 @@ import { REGEX } from './regex';
 
 export function NOOP() {}
 
+export function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return JSON.stringify(error);
+}
+
 export function dateFromTimestamp(timestamp: number): Date {
   return fromUnixTime(timestamp);
 }
@@ -498,8 +505,11 @@ export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
   }
 }
 
-export function getValueOrSoapNull(value?: string | SoapNil): string | null {
-  return isString(value) ? value : null;
+export function getValueOrSoapNull(value?: string | SoapNil, unSanitize = true): string | null {
+  if (isString(value)) {
+    return unSanitize ? unSanitizeXml(value) : value;
+  }
+  return null;
 }
 
 // https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript

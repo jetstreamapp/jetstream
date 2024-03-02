@@ -43,6 +43,16 @@ test.describe('API - Metadata', () => {
     });
   });
 
+  test('list metadata - invalid type', async ({ apiRequestUtils }) => {
+    const results = await apiRequestUtils.makeRequestRaw('POST', `/api/metadata/list`, {
+      types: [{ type: 'ApexClasses' }],
+    });
+
+    expect(results.ok()).toBeFalsy();
+    const errorBody = await results.json();
+    expect(errorBody.message).toEqual(`INVALID_TYPE: Unknown type:ApexClasses`);
+  });
+
   test('read metadata', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<MetadataInfo[]>('POST', `/api/metadata/read/CustomObject`, {
       fullNames: ['Account'],
@@ -151,6 +161,15 @@ public class AddPrimaryContact implements Queueable {
     expect(typeof retrieveResults.success === 'boolean').toBeTruthy();
   });
 
+  test('deploy zip Invalid Job', async ({ apiRequestUtils }) => {
+    const results = await apiRequestUtils.makeRequestRaw('GET', `/api/metadata/deploy/invalidId000000`);
+
+    expect(results).toBeTruthy();
+    expect(results.ok()).toBeFalsy();
+    const errorBody = await results.json();
+    expect(errorBody.message).toEqual(`MALFORMED_ID: bad id invalidId000000`);
+  });
+
   test('retrieve package from list metadata', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<AsyncResult>('POST', `/api/metadata/retrieve/list-metadata`, {
       ApexClass: [
@@ -187,7 +206,7 @@ public class AddPrimaryContact implements Queueable {
     expect(typeof retrieveResults.success === 'boolean').toBeTruthy();
   });
 
-  test('retrieve package from package', async ({ apiRequestUtils }) => {
+  test('retrieve package from package names', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<AsyncResult>('POST', `/api/metadata/retrieve/package-names`, {
       packageNames: ['MyPackage'],
     });
@@ -216,7 +235,7 @@ public class AddPrimaryContact implements Queueable {
     expect(typeof results.done === 'boolean').toBeTruthy();
   });
 
-  // TODO: checkRetrieveStatusAndRedeploy (this one will be hard - maybe skip)
+  // TODO: checkRetrieveStatusAndRedeploy (this one will be hard to test)
 
   test('getPackageXml', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<string>('POST', `/api/metadata/package-xml`, {
@@ -235,13 +254,19 @@ public class AddPrimaryContact implements Queueable {
   });
 
   test('anonymousApex', async ({ apiRequestUtils }) => {
-    const [validWithLogLevel, validWithoutLogLevel, missingApex, invalidLogLevel] = await Promise.all([
+    const [validWithLogLevel, validWithoutLogLevel, invalidApex, runtimeError, missingApex, invalidLogLevel] = await Promise.all([
       apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
         apex: `System.debug('Hello World');`,
         logLevel: 'DEBUG',
       }),
       apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
         apex: `System.debug('Hello World');`,
+      }),
+      apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
+        apex: `System.debug('Hello World')`,
+      }),
+      apiRequestUtils.makeRequest<AnonymousApexResponse>('POST', `/api/apex/anonymous`, {
+        apex: `String name = [SELECT Id from Account LIMIT 0][1].Name;`,
       }),
       apiRequestUtils.makeRequestRaw('POST', `/api/apex/anonymous`, {
         apex1: `System.debug('Hello World');`,
@@ -255,14 +280,26 @@ public class AddPrimaryContact implements Queueable {
 
     expect(validWithLogLevel).toBeTruthy();
     expect(typeof validWithLogLevel.debugLog === 'string').toBeTruthy();
-    expect(validWithLogLevel.result.success).toBeTruthy();
+    expect(validWithLogLevel.result.success).toEqual(true);
 
     expect(validWithoutLogLevel).toBeTruthy();
     expect(typeof validWithoutLogLevel.debugLog === 'string').toBeTruthy();
-    expect(validWithoutLogLevel.result.success).toBeTruthy();
+    expect(validWithoutLogLevel.result.success).toEqual(true);
+
+    expect(typeof invalidApex.debugLog === 'string').toBeTruthy();
+    expect(invalidApex.result.compiled).toEqual(false);
+    expect(invalidApex.result.success).toEqual(false);
+    expect(invalidApex.result.compileProblem).toEqual(`Unexpected token '('.`);
+
+    expect(typeof runtimeError.debugLog === 'string').toBeTruthy();
+    expect(runtimeError.result.compiled).toEqual(true);
+    expect(runtimeError.result.success).toEqual(false);
+    expect(runtimeError.result.exceptionMessage).toEqual(`System.ListException: List index out of bounds: 1`);
+    expect(runtimeError.result.exceptionStackTrace).toEqual(`AnonymousBlock: line 1, column 1`);
 
     expect(missingApex.ok()).toBeFalsy();
-    expect((await missingApex.text()).includes(`apex`)).toBeTruthy();
+    const missingApexBody = await missingApex.json();
+    expect(missingApexBody.message).toEqual(`Invalid request: 'apex' is Required`);
 
     expect(invalidLogLevel.ok()).toBeFalsy();
     expect((await invalidLogLevel.text()).includes(`logLevel`)).toBeTruthy();

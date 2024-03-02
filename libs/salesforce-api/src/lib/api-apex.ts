@@ -57,6 +57,9 @@ export class ApiApex extends SalesforceApi {
           success: toBoolean(getValueOrSoapNull(body.success)) || false,
         },
       };
+      if (typeof results.debugLog !== 'string') {
+        results.debugLog = '';
+      }
       return results;
     });
   }

@@ -1,4 +1,4 @@
-import { ENV, logger, prisma, rollbarServer } from '@jetstream/api-config';
+import { ENV, getExceptionLog, prisma, rollbarServer } from '@jetstream/api-config';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { SalesforceOrg } from '@prisma/client';
 import * as express from 'express';
@@ -24,13 +24,13 @@ export async function healthCheck(req: express.Request, res: express.Response) {
 
 export function sendJson<ResponseType = any>(res: express.Response, content?: ResponseType, status = 200) {
   if (res.headersSent) {
-    logger.warn('Response headers already sent', { requestId: res.locals.requestId });
+    res.log.warn('Response headers already sent');
     try {
       rollbarServer.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
         requestId: res.locals.requestId,
       });
     } catch (ex) {
-      logger.error('Error sending to Rollbar', ex, { requestId: res.locals.requestId });
+      res.log.error(getExceptionLog(ex), 'Error sending to Rollbar');
     }
     return;
   }
@@ -39,16 +39,7 @@ export function sendJson<ResponseType = any>(res: express.Response, content?: Re
 }
 
 export function blockBotHandler(req: express.Request, res: express.Response) {
-  logger.debug('[BLOCKED REQUEST] %s %s', req.method, req.originalUrl, {
-    blocked: true,
-    method: req.method,
-    url: req.originalUrl,
-    requestId: res.locals.requestId,
-    agent: req.header('User-Agent'),
-    referrer: req.get('Referrer'),
-    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-    country: req.headers[HTTP.HEADERS.CF_IPCountry],
-  });
+  res.log.debug('[BLOCKED REQUEST] %s %s');
   res.status(403).send('Forbidden');
 }
 
@@ -58,23 +49,14 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-  logger.warn('[RESPONSE][ERROR] %s', err.message, {
-    error: err.message || err,
-    method: req.method,
-    url: req.originalUrl,
-    requestId: res.locals.requestId,
-    agent: req.header('User-Agent'),
-    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-    country: req.headers[HTTP.HEADERS.CF_IPCountry],
-    ...userInfo,
-  });
+  res.log.warn(getExceptionLog(err), '[RESPONSE][ERROR]');
 
   if (res.headersSent) {
-    logger.warn('Response headers already sent', { requestId: res.locals.requestId });
+    res.log.warn('Response headers already sent');
     try {
       rollbarServer.warn('Error not handled by error handler, headers already sent', req, userInfo, err, new Error('headers already sent'));
     } catch (ex) {
-      logger.error('Error sending to Rollbar', ex, { requestId: res.locals.requestId });
+      res.log.error(getExceptionLog(ex), 'Error sending to Rollbar');
     }
     return;
   }
@@ -94,11 +76,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       const org = res.locals.org as SalesforceOrg;
       await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_EXPIRED_TOKEN });
     } catch (ex) {
-      logger.warn('[RESPONSE][ERROR UPDATING INVALID ORG] %s', ex.message, {
-        error: ex.message,
-        userInfo,
-        requestId: res.locals.requestId,
-      });
+      res.log.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG');
     }
   }
 
@@ -142,15 +120,10 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
   }
 
-  // TODO: clean up everything below this
-
-  logger.error(err.message, { userInfo, requestId: res.locals.requestId });
-  logger.error(err.stack, { userInfo, requestId: res.locals.requestId });
-
   try {
     rollbarServer.warn('Error not handled by error handler', req, userInfo, err);
   } catch (ex) {
-    logger.error('Error sending to Rollbar', ex, { requestId: res.locals.requestId });
+    res.log.error(getExceptionLog(ex), 'Error sending to Rollbar');
   }
 
   const errorMessage = 'There was an error processing the request';

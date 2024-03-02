@@ -7,7 +7,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { Resource } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { logger } from './api-logger';
+import { getExceptionLog, logger } from './api-logger';
 import { ENV } from './env-config';
 
 // Metadata is passed into to the tracer to provide both the dataset name and the API key required for Honeycomb.
@@ -42,13 +42,13 @@ if (ENV.HONEYCOMB_ENABLED) {
   sdk
     .start()
     .then(() => logger.debug('[TELEMETRY] Tracing initialized'))
-    .catch((error) => logger.error('[TELEMETRY] Error initializing tracing', error));
+    .catch((error) => logger.error(getExceptionLog(error), '[TELEMETRY] Error initializing tracing'));
 
   process.on('SIGTERM', () => {
     sdk
       .shutdown()
       .then(() => logger.debug('[TELEMETRY] Tracing terminated'))
-      .catch((error) => logger.error('[TELEMETRY] Error terminating tracing', error))
+      .catch((error) => logger.error(getExceptionLog(error), '[TELEMETRY] Error terminating tracing'))
       .finally(() => process.exit(0));
   });
 }
@@ -58,7 +58,7 @@ export function telemetryAddUserToAttributes(user?: UserProfileServer) {
     try {
       telemetryApi.trace.getSpan(telemetryApi.context.active())?.setAttribute('user.id', user.user_id || user.id);
     } catch (ex) {
-      logger.warn('[TELEMETRY] Error adding user to attributes', ex);
+      logger.warn(getExceptionLog(ex), '[TELEMETRY] Error adding user to attributes');
     }
   }
 }

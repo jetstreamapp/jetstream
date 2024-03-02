@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getExceptionLog } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { isString } from 'lodash';
@@ -8,10 +8,10 @@ import { URL } from 'url';
 import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
 import { checkAuth } from '../routes/route.middleware';
-import { Request, Response } from '../types/types';
-// import { sendWelcomeEmail } from '../services/worker-jobs';
 import { linkIdentity } from '../services/auth0';
+import { Request, Response } from '../types/types';
 import { AuthenticationError } from '../utils/error-handler';
+// import { sendWelcomeEmail } from '../services/worker-jobs';
 
 export interface OauthLinkParams {
   type: 'auth' | 'salesforce';
@@ -31,17 +31,17 @@ export async function login(req: Request, res: Response) {
         const user = req.user as UserProfileServer;
         req.logIn(user, async (err) => {
           if (err) {
-            logger.warn('[AUTH][ERROR] Error logging in %o', err, { requestId: res.locals.requestId });
+            req.log.warn({ ...getExceptionLog(err) }, '[AUTH][ERROR] Error logging in %o', err);
             return res.redirect('/');
           }
 
           createOrUpdateUser(user)
             .then(async ({ user: _user }) => {
-              logger.info('[AUTH][SUCCESS] Logged in %s', _user.email, { userId: user.id, requestId: res.locals.requestId });
+              req.log.info('[AUTH][SUCCESS] Logged in %s', _user.email);
               res.redirect(ENV.JETSTREAM_CLIENT_URL!);
             })
             .catch((err) => {
-              logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err, { requestId: res.locals.requestId });
+              req.log.error({ ...getExceptionLog(err) }, '[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
               res.redirect('/');
             });
         });
@@ -60,28 +60,28 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     },
     (err, user, info) => {
       if (err) {
-        logger.warn('[AUTH][ERROR] Error with authentication %o', err, { requestId: res.locals.requestId });
+        req.log.warn({ ...getExceptionLog(err) }, '[AUTH][ERROR] Error with authentication %o', err);
         return next(new AuthenticationError(err));
       }
       if (!user) {
-        logger.warn('[AUTH][ERROR] no user', { requestId: res.locals.requestId });
-        logger.warn('[AUTH][ERROR] no info %o', info, { requestId: res.locals.requestId });
+        req.log.warn('[AUTH][ERROR] no user');
+        req.log.warn('[AUTH][ERROR] no info %o', info);
         return res.redirect('/oauth/login');
       }
       req.logIn(user, async (err) => {
         if (err) {
-          logger.warn('[AUTH][ERROR] Error logging in %o', err, { requestId: res.locals.requestId });
+          req.log.warn('[AUTH][ERROR] Error logging in %o', err);
           return next(new AuthenticationError(err));
         }
 
         createOrUpdateUser(user).catch((err) => {
-          logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err, { requestId: res.locals.requestId });
+          req.log.error({ ...getExceptionLog(err) }, '[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
         });
 
         // TODO: confirm returnTo 0 it suddenly was reported as bad
         const returnTo = (req.session as any).returnTo;
         delete (req.session as any).returnTo;
-        logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id, requestId: res.locals.requestId });
+        req.log.info('[AUTH][SUCCESS] Logged in %s', user.email);
         res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
       });
     }
@@ -116,14 +116,13 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
         clientUrl: new URL(ENV.JETSTREAM_CLIENT_URL!).origin,
       };
       if (err) {
-        logger.warn('[AUTH][LINK][ERROR] Error with authentication %o', err, { requestId: res.locals.requestId });
+        req.log.warn({ ...getExceptionLog(err) }, '[AUTH][LINK][ERROR] Error with authentication %o', err);
         params.error = isString(err) ? err : err.message || 'Unknown Error';
         params.message = (req.query.error_description as string) || undefined;
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       }
       if (!userProfile) {
-        logger.warn('[AUTH][LINK][ERROR] no user', { requestId: res.locals.requestId });
-        logger.warn('[AUTH][LINK][ERROR] no info %o', info, { requestId: res.locals.requestId });
+        req.log.warn('[AUTH][LINK][ERROR] no user');
         params.error = 'Authentication Error';
         params.message = (req.query.error_description as string) || undefined;
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
@@ -138,16 +137,21 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
         try {
           await hardDeleteUserAndOrgs(userProfile.user_id);
         } catch (ex) {
-          logger.warn('[AUTH0][IDENTITY][LINK][ERROR] Failed to delete the secondary user orgs %s', userProfile.user_id, {
-            userId: user.id,
-            secondaryUserId: userProfile.user_id,
-            requestId: res.locals.requestId,
-          });
+          req.log.warn(
+            {
+              userId: user.id,
+              secondaryUserId: userProfile.user_id,
+
+              ...getExceptionLog(ex),
+            },
+            '[AUTH0][IDENTITY][LINK][ERROR] Failed to delete the secondary user orgs %s',
+            userProfile.user_id
+          );
         }
 
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       } catch (ex) {
-        logger.warn('[AUTH][LINK][ERROR] Error linking account %o', err, { requestId: res.locals.requestId });
+        req.log.warn({ ...getExceptionLog(ex) }, '[AUTH][LINK][ERROR] Error linking account %s', ex);
         params.error = 'Unexpected Error';
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}&clientUrl=${ENV.JETSTREAM_CLIENT_URL}`);
       }

@@ -1,4 +1,4 @@
-import { flattenQueryColumn } from '@jetstream/shared/utils';
+import { flattenQueryColumn, getErrorMessage } from '@jetstream/shared/utils';
 import { QueryColumnsSfdc, QueryResult, QueryResults, QueryResultsColumns } from '@jetstream/types';
 import { Query, parseQuery } from 'soql-parser-js';
 import { ApiConnection } from './connection';
@@ -35,14 +35,14 @@ export class ApiQuery extends SalesforceApi {
         columns: tempColumns.columnMetadata?.flatMap((column) => flattenQueryColumn(column)),
       };
     } catch (ex) {
-      console.warn('Error fetching columns', ex);
+      this.logger.warn({ message: getErrorMessage(ex) }, 'Error fetching columns');
     }
 
     // Attempt to parse columns from query
     try {
       parsedQuery = parseQuery(soql);
     } catch (ex) {
-      console.info('Error parsing query');
+      this.logger.warn({ message: getErrorMessage(ex) }, 'Error parsing query');
     }
 
     return { queryResults, columns, parsedQuery };

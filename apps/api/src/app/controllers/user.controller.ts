@@ -1,4 +1,4 @@
-import { ENV, logger, mailgun } from '@jetstream/api-config';
+import { ENV, getExceptionLog, mailgun } from '@jetstream/api-config';
 import { UpdateProfileRequestSchema } from '@jetstream/api-types';
 import { UserProfileAuth0Ui, UserProfileServer, UserProfileUi, UserProfileUiWithIdentities } from '@jetstream/types';
 import { AxiosError } from 'axios';
@@ -67,7 +67,7 @@ export const routeDefinition = {
   },
 };
 
-const emailSupport = createRoute(routeDefinition.emailSupport.validators, async ({ body, user, requestId }, req, res, next) => {
+const emailSupport = createRoute(routeDefinition.emailSupport.validators, async ({ body, user }, req, res, next) => {
   const files = Array.isArray(req.files) ? req.files : [];
   const { emailBody } = body || {};
 
@@ -96,14 +96,10 @@ const emailSupport = createRoute(routeDefinition.emailSupport.validators, async 
       }),
       'h:Reply-To': 'support@getjetstream.app',
     });
-    logger.info('[SUPPORT EMAIL][EMAIL SENT] %s', results.id, { requestId });
+    req.log.info('[SUPPORT EMAIL][EMAIL SENT] %s', results.id);
     sendJson(res);
   } catch (ex) {
-    logger.error('[SUPPORT EMAIL][ERROR] %s', ex.message || 'An unknown error has occurred.', {
-      userId: user.id,
-      requestId,
-    });
-    logger.error('%o', ex.stack, { requestId });
+    req.log.error(getExceptionLog(ex), '[SUPPORT EMAIL][ERROR] %s', ex.message || 'An unknown error has occurred.');
     throw new UserFacingError('There was a problem sending the email');
   }
 });
@@ -158,7 +154,7 @@ async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: 
 }
 
 /** Get profile from Auth0 */
-const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.validators, async ({ user, requestId }, req, res, next) => {
+const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.validators, async ({ user }, req, res, next) => {
   try {
     const response = await getFullUserProfileFn(user);
     sendJson(res, response);
@@ -166,19 +162,16 @@ const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.valida
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][PROFILE FETCH][ERROR] %o', error.response.data, { userId: user.id, requestId });
+        req.log.error(getExceptionLog(ex), '[AUTH0][PROFILE FETCH][ERROR] %o', error.response.data);
       } else if (error.request) {
-        logger.error('[AUTH0][PROFILE FETCH][ERROR] %s', error.message || 'An unknown error has occurred.', {
-          userId: user.id,
-          requestId,
-        });
+        req.log.error(getExceptionLog(ex), '[AUTH0][PROFILE FETCH][ERROR] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('There was an error obtaining your profile information');
   }
 });
 
-const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body, user, requestId }, req, res, next) => {
+const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body, user }, req, res, next) => {
   const userProfile = body;
 
   try {
@@ -191,19 +184,16 @@ const updateProfile = createRoute(routeDefinition.updateProfile.validators, asyn
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][PROFILE][ERROR] %o', error.response.data, { userId: user.id, requestId });
+        req.log.error(getExceptionLog(ex), '[AUTH0][PROFILE][ERROR] %o', error.response.data);
       } else if (error.request) {
-        logger.error('[AUTH0][PROFILE][ERROR] %s', error.message || 'An unknown error has occurred.', {
-          userId: user.id,
-          requestId,
-        });
+        req.log.error(getExceptionLog(ex), '[AUTH0][PROFILE][ERROR] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('There was an error updating the user profile');
   }
 });
 
-const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, async ({ query, user, requestId }, req, res, next) => {
+const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, async ({ query, user }, req, res, next) => {
   try {
     const provider = query.provider;
     const userId = query.userId;
@@ -215,42 +205,33 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][UNLINK][ERROR] %o', error.response.data, { userId: user.id, requestId });
+        req.log.error(getExceptionLog(ex), '[AUTH0][UNLINK][ERROR] %o', error.response.data);
       } else if (error.request) {
-        logger.error('[AUTH0][UNLINK][ERROR] %s', error.message || 'An unknown error has occurred.', {
-          userId: user.id,
-          requestId,
-        });
+        req.log.error(getExceptionLog(ex), '[AUTH0][UNLINK][ERROR] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('There was an error unlinking the account');
   }
 });
 
-const resendVerificationEmail = createRoute(
-  routeDefinition.resendVerificationEmail.validators,
-  async ({ query, user, requestId }, req, res, next) => {
-    const provider = query.provider;
-    const userId = query.userId;
-    try {
-      await auth0Service.resendVerificationEmail(user, { provider, userId });
-      sendJson(res);
-    } catch (ex) {
-      if (ex.isAxiosError) {
-        const error: AxiosError = ex;
-        if (error.response) {
-          logger.error('[AUTH0][EMAIL VERIFICATION][ERROR] %o', error.response.data, { userId: user.id, requestId });
-        } else if (error.request) {
-          logger.error('[AUTH0][EMAIL VERIFICATION][ERROR] %s', error.message || 'An unknown error has occurred.', {
-            userId: user.id,
-            requestId,
-          });
-        }
+const resendVerificationEmail = createRoute(routeDefinition.resendVerificationEmail.validators, async ({ query, user }, req, res, next) => {
+  const provider = query.provider;
+  const userId = query.userId;
+  try {
+    await auth0Service.resendVerificationEmail(user, { provider, userId });
+    sendJson(res);
+  } catch (ex) {
+    if (ex.isAxiosError) {
+      const error: AxiosError = ex;
+      if (error.response) {
+        req.log.error(getExceptionLog(ex), '[AUTH0][EMAIL VERIFICATION][ERROR] %o', error.response.data);
+      } else if (error.request) {
+        req.log.error(getExceptionLog(ex), '[AUTH0][EMAIL VERIFICATION][ERROR] %s', error.message || 'An unknown error has occurred.');
       }
-      throw new UserFacingError('There was an error re-sending the verification email');
     }
+    throw new UserFacingError('There was an error re-sending the verification email');
   }
-);
+});
 
 const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, async ({ body, user, requestId }, req, res, next) => {
   try {
@@ -289,19 +270,19 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
           'h:Reply-To': 'support@getjetstream.app',
         })
         .then((results) => {
-          logger.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.id, { requestId });
+          req.log.info('[ACCOUNT DELETE][EMAIL SENT] %s', results.id);
         })
         .catch((error) => {
-          logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', error.message, { requestId });
+          req.log.error({ requestId, ...getExceptionLog(error) }, '[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', error.message);
         });
     } catch (ex) {
-      logger.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message, { requestId });
+      req.log.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message);
     }
 
     // Destroy session - don't wait for response
     req.session.destroy((error) => {
       if (error) {
-        logger.error('[ACCOUNT DELETE][ERROR DESTROYING SESSION] %s', error.message, { requestId });
+        req.log.error({ requestId, ...getExceptionLog(error) }, '[ACCOUNT DELETE][ERROR DESTROYING SESSION] %s', error.message);
       }
     });
 
@@ -310,12 +291,9 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data, { userId: user.id, requestId });
+        req.log.error(getExceptionLog(ex), '[ACCOUNT DELETE][FATAL ERROR] %o', error.response.data);
       } else if (error.request) {
-        logger.error('[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.', {
-          userId: user.id,
-          requestId,
-        });
+        req.log.error(getExceptionLog(ex), '[ACCOUNT DELETE][FATAL ERROR] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('There was a problem deleting your account, contact support@getjetstream.app for assistance.');

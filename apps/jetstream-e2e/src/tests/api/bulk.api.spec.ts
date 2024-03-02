@@ -5,7 +5,7 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Bulk', () => {
-  test('Job: Create,Get,Add Batch', async ({ apiRequestUtils }) => {
+  test('Bulk Job - Create,Get,Add Batch', async ({ apiRequestUtils }) => {
     const createJobResponse = await apiRequestUtils.makeRequest<BulkJob>('POST', `/api/bulk`, {
       externalId: null,
       serialMode: false,
@@ -47,6 +47,41 @@ test.describe('API - Bulk', () => {
 
     expect(getJobResponse2.id).toBeTruthy();
     expect(getJobResponse2.state).toEqual('Closed');
+  });
+
+  test('Bulk Job - Errors', async ({ apiRequestUtils }) => {
+    const createJobResponse = await apiRequestUtils.makeRequestRaw('POST', `/api/bulk`, {
+      externalId: null,
+      serialMode: false,
+      sObject: 'LEADS',
+      type: 'INSERT',
+    } as CreateJobRequest);
+
+    expect(createJobResponse.ok()).toBeFalsy();
+    const createJobResponseBody = await createJobResponse.json();
+    expect(createJobResponseBody.message).toEqual('Unable to find object: LEADS');
+
+    const getJobResponse = await apiRequestUtils.makeRequestRaw('GET', `/api/bulk/invalidJobId000`);
+
+    expect(getJobResponse.ok()).toBeFalsy();
+    const getJobResponseBody = await getJobResponse.json();
+    expect(getJobResponseBody.message).toEqual('Invalid job id: invalidJobId000');
+
+    const timestamp = new Date().getTime();
+    const addBatchToJobResponse = await apiRequestUtils.makeRequestRaw(
+      'POST',
+      `/api/bulk/invalidJobId000?${new URLSearchParams({
+        closeJob: 'true',
+      })}`,
+      [
+        `"LastName";"FirstName";"Title";"Company";"State";"Country";"Email";"LeadSource";"Status"`,
+        `"Snyder-${timestamp}";"Kathy";"Regional General Manager ${timestamp}";"TNR Corp. ${timestamp}";"CT";"USA";"ksynder@tnr.${timestamp}.net";"Purchased List";"Working - Contacted"`,
+      ].join('\n')
+    );
+
+    expect(addBatchToJobResponse.ok()).toBeFalsy();
+    const addBatchToJobResponseBody = await addBatchToJobResponse.json();
+    expect(addBatchToJobResponseBody.message).toEqual('Invalid job id: invalidJobId000');
   });
 
   test('Query Job', async ({ apiRequestUtils }) => {

@@ -7,7 +7,7 @@ import { ApiQuery } from './api-query';
 import { ApiRequest } from './api-request';
 import { ApiSObject } from './api-sobject';
 import { getApiRequestFactoryFn } from './callout-adapter';
-import { SessionInfo } from './types';
+import { Logger, SessionInfo } from './types';
 
 interface ApiConnectionOptions {
   apiRequestAdapter: ReturnType<typeof getApiRequestFactoryFn>;
@@ -21,9 +21,11 @@ interface ApiConnectionOptions {
   logging?: boolean;
   sfdcClientId?: string;
   sfdcClientSecret?: string;
+  logger?: Logger;
 }
 
 export class ApiConnection {
+  logger: Logger;
   sessionInfo: SessionInfo;
   apiRequest: ReturnType<ReturnType<typeof getApiRequestFactoryFn>>;
   refreshCallback: ((accessToken: string, refreshToken: string) => void) | undefined;
@@ -50,10 +52,12 @@ export class ApiConnection {
       logging,
       sfdcClientId,
       sfdcClientSecret,
+      logger = console,
     }: ApiConnectionOptions,
     refreshCallback?: (accessToken: string, refreshToken: string) => void
   ) {
-    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), logging);
+    this.logger = logger;
+    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), logging, logger);
     this.refreshCallback = refreshCallback;
     this.sessionInfo = {
       userId,

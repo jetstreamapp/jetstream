@@ -74,7 +74,7 @@ export class NotFoundError extends Error {
 export class NotAllowedError extends Error {
   additionalData?: any;
   constructor(message: string | Error, additionalData?: any) {
-    logger.warn('[ROUTE NOT ALLOWED]', { message, additionalData });
+    logger.warn({ message, additionalData }, '[ROUTE NOT ALLOWED]');
     if (message instanceof Error) {
       super(message.message);
       this.name = message.name;

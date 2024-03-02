@@ -1,4 +1,4 @@
-import { logger } from '@jetstream/api-config';
+import { getExceptionLog } from '@jetstream/api-config';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { UserProfileServer } from '@jetstream/types';
 import { NextFunction } from 'express';
@@ -67,21 +67,17 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         requestId: res.locals.requestId,
       };
       if (hasSourceOrg && !data.jetstreamConn) {
-        logger.info('[INIT-ORG][ERROR] A source org did not exist on locals', { requestId: data.requestId });
+        req.log.info('[INIT-ORG][ERROR] A source org did not exist on locals');
         return next(new UserFacingError('An org is required for this action'));
       }
       if (hasTargetOrg && !data.targetJetstreamConn) {
-        logger.info('[INIT-ORG][ERROR] A target org did not exist on locals', { requestId: data.requestId });
+        req.log.info('[INIT-ORG][ERROR] A target org did not exist on locals');
         return next(new UserFacingError('A source and target org are required for this action'));
       }
       await controllerFn(data, req, res, next);
-    } catch (error) {
-      logger.error('[ROUTE][VALIDATION ERROR] %s', error.message, {
-        method: req.method,
-        path: req.path,
-        requestId: res.locals.requestId,
-      });
-      next(new UserFacingError(error));
+    } catch (ex) {
+      req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
+      next(new UserFacingError(ex));
     }
   };
 }

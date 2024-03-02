@@ -28,28 +28,34 @@ export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamCon
 
       cometd.handshake((shake) => {
         if (shake.successful) {
-          logger.debug('[COMETD][HANDSHAKE][SUCCESS] %s', user.id, { userId: user.id });
+          logger.debug({ userId: user.id }, '[COMETD][HANDSHAKE][SUCCESS] %s', user.id);
           resolve();
         } else {
-          logger.warn('[COMETD][HANDSHAKE][ERROR] %s - %s', shake.error, user.id, { userId: user.id });
+          logger.warn({ userId: user.id }, '[COMETD][HANDSHAKE][ERROR] %s - %s', shake.error, user.id);
           reject(shake);
         }
       });
 
       cometd.addListener('/meta/connect', (message) => {
-        logger.debug('[COMETD] connect - %s', message, { userId: user.id });
+        logger.debug({ userId: user.id }, '[COMETD] connect - %s', message);
       });
       cometd.addListener('/meta/disconnect', (message) => {
-        logger.debug('[COMETD] disconnect - %s', message, { userId: user.id });
+        logger.debug({ userId: user.id }, '[COMETD] disconnect - %s', message);
       });
       cometd.addListener('/meta/unsuccessful', (message) => {
-        logger.debug('[COMETD] unsuccessful - %s', message, { userId: user.id });
+        logger.debug({ userId: user.id }, '[COMETD] unsuccessful - %s', message);
       });
       (cometd as any).onListenerException = (exception, subscriptionHandle, isListener, message) => {
-        logger.warn('[COMETD][LISTENER][ERROR] %s - %s - %o', exception?.message, message, subscriptionHandle, {
-          isListener,
-          userId: user.id,
-        });
+        logger.warn(
+          {
+            isListener,
+            userId: user.id,
+          },
+          '[COMETD][LISTENER][ERROR] %s - %s - %o',
+          exception?.message,
+          message,
+          subscriptionHandle
+        );
       };
     } else {
       resolve();

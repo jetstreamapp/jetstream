@@ -1,4 +1,4 @@
-import { ENV, logger, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { ENV, getExceptionLog, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
@@ -8,13 +8,15 @@ import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
 import * as express from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import { isNumber } from 'lodash';
+import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { updateUserLastActivity } from '../services/auth0';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  res.locals.requestId = uuid();
+  res.locals.requestId = res.locals.requestId || uuid();
+  res.setHeader('X-Request-Id', res.locals.requestId);
   next();
 }
 
@@ -34,21 +36,6 @@ export function setApplicationCookieMiddleware(req: express.Request, res: expres
     google_clientId: ENV.GOOGLE_CLIENT_ID!,
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
-  next();
-}
-
-export function logRoute(req: express.Request, res: express.Response, next: express.NextFunction) {
-  res.locals.path = req.path;
-  const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-  logger.debug('[REQ] %s %s', req.method, req.originalUrl, {
-    method: req.method,
-    url: req.originalUrl,
-    requestId: res.locals.requestId,
-    agent: req.header('User-Agent'),
-    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-    country: req.headers[HTTP.HEADERS.CF_IPCountry],
-    ...userInfo,
-  });
   next();
 }
 
@@ -78,16 +65,21 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
 export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userAgent = req.header('User-Agent');
   if (userAgent?.toLocaleLowerCase().includes('python')) {
-    logger.debug('[BLOCKED REQUEST][USER AGENT] %s %s', req.method, req.originalUrl, {
-      blocked: true,
-      method: req.method,
-      url: req.originalUrl,
-      requestId: res.locals.requestId,
-      agent: req.header('User-Agent'),
-      referrer: req.get('Referrer'),
-      ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-      country: req.headers[HTTP.HEADERS.CF_IPCountry],
-    });
+    req.log.debug(
+      {
+        blocked: true,
+        method: req.method,
+        url: req.originalUrl,
+        requestId: res.locals.requestId,
+        agent: req.header('User-Agent'),
+        referrer: req.get('Referrer'),
+        ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
+        country: req.headers[HTTP.HEADERS.CF_IPCountry],
+      },
+      '[BLOCKED REQUEST][USER AGENT] %s %s',
+      req.method,
+      req.originalUrl
+    );
     return res.status(403).send('Forbidden');
   }
   next();
@@ -112,24 +104,38 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
         // Update auth0 with expiration date
         updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
           .then(() => {
-            logger.debug('[AUTH][LAST-ACTIVITY][UPDATED] %s', req.session.activityExp, {
-              userId: (req.user as any)?.user_id,
-              requestId: res.locals.requestId,
-            });
+            req.log.debug(
+              {
+                userId: (req.user as any)?.user_id,
+                requestId: res.locals.requestId,
+              },
+              '[AUTH][LAST-ACTIVITY][UPDATED] %s',
+              req.session.activityExp
+            );
           })
           .catch((err) => {
             // send error to rollbar
             const error: AxiosError = err;
             if (error.response) {
-              logger.error('[AUTH][LAST-ACTIVITY][ERROR] %o', error.response.data, {
-                userId: (req.user as any)?.user_id,
-                requestId: res.locals.requestId,
-              });
+              req.log.error(
+                {
+                  userId: (req.user as any)?.user_id,
+                  requestId: res.locals.requestId,
+                  ...getExceptionLog(err),
+                },
+                '[AUTH][LAST-ACTIVITY][ERROR] %o',
+                error.response.data
+              );
             } else if (error.request) {
-              logger.error('[AUTH][LAST-ACTIVITY][ERROR] %s', error.message || 'An unknown error has occurred.', {
-                userId: (req.user as any)?.user_id,
-                requestId: res.locals.requestId,
-              });
+              req.log.error(
+                {
+                  userId: (req.user as any)?.user_id,
+                  requestId: res.locals.requestId,
+                  ...getExceptionLog(err),
+                },
+                '[AUTH][LAST-ACTIVITY][ERROR] %s',
+                error.message || 'An unknown error has occurred.'
+              );
             }
             rollbarServer.error('Error updating Auth0 activityExp', {
               message: err.message,
@@ -139,22 +145,11 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
           });
       }
     } catch (ex) {
-      logger.warn('[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message, {
-        userId: (req.user as any)?.user_id,
-        requestId: res.locals.requestId,
-      });
+      req.log.warn(getExceptionLog(ex), '[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message);
     }
     return next();
   }
-  logger.error('[AUTH][UNAUTHORIZED] %s %s', req.method, req.originalUrl, {
-    blocked: true,
-    method: req.method,
-    url: req.originalUrl,
-    requestId: res.locals.requestId,
-    agent: req.header('User-Agent'),
-    ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
-    country: req.headers[HTTP.HEADERS.CF_IPCountry],
-  });
+  req.log.error('[AUTH][UNAUTHORIZED]');
   next(new AuthenticationError('Unauthorized'));
 }
 
@@ -186,7 +181,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       }
     }
   } catch (ex) {
-    logger.warn('[INIT-ORG][ERROR] %o', ex, { requestId: res.locals.requestId });
+    req.log.warn(getExceptionLog(ex), '[INIT-ORG][ERROR]');
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
@@ -195,7 +190,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
 
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jetstreamConn) {
-    logger.info('[INIT-ORG][ERROR] An org did not exist on locals', { requestId: res.locals.requestId });
+    req.log.info('[INIT-ORG][ERROR] An org did not exist on locals');
     return next(new UserFacingError('An org is required for this action'));
   }
   next();
@@ -203,7 +198,7 @@ export function ensureOrgExists(req: express.Request, res: express.Response, nex
 
 export function ensureTargetOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.targetJetstreamConn) {
-    logger.info('[INIT-ORG][ERROR] A target org did not exist on locals', { requestId: res.locals.requestId });
+    req.log.info('[INIT-ORG][ERROR] A target org did not exist on locals');
     return next(new UserFacingError('A target org is required for this action'));
   }
   next();
@@ -232,12 +227,13 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, apiVersion, includeCallOptions, requestId);
+  return getOrgForRequest(user, uniqueId, req.log, apiVersion, includeCallOptions, requestId);
 }
 
 export async function getOrgForRequest(
   user: UserProfileServer,
   uniqueId: string,
+  logger: pino.Logger | typeof console = console,
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string
@@ -268,9 +264,8 @@ export async function getOrgForRequest(
         return;
       }
       await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, refreshToken);
-      logger.info('[ORG][REFRESH] Org refreshed successfully', { requestId });
     } catch (ex) {
-      logger.error('[ORG][REFRESH] Error saving refresh token', ex, { requestId });
+      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][REFRESH] Error saving refresh token');
     }
   };
 
@@ -285,6 +280,7 @@ export async function getOrgForRequest(
       instanceUrl,
       refreshToken,
       logging: ENV.ENVIRONMENT === 'development',
+      logger,
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
     },

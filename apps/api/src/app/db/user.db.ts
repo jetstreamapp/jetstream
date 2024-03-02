@@ -1,4 +1,4 @@
-import { ENV, logger, prisma } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { Prisma, User } from '@prisma/client';
 
@@ -55,7 +55,7 @@ export async function updateUser(
     });
     return updatedUser;
   } catch (ex) {
-    logger.error('[DB][USER][UPDATE][ERROR] %o', ex, { user });
+    logger.error({ user, ...getExceptionLog(ex) }, '[DB][USER][UPDATE][ERROR]');
     throw ex;
   }
 }
@@ -81,7 +81,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
         },
         select: userSelect,
       });
-      logger.debug('[DB][USER][UPDATED] %s', user.id, { userId: user.id, id: existingUser.id });
+      logger.debug({ userId: user.id, id: existingUser.id }, '[DB][USER][UPDATED] %s', user.id);
       return { created: false, user: updatedUser };
     } else {
       const createdUser = await prisma.user.create({
@@ -96,11 +96,11 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
         },
         select: userSelect,
       });
-      logger.debug('[DB][USER][CREATED] %s', user.id, { userId: user.id, id: createdUser.id });
+      logger.debug({ userId: user.id, id: createdUser.id }, '[DB][USER][CREATED] %s', user.id);
       return { created: true, user: createdUser };
     }
   } catch (ex) {
-    logger.error('[DB][USER][CREATE][ERROR] %o', ex, { user });
+    logger.error({ user, ...getExceptionLog(ex) }, '[DB][USER][CREATE][ERROR] %o', ex);
     throw ex;
   }
 }

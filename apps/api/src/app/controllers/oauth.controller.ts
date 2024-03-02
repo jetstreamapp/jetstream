@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
 import { CallbackParamsType } from 'openid-client';
@@ -62,14 +62,14 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
       returnParams.message = queryParams.error_description
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      logger.info('[OAUTH][ERROR] %s', queryParams.error, { ...query, requestId: res.locals.requestId });
+      req.log.info({ ...query, requestId: res.locals.requestId }, '[OAUTH][ERROR] %s', queryParams.error);
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     } else if (!orgAuth) {
       returnParams.error = 'Authentication Error';
       returnParams.message = queryParams.error_description
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      logger.info('[OAUTH][ERROR] %s', queryParams.error, { ...query, requestId: res.locals.requestId });
+      req.log.info({ ...query, requestId: res.locals.requestId }, '[OAUTH][ERROR] %s', queryParams.error);
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
@@ -100,8 +100,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
     returnParams.data = JSON.stringify(salesforceOrg);
     return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
   } catch (ex) {
-    const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-    logger.info('[OAUTH][ERROR] %s', ex.message, { userInfo, requestId: res.locals.requestId });
+    req.log.info({ ...getExceptionLog(ex) }, '[OAUTH][ERROR]');
     returnParams.error = ex.message || 'Unexpected Error';
     returnParams.message = query.error_description
       ? (query.error_description as string)
@@ -122,7 +121,7 @@ export async function initConnectionFromOAuthResponse({ jetstreamConn, userId }:
       companyInfoRecord = results.records[0];
     }
   } catch (ex) {
-    logger.warn('Error getting org info %o', ex);
+    logger.warn({ userId, ...getExceptionLog(ex) }, 'Error getting org info %o', ex);
   }
 
   const orgName = companyInfoRecord?.Name || 'Unknown Organization';

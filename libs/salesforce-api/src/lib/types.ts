@@ -76,3 +76,30 @@ export interface ApiRequestOptions {
 }
 
 export type ApiRequestOutputType = 'json' | 'text' | 'xml' | 'soap' | 'arrayBuffer' | 'stream' | 'void' | 'response';
+
+export interface SoapErrorResponse {
+  'soapenv:Envelope': {
+    '@xmlns:soapenv': string;
+    '@xmlns:sf': string;
+    'soapenv:Body': {
+      'soapenv:Fault': {
+        faultcode: string;
+        faultstring: string;
+      };
+    };
+  };
+}
+
+export interface BulkXmlErrorResponse {
+  error: {
+    exceptionCode: string;
+    exceptionMessage: string;
+  };
+}
+
+export interface Logger {
+  error: (...data: unknown[]) => void;
+  warn: (...data: unknown[]) => void;
+  info: (...data: unknown[]) => void;
+  debug: (...data: unknown[]) => void;
+}

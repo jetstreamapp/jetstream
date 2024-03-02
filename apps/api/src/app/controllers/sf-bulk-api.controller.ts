@@ -1,4 +1,4 @@
-import { logger } from '@jetstream/api-config';
+import { getExceptionLog, logger } from '@jetstream/api-config';
 import { BooleanQueryParamSchema, CreateJobRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
@@ -233,10 +233,10 @@ const downloadResults = createRoute(
       csvParseStream.on('finish', () => {
         res.write(']}');
         res.end();
-        logger.info('Finished streaming download from Salesforce', { requestId });
+        logger.info({ requestId }, 'Finished streaming download from Salesforce');
       });
       csvParseStream.on('error', (err) => {
-        logger.warn('Error streaming files from Salesforce. %o', err, { requestId });
+        logger.warn({ requestId, ...getExceptionLog(err) }, 'Error streaming files from Salesforce.');
         if (!res.headersSent) {
           res.status(400).json({ error: true, message: 'Error streaming files from Salesforce' });
         } else {

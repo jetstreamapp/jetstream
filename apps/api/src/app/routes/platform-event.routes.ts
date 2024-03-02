@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import * as express from 'express';
@@ -25,7 +25,7 @@ routes.use(
   createProxyMiddleware({
     logLevel: 'debug',
     onError: (err: Error, req: http.IncomingMessage, res: http.ServerResponse, target?: string | Partial<Url>) => {
-      logger.warn('[PROXY][ERROR]! %s', err.message, { target });
+      logger.warn({ target, ...getExceptionLog(err) }, '[PROXY][ERROR]');
     },
     //TODO: make sure that if we throw here the world does not blow up (ensure server does not freeze)
     router: async (req) => {
@@ -53,7 +53,7 @@ routes.use(
         // not sure if this one is required
         res.setHeader('Access-Control-Allow-Credentials', 'true');
       } catch (ex) {
-        logger.error('[PROXY][EXCEPTION] %s', ex.message);
+        logger.error(getExceptionLog(ex), '[PROXY][EXCEPTION]');
       }
     },
   })

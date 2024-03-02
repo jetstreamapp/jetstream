@@ -33,6 +33,10 @@ export class SalesforceApi {
     return this.connection.sessionInfo;
   }
 
+  get logger() {
+    return this.connection.logger;
+  }
+
   constructor(connection: ApiConnection) {
     this.connection = connection;
   }

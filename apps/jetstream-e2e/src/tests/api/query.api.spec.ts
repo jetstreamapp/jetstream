@@ -22,6 +22,10 @@ test.describe('API - Query', () => {
     expect(describeSuccess.sobjects.length).not.toEqual(describeToolingSuccess.sobjects.length);
 
     expect(invalidParam.ok()).toBeFalsy();
+    const errorBody = await invalidParam.json();
+    expect('error' in errorBody).toBeTruthy();
+    expect('message' in errorBody).toBeTruthy();
+    expect(errorBody.message.includes(`'isTooling' is Invalid enum value.`)).toBeTruthy();
   });
 
   test('describe sobject', async ({ apiRequestUtils }) => {
@@ -41,6 +45,11 @@ test.describe('API - Query', () => {
     expect(Array.isArray(describeToolingSuccess.fields)).toBeTruthy();
 
     expect(invalidObj.ok()).toBeFalsy();
+    const errorBody = await invalidObj.json();
+    expect('error' in errorBody).toBeTruthy();
+    expect('message' in errorBody).toBeTruthy();
+    expect(errorBody.message).toEqual('The requested resource does not exist');
+
     expect(invalidParam.ok()).toBeFalsy();
   });
 
@@ -97,6 +106,7 @@ test.describe('API - Query', () => {
     expect(response.error).toBeTruthy();
     expect(typeof response.message === 'string').toBeTruthy();
     expect(response.message.startsWith('\nFirstName, LastName')).toBeTruthy();
+    expect(response.message.includes(`sObject type 'no_exist' is not supported.`)).toBeTruthy();
 
     expect(invalidParam.ok()).toBeFalsy();
   });

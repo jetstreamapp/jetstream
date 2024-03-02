@@ -1,7 +1,7 @@
 import { HTTP } from '@jetstream/shared/constants';
 import isObject from 'lodash/isObject';
 import { convert as xmlConverter } from 'xmlbuilder2';
-import { ApiRequestOptions, ApiRequestOutputType, fetchFn } from './types';
+import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, Logger, SoapErrorResponse, fetchFn } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
 
@@ -10,7 +10,7 @@ const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/fau
  * Requires a fetch compatible function to avoid relying any specific fetch implementation
  */
 export function getApiRequestFactoryFn(fetch: fetchFn) {
-  return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean) => {
+  return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean, logger: Logger = console) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh: boolean = true): Promise<Response> => {
       let { url, body, outputType } = options;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
@@ -21,7 +21,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
         body = JSON.stringify(body);
       }
       if (enableLogging) {
-        console.log(`[API REQUEST]: ${method} ${url}`);
+        logger.debug(`[API REQUEST]: ${method} ${url}`);
       }
 
       return fetch(url, {
@@ -37,12 +37,12 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
       })
         .then(async (response) => {
           if (enableLogging) {
-            console.log(`[API RESPONSE]: ${response.status}`);
+            logger.debug(`[API RESPONSE]: ${response.status}`);
             if (response.status !== 204) {
               response
                 .clone()
                 .text()
-                .then((text) => console.log(text))
+                .then((responseBody) => logger.debug({ responseBody }))
                 .catch((_) => {});
             }
           }
@@ -100,13 +100,32 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
   };
 }
 
-// FIXME: there are very likely many other types of error formats that we need to handle
 function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText?: string) {
   let output = responseText;
   if (outputType === 'json' && typeof responseText === 'string') {
     try {
       const tempResult = JSON.parse(responseText) as { message: string } | { message: string }[];
       output = (Array.isArray(tempResult) ? tempResult[0] : tempResult)?.message;
+    } catch (ex) {
+      output = responseText;
+    }
+    output = output || responseText;
+  } else if (outputType === 'soap' && typeof responseText === 'string') {
+    try {
+      const tempResult = xmlConverter(responseText, { format: 'object', wellFormed: true }) as unknown as SoapErrorResponse;
+      output = tempResult['soapenv:Envelope']['soapenv:Body']['soapenv:Fault']['faultstring'];
+    } catch (ex) {
+      output = responseText;
+    }
+    output = output || responseText;
+  } else if (
+    outputType === 'xml' &&
+    typeof responseText === 'string' &&
+    responseText.includes(`xmlns="http://www.force.com/2009/06/asyncapi/dataload"`)
+  ) {
+    try {
+      const tempResult = xmlConverter(responseText, { format: 'object', wellFormed: true }) as unknown as BulkXmlErrorResponse;
+      output = tempResult.error.exceptionMessage;
     } catch (ex) {
       output = responseText;
     }

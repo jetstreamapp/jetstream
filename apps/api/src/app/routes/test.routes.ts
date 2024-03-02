@@ -55,7 +55,7 @@ routes.post(
       accessToken: access_token,
       apiVersion: ENV.SFDC_API_VERSION,
       instanceUrl: instance_url,
-      logging: true,
+      logging: false,
     });
 
     const salesforceOrg = await initConnectionFromOAuthResponse({
