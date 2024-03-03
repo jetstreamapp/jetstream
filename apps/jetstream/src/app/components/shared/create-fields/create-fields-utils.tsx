@@ -8,6 +8,8 @@ import {
   GlobalValueSetRequest,
   MapOf,
   Maybe,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
   SalesforceOrgUi,
   ToolingApiResponse,
 } from '@jetstream/types';
@@ -988,6 +990,15 @@ export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: Layo
     if (isString(layout.Metadata?.summaryLayout?.summaryLayoutStyle)) {
       layout.Metadata.summaryLayout = undefined;
     }
+    // Mass quick actions don’t support Activity. Use a valid entity.
+    // Activity related lists throw an error if quick actions are provided, even though the provided array is empty
+    if (Array.isArray(layout.Metadata?.relatedLists)) {
+      layout.Metadata.relatedLists.forEach((relatedList) => {
+        if (Array.isArray(relatedList.quickActions) && relatedList.quickActions.length === 0) {
+          relatedList.quickActions = null;
+        }
+      });
+    }
   });
   return fieldsToAdd.length > 0;
 }
@@ -1103,7 +1114,11 @@ export function getRowsForExport(fieldValues: FieldValues[]) {
   );
 }
 
-export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], fieldValues: FieldValues[]) {
+export function prepareDownloadResultsFile(
+  fieldResults: CreateFieldsResults[],
+  fieldValues: FieldValues[],
+  profilesAndPermSetsById: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
+) {
   let permissionRecords: FieldPermissionRecord[] = [];
   const resultsWorksheet = fieldResults.map(
     ({ label, state, deployResult, flsResult, flsErrors, flsRecords, layoutErrors, updatedLayouts }) => {
@@ -1130,12 +1145,22 @@ export function prepareDownloadResultsFile(fieldResults: CreateFieldsResults[], 
     worksheetData: {
       Results: resultsWorksheet,
       'Import Template': getRowsForExport(fieldValues),
-      'Permission Records': permissionRecords.filter(Boolean) || [],
+      'Permission Records': permissionRecords.filter(Boolean).map((record) => {
+        const profileOrPermSet = profilesAndPermSetsById[record.ParentId];
+        if (profileOrPermSet) {
+          const Name = profileOrPermSet.IsOwnedByProfile ? profileOrPermSet.Profile.Name : profileOrPermSet.Name;
+          return {
+            ...record,
+            Name,
+          };
+        }
+        return record;
+      }),
     },
     headerData: {
       Results: ['Field', 'Field Status', 'Field Id', 'FLS Result', 'FLS Errors', 'Page Layouts Updated', 'Page Layouts Errors'],
       'Import Template': allFields,
-      'Permission Records': ['Success', 'Id', 'Errors', 'SobjectType', 'Field', 'ParentId', 'PermissionsEdit', 'PermissionsRead'],
+      'Permission Records': ['Success', 'Id', 'Errors', 'SobjectType', 'Field', 'Name', 'ParentId', 'PermissionsEdit', 'PermissionsRead'],
     },
   };
 }

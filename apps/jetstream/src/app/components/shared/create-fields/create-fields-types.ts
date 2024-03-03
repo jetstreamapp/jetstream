@@ -137,6 +137,15 @@ export interface LayoutRecord {
     }[];
     platformActionList?: any;
     summaryLayout?: any;
+    relatedLists?: {
+      customButtons?: string[] | null;
+      excludeButtons?: string[] | null;
+      fields?: string[] | null;
+      quickActions?: string[] | null;
+      relatedList?: string | null;
+      sortField?: string | null;
+      sortOrder?: string | null;
+    }[];
   };
 }
 

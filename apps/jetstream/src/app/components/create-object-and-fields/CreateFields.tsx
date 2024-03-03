@@ -82,6 +82,8 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const selectedPermissionSets = useRecoilValue(fromCreateFieldsState.selectedPermissionSetsState);
   const selectedSObjects = useRecoilValue(fromCreateFieldsState.selectedSObjectsState);
 
+  const profilesAndPermSetsById = useRecoilValue(fromCreateFieldsState.profilesAndPermSetsByIdSelector);
+
   const resetProfilesState = useResetRecoilState(fromCreateFieldsState.profilesState);
   const resetSelectedProfilesPermSetState = useResetRecoilState(fromCreateFieldsState.selectedProfilesPermSetState);
   const resetPermissionSetsState = useResetRecoilState(fromCreateFieldsState.permissionSetsState);
@@ -137,6 +139,7 @@ export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
           selectedOrg={selectedOrg}
           profiles={selectedProfiles}
           permissionSets={selectedPermissionSets}
+          profilesAndPermSetsById={profilesAndPermSetsById}
           sObjects={selectedSObjects}
           rows={rows}
           onClose={handleCloseModal}

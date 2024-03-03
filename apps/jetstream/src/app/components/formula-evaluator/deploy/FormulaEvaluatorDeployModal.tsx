@@ -133,7 +133,7 @@ export const FormulaEvaluatorDeployModal = ({
   }
 
   function downloadResults() {
-    setExportModalData(prepareDownloadResultsFile(results, [field]));
+    setExportModalData(prepareDownloadResultsFile(results, [field], permissionData.profilesAndPermSetsById));
     setExportModalOpen(true);
     trackEvent(ANALYTICS_KEYS.formula_export_deploy);
   }
