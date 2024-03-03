@@ -1,4 +1,4 @@
-import { HTTP } from '@jetstream/shared/constants';
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import isObject from 'lodash/isObject';
 import { convert as xmlConverter } from 'xmlbuilder2';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, Logger, SoapErrorResponse, fetchFn } from './types';
@@ -148,6 +148,12 @@ function exchangeRefreshToken(fetch: fetchFn, sessionInfo: ApiRequestOptions['se
       [HTTP.HEADERS.ACCEPT]: HTTP.CONTENT_TYPE.JSON,
     },
   })
+    .then((response) => {
+      if (response.ok) {
+        return response;
+      }
+      throw new Error(ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
+    })
     .then((response) => response.json())
     .then((response) => {
       return response as { access_token: string };

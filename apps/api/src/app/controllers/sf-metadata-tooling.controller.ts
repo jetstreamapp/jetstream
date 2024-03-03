@@ -61,7 +61,7 @@ export const routeDefinition = {
   retrievePackageFromLisMetadataResults: {
     controllerFn: () => retrievePackageFromLisMetadataResults,
     validators: {
-      body: RetrievePackageFromLisMetadataResultsRequestSchema, // TODO: can we figure out something here?
+      body: RetrievePackageFromLisMetadataResultsRequestSchema,
     },
   },
   retrievePackageFromExistingServerPackages: {

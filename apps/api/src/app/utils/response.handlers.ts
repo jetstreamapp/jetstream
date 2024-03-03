@@ -43,8 +43,6 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
   res.status(403).send('Forbidden');
 }
 
-// TODO: implement user facing errors and system facing errors and separate them
-// TODO: this should handle ALL errors, and controllers need to throw proper errors!
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {

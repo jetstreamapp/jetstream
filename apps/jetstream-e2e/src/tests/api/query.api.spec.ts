@@ -1,5 +1,4 @@
-import { DescribeSObjectResult, QueryResults } from '@jetstream/types';
-import { DescribeGlobalResult } from 'jsforce';
+import { DescribeGlobalResult, DescribeSObjectResult, QueryResults } from '@jetstream/types';
 import { expect, test } from '../../fixtures/fixtures';
 
 test.describe.configure({ mode: 'parallel' });

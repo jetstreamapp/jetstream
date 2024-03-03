@@ -19,7 +19,7 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   genReqId: (req, res) => res.locals.requestId || uuid(),
   customSuccessMessage: function (req, res) {
     if (res.statusCode === 404) {
-      return 'resource not found';
+      return `resource not found [${req.method}] ${req.url}`;
     }
     return `Request Success [${req.method}] ${req.url}`;
   },

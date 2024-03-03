@@ -1,5 +1,4 @@
-import { CompositeResponse, ManualRequestResponse, RecordResult, SalesforceRecord, SuccessResult } from '@jetstream/types';
-import { ErrorResult } from 'jsforce';
+import { CompositeResponse, ErrorResult, ManualRequestResponse, RecordResult, SalesforceRecord, SuccessResult } from '@jetstream/types';
 import { expect, test } from '../../fixtures/fixtures';
 
 test.describe.configure({ mode: 'parallel' });

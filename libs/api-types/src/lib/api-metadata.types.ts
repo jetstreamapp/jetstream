@@ -29,13 +29,14 @@ export const DeployMetadataRequestSchema = z.object({
 });
 export type DeployMetadataRequest = z.infer<typeof DeployMetadataRequestSchema>;
 
-export const DeployMetadataZipRequestSchema = z.object({});
-export type DeployMetadataZipRequest = z.infer<typeof DeployMetadataZipRequestSchema>;
-
-export const CheckMetadataResultsRequestSchema = z.object({});
-export type CheckMetadataResultsRequest = z.infer<typeof CheckMetadataResultsRequestSchema>;
-
-export const RetrievePackageFromLisMetadataResultsRequestSchema = z.object({});
+export const RetrievePackageFromLisMetadataResultsRequestSchema = z.record(
+  z
+    .object({
+      fullName: z.string(),
+      namespacePrefix: z.string().nullish(),
+    })
+    .array()
+);
 export type RetrievePackageFromLisMetadataResultsRequest = z.infer<typeof RetrievePackageFromLisMetadataResultsRequestSchema>;
 
 export const RetrievePackageFromExistingServerPackagesRequestSchema = z.object({
