@@ -144,12 +144,18 @@ export async function savePermissionRecords(
 
   const recordInsertResults: RecordResult[] = (
     await Promise.all([
-      ...splitArrayToMaxSize(objectPermissions, 200).map((records) =>
-        sobjectOperation(org, 'ObjectPermissions', 'create', { records }, { allOrNone: false })
-      ),
-      ...splitArrayToMaxSize(tabPermissions, 200).map((records) =>
-        sobjectOperation(org, 'PermissionSetTabSetting', 'create', { records }, { allOrNone: false })
-      ),
+      ...splitArrayToMaxSize(objectPermissions, 200).map((records) => {
+        if (records.length === 0) {
+          return [];
+        }
+        return sobjectOperation(org, 'ObjectPermissions', 'create', { records }, { allOrNone: false });
+      }),
+      ...splitArrayToMaxSize(tabPermissions, 200).map((records) => {
+        if (records.length === 0) {
+          return [];
+        }
+        return sobjectOperation(org, 'PermissionSetTabSetting', 'create', { records }, { allOrNone: false });
+      }),
     ])
   ).flat();
 

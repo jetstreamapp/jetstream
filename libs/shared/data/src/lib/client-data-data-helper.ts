@@ -51,10 +51,13 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
       return response;
     },
     (error: AxiosError) => {
-      logger.info('[HTTP][RESPONSE][ERROR]', error.name, error.message);
+      logger.error('[HTTP][RESPONSE][ERROR]', error.name, error.message);
       let message = 'An unknown error has occurred';
       if (error.isAxiosError && error.response) {
         message = error.message || 'An unknown error has occurred';
+        logger.error(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+          response: response.data,
+        });
       }
       throw new Error(message);
     }
@@ -220,10 +223,13 @@ function responseErrorInterceptor<T>(options: {
 }) {
   return (error: AxiosError) => {
     const { org } = options;
-    logger.info('[HTTP][RESPONSE][ERROR]', error.name, error.message);
+    logger.error('[HTTP][RESPONSE][ERROR]', error.name, error.message);
     let message = 'An unknown error has occurred';
     if (error.isAxiosError && error.response) {
       const response = error.response as AxiosResponse<{ error: boolean; message: string }>;
+      logger.error(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+        response: response.data,
+      });
       // Run middleware for error responses
       errorMiddleware.forEach((middleware) => middleware(response, org));
       const responseBody: { error: boolean; message: string } = response.data || { error: true, message: 'An unknown error has occurred' };
