@@ -469,6 +469,7 @@ export function updateColumnWithEditMode(
       displayCellContent: true,
     };
     column.renderEditCell = dataTableEditorDropdownWrapper({
+      isMultiSelect: type === 'multipicklist',
       values: field.picklistValues
         .filter(({ active }) => active)
         .map(({ value, label }) => ({
