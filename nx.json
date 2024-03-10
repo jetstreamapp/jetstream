@@ -103,9 +103,6 @@
         "{projectRoot}/tsconfig.storybook.json"
       ]
     },
-    "lint": {
-      "cache": true
-    },
     "e2e-ci": {
       "cache": true
     },
@@ -121,6 +118,10 @@
           "codeCoverage": true
         }
       }
+    },
+    "@nx/eslint:lint": {
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/.eslintrc.json", "{workspaceRoot}/tools/eslint-rules/**/*"]
     }
   },
   "namedInputs": {

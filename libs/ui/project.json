@@ -8,7 +8,7 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": ["libs/ui", "libs/src/**/*"]
+        "lintFilePatterns": ["libs/src/**/*"]
       }
     },
     "test": {
