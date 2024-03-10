@@ -18,36 +18,28 @@ try {
  * without having to authenticate with a real account.
  */
 const EXAMPLE_USER: UserProfileServer = {
-  _json: {
-    sub: 'EXAMPLE_USER',
-    nickname: 'Jetstream',
-    name: 'Jetstream Test',
-    picture: null,
-    updated_at: '2022-06-18T16:27:37.491Z',
-    email: 'test@example.com',
-    email_verified: true,
-    'http://getjetstream.app/app_metadata': {
-      featureFlags: { flagVersion: 'V1.4', flags: ['all'], isDefault: false },
-    },
-  },
-  _raw: null,
   id: 'EXAMPLE_USER',
-  displayName: 'Jetstream Test',
-  emails: [],
+  sub: 'EXAMPLE_USER',
+  given_name: 'Jetstream',
+  family_name: 'Test',
   name: 'Jetstream Test',
-  nickname: 'Jetstream',
-  picture: null,
-  provider: 'auth0',
-  user_id: 'EXAMPLE_USER',
+  updated_at: '2022-06-18T16:27:37.491Z',
+  email: 'test@example.com',
+  email_verified: true,
+  locale: 'en',
+  preferred_username: 'Jetstream',
 };
 
 const EXAMPLE_USER_PROFILE: UserProfileUi = {
-  ...EXAMPLE_USER._json,
+  ...EXAMPLE_USER,
   id: 'EXAMPLE_USER',
   userId: 'EXAMPLE_USER',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   preferences: { skipFrontdoorLogin: false },
+  'http://getjetstream.app/app_metadata': {
+    featureFlags: { flagVersion: 'V1.4', flags: ['all'], isDefault: false },
+  },
 };
 
 export const ENV = {

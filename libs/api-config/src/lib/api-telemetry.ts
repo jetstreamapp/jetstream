@@ -54,9 +54,9 @@ if (ENV.HONEYCOMB_ENABLED) {
 }
 
 export function telemetryAddUserToAttributes(user?: UserProfileServer) {
-  if (ENV.HONEYCOMB_ENABLED && user && (user.user_id || user.id)) {
+  if (ENV.HONEYCOMB_ENABLED && user && (user.id || user.id)) {
     try {
-      telemetryApi.trace.getSpan(telemetryApi.context.active())?.setAttribute('user.id', user.user_id || user.id);
+      telemetryApi.trace.getSpan(telemetryApi.context.active())?.setAttribute('user.id', user.id || user.id);
     } catch (ex) {
       logger.warn(getExceptionLog(ex), '[TELEMETRY] Error adding user to attributes');
     }

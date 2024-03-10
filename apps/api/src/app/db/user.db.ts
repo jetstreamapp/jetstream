@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, prisma } from '@jetstream/api-config';
+import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { Prisma, User } from '@prisma/client';
 
@@ -71,7 +71,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
       const updatedUser = await prisma.user.update({
         where: { userId: user.id },
         data: {
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          // appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
           preferences: {
             upsert: {
               create: { skipFrontdoorLogin: false },
@@ -87,11 +87,11 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
       const createdUser = await prisma.user.create({
         data: {
           userId: user.id,
-          email: user._json.email,
-          name: user._json.name,
-          nickname: user._json.nickname,
-          picture: user._json.picture,
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          email: user.email,
+          name: user.name,
+          // nickname: user.nickname,
+          // picture: user.picture,
+          // appMetadata: JSON.stringify(user[ENV.AUTH_AUDIENCE!]),
           preferences: { create: { skipFrontdoorLogin: false } },
         },
         select: userSelect,

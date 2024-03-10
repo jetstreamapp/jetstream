@@ -11,8 +11,8 @@ export const routes: express.Router = Router();
 // https://auth0.com/docs/universal-login/new-experience#signup
 routes.get(
   '/signup',
-  passport.authenticate('auth0', {
-    scope: 'openid email profile',
+  passport.authenticate('jetstream', {
+    scope: 'openid profile email',
     screen_hint: 'signup',
   } as any),
   authController.login
@@ -21,7 +21,7 @@ routes.get(
 routes.get(
   '/login',
   passport.authenticate(
-    ['custom', 'auth0'].filter((item) => item === 'auth0' || (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER)),
+    ['custom', 'jetstream'].filter((item) => item === 'jetstream' || (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER)),
     {
       scope: 'openid email profile',
     }

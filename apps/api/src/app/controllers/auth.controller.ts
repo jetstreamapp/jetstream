@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ENV, getExceptionLog } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { isString } from 'lodash';
@@ -9,6 +9,7 @@ import { hardDeleteUserAndOrgs } from '../db/transactions.db';
 import { createOrUpdateUser } from '../db/user.db';
 import { checkAuth } from '../routes/route.middleware';
 import { linkIdentity } from '../services/auth0';
+import { jetstreamAuthClient } from '../services/oauth.service';
 import { Request, Response } from '../types/types';
 import { AuthenticationError } from '../utils/error-handler';
 // import { sendWelcomeEmail } from '../services/worker-jobs';
@@ -54,18 +55,17 @@ export async function login(req: Request, res: Response) {
 
 export async function callback(req: Request, res: Response, next: NextFunction) {
   passport.authenticate(
-    'auth0',
+    'jetstream',
     {
       failureRedirect: '/',
     },
-    (err, user, info) => {
+    (err, user) => {
       if (err) {
         req.log.warn({ ...getExceptionLog(err) }, '[AUTH][ERROR] Error with authentication %o', err);
         return next(new AuthenticationError(err));
       }
       if (!user) {
         req.log.warn('[AUTH][ERROR] no user');
-        req.log.warn('[AUTH][ERROR] no info %o', info);
         return res.redirect('/oauth/login');
       }
       req.logIn(user, async (err) => {
@@ -88,19 +88,58 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
   )(req, res, next);
 }
 
+// export async function callback(req: Request, res: Response, next: NextFunction) {
+//   passport.authenticate(
+//     'auth0',
+//     {
+//       failureRedirect: '/',
+//     },
+//     (err, user, info) => {
+//       if (err) {
+//         req.log.warn({ ...getExceptionLog(err) }, '[AUTH][ERROR] Error with authentication %o', err);
+//         return next(new AuthenticationError(err));
+//       }
+//       if (!user) {
+//         req.log.warn('[AUTH][ERROR] no user');
+//         req.log.warn('[AUTH][ERROR] no info %o', info);
+//         return res.redirect('/oauth/login');
+//       }
+//       req.logIn(user, async (err) => {
+//         if (err) {
+//           req.log.warn('[AUTH][ERROR] Error logging in %o', err);
+//           return next(new AuthenticationError(err));
+//         }
+
+//         createOrUpdateUser(user).catch((err) => {
+//           req.log.error({ ...getExceptionLog(err) }, '[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
+//         });
+
+//         // TODO: confirm returnTo 0 it suddenly was reported as bad
+//         const returnTo = (req.session as any).returnTo;
+//         delete (req.session as any).returnTo;
+//         req.log.info('[AUTH][SUCCESS] Logged in %s', user.email);
+//         res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
+//       });
+//     }
+//   )(req, res, next);
+// }
+
 export async function logout(req: Request, res: Response) {
-  req.logout(() => {
-    console.log('Logged out');
+  req.logout((err) => {
+    if (err) {
+      logger.error({ ...getExceptionLog(err) }, '[AUTH][LOGOUT][ERROR] Error logging out of Jetstream');
+    }
+    res.redirect(jetstreamAuthClient.endSessionUrl());
   });
 
-  const logoutURL = new URL(`https://${ENV.AUTH0_DOMAIN}/v2/logout`);
+  // const logoutURL = new URL(`https://${ENV.AUTH0_DOMAIN}/v2/logout`);
 
-  logoutURL.search = new URLSearchParams({
-    client_id: ENV.AUTH0_CLIENT_ID!,
-    returnTo: ENV.JETSTREAM_SERVER_URL!,
-  }).toString();
+  // logoutURL.search = new URLSearchParams({
+  //   client_id: ENV.AUTH0_CLIENT_ID!,
+  //   returnTo: ENV.JETSTREAM_SERVER_URL!,
+  // }).toString();
 
-  res.redirect(logoutURL.toString());
+  // res.redirect(logoutURL.toString());
 }
 
 /** Callback for linking accounts */

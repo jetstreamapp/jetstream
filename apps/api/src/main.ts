@@ -9,6 +9,7 @@ import express from 'express';
 import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
+import { Strategy as OpenIdClientStrategy, TokenSet, UserinfoResponse } from 'openid-client';
 import { cpus } from 'os';
 import passport from 'passport';
 import Auth0Strategy from 'passport-auth0';
@@ -22,6 +23,7 @@ import {
   notFoundMiddleware,
   setApplicationCookieMiddleware,
 } from './app/routes/route.middleware';
+import { jetstreamAuthClient } from './app/services/oauth.service';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
@@ -180,6 +182,25 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
       req.user = user;
       callback(null, user);
     })
+  );
+
+  passport.use(
+    'jetstream',
+    new OpenIdClientStrategy(
+      {
+        client: jetstreamAuthClient,
+        params: {
+          scope: 'openid profile email',
+        },
+        usePKCE: true,
+      },
+      (tokenSet: TokenSet, userInfo: UserinfoResponse, done) => {
+        return done(null, {
+          id: userInfo.sub,
+          ...userInfo,
+        });
+      }
+    )
   );
 
   passport.use(

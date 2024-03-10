@@ -5,6 +5,10 @@ import { addHours, addSeconds, formatISO, isBefore } from 'date-fns';
 import * as userDb from '../db/user.db';
 import { UserFacingError } from '../utils/error-handler';
 
+/**
+ * TODO: need to replace all of this with zitadel
+ */
+
 interface TokenResponse {
   access_token: string;
   scope: string;
@@ -26,7 +30,7 @@ let _expires: Date;
 async function initAuthorizationToken(user: UserProfileServer) {
   try {
     if (_accessToken && _expires && isBefore(new Date(), _expires)) {
-      logger.info( { userId: user.id }, '[AUTH0] Using existing M2M token',);
+      logger.info({ userId: user.id }, '[AUTH0] Using existing M2M token');
       return;
     }
 
@@ -42,13 +46,13 @@ async function initAuthorizationToken(user: UserProfileServer) {
     _expires = addHours(addSeconds(new Date(), response.data.expires_in), -1);
     axiosAuth0.defaults.headers.common['Authorization'] = `Bearer ${_accessToken}`;
   } catch (ex) {
-    logger.error( { userId: user.id }, '[AUTH0][M2M][ERROR] Obtaining token %s', ex.message,);
+    logger.error({ userId: user.id }, '[AUTH0][M2M][ERROR] Obtaining token %s', ex.message);
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error( { userId: user.id }, '[AUTH0][M2M][ERROR][RESPONSE] %o', error.response.data,);
+        logger.error({ userId: user.id }, '[AUTH0][M2M][ERROR][RESPONSE] %o', error.response.data);
       } else if (error.request) {
-        logger.error( { userId: user.id }, '[AUTH0][M2M][ERROR][REQUEST] %s', error.message || 'An unknown error has occurred.',);
+        logger.error({ userId: user.id }, '[AUTH0][M2M][ERROR][REQUEST] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new UserFacingError('An unknown error has occurred');
@@ -79,7 +83,7 @@ export async function updateUserLastActivity(user: UserProfileServer, lastActivi
 export async function updateUser(user: UserProfileServer, userProfile: UserProfileUiWithIdentities): Promise<UserProfileAuth0Ui> {
   await initAuthorizationToken(user);
 
-  if (user.displayName !== userProfile.name) {
+  if (user.name !== userProfile.name) {
     // update on Auth0 if name changed (not allowed for OAuth connections)
     await axiosAuth0.patch<UserProfileAuth0Ui>(`/api/v2/users/${user.id}`, { name: userProfile.name });
   }
@@ -128,7 +132,7 @@ export async function resendVerificationEmail(user: UserProfileServer, { provide
   await initAuthorizationToken(user);
 
   await axiosAuth0.post<UserProfileAuth0Identity>(`/api/v2/jobs/verification-email`, {
-    user_id: user.user_id,
+    user_id: user.name,
     client_id: ENV.AUTH0_CLIENT_ID,
     identity: { provider, user_id: userId },
   });

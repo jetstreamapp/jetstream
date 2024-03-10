@@ -181,10 +181,9 @@ export interface UserProfileUi {
   // Set from environment variable, could be different
   'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
   name: string;
-  nickname: string;
+  nickname?: string;
   picture?: string | null;
   sub: string; // userid
-  updated_at: string;
   id: string;
   userId: string;
   createdAt: string;
@@ -196,16 +195,16 @@ export interface UserProfileUi {
 
 // SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
 export interface UserProfileServer {
-  _json: Omit<UserProfileUi, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'preferences'>;
-  _raw: string | null;
   id: string;
-  displayName: string;
-  emails: { value: string }[];
-  name: any;
-  nickname: string;
-  picture?: string | null;
-  provider: string;
-  user_id: string;
+  sub: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  locale: string;
+  updated_at: string | number;
+  preferred_username: string;
+  email: string;
+  email_verified: boolean;
 }
 
 export interface SalesforceUserInfo {

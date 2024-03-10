@@ -104,28 +104,38 @@ const emailSupport = createRoute(routeDefinition.emailSupport.validators, async 
   }
 });
 
-const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({ user: auth0User }, req, res, next) => {
-  // use fallback locally and on CI
-  if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER_PROFILE && req.hostname === 'localhost') {
-    sendJson(res, ENV.EXAMPLE_USER_PROFILE);
-    return;
-  }
+const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({ user: sessionUser }, req, res, next) => {
+  try {
+    // use fallback locally and on CI
+    if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER_PROFILE && req.hostname === 'localhost') {
+      sendJson(res, ENV.EXAMPLE_USER_PROFILE);
+      return;
+    }
 
-  const user = await userDbService.findByUserId(auth0User.id);
-  if (!user) {
-    throw new UserFacingError('User not found');
+    const user = await userDbService.findByUserId(sessionUser.id);
+    if (!user) {
+      throw new UserFacingError('User not found');
+    }
+    const userProfileUi: UserProfileUi = {
+      sub: sessionUser.sub,
+      name: sessionUser.name,
+      email: sessionUser.email,
+      email_verified: sessionUser.email_verified,
+      'http://getjetstream.app/app_metadata': user.appMetadata as any,
+      nickname: user.nickname || '',
+      id: user.id,
+      userId: user.userId,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+      preferences: {
+        skipFrontdoorLogin: !!user.preferences?.skipFrontdoorLogin,
+      },
+    };
+    sendJson(res, userProfileUi);
+  } catch (ex) {
+    req.log.error(getExceptionLog(ex), '[GET USER][ERROR]');
+    throw new UserFacingError('There was a problem obtaining your profile information');
   }
-  const userProfileUi: UserProfileUi = {
-    ...(auth0User._json as any),
-    id: user.id,
-    userId: user.userId,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
-    preferences: {
-      skipFrontdoorLogin: user.preferences?.skipFrontdoorLogin,
-    },
-  };
-  sendJson(res, userProfileUi);
 });
 
 async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: UserProfileAuth0Ui) {
