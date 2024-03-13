@@ -46,13 +46,14 @@ export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceP
       <ConfirmationServiceContext.Provider value={openConfirmation} children={children} />
 
       <ConfirmationDialog
+        submitDisabled={!!confirmationState?.submitDisabled}
         isOpen={Boolean(confirmationState)}
         onCancel={handleClose}
         onConfirm={handleConfirm}
-        header={confirmationState && confirmationState.header}
-        tagline={confirmationState && confirmationState.tagline}
-        cancelText={confirmationState && confirmationState.cancelText}
-        confirmText={confirmationState && confirmationState.confirmText}
+        header={confirmationState?.header}
+        tagline={confirmationState?.tagline}
+        cancelText={confirmationState?.cancelText}
+        confirmText={confirmationState?.confirmText}
       >
         {confirmationState && confirmationState.content}
       </ConfirmationDialog>

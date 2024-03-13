@@ -1,8 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { DropDown, Tooltip, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
+import { DropDown, Input, Tooltip, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { Query } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
@@ -10,7 +11,38 @@ import * as fromJetstreamEvents from '../../core/jetstream-events';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 
+export const MAX_BULK = 10000;
 const MAX_NEW_TABS = 50;
+
+const BatchSize = ({ onBatchSizeChange }: { onBatchSizeChange: (val: number) => void }) => {
+  const [batchSize, setBatchSize] = useState(10_000);
+  useNonInitialEffect(() => {
+    onBatchSizeChange(batchSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchSize]);
+
+  return (
+    <Input
+      label="Batch Size"
+      isRequired={true}
+      hasError={!batchSize || batchSize > MAX_BULK || batchSize < 1}
+      errorMessageId="batch-size-error"
+      errorMessage="Batch size must be between 1 and 10,000"
+      labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
+    >
+      <input
+        id="batch-size"
+        className="slds-input"
+        placeholder="Set batch size"
+        value={String(batchSize)}
+        aria-describedby={'batch-size-error'}
+        onChange={(ev) => {
+          setBatchSize(parseInt(ev.target.value.replaceAll(REGEX.NOT_NUMERIC, '') || '0', 10));
+        }}
+      />
+    </Input>
+  );
+};
 
 export interface QueryResultsMoreActionsProps {
   selectedOrg: SalesforceOrgUi;
@@ -40,13 +72,16 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const { trackEvent } = useAmplitude();
   const confirm = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
+  const [batchSize, setBatchSize] = useState(10_000);
 
   function handleBulkRowAction(id: 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab') {
     logger.log({ id, selectedRows });
     switch (id) {
       case 'bulk-delete': {
         const recordCountText = `${selectedRows.length} ${pluralizeIfMultiple('Record', selectedRows)}`;
+        // TODO: if user submits with invalid value, then keep it open and add error message
         confirm({
+          submitDisabled: !batchSize || batchSize > MAX_BULK || batchSize < 1,
           content: (
             <div className="slds-m-around_medium">
               <p className="slds-align_absolute-center slds-m-bottom_small">
@@ -56,6 +91,11 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
                 <strong>These records will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the
                 Salesforce recycle bin.
               </p>
+              <BatchSize
+                onBatchSizeChange={(ev) => {
+                  setBatchSize(ev);
+                }}
+              />
             </div>
           ),
         }).then(() => {

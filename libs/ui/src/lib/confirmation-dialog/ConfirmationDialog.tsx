@@ -1,9 +1,10 @@
+import { Maybe } from '@jetstream/types';
+import { OverlayProvider } from '@react-aria/overlays';
 import React, { Fragment, FunctionComponent } from 'react';
 import Modal from '../modal/Modal';
-import { OverlayProvider } from '@react-aria/overlays';
-import { Maybe } from '@jetstream/types';
 
 export interface ConfirmationDialogProps {
+  submitDisabled?: boolean;
   isOpen: boolean;
   header?: Maybe<string | JSX.Element>;
   tagline?: Maybe<string | JSX.Element>;
@@ -15,6 +16,7 @@ export interface ConfirmationDialogProps {
 }
 
 export interface ConfirmationDialogServiceProviderOptions {
+  submitDisabled?: boolean;
   rejectOnCancel?: boolean; // if true, then a cancellation will result in a rejected promise
   header?: Maybe<string | JSX.Element>;
   tagline?: Maybe<string | JSX.Element>;
@@ -24,6 +26,7 @@ export interface ConfirmationDialogServiceProviderOptions {
 }
 
 export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
+  submitDisabled,
   isOpen,
   header,
   tagline,
@@ -46,7 +49,7 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
               <button className="slds-button slds-button_neutral" onClick={onCancel}>
                 {cancelText}
               </button>
-              <button className="slds-button slds-button_brand" onClick={onConfirm}>
+              <button className="slds-button slds-button_brand" onClick={onConfirm} disabled={submitDisabled}>
                 {confirmText}
               </button>
             </Fragment>

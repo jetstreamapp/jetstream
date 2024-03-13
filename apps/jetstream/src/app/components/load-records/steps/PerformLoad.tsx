@@ -257,7 +257,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           hasError={!!batchSizeError || !!batchApiLimitError}
           errorMessageId="batch-size-error"
           errorMessage={batchSizeError || batchApiLimitError}
-          labelHelp="The batch size determines how many records will be processed together."
+          labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
           helpText={hasZipAttachment ? 'The batch size will be auto-calculated based on the size of the attachments.' : null}
         >
           <input
