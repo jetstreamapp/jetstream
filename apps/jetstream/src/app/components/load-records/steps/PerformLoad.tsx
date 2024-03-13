@@ -229,8 +229,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         <Checkbox
           id={'insert-null-values'}
           checked={insertNulls}
-          label={'Insert Null Values'}
-          labelHelp="Select this option to clear any mapped fields where the field is blank in your file."
+          label={'Clear Fields with Blank Values'}
+          labelHelp="Select this option to clear any mapped fields where the field is blank in your file. Checkbox fields do not allow null values, make sure any checkbox fields mapped in your file are not blank."
           disabled={loading}
           onChange={setInsertNulls}
         />
