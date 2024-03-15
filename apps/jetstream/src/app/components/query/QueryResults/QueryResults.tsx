@@ -15,8 +15,17 @@ import {
   useNonInitialEffect,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { AsyncJob, CloneEditView, MapOf, Maybe, Record, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { ensureArray, getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import {
+  AsyncJob,
+  CloneEditView,
+  MapOf,
+  Maybe,
+  RecordResult,
+  SalesforceOrgUi,
+  Record as SalesforceRecord,
+  SobjectCollectionResponse,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
@@ -30,6 +39,8 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  fireToast,
+  useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -91,12 +102,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [parsedQuery, setParsedQuery] = useState<Maybe<Query>>(null);
   const [queryResults, setQueryResults] = useState<IQueryResults | null>(null);
   const [recordCount, setRecordCount] = useState<number | null>(null);
-  const [records, setRecords] = useState<Record[] | null>(null);
+  const [records, setRecords] = useState<SalesforceRecord[] | null>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
   const [fields, setFields] = useState<string[] | null>(null);
   const [subqueryFields, setSubqueryFields] = useState<Maybe<MapOf<string[]>>>(null);
-  const [filteredRows, setFilteredRows] = useState<Record[]>([]);
-  const [selectedRows, setSelectedRows] = useState<Record[]>([]);
+  const [filteredRows, setFilteredRows] = useState<SalesforceRecord[]>([]);
+  const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -108,6 +119,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const confirm = useConfirmation();
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
     action: CloneEditView;
@@ -404,6 +416,41 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  async function handleDelete(record?: SalesforceRecord) {
+    try {
+      await confirm({
+        content: (
+          <div className="slds-m-around_medium">
+            <p className="slds-align_absolute-center slds-m-bottom_small">Are you sure you want to delete this record?</p>
+          </div>
+        ),
+        header: 'Confirm Delete',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      });
+      try {
+        setLoading(true);
+        const objectName = sobject || getSObjectNameFromAttributes(record);
+        const id = record.Id || getRecordIdFromAttributes(record);
+        if (!objectName || !id) {
+          throw new Error('Invalid object name or id');
+        }
+        const results = ensureArray(await sobjectOperation<RecordResult[]>(selectedOrg, objectName, 'delete', { ids: [id] }));
+        if (results[0]?.success) {
+          fireToast({ message: 'Record has been successfully deleted.', type: 'success' });
+          executeQuery(soql, SOURCE_RECORD_ACTION, { isTooling });
+        } else {
+          throw new Error(results[0]?.errors?.[0]?.message || 'An unknown error has occurred');
+        }
+      } catch (ex) {
+        fireToast({ message: `Error deleting record. ${ex.message || ''}`, type: 'error', duration: 30000 });
+        setLoading(false);
+      }
+    } catch (ex) {
+      // user cancelled
+    }
+  }
+
   function handleGetAsApex(record: any) {
     setGetRecordAsApex({
       record: record,
@@ -688,6 +735,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 handleCloneEditView(record, 'view', source);
               }}
               onUpdateRecords={handleUpdateRecords}
+              onDelete={(record) => {
+                handleDelete(record);
+              }}
               onGetAsApex={(record) => {
                 handleGetAsApex(record);
               }}
