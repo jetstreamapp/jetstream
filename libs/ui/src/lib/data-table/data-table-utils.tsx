@@ -194,8 +194,10 @@ export function getColumnDefinitions(
       parentColumns.unshift({
         key: ACTION_COLUMN_KEY,
         name: '',
-        resizable: false,
-        width: 100,
+        resizable: true,
+        width: 116,
+        minWidth: 100,
+        maxWidth: 150,
         renderCell: ActionRenderer,
         frozen: true,
         sortable: false,
