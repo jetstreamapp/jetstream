@@ -15,13 +15,13 @@ import {
   useNonInitialEffect,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { ensureArray, getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   AsyncJob,
+  AsyncJobNew,
   CloneEditView,
   MapOf,
   Maybe,
-  RecordResult,
   SalesforceOrgUi,
   Record as SalesforceRecord,
   SobjectCollectionResponse,
@@ -39,7 +39,6 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
-  fireToast,
   useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
@@ -417,38 +416,32 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   async function handleDelete(record?: SalesforceRecord) {
-    try {
-      await confirm({
-        content: (
-          <div className="slds-m-around_medium">
-            <p className="slds-align_absolute-center slds-m-bottom_small">Are you sure you want to delete this record?</p>
-          </div>
-        ),
-        header: 'Confirm Delete',
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
+    const label = record.Name || record.Name || record.Id || getRecordIdFromAttributes(record);
+    await confirm({
+      content: (
+        <div className="slds-m-around_medium">
+          <p className="slds-align_absolute-center slds-m-bottom_small">
+            Are you sure you want to <span className="slds-text-color_destructive slds-p-left_xx-small">delete {label}</span>?
+          </p>
+          <p>
+            <strong>This record will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the Salesforce
+            recycle bin.
+          </p>
+        </div>
+      ),
+      header: 'Confirm Delete',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+      .then(() => {
+        const jobs: AsyncJobNew[] = [{ type: 'BulkDelete', title: `Delete Record - ${label}`, org: selectedOrg, meta: [record] }];
+        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
+      })
+      .catch((ex) => {
+        logger.info(ex);
+        // user cancelled
       });
-      try {
-        setLoading(true);
-        const objectName = sobject || getSObjectNameFromAttributes(record);
-        const id = record.Id || getRecordIdFromAttributes(record);
-        if (!objectName || !id) {
-          throw new Error('Invalid object name or id');
-        }
-        const results = ensureArray(await sobjectOperation<RecordResult[]>(selectedOrg, objectName, 'delete', { ids: [id] }));
-        if (results[0]?.success) {
-          fireToast({ message: 'Record has been successfully deleted.', type: 'success' });
-          executeQuery(soql, SOURCE_RECORD_ACTION, { isTooling });
-        } else {
-          throw new Error(results[0]?.errors?.[0]?.message || 'An unknown error has occurred');
-        }
-      } catch (ex) {
-        fireToast({ message: `Error deleting record. ${ex.message || ''}`, type: 'error', duration: 30000 });
-        setLoading(false);
-      }
-    } catch (ex) {
-      // user cancelled
-    }
   }
 
   function handleGetAsApex(record: any) {
