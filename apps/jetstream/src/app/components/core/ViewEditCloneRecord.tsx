@@ -10,6 +10,7 @@ import {
   BulkDownloadJob,
   ChildRelationship,
   CloneEditView,
+  ErrorResult,
   Field,
   FileExtCsvXLSXJsonGSheet,
   MapOf,
@@ -35,7 +36,6 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import { ErrorResult } from 'jsforce';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
