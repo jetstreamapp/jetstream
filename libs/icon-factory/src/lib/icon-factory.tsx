@@ -35,7 +35,9 @@ import StandardIcon_PortalRolesAndSubordinates from './icons/standard/PortalRole
 import StandardIcon_ProductConsumed from './icons/standard/ProductConsumed';
 import StandardIcon_Record from './icons/standard/Record';
 import StandardIcon_RecordCreate from './icons/standard/RecordCreate';
+import StandardIcon_RecordDelete from './icons/standard/RecordDelete';
 import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
+import StandardIcon_RecordUpdate from './icons/standard/RecordUpdate';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import StandardIcon_Settings from './icons/standard/Settings';
 import UtilityIcon_Add from './icons/utility/Add';
@@ -102,7 +104,10 @@ import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_QuotationMarks from './icons/utility/QuotationMarks';
+import UtilityIcon_RecordCreate from './icons/utility/RecordCreate';
+import UtilityIcon_RecordDelete from './icons/utility/RecordDelete';
 import UtilityIcon_RecordLookup from './icons/utility/RecordLookup';
+import UtilityIcon_RecordUpdate from './icons/utility/RecordUpdate';
 import UtilityIcon_Refresh from './icons/utility/Refresh';
 import UtilityIcon_RemoveFormatting from './icons/utility/RemoveFormatting';
 import UtilityIcon_Richtextbulletedlist from './icons/utility/Richtextbulletedlist';
@@ -175,7 +180,9 @@ const standardIcons = {
   portal_roles_and_subordinates: StandardIcon_PortalRolesAndSubordinates,
   product_consumed: StandardIcon_ProductConsumed,
   record_create: StandardIcon_RecordCreate,
+  record_delete: StandardIcon_RecordDelete,
   record_lookup: StandardIcon_RecordLookup,
+  record_update: StandardIcon_RecordUpdate,
   record: StandardIcon_Record,
   related_list: StandardIcon_RelatedList,
   settings: StandardIcon_Settings,
@@ -261,7 +268,10 @@ const utilityIcons = {
   preview: UtilityIcon_Preview,
   prompt_edit: UtilityIcon_PromptEdit,
   quotation_marks: UtilityIcon_QuotationMarks,
+  record_create: UtilityIcon_RecordCreate,
+  record_delete: UtilityIcon_RecordDelete,
   record_lookup: UtilityIcon_RecordLookup,
+  record_update: UtilityIcon_RecordUpdate,
   refresh: UtilityIcon_Refresh,
   remove_formatting: UtilityIcon_RemoveFormatting,
   richtextbulletedlist: UtilityIcon_Richtextbulletedlist,

@@ -17,7 +17,6 @@ export interface ConfirmationDialogProps {
 
 export interface ConfirmationDialogServiceProviderOptions {
   submitDisabled?: boolean;
-  rejectOnCancel?: boolean; // if true, then a cancellation will result in a rejected promise
   header?: Maybe<string | JSX.Element>;
   tagline?: Maybe<string | JSX.Element>;
   content: React.ReactNode;

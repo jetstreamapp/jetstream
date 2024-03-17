@@ -312,7 +312,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   });
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
-  app.use(express.static(join(__dirname, '../landing/exported')));
+  app.use(express.static(join(__dirname, '../landing')));
   // SERVICE WORKER FOR DOWNLOAD ZIP
   app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
     res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
