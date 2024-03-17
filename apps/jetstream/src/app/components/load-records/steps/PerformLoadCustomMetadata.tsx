@@ -230,7 +230,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
         <Checkbox
           id={'insert-null-values'}
           checked
-          label={'Insert Null Values'}
+          label={'Clear Fields with Blank Values'}
           helpText={
             <span className="slds-text-color_destructive">
               Custom metadata records require all fields to be set, any unmapped or null fields will result in null values.

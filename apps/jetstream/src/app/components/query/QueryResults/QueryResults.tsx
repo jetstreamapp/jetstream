@@ -118,7 +118,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
-  const confirm = useConfirmation();
+  const { confirm } = useConfirmation();
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
     action: CloneEditView;
@@ -434,7 +434,14 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       cancelText: 'Cancel',
     })
       .then(() => {
-        const jobs: AsyncJobNew[] = [{ type: 'BulkDelete', title: `Delete Record - ${label}`, org: selectedOrg, meta: [record] }];
+        const jobs: AsyncJobNew[] = [
+          {
+            type: 'BulkDelete',
+            title: `Delete Record - ${label}`,
+            org: selectedOrg,
+            meta: { records: [record] },
+          },
+        ];
         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
         trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
       })
