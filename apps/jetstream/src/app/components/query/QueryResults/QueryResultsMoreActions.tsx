@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
@@ -11,11 +11,13 @@ import * as fromJetstreamEvents from '../../core/jetstream-events';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 
+export const MAX_BATCH = 200;
 export const MAX_BULK = 10000;
 const MAX_NEW_TABS = 50;
 
-const BatchSize = ({ onBatchSizeChange }: { onBatchSizeChange: (val: number) => void }) => {
-  const [batchSize, setBatchSize] = useState(10_000);
+const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BULK'; onBatchSizeChange: (val: number) => void }) => {
+  const maxSize = type === 'BULK' ? MAX_BULK : MAX_BATCH;
+  const [batchSize, setBatchSize] = useState(maxSize);
   useNonInitialEffect(() => {
     onBatchSizeChange(batchSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -25,9 +27,9 @@ const BatchSize = ({ onBatchSizeChange }: { onBatchSizeChange: (val: number) => 
     <Input
       label="Batch Size"
       isRequired={true}
-      hasError={!batchSize || batchSize > MAX_BULK || batchSize < 1}
+      hasError={!batchSize || batchSize > maxSize || batchSize < 1}
       errorMessageId="batch-size-error"
-      errorMessage="Batch size must be between 1 and 10,000"
+      errorMessage={`Batch size must be between 1 and ${formatNumber(maxSize)}`}
       labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
     >
       <input
@@ -70,9 +72,8 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   onCreateNewRecord,
 }) => {
   const { trackEvent } = useAmplitude();
-  const confirm = useConfirmation();
+  const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
-  const [batchSize, setBatchSize] = useState(10_000);
 
   function handleAction(id: 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
@@ -90,9 +91,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
           return;
         }
         const recordCountText = `${selectedRows.length} ${pluralizeIfMultiple('Record', selectedRows)}`;
-        // TODO: if user submits with invalid value, then keep it open and add error message
         confirm({
-          submitDisabled: !batchSize || batchSize > MAX_BULK || batchSize < 1,
           content: (
             <div className="slds-m-around_medium">
               <p className="slds-align_absolute-center slds-m-bottom_small">
@@ -103,15 +102,23 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
                 Salesforce recycle bin.
               </p>
               <BatchSize
-                onBatchSizeChange={(ev) => {
-                  setBatchSize(ev);
+                type="BATCH"
+                onBatchSizeChange={(batchSize) => {
+                  setOptions((prevValue) => ({
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    ...prevValue!,
+                    submitDisabled: !batchSize || batchSize > MAX_BULK || batchSize < 1,
+                    data: { batchSize },
+                  }));
                 }}
               />
             </div>
           ),
         })
-          .then(() => {
-            const jobs: AsyncJobNew[] = [{ type: 'BulkDelete', title: `Delete ${recordCountText}`, org: selectedOrg, meta: selectedRows }];
+          .then(({ batchSize }: { batchSize: number }) => {
+            const jobs: AsyncJobNew[] = [
+              { type: 'BulkDelete', title: `Delete ${recordCountText}`, org: selectedOrg, meta: { batchSize, records: selectedRows } },
+            ];
             fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
             trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
           })

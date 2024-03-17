@@ -41,6 +41,7 @@ import type {
   WorkerMessage,
 } from '@jetstream/types';
 import type { Record } from 'jsforce';
+import clamp from 'lodash/clamp';
 import isString from 'lodash/isString';
 import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 
@@ -79,13 +80,17 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         // TODO: add validation to ensure that we have at least one record
         // also, we are assuming that all records are same SObject
         const MAX_DELETE_RECORDS = 200;
-        let records: Record | Record[] = job.meta; // TODO: add strong type
+
+        let { records, batchSize } = job.meta as { records: Record[]; batchSize?: number };
         records = Array.isArray(records) ? records : [records];
+
+        batchSize = clamp(batchSize || MAX_DELETE_RECORDS, 1, 200);
+
         const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
         const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
 
         const results: any[] = [];
-        for (const ids of splitArrayToMaxSize(allIds, MAX_DELETE_RECORDS)) {
+        for (const ids of splitArrayToMaxSize(allIds, batchSize)) {
           try {
             // TODO: add progress notification and allow cancellation
             let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });

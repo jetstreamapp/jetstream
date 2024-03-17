@@ -22,6 +22,11 @@ export interface ConfirmationDialogServiceProviderOptions {
   content: React.ReactNode;
   cancelText?: Maybe<string>;
   confirmText?: Maybe<string>;
+  /**
+   * Any arbitrary data that can be passed to the dialog
+   * these options will be passed back to the consumer when the dialog is accepted
+   */
+  data?: any;
 }
 
 export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
