@@ -105,7 +105,7 @@ export function convertMetadataToEditableFields(
         ].concat(
           picklist.values.map((item) => ({
             id: item.value,
-            label: item.label,
+            label: item.label || item.value,
             value: item.value,
             secondaryLabel: item.label !== item.value ? item.value : null,
             secondaryLabelOnNewLine: item.label !== item.value,

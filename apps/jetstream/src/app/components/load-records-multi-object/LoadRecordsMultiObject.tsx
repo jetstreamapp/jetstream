@@ -213,7 +213,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
             <Checkbox
               id={'insert-null-values'}
               checked={insertNulls}
-              label={'Insert Null Values'}
+              label={'Clear Fields with Blank Values'}
               labelHelp="Select this option to clear any mapped fields where the field is blank in your file. This only applies to record updates."
               disabled={loadStarted || fileProcessingLoading}
               onChange={setInsertNulls}

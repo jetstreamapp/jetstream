@@ -1,8 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { DropDown, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
+import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { Query } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
@@ -10,7 +11,40 @@ import * as fromJetstreamEvents from '../../core/jetstream-events';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 
+export const MAX_BATCH = 200;
+export const MAX_BULK = 10000;
 const MAX_NEW_TABS = 50;
+
+const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BULK'; onBatchSizeChange: (val: number) => void }) => {
+  const maxSize = type === 'BULK' ? MAX_BULK : MAX_BATCH;
+  const [batchSize, setBatchSize] = useState(maxSize);
+  useNonInitialEffect(() => {
+    onBatchSizeChange(batchSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchSize]);
+
+  return (
+    <Input
+      label="Batch Size"
+      isRequired={true}
+      hasError={!batchSize || batchSize > maxSize || batchSize < 1}
+      errorMessageId="batch-size-error"
+      errorMessage={`Batch size must be between 1 and ${formatNumber(maxSize)}`}
+      labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
+    >
+      <input
+        id="batch-size"
+        className="slds-input"
+        placeholder="Set batch size"
+        value={String(batchSize)}
+        aria-describedby={'batch-size-error'}
+        onChange={(ev) => {
+          setBatchSize(parseInt(ev.target.value.replaceAll(REGEX.NOT_NUMERIC, '') || '0', 10));
+        }}
+      />
+    </Input>
+  );
+};
 
 export interface QueryResultsMoreActionsProps {
   selectedOrg: SalesforceOrgUi;
@@ -38,7 +72,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   onCreateNewRecord,
 }) => {
   const { trackEvent } = useAmplitude();
-  const confirm = useConfirmation();
+  const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
 
   function handleAction(id: 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
@@ -67,11 +101,24 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
                 <strong>These records will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the
                 Salesforce recycle bin.
               </p>
+              <BatchSize
+                type="BATCH"
+                onBatchSizeChange={(batchSize) => {
+                  setOptions((prevValue) => ({
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    ...prevValue!,
+                    submitDisabled: !batchSize || batchSize > MAX_BULK || batchSize < 1,
+                    data: { batchSize },
+                  }));
+                }}
+              />
             </div>
           ),
         })
-          .then(() => {
-            const jobs: AsyncJobNew[] = [{ type: 'BulkDelete', title: `Delete ${recordCountText}`, org: selectedOrg, meta: selectedRows }];
+          .then(({ batchSize }: { batchSize: number }) => {
+            const jobs: AsyncJobNew[] = [
+              { type: 'BulkDelete', title: `Delete ${recordCountText}`, org: selectedOrg, meta: { batchSize, records: selectedRows } },
+            ];
             fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
             trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
           })

@@ -355,7 +355,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             hasError={!!batchSizeError}
             errorMessageId="batch-size-error"
             errorMessage={batchSizeError}
-            labelHelp="The batch size determines the maximum number of records will be processed together."
+            labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
           >
             <input
               id="batch-size"

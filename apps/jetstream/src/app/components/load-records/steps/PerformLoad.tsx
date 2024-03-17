@@ -229,8 +229,8 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         <Checkbox
           id={'insert-null-values'}
           checked={insertNulls}
-          label={'Insert Null Values'}
-          labelHelp="Select this option to clear any mapped fields where the field is blank in your file."
+          label={'Clear Fields with Blank Values'}
+          labelHelp="Select this option to clear any mapped fields where the field is blank in your file. Checkbox fields do not allow null values, make sure any checkbox fields mapped in your file are not blank."
           disabled={loading}
           onChange={setInsertNulls}
         />
@@ -257,7 +257,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           hasError={!!batchSizeError || !!batchApiLimitError}
           errorMessageId="batch-size-error"
           errorMessage={batchSizeError || batchApiLimitError}
-          labelHelp="The batch size determines how many records will be processed together."
+          labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
           helpText={hasZipAttachment ? 'The batch size will be auto-calculated based on the size of the attachments.' : null}
         >
           <input

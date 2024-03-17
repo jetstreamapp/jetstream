@@ -42,7 +42,7 @@ export const PurgeLogsModal: FunctionComponent<PurgeLogsModalProps> = ({ selecte
             type: 'BulkDelete',
             title: `Delete Logs`,
             org: selectedOrg,
-            meta: records.queryResults.records,
+            meta: { records: records.queryResults.records },
           },
         ];
         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
