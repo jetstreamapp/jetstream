@@ -181,12 +181,13 @@ export const fieldDefinitions: FieldDefinitions = {
   precision: {
     label: 'Length',
     type: 'text', // number
+    labelHelp: 'Number of digits to the left of the decimal point',
     validate: (value: string) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
-      return isFinite(numValue) && numValue >= 0 && numValue <= 18;
+      return isFinite(numValue) && numValue >= 1 && numValue <= 18;
     },
     invalidErrorMessage: 'Must be between 0 and 18',
     required: true,
@@ -194,14 +195,15 @@ export const fieldDefinitions: FieldDefinitions = {
   scale: {
     label: 'Decimal Places',
     type: 'text',
+    labelHelp: 'Number of digits to the right of the decimal point',
     validate: (value: string) => {
       if (!value || !/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
-      return isFinite(numValue) && numValue >= 0 && numValue <= 18;
+      return isFinite(numValue) && numValue >= 0 && numValue <= 17;
     },
-    invalidErrorMessage: 'Must be between 0 and 18',
+    invalidErrorMessage: 'Must be between 0 and 17',
     required: true,
   },
   required: {
@@ -827,6 +829,15 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues, orgNames
   // prefix with object
   const fieldApiName = orgNamespace ? `${orgNamespace}__${fieldMetadata.fullName}__c` : `${fieldMetadata.fullName}__c`;
   fieldMetadata.fullName = `${sobject}.${fieldApiName}`;
+
+  if (fieldMetadata.scale && fieldMetadata.precision) {
+    const scale = Number(fieldMetadata.scale);
+    const precision = Number(fieldMetadata.precision);
+    if (!Number.isNaN(scale) && !Number.isNaN(precision)) {
+      fieldMetadata.scale = scale;
+      fieldMetadata.precision = scale + precision;
+    }
+  }
 
   if (fieldValues.type.value === 'Formula') {
     fieldMetadata.type = fieldValues.secondaryType.value;

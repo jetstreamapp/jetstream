@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { saveFile } from '@jetstream/shared/ui-utils';
 import { AsyncJob, ErrorResult, RecordResult } from '@jetstream/types';
@@ -7,6 +8,10 @@ export function downloadJob(job: AsyncJob) {
   switch (job.type) {
     case 'BulkDelete': {
       const results = job.results as RecordResult[];
+      if (!Array.isArray(results)) {
+        logger.warn('Job results are not an array, ignoring results', results);
+        return;
+      }
 
       const data = results.map((result) => {
         if (result.success) {

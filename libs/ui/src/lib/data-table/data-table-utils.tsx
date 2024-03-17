@@ -192,8 +192,10 @@ export function getColumnDefinitions(
       parentColumns.unshift({
         key: ACTION_COLUMN_KEY,
         name: '',
-        resizable: false,
-        width: 100,
+        resizable: true,
+        width: 116,
+        minWidth: 100,
+        maxWidth: 150,
         renderCell: ActionRenderer,
         frozen: true,
         sortable: false,
@@ -467,6 +469,7 @@ export function updateColumnWithEditMode(
       displayCellContent: true,
     };
     column.renderEditCell = dataTableEditorDropdownWrapper({
+      isMultiSelect: type === 'multipicklist',
       values: field.picklistValues
         .filter(({ active }) => active)
         .map(({ value, label }) => ({

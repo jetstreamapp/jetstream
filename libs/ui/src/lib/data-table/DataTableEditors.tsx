@@ -13,6 +13,7 @@ import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
 import ComboboxWithItemsTypeAhead from '../form/combobox/ComboboxWithItemsTypeAhead';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
+import Picklist from '../form/picklist/Picklist';
 import PopoverContainer from '../popover/PopoverContainer';
 import Tabs from '../tabs/Tabs';
 import OutsideClickHandler from '../utils/OutsideClickHandler';
@@ -139,16 +140,66 @@ export function DataTableEditorBoolean<TRow extends { _idx: number }, TSummaryRo
   );
 }
 
-export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TSummaryRow>({ values: _values }: { values: ListItem[] }) {
+export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TSummaryRow>({
+  values: _values,
+  isMultiSelect,
+}: {
+  values: ListItem[];
+  isMultiSelect: boolean;
+}) {
   return ({ row, column, onRowChange, onClose }: RenderEditCellProps<TRow, TSummaryRow>) => {
     const allValues = useRef(new Set(_values.map((v) => v.value)));
     const [values, setValues] = useState<ListItem[]>(_values);
 
-    const currValue = row[column.key as keyof TRow] as unknown as string;
+    const selectedItemId = row[column.key as keyof TRow] as unknown as string;
+    // only used if multi-select is enabled
+
     // make sure inactive value (if selected) shows up as an option in the dropdown
-    if (currValue && !allValues.current.has(currValue)) {
-      allValues.current.add(currValue);
-      setValues([...values, { id: currValue, label: currValue, value: currValue }]);
+    // only runs on first render
+    useEffect(() => {
+      if (isMultiSelect) {
+        const selectedItemIds = selectedItemId ? selectedItemId.split(';') : [];
+        if (selectedItemIds.length) {
+          const missingItems = selectedItemIds
+            .filter((itemId) => !allValues.current.has(itemId))
+            .map((itemId) => {
+              allValues.current.add(itemId);
+              return itemId;
+            });
+          setValues([...values, ...missingItems.map((itemId) => ({ id: itemId, label: itemId, value: itemId }))]);
+        }
+      } else {
+        if (selectedItemId && !allValues.current.has(selectedItemId)) {
+          allValues.current.add(selectedItemId);
+          setValues([...values, { id: selectedItemId, label: selectedItemId, value: selectedItemId }]);
+        }
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    if (isMultiSelect) {
+      const selectedItemIds = selectedItemId ? selectedItemId.split(';') : [];
+      return (
+        <DataTableEditorPopover rowIdx={row._idx} colIdx={column.idx} onClose={onClose}>
+          <Picklist
+            label={`Edit ${isString(column.name) ? column.name : column.key}`}
+            hideLabel
+            items={values}
+            selectedItemIds={selectedItemIds}
+            multiSelection
+            omitMultiSelectPills
+            scrollLength={10}
+            onClose={() => {
+              onClose(true);
+            }}
+            onChange={(items) => {
+              const _touchedColumns = new Set((row as any)._touchedColumns || []);
+              _touchedColumns.add(column.key);
+              onRowChange({ ...row, [column.key]: (items || []).map((item) => item.value).join(';'), _touchedColumns }, false);
+            }}
+          />
+        </DataTableEditorPopover>
+      );
     }
 
     return (
@@ -163,7 +214,7 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
             },
           }}
           items={values}
-          selectedItemId={row[column.key as keyof TRow] as unknown as string}
+          selectedItemId={selectedItemId}
           onSelected={(item) => {
             const _touchedColumns = new Set((row as any)._touchedColumns || []);
             _touchedColumns.add(column.key);

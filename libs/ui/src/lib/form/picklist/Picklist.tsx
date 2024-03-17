@@ -59,6 +59,7 @@ export interface PicklistProps {
   scrollLength?: DropDownItemLength;
   disabled?: boolean;
   onChange: (selectedItems: ListItem[]) => void;
+  onClose?: () => void;
   onBlur?: () => void;
 }
 
@@ -105,6 +106,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
       scrollLength,
       disabled,
       onChange,
+      onClose,
       onBlur,
     },
     ref
@@ -206,7 +208,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
           selectedItemsIdsSet.clear();
           // if user clicked on new item in list, close
           if (!hasItem) {
-            setIsOpen(false);
+            handleClose();
           }
         }
         selectedItemsIdsSet.add(id);
@@ -309,8 +311,13 @@ export const Picklist = forwardRef<any, PicklistProps>(
       }
     }
 
+    function handleClose() {
+      setIsOpen(false);
+      onClose?.();
+    }
+
     return (
-      <OutsideClickHandler display={containerDisplay} onOutsideClick={() => setIsOpen(false)}>
+      <OutsideClickHandler display={containerDisplay} onOutsideClick={() => handleClose()}>
         <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
           <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={comboboxId}>
             {isRequired && (

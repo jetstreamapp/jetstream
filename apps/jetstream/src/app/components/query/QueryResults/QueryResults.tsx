@@ -17,6 +17,7 @@ import {
 import { getRecordIdFromAttributes, getSObjectNameFromAttributes, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   AsyncJob,
+  AsyncJobNew,
   CloneEditView,
   QueryResults as IQueryResults,
   MapOf,
@@ -38,6 +39,7 @@ import {
   Toolbar,
   ToolbarItemActions,
   ToolbarItemGroup,
+  useConfirmation,
 } from '@jetstream/ui';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -116,6 +118,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
   const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const confirm = useConfirmation();
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
     action: CloneEditView;
@@ -412,6 +415,35 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
   }
 
+  async function handleDelete(record?: SalesforceRecord) {
+    const label = record.Name || record.Name || record.Id || getRecordIdFromAttributes(record);
+    await confirm({
+      content: (
+        <div className="slds-m-around_medium">
+          <p className="slds-align_absolute-center slds-m-bottom_small">
+            Are you sure you want to <span className="slds-text-color_destructive slds-p-left_xx-small">delete {label}</span>?
+          </p>
+          <p>
+            <strong>This record will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the Salesforce
+            recycle bin.
+          </p>
+        </div>
+      ),
+      header: 'Confirm Delete',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    })
+      .then(() => {
+        const jobs: AsyncJobNew[] = [{ type: 'BulkDelete', title: `Delete Record - ${label}`, org: selectedOrg, meta: [record] }];
+        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
+      })
+      .catch((ex) => {
+        logger.info(ex);
+        // user cancelled
+      });
+  }
+
   function handleGetAsApex(record: any) {
     setGetRecordAsApex({
       record: record,
@@ -696,6 +728,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 handleCloneEditView(record, 'view', source);
               }}
               onUpdateRecords={handleUpdateRecords}
+              onDelete={(record) => {
+                handleDelete(record);
+              }}
               onGetAsApex={(record) => {
                 handleGetAsApex(record);
               }}

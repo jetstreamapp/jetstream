@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { DropDown, Tooltip, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
+import { DropDown, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { Query } from 'soql-parser-js';
 import { useAmplitude } from '../../core/analytics';
@@ -41,10 +41,21 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const confirm = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
 
-  function handleBulkRowAction(id: 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab') {
+  function handleAction(id: 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
     switch (id) {
+      case 'bulk-update': {
+        setOpenModal('bulk-update');
+        break;
+      }
+      case 'new-record': {
+        onCreateNewRecord();
+        break;
+      }
       case 'bulk-delete': {
+        if (!selectedRows) {
+          return;
+        }
         const recordCountText = `${selectedRows.length} ${pluralizeIfMultiple('Record', selectedRows)}`;
         confirm({
           content: (
@@ -58,25 +69,29 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
               </p>
             </div>
           ),
-        }).then(() => {
-          const jobs: AsyncJobNew[] = [
-            {
-              type: 'BulkDelete',
-              title: `Delete ${recordCountText}`,
-              org: selectedOrg,
-              meta: selectedRows,
-            },
-          ];
-          fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
-          trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length });
-        });
+        })
+          .then(() => {
+            const jobs: AsyncJobNew[] = [{ type: 'BulkDelete', title: `Delete ${recordCountText}`, org: selectedOrg, meta: selectedRows }];
+            fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+            trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
+          })
+          .catch((ex) => {
+            logger.info(ex);
+            // user cancelled
+          });
         break;
       }
       case 'get-as-apex': {
+        if (!selectedRows) {
+          return;
+        }
         setOpenModal('apex');
         break;
       }
       case 'open-in-new-tab': {
+        if (!selectedRows) {
+          return;
+        }
         (selectedRows.length <= 15
           ? Promise.resolve()
           : confirm({
@@ -110,19 +125,6 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
     }
   }
 
-  function handleAction(item: 'bulk-update' | 'new-record') {
-    switch (item) {
-      case 'bulk-update':
-        setOpenModal('bulk-update');
-        break;
-      case 'new-record':
-        onCreateNewRecord();
-        break;
-      default:
-        break;
-    }
-  }
-
   function handleBulkUpdateModalClose(didUpdate = false) {
     setOpenModal(false);
     didUpdate && refreshRecords();
@@ -130,44 +132,6 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
 
   return (
     <Fragment>
-      <Tooltip content={!sObject || selectedRows.length === 0 ? 'Select one or more records to enable record actions' : undefined}>
-        <DropDown
-          className="slds-m-right_xx-small"
-          dropDownClassName="slds-dropdown_actions"
-          position="right"
-          disabled={disabled || selectedRows.length === 0}
-          leadingIcon={{ icon: 'table', type: 'utility', description: 'More Actions' }}
-          actionText="Selected record actions"
-          items={[
-            {
-              id: 'bulk-delete',
-              value: 'Delete Selected Records',
-              icon: {
-                icon: 'delete',
-                type: 'utility',
-              },
-            },
-            {
-              id: 'get-as-apex',
-              value: 'Turn records into Apex',
-              icon: {
-                icon: 'apex',
-                type: 'utility',
-              },
-            },
-            {
-              id: 'open-in-new-tab',
-              value: 'Open selected records in Salesforce',
-              icon: {
-                icon: 'new_window',
-                type: 'utility',
-              },
-            },
-          ]}
-          onSelected={(item) => handleBulkRowAction(item as 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab')}
-        />
-      </Tooltip>
-
       <DropDown
         className="slds-m-right_xx-small"
         dropDownClassName="slds-dropdown_actions"
@@ -176,10 +140,56 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
         actionText="Record actions"
         disabled={disabled}
         items={[
-          { id: 'bulk-update', value: 'Bulk update records', disabled: !sObject || !totalRecordCount || !parsedQuery },
-          { id: 'new-record', value: 'Create new record', disabled: !sObject || !parsedQuery },
+          {
+            id: 'bulk-update',
+            subheader: 'Actions',
+            value: 'Bulk update records',
+            disabled: !sObject || !totalRecordCount || !parsedQuery,
+            icon: {
+              icon: 'upload',
+              type: 'utility',
+            },
+          },
+          {
+            id: 'new-record',
+            value: 'Create new record',
+            disabled: !sObject || !parsedQuery,
+            trailingDivider: true,
+            icon: {
+              icon: 'record_create',
+              type: 'utility',
+            },
+          },
+          {
+            id: 'bulk-delete',
+            subheader: 'Selected Record Actions',
+            value: 'Delete Selected Records',
+            disabled: disabled || selectedRows.length === 0,
+            icon: {
+              icon: 'delete',
+              type: 'utility',
+            },
+          },
+          {
+            id: 'get-as-apex',
+            value: 'Convert selected records to Apex',
+            disabled: disabled || selectedRows.length === 0,
+            icon: {
+              icon: 'apex',
+              type: 'utility',
+            },
+          },
+          {
+            id: 'open-in-new-tab',
+            value: 'Open selected records in Salesforce',
+            disabled: disabled || selectedRows.length === 0,
+            icon: {
+              icon: 'new_window',
+              type: 'utility',
+            },
+          },
         ]}
-        onSelected={(item) => handleAction(item as 'bulk-update' | 'new-record')}
+        onSelected={(item) => handleAction(item as 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record')}
       />
 
       {openModal === 'bulk-update' && sObject && totalRecordCount && parsedQuery && (
