@@ -35,6 +35,7 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
+import { ErrorResult } from 'jsforce';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -197,7 +198,15 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       );
 
       if (action !== 'create' && recordId) {
-        record = (await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: [recordId] }))[0];
+        const response: SalesforceRecord | ErrorResult = (
+          await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: [recordId] })
+        )[0];
+        if ('success' in response && !response.success) {
+          setFormErrors(handleEditFormErrorResponse(response));
+          setLoading(false);
+          return;
+        }
+        record = response;
       }
 
       let recordTypeId = record?.RecordTypeId;

@@ -1,5 +1,5 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
+import { ListMetadataResult, MapOf, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
 import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from '../utils/error-handler';
@@ -9,7 +9,7 @@ const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 export function buildPackageXml(
   types: MapOf<Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
   version: string,
-  otherFields: MapOf<string> = {},
+  otherFields: Maybe<MapOf<string>> = {},
   prettyPrint = true
 ) {
   // prettier-ignore

@@ -17,7 +17,7 @@ export interface AddToChangesetConfigModalProps {
   onChangesetPackages: (changesetPackages: ListItem<string, ChangeSet>[]) => void;
   onSelection: (changesetPackage: string) => void;
   onClose: () => void;
-  onDeploy: (changesetPackage: string, changesetDescription: string, changeset?: ChangeSet) => void;
+  onDeploy: (changesetPackage: string, changesetDescription: string, changeset?: Maybe<ChangeSet>) => void;
 }
 
 export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigModalProps> = ({
@@ -85,7 +85,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
           </button>
           <button
             className="slds-button slds-button_brand"
-            onClick={() => selectedChangeset && onDeploy(changesetPackage, changesetDescription, selectedChangeset)}
+            onClick={() => onDeploy(changesetPackage, changesetDescription, selectedChangeset)}
             disabled={loading || !changesetPackage}
           >
             Deploy
@@ -196,7 +196,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                 <Input
                   label="Changesets"
                   isRequired
-                  labelHelp="This is case-sensitive and must match the exact name of the outbound changeset in Salesforce"
+                  labelHelp="This is case-sensitive and must match the exact name of the outbound changeset or package in Salesforce"
                 >
                   <input
                     id="changeset-name"

@@ -7374,10 +7374,10 @@
   resolved "https://registry.yarnpkg.com/@rushstack/eslint-patch/-/eslint-patch-1.7.2.tgz#2d4260033e199b3032a08b41348ac10de21c47e9"
   integrity sha512-RbhOOTCNoCrbfkRyoXODZp75MlpiHMgbE5MEBZAnnnLyQNgrigEj4p0lzsMDyc1zVsJDLrivB58tgg3emX0eEA==
 
-"@salesforce-ux/design-system@^2.22.2":
-  version "2.22.2"
-  resolved "https://registry.yarnpkg.com/@salesforce-ux/design-system/-/design-system-2.22.2.tgz#5f88f45939ab17b7b1272f5414bbfa6133112c9d"
-  integrity sha512-Q9JjQcpf/KerzylgSNuXpB7ugz7PXPkcR3HJNjqiISuWTXT562/frLnoUaa2VVMgK/8kuRQw288ACLWVCLIFHA==
+"@salesforce-ux/design-system@^2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@salesforce-ux/design-system/-/design-system-2.23.2.tgz#22634fa3b78fc592a5fa2ae9ac773354e0e9fbe1"
+  integrity sha512-Mw6xvAC7K+66dBvqY9Uk7euUrwIEaT1J7gLfKC0VLajepAWZKVfOI+Oovc39RivO5K2zYDFD8LYNAO3wfzD1AA==
 
 "@sideway/address@^4.1.3":
   version "4.1.4"

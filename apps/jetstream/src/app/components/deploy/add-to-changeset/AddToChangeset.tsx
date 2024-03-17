@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, DeployResult, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -42,7 +42,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
     setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
   }
 
-  function handleDeployToChangeset(packageName: string, changesetDescription: string, changeset?: ChangeSet) {
+  function handleDeployToChangeset(packageName: string, changesetDescription: string, changeset?: Maybe<ChangeSet>) {
     setChangesetPackageName(packageName);
     setChangesetPackageDescription(changesetDescription);
     setSelectedChangeset(changeset);

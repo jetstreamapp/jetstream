@@ -126,7 +126,7 @@
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@release-it/bumper": "^4.0.2",
     "@release-it/conventional-changelog": "^5.0.0",
-    "@salesforce-ux/design-system": "^2.22.2",
+    "@salesforce-ux/design-system": "^2.23.2",
     "@storybook/addon-essentials": "7.5.3",
     "@storybook/addon-knobs": "^7.0.2",
     "@storybook/core-server": "7.5.3",

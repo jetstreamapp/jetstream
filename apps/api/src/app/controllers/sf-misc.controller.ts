@@ -1,11 +1,5 @@
-import {
-  BooleanQueryParamSchema,
-  RecordOperationRequestSchema,
-  SalesforceApiRequestSchema,
-  SalesforceRequestManualRequestSchema,
-} from '@jetstream/api-types';
+import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
 import { FetchResponse } from '@jetstream/salesforce-api';
-import { toBoolean } from '@jetstream/shared/utils';
 import { ManualRequestResponse } from '@jetstream/types';
 import { Readable } from 'stream';
 import { z } from 'zod';
@@ -38,20 +32,6 @@ export const routeDefinition = {
     controllerFn: () => salesforceRequestManual,
     validators: {
       body: SalesforceRequestManualRequestSchema,
-    },
-  },
-  recordOperation: {
-    controllerFn: () => recordOperation,
-    validators: {
-      params: z.object({
-        sobject: z.string(),
-        operation: z.string(),
-      }),
-      body: RecordOperationRequestSchema,
-      query: z.object({
-        externalId: z.string().optional(),
-        allOrNone: BooleanQueryParamSchema,
-      }),
     },
   },
 };
@@ -91,7 +71,7 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
 const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
     const payload = body;
-    const results = await jetstreamConn.request.manualRequest(payload, 'json', true);
+    const results = await jetstreamConn.request.manualRequest(payload, payload.options?.responseType || 'json', true);
 
     sendJson(res, results);
   } catch (ex) {
@@ -122,36 +102,6 @@ const salesforceRequestManual = createRoute(
       });
 
       sendJson<ManualRequestResponse>(res, results);
-    } catch (ex) {
-      next(new UserFacingError(ex.message));
-    }
-  }
-);
-
-const recordOperation = createRoute(
-  routeDefinition.recordOperation.validators,
-  async ({ body, params, query, jetstreamConn }, req, res, next) => {
-    try {
-      // FIXME: add express validator to operation
-      const { sobject, operation } = params;
-      const { externalId } = query;
-      // FIXME: move to express validator to do data conversion
-      const allOrNone = toBoolean(query.allOrNone, true);
-      // TODO: validate combination based on operation or add validation to case statement
-      // ids and records can be one or an array
-      const { ids, records } = body;
-
-      const results = await jetstreamConn.sobject.recordOperation({
-        sobject,
-        operation,
-        externalId,
-        records,
-        allOrNone,
-        ids,
-        //  isTooling,
-      });
-
-      sendJson(res, results);
     } catch (ex) {
       next(new UserFacingError(ex.message));
     }

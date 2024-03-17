@@ -177,6 +177,23 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
             namespacePrefix: null,
             type,
           });
+          if (type === 'FlowDefinition') {
+            output.Flow = output.Flow || [];
+            output.Flow.push({
+              createdById: null,
+              createdByName: null,
+              createdDate: null,
+              fileName: fileName,
+              fullName: fullName,
+              id: record.Id,
+              lastModifiedById: null,
+              lastModifiedByName: null,
+              lastModifiedDate: null,
+              manageableState: 'unmanaged',
+              namespacePrefix: null,
+              type,
+            });
+          }
           return output;
         }, {}),
       uploadToGoogle: data.uploadToGoogle,

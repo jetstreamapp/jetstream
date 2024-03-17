@@ -5,7 +5,7 @@ export const ListMetadataRequestSchema = z.object({
   types: z
     .object({
       type: z.string(),
-      folder: z.string().optional(),
+      folder: z.string().nullish(),
     })
     .array()
     .min(1),
@@ -51,8 +51,8 @@ export type RetrievePackageFromManifestRequest = z.infer<typeof RetrievePackageF
 
 export const CheckRetrieveStatusAndRedeployRequestSchema = z
   .object({
-    changesetName: z.string().optional(),
-    replacementPackageXml: z.string().optional(),
+    changesetName: z.string().nullish(),
+    replacementPackageXml: z.string().nullish(),
     deployOptions: DeployOptionsSchema,
   })
   .refine(
@@ -66,16 +66,16 @@ export const GetPackageXmlSchema = z.object({
     z
       .object({
         fullName: z.string(),
-        namespacePrefix: z.string().optional(),
+        namespacePrefix: z.string().nullish(),
       })
       .array()
   ), // TODO: define metadata type
-  otherFields: z.record(z.string()).optional(),
+  otherFields: z.record(z.string()).nullish(),
 });
 export type GetPackageXml = z.infer<typeof GetPackageXmlSchema>;
 
 export const AnonymousApexSchema = z.object({
   apex: z.string().min(1),
-  logLevel: z.enum(['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST']).optional(),
+  logLevel: z.enum(['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST']).nullish(),
 });
 export type AnonymousApex = z.infer<typeof AnonymousApexSchema>;

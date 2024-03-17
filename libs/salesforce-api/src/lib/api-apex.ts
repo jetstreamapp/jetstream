@@ -1,5 +1,5 @@
-import { getValueOrSoapNull, toBoolean } from '@jetstream/shared/utils';
-import { AnonymousApexResponse, ApexCompletionResponse } from '@jetstream/types';
+import { getValueOrSoapNull, toBoolean, unSanitizeXml } from '@jetstream/shared/utils';
+import { AnonymousApexResponse, ApexCompletionResponse, Maybe } from '@jetstream/types';
 import toNumber from 'lodash/toNumber';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
@@ -9,7 +9,7 @@ export class ApiApex extends SalesforceApi {
     super(connection);
   }
 
-  async anonymousApex({ apex, logLevel }: { apex: string; logLevel?: string }): Promise<AnonymousApexResponse> {
+  async anonymousApex({ apex, logLevel }: { apex: string; logLevel?: Maybe<string> }): Promise<AnonymousApexResponse> {
     logLevel = logLevel || 'FINEST';
 
     const header = {
@@ -60,6 +60,7 @@ export class ApiApex extends SalesforceApi {
       if (typeof results.debugLog !== 'string') {
         results.debugLog = '';
       }
+      results.debugLog = unSanitizeXml(results.debugLog);
       return results;
     });
   }

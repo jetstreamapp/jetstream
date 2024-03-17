@@ -10,6 +10,7 @@ import { routeDefinition as bulkQuery20ApiController } from '../controllers/sf-b
 import { routeDefinition as metadataToolingController } from '../controllers/sf-metadata-tooling.controller';
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
+import { routeDefinition as recordController } from '../controllers/sf-record.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
 import { addOrgsToLocal, checkAuth, ensureTargetOrgExists } from './route.middleware';
@@ -97,11 +98,16 @@ routes.get('/apex/completions/:type', metadataToolingController.apexCompletions.
  * miscController Routes
  * ************************************
  */
-/** Download file or attachment */
 routes.get('/file/stream-download', miscController.streamFileDownload.controllerFn());
-routes.post('/record/:operation/:sobject', miscController.recordOperation.controllerFn());
 routes.post('/request', miscController.salesforceRequest.controllerFn());
 routes.post('/request-manual', miscController.salesforceRequestManual.controllerFn());
+
+/**
+ * ************************************
+ * recordController Routes
+ * ************************************
+ */
+routes.post('/record/:operation/:sobject', recordController.recordOperation.controllerFn());
 
 /**
  * ************************************

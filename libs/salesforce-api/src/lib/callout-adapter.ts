@@ -11,7 +11,7 @@ const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/fau
  */
 export function getApiRequestFactoryFn(fetch: fetchFn) {
   return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean, logger: Logger = console) => {
-    const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh: boolean = true): Promise<Response> => {
+    const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
       let { url, body, outputType } = options;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
       const { accessToken, instanceUrl } = sessionInfo;
@@ -43,6 +43,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
                 .clone()
                 .text()
                 .then((responseBody) => logger.debug({ responseBody }))
+                // eslint-disable-next-line @typescript-eslint/no-empty-function
                 .catch((_) => {});
             }
           }

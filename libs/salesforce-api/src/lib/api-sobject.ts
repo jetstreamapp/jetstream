@@ -152,6 +152,23 @@ export class ApiSObject extends SalesforceApi {
       throw new Error('operationPromise is undefined');
     }
 
-    return await operationPromise;
+    return await operationPromise.then((response) => {
+      return response.map((item) => {
+        // Some error responses are of some random type (e.x. invalid id in retrieve)
+        // Convert to normalized error format
+        // ex: [[{"errorCode": "NOT_FOUND", "message": "The requested resource does not exist"}]]
+        if (Array.isArray(item) && item.length > 0 && 'errorCode' in item[0] && 'message' in item[0]) {
+          return {
+            errors: item.map((error) => ({
+              fields: [],
+              message: error.errorCode,
+              statusCode: error.message,
+            })),
+            success: false,
+          };
+        }
+        return item;
+      });
+    });
   }
 }

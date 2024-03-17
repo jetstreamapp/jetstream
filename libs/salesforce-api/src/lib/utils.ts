@@ -128,32 +128,36 @@ export function toSoapXML(name: unknown, value?: unknown): string {
   }
   if (Array.isArray(value)) {
     return value.map((v) => toSoapXML(name, v)).join('');
-  } else {
-    const attrs: any[] = [];
-    const elems: any[] = [];
-    if (isObject(value)) {
-      for (let k in value) {
-        const v = (value as any)[k];
-        if (k[0] === '@') {
-          k = k.substring(1);
-          attrs.push(k + '="' + v + '"');
-        } else {
-          elems.push(toSoapXML(k, v));
-        }
-      }
-      value = elems.join('');
-    } else {
-      value = String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-    }
-    const startTag = name ? '<' + name + (attrs.length > 0 ? ' ' + attrs.join(' ') : '') + '>' : '';
-    const endTag = name ? '</' + name + '>' : '';
-    return startTag + value + endTag;
   }
+
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  const attrs: any[] = [];
+  const elems: any[] = [];
+  if (isObject(value)) {
+    for (let k in value) {
+      const v = (value as any)[k];
+      if (k[0] === '@') {
+        k = k.substring(1);
+        attrs.push(k + '="' + v + '"');
+      } else {
+        elems.push(toSoapXML(k, v));
+      }
+    }
+    value = elems.join('');
+  } else {
+    value = String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+  const startTag = name ? '<' + name + (attrs.length > 0 ? ' ' + attrs.join(' ') : '') + '>' : '';
+  const endTag = name ? '</' + name + '>' : '';
+  return startTag + value + endTag;
 }
 
 // TODO: potentially something like this

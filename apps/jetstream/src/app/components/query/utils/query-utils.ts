@@ -80,8 +80,10 @@ export function combineRecordsForClone(
       clonedRecord[field.name] = undefined;
     }
   });
-  ['LastModifiedBy', 'Owner', 'CreatedBy'].forEach((fieldName) => {
-    if (clonedRecord[fieldName]) {
+  // Record includes a bunch of related record data so we can show the name of the related record
+  // but this will cause errors on record action, so we need to remove it
+  Object.keys(clonedRecord).forEach((fieldName) => {
+    if (typeof clonedRecord[fieldName] === 'object' && clonedRecord[fieldName] !== null && fieldName !== 'attributes') {
       clonedRecord[fieldName] = undefined;
     }
   });
