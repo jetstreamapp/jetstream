@@ -5,12 +5,19 @@ import {
   ApiResponse,
   ListMetadataResult,
   ListMetadataResultRaw,
-  MapOf,
   RetrieveResult,
   RetrieveResultRaw,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, {
+  AxiosAdapter,
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  AxiosResponseHeaders,
+  InternalAxiosRequestConfig,
+  RawAxiosResponseHeaders,
+} from 'axios';
 import parseISO from 'date-fns/parseISO';
 import isEmpty from 'lodash/isEmpty';
 import isObject from 'lodash/isObject';
@@ -19,14 +26,18 @@ import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
 import { errorMiddleware } from './middleware';
 
-function getHeader(headers: MapOf<string>, header: string) {
+function getHeader(headers: RawAxiosResponseHeaders | AxiosResponseHeaders, header: string) {
   if (!headers || !header) {
     return null;
   }
-  return headers[header] || headers[header.toLowerCase()];
+  const value = headers[header] || headers[header.toLowerCase()];
+  if (!value && typeof headers.get === 'function') {
+    return headers.get(header) || headers.get(header.toLowerCase());
+  }
+  return value;
 }
 
-const baseConfig: Partial<AxiosRequestConfig> = {};
+const baseConfig: Partial<InternalAxiosRequestConfig> = {};
 
 export function initForElectron(adapter: AxiosAdapter) {
   // use MessagePort adapter for communicating with server
@@ -104,7 +115,7 @@ function requestInterceptor<T>(options: {
   useQueryParamsInCacheKey?: boolean;
   useBodyInCacheKey?: boolean;
 }) {
-  return async (config: AxiosRequestConfig) => {
+  return async (config: InternalAxiosRequestConfig) => {
     logger.info(`[HTTP][REQ][${config.method?.toUpperCase()}]`, config.url, { request: config });
     const { org, targetOrg, useCache, skipRequestCache, skipCacheIfOlderThan, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
@@ -123,7 +134,7 @@ function requestInterceptor<T>(options: {
 
     // IF mock response header exists and mock response exists, return data instead of making actual request
     if (config.headers[HTTP.HEADERS.X_MOCK_KEY] && SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers[HTTP.HEADERS.X_MOCK_KEY] as string]) {
-      config.adapter = (config: AxiosRequestConfig) => {
+      config.adapter = (config: InternalAxiosRequestConfig) => {
         return new Promise((resolve) => {
           resolve({
             data: SOBJECT_DESCRIBE_CACHED_RESPONSES[config.headers?.[HTTP.HEADERS.X_MOCK_KEY] as string],
@@ -140,7 +151,7 @@ function requestInterceptor<T>(options: {
       if (cachedResults) {
         // if skipCacheIfOlderThan is provided, then see if cache is older than provided date and skip cache if so
         if (!skipCacheIfOlderThan || (Number.isFinite(skipCacheIfOlderThan) && cachedResults.age >= skipCacheIfOlderThan)) {
-          config.adapter = async (config: AxiosRequestConfig) => {
+          config.adapter = async (config: InternalAxiosRequestConfig) => {
             return new Promise((resolve) => {
               resolve({
                 config,
