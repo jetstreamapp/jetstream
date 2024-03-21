@@ -479,6 +479,8 @@ export function convertFiltersToWhereClause<T extends WhereClause | HavingClause
 }
 
 export function getOperatorFromWhereClause(operator: Operator, value: string, hasNegation = false): QueryFilterOperator {
+  // Some invalid queries have value as an array
+  value = !value || typeof value !== 'string' ? '' : value;
   operator = (operator?.toUpperCase() as Operator) || operator;
   switch (operator) {
     case '=':
