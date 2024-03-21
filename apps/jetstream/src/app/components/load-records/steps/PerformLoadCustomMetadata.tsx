@@ -4,17 +4,17 @@ import { getMapOf } from '@jetstream/shared/utils';
 import { DeployMessage, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import { useAmplitude } from '../../core/analytics';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
+import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { DownloadType } from '../../shared/load-records-results/load-records-results-types';
+import { useDeployMetadataPackage } from '../../shared/useDeployMetadataPackage';
+import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
 import LoadRecordsResultsModal from '../components/load-results/LoadRecordsResultsModal';
-import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import { DownloadModalData, FieldMapping, FieldWithRelatedEntities, MapOfCustomMetadataRecord, ViewModalData } from '../load-records-types';
-import { useDeployMetadataPackage } from '../useDeployMetadataPackage';
 import { convertCsvToCustomMetadata, prepareCustomMetadata } from '../utils/load-records-utils';
 
 export function getDeploymentStatusUrl(id: string) {
@@ -49,7 +49,8 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
 }) => {
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
@@ -229,7 +230,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
         <Checkbox
           id={'insert-null-values'}
           checked
-          label={'Insert Null Values'}
+          label={'Clear Fields with Blank Values'}
           helpText={
             <span className="slds-text-color_destructive">
               Custom metadata records require all fields to be set, any unmapped or null fields will result in null values.
@@ -292,7 +293,13 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
         {hasLoaded && results && (
           <Fragment>
             {deployStatusUrl && (
-              <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={deployStatusUrl} iconPosition="right">
+              <SalesforceLogin
+                serverUrl={serverUrl}
+                org={selectedOrg}
+                skipFrontDoorAuth={skipFrontDoorAuth}
+                returnUrl={deployStatusUrl}
+                iconPosition="right"
+              >
                 View job in Salesforce
               </SalesforceLogin>
             )}

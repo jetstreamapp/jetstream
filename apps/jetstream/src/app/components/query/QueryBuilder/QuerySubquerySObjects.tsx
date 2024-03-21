@@ -3,7 +3,7 @@ import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/ut
 import { MapOf, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import type { ChildRelationship } from 'jsforce';
-import React, { Fragment, FunctionComponent, useState } from 'react';
+import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as fromQueryState from '../query.state';
 import QueryChildFields from './QueryChildFields';

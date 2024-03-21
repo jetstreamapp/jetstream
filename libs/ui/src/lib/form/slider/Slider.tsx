@@ -58,7 +58,7 @@ export const Slider: FunctionComponent<SliderProps> = ({
         <span className={classNames('slds-slider-label__label', { 'sr-only': hideLabel || !label })}>{label}</span>
         <span className={classNames('slds-slider-label__range', { 'sr-only': hideLabel || !rangeLabel })}>{rangeLabel}</span>
       </label>
-      {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+      {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
         <div
           className={classNames(

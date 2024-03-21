@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgTopic(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M61.4 37.2c.2.7.7 1.2 1.4 1.4l2.2.6c.4.1.9-.1 1.1-.5l4.7-8.1c1.1-1.9.5-2.6-1.5-1.5l-8.1 4.7c-.4.2-.6.7-.5 1.1l.7 2.3zM33.9 38.7c.2.4.7.6 1.1.5l2.2-.6c.7-.2 1.2-.7 1.4-1.4l.6-2.2c.1-.4-.1-.9-.5-1.1l-8.1-4.7c-1.9-1.1-2.6-.5-1.5 1.5l4.8 8zM66.1 61.3c-.2-.4-.7-.6-1.1-.5l-2.2.6c-.7.2-1.2.7-1.4 1.4l-.6 2.2c-.1.4.1.9.5 1.1l8.1 4.7c1.9 1.1 2.6.5 1.5-1.5l-4.8-8zM38.6 62.8c-.2-.7-.7-1.2-1.4-1.4l-2.2-.6c-.4-.1-.9.1-1.1.5l-4.7 8.1c-1.1 1.9-.5 2.6 1.5 1.5l8.1-4.7c.4-.2.6-.7.5-1.1l-.7-2.3z"
@@ -14,5 +13,4 @@ function SvgTopic(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgTopic;

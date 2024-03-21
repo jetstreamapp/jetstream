@@ -23,7 +23,7 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
         });
       } catch (ex) {
         try {
-          rollbar.error('An unknown error occurred logging error event');
+          rollbar.error('An unknown error occurred logging error event', { message: ex.message, stack: ex.stack });
         } catch (ex) {
           logger.error('Error logging event to rollbar');
           logger.error(ex);

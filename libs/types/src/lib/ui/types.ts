@@ -203,9 +203,10 @@ export type MimeTypeJson = 'application/json;charset=utf-8';
 export type MimeTypeXML = 'text/xml;charset=utf-8';
 export type MimeTypeGSheet = 'application/vnd.google-apps.spreadsheet';
 
-export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeExcel | InputAcceptTypeXml;
+export type InputAcceptType = InputAcceptTypeZip | InputAcceptTypeCsv | InputAcceptTypeTsv | InputAcceptTypeExcel | InputAcceptTypeXml;
 export type InputAcceptTypeZip = '.zip';
 export type InputAcceptTypeCsv = '.csv';
+export type InputAcceptTypeTsv = '.tsv';
 export type InputAcceptTypeExcel = '.xlsx';
 export type InputAcceptTypeXml = '.xml';
 
@@ -369,7 +370,11 @@ export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;
   value: string | ReactNode;
-  icon?: any; // FIXME:
+  icon?: {
+    type: string;
+    icon: string;
+    description?: string;
+  }; // FIXME: unable to import cross module boundaries
   trailingDivider?: boolean;
   disabled?: boolean;
   title?: string;
@@ -493,6 +498,7 @@ export interface BulkDownloadJob {
   fileName: string;
   googleFolder: Maybe<string>;
   includeSubquery: boolean;
+  includeDeletedRecords: boolean;
   useBulkApi: boolean;
 }
 

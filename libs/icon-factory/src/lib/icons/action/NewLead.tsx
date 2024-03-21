@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgNewLead(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <circle fill="unset" cx={26} cy={9.2} r={7.2} />
       <path
         fill="unset"
@@ -11,5 +10,4 @@ function SvgNewLead(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgNewLead;

@@ -5,6 +5,7 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
+  ConnectedSobjectListMultiSelectRef,
   Icon,
   ListWithFilterMultiSelect,
   Page,
@@ -14,13 +15,14 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import { FunctionComponent, useEffect } from 'react';
+import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { filterCreateFieldsSobjects } from '../shared/create-fields/create-fields-utils';
 import * as fromCreateFieldsState from './create-fields.state';
+import CreateNewObject from './create-new-object/CreateNewObject';
 
 const HEIGHT_BUFFER = 170;
 
@@ -28,6 +30,7 @@ const HEIGHT_BUFFER = 170;
 export interface CreateFieldsSelectionProps {}
 
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
+  const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const [profiles, setProfiles] = useRecoilState(fromCreateFieldsState.profilesState);
@@ -68,6 +71,14 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath="/deploy-fields" />
           <PageHeaderActions colType="actions" buttonType="separate">
+            <CreateNewObject
+              initialSelectedProfiles={selectedProfiles}
+              initialSelectedPermissionSets={selectedPermissionSets}
+              selectedOrg={selectedOrg}
+              onClose={(createdNewObject) => {
+                createdNewObject && sobjectListRef.current?.refresh();
+              }}
+            />
             {hasSelectionsMade && (
               <Link className="slds-button slds-button_brand" to="configurator">
                 Continue
@@ -110,6 +121,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
         >
           <div className="slds-p-horizontal_x-small">
             <ConnectedSobjectListMultiSelect
+              ref={sobjectListRef}
               label="Object(s) to create fields on"
               selectedOrg={selectedOrg}
               sobjects={sobjects}

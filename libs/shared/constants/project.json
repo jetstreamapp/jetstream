@@ -6,11 +6,8 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "options": {
-        "lintFilePatterns": ["libs/shared/constants/**/*.ts"]
-      }
+      "executor": "@nx/eslint:lint"
     }
   },
-  "tags": ["scope:shared", "scope:allow-worker-import"]
+  "tags": ["scope:shared", "scope:allow-worker-import", "scope:any"]
 }

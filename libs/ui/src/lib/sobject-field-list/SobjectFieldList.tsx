@@ -3,7 +3,7 @@ import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
-import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, createRef, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import DropDown from '../form/dropdown/DropDown';
 import SearchInput from '../form/search-input/SearchInput';
@@ -13,15 +13,15 @@ import List from '../list/List';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import Spinner from '../widgets/Spinner';
-import { filterFieldsFn, getBgColor } from './sobject-field-list-utils';
 import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilterNew';
 import SobjectFieldListItem from './SobjectFieldListItem';
+import { filterFieldsFn, getBgColor } from './sobject-field-list-utils';
 
 function getFilteredFields(visibleFields: Set<string>, queryFields: QueryFields, activeFilters: FilterTypes) {
   return Array.from(visibleFields)
     .map((key) => queryFields?.fields?.[key])
     .filter(Boolean)
-    .filter(filterFieldsFn(activeFilters)) as FieldWrapper[];
+    .filter(filterFieldsFn(activeFilters, queryFields.selectedFields)) as FieldWrapper[];
 }
 
 export interface SobjectFieldListProps {
@@ -63,16 +63,17 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
   });
   const [fieldLength, setFieldLength] = useState<number>(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey]) {
-      return Object.keys(queryFieldsMap[itemKey]).length;
+      return Object.keys(queryFieldsMap[itemKey].fields).length;
     }
     return 0;
   });
   const [activeFilters, setActiveFilters] = useState<FilterTypes>({ ...DEFAULT_FILTER_TYPES });
   const [filteredFields, setFilteredFields] = useState<FieldWrapper[] | null>(() => {
     if (isString(itemKey) && queryFieldsMap[itemKey] && queryFieldsMap[itemKey].visibleFields) {
+      //
       return Array.from(queryFieldsMap[itemKey].visibleFields)
         .map((key) => queryFieldsMap[itemKey].fields[key])
-        .filter(filterFieldsFn(activeFilters));
+        .filter(filterFieldsFn(activeFilters, queryFields?.selectedFields));
     }
     return null;
   });
@@ -225,6 +226,7 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
                 <SalesforceLogin
                   serverUrl={serverUrl}
                   org={org}
+                  skipFrontDoorAuth
                   returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
                   omitIcon
                   title={`View object in Salesforce setup`}

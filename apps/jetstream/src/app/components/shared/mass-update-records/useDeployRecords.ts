@@ -80,7 +80,7 @@ export function useDeployRecords(
       const jobId = jobInfo.id || '';
       const batches = splitArrayToMaxSize(records, batchSize).map((batch) => ({
         records: batch,
-        csv: generateCsv(batch, { header: true, columns: fields }),
+        csv: generateCsv(batch, { header: true, columns: fields, delimiter: ',' }),
       }));
 
       deployResults.jobInfo = jobInfo;

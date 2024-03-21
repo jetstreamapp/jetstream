@@ -13,7 +13,7 @@ import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
   createJob: [
-    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY']),
+    body('type').isIn(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY', 'QUERY_ALL']),
     body('sObject').isString(),
     body('serialMode').optional().isBoolean(),
     body('externalIdFieldName').optional().isString(),
@@ -186,7 +186,6 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
     let isFirstChunk = true;
 
     csvParseStream.on('data', (data) => {
-      console.log('DATA: %o', data);
       data = JSON.stringify(data);
       if (isFirstChunk) {
         isFirstChunk = false;
@@ -197,16 +196,21 @@ export async function downloadResults(req: Request, res: Response, next: NextFun
       res.write(data);
     });
     csvParseStream.on('finish', () => {
-      console.log('FINISH');
       res.write(']}');
-      res.status(200).send();
+      if (!res.headersSent) {
+        res.status(200).send();
+      } else {
+        logger.warn('Response headers already sent. csvParseStream[finish]', { requestId: res.locals.requestId });
+      }
     });
     csvParseStream.on('error', (err) => {
-      logger.warn('Error streaming files from Salesforce. %o', err);
-      res.status(400).send();
+      logger.warn('Error streaming files from Salesforce. %o', err, { requestId: res.locals.requestId });
+      if (!res.headersSent) {
+        res.status(400).send();
+      } else {
+        logger.warn('Response headers already sent. csvParseStream[error]', { requestId: res.locals.requestId });
+      }
     });
-
-    // csvParseStream.pipe(res);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }

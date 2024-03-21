@@ -1,7 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ConnectedSobjectList } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
@@ -49,16 +49,14 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = ({
   }
 
   return (
-    <Fragment>
-      <ConnectedSobjectList
-        selectedOrg={selectedOrg}
-        sobjects={sobjects}
-        selectedSObject={selectedSObject}
-        isTooling={isTooling}
-        onSobjects={handleSobjectChange}
-        onSelectedSObject={setSelectedSObject}
-      />
-    </Fragment>
+    <ConnectedSobjectList
+      selectedOrg={selectedOrg}
+      sobjects={sobjects}
+      selectedSObject={selectedSObject}
+      isTooling={isTooling}
+      onSobjects={handleSobjectChange}
+      onSelectedSObject={setSelectedSObject}
+    />
   );
 };
 

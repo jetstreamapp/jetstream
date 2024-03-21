@@ -2,10 +2,10 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
+import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
 import { getStatusValue, useDeployMetadataBetweenOrgs } from '../utils/useDeployMetadataBetweenOrgs';
 
 export interface DeployMetadataToOrgStatusModalProps {
@@ -32,7 +32,8 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
   onDownload,
   deploymentHistoryName,
 }) => {
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataBetweenOrgs(
     sourceOrg,
@@ -64,10 +65,17 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
       errorMessage={errorMessage}
       hasError={hasError}
       statusUrls={
+        // eslint-disable-next-line react/jsx-no-useless-fragment
         <Fragment>
           {deployStatusUrl && (
             <div>
-              <SalesforceLogin org={destinationOrg} serverUrl={serverUrl} iconPosition="right" returnUrl={deployStatusUrl}>
+              <SalesforceLogin
+                org={destinationOrg}
+                serverUrl={serverUrl}
+                skipFrontDoorAuth={skipFrontDoorAuth}
+                iconPosition="right"
+                returnUrl={deployStatusUrl}
+              >
                 View the deployment details.
               </SalesforceLogin>
             </div>

@@ -30,17 +30,17 @@ export async function login(req: Request, res: Response) {
         const user = req.user as UserProfileServer;
         req.logIn(user, async (err) => {
           if (err) {
-            logger.warn('[AUTH][ERROR] Error logging in %o', err);
+            logger.warn('[AUTH][ERROR] Error logging in %o', err, { requestId: res.locals.requestId });
             return res.redirect('/');
           }
 
           createOrUpdateUser(user)
             .then(async ({ user: _user }) => {
-              logger.info('[AUTH][SUCCESS] Logged in %s', _user.email, { userId: user.id });
+              logger.info('[AUTH][SUCCESS] Logged in %s', _user.email, { userId: user.id, requestId: res.locals.requestId });
               res.redirect(ENV.JETSTREAM_CLIENT_URL!);
             })
             .catch((err) => {
-              logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
+              logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err, { requestId: res.locals.requestId });
               res.redirect('/');
             });
         });
@@ -59,28 +59,28 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     },
     (err, user, info) => {
       if (err) {
-        logger.warn('[AUTH][ERROR] Error with authentication %o', err);
+        logger.warn('[AUTH][ERROR] Error with authentication %o', err, { requestId: res.locals.requestId });
         return next(new AuthenticationError(err));
       }
       if (!user) {
-        logger.warn('[AUTH][ERROR] no user');
-        logger.warn('[AUTH][ERROR] no info %o', info);
+        logger.warn('[AUTH][ERROR] no user', { requestId: res.locals.requestId });
+        logger.warn('[AUTH][ERROR] no info %o', info, { requestId: res.locals.requestId });
         return res.redirect('/oauth/login');
       }
       req.logIn(user, async (err) => {
         if (err) {
-          logger.warn('[AUTH][ERROR] Error logging in %o', err);
+          logger.warn('[AUTH][ERROR] Error logging in %o', err, { requestId: res.locals.requestId });
           return next(new AuthenticationError(err));
         }
 
         createOrUpdateUser(user).catch((err) => {
-          logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err);
+          logger.error('[AUTH][DB][ERROR] Error creating or sending welcome email %o', err, { requestId: res.locals.requestId });
         });
 
         // TODO: confirm returnTo 0 it suddenly was reported as bad
         const returnTo = (req.session as any).returnTo;
         delete (req.session as any).returnTo;
-        logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id });
+        logger.info('[AUTH][SUCCESS] Logged in %s', user.email, { userId: user.id, requestId: res.locals.requestId });
         res.redirect(returnTo || ENV.JETSTREAM_CLIENT_URL);
       });
     }
@@ -115,14 +115,14 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
         clientUrl: new URL(ENV.JETSTREAM_CLIENT_URL!).origin,
       };
       if (err) {
-        logger.warn('[AUTH][LINK][ERROR] Error with authentication %o', err);
+        logger.warn('[AUTH][LINK][ERROR] Error with authentication %o', err, { requestId: res.locals.requestId });
         params.error = isString(err) ? err : err.message || 'Unknown Error';
         params.message = (req.query.error_description as string) || undefined;
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       }
       if (!userProfile) {
-        logger.warn('[AUTH][LINK][ERROR] no user');
-        logger.warn('[AUTH][LINK][ERROR] no info %o', info);
+        logger.warn('[AUTH][LINK][ERROR] no user', { requestId: res.locals.requestId });
+        logger.warn('[AUTH][LINK][ERROR] no info %o', info, { requestId: res.locals.requestId });
         params.error = 'Authentication Error';
         params.message = (req.query.error_description as string) || undefined;
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
@@ -140,12 +140,13 @@ export async function linkCallback(req: Request, res: Response, next: NextFuncti
           logger.warn('[AUTH0][IDENTITY][LINK][ERROR] Failed to delete the secondary user orgs %s', userProfile.user_id, {
             userId: user.id,
             secondaryUserId: userProfile.user_id,
+            requestId: res.locals.requestId,
           });
         }
 
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}`);
       } catch (ex) {
-        logger.warn('[AUTH][LINK][ERROR] Error linking account %o', err);
+        logger.warn('[AUTH][LINK][ERROR] Error linking account %o', err, { requestId: res.locals.requestId });
         params.error = 'Unexpected Error';
         return res.redirect(`/oauth-link/?${new URLSearchParams(params as any).toString()}&clientUrl=${ENV.JETSTREAM_CLIENT_URL}`);
       }

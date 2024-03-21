@@ -20,7 +20,7 @@ export const LoadRecordsFieldMappingRowLookupOption: FunctionComponent<LoadRecor
   }
 
   function handleLookupOptionNullIfNoMatch(lookupOptionNullIfNoMatch: boolean) {
-    onSelectionChanged(csvField, { ...fieldMappingItem, lookupOptionNullIfNoMatch });
+    onSelectionChanged(csvField, { ...fieldMappingItem, lookupOptionNullIfNoMatch } as FieldMappingItem);
   }
 
   const idPrefix = `multiple-match-${fieldMappingItem.csvField}`;

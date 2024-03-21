@@ -3,67 +3,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/landing",
   "projectType": "application",
-  "generators": {},
   "targets": {
-    "build": {
-      "executor": "@nrwl/next:build",
-      "options": {
-        "root": "apps/landing",
-        "outputPath": "dist/apps/landing"
-      },
-      "configurations": {
-        "production": {},
-        "development": {
-          "outputPath": "apps/landing"
-        }
-      },
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production"
-    },
-    "serve": {
-      "executor": "@nrwl/next:server",
-      "options": {
-        "buildTarget": "landing:build",
-        "port": 4300,
-        "dev": true
-      },
-      "configurations": {
-        "production": {
-          "buildTarget": "landing:build:production",
-          "dev": false
-        },
-        "development": {
-          "buildTarget": "landing:build:development",
-          "dev": true
-        }
-      },
-      "defaultConfiguration": "development"
-    },
-    "export": {
-      "executor": "@nrwl/next:export",
-      "options": {
-        "buildTarget": "landing:build:production"
-      }
-    },
-    "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "options": {
-        "lintFilePatterns": [
-          "apps/landing/**/*.spec.ts",
-          "apps/landing/**/*.spec.tsx",
-          "apps/landing/**/*.spec.js",
-          "apps/landing/**/*.spec.jsx",
-          "apps/landing/**/*.d.ts"
-        ]
-      }
-    },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
-        "jestConfig": "apps/landing/jest.config.ts",
-        "passWithNoTests": true
-      },
-      "outputs": ["{workspaceRoot}/coverage/apps/landing"]
+        "jestConfig": "apps/landing/jest.config.ts"
+      }
     }
   },
   "tags": []

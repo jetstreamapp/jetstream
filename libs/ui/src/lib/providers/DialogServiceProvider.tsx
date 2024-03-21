@@ -1,34 +1,57 @@
-import React, { Fragment, FunctionComponent } from 'react';
+import {
+  Dispatch,
+  Fragment,
+  FunctionComponent,
+  ReactNode,
+  SetStateAction,
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from 'react';
 import ConfirmationDialog, { ConfirmationDialogServiceProviderOptions } from '../confirmation-dialog/ConfirmationDialog';
 
-// https://dev.to/dmtrkovalenko/the-neatest-way-to-handle-alert-dialogs-in-react-1aoe
-export const ConfirmationServiceContext = React.createContext<(options: ConfirmationDialogServiceProviderOptions) => Promise<void>>(
-  Promise.reject
-);
+interface ConfirmationServiceContextValue {
+  confirm: (options: ConfirmationDialogServiceProviderOptions) => Promise<ConfirmationDialogServiceProviderOptions['data']>;
+  setOptions: Dispatch<SetStateAction<ConfirmationDialogServiceProviderOptions | null>>;
+}
 
-export const useConfirmation = () => React.useContext(ConfirmationServiceContext);
+// https://dev.to/dmtrkovalenko/the-neatest-way-to-handle-alert-dialogs-in-react-1aoe
+export const ConfirmationServiceContext = createContext<ConfirmationServiceContextValue>({
+  confirm: (options: ConfirmationDialogServiceProviderOptions) => Promise.resolve(options?.data || {}),
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setOptions: (options: ConfirmationDialogServiceProviderOptions) => {},
+});
+
+export const useConfirmation = () => useContext(ConfirmationServiceContext);
 
 export interface ConfirmationServiceProviderProps {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceProviderProps> = ({ children }) => {
-  const [confirmationState, setConfirmationState] = React.useState<ConfirmationDialogServiceProviderOptions | null>(null);
+  const [confirmationState, setConfirmationState] = useState<ConfirmationDialogServiceProviderOptions | null>(null);
 
-  const awaitingPromiseRef = React.useRef<{
-    resolve: () => void;
+  const awaitingPromiseRef = useRef<{
+    resolve: (data: ConfirmationDialogServiceProviderOptions['data']) => void;
     reject: () => void;
   }>();
 
-  const openConfirmation = (options: ConfirmationDialogServiceProviderOptions) => {
+  const openConfirmation = useCallback((options: ConfirmationDialogServiceProviderOptions) => {
     setConfirmationState(options);
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<ConfirmationDialogServiceProviderOptions>((resolve, reject) => {
       awaitingPromiseRef.current = { resolve, reject };
     });
-  };
+  }, []);
+
+  const contextValue = useRef<ConfirmationServiceContextValue>({
+    confirm: openConfirmation,
+    setOptions: setConfirmationState,
+  });
 
   const handleClose = () => {
-    if (confirmationState?.rejectOnCancel && awaitingPromiseRef.current) {
+    if (awaitingPromiseRef.current) {
       awaitingPromiseRef.current.reject();
     }
     setConfirmationState(null);
@@ -36,23 +59,24 @@ export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceP
 
   const handleConfirm = () => {
     if (awaitingPromiseRef.current) {
-      awaitingPromiseRef.current.resolve();
+      awaitingPromiseRef.current.resolve(confirmationState?.data || {});
     }
     setConfirmationState(null);
   };
 
   return (
     <Fragment>
-      <ConfirmationServiceContext.Provider value={openConfirmation} children={children} />
+      <ConfirmationServiceContext.Provider value={contextValue.current} children={children} />
 
       <ConfirmationDialog
+        submitDisabled={!!confirmationState?.submitDisabled}
         isOpen={Boolean(confirmationState)}
         onCancel={handleClose}
         onConfirm={handleConfirm}
-        header={confirmationState && confirmationState.header}
-        tagline={confirmationState && confirmationState.tagline}
-        cancelText={confirmationState && confirmationState.cancelText}
-        confirmText={confirmationState && confirmationState.confirmText}
+        header={confirmationState?.header}
+        tagline={confirmationState?.tagline}
+        cancelText={confirmationState?.cancelText}
+        confirmText={confirmationState?.confirmText}
       >
         {confirmationState && confirmationState.content}
       </ConfirmationDialog>

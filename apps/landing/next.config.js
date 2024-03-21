@@ -1,15 +1,22 @@
-const withImages = require('next-images');
+const { composePlugins, withNx } = require('@nx/next');
 
-module.exports = withImages({
+/**
+ * @type {import('@nx/next/plugins/with-nx').WithNxOptions}
+ **/
+const nextConfig = {
   trailingSlash: true,
-  // #LAME https://github.com/nrwl/nx/issues/4182
-  webpack(config) {
-    // Prevent nx from adding an svg handler - stick to what is provided by
-    // nextjs or that we have defined ourselves.
-    config.module.rules.push = (...items) => {
-      Array.prototype.push.call(config.module.rules, ...items.filter((item) => item.test.toString() !== '/\\.svg$/'));
-    };
-
-    return config;
+  nx: {
+    // Set this to true if you would like to use SVGR
+    // See: https://github.com/gregberge/svgr
+    svgr: false,
   },
-});
+  output: 'export',
+  distDir: '../../dist/apps/landing',
+};
+
+const plugins = [
+  // Add more Next.js plugins to this list if needed.
+  withNx,
+];
+
+module.exports = composePlugins(...plugins)(nextConfig);

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgMoney(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M30.1 26.1c0-2.3 1.4-4.3 3.3-5.3-.3-3.9-3.5-6.9-7.5-6.9-4.1 0-7.5 3.4-7.5 7.5s3.4 7.5 7.5 7.5c1.5 0 3-.5 4.1-1.3v-1.5z"
@@ -18,5 +17,4 @@ function SvgMoney(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgMoney;

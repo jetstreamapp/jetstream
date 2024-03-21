@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/webpack:webpack",
+      "executor": "@nx/webpack:webpack",
       "options": {
         "outputPath": "dist/apps/electron/worker",
         "main": "apps/electron/worker/src/main.ts",
@@ -42,7 +42,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nrwl/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "electron-worker:build",
         "inspect": true,
@@ -50,18 +50,14 @@
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/electron/worker/**/*.ts"]
-      }
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/electron/worker"],
       "options": {
-        "jestConfig": "apps/electron/worker/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/electron/worker/jest.config.ts"
       }
     }
   },

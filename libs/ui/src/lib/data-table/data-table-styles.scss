@@ -17,4 +17,23 @@
       outline: 'none !important';
     }
   }
+
+  .rdg-row {
+    &.save-error {
+      background-color: #ffdede;
+    }
+  }
+
+  .rdg-cell {
+    &.active-item-error {
+      outline-color: red;
+      outline-width: 2px;
+      outline-offset: -2px;
+      outline-style: solid;
+    }
+    &.edited {
+      background: #faffbd;
+      border: 1px solid #a86403;
+    }
+  }
 }

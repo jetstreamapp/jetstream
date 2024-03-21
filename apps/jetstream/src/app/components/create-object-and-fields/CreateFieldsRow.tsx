@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Tooltip } from '@jetstream/ui';
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { FieldDefinitionType, FieldValue, FieldValues, SalesforceFieldType } from '../shared/create-fields/create-fields-types';
 import {
   baseFields,
@@ -17,8 +17,10 @@ export interface CreateFieldsRowProps {
   rowIdx: number;
   enableDelete?: boolean;
   selectedOrg: SalesforceOrgUi;
+  selectedSObjects: string[];
   values: FieldValues;
   allValid: boolean;
+  rows: FieldValues[];
   onChange: (field: FieldDefinitionType, value: FieldValue) => void;
   onClone: () => void;
   onDelete: () => void;
@@ -30,8 +32,10 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
   rowIdx,
   enableDelete,
   selectedOrg,
+  selectedSObjects,
   values,
   allValid,
+  rows,
   onChange,
   onClone,
   onDelete,
@@ -49,6 +53,8 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
           <CreateFieldsRowField
             key={field}
             selectedOrg={selectedOrg}
+            selectedSObjects={selectedSObjects}
+            rows={rows}
             id={`field-${rowIdx}-${field}`}
             fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions[field]}
@@ -63,6 +69,8 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
           <CreateFieldsRowPicklistOption
             rowIdx={rowIdx}
             selectedOrg={selectedOrg}
+            selectedSObjects={selectedSObjects}
+            rows={rows}
             values={values}
             fieldDefinitions={fieldDefinitions}
             disabled={false}
@@ -76,6 +84,8 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
             <CreateFieldsRowField
               key={field}
               selectedOrg={selectedOrg}
+              selectedSObjects={selectedSObjects}
+              rows={rows}
               id={`field-${rowIdx}-${field}`}
               fieldDefinitions={fieldDefinitions}
               field={fieldDefinitions[field]}
@@ -90,6 +100,8 @@ export const CreateFieldsRow: FunctionComponent<CreateFieldsRowProps> = ({
           <CreateFieldsRowField
             key={field}
             selectedOrg={selectedOrg}
+            selectedSObjects={selectedSObjects}
+            rows={rows}
             id={`field-${rowIdx}-${field}`}
             fieldDefinitions={fieldDefinitions}
             field={fieldDefinitions[field]}

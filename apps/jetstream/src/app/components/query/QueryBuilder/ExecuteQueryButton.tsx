@@ -1,7 +1,7 @@
 import { Maybe } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
+import { Icon, KeyboardShortcut, Tooltip, getModifierKey } from '@jetstream/ui';
 import type { DescribeGlobalSObjectResult } from 'jsforce';
-import React, { Fragment, FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 
 interface ExecuteQueryButtonProps {
@@ -12,25 +12,33 @@ interface ExecuteQueryButtonProps {
 
 export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({ soql, isTooling, selectedSObject }) => {
   return (
-    <Fragment>
+    <>
       {soql && selectedSObject && (
-        <Link
-          title="ctrl/command + enter"
-          className="slds-button slds-button_brand"
-          to="results"
-          state={{
-            soql,
-            isTooling,
-            sobject: {
-              label: selectedSObject.label,
-              name: selectedSObject.name,
-            },
-          }}
-          data-testid="execute-query-button"
+        <Tooltip
+          delay={[300, null]}
+          content={
+            <div className="slds-p-bottom_small">
+              <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+            </div>
+          }
         >
-          <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
-          Execute
-        </Link>
+          <Link
+            className="slds-button slds-button_brand"
+            to="results"
+            state={{
+              soql,
+              isTooling,
+              sobject: {
+                label: selectedSObject.label,
+                name: selectedSObject.name,
+              },
+            }}
+            data-testid="execute-query-button"
+          >
+            <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
+            Execute
+          </Link>
+        </Tooltip>
       )}
       {!soql && (
         <button className="slds-button slds-button_brand" disabled data-testid="execute-query-button">
@@ -38,7 +46,7 @@ export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({
           Execute
         </button>
       )}
-    </Fragment>
+    </>
   );
 };
 

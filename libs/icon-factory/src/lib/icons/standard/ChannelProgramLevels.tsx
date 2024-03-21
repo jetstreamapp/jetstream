@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgChannelProgramLevels(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M77.9 47.2l-3.7-1.7c-.5-.3-1.2-.3-1.7 0l-11 5.3c1.8-.6 3.7-.9 5.6-.9 3.1 0 6 .8 8.6 2.2l2.1-1c1.7-.9 1.7-3.1.1-3.9zM20.2 36.9L47 49.6c1.2.6 2.7.6 3.9 0l26.9-12.7c1.6-.8 1.6-2.9 0-3.7L50.9 20.5c-1.2-.6-2.7-.6-3.9 0L20.2 33.3c-1.7.7-1.7 2.9 0 3.6zM20.2 50.9L47 63.7c.7.4 1.5.5 2.3.4 1-4.8 3.9-8.8 7.9-11.4l-6.2 3c-1.2.6-2.7.6-3.9 0L25.6 45.5c-.5-.3-1.2-.3-1.7 0l-3.7 1.7c-1.7.8-1.7 2.9 0 3.7zM49 70.2c-.7 0-1.3-.2-1.9-.4L25.5 59.5c-.5-.3-1.2-.3-1.7 0l-3.6 1.7c-1.6.8-1.6 2.9 0 3.7L47 77.7c1.2.6 2.7.6 3.9 0l.6-.3c-1.3-2.2-2.2-4.6-2.5-7.2z" />
       </g>
@@ -13,5 +12,4 @@ function SvgChannelProgramLevels(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgChannelProgramLevels;

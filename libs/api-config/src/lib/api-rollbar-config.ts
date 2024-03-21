@@ -1,4 +1,4 @@
-import * as Rollbar from 'rollbar';
+import Rollbar from 'rollbar';
 import { ENV } from './env-config';
 
 export const rollbarServer = new Rollbar({
@@ -9,4 +9,5 @@ export const rollbarServer = new Rollbar({
   captureUncaught: true,
   captureUnhandledRejections: true,
   enabled: !!ENV.ROLLBAR_SERVER_TOKEN,
+  nodeSourceMaps: true,
 });

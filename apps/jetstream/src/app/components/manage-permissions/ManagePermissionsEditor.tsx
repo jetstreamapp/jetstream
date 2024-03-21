@@ -25,6 +25,7 @@ import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
+import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
 import * as fromPermissionsState from './manage-permissions.state';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
@@ -32,12 +33,16 @@ import {
   getConfirmationModalContent,
   getDirtyFieldPermissions,
   getDirtyObjectPermissions,
+  getDirtyTabVisibilityPermissions,
   getFieldColumns,
   getFieldRows,
   getObjectColumns,
   getObjectRows,
+  getTabVisibilityColumns,
+  getTabVisibilityRows,
   updateFieldRowsAfterSave,
   updateObjectRowsAfterSave,
+  updateTabVisibilityRowsAfterSave,
 } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
@@ -49,20 +54,27 @@ import {
   PermissionFieldSaveData,
   PermissionObjectSaveData,
   PermissionSaveResults,
+  PermissionTabVisibilitySaveData,
   PermissionTableFieldCell,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCell,
   PermissionTableObjectCellPermission,
   PermissionTableSummaryRow,
+  PermissionTableTabVisibilityCell,
+  PermissionTableTabVisibilityCellPermission,
+  TabVisibilityPermissionDefinitionMap,
+  TabVisibilityPermissionRecordForSave,
 } from './utils/permission-manager-types';
 import {
   clearPermissionErrorMessage,
   collectProfileAndPermissionIds,
   getUpdatedFieldPermissions,
   getUpdatedObjectPermissions,
+  getUpdatedTabVisibilityPermissions,
   permissionsHaveError,
   prepareFieldPermissionSaveData,
   prepareObjectPermissionSaveData,
+  prepareTabVisibilityPermissionSaveData,
   savePermissionRecords,
   updatePermissionSetRecords,
 } from './utils/permission-manager-utils';
@@ -113,10 +125,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsState.fieldsByKey);
   const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsState.objectPermissionMap);
   const [fieldPermissionMap, setFieldPermissionMap] = useRecoilState(fromPermissionsState.fieldPermissionMap);
+  const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
+
   const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
   const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
+  const resetTabVisibilityPermissionMap = useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
 
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
@@ -126,6 +141,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [dirtyObjectRows, setDirtyObjectRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
   const [objectFilter, setObjectFilter] = useState('');
 
+  const [tabVisibilityColumns, setTabVisibilityColumns] = useState<
+    ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[]
+  >([]);
+  const [tabVisibilityRows, setTabVisibilityRows] = useState<PermissionTableTabVisibilityCell[] | null>(null);
+  const [visibleTabVisibilityRows, setVisibleTabVisibilityRows] = useState<PermissionTableTabVisibilityCell[] | null>(null);
+  const [dirtyTabVisibilityRows, setDirtyTabVisibilityRows] = useState<MapOf<DirtyRow<PermissionTableTabVisibilityCell>>>({});
+  const [tabVisibilityFilter, setTabVisibilityFilter] = useState('');
+
   const [fieldColumns, setFieldColumns] = useState<ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[]>([]);
   const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
   const [visibleFieldRows, setVisibleFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
@@ -134,9 +157,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
   const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
+  const [dirtyTabVisibilityCount, setDirtyTabVisibilityCount] = useState<number>(0);
 
   const [objectsHaveErrors, setObjectsHaveErrors] = useState<boolean>(false);
   const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
+  const [tabVisibilityHaveErrors, setTabVisibilityHaveErrors] = useState<boolean>(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -150,6 +175,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldsByKey(recordData.fieldsByKey);
     setObjectPermissionMap(recordData.objectPermissionMap);
     setFieldPermissionMap(recordData.fieldPermissionMap);
+    setTabVisibilityPermissionMap(recordData.tabVisibilityPermissionMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordData.fieldsByObject, recordData.fieldsByKey, recordData.objectPermissionMap, recordData.fieldPermissionMap]);
 
@@ -170,11 +196,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, [recordData.hasError]);
 
   useEffect(() => {
-    if (objectPermissionMap && fieldPermissionMap) {
+    if (objectPermissionMap && fieldPermissionMap && tabVisibilityPermissionMap) {
       setObjectsHaveErrors(permissionsHaveError(objectPermissionMap));
       setFieldsHaveErrors(permissionsHaveError(fieldPermissionMap));
+      setTabVisibilityHaveErrors(permissionsHaveError(tabVisibilityPermissionMap));
     }
-  }, [objectPermissionMap, fieldPermissionMap]);
+  }, [objectPermissionMap, fieldPermissionMap, tabVisibilityPermissionMap]);
 
   useEffect(() => {
     setDirtyFieldCount(Object.values(dirtyFieldRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
@@ -183,6 +210,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   useEffect(() => {
     setDirtyObjectCount(Object.values(dirtyObjectRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
   }, [dirtyObjectRows]);
+
+  useEffect(() => {
+    setDirtyTabVisibilityCount(Object.values(dirtyTabVisibilityRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
+  }, [dirtyTabVisibilityRows]);
 
   useEffect(() => {
     if (fieldRows && fieldFilter) {
@@ -200,6 +231,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     }
   }, [objectFilter, objectRows]);
 
+  useEffect(() => {
+    if (tabVisibilityRows && tabVisibilityFilter) {
+      setVisibleTabVisibilityRows(tabVisibilityRows.filter(multiWordObjectFilter(['label', 'apiName'], tabVisibilityFilter)));
+    } else {
+      setVisibleTabVisibilityRows(tabVisibilityRows);
+    }
+  }, [tabVisibilityFilter, tabVisibilityRows]);
+
   const handleObjectBulkRowUpdate = useCallback((rows: PermissionTableObjectCell[], indexes?: number[]) => {
     const rowsByKey = getMapOf(rows, 'key');
     setObjectRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
@@ -211,12 +250,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         const rowKey = row.key; // e.x. Obj__c.Field__c
         const dirtyCount = Object.values(row.permissions).reduce(
           (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty }) => {
-            output += createIsDirty ? 1 : 0;
-            output += readIsDirty ? 1 : 0;
-            output += editIsDirty ? 1 : 0;
-            output += deleteIsDirty ? 1 : 0;
-            output += viewAllIsDirty ? 1 : 0;
-            output += modifyAllIsDirty ? 1 : 0;
+            output += createIsDirty || readIsDirty || editIsDirty || deleteIsDirty || viewAllIsDirty || modifyAllIsDirty ? 1 : 0;
             return output;
           },
           0
@@ -243,8 +277,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         const row = rows[rowIndex];
         const rowKey = row.key; // e.x. Obj__c.Field__c
         const dirtyCount = Object.values(row.permissions).reduce((output, { readIsDirty, editIsDirty }) => {
-          output += readIsDirty ? 1 : 0;
-          output += editIsDirty ? 1 : 0;
+          output += readIsDirty || editIsDirty ? 1 : 0;
           return output;
         }, 0);
         newValues[rowKey] = { rowKey, dirtyCount, row };
@@ -259,14 +292,41 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     });
   }, []);
 
+  const handleTabVisibilityBulkRowUpdate = useCallback((rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => {
+    const rowsByKey = getMapOf(rows, 'key');
+    setTabVisibilityRows((prevRows) => (prevRows ? prevRows.map((row) => rowsByKey[row.key] || row) : rows));
+    indexes = indexes || rows.map((row, index) => index);
+    setDirtyTabVisibilityRows((priorValue) => {
+      const newValues = { ...priorValue };
+      indexes?.forEach((rowIndex) => {
+        const row = rows[rowIndex];
+        const rowKey = row.key; // e.x. Obj__c.Field__c
+        const dirtyCount = Object.values(row.permissions).reduce((output, { availableIsDirty, visibleIsDirty }) => {
+          output += availableIsDirty || visibleIsDirty ? 1 : 0;
+          return output;
+        }, 0);
+        newValues[rowKey] = { rowKey, dirtyCount, row };
+      });
+      // remove items with a dirtyCount of 0 to reduce future processing required
+      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableTabVisibilityCell>>, key) => {
+        if (newValues[key].dirtyCount) {
+          output[key] = newValues[key];
+        }
+        return output;
+      }, {});
+    });
+  }, []);
+
   function initTableData(
     includeColumns = true,
     objectPermissionMapOverride?: MapOf<ObjectPermissionDefinitionMap>,
-    fieldPermissionMapOverride?: MapOf<FieldPermissionDefinitionMap>
+    fieldPermissionMapOverride?: MapOf<FieldPermissionDefinitionMap>,
+    tabVisibilityPermissionMapOverride?: MapOf<TabVisibilityPermissionDefinitionMap>
   ) {
     if (includeColumns) {
       setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
       setFieldColumns(getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
+      setTabVisibilityColumns(getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
     }
     const tempObjectRows = getObjectRows(selectedSObjects, objectPermissionMapOverride || objectPermissionMap || {});
     setObjectRows(tempObjectRows);
@@ -277,9 +337,16 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldRows(tempFieldRows);
     setVisibleFieldRows(tempFieldRows);
     setDirtyFieldRows({});
+
+    const tempTabVisibilityRows = getTabVisibilityRows(
+      selectedSObjects,
+      tabVisibilityPermissionMapOverride || tabVisibilityPermissionMap || {}
+    );
+    setTabVisibilityRows(tempTabVisibilityRows);
+    setVisibleTabVisibilityRows(tempTabVisibilityRows);
+    setDirtyTabVisibilityRows({});
   }
 
-  // FIXME:
   function exportChanges() {
     // generate brand-new columns/rows just for export
     // This is required in the case where a tab may not have been rendered
@@ -288,6 +355,10 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         {
           columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
           rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
+        },
+        {
+          columns: getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+          rows: getTabVisibilityRows(selectedSObjects, tabVisibilityPermissionMap || {}),
         },
         {
           columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
@@ -303,12 +374,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       await ConfirmationModalPromise({
         header: 'Confirmation',
         confirm: 'Save Changes',
-        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount),
+        content: getConfirmationModalContent(dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount),
       })
     ) {
       setLoading(true);
       let objectPermissionData: PermissionObjectSaveData | undefined = undefined;
       let fieldPermissionData: PermissionFieldSaveData | undefined = undefined;
+      let tabVisibilityPermissionData: PermissionTabVisibilitySaveData | undefined = undefined;
       let profileIds: string[] = [];
       let permissionSetIds: string[] = [];
 
@@ -330,11 +402,23 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
         }
       }
+      if (dirtyTabVisibilityCount) {
+        const dirtyPermissions = getDirtyTabVisibilityPermissions(dirtyTabVisibilityRows);
+        if (dirtyPermissions.length > 0) {
+          tabVisibilityPermissionData = prepareTabVisibilityPermissionSaveData(dirtyPermissions);
+          const ids = collectProfileAndPermissionIds(dirtyPermissions, profilesById, permissionSetsById);
+          profileIds = [...profileIds, ...ids.profileIds];
+          permissionSetIds = [...permissionSetIds, ...ids.permissionSetIds];
+        }
+      }
 
       let objectSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[] | undefined =
         undefined;
       let fieldSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[] | undefined =
         undefined;
+      let tabVisibilitySaveResults:
+        | PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
+        | undefined = undefined;
 
       if (objectPermissionData) {
         objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
@@ -351,6 +435,14 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           fieldPermissionData
         );
         logger.log({ fieldSaveResults });
+      }
+
+      if (tabVisibilityPermissionData) {
+        tabVisibilitySaveResults = await savePermissionRecords<
+          TabVisibilityPermissionRecordForSave,
+          PermissionTableTabVisibilityCellPermission
+        >(selectedOrg, 'PermissionSetTabSetting', tabVisibilityPermissionData);
+        logger.log({ tabVisibilitySaveResults });
       }
 
       // Update records so that SFDX is aware of the changes
@@ -378,6 +470,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           setFieldRows(rows);
           handleFieldBulkRowUpdate(rows);
         }
+        if (tabVisibilitySaveResults && tabVisibilityPermissionMap && tabVisibilityRows) {
+          const permissionsMap = getUpdatedTabVisibilityPermissions(tabVisibilityPermissionMap, tabVisibilitySaveResults);
+          const rows = updateTabVisibilityRowsAfterSave(tabVisibilityRows, permissionsMap);
+          setTabVisibilityPermissionMap(permissionsMap);
+          setTabVisibilityRows(rows);
+          handleTabVisibilityBulkRowUpdate(rows);
+        }
         setLoading(false);
       }
     }
@@ -386,9 +485,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   function resetChanges() {
     const updatedObjectPermissionMap = clearPermissionErrorMessage(objectPermissionMap || {});
     const updatedFieldPermissionMap = clearPermissionErrorMessage(fieldPermissionMap || {});
+    const updatedTabVisibilityPermissionMap = clearPermissionErrorMessage(tabVisibilityPermissionMap || {});
     setObjectPermissionMap(updatedObjectPermissionMap);
     setFieldPermissionMap(updatedFieldPermissionMap);
-    initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap);
+    setTabVisibilityPermissionMap(updatedTabVisibilityPermissionMap);
+    initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap, updatedTabVisibilityPermissionMap);
   }
 
   function handleGoBack() {
@@ -396,6 +497,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     resetFieldsByKey();
     resetObjectPermissionMap();
     resetFieldPermissionMap();
+    resetTabVisibilityPermissionMap();
   }
 
   return (
@@ -427,7 +529,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
             title="Reset Changes"
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !objectsHaveErrors && !fieldsHaveErrors)}
+            disabled={
+              loading ||
+              (!dirtyObjectCount &&
+                !dirtyFieldCount &&
+                !dirtyTabVisibilityCount &&
+                !objectsHaveErrors &&
+                !fieldsHaveErrors &&
+                !tabVisibilityHaveErrors)
+            }
           >
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
             <span>Reset Changes</span>
@@ -444,7 +554,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           <button
             className="slds-button slds-button_brand"
             onClick={saveChanges}
-            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount)}
+            disabled={loading || (!dirtyObjectCount && !dirtyFieldCount && !dirtyTabVisibilityCount)}
           >
             <Icon type="utility" icon="upload" className="slds-button__icon slds-button__icon_left" />
             Save
@@ -495,6 +605,38 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                   />
                 ),
               },
+
+              {
+                id: 'tab-visibility-permissions',
+                title: (
+                  <Fragment>
+                    <span className="slds-tabs__left-icon">
+                      <Icon
+                        type="standard"
+                        icon="portal_roles_and_subordinates"
+                        containerClassname="slds-icon_container slds-icon-standard-portal-roles-and-subordinates"
+                        className="slds-icon slds-icon_small"
+                      />
+                    </span>
+                    Tab Visibility {dirtyTabVisibilityCount ? `(${dirtyTabVisibilityCount})` : ''}
+                    <ErrorTooltip hasError={tabVisibilityHaveErrors} id="tab-visibility-errors" />
+                  </Fragment>
+                ),
+                titleText: 'Tab Visibility',
+                disabled: true,
+                content: (
+                  <ManagePermissionsEditorTabVisibilityTable
+                    ref={managePermissionsEditorObjectTableRef}
+                    columns={tabVisibilityColumns}
+                    rows={visibleTabVisibilityRows || []}
+                    totalCount={objectRows?.length || 0}
+                    onFilter={setTabVisibilityFilter}
+                    onBulkUpdate={handleTabVisibilityBulkRowUpdate}
+                    onDirtyRows={setDirtyTabVisibilityRows}
+                  />
+                ),
+              },
+
               {
                 id: 'field-permissions',
                 title: (

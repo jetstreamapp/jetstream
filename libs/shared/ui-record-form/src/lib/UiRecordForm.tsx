@@ -5,9 +5,9 @@ import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import type { Field } from 'jsforce';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import UiRecordFormField from './UiRecordFormField';
 import { EditableFields } from './ui-record-form-types';
 import { convertMetadataToEditableFields } from './ui-record-form-utils';
-import UiRecordFormField from './UiRecordFormField';
 
 export interface UiRecordFormProps {
   controlClassName?: string;
@@ -19,6 +19,7 @@ export interface UiRecordFormProps {
   saveErrors?: MapOf<string | undefined>;
   disabled?: boolean;
   onChange: (record: Record) => void;
+  viewRelatedRecord?: (recordId: string, metadata: Field) => void;
 }
 
 export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
@@ -28,14 +29,16 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   sobjectFields,
   picklistValues,
   record,
-  saveErrors = {},
+  saveErrors,
   disabled = false,
   onChange,
+  viewRelatedRecord,
 }) => {
   const [columnSize, setColumnSize] = useState<1 | 2 | 3 | 4>(2);
   const [showReadOnlyFields, setShowReadOnlyFields] = useState(true);
   const [showFieldTypes, setShowFieldTypes] = useState(false);
   const [limitToRequired, setLimitToRequired] = useState(false);
+  const [limitToErrorFields, setLimitToErrorFields] = useState(false);
   const [modifiedRecord, setModifiedRecord] = useState<Record>({});
   const [visibleFieldMetadataRows, setVisibleFieldMetadataRows] = useState<EditableFields[][]>();
   const [fieldMetadata, setFieldMetadata] = useState(() => {
@@ -62,13 +65,16 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
           (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable
         );
       }
+      if (limitToErrorFields) {
+        visibleFields = visibleFields.filter((field) => saveErrors?.[field.name]);
+      }
       if (visibleFields.length) {
         setVisibleFieldMetadataRows(splitArrayToMaxSize(visibleFields, columnSize));
       } else {
         setVisibleFieldMetadataRows([]);
       }
     }
-  }, [fieldMetadata, debouncedFilters, showReadOnlyFields, columnSize, limitToRequired, action]);
+  }, [fieldMetadata, debouncedFilters, showReadOnlyFields, columnSize, limitToRequired, action, limitToErrorFields, saveErrors]);
 
   useNonInitialEffect(() => {
     setFieldMetadata(convertMetadataToEditableFields(sobjectFields, picklistValues, action, record));
@@ -138,10 +144,19 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
             disabled={!fieldMetadata || disabled}
             onChange={setLimitToRequired}
           />
+          {saveErrors && Object.keys(saveErrors).length > 0 && (
+            <Checkbox
+              id={`record-form-limit-to-error`}
+              label="Show Fields with Errors"
+              checked={limitToErrorFields}
+              disabled={!fieldMetadata || disabled}
+              onChange={setLimitToErrorFields}
+            />
+          )}
         </Grid>
       </div>
       <hr className="slds-m-around_xx-small" />
-      {fieldMetadata?.length && !visibleFieldMetadataRows?.length && (
+      {!!fieldMetadata?.length && !visibleFieldMetadataRows?.length && (
         <EmptyState headline="There are no matching fields" subHeading="Adjust your selection."></EmptyState>
       )}
       {visibleFieldMetadataRows && (
@@ -152,13 +167,15 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
                 <div key={field.name} className="slds-form__item" role="listitem">
                   <UiRecordFormField
                     field={field}
-                    saveError={saveErrors[field.name]}
+                    saveError={saveErrors?.[field.name]}
                     disabled={disabled}
                     initialValue={record[field.name]}
                     modifiedValue={modifiedRecord[field.name]}
+                    relatedRecord={field.metadata.relationshipName ? record[field.metadata.relationshipName] : null}
                     showFieldTypes={showFieldTypes}
                     omitUndoIndicator={action === 'create'}
                     onChange={handleRecordUpdate}
+                    viewRelatedRecord={viewRelatedRecord}
                   />
                 </div>
               ))}

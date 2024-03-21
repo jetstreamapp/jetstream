@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { parseFile } from '@jetstream/shared/ui-utils';
-import { ensureBoolean, REGEX } from '@jetstream/shared/utils';
+import { REGEX, ensureBoolean } from '@jetstream/shared/utils';
 import { InputReadFileContent, SalesforceOrgUi } from '@jetstream/types';
 import {
   ButtonGroupContainer,
@@ -8,15 +8,15 @@ import {
   FileDownloadModal,
   FileSelector,
   Icon,
-  onParsedMultipleWorkbooks,
   Popover,
   PopoverRef,
+  fireToast,
+  onParsedMultipleWorkbooks,
 } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
-import { fireToast } from '../core/AppToast';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import { FieldValues } from '../shared/create-fields/create-fields-types';
 import {

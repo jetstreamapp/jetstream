@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/webpack:webpack",
+      "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/cron-tasks",
@@ -18,12 +18,17 @@
           {
             "entryName": "inactive-account-deletion",
             "entryPath": "apps/cron-tasks/src/inactive-account-deletion.ts"
+          },
+          {
+            "entryName": "save-analytics-summary",
+            "entryPath": "apps/cron-tasks/src/save-analytics-summary.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
         "assets": [],
         "target": "node",
-        "compiler": "tsc"
+        "compiler": "tsc",
+        "webpackConfig": "apps/cron-tasks/webpack.config.js"
       },
       "configurations": {
         "production": {
@@ -40,25 +45,21 @@
       }
     },
     "serve": {
-      "executor": "@nrwl/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "cron-tasks:build",
         "inspect": true
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/cron-tasks/**/*.ts"]
-      }
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/cron-tasks"],
       "options": {
-        "jestConfig": "apps/cron-tasks/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/cron-tasks/jest.config.ts"
       }
     }
   },

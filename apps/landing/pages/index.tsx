@@ -1,11 +1,12 @@
+import { AnalyticStat } from '@jetstream/types';
+import { GetStaticProps, InferGetStaticPropsType } from 'next';
 import Head from 'next/head';
-import React from 'react';
 import Footer from '../components/Footer';
 import Navigation from '../components/Navigation';
 import LandingPage from '../components/new/LandingPage';
-import { fetchBlogPosts } from '../utils/data';
+import { fetchBlogPosts, getAnalyticSummary } from '../utils/data';
 
-export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
+export const Index = ({ stats, omitBlogPosts }: InferGetStaticPropsType<typeof getStaticProps>) => {
   return (
     <div>
       <Head>
@@ -61,7 +62,7 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
       <div className="bg-white">
         <div className="relative overflow-hidden">
           <Navigation inverse />
-          <LandingPage />
+          <LandingPage stats={stats} />
           <Footer />
         </div>
       </div>
@@ -70,9 +71,13 @@ export const Index = ({ omitBlogPosts }: { omitBlogPosts: boolean }) => {
 };
 
 // This also gets called at build time
-export async function getStaticProps({ params }) {
+export const getStaticProps: GetStaticProps<{
+  stats: AnalyticStat[];
+  omitBlogPosts: boolean;
+}> = async () => {
+  const stats = await getAnalyticSummary();
   const blogPostsWithRelated = await fetchBlogPosts();
-  return { props: { omitBlogPosts: Object.values(blogPostsWithRelated || {}).length === 0 } };
-}
+  return { props: { stats, omitBlogPosts: Object.values(blogPostsWithRelated || {}).length === 0 } };
+};
 
 export default Index;

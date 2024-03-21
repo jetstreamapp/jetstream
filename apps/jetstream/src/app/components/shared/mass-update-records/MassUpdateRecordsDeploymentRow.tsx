@@ -2,18 +2,18 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { pluralizeFromNumber } from '@jetstream/shared/utils';
+import { decodeHtmlEntity, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import LoadRecordsResultsModal from '../../load-records/components/load-results/LoadRecordsResultsModal';
 import MassUpdateRecordTransformationText from '../../update-records/shared/MassUpdateRecordTransformationText';
-import { DownloadAction, DownloadType } from '../load-records-results/load-records-results-types';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
+import { DownloadAction, DownloadType } from '../load-records-results/load-records-results-types';
 import { MetadataRow } from './mass-update-records.types';
 import { getFieldsToQuery } from './mass-update-records.utils';
 
@@ -53,7 +53,8 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
   const { trackEvent } = useAmplitude();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
-  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
 
   const { done, processingErrors, status, jobInfo, processingEndTime, processingStartTime } = deployResults;
 
@@ -84,7 +85,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
           combinedResults.push({
             _id: resultRecord.Id || records[i].Id || null,
             _success: resultRecord.Success,
-            _errors: resultRecord.Error,
+            _errors: decodeHtmlEntity(resultRecord.Error),
             ...records[i],
           });
         }
@@ -223,6 +224,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
               className="slds-m-left_medium"
               serverUrl={serverUrl}
               org={selectedOrg}
+              skipFrontDoorAuth={skipFrontDoorAuth}
               returnUrl={`/lightning/setup/AsyncApiJobStatus/page?address=%2F${jobInfo.id}`}
               iconPosition="right"
             >

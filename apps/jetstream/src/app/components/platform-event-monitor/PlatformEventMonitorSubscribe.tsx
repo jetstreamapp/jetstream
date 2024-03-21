@@ -1,19 +1,19 @@
 import { css } from '@emotion/react';
 import { isEnterKey } from '@jetstream/shared/ui-utils';
-import { ListItem, Maybe } from '@jetstream/types';
-import { ComboboxWithItems, Grid, Input } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import { ListItemGroup, Maybe } from '@jetstream/types';
+import { ComboboxWithGroupedItems, Grid, Input } from '@jetstream/ui';
 import React, { FunctionComponent, KeyboardEvent, useEffect, useState } from 'react';
+import { PlatformEventObject } from './platform-event-monitor.types';
 import { MessagesByChannel } from './usePlatformEvent';
 
 export interface PlatformEventMonitorSubscribeListenerCard {
   picklistKey: string | number;
-  platformEventsList: ListItem<string, DescribeGlobalSObjectResult>[];
+  platformEventsList: ListItemGroup<string, PlatformEventObject>[];
   selectedSubscribeEvent?: Maybe<string>;
   messagesByChannel: MessagesByChannel;
   fetchPlatformEvents: (clearCache?: boolean) => void;
-  subscribe: (platformEventName: string, replayId?: number) => Promise<any>;
-  unsubscribe: (platformEventName: string) => Promise<any>;
+  subscribe: (channel: string, replayId?: number) => Promise<any>;
+  unsubscribe: (channel: string) => Promise<any>;
   onSelectedSubscribeEvent: (id: string) => void;
 }
 
@@ -65,12 +65,14 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
   return (
     <Grid verticalAlign="end" wrap>
       <div className="slds-grow">
-        <ComboboxWithItems
+        <ComboboxWithGroupedItems
           comboboxProps={{
             label: 'Platform Events',
             itemLength: 10,
+            labelHelp:
+              'For Change Data Capture events, the entity must be configured for Change Data Capture or you will not be able to subscribe to the event.',
           }}
-          items={platformEventsList}
+          groups={platformEventsList}
           selectedItemId={selectedSubscribeEvent}
           onSelected={(item) => onSelectedSubscribeEvent(item.id)}
         />

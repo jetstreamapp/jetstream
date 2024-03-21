@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgYubiKey(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M38.5 14.1h-37c-.8 0-1.5.7-1.5 1.5v21c0 .8.7 1.5 1.5 1.5h37c.8 0 1.5-.7 1.5-1.5v-21c0-.8-.7-1.5-1.5-1.5zM21 32.2c-3.4 0-6.1-2.7-6.1-6.1S17.6 20 21 20s6.1 2.7 6.1 6.1-2.7 6.1-6.1 6.1z" />
         <circle cx={21} cy={26.1} r={1.2} />
@@ -11,5 +10,4 @@ function SvgYubiKey(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgYubiKey;

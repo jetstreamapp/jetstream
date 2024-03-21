@@ -5,7 +5,7 @@
   "sourceRoot": "apps/download-zip-sw/src",
   "targets": {
     "build": {
-      "executor": "@nrwl/webpack:webpack",
+      "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/download-zip-sw",
@@ -48,7 +48,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@nrwl/webpack:dev-server",
+      "executor": "@nx/webpack:dev-server",
       "options": {
         "buildTarget": "download-zip-sw:build"
       },
@@ -63,18 +63,14 @@
       "defaultConfiguration": "development"
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/download-zip-sw/**/*.ts"]
-      }
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/download-zip-sw"],
       "options": {
-        "jestConfig": "apps/download-zip-sw/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/download-zip-sw/jest.config.ts"
       }
     }
   },

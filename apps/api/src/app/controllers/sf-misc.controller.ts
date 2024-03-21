@@ -1,16 +1,13 @@
-import { ORG_VERSION_PLACEHOLDER } from '@jetstream/shared/constants';
 import { toBoolean } from '@jetstream/shared/utils';
 import { GenericRequestPayload, ManualRequestPayload, ManualRequestResponse } from '@jetstream/types';
-import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { NextFunction, Request, Response } from 'express';
 import { body, query } from 'express-validator';
 import * as jsforce from 'jsforce';
 import { isObject, isString } from 'lodash';
+import * as request from 'superagent';
+import { salesforceRequestViaAxios } from '../services/sf-misc';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
-import * as request from 'superagent';
-
-const SESSION_ID_RGX = /\{sessionId\}/i;
 
 export const routeValidators = {
   getFrontdoorLoginUrl: [],
@@ -104,75 +101,18 @@ export async function makeJsforceRequest(req: Request, res: Response, next: Next
 
 export async function makeJsforceRequestViaAxios(req: Request, res: Response, next: NextFunction) {
   try {
-    const { method, headers } = req.body as ManualRequestPayload;
-    let { url } = req.body as ManualRequestPayload;
-    let { body } = req.body as ManualRequestPayload;
+    const { method, headers, body, url } = req.body as ManualRequestPayload;
     const conn: jsforce.Connection = res.locals.jsforceConn;
 
-    url = url.replace(ORG_VERSION_PLACEHOLDER, conn.version);
-
-    const config: AxiosRequestConfig = {
+    const response = await salesforceRequestViaAxios({
+      conn,
       url,
       method,
-      baseURL: conn.instanceUrl,
-      // X-SFDC-Session is used for some SOAP APIs, such as the bulk api
-      headers: { ...(headers || {}), ['Authorization']: `Bearer ${conn.accessToken}`, ['X-SFDC-Session']: conn.accessToken },
-      responseType: 'text',
-      validateStatus: null,
-      timeout: 120000,
-      transformResponse: [], // required to avoid automatic json parsing
-    };
+      headers,
+      body,
+    });
 
-    if (isString(body) && SESSION_ID_RGX.test(body)) {
-      body = body.replace(SESSION_ID_RGX, conn.accessToken);
-    }
-
-    if (method !== 'GET' && body) {
-      config.data = body;
-    }
-
-    axios
-      .request(config)
-      .then((response) => {
-        sendJson<ManualRequestResponse>(res, {
-          error: response.status < 200 || response.status > 300,
-          status: response.status,
-          statusText: response.statusText,
-          headers: JSON.stringify(response.headers || {}, null, 2),
-          body: response.data,
-        });
-      })
-      .catch((error: AxiosError) => {
-        if (error.isAxiosError) {
-          if (error.response) {
-            return sendJson<ManualRequestResponse>(res, {
-              error: true,
-              errorMessage: null,
-              status: error.response.status,
-              statusText: error.response.statusText,
-              headers: JSON.stringify(error.response.headers || {}, null, 2),
-              body: error.response.data as any,
-            });
-          } else if (error.request) {
-            return sendJson<ManualRequestResponse>(res, {
-              error: true,
-              errorMessage: error.message || 'An unknown error has occurred.',
-              status: null,
-              statusText: null,
-              headers: null,
-              body: null,
-            });
-          }
-        }
-        sendJson<ManualRequestResponse>(res, {
-          error: true,
-          errorMessage: error.message || 'An unknown error has occurred, the request was not made.',
-          status: null,
-          statusText: null,
-          headers: null,
-          body: null,
-        });
-      });
+    sendJson<ManualRequestResponse>(res, response);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }

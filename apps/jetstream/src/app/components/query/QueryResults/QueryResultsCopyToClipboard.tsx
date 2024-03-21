@@ -1,10 +1,8 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { transformTabularDataToExcelStr, transformTabularDataToHtml } from '@jetstream/shared/ui-utils';
-import { flattenRecords } from '@jetstream/shared/utils';
+import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { Maybe, Record } from '@jetstream/types';
-import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup } from '@jetstream/ui';
+import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
-import copyToClipboard from 'copy-to-clipboard';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useAmplitude } from '../../core/analytics';
 
@@ -31,7 +29,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
 }) => {
   const { trackEvent } = useAmplitude();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [format, setFormat] = useState<'excel' | 'text' | 'json'>('excel');
+  const [format, setFormat] = useState<'excel' | 'json'>('excel');
   const [whichRecords, setWhichRecords] = useState<WhichRecords>('all');
   const [hasFilteredRows, setHasFilteredRows] = useState<boolean>(false);
   const [hasPartialSelectedRows, setHasPartialSelectedRows] = useState<boolean>(false);
@@ -52,7 +50,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     setWhichRecords('all');
   }, [records, filteredRows, selectedRows]);
 
-  async function handleCopyToClipboard(format: 'excel' | 'text' | 'json' = 'excel') {
+  async function handleCopyToClipboard(format: 'excel' | 'json' = 'excel') {
     if (
       (records && hasFilteredRows && filteredRows.length < records.length) ||
       (records && hasPartialSelectedRows && selectedRows.length < records.length)
@@ -61,8 +59,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       setIsModalOpen(true);
       return;
     }
-
-    performCopy(records, format);
+    copyRecordsToClipboard(records, format, fields);
     trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
   }
 
@@ -83,47 +80,36 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
       recordsToCopy = selectedRows;
     }
 
-    performCopy(recordsToCopy, format);
+    copyRecordsToClipboard(recordsToCopy, format, fields);
+    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format });
 
     setFormat('excel');
     setWhichRecords('all');
   }
 
-  function performCopy(recordsToCopy: any, copyFormat: 'excel' | 'text' | 'json') {
-    if (copyFormat === 'excel' && fields) {
-      const flattenedData = flattenRecords(recordsToCopy, fields);
-      copyToClipboard(transformTabularDataToHtml(flattenedData, fields), { format: 'text/html' });
-    } else if (copyFormat === 'text' && fields) {
-      const flattenedData = flattenRecords(recordsToCopy, fields);
-      copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields), { format: 'text/plain' });
-    } else if (copyFormat === 'json') {
-      copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
-    }
-    trackEvent(ANALYTICS_KEYS.query_CopyToClipboard, { isTooling, whichRecords, format: copyFormat });
-  }
-
   return (
     <Fragment>
       <ButtonGroupContainer>
-        <button
-          className={classNames('slds-button slds-button_neutral', className)}
-          onClick={() => handleCopyToClipboard()}
-          disabled={!hasRecords}
-          title="Copy the queried records to the clipboard. The records can then be pasted into a spreadsheet."
+        <Tooltip
+          delay={[1000, null]}
+          content="This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options."
         >
-          <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-          <span>Copy to Clipboard</span>
-        </button>
+          <button
+            className={classNames('slds-button slds-button_neutral slds-button_first', className)}
+            onClick={() => handleCopyToClipboard()}
+            disabled={!hasRecords}
+          >
+            <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+            <span>Copy to Clipboard</span>
+          </button>
+        </Tooltip>
         <DropDown
           className="slds-button_last"
           dropDownClassName="slds-dropdown_actions"
           position="right"
           disabled={!hasRecords}
-          items={[
-            { id: 'text', value: 'Copy as Text' },
-            { id: 'json', value: 'Copy as JSON' },
-          ]}
-          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'text' | 'json')}
+          items={[{ id: 'json', value: 'Copy as JSON' }]}
+          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'json')}
         />
       </ButtonGroupContainer>
       {isModalOpen && (

@@ -29,6 +29,7 @@ export const PlatformEventMonitorFetchEventStatus: FunctionComponent<PlatformEve
             <SalesforceLogin
               serverUrl={serverUrl}
               org={selectedOrg}
+              skipFrontDoorAuth
               returnUrl={`/lightning/setup/EventObjects/page?address=${encodeURIComponent(
                 '/p/setup/custent/EventObjectsPage?setupid=EventObjects'
               )}`}

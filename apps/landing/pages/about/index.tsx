@@ -51,7 +51,7 @@ function About({ blogPosts }: PostProps) {
                 About Jetstream
               </h1>
               <p className="mx-auto mt-6 max-w-3xl text-center text-xl leading-normal text-gray-500">
-                Jetstream is an open source project that was created and run by{' '}
+                Jetstream is a source-available project created and maintained{' '}
                 <a
                   href="https://www.linkedin.com/in/p-austin-turner/"
                   target="_blank"

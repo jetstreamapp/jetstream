@@ -10,16 +10,27 @@ import {
   SalesforceApiRequest as SalesforceApiReqSample,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Card, Grid, HelpText, Icon, RadioButton, RadioGroup, Tooltip, ViewDocsLink } from '@jetstream/ui';
+import {
+  Card,
+  Grid,
+  HelpText,
+  Icon,
+  KeyboardShortcut,
+  RadioButton,
+  RadioGroup,
+  Tooltip,
+  ViewDocsLink,
+  getModifierKey,
+} from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
-import { Fragment, FunctionComponent, useReducer, useRef, useState } from 'react';
+import { FunctionComponent, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import * as fromSalesforceApiHistory from './salesforceApi.state';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
 import SalesforceApiHistory from './SalesforceApiHistory';
 import SalesforceApiUserInput from './SalesforceApiUserInput';
+import * as fromSalesforceApiHistory from './salesforceApi.state';
 
 type JsonText = 'JSON' | 'TEXT';
 type Action =
@@ -206,6 +217,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
 
   return (
     <Card
+      icon={{ type: 'standard', icon: 'actions_and_buttons' }}
       title={
         <Grid vertical>
           <div>Salesforce API Request</div>
@@ -215,15 +227,22 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
       actions={
         <>
           <SalesforceApiHistory className="slds-col" disabled={loading} onHistorySelected={handleRestoreFromHistory} />
-          <button
-            className="slds-button slds-button_brand"
-            onClick={() => handleSubmit()}
-            title="alt/cmd + enter"
-            disabled={loading || !!headersErrorMessage || !!bodyErrorMessage}
+          <Tooltip
+            content={
+              <div className="slds-p-bottom_small">
+                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+              </div>
+            }
           >
-            <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Submit
-          </button>
+            <button
+              className="slds-button slds-button_brand"
+              onClick={() => handleSubmit()}
+              disabled={loading || !!headersErrorMessage || !!bodyErrorMessage}
+            >
+              <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Submit
+            </button>
+          </Tooltip>
         </>
       }
     >

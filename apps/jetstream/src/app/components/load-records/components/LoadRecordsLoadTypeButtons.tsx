@@ -20,7 +20,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
   isCustomMetadataObject,
   onChange,
 }) => {
-  const [externalIdField, setExternalIdFields] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() =>
+  const [externalIdFieldOptions, setExternalIdFieldOptions] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() =>
     externalIdFields.map((field) => ({
       id: field.name,
       label: field.label,
@@ -42,7 +42,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
         setExternalId('');
       }
     }
-    setExternalIdFields(
+    setExternalIdFieldOptions(
       (externalIdFields || []).map((field) => ({
         id: field.name,
         label: field.label,
@@ -114,7 +114,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
                 labelHelp:
                   'Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created.',
               }}
-              items={externalIdField}
+              items={externalIdFieldOptions}
               selectedItemId={externalId}
               onSelected={(item) => handleExternalIdChange(item.id)}
             />

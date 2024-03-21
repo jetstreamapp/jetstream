@@ -25,6 +25,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
   const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
   const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
+  const resetTabVisibilityPermissionMap = useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
   const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
@@ -45,6 +46,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       resetFieldsByKey();
       resetObjectPermissionMap();
       resetFieldPermissionMap();
+      resetTabVisibilityPermissionMap();
     } else if (!selectedOrg) {
       resetProfilesState();
       resetSelectedProfilesPermSetState();
@@ -56,6 +58,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       resetFieldsByKey();
       resetObjectPermissionMap();
       resetFieldPermissionMap();
+      resetTabVisibilityPermissionMap();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
@@ -75,6 +78,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
           ['fieldsByKey', fromPermissionsState.fieldsByKey],
           ['objectPermissionMap', fromPermissionsState.objectPermissionMap],
           ['fieldPermissionMap', fromPermissionsState.fieldPermissionMap],
+          ['tabVisibilityPermissionMap', fromPermissionsState.tabVisibilityPermissionMap],
         ]}
       />
       {location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}

@@ -1,9 +1,8 @@
 import { emailSupport } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent } from '@jetstream/types';
-import { FileSelector, Icon, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
+import { FileSelector, Icon, ScopedNotification, Spinner, Textarea, fireToast } from '@jetstream/ui';
 import { useState } from 'react';
-import { fireToast } from './AppToast';
 
 const MAX_ATTACHMENTS = 3;
 

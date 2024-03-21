@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgEmployeeJobPosition(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         d="M65.3 51.5a14.25 14.25 0 1014.2 14.3 14.32 14.32 0 00-14.2-14.3zM67.8 67a3.09 3.09 0 01-1.1-.2l-5.4 5.4a1.71 1.71 0 01-1.1.5c-.5 0-.9-.1-1.1-.5a1.82 1.82 0 010-2.4l5.4-5.4a4.47 4.47 0 014-5.8 3.09 3.09 0 011.1.2c.2 0 .2.2.1.4l-2.5 2.4a.37.37 0 000 .6l1.6 1.6a.48.48 0 00.7 0l2.4-2.4c.1-.1.5-.1.5.1a6.53 6.53 0 01.2 1.1 4.47 4.47 0 01-4.8 4.4z"
         fill="unset"
@@ -15,5 +14,4 @@ function SvgEmployeeJobPosition(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgEmployeeJobPosition;

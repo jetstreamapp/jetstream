@@ -1,41 +1,57 @@
-# docker build -f Dockerfile . -t jetstream
-# docker-compose up
+# syntax = docker/dockerfile:1
 
-# Login and run DB migrations (TODO: figure out how to automate this)
-# https://medium.com/@sumankpaul/run-db-migration-script-in-docker-compose-ce8e447a77ba
-# docker ps
-# docker exec -it 791 bash
-# npx prisma migrate deploy
+ARG NODE_VERSION=20.10.0
+ARG ENVIRONMENT=production
 
-# TODO: auth redirect flow is broken, need to fix it
+FROM node:${NODE_VERSION}-slim as base
 
-FROM node:16
+# App lives here
+WORKDIR /app
 
-WORKDIR /usr/src/app
+# Set production environment
+ENV NODE_ENV=production
+ARG YARN_VERSION=1.22.21
+RUN npm install -g yarn@$YARN_VERSION --force
 
-# Copy application
-COPY ./dist/apps/api ./dist/apps/api/
-COPY ./dist/apps/jetstream ./dist/apps/jetstream/
-COPY ./dist/apps/download-zip-sw ./dist/apps/download-zip-sw/
-COPY ./dist/apps/landing ./dist/apps/landing/
+# Throw-away build stage to reduce size of final image
+FROM base as build
 
-# Copy supporting files
-COPY ./dist/apps/api/package.json .
-COPY ./yarn.lock .
-COPY ./.env .
-COPY ./ecosystem.config.js .
-COPY ./prisma ./prisma/
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp openssl pkg-config python-is-python3
 
-# Install core dependencies
-RUN yarn
+# Install node modules
+COPY --link package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production=false
 
-# Install other dependencies that were not calculated by nx, but are required
-RUN yarn add dotenv prisma@^3.13.0
+# Generate Prisma Client
+COPY --link prisma .
+RUN yarn run db:generate
 
-# Generate prisma client - ensure that there are no OS differences
-RUN npx prisma generate
+# Copy application code
+COPY --link . .
 
+# Build application
+RUN yarn build:core
+RUN yarn build:landing
+
+# Remove development dependencies
+RUN yarn install --production=true
+
+
+# Final stage for app image
+FROM base
+
+# Install packages needed for deployment
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y openssl && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+RUN npm install -g ts-node@10.9.1
+
+# Copy built application
+COPY --from=build /app /app
+
+# Start the server by default, this can be overwritten at runtime
 EXPOSE 3333
-EXPOSE 9229
-
-CMD [ "node", "--inspect=0.0.0.0", "dist/apps/api/main.js" ]
+CMD [ "yarn", "run", "start:prod" ]

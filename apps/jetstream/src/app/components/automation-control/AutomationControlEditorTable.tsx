@@ -1,13 +1,12 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
 import { forwardRef, useMemo } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
 import { isTableRow } from './automation-control-data-utils';
 import { AdditionalDetailRenderer, ExpandingLabelRenderer, LoadingAndActiveRenderer } from './automation-control-table-renderers';
 import { TableRowOrItemOrChild } from './automation-control-types';
 
-const getRowHeight = ({ row, type }: RowHeightArgs<TableRowOrItemOrChild>) => {
-  if (type === 'GROUP' || isTableRow(row)) {
+const getRowHeight = (row: TableRowOrItemOrChild) => {
+  if (isTableRow(row)) {
     return 28.5;
   }
   if (row.additionalData.length > 1) {
@@ -27,6 +26,7 @@ const getRowId = ({ key }: TableRowOrItemOrChild) => key;
 
 export interface AutomationControlEditorTableProps {
   serverUrl: string;
+  skipFrontdoorLogin: boolean;
   selectedOrg: SalesforceOrgUi;
   rows: TableRowOrItemOrChild[];
   quickFilterText?: string | null;
@@ -35,7 +35,7 @@ export interface AutomationControlEditorTableProps {
 }
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
-  ({ serverUrl, selectedOrg, rows, quickFilterText, toggleRowExpand, updateIsActiveFlag }, ref) => {
+  ({ serverUrl, skipFrontdoorLogin, selectedOrg, rows, quickFilterText, toggleRowExpand, updateIsActiveFlag }, ref) => {
     const columns = useMemo(() => {
       return [
         {
@@ -43,7 +43,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           name: 'Automation Item',
           key: 'label',
           width: 400,
-          formatter: ({ column, row }) => {
+          renderCell: ({ column, row }) => {
             return (
               <ExpandingLabelRenderer
                 serverUrl={serverUrl}
@@ -67,7 +67,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           key: 'isActive',
           width: 110,
           cellClass: (row) => (!isTableRow(row) && row.isActive !== row.isActiveInitialState ? 'active-item-yellow-bg' : ''),
-          formatter: ({ row }) => {
+          renderCell: ({ row }) => {
             return <LoadingAndActiveRenderer row={row} updateIsActiveFlag={updateIsActiveFlag} />;
           },
         },
@@ -85,10 +85,10 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
         {
           name: 'Additional Information',
           key: 'additionalInfo',
-          width: 400,
+          width: 1000,
           filters: null,
           sortable: false,
-          formatter: AdditionalDetailRenderer,
+          renderCell: AdditionalDetailRenderer,
         },
       ] as ColumnWithFilter<TableRowOrItemOrChild>[];
     }, []);
@@ -97,6 +97,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
       <div className="h-100">
         <DataTable
           serverUrl={serverUrl}
+          skipFrontdoorLogin={skipFrontdoorLogin}
           org={selectedOrg}
           data={rows}
           columns={columns}

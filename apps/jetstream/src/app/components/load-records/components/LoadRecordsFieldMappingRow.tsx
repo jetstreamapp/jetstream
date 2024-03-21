@@ -5,7 +5,7 @@ import { Checkbox, ComboboxWithItems, Grid, Icon, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { FieldMappingItem, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
+import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, FieldWithRelatedEntities } from '../load-records-types';
 import { SELF_LOOKUP_KEY } from '../utils/load-records-utils';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
@@ -30,11 +30,11 @@ function getComboboxFieldTitle(item: ListItem) {
 export interface LoadRecordsFieldMappingRowProps {
   isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
-  fieldMappingItem: FieldMappingItem;
+  fieldMappingItem: FieldMappingItemCsv;
   csvField: string;
   csvRowData: string;
   binaryAttachmentBodyField?: string;
-  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItem) => void;
+  onSelectionChanged: (csvField: string, fieldMappingItem: FieldMappingItemCsv) => void;
 }
 
 function getFieldListItems(fields: FieldWithRelatedEntities[]) {
@@ -103,6 +103,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
       onSelectionChanged(csvField, {
+        type: 'CSV',
         csvField,
         targetField: null,
         mappedToLookup: false,
@@ -172,8 +173,20 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   return (
     <tr>
-      <td className="slds-align-top slds-text-color_weak bg-color-backdrop-tint">
-        <div className="slds-line-clamp_medium slds-m-top_x-small" title={csvRowDataStr}>
+      <td
+        className="slds-align-top slds-text-color_weak bg-color-backdrop-tint"
+        css={css`
+          width: 200px;
+          max-width: 200px;
+        `}
+      >
+        <div
+          css={css`
+            line-break: anywhere;
+          `}
+          className="slds-line-clamp_medium slds-m-top_x-small"
+          title={csvRowDataStr}
+        >
           {csvRowDataStr}
         </div>
       </td>
@@ -204,9 +217,9 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           comboboxProps={{
             hideLabel: true,
             label: 'Salesforce Fields',
-            hasError: fieldMappingItem.isDuplicateMappedField,
-            errorMessage: 'Each Salesforce field should only be mapped once',
-            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-duplicate-field-error`,
+            hasError: !!fieldMappingItem.fieldErrorMsg,
+            errorMessage: fieldMappingItem.fieldErrorMsg,
+            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-mapping-error`,
           }}
           items={fieldListItems}
           selectedItemId={fieldMappingItem.targetField}
@@ -218,6 +231,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           <div
             css={css`
               white-space: pre-wrap;
+              overflow-wrap: anywhere;
             `}
           >
             <Icon type="utility" icon="info" className="slds-icon slds-icon-text-default slds-icon_xx-small cursor-pointer" />

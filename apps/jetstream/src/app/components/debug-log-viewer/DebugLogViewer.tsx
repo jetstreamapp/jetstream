@@ -22,7 +22,7 @@ import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromJetstreamEvents from '../core/jetstream-events';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
@@ -42,6 +42,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const logCache = useRef<MapOf<string>>({});
   const logRef = useRef<editor.IStandaloneCodeEditor>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [showLogsFromAllUsers, setShowLogsFromAllUsers] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
@@ -206,6 +207,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
         <div className="slds-p-horizontal_x-small">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'feed' }}
             title={
               <Grid vertical>
                 <div>Debug Logs</div>
@@ -226,6 +228,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 className="slds-m-right_x-small"
                 serverUrl={serverUrl}
                 org={selectedOrg}
+                skipFrontDoorAuth={skipFrontDoorAuth}
                 returnUrl="/lightning/setup/ApexDebugLogs/home"
                 omitIcon
                 title="View debug logs in Salesforce"
@@ -245,7 +248,10 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                 <div>
                   {lastChecked && (
                     <p title={pollTitle} className="slds-text-color_weak slds-truncate">
-                      <button className="slds-button slds-button_icon slds-button_icon-container" onClick={() => fetchLogs()}>
+                      <button
+                        className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
+                        onClick={() => fetchLogs()}
+                      >
                         <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
                       </button>
                       Last Checked {formatDate(lastChecked, 'h:mm:ss')}
@@ -260,6 +266,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
         <div className="slds-p-horizontal_x-small slds-is-relative">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'outcome' }}
             title={<div>Log Results</div>}
             actions={
               <Fragment>

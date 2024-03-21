@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "convert-sass-to-css": {
+      "implementation": "./src/generators/convert-sass-to-css",
+      "schema": "./src/generators/convert-sass-to-css/schema.json",
+      "description": "Generator convert-sass-to-css"
+    }
+  }
+}

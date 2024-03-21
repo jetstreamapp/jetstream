@@ -14,9 +14,12 @@ import {
   CopyToClipboard,
   Grid,
   Icon,
+  KeyboardShortcut,
   SalesforceLogin,
   Spinner,
+  Tooltip,
   ViewDocsLink,
+  getModifierKey,
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
@@ -24,7 +27,7 @@ import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { STORAGE_KEYS, applicationCookieState, selectedOrgState } from '../../app-state';
+import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
 import { useAmplitude } from '../core/analytics';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
@@ -52,7 +55,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>();
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
@@ -143,7 +147,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
       setLoading(true);
       setResults('');
       setTextFilter('');
-      setUserDebug(false);
       logRef.current?.revealLine(1);
       setResultsStatus({ hasResults: false, success: false, label: null });
       try {
@@ -171,7 +174,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             })
             .catch((ex) => {
               logger.warn('[ERROR] Could not save history', ex);
-              rollbar.error('Error saving apex history', ex);
+              rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
             });
         }
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
@@ -212,10 +215,6 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     window.open(loginUrl, 'Developer Console', 'height=600,width=600');
   }
 
-  function handleLogLevelChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    setLogLevel(event.target.value);
-  }
-
   return (
     <AutoFullHeightContainer fillHeight bottomBuffer={10} setHeightAttr className="slds-p-horizontal_x-small slds-scrollable_none">
       <Split
@@ -231,6 +230,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         <div className="slds-p-horizontal_x-small">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'apex' }}
             title={
               <Grid vertical>
                 <div>Anonymous Apex</div>
@@ -252,10 +252,19 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                     onSelected={(item) => setLogLevel(item.id)}
                   />
                 </div>
-                <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
-                  <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Submit
-                </button>
+                <Tooltip
+                  delay={[300, null]}
+                  content={
+                    <div className="slds-p-bottom_small">
+                      <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                    </div>
+                  }
+                >
+                  <button className="slds-button slds-button_brand" onClick={() => onSubmit(apex)}>
+                    <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Submit
+                  </button>
+                </Tooltip>
               </Fragment>
             }
           >
@@ -265,6 +274,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                   className="slds-m-right_x-small"
                   serverUrl={serverUrl}
                   org={selectedOrg}
+                  skipFrontDoorAuth={skipFrontDoorAuth}
                   returnUrl="/_ui/common/apex/debug/ApexCSIPage"
                   omitIcon
                   title="Open developer console"
@@ -289,6 +299,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         <div className="slds-p-horizontal_x-small slds-is-relative">
           <Card
             className="h-100"
+            icon={{ type: 'standard', icon: 'outcome' }}
             title={
               <div>
                 Results

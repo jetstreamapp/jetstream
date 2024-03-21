@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nrwl/webpack:webpack",
+      "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/jetstream-worker",
@@ -13,7 +13,8 @@
         "tsConfig": "apps/jetstream-worker/tsconfig.app.json",
         "assets": ["apps/jetstream-worker/src/assets"],
         "target": "node",
-        "compiler": "tsc"
+        "compiler": "tsc",
+        "webpackConfig": "apps/jetstream-worker/webpack.config.js"
       },
       "configurations": {
         "production": {
@@ -30,7 +31,7 @@
       }
     },
     "serve": {
-      "executor": "@nrwl/node:node",
+      "executor": "@nx/js:node",
       "options": {
         "buildTarget": "jetstream-worker:build",
         "inspect": true,
@@ -38,18 +39,14 @@
       }
     },
     "lint": {
-      "executor": "@nrwl/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/jetstream-worker/**/*.ts"]
-      }
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/jetstream-worker"],
       "options": {
-        "jestConfig": "apps/jetstream-worker/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "apps/jetstream-worker/jest.config.ts"
       }
     }
   },

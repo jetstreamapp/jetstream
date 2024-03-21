@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgStage(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <circle fill="unset" cx={46.7} cy={26} r={3.4} />
       <circle fill="unset" cx={25.9} cy={26} r={3.4} />
       <circle fill="unset" cx={5.4} cy={26} r={3.4} />
@@ -13,5 +12,4 @@ function SvgStage(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgStage;

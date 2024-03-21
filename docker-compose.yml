@@ -1,39 +1,29 @@
 version: '3.8'
 services:
   jetstream:
-    build: .
+    image: jetstream-app
     init: true
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env.example
+      - .env
     environment:
       NODE_ENV: production
       ENVIRONMENT: production
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
+      EXAMPLE_USER_OVERRIDE: true
       JETSTREAM_SESSION_SECRET: '${JETSTREAM_SESSION_SECRET}'
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
-      EXAMPLE_USER_OVERRIDE: 'true'
-      AUTH0_DOMAIN: '${AUTH0_DOMAIN}'
-      AUTH0_M2M_DOMAIN: '${AUTH0_M2M_DOMAIN}'
-      AUTH0_CLIENT_ID: '${AUTH0_CLIENT_ID}'
-      AUTH0_MGMT_CLIENT_ID: '${AUTH0_MGMT_CLIENT_ID}'
-      AUTH0_MGMT_CLIENT_SECRET: '${AUTH0_MGMT_CLIENT_SECRET}'
-      AUTH0_CLIENT_SECRET: '${AUTH0_CLIENT_SECRET}'
-      SFDC_API_VERSION: '${SFDC_API_VERSION}'
-      SFDC_CONSUMER_SECRET: '${SFDC_CONSUMER_SECRET}'
-      SFDC_CONSUMER_KEY: '${SFDC_CONSUMER_KEY}'
-      SFDC_CALLBACK_URL: '${SFDC_CALLBACK_URL}'
-      NX_ROLLBAR_KEY: '${NX_ROLLBAR_KEY}'
-      NX_AMPLITUDE_KEY: '${NX_AMPLITUDE_KEY}'
-      NX_AUTH_AUDIENCE: '${NX_AUTH_AUDIENCE}'
     ports:
       - '3333:3333'
     links:
       - db
   db:
-    image: postgres:14.1-alpine
+    image: postgres:16.1-alpine
     restart: always
     hostname: postgres
     environment:
@@ -53,9 +43,11 @@ services:
       timeout: 5s
       retries: 5
   db_seed:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.db-migration
+    image: jetstream-app
+    command: >
+      bash -c "yarn db:migrate && yarn db:seed"
+    links:
+      - db
     depends_on:
       db:
         condition: service_healthy

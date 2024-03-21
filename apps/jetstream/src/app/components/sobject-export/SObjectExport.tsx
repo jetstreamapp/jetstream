@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -25,7 +26,6 @@ import {
 import type { DescribeGlobalSObjectResult } from 'jsforce';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import * as fromJetstreamEvents from '../core/jetstream-events';
@@ -160,7 +160,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     } catch (ex) {
       logger.error(ex);
       setErrorMessage(ex.message);
-      rollbar.error('Error preparing sobject export', ex);
+      rollbar.error('Error preparing sobject export', { message: ex.message, stack: ex.stack });
     } finally {
       setLoading(false);
     }

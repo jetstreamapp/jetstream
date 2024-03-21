@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgNote(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M41.4 39.7l-.9.9c-1 1-2.3 1.5-3.7 1.5h-2.6c-2.4 0-5-1.9-5-5.2v-2.5c0-2 .9-3.2 1.4-3.9l10.8-11c.3-.3.6-1 .6-1.4V9.8C42 7.2 39.8 5 37.2 5H11.6C9 5 6.8 7.4 6.8 9.8H5.2C3.4 9.8 2 11.3 2 13.1s1.4 3.2 3.2 3.2h1.6v6.5H5.2C3.4 22.8 2 24.2 2 26s1.4 3.2 3.2 3.2h1.6v6.5H5.2c-1.8 0-3.2 1.5-3.2 3.2 0 1.8 1.4 3.2 3.2 3.2h1.6c0 3.2 2.2 4.8 4.8 4.8H37.2c2.6 0 4.8-2.2 4.8-4.8V40c0-.5-.2-.6-.6-.3zm-8.2-22.6c0 .9-.7 1.6-1.6 1.6h-16c-.9 0-1.6-.7-1.6-1.6v-1.6c0-.9.7-1.6 1.6-1.6h16c.9 0 1.6.7 1.6 1.6v1.6zM26 36.5c0 .9-.7 1.6-1.6 1.6h-8.8c-.9 0-1.6-.7-1.6-1.6v-1.6c0-.9.7-1.6 1.6-1.6h8.8c.9 0 1.6.7 1.6 1.6v1.6zm2.4-9.7c0 .9-.7 1.6-1.6 1.6H15.6c-.9 0-1.6-.7-1.6-1.6v-1.6c0-.9.7-1.6 1.6-1.6h11.2c.9 0 1.6.7 1.6 1.6v1.6z"
@@ -14,5 +13,4 @@ function SvgNote(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgNote;

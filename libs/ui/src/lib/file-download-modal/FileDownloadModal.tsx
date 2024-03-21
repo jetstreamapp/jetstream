@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
+import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import {
@@ -8,6 +8,7 @@ import {
   FileExtCsv,
   FileExtCsvXLSX,
   FileExtGDrive,
+  FileExtJson,
   FileExtXLSX,
   FileExtXml,
   FileExtZip,
@@ -18,7 +19,6 @@ import {
   SalesforceOrgUi,
   UploadToGoogleJob,
 } from '@jetstream/types';
-import FileDownloadGoogle from './options/FileDownloadGoogle';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import Input from '../form/input/Input';
@@ -33,7 +33,20 @@ import {
   RADIO_FORMAT_XML,
   RADIO_FORMAT_ZIP,
 } from './download-modal-utils';
-import { logger } from '@jetstream/shared/client-logger';
+import FileDownloadGoogle from './options/FileDownloadGoogle';
+
+type TransformDataParams = TransformDataCsvXlsx | TransformDataJson;
+
+interface TransformDataCsvXlsx {
+  fileFormat: FileExtCsv | FileExtXLSX;
+  data: any[];
+  header: string[];
+}
+
+interface TransformDataJson {
+  fileFormat: FileExtJson;
+  data: any[];
+}
 
 export interface FileDownloadModalProps {
   google_apiKey?: string;
@@ -41,19 +54,36 @@ export interface FileDownloadModalProps {
   google_clientId?: string;
   modalHeader?: string;
   modalTagline?: string;
-  allowedTypes?: FileExtAllTypes[]; // defaults to all types
+  allowedTypes?: FileExtAllTypes[];
   org: SalesforceOrgUi;
-  // if data is MapOf<any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
+  /**
+   * if data is MapOf<any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
+   */
   data: any[] | MapOf<any[]> | ArrayBuffer | string;
-  header?: string[] | MapOf<any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
+  /**
+   * Header to use for download.
+   * Of omitted, then this will be auto-detected from the first row of data
+   */
+  header?: string[] | MapOf<any[]>;
+  /**
+   * Words to combine into the filename
+   */
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
   onModalClose: (cancelled?: boolean) => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
-  // this may be useful if alternateDownloadButton is provided, otherwise this usually is not required
+  /** this may be useful if alternateDownloadButton is provided, otherwise this usually is not required */
   onChange?: (data: { fileName: string; fileFormat: FileExtAllTypes }) => void;
   emitUploadToGoogleEvent?: (event: JetstreamEvents) => void;
   onError?: (error: Error) => void;
+  /**
+   * Optional Transformation to apply to simple data
+   * SPECIAL USAGE: This will only be called if the data is an array, other complex types will not be ignored
+   *
+   * example usage is if the spreadsheet format vs JSON should have different output
+   * (e.x. flattened data vs nested data)
+   */
+  transformData?: (params: TransformDataParams) => any[];
 }
 
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
@@ -74,6 +104,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   onChange,
   emitUploadToGoogleEvent,
   onError,
+  transformData,
 }) => {
   const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
@@ -142,7 +173,8 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               fileData = data;
             } else if (Array.isArray(data)) {
               const headerFields = (header ? header : Object.keys(data[0])) as string[];
-              fileData = prepareExcelFile(data, headerFields);
+              const _data = transformData ? transformData({ fileFormat, data, header: headerFields }) : data;
+              fileData = prepareExcelFile(_data, headerFields);
             } else {
               fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
             }
@@ -151,12 +183,15 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           }
           case 'csv': {
             const headerFields = (header ? header : Object.keys(data[0])) as string[];
-            fileData = prepareCsvFile(data as any[], headerFields);
+            const _data =
+              transformData && Array.isArray(data) ? transformData({ fileFormat, data: data, header: headerFields }) : (data as any[]);
+            fileData = prepareCsvFile(_data, headerFields);
             mimeType = MIME_TYPES.CSV;
             break;
           }
           case 'json': {
-            fileData = JSON.stringify(data, null, 2);
+            const _data = transformData && Array.isArray(data) ? transformData({ fileFormat, data: data }) : data;
+            fileData = JSON.stringify(_data, null, 2);
             mimeType = MIME_TYPES.JSON;
             break;
           }
@@ -193,14 +228,18 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
     if (allowedTypesSet.has('csv')) {
       fileType = 'csv';
       const headerFields = (header ? header : Object.keys(data[0])) as string[];
-      fileData = prepareCsvFile(data as any[], headerFields);
+      const _data =
+        transformData && Array.isArray(data) ? transformData({ fileFormat: 'csv', data, header: headerFields }) : (data as any[]);
+      fileData = prepareCsvFile(_data, headerFields);
     } else if (allowedTypesSet.has('xlsx')) {
       fileType = 'xlsx';
       if (data instanceof ArrayBuffer) {
         fileData = data;
       } else if (Array.isArray(data)) {
         const headerFields = (header ? header : Object.keys(data[0])) as string[];
-        fileData = prepareExcelFile(data, headerFields);
+        const _data =
+          transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data: data, header: headerFields }) : (data as any[]);
+        fileData = prepareExcelFile(_data, headerFields);
       } else {
         fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
       }

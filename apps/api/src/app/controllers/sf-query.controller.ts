@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
+import { body, query as queryString } from 'express-validator';
 import * as jsforce from 'jsforce';
 import * as queryService from '../services/query';
-import { sendJson } from '../utils/response.handlers';
 import { UserFacingError } from '../utils/error-handler';
-import { body, query as queryString } from 'express-validator';
+import { sendJson } from '../utils/response.handlers';
 
 export const routeValidators = {
   query: [body('query').isString()],

@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgBroadcast(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <g fill="unset">
         <path d="M2 18.992c0 5.832 2.28 11.292 6.362 15.374.902.899 2.28.899 3.181 0 .902-.9.902-2.279 0-3.183-3.233-3.231-5.036-7.58-5.088-12.19.053-4.612 1.855-8.959 5.088-12.193.902-.901.902-2.279 0-3.181-.901-.9-2.28-.901-3.181 0A21.61 21.61 0 002 18.992z" />
         <path d="M14.723 28.004c.902.902 2.28.902 3.182 0 .9-.9.9-2.278 0-3.181-1.538-1.537-2.438-3.605-2.438-5.831-.001-2.227.847-4.241 2.438-5.832.9-.901.9-2.279 0-3.181-.902-.9-2.28-.901-3.182 0a12.715 12.715 0 00-3.71 9.012c0 3.394 1.325 6.628 3.71 9.013z" />
@@ -18,5 +17,4 @@ function SvgBroadcast(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgBroadcast;

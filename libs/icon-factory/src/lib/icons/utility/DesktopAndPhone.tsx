@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgDesktopAndPhone(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M50 20.5c0-1.2-1-2.2-2.2-2.2H33.7c-1.2 0-2.2 1-2.2 2.2v23.7c0 1.2 1 2.2 2.2 2.2h14.1c1.2 0 2.2-1 2.2-2.2V20.5z"
@@ -15,5 +14,4 @@ function SvgDesktopAndPhone(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgDesktopAndPhone;

@@ -2,7 +2,6 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
@@ -15,13 +14,6 @@ import {
 
 function getRowKey(row: PermissionTableObjectCell) {
   return row.key;
-}
-
-function getRowHeight({ type, row }: RowHeightArgs<PermissionTableObjectCell>) {
-  if (type === 'ROW') {
-    return 24;
-  }
-  return 34;
 }
 
 // summary row is just a placeholder for rendered content
@@ -39,9 +31,7 @@ export interface ManagePermissionsEditorObjectTableProps {
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
     const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
-    // const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 
-    // FIXME: figure out what we do and do not need here
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {
         resetGridChanges({ rows, type: 'object' });
@@ -83,7 +73,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
                 onBulkAction: onBulkUpdate,
               } as PermissionManagerTableContext
             }
-            rowHeight={getRowHeight}
+            rowHeight={24}
             summaryRowHeight={38}
           />
         </AutoFullHeightContainer>

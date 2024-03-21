@@ -1,10 +1,12 @@
-import { css, jsx, SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { Component } from 'react';
 
 export interface AutoFullHeightContainerProps {
   className?: string;
   baseCss?: SerializedStyles;
+  /** Number of pixels from the bottom of the page to compensate for  */
   bottomBuffer?: number;
+  /** What should the top be set to if not yet rendered */
   bufferIfNotRendered?: number;
   /** If true, then container will always be the full height no matter how much content the data has */
   fillHeight?: boolean;

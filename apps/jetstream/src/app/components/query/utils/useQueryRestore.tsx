@@ -1,14 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { fireToast } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
-import { parseQuery, Query } from 'soql-parser-js';
+import { Query, parseQuery } from 'soql-parser-js';
 import { selectedOrgState } from '../../../app-state';
-import { fireToast } from '../../core/AppToast';
 import * as fromQueryState from '../query.state';
-import { QueryRestoreErrors, restoreQuery, UserFacingRestoreError } from './query-restore-utils';
+import { QueryRestoreErrors, UserFacingRestoreError, restoreQuery } from './query-restore-utils';
 
 const ERROR_MESSAGES = {
   PARSE_ERROR: 'There was an error parsing your query, please try again or submit a support request if the problem continues.',
@@ -161,7 +161,7 @@ export const useQueryRestore = (
         } else {
           logger.warn('[QUERY RESTORE][ERROR]', ex);
           setErrorMessage('An unknown error has ocurred while restoring your query');
-          rollbar.error(ex.message, { ex, query: currSoql });
+          rollbar.error('Query Restore Error', { message: ex.message, stack: ex.stack, query: currSoql });
         }
         endRestore(true, toolingOverride ?? isTooling);
       }

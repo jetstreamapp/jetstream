@@ -1,16 +1,27 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { hasModifierKey, isHKey, useGlobalEventHandler, useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { EmptyState, FileDownloadModal, Icon, Modal, OpenRoadIllustration, ScopedNotification, Spinner } from '@jetstream/ui';
+import {
+  EmptyState,
+  FileDownloadModal,
+  Icon,
+  KeyboardShortcut,
+  Modal,
+  OpenRoadIllustration,
+  ScopedNotification,
+  Spinner,
+  Tooltip,
+  fireToast,
+  getModifierKey,
+} from '@jetstream/ui';
 import classNames from 'classnames';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromAppState from '../../../app-state';
-import { useAmplitude } from '../../core/analytics';
-import { fireToast } from '../../core/AppToast';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
+import { useAmplitude } from '../../core/analytics';
 import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
@@ -58,6 +69,20 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   const [errorMessage, setError] = useState<string | null>(null);
   const orgsById = useRecoilValue(fromAppState.salesforceOrgsById);
 
+  const onKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!isOpen && hasModifierKey(event as any) && isHKey(event as any)) {
+        event.stopPropagation();
+        event.preventDefault();
+        handleToggleOpen(true, 'keyboardShortcut');
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isOpen]
+  );
+
+  useGlobalEventHandler('keydown', onKeydown);
+
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
@@ -78,10 +103,10 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
     }
   }, [isOpen]);
 
-  function handleToggleOpen(open: boolean) {
+  function handleToggleOpen(open: boolean, source = 'buttonClick') {
     setIsOpen(open);
     if (open) {
-      trackEvent(ANALYTICS_KEYS.deploy_history_opened);
+      trackEvent(ANALYTICS_KEYS.deploy_history_opened, source);
     }
   }
 
@@ -162,15 +187,23 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
 
   return (
     <Fragment>
-      <button
-        className={classNames('slds-button slds-button_neutral', className)}
-        aria-haspopup="true"
-        title="View deployment history"
-        onClick={() => handleToggleOpen(true)}
+      <Tooltip
+        content={
+          <div className="slds-p-bottom_small">
+            <KeyboardShortcut inverse keys={[getModifierKey(), 'h']} />
+          </div>
+        }
       >
-        <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
-        <span>History</span>
-      </button>
+        <button
+          className={classNames('slds-button slds-button_neutral slds-m-right_xx-small', className)}
+          aria-haspopup="true"
+          title="View deployment history"
+          onClick={() => handleToggleOpen(true)}
+        >
+          <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
+          <span>History</span>
+        </button>
+      </Tooltip>
       {downloadPackageModalState.open && downloadPackageModalState.org && downloadPackageModalState.data && (
         <FileDownloadModal
           org={downloadPackageModalState.org}

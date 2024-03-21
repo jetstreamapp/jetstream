@@ -87,16 +87,22 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   const handlePaste = useCallback(
     (event: ClipboardEvent) => {
       try {
-        if (!allowFromClipboard || !event.clipboardData || !Array.isArray(event.clipboardData.items) || !event.clipboardData.items.length) {
+        if (!allowFromClipboard || !event.clipboardData || !event.clipboardData?.items?.length) {
           return;
         }
-        const items = event.clipboardData.items;
-        items[0].getAsString((content) => {
-          if (content && content.split('\n').length > 1) {
-            setManagedFilename('Clipboard-Paste.csv');
-            onReadFile({ filename: 'Clipboard-Paste.csv', extension: '.csv', content, isPasteFromClipboard: true });
-          }
-        });
+        const item = event.clipboardData.items[0];
+        if (item.kind === 'file') {
+          setSystemErrorMessage(null);
+          setManagedFilename(null);
+          handleFile(item.getAsFile());
+        } else if (item.kind === 'string') {
+          item.getAsString((content) => {
+            if (content && content.split('\n').length > 1) {
+              setManagedFilename('Clipboard-Paste.csv');
+              onReadFile({ filename: 'Clipboard-Paste.csv', extension: '.csv', content, isPasteFromClipboard: true });
+            }
+          });
+        }
       } catch (ex) {
         logger.warn('[CLIPBOARD] Failed to handle clipboard paste', ex);
       }
@@ -116,31 +122,37 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       } else if (!allowMultipleFiles && files.length > 1) {
         throw new Error('Only 1 file is supported');
       }
-      for (let i = 0; i < files.length; i++) {
-        const file = files.item(i);
-        if (!file) {
-          continue;
-        }
-        logger.info(file);
-        const fileSizeMb = file.size / 1000 / 1000;
+      handleFile(files.item(0));
+    } catch (ex) {
+      setSystemErrorMessage(ex.message);
+      setManagedFilename(null);
+    }
+  }
 
-        const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
-
-        if (accept && !accept.includes(extension)) {
-          throw new Error(`File type ${extension} is not supported`);
-        }
-
-        if (maxAllowedSizeMB && fileSizeMb > maxAllowedSizeMB) {
-          throw new Error(`Maximum allowed file size is ${maxAllowedSizeMB}MB`);
-        }
-
-        setManagedFilename(file.name);
-
-        const readAsArrayBuffer = extension !== '.csv' && extension !== '.xml';
-        const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
-
-        onReadFile({ filename: file.name, extension, content });
+  async function handleFile(file: File | null) {
+    try {
+      if (!file) {
+        return;
       }
+      logger.info(file);
+      const fileSizeMb = file.size / 1000 / 1000;
+
+      const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
+
+      if (accept && !accept.includes(extension)) {
+        throw new Error(`File type ${extension} is not supported`);
+      }
+
+      if (maxAllowedSizeMB && fileSizeMb > maxAllowedSizeMB) {
+        throw new Error(`Maximum allowed file size is ${maxAllowedSizeMB}MB`);
+      }
+
+      setManagedFilename(file.name);
+
+      const readAsArrayBuffer = extension !== '.csv' && extension !== '.tsv' && extension !== '.xml';
+      const content = await (readAsArrayBuffer ? readFile(file, 'array_buffer') : readFile(file, 'text'));
+
+      onReadFile({ filename: file.name, extension, content });
     } catch (ex) {
       setSystemErrorMessage(ex.message);
       setManagedFilename(null);

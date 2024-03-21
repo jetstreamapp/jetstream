@@ -6,34 +6,21 @@
   "generators": {},
   "targets": {
     "lint": {
-      "executor": "@nrwl/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": [
-          "libs/ui/**/*.js",
-          "libs/ui/**/*.jsx",
-          "libs/ui/**/*.ts",
-          "libs/ui/**/*.tsx",
-          "libs/ui/**/*.spec.ts",
-          "libs/ui/**/*.spec.tsx",
-          "libs/ui/**/*.spec.js",
-          "libs/ui/**/*.spec.jsx",
-          "libs/ui/**/*.d.ts",
-          "libs/src/**/*"
-        ]
+        "lintFilePatterns": ["libs/src/**/*"]
       }
     },
     "test": {
-      "executor": "@nrwl/jest:jest",
+      "executor": "@nx/jest:jest",
       "options": {
-        "jestConfig": "libs/ui/jest.config.ts",
-        "passWithNoTests": true
+        "jestConfig": "libs/ui/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/libs/ui"]
     },
     "storybook": {
-      "executor": "@nrwl/storybook:storybook",
+      "executor": "@nx/storybook:storybook",
       "options": {
-        "uiFramework": "@storybook/react",
         "port": 4400,
         "configDir": "libs/ui/.storybook"
       },
@@ -44,9 +31,8 @@
       }
     },
     "build-storybook": {
-      "executor": "@nrwl/storybook:build",
+      "executor": "@nx/storybook:build",
       "options": {
-        "uiFramework": "@storybook/react",
         "configDir": "libs/ui/.storybook",
         "outputDir": "dist/storybook/ui"
       },

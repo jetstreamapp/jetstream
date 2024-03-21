@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgEndChat(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M24.6 40.6c0-8.8 7.2-16 16-16 1.5 0 2.9.2 4.2.6.2-1.1.3-2.1.3-3.2C45 11 35.4 2.2 23.6 2.2 11.7 2.2 2.2 11 2.2 21.8c0 3.4 1 6.6 2.6 9.5.3.4.4 1 .2 1.5l-2.8 7.6c-.3.7.4 1.3 1.2 1.2l7.7-3c.4-.2 1-.1 1.5.2 3.2 1.8 7.1 2.9 11.2 2.9h.8v-1.1zm9.8-22.3c2 0 3.6 1.6 3.6 3.6s-1.6 3.6-3.6 3.6-3.6-1.6-3.6-3.6 1.6-3.6 3.6-3.6zm-21.5 7.1c-2 0-3.6-1.6-3.6-3.6s1.6-3.6 3.6-3.6 3.6 1.6 3.6 3.6-1.7 3.6-3.6 3.6zm10.7 0c-2 0-3.6-1.6-3.6-3.6s1.6-3.6 3.6-3.6 3.6 1.6 3.6 3.6-1.6 3.6-3.6 3.6z"
@@ -14,5 +13,4 @@ function SvgEndChat(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgEndChat;

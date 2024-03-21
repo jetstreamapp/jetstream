@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCopy(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
       <path fill="unset" d="M44 2H18c-2.2 0-4 1.8-4 4v2h24c2.2 0 4 1.8 4 4v28h2c2.2 0 4-1.8 4-4V6c0-2.2-1.8-4-4-4z" />
       <path
         fill="unset"
@@ -11,5 +10,4 @@ function SvgCopy(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCopy;

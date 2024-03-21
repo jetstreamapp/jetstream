@@ -16,10 +16,10 @@ import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from
 import { Link } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
 import { selectedOrgState } from '../../../app-state';
-import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsDeploymentRow from '../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
-import { useDeployRecords } from '../../shared/mass-update-records/useDeployRecords';
 import { DeployResults, MetadataRow } from '../../shared/mass-update-records/mass-update-records.types';
+import { useDeployRecords } from '../../shared/mass-update-records/useDeployRecords';
+import * as fromMassUpdateState from '../mass-update-records.state';
 
 const HEIGHT_BUFFER = 170;
 const MAX_BATCH_SIZE = 10000;
@@ -140,7 +140,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
             hasError={!!batchSizeError}
             errorMessageId="batch-size-error"
             errorMessage={batchSizeError}
-            labelHelp="The batch size determines the maximum number of records will be processed together."
+            labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
           >
             <input
               id="batch-size"

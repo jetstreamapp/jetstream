@@ -1,16 +1,16 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { useTitle } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
 import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';
 import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
 import PlatformEventMonitorPublisherCard from './PlatformEventMonitorPublisherCard';
+import { PlatformEventObject } from './platform-event-monitor.types';
 import { usePlatformEvent } from './usePlatformEvent';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -32,8 +32,9 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     subscribe,
     unsubscribe,
   } = usePlatformEvent({ selectedOrg });
-  const [platformEventsList, setPlatformEventsList] = useState<ListItem<string, DescribeGlobalSObjectResult>[]>([]);
-  const [subscribedPlatformEventsList, setSubscribedPlatformEventsList] = useState<ListItem<string, DescribeGlobalSObjectResult>[]>([]);
+  const [platformEventsListSubscriptions, setPlatformEventsListSubscriptions] = useState<ListItemGroup<string, PlatformEventObject>[]>([]);
+  const [platformEventsListPublisher, setPlatformEventsListPublisher] = useState<ListItem<string, PlatformEventObject>[]>([]);
+  const [subscribedPlatformEventsList, setSubscribedPlatformEventsList] = useState<ListItem<string, PlatformEventObject>[]>([]);
   const [picklistKey, setPicklistKey] = useState<number>(1);
   const [selectedSubscribeEvent, setSelectedSubscribeEvent] = useState<string | null>(null);
   const [selectedPublishEvent, setSelectedPublishEvent] = useState<string | null>(null);
@@ -45,30 +46,88 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     };
   }, []);
 
+  useNonInitialEffect(() => {
+    setSelectedPublishEvent(null);
+  }, [selectedOrg]);
+
   useEffect(() => {
-    const events = platformEvents.map<ListItem<string, DescribeGlobalSObjectResult>>((event) => ({
-      id: event.name,
-      label: event.label,
-      secondaryLabel: event.name,
-      value: event.name,
-      meta: event,
-    }));
-    if (events.length) {
-      setPlatformEventsList(events);
-      setSelectedSubscribeEvent(events[0].id);
-      setSelectedPublishEvent(events[0].id);
+    const subscriptionEvents: ListItemGroup<string, PlatformEventObject>[] = [
+      {
+        id: 'PLATFORM_EVENT',
+        label: 'Platform Events (Custom)',
+        items: platformEvents
+          .filter((item) => item.type === 'PLATFORM_EVENT')
+          .map<ListItem<string, PlatformEventObject>>((event) => ({
+            id: event.channel,
+            label: `${event.label} (${event.name})`,
+            secondaryLabel: event.channel,
+            secondaryLabelOnNewLine: true,
+            value: event.channel,
+            meta: event,
+          })),
+      },
+      {
+        id: 'PLATFORM_EVENT_STANDARD',
+        label: 'Platform Events (Standard)',
+        items: platformEvents
+          .filter((item) => item.type === 'PLATFORM_EVENT_STANDARD')
+          .map<ListItem<string, PlatformEventObject>>((event) => ({
+            id: event.channel,
+            label: `${event.label} (${event.name})`,
+            secondaryLabel: event.channel,
+            secondaryLabelOnNewLine: true,
+            value: event.channel,
+            meta: event,
+          })),
+      },
+      {
+        id: 'CHANGE_EVENT',
+        label: 'Change Data Capture Events',
+        items: platformEvents
+          .filter((item) => item.type === 'CHANGE_EVENT')
+          .map<ListItem<string, PlatformEventObject>>((event) => ({
+            id: event.channel,
+            label: `${event.label} (${event.name})`,
+            secondaryLabel: event.channel,
+            secondaryLabelOnNewLine: true,
+            value: event.channel,
+            meta: event,
+          })),
+      },
+    ];
+
+    setPlatformEventsListSubscriptions(subscriptionEvents);
+    setSelectedSubscribeEvent(platformEvents.length ? platformEvents[0].channel : null);
+    setPicklistKey((prevKey) => prevKey + 1);
+
+    const publisherEvents = platformEvents
+      .filter((event) => event.type === 'PLATFORM_EVENT')
+      .map<ListItem<string, PlatformEventObject>>((event) => ({
+        id: event.name,
+        label: event.label,
+        secondaryLabel: event.name,
+        secondaryLabelOnNewLine: true,
+        value: event.name,
+        meta: event,
+      }));
+
+    if (publisherEvents.length) {
+      setPlatformEventsListPublisher(publisherEvents);
+      setSelectedPublishEvent(publisherEvents[0].id);
       setPicklistKey((prevKey) => prevKey + 1);
     }
   }, [platformEvents]);
 
   useEffect(() => {
-    setSubscribedPlatformEventsList(platformEventsList.filter((item) => !!messagesByChannel[item.value]));
-  }, [messagesByChannel]);
+    setSubscribedPlatformEventsList(
+      platformEventsListSubscriptions.flatMap((item) => item.items).filter((item) => !!messagesByChannel[item.value])
+    );
+  }, [messagesByChannel, platformEventsListSubscriptions]);
 
   const hasErrorOrNoEvents = !hasPlatformEvents || platformEventFetchError;
 
   return (
-    <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none">
+    <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" key={selectedOrg.uniqueId}>
       {hasErrorOrNoEvents && (
         <PlatformEventMonitorFetchEventStatus
           serverUrl={serverUrl}
@@ -94,7 +153,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
             <PlatformEventMonitorListenerCard
               loading={loadingPlatformEvents}
               picklistKey={picklistKey}
-              platformEventsList={platformEventsList}
+              platformEventsList={platformEventsListSubscriptions}
               subscribedPlatformEventsList={subscribedPlatformEventsList}
               selectedSubscribeEvent={selectedSubscribeEvent}
               messagesByChannel={messagesByChannel}
@@ -110,7 +169,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
               serverUrl={serverUrl}
               loadingPlatformEvents={loadingPlatformEvents}
               picklistKey={picklistKey}
-              platformEventsList={platformEventsList}
+              platformEventsList={platformEventsListPublisher}
               selectedPublishEvent={selectedPublishEvent}
               onSelectedPublishEvent={setSelectedPublishEvent}
               publish={publish}

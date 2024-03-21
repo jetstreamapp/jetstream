@@ -1,8 +1,7 @@
 import * as React from 'react';
-
 function SvgCustomer360(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden="true" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
       <path
         fill="unset"
         d="M78.8 50.8c.7-.7.7-1.6.4-2.4-.4-.9-1.2-1.4-2.2-1.4-.7 0-1.3.2-1.9.8l-.5.5c-.9-13.2-11.8-23.6-25.2-23.6-13.9 0-25.2 11.3-25.2 25.2s11.3 25.2 25.2 25.2c11.9 0 21.8-8.2 24.5-19.3l4.9-5zM49.4 70.1c-11.2 0-20.2-9.1-20.2-20.2s9.1-20.2 20.2-20.2c10.6 0 19.3 8.2 20.1 18.6l-.5-.5c-.3-.3-.6-.5-1-.6-1-.4-2-.1-2.7.7-.8 1-.8 2.4.1 3.3l3.6 3.6c-2.1 8.7-10.1 15.3-19.6 15.3z"
@@ -14,5 +13,4 @@ function SvgCustomer360(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 export default SvgCustomer360;

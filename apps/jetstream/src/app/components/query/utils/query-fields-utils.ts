@@ -49,7 +49,7 @@ export function getSelectedFieldsFromQueryFields(fieldsMap: MapOf<QueryFields>):
           return {
             field: `${basePath}${field}`,
             polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined,
-            metadata: queryField.fields[field].metadata,
+            metadata: queryField.fields[field]?.metadata,
           };
         });
       }),

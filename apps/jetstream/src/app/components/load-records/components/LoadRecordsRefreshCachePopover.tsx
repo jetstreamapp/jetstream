@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, PopoverRef, SalesforceLogin, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 
 export interface LoadRecordsRefreshCachePopoverProps {
   org: SalesforceOrgUi;
@@ -19,7 +19,8 @@ export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefres
   onReload,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
 
   function handleReload() {
     popoverRef.current?.close();
@@ -47,6 +48,7 @@ export const LoadRecordsRefreshCachePopover: FunctionComponent<LoadRecordsRefres
           <SalesforceLogin
             serverUrl={serverUrl}
             org={org}
+            skipFrontDoorAuth={skipFrontDoorAuth}
             returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
             title={`View object in Salesforce setup`}
             iconPosition="right"
