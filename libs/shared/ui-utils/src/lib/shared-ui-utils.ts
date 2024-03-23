@@ -981,7 +981,6 @@ export async function pollMetadataResultsUntilDone(
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
     deployResults = await checkMetadataResults(selectedOrg, id, includeDetails);
-    deployResults = { ...deployResults };
     logger.log({ deployResults });
     onChecked(deployResults);
     done = deployResults.done;

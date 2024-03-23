@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployOptions, DeployResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, DeployResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -28,7 +28,7 @@ export const DeployMetadataPackage: FunctionComponent<DeployMetadataPackageProps
   );
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
   const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
-  const [deploymentHistoryName, setDeploymentHistoryName] = useState<Undefinable<string>>(undefined);
+  const [deploymentHistoryName, setDeploymentHistoryName] = useState<Maybe<string>>(undefined);
 
   function handleClick() {
     setDestinationOrg(initialSelectedOrg);

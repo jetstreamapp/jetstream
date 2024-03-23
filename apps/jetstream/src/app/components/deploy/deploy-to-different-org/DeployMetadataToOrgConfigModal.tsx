@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -19,7 +19,7 @@ export interface DeployMetadataToOrgConfigModalProps {
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) => void;
-  setDeploymentHistoryName?: (deploymentHistoryName: Undefinable<string>) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: Maybe<string>) => void;
 }
 
 export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToOrgConfigModalProps> = ({

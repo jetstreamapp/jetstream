@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { DeployOptions, ListMetadataResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -17,7 +17,7 @@ export interface DeleteMetadataConfigModalProps {
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (file: ArrayBuffer, deployOptions: DeployOptions) => void;
-  setDeploymentHistoryName?: (deploymentHistoryName: Undefinable<string>) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: Maybe<string>) => void;
 }
 
 export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigModalProps> = ({

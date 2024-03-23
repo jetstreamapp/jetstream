@@ -1,12 +1,12 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
-import { DeployResult, Maybe, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import OrgLabelBadge from '../../core/OrgLabelBadge';
+import { useAmplitude } from '../../core/analytics';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import DeployMetadataProgressSummary from './DeployMetadataProgressSummary';
 import DeployMetadataResultsTables from './DeployMetadataResultsTables';
@@ -49,7 +49,6 @@ export interface DeployMetadataStatusModalProps {
   onGoBack?: () => void;
   onClose: () => void;
   onDownload?: (deployResults: DeployResult, deploymentUrl: string) => void;
-  deploymentHistoryName?: Undefinable<string>;
 }
 
 export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusModalProps> = ({
@@ -73,7 +72,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   onGoBack,
   onClose,
   onDownload,
-  deploymentHistoryName,
 }) => {
   const isDone = results?.done;
   const { trackEvent } = useAmplitude();
@@ -128,7 +126,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
     });
     onGoBack && onGoBack();
   }
-  console.log('deploymentHistoryName Delete Status Modal:', deploymentHistoryName);
 
   return (
     <Modal
@@ -297,7 +294,6 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
                 )}
               </Grid>
             )}
-            {deploymentHistoryName && 'Deployment History Name:' + deploymentHistoryName}
           </GridCol>
           <GridCol grow className="slds-scrollable">
             {results && <DeployMetadataResultsTables results={results} />}

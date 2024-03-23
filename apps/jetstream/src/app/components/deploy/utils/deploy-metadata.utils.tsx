@@ -8,10 +8,10 @@ import {
   DeployResult,
   ListMetadataResult,
   MapOf,
+  Maybe,
   SalesforceDeployHistoryItem,
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
-  Undefinable,
 } from '@jetstream/types';
 import {
   ColumnWithFilter,
@@ -79,7 +79,7 @@ export async function saveHistory({
 }: {
   sourceOrg?: SalesforceOrgUi;
   destinationOrg: SalesforceOrgUi;
-  deploymentHistoryName?: Undefinable<string>;
+  deploymentHistoryName?: Maybe<string>;
   type: SalesforceDeployHistoryType;
   start: Date;
   metadata?: MapOf<ListMetadataResult[]>;
@@ -111,7 +111,7 @@ export async function saveHistory({
         label: destinationOrg.label,
         orgName: destinationOrg.orgName || '',
       },
-      deploymentHistoryName: deploymentHistoryName,
+      deploymentHistoryName,
       start,
       finish: new Date(),
       url: results?.id ? getDeploymentStatusUrl(results.id) : null,

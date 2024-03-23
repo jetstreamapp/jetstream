@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -11,6 +11,7 @@ import { getStatusValue, useDeployMetadataBetweenOrgs } from '../utils/useDeploy
 export interface DeployMetadataToOrgStatusModalProps {
   sourceOrg: SalesforceOrgUi;
   destinationOrg: SalesforceOrgUi;
+  deploymentHistoryName?: Maybe<string>;
   selectedMetadata: MapOf<ListMetadataResult[]>;
   deployOptions: DeployOptions;
   // used to hide while download window is open
@@ -18,19 +19,18 @@ export interface DeployMetadataToOrgStatusModalProps {
   onGoBack: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
-  deploymentHistoryName?: Undefinable<string>;
 }
 
 export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToOrgStatusModalProps> = ({
   sourceOrg,
   destinationOrg,
+  deploymentHistoryName,
   selectedMetadata,
   deployOptions,
   hideModal,
   onGoBack,
   onClose,
   onDownload,
-  deploymentHistoryName,
 }) => {
   const { serverUrl } = useRecoilValue(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);

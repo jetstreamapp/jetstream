@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
 import { pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, SalesforceDeployHistoryType, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, DeployResult, Maybe, SalesforceDeployHistoryType, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -77,11 +77,9 @@ function reducer(state: State, action: Action): State {
 export function useDeployMetadataPackage(
   destinationOrg: SalesforceOrgUi,
   deployOptions: DeployOptions,
-  file: ArrayBuffer,
-  deploymentHistoryName?: Undefinable<string>
+  deploymentHistoryName?: Maybe<string>,
+  file: ArrayBuffer
 ) {
-  console.log('deploymentHistoryName SAVE INSIDE', deploymentHistoryName);
-
   const isMounted = useRef(true);
 
   const [{ hasLoaded, loading, hasError, errorMessage, status, deployId, results }, dispatch] = useReducer(reducer, {
@@ -106,8 +104,6 @@ export function useDeployMetadataPackage(
 
   const deployMetadata = useCallback(
     async (deployType: SalesforceDeployHistoryType = 'package') => {
-      console.log('deploymentHistoryName SAVE', deploymentHistoryName);
-
       try {
         const start = new Date();
         dispatch({ type: 'UPLOAD' });
@@ -125,7 +121,7 @@ export function useDeployMetadataPackage(
           dispatch({ type: 'SUCCESS', payload: { results } });
           saveHistory({
             destinationOrg,
-            deploymentHistoryName: deploymentHistoryName,
+            deploymentHistoryName,
             type: deployType,
             start,
             deployOptions,

@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -11,24 +11,24 @@ import { getStatusValue, useDeployMetadataPackage } from '../utils/useDeployMeta
 export interface DeployMetadataPackageStatusModalProps {
   destinationOrg: SalesforceOrgUi;
   deployOptions: DeployOptions;
+  deploymentHistoryName?: Maybe<string>;
   file: ArrayBuffer;
   // used to hide while download window is open
   hideModal: boolean;
   onGoBack?: () => void;
   onClose: () => void;
   onDownload: (deployResults: DeployResult, deploymentUrl: string) => void;
-  deploymentHistoryName?: Undefinable<string>;
 }
 
 export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataPackageStatusModalProps> = ({
   destinationOrg,
   deployOptions,
+  deploymentHistoryName,
   file,
   hideModal,
   onGoBack,
   onClose,
   onDownload,
-  deploymentHistoryName,
 }) => {
   const { serverUrl } = useRecoilValue(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
@@ -50,8 +50,6 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
       setDeployStatusUrl(getDeploymentStatusUrl(deployId));
     }
   }, [deployId]);
-
-  console.log('Delete STATUS', deploymentHistoryName);
 
   return (
     <DeployMetadataStatusModal

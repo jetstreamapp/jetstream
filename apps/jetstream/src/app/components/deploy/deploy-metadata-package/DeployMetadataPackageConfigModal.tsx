@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi, Undefinable } from '@jetstream/types';
+import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -29,7 +29,7 @@ export interface DeployMetadataPackageConfigModalProps {
     destinationOrg: SalesforceOrgUi,
     deployOptions: DeployOptions
   ) => void;
-  setDeploymentHistoryName?: (deploymentHistoryName: Undefinable<string>) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: Maybe<string>) => void;
 }
 
 export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataPackageConfigModalProps> = ({
