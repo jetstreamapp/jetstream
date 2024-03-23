@@ -1,9 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryAll } from '@jetstream/shared/data';
-import { ListItem, Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import isNil from 'lodash/isNil';
-import { composeQuery, getField, isQueryValid, Query } from 'soql-parser-js';
+import { Query, composeQuery, getField, isQueryValid } from 'soql-parser-js';
 import { MetadataRow, TransformationOptions } from './mass-update-records.types';
 
 export const startsWithWhereRgx = /^( )*WHERE( )*/i;
@@ -127,7 +126,7 @@ export async function fetchRecordsWithRequiredFields({
   idsToInclude,
 }: {
   selectedOrg: SalesforceOrgUi;
-  records: Record[];
+  records: SalesforceRecord[];
   parsedQuery: Query;
   transformationOptions: TransformationOptions;
   selectedField: string;

@@ -11,9 +11,12 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getMapOf, REGEX } from '@jetstream/shared/utils';
 import {
+  ChildRelationship,
+  DescribeGlobalSObjectResult,
   ExpressionConditionType,
   ExpressionGroupType,
   ExpressionType,
+  Field,
   FieldWrapper,
   ListItem,
   MapOf,
@@ -23,7 +26,6 @@ import {
   QueryOrderByClause,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import type { ChildRelationship, DescribeGlobalSObjectResult, Field } from 'jsforce';
 import isString from 'lodash/isString';
 import {
   Condition,

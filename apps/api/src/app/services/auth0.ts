@@ -26,7 +26,7 @@ let _expires: Date;
 async function initAuthorizationToken(user: UserProfileServer) {
   try {
     if (_accessToken && _expires && isBefore(new Date(), _expires)) {
-      logger.info('[AUTH0] Using existing M2M token', { userId: user.id });
+      logger.info( { userId: user.id }, '[AUTH0] Using existing M2M token',);
       return;
     }
 
@@ -42,13 +42,13 @@ async function initAuthorizationToken(user: UserProfileServer) {
     _expires = addHours(addSeconds(new Date(), response.data.expires_in), -1);
     axiosAuth0.defaults.headers.common['Authorization'] = `Bearer ${_accessToken}`;
   } catch (ex) {
-    logger.error('[AUTH0][M2M][ERROR] Obtaining token %s', ex.message, { userId: user.id });
+    logger.error( { userId: user.id }, '[AUTH0][M2M][ERROR] Obtaining token %s', ex.message,);
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][M2M][ERROR][RESPONSE] %o', error.response.data, { userId: user.id });
+        logger.error( { userId: user.id }, '[AUTH0][M2M][ERROR][RESPONSE] %o', error.response.data,);
       } else if (error.request) {
-        logger.error('[AUTH0][M2M][ERROR][REQUEST] %s', error.message || 'An unknown error has occurred.', { userId: user.id });
+        logger.error( { userId: user.id }, '[AUTH0][M2M][ERROR][REQUEST] %s', error.message || 'An unknown error has occurred.',);
       }
     }
     throw new UserFacingError('An unknown error has occurred');
@@ -102,7 +102,7 @@ export async function linkIdentity(user: UserProfileServer, newUserId: string): 
   await initAuthorizationToken(user);
 
   const [provider, user_id] = newUserId.split('|');
-  logger.info('[AUTH0][IDENTITY][LINK] %s', newUserId, { userId: user.id, provider, secondaryUserId: user_id });
+  logger.info({ userId: user.id, provider, secondaryUserId: user_id }, '[AUTH0][IDENTITY][LINK] %s', newUserId);
   await axiosAuth0.post<UserProfileAuth0Identity>(`/api/v2/users/${user.id}/identities`, { provider, user_id });
 
   return await getUser(user);
@@ -115,7 +115,7 @@ export async function unlinkIdentity(
   await initAuthorizationToken(user);
 
   // TODO: handle better if one step fails
-  logger.info('[AUTH0][IDENTITY][UNLINK+DELETING]', { userId: user.id, provider, unlinkedUserId: userId });
+  logger.info({ userId: user.id, provider, unlinkedUserId: userId }, '[AUTH0][IDENTITY][UNLINK+DELETING]');
   await axiosAuth0.delete<UserProfileAuth0Identity>(`/api/v2/users/${user.id}/identities/${provider}/${userId}`);
 
   const userIdToDelete = `${provider}|${userId}`;

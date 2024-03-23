@@ -3,8 +3,16 @@ import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
 import { REGEX, delay, getMapOf, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
+import {
+  DescribeGlobalSObjectResult,
+  DescribeSObjectResult,
+  EntityParticleRecord,
+  FieldWithExtendedType,
+  InsertUpdateUpsertDelete,
+  MapOf,
+  Maybe,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';

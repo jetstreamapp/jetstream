@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -18,6 +18,7 @@ export interface CreateFieldsDeployModalProps {
   selectedOrg: SalesforceOrgUi;
   profiles: string[];
   permissionSets: string[];
+  profilesAndPermSetsById: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>;
   sObjects: string[];
   rows: FieldValues[];
   onClose: () => void;
@@ -27,6 +28,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   selectedOrg,
   profiles,
   permissionSets,
+  profilesAndPermSetsById,
   sObjects,
   rows,
   onClose,
@@ -87,7 +89,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   }
 
   function downloadResults() {
-    setExportModalData(prepareDownloadResultsFile(results, rows));
+    setExportModalData(prepareDownloadResultsFile(results, rows, profilesAndPermSetsById));
     setExportModalOpen(true);
     trackEvent(ANALYTICS_KEYS.sobj_create_field_export_results, {
       numFields: rows.length,

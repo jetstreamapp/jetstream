@@ -1,6 +1,5 @@
 import { REGEX } from '@jetstream/shared/utils';
-import { MapOf } from '@jetstream/types';
-import type { FieldType } from 'jsforce';
+import { FieldType, MapOf } from '@jetstream/types';
 import isBoolean from 'lodash/isBoolean';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';

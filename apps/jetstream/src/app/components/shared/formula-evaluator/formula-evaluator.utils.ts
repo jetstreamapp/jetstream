@@ -1,13 +1,20 @@
-import { QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { query, queryAll, readMetadata } from '@jetstream/shared/data';
 import { getMapOf } from '@jetstream/shared/utils';
-import { MapOf, Maybe, PermissionSetMetadataRecord, ProfileMetadataRecord, SalesforceOrgUi } from '@jetstream/types';
+import {
+  Field,
+  MapOf,
+  Maybe,
+  PermissionSetMetadataRecord,
+  ProfileMetadataRecord,
+  QueryResultsColumn,
+  QueryResultsColumns,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import startOfDay from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
 import { DataType, FormulaDataValue } from 'formulon';
-import type { Field } from 'jsforce';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';

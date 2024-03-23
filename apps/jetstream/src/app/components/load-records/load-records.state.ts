@@ -1,8 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { detectDateFormatForLocale, formatNumber } from '@jetstream/shared/ui-utils';
-import { InsertUpdateUpsertDelete, MapOf, Maybe } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, MapOf, Maybe } from '@jetstream/types';
 import localforage from 'localforage';
 import isNumber from 'lodash/isNumber';
 import { atom, selector, selectorFamily } from 'recoil';

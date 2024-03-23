@@ -5,7 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared/data';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { Maybe, Record, SalesforceOrgUi } from '@jetstream/types';
+import { ChildRelationship, Maybe, QueryResult, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -19,7 +19,6 @@ import {
   Tooltip,
   setColumnFromType,
 } from '@jetstream/ui';
-import type { ChildRelationship, QueryResult } from 'jsforce';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -27,15 +26,15 @@ import { composeQuery, getField } from 'soql-parser-js';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '../../app-state';
 import { useAmplitude } from './analytics';
 
-function getRowId(row: Record<ChildRecordRow>): string {
+function getRowId(row: SalesforceRecord<ChildRecordRow>): string {
   return `${row.Id}-${row._idx}`;
 }
 
 const groupedRows = ['_groupByLabel'] as const;
 
-function getRows(childRelationships: ChildRelationship[], record: Record) {
+function getRows(childRelationships: ChildRelationship[], record: SalesforceRecord) {
   return (childRelationships || [])
-    .flatMap((childRelationship): Record<ChildRecordRow>[] => {
+    .flatMap((childRelationship): SalesforceRecord<ChildRecordRow>[] => {
       if (childRelationship.relationshipName && record[childRelationship.relationshipName]) {
         const childQueryResults: QueryResult<any> = record[childRelationship.relationshipName];
         return childQueryResults.records.map((record, i) => ({
@@ -70,10 +69,10 @@ export interface ViewChildRecordsProps {
   selectedOrg: SalesforceOrgUi;
   sobjectName: string;
   parentRecordId: string;
-  initialData?: Record;
+  initialData?: SalesforceRecord;
   childRelationships: ChildRelationship[];
   modalRef?: MutableRefObject<Maybe<HTMLDivElement>>;
-  onChildrenData?: (parentRecordId: string, record: Record) => void;
+  onChildrenData?: (parentRecordId: string, record: SalesforceRecord) => void;
 }
 
 export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
@@ -90,14 +89,14 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
   const { serverUrl } = useRecoilValue(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [loading, setLoading] = useState<boolean>(true);
-  const [rows, setRows] = useState<Record<ChildRecordRow>[]>([]);
+  const [rows, setRows] = useState<SalesforceRecord<ChildRecordRow>[]>([]);
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
   const [fetchErrors, setHasFetchErrors] = useState<string[]>([]);
 
   const columns = useMemo(
-    (): ColumnWithFilter<Record<ChildRecordRow>>[] => [
+    (): ColumnWithFilter<SalesforceRecord<ChildRecordRow>>[] => [
       {
-        ...setColumnFromType<Record<ChildRecordRow>>('_groupByLabel', 'text'),
+        ...setColumnFromType<SalesforceRecord<ChildRecordRow>>('_groupByLabel', 'text'),
         key: '_groupByLabel',
         name: '',
         width: 40,

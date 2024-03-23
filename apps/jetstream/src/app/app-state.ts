@@ -31,14 +31,14 @@ function getAppCookie(): ApplicationCookie {
     : {
         serverUrl: 'http://localhost:3333',
         environment: 'development',
-        defaultApiVersion: 'v54.0',
+        defaultApiVersion: 'v60.0',
         google_appId: '1071580433137',
         google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
         google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
       };
   appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
   appState.environment = appState.environment || 'production';
-  appState.defaultApiVersion = appState.defaultApiVersion || 'v54.0';
+  appState.defaultApiVersion = appState.defaultApiVersion || 'v60.0';
   appState.google_appId = appState.google_appId || '1071580433137';
   appState.google_apiKey = appState.google_apiKey || 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA';
   appState.google_clientId = appState.google_clientId || '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com';

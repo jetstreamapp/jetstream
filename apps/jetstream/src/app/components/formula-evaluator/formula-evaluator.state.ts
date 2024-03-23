@@ -1,4 +1,4 @@
-import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
+import { DescribeGlobalSObjectResult, Field } from '@jetstream/types';
 import { atom } from 'recoil';
 
 export type NullNumberBehavior = 'ZERO' | 'BLANK';

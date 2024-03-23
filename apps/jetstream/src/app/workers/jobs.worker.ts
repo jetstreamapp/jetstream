@@ -21,6 +21,7 @@ import {
   sobjectOperation,
 } from '@jetstream/shared/data';
 import {
+  ensureArray,
   flattenRecords,
   getIdFromRecordUrl,
   getMapOfBaseAndSubqueryRecords,
@@ -37,10 +38,10 @@ import type {
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
+  SalesforceRecord,
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
-import type { Record } from 'jsforce';
 import clamp from 'lodash/clamp';
 import isString from 'lodash/isString';
 import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
@@ -81,7 +82,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
         // also, we are assuming that all records are same SObject
         const MAX_DELETE_RECORDS = 200;
 
-        let { records, batchSize } = job.meta as { records: Record[]; batchSize?: number };
+        let { records, batchSize } = job.meta as { records: SalesforceRecord[]; batchSize?: number };
         records = Array.isArray(records) ? records : [records];
 
         batchSize = clamp(batchSize || MAX_DELETE_RECORDS, 1, 200);
@@ -94,7 +95,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           try {
             // TODO: add progress notification and allow cancellation
             let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
-            tempResults = Array.isArray(tempResults) ? tempResults : [tempResults];
+            tempResults = ensureArray(tempResults); // FIXME: should not need this anymore after moving off of JSForce
             tempResults.forEach((result) => results.push(result));
           } catch (ex) {
             logger.error('There was a problem deleting these records');

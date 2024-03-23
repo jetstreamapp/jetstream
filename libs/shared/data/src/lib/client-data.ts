@@ -1,26 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as API from '@jetstream/api-interfaces';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   AnonymousApexResponse,
   ApexCompletionResponse,
   ApiResponse,
+  AsyncResult,
   BulkApiCreateJobRequestPayload,
   BulkApiDownloadType,
   BulkJob,
   BulkJobBatchInfo,
   BulkJobWithBatches,
+  ChildRelationship,
   CloudinarySignature,
   CloudinaryUploadResponse,
+  DeployOptions,
   DeployResult,
+  DescribeGlobalResult,
+  DescribeMetadataResult,
+  DescribeSObjectResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
   InputReadFileContent,
+  ListMetadataQuery,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
   ManualRequestResponse,
   MapOf,
+  OperationReturnType,
+  QueryResults,
   RetrieveResult,
   SalesforceApiRequest,
   SalesforceOrgUi,
@@ -29,15 +37,6 @@ import {
   UserProfileUiWithIdentities,
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
-import type {
-  AsyncResult,
-  ChildRelationship,
-  DeployOptions,
-  DescribeGlobalResult,
-  DescribeMetadataResult,
-  DescribeSObjectResult,
-  ListMetadataQuery,
-} from 'jsforce';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
@@ -63,9 +62,6 @@ function convertDateToLocale(dateOrIsoDateString?: string | Date, options?: Intl
 }
 
 //// APPLICATION ROUTES
-export async function platformEventProxyTest(org: SalesforceOrgUi): Promise<{ version: string }> {
-  return handleRequest({ method: 'GET', url: '/platform-event' }, { org }).then(unwrapResponseIgnoreCache);
-}
 
 export async function checkHeartbeat(): Promise<{ version: string }> {
   return handleRequest({ method: 'GET', url: '/api/heartbeat' }).then(unwrapResponseIgnoreCache);
@@ -230,7 +226,7 @@ export async function query<T = any>(
   query: string,
   isTooling = false,
   includeDeletedRecords = false
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   return handleRequest(
     { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
     { org, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
@@ -243,14 +239,14 @@ export async function queryWithCache<T = any>(
   isTooling = false,
   skipRequestCache = false,
   includeDeletedRecords = false
-): Promise<ApiResponse<API.QueryResults<T>>> {
+): Promise<ApiResponse<QueryResults<T>>> {
   return handleRequest(
     { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
     { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
   );
 }
 
-export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: string, isTooling = false): Promise<API.QueryResults<T>> {
+export async function queryMore<T = any>(org: SalesforceOrgUi, nextRecordsUrl: string, isTooling = false): Promise<QueryResults<T>> {
   return handleRequest({ method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling } }, { org }).then(
     unwrapResponseIgnoreCache
   );
@@ -260,7 +256,7 @@ export async function queryMoreWithCache<T = any>(
   org: SalesforceOrgUi,
   nextRecordsUrl: string,
   isTooling = false
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   return handleRequest(
     { method: 'GET', url: `/api/query-more`, params: { nextRecordsUrl, isTooling } },
     { org, useCache: true, useQueryParamsInCacheKey: true }
@@ -281,7 +277,7 @@ export async function queryAllFromList<T = any>(
   soqlQueries: string[],
   isTooling = false,
   includeDeletedRecords = false
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   let results;
   for (const soqlQuery of soqlQueries) {
     const _results = await queryAll(org, soqlQuery, isTooling, includeDeletedRecords);
@@ -309,7 +305,7 @@ export async function queryAll<T = any>(
   includeDeletedRecords = false,
   // Ended up not using onProgress - if used, need to test
   onProgress?: (fetched: number, total: number) => void
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   const results = await query(org, soqlQuery, isTooling, includeDeletedRecords);
   if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
@@ -344,7 +340,7 @@ export async function queryRemaining<T = any>(
     initialFetched: number;
     onProgress?: (fetched: number, total: number) => void;
   }
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   const results = await queryMore(org, nextRecordsUrl, isTooling);
   while (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     if (progress && isFunction(progress.onProgress)) {
@@ -370,7 +366,7 @@ export async function queryAllWithCache<T = any>(
   includeDeletedRecords = false,
   // Ended up not using onProgress - if used, need to test
   onProgress?: (fetched: number, total: number) => void
-): Promise<ApiResponse<API.QueryResults<T>>> {
+): Promise<ApiResponse<QueryResults<T>>> {
   const { data: results, cache } = await queryWithCache(org, soqlQuery, isTooling, false, includeDeletedRecords);
   if (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     let progress: { initialFetched: number; onProgress?: (fetched: number, total: number) => void } | undefined = undefined;
@@ -400,7 +396,7 @@ export async function queryRemainingWithCache<T = any>(
     initialFetched: number;
     onProgress?: (fetched: number, total: number) => void;
   }
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   const results = await queryMoreWithCache(org, nextRecordsUrl, isTooling);
   while (!results.queryResults.done && results.queryResults.nextRecordsUrl) {
     if (progress && isFunction(progress.onProgress)) {
@@ -426,7 +422,7 @@ export async function queryAllUsingOffset<T = any>(
   selectedOrg: SalesforceOrgUi,
   soqlQuery: string,
   isTooling = false
-): Promise<API.QueryResults<T>> {
+): Promise<QueryResults<T>> {
   const LIMIT = 2000;
   let offset = 0;
   let done = false;
@@ -449,19 +445,20 @@ export async function queryAllUsingOffset<T = any>(
   return results;
 }
 
-export async function sobjectOperation<T = any>(
+export async function sobjectOperation<O extends SobjectOperation>(
   org: SalesforceOrgUi,
   sobject: string,
   operation: SobjectOperation,
   body: {
-    ids?: string | string[]; // required for retrieve | create | delete
-    records?: any | any[]; // required for create | update | upsert
+    ids?: string[]; // required for retrieve | create | delete
+    records?: any[]; // required for create | update | upsert
   },
   query: {
     externalId?: string;
     allOrNone?: boolean;
   } = {}
-): Promise<T> {
+): Promise<OperationReturnType<O, any>> {
+  // FIXME: add type for R as the first generic type in function
   return handleRequest({ method: 'POST', url: `/api/record/${operation}/${sobject}`, params: { ...query }, data: body }, { org }).then(
     unwrapResponseIgnoreCache
   );

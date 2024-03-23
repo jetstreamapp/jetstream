@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { Record } from '@jetstream/types';
-import { Radio, RadioGroup, RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FILTERED, RADIO_SELECTED } from '@jetstream/ui';
+import { SalesforceRecord } from '@jetstream/types';
+import { RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FILTERED, RADIO_SELECTED, Radio, RadioGroup } from '@jetstream/ui';
 import { Fragment, FunctionComponent } from 'react';
 import { Query } from 'soql-parser-js';
 
@@ -9,9 +9,9 @@ export interface BulkUpdateFromQueryRecordSelectionProps {
   hasMoreRecords: boolean;
   downloadRecordsValue: string;
   parsedQuery: Query;
-  records: Record[];
-  filteredRecords: Record[];
-  selectedRecords: Record[];
+  records: SalesforceRecord[];
+  filteredRecords: SalesforceRecord[];
+  selectedRecords: SalesforceRecord[];
   totalRecordCount: number;
   onChange: (value: string) => void;
 }

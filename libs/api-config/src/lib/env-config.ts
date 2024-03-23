@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ensureBoolean, ensureStringValue } from '@jetstream/shared/utils';
 import { UserProfileServer, UserProfileUi } from '@jetstream/types';
 import * as dotenv from 'dotenv';
@@ -51,6 +52,7 @@ const EXAMPLE_USER_PROFILE: UserProfileUi = {
 };
 
 export const ENV = {
+  LOG_LEVEL: (process.env.LOG_LEVEL || 'debug') as 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent',
   IS_CI: ensureBoolean(process.env.CI),
   // LOCAL OVERRIDE
   EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),
@@ -87,9 +89,9 @@ export const ENV = {
   MAILGUN_WEBHOOK_KEY: process.env.MAILGUN_WEBHOOK_KEY,
   // SFDC
   SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION || '58.0',
-  SFDC_CONSUMER_SECRET: process.env.SFDC_CONSUMER_SECRET,
-  SFDC_CONSUMER_KEY: process.env.SFDC_CONSUMER_KEY,
-  SFDC_CALLBACK_URL: process.env.SFDC_CALLBACK_URL,
+  SFDC_CONSUMER_SECRET: process.env.SFDC_CONSUMER_SECRET!,
+  SFDC_CONSUMER_KEY: process.env.SFDC_CONSUMER_KEY!,
+  SFDC_CALLBACK_URL: process.env.SFDC_CALLBACK_URL!,
   // GOOGLE
   GOOGLE_APP_ID: process.env.GOOGLE_APP_ID,
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,

@@ -1,11 +1,9 @@
 import { css } from '@emotion/react';
-import { QueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl, nullifyEmptyStrings } from '@jetstream/shared/utils';
-import { CloneEditView, MapOf, Maybe, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
-import type { Field } from 'jsforce';
+import { CloneEditView, Field, MapOf, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, RowsChangeData } from 'react-data-grid';

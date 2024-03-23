@@ -1,5 +1,41 @@
-import type { SalesforceId } from 'jsforce';
-import { InsertUpdateUpsertDeleteQuery, SalesforceOrgEdition } from './salesforce/types';
+import type { Query } from 'soql-parser-js';
+import { SalesforceOrgEdition } from './salesforce/misc.types';
+import { QueryResult } from './salesforce/query.types';
+import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
+
+export interface RequestResult<T> {
+  data: T;
+}
+
+export interface QueryResults<T = unknown> {
+  queryResults: QueryResult<T>;
+  columns?: QueryResultsColumns;
+  parsedQuery?: Query;
+}
+
+export interface QueryResultsColumns {
+  entityName: string;
+  groupBy: boolean;
+  idSelected: boolean;
+  keyPrefix: string;
+  columns?: QueryResultsColumn[];
+}
+
+export interface QueryResultsColumn {
+  columnFullPath: string;
+  aggregate: boolean;
+  apexType: string | null;
+  booleanType: boolean;
+  columnName: string;
+  custom: boolean;
+  displayName: string;
+  foreignKeyName: string | null;
+  insertable: boolean;
+  numberType: boolean;
+  textType: boolean;
+  updatable: boolean;
+  childColumnPaths?: QueryResultsColumn[];
+}
 
 export type Maybe<T> = T | null | undefined;
 export type Nullable<T> = T | null;
@@ -30,15 +66,9 @@ export type Development = 'development';
 export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
 
 export interface MapOf<T> {
   [key: string]: T;
-}
-
-export interface RecordAttributes {
-  type: string;
-  url: string;
 }
 
 export interface ApplicationCookie {
@@ -101,6 +131,7 @@ export interface UserProfileAuth0IdentityProfileData {
   username?: string;
   nickname?: string;
 }
+
 export interface UserProfileAuth0 {
   user_id: string;
   created_at: string;
@@ -177,6 +208,54 @@ export interface UserProfileServer {
   user_id: string;
 }
 
+export interface SalesforceUserInfo {
+  sub: string;
+  user_id: string;
+  organization_id: string;
+  preferred_username: string;
+  nickname: string;
+  name: string;
+  email: string;
+  email_verified: boolean;
+  given_name: string;
+  family_name: string;
+  zoneinfo: string;
+  photos: {
+    picture: string;
+    thumbnail: string;
+  };
+  profile: string;
+  picture: string;
+  address: any;
+  is_salesforce_integration_user: boolean;
+  urls: {
+    enterprise: string;
+    metadata: string;
+    partner: string;
+    rest: string;
+    sobjects: string;
+    search: string;
+    query: string;
+    recent: string;
+    tooling_soap: string;
+    tooling_rest: string;
+    profile: string;
+    feeds: string;
+    groups: string;
+    users: string;
+    feed_items: string;
+    feed_elements: string;
+    custom_domain: string;
+  };
+  active: boolean;
+  user_type: string;
+  language: string;
+  locale: string;
+  utcOffset: number;
+  updated_at: string;
+  is_app_installed: boolean;
+}
+
 export interface CloudinarySignature {
   signature: string;
   timestamp: number;
@@ -207,9 +286,6 @@ export interface CloudinaryUploadResponse {
   version: number;
   width: number;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Record<T = any> = { attributes?: RecordAttributes; Id?: SalesforceId } & T;
 
 export interface SalesforceOrgUi {
   id?: number;
@@ -245,7 +321,7 @@ export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
 export interface GenericRequestPayload {
   url: string;
   method: HttpMethod;
-  isTooling: boolean;
+  isTooling?: boolean;
   body?: any;
   headers?: any;
   options?: {
@@ -260,7 +336,7 @@ export type ManualRequestResponse = {
   error: boolean;
   errorMessage?: Maybe<string>;
   status: number | null;
-  statusText: string | null;
+  statusText?: string | null;
   headers: string | null;
   body?: Maybe<string>;
 };

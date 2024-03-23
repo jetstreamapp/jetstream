@@ -1,5 +1,10 @@
-import { ListItem, MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
+import {
+  DescribeGlobalSObjectResult,
+  ListItem,
+  MapOf,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
+} from '@jetstream/types';
 import { atom, selector } from 'recoil';
 import { FieldValues } from '../shared/create-fields/create-fields-types';
 import { getInitialValues } from '../shared/create-fields/create-fields-utils';
@@ -59,30 +64,28 @@ export const hasSelectionsMade = selector({
   },
 });
 
-export const profilesByIdSelector = selector<MapOf<PermissionSetWithProfileRecord>>({
-  key: 'create-fields.profilesByIdSelector',
+export const profilesAndPermSetsByIdSelector = selector<MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>>({
+  key: 'create-fields.profilesAndPermSetsByIdSelector',
   get: ({ get }) => {
     const profiles = get(profilesState);
-    if (profiles) {
-      return profiles.reduce((output, profile) => {
-        output[profile.id] = profile.meta;
-        return output;
-      }, {});
-    }
-    return {};
-  },
-});
-
-export const permissionSetsByIdSelector = selector<MapOf<PermissionSetNoProfileRecord>>({
-  key: 'create-fields.permissionSetsByIdSelector',
-  get: ({ get }) => {
     const permSets = get(permissionSetsState);
-    if (permSets) {
-      return permSets.reduce((output, permSet) => {
-        output[permSet.id] = permSet.meta;
+    const output: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
+    if (profiles) {
+      profiles.reduce((output, profile) => {
+        if (profile.meta) {
+          output[profile.id] = profile.meta;
+        }
         return output;
-      }, {});
+      }, output);
     }
-    return {};
+    if (permSets) {
+      permSets.reduce((output, permSet) => {
+        if (permSet.meta) {
+          output[permSet.id] = permSet.meta;
+        }
+        return output;
+      }, output);
+    }
+    return output;
   },
 });

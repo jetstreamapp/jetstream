@@ -3,11 +3,12 @@ import {
   CompositeGraphResponse,
   CompositeRequestBody,
   CompositeResponseItem,
+  DescribeSObjectResult,
+  Field,
   InsertUpdateUpsert,
   MapOf,
   Maybe,
 } from '@jetstream/types';
-import type { DescribeSObjectResult, Field } from 'jsforce';
 
 export interface LoadMultiObjectDataError {
   property: Omit<keyof LoadMultiObjectData, 'errors'>;

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
-import { QueryResults as IQueryResults } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { query, sobjectOperation } from '@jetstream/shared/data';
@@ -20,10 +19,11 @@ import {
   AsyncJob,
   AsyncJobNew,
   CloneEditView,
+  QueryResults as IQueryResults,
   MapOf,
   Maybe,
   SalesforceOrgUi,
-  Record as SalesforceRecord,
+  SalesforceRecord,
   SobjectCollectionResponse,
 } from '@jetstream/types';
 import {
@@ -396,7 +396,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     const results = (
       await Promise.all(
         splitArrayToMaxSize(modifiedRecords, 200).map((records) =>
-          sobjectOperation<SobjectCollectionResponse>(selectedOrg, type, 'update', { records }, { allOrNone: false })
+          sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false })
         )
       )
     ).flat();

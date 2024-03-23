@@ -1,19 +1,21 @@
 import { ENV } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
 import { v2 as cloudinary } from 'cloudinary';
-import { NextFunction, Request, Response } from 'express';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
+import { createRoute } from '../utils/route.utils';
 
 cloudinary.config({ secure: true });
 
-export const routeValidators = {
-  getUploadSignature: [],
+export const routeDefinition = {
+  getUploadSignature: {
+    controllerFn: () => getUploadSignature,
+    validators: {
+      hasSourceOrg: false,
+    },
+  },
 };
-
-export async function getUploadSignature(req: Request, res: Response, next: NextFunction) {
+const getUploadSignature = createRoute(routeDefinition.getUploadSignature.validators, async ({ user }, req, res, next) => {
   try {
-    const user = req.user as UserProfileServer;
     const timestamp = Math.round(new Date().getTime() / 1000);
     const cloudName = cloudinary.config().cloud_name;
     const apiKey = cloudinary.config().api_key;
@@ -21,10 +23,10 @@ export async function getUploadSignature(req: Request, res: Response, next: Next
     const apiSecret = cloudinary.config().api_secret!;
     const context = `caption=${user.id.replace('|', '\\|')}|environment=${ENV.JETSTREAM_SERVER_URL}`;
 
-    const signature = cloudinary.utils.api_sign_request({ timestamp: timestamp, upload_preset: 'jetstream-issues', context }, apiSecret);
+    const signature = cloudinary.utils.api_sign_request({ timestamp, upload_preset: 'jetstream-issues', context }, apiSecret);
 
-    sendJson(res, { signature: signature, timestamp: timestamp, cloudName: cloudName, apiKey: apiKey, context }, 200);
+    sendJson(res, { signature: signature, timestamp, cloudName: cloudName, apiKey: apiKey, context }, 200);
   } catch (ex) {
     next(new UserFacingError(ex.message));
   }
-}
+});

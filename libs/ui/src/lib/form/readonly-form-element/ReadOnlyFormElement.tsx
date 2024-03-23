@@ -1,6 +1,5 @@
-import { Maybe, RecordAttributes } from '@jetstream/types';
+import { Field, Maybe, RecordAttributes } from '@jetstream/types';
 import classNames from 'classnames';
-import type { Field } from 'jsforce';
 import React, { Fragment, FunctionComponent, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
 

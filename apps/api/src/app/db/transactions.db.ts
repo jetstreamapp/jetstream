@@ -1,4 +1,4 @@
-import { logger, prisma } from '@jetstream/api-config';
+import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileServer } from '@jetstream/types';
 import { PrismaPromise } from '@prisma/client';
 
@@ -24,7 +24,7 @@ export async function deleteUserAndOrgs(user: UserProfileServer) {
 
     await prisma.$transaction([deleteOrgs, deleteUser]);
   } catch (ex) {
-    logger.error('[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex, { userId: user?.id });
+    logger.error({ userId: user?.id, ...getExceptionLog(ex) }, '[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex);
     throw ex;
   }
 }
@@ -64,7 +64,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
       await prisma.$transaction(dbTransactions);
     }
   } catch (ex) {
-    logger.error('[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex, { userId });
+    logger.error({ userId, ...getExceptionLog(ex) }, '[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex);
     throw ex;
   }
 }

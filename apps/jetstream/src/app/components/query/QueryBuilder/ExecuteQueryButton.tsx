@@ -1,6 +1,5 @@
-import { Maybe } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Maybe } from '@jetstream/types';
 import { Icon, KeyboardShortcut, Tooltip, getModifierKey } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 

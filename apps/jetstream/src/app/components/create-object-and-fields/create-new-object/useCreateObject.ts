@@ -13,9 +13,9 @@ export function getFriendlyStatus(status: CreateObjectResultsStatus) {
     case 'NOT_STARTED':
       return '';
     case 'LOADING_METADATA':
-      return '(Loading Metadata)';
+      return '(Creating Object)';
     case 'LOADING_PERMISSIONS':
-      return '(Loading Permissions)';
+      return '(Setting Permissions)';
     case 'SUCCESS':
       return '(Success)';
     case 'FAILED':

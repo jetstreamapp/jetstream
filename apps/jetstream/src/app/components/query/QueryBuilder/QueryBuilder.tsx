@@ -15,7 +15,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ListItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -30,7 +30,6 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
 import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';

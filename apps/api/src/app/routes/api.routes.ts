@@ -2,16 +2,18 @@ import { ENV } from '@jetstream/api-config';
 import express from 'express';
 import Router from 'express-promise-router';
 import multer from 'multer';
-import * as imageController from '../controllers/image.controller';
-import * as orgsController from '../controllers/orgs.controller';
-import * as salesforceApiReqController from '../controllers/salesforce-api-requests.controller';
-import * as bulkApiController from '../controllers/sf-bulk-api.controller';
-import * as metadataToolingController from '../controllers/sf-metadata-tooling.controller';
-import * as sfMiscController from '../controllers/sf-misc.controller';
-import * as sfQueryController from '../controllers/sf-query.controller';
-import * as userController from '../controllers/user.controller';
+import { routeDefinition as imageController } from '../controllers/image.controller';
+import { routeDefinition as orgsController } from '../controllers/orgs.controller';
+import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
+import { routeDefinition as bulkApiController } from '../controllers/sf-bulk-api.controller';
+import { routeDefinition as bulkQuery20ApiController } from '../controllers/sf-bulk-query-20-api.controller';
+import { routeDefinition as metadataToolingController } from '../controllers/sf-metadata-tooling.controller';
+import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
+import { routeDefinition as queryController } from '../controllers/sf-query.controller';
+import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import { routeDefinition as userController } from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
-import { addOrgsToLocal, checkAuth, ensureOrgExists, ensureTargetOrgExists, validate } from './route.middleware';
+import { addOrgsToLocal, checkAuth, ensureTargetOrgExists } from './route.middleware';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -26,171 +28,117 @@ routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
   sendJson(res, { version: ENV.GIT_VERSION || null });
 });
 
-routes.get('/me', userController.getUserProfile);
-routes.delete('/me', validate(userController.routeValidators.deleteAccount), userController.deleteAccount);
-routes.get('/me/profile', userController.getFullUserProfile);
-routes.post('/me/profile', validate(userController.routeValidators.updateProfile), userController.updateProfile);
-routes.delete('/me/profile/identity', validate(userController.routeValidators.unlinkIdentity), userController.unlinkIdentity);
-routes.post(
-  '/me/profile/identity/verify-email',
-  validate(userController.routeValidators.resendVerificationEmail),
-  userController.resendVerificationEmail
-);
+/**
+ * ************************************
+ * userController Routes
+ * ************************************
+ */
+routes.get('/me', userController.getUserProfile.controllerFn());
+routes.delete('/me', userController.deleteAccount.controllerFn());
+routes.get('/me/profile', userController.getFullUserProfile.controllerFn());
+routes.post('/me/profile', userController.updateProfile.controllerFn());
+routes.delete('/me/profile/identity', userController.unlinkIdentity.controllerFn());
+routes.post('/me/profile/identity/verify-email', userController.resendVerificationEmail.controllerFn());
+routes.post('/support/email', upload.array('files', 5), userController.emailSupport.controllerFn());
 
-routes.post('/support/email', upload.array('files', 5), userController.emailSupport);
+/**
+ * ************************************
+ * orgsController Routes
+ * ************************************
+ */
+routes.post('/orgs/health-check', orgsController.checkOrgHealth.controllerFn());
+routes.get('/orgs', orgsController.getOrgs.controllerFn());
+routes.patch('/orgs/:uniqueId', orgsController.updateOrg.controllerFn());
+routes.delete('/orgs/:uniqueId', orgsController.deleteOrg.controllerFn());
 
-/** Download file or attachment */
-routes.get(
-  '/file/stream-download',
-  ensureOrgExists,
-  validate(sfMiscController.routeValidators.streamFileDownload),
-  sfMiscController.streamFileDownload
-);
-routes.post('/orgs/health-check', ensureOrgExists, orgsController.checkOrgHealth);
+/**
+ * ************************************
+ * imageController Routes
+ * ************************************
+ */
+routes.get('/images/upload-signature', imageController.getUploadSignature.controllerFn());
 
-routes.get('/orgs', orgsController.getOrgs);
-routes.patch('/orgs/:uniqueId', orgsController.updateOrg);
-routes.delete('/orgs/:uniqueId', orgsController.deleteOrg);
+/**
+ * ************************************
+ * queryController Routes
+ * ************************************
+ */
+routes.get('/describe', queryController.describe.controllerFn());
+routes.get('/describe/:sobject', queryController.describeSObject.controllerFn());
+routes.post('/query', queryController.query.controllerFn());
+routes.get('/query-more', queryController.queryMore.controllerFn());
 
-routes.get('/images/upload-signature', validate(imageController.routeValidators.getUploadSignature), imageController.getUploadSignature);
-
-routes.get('/describe', ensureOrgExists, sfQueryController.describe);
-routes.get('/describe/:sobject', ensureOrgExists, sfQueryController.describeSObject);
-routes.post('/query', ensureOrgExists, validate(sfQueryController.routeValidators.query), sfQueryController.query);
-routes.get('/query-more', ensureOrgExists, validate(sfQueryController.routeValidators.queryMore), sfQueryController.queryMore);
-
-routes.post('/record/:operation/:sobject', ensureOrgExists, sfMiscController.recordOperation);
-
-routes.get('/metadata/describe', ensureOrgExists, metadataToolingController.describeMetadata);
-routes.post(
-  '/metadata/list',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.listMetadata),
-  metadataToolingController.listMetadata
-);
-routes.post(
-  '/metadata/read/:type',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.readMetadata),
-  metadataToolingController.readMetadata
-);
-
-routes.post(
-  '/metadata/deploy',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.deployMetadata),
-  metadataToolingController.deployMetadata
-);
-
+/**
+ * ************************************
+ * metadataToolingController Routes
+ * ************************************
+ */
+routes.get('/metadata/describe', metadataToolingController.describeMetadata.controllerFn());
+routes.post('/metadata/list', metadataToolingController.listMetadata.controllerFn());
+routes.post('/metadata/read/:type', metadataToolingController.readMetadata.controllerFn());
+routes.post('/metadata/deploy', metadataToolingController.deployMetadata.controllerFn());
 // Content-Type=Application/zip
-routes.post(
-  '/metadata/deploy-zip',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.deployMetadataZip),
-  metadataToolingController.deployMetadataZip
-);
-
-routes.get(
-  '/metadata/deploy/:id',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.checkMetadataResults),
-  metadataToolingController.checkMetadataResults
-);
-
-routes.post(
-  '/metadata/retrieve/list-metadata',
-  ensureOrgExists,
-  metadataToolingController.routeValidators.retrievePackageFromLisMetadataResults,
-  metadataToolingController.retrievePackageFromLisMetadataResults
-);
-routes.post(
-  '/metadata/retrieve/package-names',
-  ensureOrgExists,
-  metadataToolingController.routeValidators.retrievePackageFromExistingServerPackages,
-  metadataToolingController.retrievePackageFromExistingServerPackages
-);
-routes.post(
-  '/metadata/retrieve/manifest',
-  ensureOrgExists,
-  metadataToolingController.routeValidators.retrievePackageFromManifest,
-  metadataToolingController.retrievePackageFromManifest
-);
-routes.get(
-  '/metadata/retrieve/check-results',
-  ensureOrgExists,
-  metadataToolingController.routeValidators.checkRetrieveStatus,
-  metadataToolingController.checkRetrieveStatus
-);
-
+routes.post('/metadata/deploy-zip', metadataToolingController.deployMetadataZip.controllerFn());
+routes.get('/metadata/deploy/:id', metadataToolingController.checkMetadataResults.controllerFn());
+routes.post('/metadata/retrieve/list-metadata', metadataToolingController.retrievePackageFromLisMetadataResults.controllerFn());
+routes.post('/metadata/retrieve/package-names', metadataToolingController.retrievePackageFromExistingServerPackages.controllerFn());
+routes.post('/metadata/retrieve/manifest', metadataToolingController.retrievePackageFromManifest.controllerFn());
+routes.get('/metadata/retrieve/check-results', metadataToolingController.checkRetrieveStatus.controllerFn());
 routes.post(
   '/metadata/retrieve/check-and-redeploy',
-  ensureOrgExists,
   ensureTargetOrgExists,
-  metadataToolingController.routeValidators.checkRetrieveStatusAndRedeploy,
-  metadataToolingController.checkRetrieveStatusAndRedeploy
+  metadataToolingController.checkRetrieveStatusAndRedeploy.controllerFn()
 );
+routes.post('/metadata/package-xml', metadataToolingController.getPackageXml.controllerFn());
+routes.post('/apex/anonymous', metadataToolingController.anonymousApex.controllerFn());
+routes.get('/apex/completions/:type', metadataToolingController.apexCompletions.controllerFn());
 
-routes.post(
-  '/metadata/package-xml',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.getPackageXml),
-  metadataToolingController.getPackageXml
-);
+/**
+ * ************************************
+ * miscController Routes
+ * ************************************
+ */
+routes.get('/file/stream-download', miscController.streamFileDownload.controllerFn());
+routes.post('/request', miscController.salesforceRequest.controllerFn());
+routes.post('/request-manual', miscController.salesforceRequestManual.controllerFn());
 
-routes.post(
-  '/request',
-  ensureOrgExists,
-  validate(sfMiscController.routeValidators.makeJsforceRequest),
-  sfMiscController.makeJsforceRequest
-);
+/**
+ * ************************************
+ * recordController Routes
+ * ************************************
+ */
+routes.post('/record/:operation/:sobject', recordController.recordOperation.controllerFn());
 
-routes.post(
-  '/request-manual',
-  ensureOrgExists,
-  validate(sfMiscController.routeValidators.makeJsforceRequestViaAxios),
-  sfMiscController.makeJsforceRequestViaAxios
-);
+/**
+ * ************************************
+ * bulkApiController Routes
+ * ************************************
+ */
+routes.post('/bulk', bulkApiController.createJob.controllerFn());
+routes.get('/bulk/:jobId', bulkApiController.getJob.controllerFn());
+routes.delete('/bulk/:jobId/:action', bulkApiController.closeOrAbortJob.controllerFn());
+routes.post('/bulk/:jobId', bulkApiController.addBatchToJob.controllerFn());
+routes.post('/bulk/zip/:jobId', bulkApiController.addBatchToJobWithBinaryAttachment.controllerFn());
+routes.get('/bulk/:jobId/:batchId', bulkApiController.downloadResults.controllerFn());
 
-routes.post('/bulk', ensureOrgExists, validate(bulkApiController.routeValidators.createJob), bulkApiController.createJob);
-routes.get('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.getJob), bulkApiController.getJob);
-routes.delete(
-  '/bulk/:jobId/:action',
-  ensureOrgExists,
-  validate(bulkApiController.routeValidators.closeJob),
-  bulkApiController.closeOrAbortJob
-);
-routes.post('/bulk/:jobId', ensureOrgExists, validate(bulkApiController.routeValidators.addBatchToJob), bulkApiController.addBatchToJob);
-routes.post(
-  '/bulk/zip/:jobId',
-  ensureOrgExists,
-  validate(bulkApiController.routeValidators.addBatchToJobWithBinaryAttachment),
-  bulkApiController.addBatchToJobWithBinaryAttachment
-);
-routes.get(
-  '/bulk/:jobId/:batchId',
-  ensureOrgExists,
-  validate(bulkApiController.routeValidators.downloadResults),
-  bulkApiController.downloadResults
-);
+/**
+ * ************************************
+ * bulkQuery20ApiController Routes
+ * These use the Bulk Query 2.0 API
+ * ************************************
+ */
+routes.post('/bulk-query', bulkQuery20ApiController.createJob.controllerFn());
+routes.get('/bulk-query', bulkQuery20ApiController.getJobs.controllerFn());
+routes.get('/bulk-query/:jobId/results', bulkQuery20ApiController.downloadResults.controllerFn());
+routes.get('/bulk-query/:jobId', bulkQuery20ApiController.getJob.controllerFn());
+routes.post('/bulk-query/:jobId/abort', bulkQuery20ApiController.abortJob.controllerFn());
+routes.delete('/bulk-query/:jobId', bulkQuery20ApiController.deleteJob.controllerFn());
 
-routes.post(
-  '/apex/anonymous',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.anonymousApex),
-  metadataToolingController.anonymousApex
-);
-
-routes.get(
-  '/apex/completions/:type',
-  ensureOrgExists,
-  validate(metadataToolingController.routeValidators.apexCompletions),
-  metadataToolingController.apexCompletions
-);
-
-routes.get(
-  '/salesforce-api/requests',
-  validate(salesforceApiReqController.routeValidators.getSalesforceApiRequests),
-  salesforceApiReqController.getSalesforceApiRequests
-);
+/**
+ * ************************************
+ * salesforceApiReqController Routes
+ * ************************************
+ */
+routes.get('/salesforce-api/requests', salesforceApiReqController.getSalesforceApiRequests.controllerFn());
 
 export default routes;

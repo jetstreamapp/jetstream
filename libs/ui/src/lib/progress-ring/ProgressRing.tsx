@@ -27,6 +27,7 @@ const progressHeadPlotRadius = 21 / 30;
 export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, size, fillPercent, theme, children }) => {
   const [id] = useState(uniqueId('slds-progress-ring-path-'));
 
+  fillPercent = Math.min(1, Math.max(0, fillPercent)); // ensure we do not go past 100% or below 0%
   const isLong = fillPercent > 0.5 ? 1 : 0;
   const arcX = Math.cos(2 * Math.PI * fillPercent).toFixed(2);
   const arcY = Math.sin(2 * Math.PI * fillPercent).toFixed(2);
@@ -63,7 +64,8 @@ export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, 
         </svg>
       </div>
       <div className={classNames('slds-progress-ring__content', { 'slds-text-color_inverse': theme === 'complete' })}>{children}</div>
-      {![0, 1].includes(fillPercent) && (
+      {/* The placement of the head was off just a bit, removing for now */}
+      {/* {![0, 1].includes(fillPercent) && (
         <div className="slds-progress-ring__progress-head">
           <svg viewBox={viewBoxParams}>
             <circle
@@ -75,7 +77,7 @@ export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, 
             />
           </svg>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

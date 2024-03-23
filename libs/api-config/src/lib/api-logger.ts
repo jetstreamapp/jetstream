@@ -1,28 +1,70 @@
-import * as winston from 'winston';
+import type express from 'express';
+import pino from 'pino';
+import pinoHttp from 'pino-http';
+import { v4 as uuid } from 'uuid';
+import { ENV } from './env-config';
 
-import { YYYY_MM_DD__HH_mm_ss } from '@jetstream/shared/constants';
-const { createLogger, format, transports } = winston;
-
-export const logger = createLogger({
-  level: process.env.CI ? 'info' : 'debug',
-  format: format.combine(
-    format.timestamp({
-      format: YYYY_MM_DD__HH_mm_ss,
-    }),
-    format.errors({ stack: true }),
-    format.splat(),
-    format.json()
-  ),
-  defaultMeta: { service: 'jetstream' },
-  transports: [
-    new transports.Console({
-      format: format.combine(format.colorize(), format.simple()),
-    }),
-  ],
-  // TODO: put this in a shared mounted directory
-  // exceptionHandlers: [new transports.File({ filename: './logs/unhandled-exceptions.log', level: 'error' })],
-  // this is in docs but not typescript definition?
-  // rejectionHandlers: [
-  //   new transports.File({ filename: 'unhandled-exceptions.log'}),
-  // ]
+export const logger = pino({
+  level: ENV.LOG_LEVEL,
+  transport:
+    ENV.ENVIRONMENT === 'development' && ENV.LOG_LEVEL === 'trace'
+      ? {
+          target: 'pino-pretty',
+        }
+      : undefined,
 });
+
+export const httpLogger = pinoHttp<express.Request, express.Response>({
+  logger,
+  level: 'debug',
+  genReqId: (req, res) => res.locals.requestId || uuid(),
+  customSuccessMessage: function (req, res) {
+    if (res.statusCode === 404) {
+      return `[404] [${req.method}] ${req.url}`;
+    }
+    return `${req.method} ${req.path}`;
+  },
+  serializers: {
+    req: pino.stdSerializers.wrapRequestSerializer((req) => {
+      return {
+        id: req.raw.id,
+        method: req.raw.method,
+        url: req.raw.url,
+        headers: {
+          host: req.raw.headers.host,
+          'user-agent': req.raw.headers['user-agent'],
+          referer: req.raw.headers.referer,
+          'x-sfdc-id': req.raw.headers['x-sfdc-id'],
+          ip: req.raw.headers['cf-connecting-ip'] || req.raw.headers['x-forwarded-for'] || req.raw.socket.remoteAddress,
+          country: req.headers['cf-ipcountry'],
+        },
+      };
+    }),
+    res: pino.stdSerializers.wrapResponseSerializer((res) => {
+      return {
+        statusCode: res.raw.statusCode,
+        headers: {
+          'content-type': (res.raw as any).headers['content-type'],
+          'content-length': (res.raw as any).headers['content-length'],
+        },
+      };
+    }),
+  },
+  customProps: function (req, res) {
+    return {
+      userId: (req as any).user?.id,
+    };
+  },
+});
+
+export function getExceptionLog(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      error: error.message,
+      stack: error.stack,
+    };
+  }
+  return {
+    error,
+  };
+}

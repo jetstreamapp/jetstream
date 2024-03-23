@@ -1,5 +1,5 @@
 // import {electron, shell} from 'electron';
-import { AxiosAdapter, AxiosRequestConfig } from 'axios';
+import { AxiosAdapter, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { nanoid } from 'nanoid';
 
 let port: MessagePort | undefined = undefined;
@@ -63,7 +63,7 @@ function send(path: string, data: any): Promise<{ id: string; error: boolean; da
   });
 }
 
-export const axiosElectronAdapter: AxiosAdapter = async (config: AxiosRequestConfig) => {
+export const axiosElectronAdapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
   /**
    * what do I need?
    * I need to map method+endpoint to something so that I know how to handle

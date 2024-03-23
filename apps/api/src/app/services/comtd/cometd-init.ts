@@ -2,20 +2,20 @@
  * ENDED UP NOT USING THIS STUFF
  */
 import { ENV, logger } from '@jetstream/api-config';
+import { ApiConnection } from '@jetstream/salesforce-api';
 import { UserProfileServer } from '@jetstream/types';
 import { CometD } from 'cometd';
-import * as jsforce from 'jsforce';
 import { CometdReplayExtension } from './cometd-replay-extension';
 
-export function initCometD(user: UserProfileServer, cometd: CometD, connection: jsforce.Connection) {
+export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamConn: ApiConnection) {
   return new Promise<void>((resolve, reject) => {
     if (cometd.isDisconnected()) {
       // This appears to be unsupported
       cometd.unregisterTransport('websocket');
       cometd.configure({
-        url: `${connection.instanceUrl}/cometd/${connection.version || ENV.SFDC_API_VERSION}`,
+        url: `${jetstreamConn.sessionInfo.instanceUrl}/cometd/${jetstreamConn.sessionInfo.apiVersion || ENV.SFDC_API_VERSION}`,
         requestHeaders: {
-          Authorization: `Bearer ${connection.accessToken}`,
+          Authorization: `Bearer ${jetstreamConn.sessionInfo.accessToken}`,
         },
         appendMessageTypeToURL: false,
       });
@@ -28,28 +28,34 @@ export function initCometD(user: UserProfileServer, cometd: CometD, connection: 
 
       cometd.handshake((shake) => {
         if (shake.successful) {
-          logger.debug('[COMETD][HANDSHAKE][SUCCESS] %s', user.id, { userId: user.id });
+          logger.debug({ userId: user.id }, '[COMETD][HANDSHAKE][SUCCESS] %s', user.id);
           resolve();
         } else {
-          logger.warn('[COMETD][HANDSHAKE][ERROR] %s - %s', shake.error, user.id, { userId: user.id });
+          logger.warn({ userId: user.id }, '[COMETD][HANDSHAKE][ERROR] %s - %s', shake.error, user.id);
           reject(shake);
         }
       });
 
       cometd.addListener('/meta/connect', (message) => {
-        logger.debug('[COMETD] connect - %s', message, { userId: user.id });
+        logger.debug({ userId: user.id }, '[COMETD] connect - %s', message);
       });
       cometd.addListener('/meta/disconnect', (message) => {
-        logger.debug('[COMETD] disconnect - %s', message, { userId: user.id });
+        logger.debug({ userId: user.id }, '[COMETD] disconnect - %s', message);
       });
       cometd.addListener('/meta/unsuccessful', (message) => {
-        logger.debug('[COMETD] unsuccessful - %s', message, { userId: user.id });
+        logger.debug({ userId: user.id }, '[COMETD] unsuccessful - %s', message);
       });
       (cometd as any).onListenerException = (exception, subscriptionHandle, isListener, message) => {
-        logger.warn('[COMETD][LISTENER][ERROR] %s - %s - %o', exception?.message, message, subscriptionHandle, {
-          isListener,
-          userId: user.id,
-        });
+        logger.warn(
+          {
+            isListener,
+            userId: user.id,
+          },
+          '[COMETD][LISTENER][ERROR] %s - %s - %o',
+          exception?.message,
+          message,
+          subscriptionHandle
+        );
       };
     } else {
       resolve();

@@ -3,6 +3,7 @@ import { sobjectOperation } from '@jetstream/shared/data';
 import { isErrorResponse } from '@jetstream/shared/ui-utils';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
+  DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
   MapOf,
@@ -13,7 +14,6 @@ import {
   SalesforceOrgUi,
   TabVisibilityPermissionRecord,
 } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 import {
   FieldPermissionDefinitionMap,
@@ -273,14 +273,24 @@ export async function updatePermissionSetRecords(
         Id: id,
       })),
       200
-    ).map((records) => sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false })),
+    ).map((records) => {
+      if (records.length === 0) {
+        return Promise.resolve();
+      }
+      return sobjectOperation(org, 'Profile', 'update', { records }, { allOrNone: false });
+    }),
     ...splitArrayToMaxSize(
       permissionSetIds.map((id) => ({
         attributes: { type: 'PermissionSet' },
         Id: id,
       })),
       200
-    ).map((records) => sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false })),
+    ).map((records) => {
+      if (records.length === 0) {
+        return Promise.resolve();
+      }
+      return sobjectOperation(org, 'PermissionSet', 'update', { records }, { allOrNone: false });
+    }),
   ]);
 }
 

@@ -1,10 +1,10 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ApiConnection } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import * as express from 'express';
 import Router from 'express-promise-router';
 import type * as http from 'http';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import * as jsforce from 'jsforce';
 import { Url } from 'url';
 import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 
@@ -25,7 +25,7 @@ routes.use(
   createProxyMiddleware({
     logLevel: 'debug',
     onError: (err: Error, req: http.IncomingMessage, res: http.ServerResponse, target?: string | Partial<Url>) => {
-      logger.warn('[PROXY][ERROR]! %s', err.message, { target });
+      logger.warn({ target, ...getExceptionLog(err) }, '[PROXY][ERROR]');
     },
     //TODO: make sure that if we throw here the world does not blow up (ensure server does not freeze)
     router: async (req) => {
@@ -34,9 +34,9 @@ routes.use(
         throw new Error('A valid salesforce org must be included with the request');
       }
       (req as any).locals = {
-        jsforceConn: result.connection,
+        jetstreamConn: result.jetstreamConn,
       };
-      return result.connection.instanceUrl;
+      return result.jetstreamConn.sessionInfo.instanceUrl;
     },
     pathRewrite: {
       '^/platform-event': `/cometd/${ENV.SFDC_API_VERSION}`,
@@ -48,12 +48,12 @@ routes.use(
     },
     onProxyReq: (proxyReq: http.ClientRequest, req: http.IncomingMessage, res: http.ServerResponse, options) => {
       try {
-        const conn: jsforce.Connection = (req as any).locals.jsforceConn;
-        proxyReq.setHeader('Authorization', `Bearer ${conn.accessToken}`);
+        const jetstreamConn = (req as any).locals.jetstreamConn as ApiConnection;
+        proxyReq.setHeader('Authorization', `Bearer ${jetstreamConn.sessionInfo.accessToken}`);
         // not sure if this one is required
         res.setHeader('Access-Control-Allow-Credentials', 'true');
       } catch (ex) {
-        logger.error('[PROXY][EXCEPTION] %s', ex.message);
+        logger.error(getExceptionLog(ex), '[PROXY][EXCEPTION]');
       }
     },
   })

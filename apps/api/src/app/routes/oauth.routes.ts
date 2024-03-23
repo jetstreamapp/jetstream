@@ -3,7 +3,7 @@ import * as express from 'express';
 import Router from 'express-promise-router';
 import * as passport from 'passport';
 import * as authController from '../controllers/auth.controller';
-import { salesforceOauthCallback, salesforceOauthInitAuth } from '../controllers/oauth.controller';
+import { routeDefinition as oauthController } from '../controllers/oauth.controller';
 import { checkAuth } from './route.middleware';
 
 export const routes: express.Router = Router();
@@ -46,7 +46,7 @@ routes.get('/identity/link', (req: express.Request, res: express.Response, next:
 routes.get('/identity/link/callback', authController.linkCallback);
 
 // salesforce org authentication
-routes.get('/sfdc/auth', checkAuth, salesforceOauthInitAuth);
-routes.get('/sfdc/callback', checkAuth, salesforceOauthCallback);
+routes.get('/sfdc/auth', checkAuth, oauthController.salesforceOauthInitAuth.controllerFn());
+routes.get('/sfdc/callback', checkAuth, oauthController.salesforceOauthCallback.controllerFn());
 
 export default routes;

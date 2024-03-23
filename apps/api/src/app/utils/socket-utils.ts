@@ -33,10 +33,14 @@ export function disconnectCometD(
     cometd.clearSubscriptions();
     if (!cometd.isDisconnected()) {
       cometd.disconnect((message) => {
-        logger.debug('[COMTED][DISCONNECT] Disconnected', message, {
-          socketId: socket?.id || 'unknown',
-          userId: user?.id || 'unknown',
-        });
+        logger.debug(
+          {
+            socketId: socket?.id || 'unknown',
+            userId: user?.id || 'unknown',
+            message,
+          },
+          '[COMTED][DISCONNECT] Disconnected'
+        );
       });
     }
   }

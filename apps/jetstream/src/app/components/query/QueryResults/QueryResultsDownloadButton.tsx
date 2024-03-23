@@ -1,7 +1,14 @@
-import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import {
+  AsyncJobNew,
+  BulkDownloadJob,
+  FileExtCsvXLSXJsonGSheet,
+  MapOf,
+  Maybe,
+  QueryResultsColumn,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';

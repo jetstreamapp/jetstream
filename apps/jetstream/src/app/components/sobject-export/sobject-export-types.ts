@@ -1,5 +1,4 @@
-import { Maybe } from '@jetstream/types';
-import type { DescribeSObjectResult, Field } from 'jsforce';
+import { DescribeSObjectResult, Field, Maybe } from '@jetstream/types';
 
 export type SobjectExportFieldName =
   | keyof Field

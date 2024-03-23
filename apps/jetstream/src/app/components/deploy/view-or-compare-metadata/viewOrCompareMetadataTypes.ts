@@ -1,4 +1,4 @@
-import type { FileProperties } from 'jsforce';
+import { FileProperties } from '@jetstream/types';
 
 export type OrgType = 'SOURCE' | 'TARGET';
 export type EditorType = 'SOURCE' | 'TARGET' | 'DIFF';

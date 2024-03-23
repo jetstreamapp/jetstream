@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { QueryResultsColumn } from '@jetstream/api-interfaces';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
@@ -14,8 +13,9 @@ import {
   MapOf,
   Maybe,
   MimeType,
-  Record,
+  QueryResultsColumn,
   SalesforceOrgUi,
+  SalesforceRecord,
 } from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
@@ -67,9 +67,9 @@ export interface RecordDownloadModalProps {
   columns?: QueryResultsColumn[];
   fields: string[];
   subqueryFields?: MapOf<string[]>;
-  records: Record[];
-  filteredRecords?: Record[];
-  selectedRecords?: Record[];
+  records: SalesforceRecord[];
+  filteredRecords?: SalesforceRecord[];
+  selectedRecords?: SalesforceRecord[];
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
   onModalClose: (cancelled?: boolean) => void;

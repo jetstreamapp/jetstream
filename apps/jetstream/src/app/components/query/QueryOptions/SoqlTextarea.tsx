@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Textarea } from '@jetstream/ui';
 import Editor, { OnMount } from '@monaco-editor/react';
-import type { DescribeGlobalSObjectResult } from 'jsforce';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, memo, useCallback, useRef } from 'react';
 import ResizeObserver from 'react-resize-detector';

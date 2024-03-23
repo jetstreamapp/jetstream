@@ -1,9 +1,8 @@
-import { QueryResultsColumn } from '@jetstream/api-interfaces';
-import type { ChildRelationship, DescribeSObjectResult, Field } from 'jsforce';
 import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
-import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/types';
-import { HttpMethod, MapOf, Maybe, SalesforceOrgUi } from '../types';
+import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';
+import { ChildRelationship, DescribeSObjectResult, Field } from '../salesforce/sobject.types';
+import { HttpMethod, MapOf, Maybe, QueryResultsColumn, SalesforceOrgUi } from '../types';
 
 export type DropDownItemLength = 5 | 7 | 10;
 

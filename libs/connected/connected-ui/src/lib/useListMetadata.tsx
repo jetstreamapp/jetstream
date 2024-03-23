@@ -2,9 +2,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { listMetadata as listMetadataApi, queryAll } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ListMetadataQuery, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
-import type { ListMetadataQuery } from 'jsforce';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_listmetadata.htm

@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { convertDateToLocale, useRollbar } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes } from '@jetstream/shared/utils';
-import { ListItem, Maybe, Record, SalesforceOrgUi, _PLACEHOLDER } from '@jetstream/types';
+import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   Checkbox,
   Grid,
@@ -30,8 +30,6 @@ import { DeployResults, TransformationOptions } from '../../../shared/mass-updat
 import { fetchRecordsWithRequiredFields } from '../../../shared/mass-update-records/mass-update-records.utils';
 import { useDeployRecords } from '../../../shared/mass-update-records/useDeployRecords';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
-
-const _ = _PLACEHOLDER;
 
 const MAX_BATCH_SIZE = 10000;
 const IN_PROGRESS_STATUSES = new Set<DeployResults['status']>(['In Progress - Preparing', 'In Progress - Uploading', 'In Progress']);
@@ -67,9 +65,9 @@ export interface BulkUpdateFromQueryModalProps {
   selectedOrg: SalesforceOrgUi;
   sobject: string;
   parsedQuery: Query;
-  records: Record[];
-  filteredRecords: Record[];
-  selectedRecords: Record[];
+  records: SalesforceRecord[];
+  filteredRecords: SalesforceRecord[];
+  selectedRecords: SalesforceRecord[];
   totalRecordCount: number;
   onModalClose: (didUpdate?: boolean) => void;
 }

@@ -1,6 +1,5 @@
-import { ListItem, QueryGroupByClause } from '@jetstream/types';
+import { Field, ListItem, QueryGroupByClause } from '@jetstream/types';
 import { ComboboxWithDrillInItems, ComboboxWithItems, FormRowButton, GridCol } from '@jetstream/ui';
-import type { Field } from 'jsforce';
 import { FunctionComponent, useMemo } from 'react';
 import { QUERY_FIELD_DATE_FUNCTIONS } from '../utils/query-filter.utils';
 

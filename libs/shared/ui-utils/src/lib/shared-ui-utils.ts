@@ -18,6 +18,7 @@ import type {
   ExpressionConditionType,
   ExpressionGroupType,
   ExpressionType,
+  Field,
   ListItem,
   MapOf,
   Maybe,
@@ -36,7 +37,6 @@ import type {
 } from '@jetstream/types';
 import parseISO from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
-import type { Field } from 'jsforce';
 import safeGet from 'lodash/get';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
@@ -71,7 +71,7 @@ export function initXlsx(_xlsx: typeof import('xlsx')) {
       _xlsx.set_cptable(module);
     })
     .catch((ex) => {
-      logger.error('Error loading xlsx', ex);
+      logger.error('Error loading xlsx package');
     });
 }
 
@@ -386,7 +386,17 @@ export function saveFile(content: any, filename: string, type: MimeType) {
   saveAs(blob, filename);
 }
 
-export function base64ToArrayBuffer(base64: string) {
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }
 
@@ -895,6 +905,7 @@ export function getPicklistListItems(field: Field): ListItem[] {
     value: item.value,
   }));
 }
+
 /// START ADD ORG ////
 let windowRef: Maybe<Window>;
 let addOrgCallbackFn: (org: SalesforceOrgUi) => void;

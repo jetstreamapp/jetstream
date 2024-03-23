@@ -1,5 +1,5 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, logger, pgPool } from '@jetstream/api-config';
+import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
@@ -19,7 +19,6 @@ import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes,
 import {
   addContextMiddleware,
   blockBotByUserAgentMiddleware,
-  logRoute,
   notFoundMiddleware,
   setApplicationCookieMiddleware,
 } from './app/routes/route.middleware';
@@ -29,6 +28,7 @@ import { environment } from './environments/environment';
 declare module 'express-session' {
   interface SessionData {
     activityExp: number;
+    orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string };
   }
 }
 
@@ -44,7 +44,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   }
 
   cluster.on('exit', (worker, code, signal) => {
-    logger.info(`worker ${worker.process.pid} died, restarting`, { code, signal });
+    logger.info({ code, signal }, `worker ${worker.process.pid} died, restarting`);
     cluster.fork();
   });
 } else {
@@ -92,6 +92,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   }
 
   app.use(addContextMiddleware);
+  app.use(httpLogger);
 
   // Setup session
   app.use(sessionMiddleware);
@@ -250,7 +251,6 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     });
     app.options(
       '*',
-      logRoute,
       (req: express.Request, res: express.Response, next: express.NextFunction) => {
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -275,9 +275,9 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
         ],
       })
     );
-    app.use('/platform-event', logRoute, cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
+    app.use('/platform-event', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
   } else {
-    app.use('/platform-event', logRoute, platformEventRoutes);
+    app.use('/platform-event', platformEventRoutes);
   }
 
   app.use(raw({ limit: '30mb', type: ['text/csv'] }));
@@ -286,12 +286,12 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(urlencoded({ extended: true }));
 
   app.use('/healthz', healthCheck);
-  app.use('/api', logRoute, apiRoutes);
-  app.use('/static', logRoute, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
-  app.use('/oauth', logRoute, oauthRoutes); // NOTE: there are also static files with same path
+  app.use('/api', apiRoutes);
+  app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
+  app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI) {
-    app.use('/test', logRoute, testRoutes);
+    app.use('/test', testRoutes);
   }
 
   // const server = app.listen(Number(ENV.PORT), () => {
@@ -356,7 +356,6 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(uncaughtErrorHandler);
 
   server.on('error', (error: Error) => {
-    logger.error('[SERVER][ERROR]', error.message);
-    logger.error(error.stack);
+    logger.error(getExceptionLog(error), '[SERVER][ERROR]');
   });
 }

@@ -1,5 +1,4 @@
-import { BulkJobWithBatches, ListItem, MapOf, Maybe } from '@jetstream/types';
-import type { DescribeSObjectResult } from 'jsforce';
+import { BulkJobWithBatches, DescribeSObjectResult, ListItem, MapOf, Maybe } from '@jetstream/types';
 import { PrepareDataResponseError } from '../load-records-results/load-records-results-types';
 
 export interface MetadataRow {

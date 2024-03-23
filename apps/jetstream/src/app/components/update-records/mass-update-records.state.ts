@@ -1,6 +1,5 @@
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { ListItem } from '@jetstream/types';
-import type { DescribeGlobalSObjectResult, Field } from 'jsforce';
+import { DescribeGlobalSObjectResult, Field, ListItem } from '@jetstream/types';
 import intersectionBy from 'lodash/intersectionBy';
 import { atom, selector } from 'recoil';
 import { MetadataRow } from '../shared/mass-update-records/mass-update-records.types';

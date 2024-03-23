@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/api-interfaces';
+import { QueryResults, QueryResultsColumn, QueryResultsColumns } from '@jetstream/types';
 import type { Connection } from 'jsforce';
-import { parseQuery, Query } from 'soql-parser-js';
+import { Query, parseQuery } from 'soql-parser-js';
 
 export interface QueryColumnsSfdc {
   columnMetadata: QueryColumnMetadata[];

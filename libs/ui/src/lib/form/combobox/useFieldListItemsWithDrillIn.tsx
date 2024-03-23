@@ -5,8 +5,7 @@ import {
   sortQueryFields,
   unFlattenedListItemsById,
 } from '@jetstream/shared/ui-utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import type { DescribeSObjectResult, Field } from 'jsforce';
+import { DescribeSObjectResult, Field, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useState } from 'react';
 
 /**

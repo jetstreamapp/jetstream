@@ -12,11 +12,12 @@ import {
   ExpressionConditionRowSelectedItems,
   ExpressionGetResourceTypeFns,
   ExpressionRowValueType,
+  Field,
+  FieldType,
   ListItem,
   Maybe,
   QueryFilterOperator,
 } from '@jetstream/types';
-import type { Field, FieldType } from 'jsforce';
 
 // Used for GROUP BY and HAVING clause
 export const QUERY_FIELD_DATE_FUNCTIONS: ListItem<string, QueryFilterOperator>[] = [

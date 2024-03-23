@@ -8,16 +8,18 @@ import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect } from '@j
 import {
   AsyncJobNew,
   BulkDownloadJob,
+  ChildRelationship,
   CloneEditView,
+  ErrorResult,
+  Field,
   FileExtCsvXLSXJsonGSheet,
   MapOf,
   Maybe,
   PicklistFieldValues,
   PicklistFieldValuesResponse,
-  Record,
   RecordResult,
   SalesforceOrgUi,
-  SobjectCollectionResponse,
+  SalesforceRecord,
 } from '@jetstream/types';
 import {
   Breadcrumbs,
@@ -34,7 +36,6 @@ import {
   Tabs,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import type { ChildRelationship, Field } from 'jsforce';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -78,7 +79,7 @@ function getTagline(
   selectedOrg: SalesforceOrgUi,
   serverUrl: string,
   sobjectName: string,
-  initialRecord?: Record,
+  initialRecord?: SalesforceRecord,
   recordId?: string | null
 ) {
   if (initialRecord && recordId) {
@@ -152,9 +153,9 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [childRelationships, setChildRelationships] = useState<ChildRelationship[]>();
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
-  const [initialRecord, setInitialRecord] = useState<Record>();
-  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<MapOf<Maybe<Record>>>({});
-  const [modifiedRecord, setModifiedRecord] = useState<Record>({});
+  const [initialRecord, setInitialRecord] = useState<SalesforceRecord>();
+  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<MapOf<Maybe<SalesforceRecord>>>({});
+  const [modifiedRecord, setModifiedRecord] = useState<SalesforceRecord>({});
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -163,7 +164,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [isViewAsJson, setIsViewAsJson] = useState(false);
 
   const [downloadModalData, setDownloadModalData] = useState<
-    { open: false } | { open: true; data: Record; fields: string[]; subqueryFields?: MapOf<string[]> }
+    { open: false } | { open: true; data: SalesforceRecord; fields: string[]; subqueryFields?: MapOf<string[]> }
   >({
     open: false,
   });
@@ -187,7 +188,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const fetchMetadata = useCallback(async () => {
     try {
       let picklistValues: PicklistFieldValues = {};
-      let record: Record = {};
+      let record: SalesforceRecord = {};
 
       const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
       setChildRelationships(
@@ -197,7 +198,15 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       );
 
       if (action !== 'create' && recordId) {
-        record = await sobjectOperation<Record>(selectedOrg, sobjectName, 'retrieve', { ids: recordId });
+        const response: SalesforceRecord | ErrorResult = (
+          await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: [recordId] })
+        )[0];
+        if ('success' in response && !response.success) {
+          setFormErrors(handleEditFormErrorResponse(response));
+          setLoading(false);
+          return;
+        }
+        record = response;
       }
 
       let recordTypeId = record?.RecordTypeId;
@@ -301,7 +310,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     trackEvent(ANALYTICS_KEYS.record_modal_action_change, { action, isViewAsJson });
   }, [action, isViewAsJson, trackEvent]);
 
-  async function handleRecordChange(record: Record) {
+  async function handleRecordChange(record: SalesforceRecord) {
     setModifiedRecord(record);
   }
 
@@ -324,11 +333,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       if (action === 'edit') {
         record.attributes = { type: sobjectName };
         record.Id = recordId;
-        recordResponse = (await sobjectOperation<SobjectCollectionResponse>(selectedOrg, sobjectName, 'update', { records: [record] }))[0];
+        recordResponse = (await sobjectOperation(selectedOrg, sobjectName, 'update', { records: [record] }))[0];
       } else {
         // include all creatable fields from original record
         record = combineRecordsForClone(sobjectFields || [], initialRecord, record);
-        recordResponse = (await sobjectOperation<SobjectCollectionResponse>(selectedOrg, sobjectName, 'create', { records: [record] }))[0];
+        recordResponse = (await sobjectOperation(selectedOrg, sobjectName, 'create', { records: [record] }))[0];
       }
 
       if (isMounted.current) {
