@@ -59,6 +59,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         body: body ? body.parse(req.body) : undefined,
         query: query ? query.parse(req.query) : undefined,
         jetstreamConn: res.locals.jetstreamConn,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         targetJetstreamConn: res.locals.targetJetstreamConn!,
         org: res.locals.org as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // this will exist if targetJetstreamConn exists, otherwise will throw
