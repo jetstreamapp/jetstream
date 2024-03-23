@@ -4,6 +4,8 @@ import { convert as xmlConverter } from 'xmlbuilder2';
 import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, Logger, SoapErrorResponse, fetchFn } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
+// Shows up for certain API requests, such as Identity
+const BAS_ACCESS_TOKEN_403 = 'Bad_OAuth_Token';
 
 /**
  * Factory function to get api request
@@ -70,7 +72,9 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
 
           if (
             attemptRefresh &&
-            (response.status === 401 || (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
+            (response.status === 401 ||
+              (response.status === 403 && responseText === BAS_ACCESS_TOKEN_403) ||
+              (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
             sessionInfo.sfdcClientId &&
             sessionInfo.sfdcClientSecret &&
             sessionInfo.refreshToken
@@ -78,7 +82,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             try {
               // if 401 and we have a refresh token, then attempt to refresh the token
               const { access_token: newAccessToken } = await exchangeRefreshToken(fetch, sessionInfo);
-              onRefresh?.(accessToken);
+              onRefresh?.(newAccessToken);
               // replace token in body
               if (typeof options.body === 'string' && options.body.includes(accessToken)) {
                 // if the response is soap, we need to return the response as is
