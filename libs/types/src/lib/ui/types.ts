@@ -568,6 +568,7 @@ export interface SalesforceDeployHistoryItem {
   key: string; // org:type:timestamp
   fileKey?: string;
   destinationOrg: SalesforceDeploymentHistoryOrg;
+  deploymentHistoryName?: Maybe<string>;
   sourceOrg?: SalesforceDeploymentHistoryOrg;
   start: Date;
   finish: Date;

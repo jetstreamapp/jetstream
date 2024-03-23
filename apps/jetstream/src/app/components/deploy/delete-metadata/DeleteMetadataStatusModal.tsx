@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -11,6 +11,7 @@ import { getStatusValue, useDeployMetadataPackage } from '../utils/useDeployMeta
 export interface DeployMetadataPackageStatusModalProps {
   destinationOrg: SalesforceOrgUi;
   deployOptions: DeployOptions;
+  deploymentHistoryName?: Maybe<string>;
   file: ArrayBuffer;
   // used to hide while download window is open
   hideModal: boolean;
@@ -22,6 +23,7 @@ export interface DeployMetadataPackageStatusModalProps {
 export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataPackageStatusModalProps> = ({
   destinationOrg,
   deployOptions,
+  deploymentHistoryName,
   file,
   hideModal,
   onGoBack,
@@ -34,7 +36,8 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataPackage(
     destinationOrg,
     deployOptions,
-    file
+    file,
+    deploymentHistoryName
   );
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
       onGoBack={onGoBack}
       onClose={onClose}
       onDownload={onDownload}
+      deploymentHistoryName={deploymentHistoryName}
     />
   );
 };

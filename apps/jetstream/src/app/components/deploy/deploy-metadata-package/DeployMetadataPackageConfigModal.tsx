@@ -29,6 +29,7 @@ export interface DeployMetadataPackageConfigModalProps {
     destinationOrg: SalesforceOrgUi,
     deployOptions: DeployOptions
   ) => void;
+  setDeploymentHistoryName?: (deploymentHistoryName: Maybe<string>) => void;
 }
 
 export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataPackageConfigModalProps> = ({
@@ -41,6 +42,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   onSelection,
   onClose,
   onDeploy,
+  setDeploymentHistoryName,
 }) => {
   const rollbar = useRollbar();
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
@@ -175,7 +177,12 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
               </div>
               <div>
                 {/* OPTIONS */}
-                <DeployMetadataOptions deployOptions={deployOptions} isSinglePackage={isSinglePackage} onChange={setDeployOptions} />
+                <DeployMetadataOptions
+                  deployOptions={deployOptions}
+                  isSinglePackage={isSinglePackage}
+                  onChange={setDeployOptions}
+                  setDeploymentHistoryName={setDeploymentHistoryName}
+                />
               </div>
             </div>
           </GridCol>

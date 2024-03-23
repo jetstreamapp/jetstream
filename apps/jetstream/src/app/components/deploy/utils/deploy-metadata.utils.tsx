@@ -9,6 +9,7 @@ import {
   DeployResult,
   ListMetadataResult,
   MapOf,
+  Maybe,
   SalesforceDeployHistoryItem,
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
@@ -68,6 +69,7 @@ export async function getHistoryItemFile(item: SalesforceDeployHistoryItem) {
 export async function saveHistory({
   sourceOrg,
   destinationOrg,
+  deploymentHistoryName,
   type,
   start,
   metadata,
@@ -77,6 +79,7 @@ export async function saveHistory({
 }: {
   sourceOrg?: SalesforceOrgUi;
   destinationOrg: SalesforceOrgUi;
+  deploymentHistoryName?: Maybe<string>;
   type: SalesforceDeployHistoryType;
   start: Date;
   metadata?: MapOf<ListMetadataResult[]>;
@@ -108,6 +111,7 @@ export async function saveHistory({
         label: destinationOrg.label,
         orgName: destinationOrg.orgName || '',
       },
+      deploymentHistoryName,
       start,
       finish: new Date(),
       url: results?.id ? getDeploymentStatusUrl(results.id) : null,

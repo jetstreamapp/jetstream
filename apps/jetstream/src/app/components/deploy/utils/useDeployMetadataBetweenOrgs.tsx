@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployResult, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -75,7 +75,8 @@ export function useDeployMetadataBetweenOrgs(
   sourceOrg: SalesforceOrgUi,
   destinationOrg: SalesforceOrgUi,
   selectedMetadata: MapOf<ListMetadataResult[]>,
-  deployOptions: DeployOptions
+  deployOptions: DeployOptions,
+  deploymentHistoryName?: Maybe<string>
 ) {
   const isMounted = useRef(true);
 
@@ -124,6 +125,7 @@ export function useDeployMetadataBetweenOrgs(
           saveHistory({
             sourceOrg,
             destinationOrg,
+            deploymentHistoryName,
             type: 'orgToOrg',
             start,
             metadata: selectedMetadata,
@@ -150,7 +152,7 @@ export function useDeployMetadataBetweenOrgs(
         dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
       }
     }
-  }, [deployOptions, destinationOrg, selectedMetadata, sourceOrg]);
+  }, [deployOptions, destinationOrg, selectedMetadata, sourceOrg, deploymentHistoryName]);
 
   return { deployMetadata, results, deployId, hasLoaded, loading, status, lastChecked, hasError, errorMessage };
 }
