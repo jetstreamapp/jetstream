@@ -10,7 +10,7 @@ import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } fr
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import formatRelative from 'date-fns/formatRelative';
-import { from, Observable, of, Subject } from 'rxjs';
+import { Observable, Subject, from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import {
   getApexTriggersQuery,
@@ -543,7 +543,7 @@ export function deployMetadata(
       }
 
       // perform deployments that are not supported using tooling api
-      const metadataDeployResults = await deployMetadataFileBased(selectedOrg, itemsByKey, Number(apiVersion));
+      const metadataDeployResults = await deployMetadataFileBased(selectedOrg, itemsByKey, Number(apiVersion.replace(/[^0-9\.]/g, '')));
 
       if (metadataDeployResults) {
         const deployResults = await pollMetadataResultsUntilDone(selectedOrg, metadataDeployResults.deployResultsId);
