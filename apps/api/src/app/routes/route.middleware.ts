@@ -28,11 +28,15 @@ export function addContextMiddleware(req: express.Request, res: express.Response
  */
 export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const appCookie: ApplicationCookie = {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     serverUrl: ENV.JETSTREAM_SERVER_URL!,
     environment: ENV.ENVIRONMENT as any,
     defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     google_appId: ENV.GOOGLE_APP_ID!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     google_apiKey: ENV.GOOGLE_API_KEY!,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     google_clientId: ENV.GOOGLE_CLIENT_ID!,
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });

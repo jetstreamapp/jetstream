@@ -98,6 +98,7 @@ export interface BulkXmlErrorResponse {
 }
 
 export interface Logger {
+  trace: (...data: unknown[]) => void;
   error: (...data: unknown[]) => void;
   warn: (...data: unknown[]) => void;
   info: (...data: unknown[]) => void;

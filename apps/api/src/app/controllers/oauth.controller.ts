@@ -85,11 +85,12 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
       apiRequestAdapter: getApiRequestFactoryFn(fetch),
       userId: userInfo.user_id,
       organizationId: userInfo.organization_id,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       accessToken: access_token!,
       apiVersion: ENV.SFDC_API_VERSION,
       instanceUrl: userInfo.urls.custom_domain || loginUrl,
       refreshToken: refresh_token,
-      logging: ENV.ENVIRONMENT === 'development',
+      logging: ENV.LOG_LEVEL === 'trace',
     });
 
     const salesforceOrg = await initConnectionFromOAuthResponse({

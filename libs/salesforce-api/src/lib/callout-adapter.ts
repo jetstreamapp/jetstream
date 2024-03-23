@@ -20,9 +20,8 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
       if (isObject(body) && !rawBody) {
         body = JSON.stringify(body);
       }
-      if (enableLogging) {
-        logger.debug(`[API REQUEST]: ${method} ${url}`);
-      }
+
+      logger.trace(`[API REQUEST]: ${method} ${url}`);
 
       return fetch(url, {
         method,
@@ -37,14 +36,14 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
       })
         .then(async (response) => {
           if (enableLogging) {
-            logger.debug(`[API RESPONSE]: ${response.status}`);
+            logger.trace(`[API RESPONSE]: ${response.status}`);
             if (response.status !== 204) {
               response
                 .clone()
                 .text()
-                .then((responseBody) => logger.debug({ responseBody }))
+                .then((responseBody) => logger.trace({ responseBody }))
                 // eslint-disable-next-line @typescript-eslint/no-empty-function
-                .catch((_) => {});
+                .catch(() => {});
             }
           }
           if (response.ok) {
@@ -58,10 +57,6 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
               return response.text().then((text) => xmlConverter(text, { format: 'object', wellFormed: true }) as Response);
             } else if (outputType === 'soap') {
               return response.text().then((text) => xmlConverter(text, { format: 'object', wellFormed: true }));
-              // .then((soapResponse) => ({
-              //   body: soapResponse.ns1LEnvelope.Body,
-              //   header: soapResponse.ns1LEnvelope.Header,
-              // }));
             } else if (outputType === 'response') {
               return response;
             } else if (outputType === 'void') {
@@ -71,7 +66,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             }
           }
 
-          const responseText = await response.clone().text();
+          let responseText = await response.clone().text();
 
           if (
             attemptRefresh &&
@@ -80,11 +75,21 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             sessionInfo.sfdcClientSecret &&
             sessionInfo.refreshToken
           ) {
-            // if 401 and we have a refresh token, then attempt to refresh the token
-            // attemptRefresh
-            const { access_token: accessToken } = await exchangeRefreshToken(fetch, sessionInfo);
-            onRefresh?.(accessToken);
-            return apiRequest({ ...options, sessionInfo: { ...sessionInfo, accessToken } });
+            try {
+              // if 401 and we have a refresh token, then attempt to refresh the token
+              const { access_token: newAccessToken } = await exchangeRefreshToken(fetch, sessionInfo);
+              onRefresh?.(accessToken);
+              // replace token in body
+              if (typeof options.body === 'string' && options.body.includes(accessToken)) {
+                // if the response is soap, we need to return the response as is
+                options.body = options.body.replace(accessToken, newAccessToken);
+              }
+
+              return apiRequest({ ...options, sessionInfo: { ...sessionInfo, accessToken: newAccessToken } }, false);
+            } catch (ex) {
+              logger.warn('Unable to refresh accessToken');
+              responseText = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
+            }
           }
           // don't throw if caller wants the response back
           if (outputType === 'response') {
@@ -140,8 +145,11 @@ function exchangeRefreshToken(fetch: fetchFn, sessionInfo: ApiRequestOptions['se
     method: 'POST',
     body: new URLSearchParams({
       grant_type: 'refresh_token',
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       client_id: sessionInfo.sfdcClientId!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       client_secret: sessionInfo.sfdcClientSecret!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       refresh_token: sessionInfo.refreshToken!,
     }).toString(),
     headers: {

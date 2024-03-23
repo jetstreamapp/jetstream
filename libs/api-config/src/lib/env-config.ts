@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ensureBoolean, ensureStringValue } from '@jetstream/shared/utils';
 import { UserProfileServer, UserProfileUi } from '@jetstream/types';
 import * as dotenv from 'dotenv';
@@ -51,6 +52,7 @@ const EXAMPLE_USER_PROFILE: UserProfileUi = {
 };
 
 export const ENV = {
+  LOG_LEVEL: (process.env.LOG_LEVEL || 'debug') as 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent',
   IS_CI: ensureBoolean(process.env.CI),
   // LOCAL OVERRIDE
   EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),

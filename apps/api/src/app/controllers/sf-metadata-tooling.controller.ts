@@ -259,9 +259,6 @@ const checkRetrieveStatus = createRoute(
   }
 );
 
-// TODO: split this into one option to deploy to a changeset
-// TODO: get from new shared service (code copied over)
-// and another to deploy as-is
 const checkRetrieveStatusAndRedeploy = createRoute(
   routeDefinition.checkRetrieveStatusAndRedeploy.validators,
   async ({ body, query, jetstreamConn, targetJetstreamConn }, req, res, next) => {

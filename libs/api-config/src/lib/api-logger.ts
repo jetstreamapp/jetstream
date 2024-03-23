@@ -5,9 +5,9 @@ import { v4 as uuid } from 'uuid';
 import { ENV } from './env-config';
 
 export const logger = pino({
-  level: ENV.IS_CI ? 'info' : 'debug',
+  level: ENV.LOG_LEVEL,
   transport:
-    ENV.ENVIRONMENT === 'development'
+    ENV.ENVIRONMENT === 'development' && ENV.LOG_LEVEL === 'trace'
       ? {
           target: 'pino-pretty',
         }
@@ -16,6 +16,7 @@ export const logger = pino({
 
 export const httpLogger = pinoHttp<express.Request, express.Response>({
   logger,
+  level: 'debug',
   genReqId: (req, res) => res.locals.requestId || uuid(),
   customSuccessMessage: function (req, res) {
     if (res.statusCode === 404) {
