@@ -6,11 +6,11 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream",
-  "version": "3.12.0",
+  "version": "3.12.1",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
     "node": ">=20 <22",
-    "yarn": ">=1.22.21 <2"
+    "yarn": ">=1.22 <2"
   },
   "scripts": {
     "init:project": "zx ./scripts/init-project.mjs",

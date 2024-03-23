@@ -161,7 +161,7 @@ export const useQueryRestore = (
         } else {
           logger.warn('[QUERY RESTORE][ERROR]', ex);
           setErrorMessage('An unknown error has ocurred while restoring your query');
-          rollbar.error(ex.message, { ex, query: currSoql });
+          rollbar.error('Query Restore Error', { message: ex.message, stack: ex.stack, query: currSoql });
         }
         endRestore(true, toolingOverride ?? isTooling);
       }

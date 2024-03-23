@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, delay, getMapOf, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, delay, getMapOf, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import {
   DescribeGlobalSObjectResult,
   DescribeSObjectResult,
@@ -813,7 +813,7 @@ export function convertCsvToCustomMetadata(
     let metadata = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     metadata += `<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n`;
     if (label) {
-      metadata += `\t<label>${label}</label>\n`;
+      metadata += `\t<label>${sanitizeForXml(label)}</label>\n`;
     }
     metadata += `\t<protected>false</protected>\n`;
     fields
@@ -831,6 +831,10 @@ export function convertCsvToCustomMetadata(
 
         // ensure field is in correct data type (mostly for dates)
         fieldValue = transformRecordForDataLoad(fieldValue, field.type, dateFormat);
+
+        if (isString(fieldValue)) {
+          fieldValue = sanitizeForXml(fieldValue);
+        }
         // Custom metadata lookups always use name to relate records
         const soapType = field.soapType === 'tns:ID' ? 'xsd:string' : field.soapType;
         if (fieldMappingItem && !isNil(fieldValue) && fieldValue !== '') {
