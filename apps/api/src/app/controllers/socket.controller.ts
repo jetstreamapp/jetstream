@@ -1,22 +1,19 @@
 import { getExceptionLog, logger } from '@jetstream/api-config';
+import { SOCKET_EVENTS } from '@jetstream/shared/constants';
 import { UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
 import { IncomingMessage, createServer } from 'http';
 import { nanoid } from 'nanoid';
 import { Server, Socket } from 'socket.io';
-import { ExtendedError } from 'socket.io/dist/namespace';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import { environment } from '../../environments/environment';
+import { subscribeToPlatformEvent, unsubscribeFromPlatformEvent } from '../services/comtd/cometd';
 import * as socketUtils from '../utils/socket-utils';
 
 cometdClient.adapt();
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
-
-const wrapMiddleware =
-  (middleware) => (socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>, next: (err?: ExtendedError) => void) =>
-    middleware(socket.request, {}, next);
 
 function getUser(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) {
   const user = (socket.request as any).user as UserProfileServer;
@@ -35,13 +32,15 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
   const httpServer = createServer(app);
 
   io = new Server(httpServer, {
+    // transports: ["polling", "websocket", "webtransport"] as any, // TODO: test this out - https://socket.io/docs/v4/changelog/4.7.0
     serveClient: false,
     cookie: {
       httpOnly: false,
       secure: environment.production,
-      sameSite: 'strict',
+      sameSite: environment.production ? 'strict' : 'none',
     } as any,
     allowRequest: (req, callback) => {
+      // TODO: make sure origin matches
       const isOriginValid = isValidRequest(req);
       callback(null, isOriginValid);
     },
@@ -51,31 +50,36 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
     return nanoid(); // must be unique across all Socket.IO servers
   };
 
-  // can we do anything here?
-  // io.engine.on("initial_headers", (headers, req) => {
-  // headers["test"] = "123";
-  // headers["set-cookie"] = "mycookie=456";
-  // });
+  function onlyForHandshake(middleware: express.RequestHandler) {
+    return (req, res, next) => {
+      const isHandshake = req._query.sid === undefined;
+      if (isHandshake) {
+        middleware(req, res, (...data) => {
+          console.log(...data);
+          next(...data);
+        });
+      } else {
+        next();
+      }
+    };
+  }
 
-  // can we do anything here?
-  // io.engine.on("headers", (headers, req) => {
-  // headers["test"] = "789";
-  // });
+  middlewareFns.forEach((middleware) => io.engine.use(onlyForHandshake(middleware) as any));
 
-  // Possible app structures
-  // https://socket.io/docs/v4/server-application-structure/
-
-  middlewareFns.forEach((middleware) => io.use(wrapMiddleware(middleware)));
-
-  io.use((socket, next) => {
-    const user = getUser(socket);
-    if (user) {
-      next();
-    } else {
-      logger.debug('[SOCKET][ERROR] unauthorized');
-      next(new Error('unauthorized'));
-    }
-  });
+  io.engine.use(
+    onlyForHandshake((req, res, next) => {
+      console.log(req.user);
+      if (req.user) {
+        logger.debug('[SOCKET][AUTH]', req.user);
+        next();
+      } else {
+        logger.debug('[SOCKET][ERROR] unauthorized');
+        res.writeHead(401);
+        res.end();
+        // next(new Error('unauthorized'));
+      }
+    }) as any
+  );
 
   io.on('connection', (socket) => {
     const user = getUser(socket);
@@ -107,10 +111,14 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
     });
 
     /**
-     * TODO: add socket handlers here - these were removed since not actually needed but are good reference
+     * SOCKET HANDLERS
      */
-    // socket.on(SOCKET_EVENTS.PLATFORM_EVENT_SUBSCRIBE, platformEvService.subscribeToPlatformEvent(userSocketState));
-    // socket.on(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, platformEvService.unsubscribeFromPlatformEvent(userSocketState));
+    socket.on(SOCKET_EVENTS.PLATFORM_EVENT_SUBSCRIBE, subscribeToPlatformEvent(userSocketState));
+    socket.on(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, unsubscribeFromPlatformEvent(userSocketState));
+  });
+
+  io.on('error', (socket) => {
+    console.log('error', socket);
   });
 
   return httpServer;

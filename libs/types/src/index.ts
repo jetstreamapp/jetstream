@@ -8,5 +8,6 @@ export * from './lib/salesforce/query.types';
 export * from './lib/salesforce/record.types';
 export * from './lib/salesforce/sobject.types';
 export * from './lib/salesforce/tooling.types';
+export * from './lib/socket/types';
 export * from './lib/types';
 export * from './lib/ui/types';

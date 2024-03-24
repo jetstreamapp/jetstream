@@ -11,7 +11,7 @@ import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEve
 import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
 import PlatformEventMonitorPublisherCard from './PlatformEventMonitorPublisherCard';
 import { PlatformEventObject } from './platform-event-monitor.types';
-import { usePlatformEvent } from './usePlatformEvent';
+import { usePlatformEventFromSocket } from './usePlatformEventFromSocket';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PlatformEventMonitorProps {}
@@ -31,7 +31,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     publish,
     subscribe,
     unsubscribe,
-  } = usePlatformEvent({ selectedOrg });
+  } = usePlatformEventFromSocket({ selectedOrg });
   const [platformEventsListSubscriptions, setPlatformEventsListSubscriptions] = useState<ListItemGroup<string, PlatformEventObject>[]>([]);
   const [platformEventsListPublisher, setPlatformEventsListPublisher] = useState<ListItem<string, PlatformEventObject>[]>([]);
   const [subscribedPlatformEventsList, setSubscribedPlatformEventsList] = useState<ListItem<string, PlatformEventObject>[]>([]);
