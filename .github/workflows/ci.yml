@@ -6,6 +6,7 @@ on:
   pull_request:
 
 env:
+  LOG_LEVEL: warn
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
