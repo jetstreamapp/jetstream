@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SocketAck } from '@jetstream/types';
-import { io, Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
+import { io, Socket } from 'socket.io-client';
 
 let socket: Socket<DefaultEventsMap, DefaultEventsMap>;
 
@@ -46,8 +46,18 @@ export function initSocket(serverUrl?: string) {
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 export function isConnected() {}
 
-export function emit<T = any>(channel: string, event: T, callback?: (data: SocketAck<T>) => void) {
-  socket.emit(channel, event, callback);
+export async function emit<T = any, Ack = unknown>(channel: string, event: T): Promise<SocketAck<Ack>> {
+  return new Promise((resolve, reject) => {
+    try {
+      // FIXME: should be able to use "return socket.timeout(20_000).emitWithAck(channel, event);" but it's not working
+      // TODO: add timeout handling - or caller could use promise.race()
+      socket.emit(channel, event, (data) => {
+        resolve(data);
+      });
+    } catch (ex) {
+      reject(ex);
+    }
+  });
 }
 
 export function subscribe<T = any>(channel: string, callback: (data: T) => void) {

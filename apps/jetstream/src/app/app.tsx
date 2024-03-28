@@ -1,6 +1,6 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-// import { initSocket } from '@jetstream/shared/data';
+import { initSocket } from '@jetstream/shared/data';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
@@ -24,7 +24,7 @@ import './components/core/monaco-loader';
  * TODO: disabled socket from browser until we have a solid use-case for it
  * previously this was used for platform events, but that was moved to browser
  */
-// initSocket();
+initSocket();
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();

@@ -2,7 +2,7 @@
  * ENDED UP NOT USING THIS STUFF
  */
 import { MapOf } from '@jetstream/types';
-import { CometD, Message, Extension } from 'cometd';
+import { CometD, Extension, Message } from 'cometd';
 import { isNumber } from 'lodash';
 
 /*
@@ -117,3 +117,54 @@ export class CometdReplayExtension implements Extension {
     return null;
   }
 }
+
+export const cometdReplayExtension = function () {
+  const REPLAY_FROM_KEY = 'replay';
+
+  let _cometd: CometD;
+  let _extensionEnabled = false;
+  let _replay: number;
+  let _channel: string;
+
+  this.setExtensionEnabled = function (extensionEnabled: boolean) {
+    _extensionEnabled = extensionEnabled;
+  };
+
+  this.setReplay = function (replay: string) {
+    _replay = parseInt(replay, 10);
+  };
+
+  this.setChannel = function (channel: string) {
+    _channel = channel;
+  };
+
+  this.registered = function (name: string, cometd: CometD) {
+    _cometd = cometd;
+  };
+
+  this.incoming = function (message: Message) {
+    if (message.channel === '/meta/handshake') {
+      if (message.ext && message.ext[REPLAY_FROM_KEY] == true) {
+        _extensionEnabled = true;
+      }
+    } else if (message.channel === _channel && message.data && message.data.event && message.data.event.replayId) {
+      _replay = message.data.event.replayId;
+    }
+  };
+
+  this.outgoing = function (message: Message) {
+    if (message.channel === '/meta/subscribe') {
+      if (_extensionEnabled) {
+        if (!message.ext) {
+          message.ext = {};
+        }
+
+        const replayFromMap = {};
+        replayFromMap[_channel] = _replay;
+
+        // add "ext : { "replay" : { CHANNEL : REPLAY_VALUE }}" to subscribe message
+        message.ext[REPLAY_FROM_KEY] = replayFromMap;
+      }
+    }
+  };
+};
