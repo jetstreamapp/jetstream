@@ -1,6 +1,7 @@
 import { Maybe } from '@jetstream/types';
 import { Grid, ScopedNotification } from '@jetstream/ui';
 import formatISO from 'date-fns/formatISO';
+import isValid from 'date-fns/isValid';
 import * as formulon from 'formulon';
 import { FunctionComponent } from 'react';
 
@@ -13,13 +14,17 @@ export interface FormulaEvaluatorResultsProps {
 }
 
 function getValue(value: string | number | boolean | null | Date): string {
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
+  try {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    if (value instanceof Date && isValid(value)) {
+      return formatISO(value, { representation: 'date' });
+    }
+    return 'null';
+  } catch (ex) {
+    return 'null';
   }
-  if (value instanceof Date) {
-    return formatISO(value, { representation: 'date' });
-  }
-  return 'null';
 }
 
 export const FormulaEvaluatorResults: FunctionComponent<FormulaEvaluatorResultsProps> = ({ errorMessage, results }) => {
