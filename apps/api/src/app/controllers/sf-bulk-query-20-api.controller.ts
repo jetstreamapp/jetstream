@@ -1,4 +1,5 @@
 import { BooleanQueryParamSchema, CreateQueryJobRequestSchema } from '@jetstream/api-types';
+import { ensureBoolean } from '@jetstream/shared/utils';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -16,9 +17,9 @@ export const routeDefinition = {
     validators: {
       query: z.object({
         isPkChunkingEnabled: BooleanQueryParamSchema,
-        jobType: z.enum(['Classic', 'V2Query', 'V2Ingest']).optional(),
-        concurrencyMode: z.enum(['parallel']).optional(),
-        queryLocator: z.string().optional(),
+        jobType: z.enum(['Classic', 'V2Query', 'V2Ingest']).nullish(),
+        concurrencyMode: z.enum(['parallel']).nullish(),
+        queryLocator: z.string().nullish(),
       }),
     },
   },
@@ -47,7 +48,7 @@ export const routeDefinition = {
       query: z.object({
         maxRecords: z
           .string()
-          .optional()
+          .nullish()
           .refine((val) => {
             if (!val) {
               return true;
@@ -64,7 +65,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
   try {
     const { query, queryAll } = body;
 
-    const results = await jetstreamConn.bulkQuery20.createJob(query, queryAll);
+    const results = await jetstreamConn.bulkQuery20.createJob(query, ensureBoolean(queryAll));
 
     sendJson(res, results);
   } catch (ex) {

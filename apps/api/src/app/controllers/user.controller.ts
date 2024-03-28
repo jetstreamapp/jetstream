@@ -61,7 +61,7 @@ export const routeDefinition = {
     validators: {
       hasSourceOrg: false,
       body: z.object({
-        reason: z.string().optional(),
+        reason: z.string().nullish(),
       }),
     },
   },

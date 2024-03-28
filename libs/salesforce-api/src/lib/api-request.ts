@@ -26,7 +26,7 @@ export class ApiRequest extends SalesforceApi {
       url,
       method: method,
       body: body,
-      headers: headers,
+      headers: headers || {},
       outputType,
     });
 

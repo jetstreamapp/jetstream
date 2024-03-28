@@ -19,7 +19,7 @@ export const routeDefinition = {
       }),
       body: z.object({
         label: z.string(),
-        color: z.string().optional(),
+        color: z.string().nullish(),
       }),
       hasSourceOrg: false,
     },

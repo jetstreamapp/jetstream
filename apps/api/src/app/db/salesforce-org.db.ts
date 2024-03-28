@@ -4,7 +4,7 @@ import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/nod
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
 import parseISO from 'date-fns/parseISO';
-import { isUndefined } from 'lodash';
+import isUndefined from 'lodash/isUndefined';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   uniqueId: true,

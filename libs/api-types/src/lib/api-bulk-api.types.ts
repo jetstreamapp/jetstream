@@ -12,6 +12,6 @@ export type CreateJobRequest = z.infer<typeof CreateJobRequestSchema>;
 
 export const CreateQueryJobRequestSchema = z.object({
   query: z.string(),
-  queryAll: z.boolean().optional(),
+  queryAll: z.boolean().nullish(),
 });
 export type CreateQueryJobRequest = z.infer<typeof CreateQueryJobRequestSchema>;

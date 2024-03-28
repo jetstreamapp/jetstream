@@ -11,17 +11,17 @@ export const UpdateProfileRequestSchema = z.object({
   userId: z.string(),
   name: z.string(),
   email: z.string(),
-  emailVerified: z.boolean().optional().transform(ensureBoolean),
-  picture: z.string().optional(),
+  emailVerified: z.boolean().nullish().transform(ensureBoolean),
+  picture: z.string().nullish(),
   username: z.string(),
-  nickname: z.string().optional(),
+  nickname: z.string().nullish(),
   identities: z.any().array(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
+  createdAt: z.string().nullish(),
+  updatedAt: z.string().nullish(),
   preferences: z
     .object({
-      skipFrontdoorLogin: z.boolean().optional(),
+      skipFrontdoorLogin: z.boolean().nullish(),
     })
-    .optional(),
+    .nullish(),
 });
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const BooleanQueryParamSchema = z
   .enum(['true', 'false'])
-  .optional()
+  .nullish()
   .transform((value) => value === 'true');
 
 export const DeployOptionsSchema = z

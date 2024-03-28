@@ -15,7 +15,7 @@ export const routeDefinition = {
       }),
       body: RecordOperationRequestSchema,
       query: z.object({
-        externalId: z.string().optional(),
+        externalId: z.string().nullish(),
         allOrNone: BooleanQueryParamSchema,
       }),
     },
