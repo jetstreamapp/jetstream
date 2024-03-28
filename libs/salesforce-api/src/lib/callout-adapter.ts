@@ -94,6 +94,8 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
               logger.warn('Unable to refresh accessToken');
               responseText = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
             }
+          } else if (response.status === 420 && response.headers.get(HTTP.HEADERS.CONTENT_TYPE) === 'text/html') {
+            responseText = 'An unexpected response was received from Salesforce. Please try again.';
           }
           // don't throw if caller wants the response back
           if (outputType === 'response') {
