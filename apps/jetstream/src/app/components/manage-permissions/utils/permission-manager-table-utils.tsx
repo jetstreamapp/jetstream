@@ -332,7 +332,7 @@ export function getObjectColumns(
           permissionType: 'object',
           id: profileId,
           type: 'Profile',
-          label: profile.Profile.Name,
+          label: profile?.Profile?.Name || '',
           actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
           actionKey: permissionType,
         })

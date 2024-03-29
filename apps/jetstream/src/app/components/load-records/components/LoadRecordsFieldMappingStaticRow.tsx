@@ -67,6 +67,16 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
     setFieldListItems(getFieldListItems(fields));
   }, [fields]);
 
+  useNonInitialEffect(() => {
+    if (editableField?.metadata.type === 'boolean') {
+      // Ensure field gets set to false otherwise it will not be included unless user changes value
+      onSelectionChanged({ ...fieldMappingItem, staticValue: fieldMappingItem.staticValue ?? false });
+    } else {
+      onSelectionChanged({ ...fieldMappingItem, staticValue: fieldMappingItem.staticValue ?? null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editableField]);
+
   useEffect(() => {
     if (fieldMappingItem.fieldMetadata?.field) {
       const picklistValues: PicklistFieldValues = {};

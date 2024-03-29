@@ -1,5 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { BulkQuery20Job, BulkQuery20JobResults, BulkQuery20Response } from '@jetstream/types';
+import { BulkQuery20Job, BulkQuery20JobResults, BulkQuery20Response, Maybe } from '@jetstream/types';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
 
@@ -31,9 +31,9 @@ export class ApiBulkQuery20 extends SalesforceApi {
     queryLocator,
   }: {
     isPkChunkingEnabled?: boolean;
-    jobType?: 'Classic' | 'V2Query' | 'V2Ingest';
-    concurrencyMode?: 'parallel';
-    queryLocator?: string;
+    jobType?: Maybe<'Classic' | 'V2Query' | 'V2Ingest'>;
+    concurrencyMode?: Maybe<'parallel'>;
+    queryLocator?: Maybe<string>;
   } = {}) {
     const params = new URLSearchParams();
     if (isPkChunkingEnabled) {

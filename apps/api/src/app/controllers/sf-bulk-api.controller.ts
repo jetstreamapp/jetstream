@@ -25,7 +25,7 @@ export const routeDefinition = {
   closeOrAbortJob: {
     controllerFn: () => closeOrAbortJob,
     validators: {
-      params: z.object({ jobId: z.string().min(1), action: z.enum(['close', 'abort']).optional() }),
+      params: z.object({ jobId: z.string().min(1), action: z.enum(['close', 'abort']).nullish() }),
     },
   },
   downloadResults: {
@@ -51,7 +51,7 @@ export const routeDefinition = {
       query: z.object({
         type: z.enum(['request', 'result']),
         isQuery: BooleanQueryParamSchema,
-        fileName: z.string().optional(),
+        fileName: z.string().nullish(),
       }),
     },
   },
