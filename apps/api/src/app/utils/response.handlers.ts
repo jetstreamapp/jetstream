@@ -47,7 +47,6 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   const userInfo = req.user ? { username: (req.user as any)?.displayName, userId: (req.user as any)?.user_id } : undefined;
-  res.log.warn(getExceptionLog(err), '[RESPONSE][ERROR]');
 
   if (res.headersSent) {
     res.log.warn('Response headers already sent');
@@ -80,12 +79,15 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
 
   if (err instanceof UserFacingError) {
     res.status(400);
+    // TODO: should we log 400s?
+    res.log.warn({ ...getExceptionLog(err), statusCode: 400 }, '[RESPONSE][ERROR]');
     return res.json({
       error: true,
       message: err.message,
       data: err.additionalData,
     });
   } else if (err instanceof AuthenticationError) {
+    res.log.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
     res.status(401);
     res.set(HTTP.HEADERS.X_LOGOUT, '1');
     res.set(HTTP.HEADERS.X_LOGOUT_URL, `${ENV.JETSTREAM_SERVER_URL}/oauth/login`);
@@ -102,6 +104,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       return res.redirect(`/?${params}`); // TODO: can we show an error message to the user on this page or redirect to alternate page?
     }
   } else if (err instanceof NotFoundError) {
+    res.log.warn({ ...getExceptionLog(err), statusCode: 404 }, '[RESPONSE][ERROR]');
     res.status(404);
     if (isJson) {
       return res.json({
@@ -130,7 +133,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     status = 500;
   }
   res.status(status);
-
+  res.log.warn({ ...getExceptionLog(err), statusCode: 500 }, '[RESPONSE][ERROR]');
   // Return JSON error response for all other scenarios
   return res.json({
     error: errorMessage,

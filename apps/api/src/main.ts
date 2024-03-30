@@ -92,7 +92,6 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   }
 
   app.use(addContextMiddleware);
-  app.use(httpLogger);
 
   // Setup session
   app.use(sessionMiddleware);
@@ -222,6 +221,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 
   app.use(passportInitMiddleware);
   app.use(passportMiddleware);
+  app.use(httpLogger);
 
   // proxy must be provided prior to body parser to ensure streaming response
   if (ENV.ENVIRONMENT === 'development') {
