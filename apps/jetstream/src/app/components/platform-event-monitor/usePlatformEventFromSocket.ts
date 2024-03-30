@@ -107,7 +107,7 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
       logger.log('[PLATFORM EVENT][RECEIVED]', message);
       if (isMounted.current) {
         const { data } = message;
-        const channel = message.channel.replace('/event/', '');
+        const channel = message.channel;
         setMessagesByChannel((item) => {
           item = { ...item };
           item[channel] = { ...(item[channel] || { messages: [], replayId, channel: message.channel }) };
@@ -177,7 +177,10 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
     async (channel: string) => {
       try {
         if (socketConnection.current) {
-          socketConnection.current.emit(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, { orgId: selectedOrg.id, platformEventName: channel });
+          socketConnection.current.emit(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, {
+            orgId: selectedOrg.uniqueId,
+            platformEventName: channel,
+          });
 
           setMessagesByChannel((item) => {
             return Object.keys(item)
@@ -193,7 +196,7 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
         logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);
       }
     },
-    [selectedOrg.id, trackEvent]
+    [selectedOrg.uniqueId, trackEvent]
   );
 
   const publish = useCallback(

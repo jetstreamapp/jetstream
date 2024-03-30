@@ -7,6 +7,14 @@ import { CometD } from 'cometd';
 import * as socketUtils from '../../utils/socket-utils';
 import { cometdReplayExtension } from './cometd-replay-extension';
 
+/**
+ * TODO:
+ * We should have a heartbeat to make sure that the cometD connection is alive
+ * because the server cancels CometD if the socket is disconnected
+ * could we have an eventEmitter on socket events to detect reconnect and then subscribe to CometD again?
+ * (would need to make sure on re-subscribe we don't get duplicate events)
+ */
+
 export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamConn: ApiConnection) {
   return new Promise<void>((resolve, reject) => {
     if (cometd.isDisconnected()) {
@@ -94,6 +102,7 @@ export function subscribeToPlatformEvent(userSocketState: socketUtils.SocketConn
       cometdConnections[orgId] = cometdConnections[orgId] || {
         cometd: new CometD(),
         subscriptions: new Map(),
+        subscriptionsTimer: new Map(),
       };
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -119,9 +128,6 @@ export function subscribeToPlatformEvent(userSocketState: socketUtils.SocketConn
         platformEventName,
         (message) => {
           logger.trace({ platformEventName, userId: user.id, message }, '[SOCKET][PLATFORM_EVENT_MESSAGE]');
-          // TODO: emit message to client - when client disconnects, we need to cancel this subscription
-          // (depending on reason we might try to keep connection until full disconnect or something)
-          // could use user.id, but that will go to ALL browser tabs
           io.to(socket.id).emit(SOCKET_EVENTS.PLATFORM_EVENT_MESSAGE, message);
         },
         (message) => {

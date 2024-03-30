@@ -81,6 +81,10 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
     }) as any
   );
 
+  /**
+   * Socket Connection Established
+   * Everything within fn is scoped to this socket connection
+   */
   io.on('connection', (socket) => {
     const user = getUser(socket);
     const userSocketState: socketUtils.SocketConnectionState = {
