@@ -53,6 +53,7 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   customProps: function (req, res) {
     return {
       userId: (req as any).user?.id,
+      sessionId: (req as any).session?.id,
     };
   },
 });
@@ -61,7 +62,7 @@ export function getExceptionLog(error: unknown) {
   if (error instanceof Error) {
     return {
       error: error.message,
-      stack: error.stack,
+      // stack: error.stack, // This turned out to not be very useful and added a lot to logs
     };
   }
   return {

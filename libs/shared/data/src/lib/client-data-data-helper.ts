@@ -57,12 +57,17 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
   axiosInstance.interceptors.response.use(
     (response) => {
       logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+        requestId: response.headers['x-request-id'],
         response: response.data,
       });
       return response;
     },
     (error: AxiosError) => {
-      logger.error('[HTTP][RESPONSE][ERROR]', error.name, error.message);
+      logger.error('[HTTP][RESPONSE][ERROR]', {
+        requestId: response.headers['x-request-id'],
+        errorName: error.name,
+        errorMessage: error.message,
+      });
       let message = 'An unknown error has occurred';
       if (error.isAxiosError && error.response) {
         message = error.message || 'An unknown error has occurred';
@@ -199,6 +204,7 @@ function responseInterceptor<T>(options: {
       logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
     } else {
       logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+        requestId: response.headers['x-request-id'],
         response: response.data,
       });
     }
