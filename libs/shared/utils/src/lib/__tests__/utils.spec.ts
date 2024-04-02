@@ -1,4 +1,5 @@
-import { getExcelSafeSheetName, getFullNameFromListMetadata, nullifyEmptyStrings } from '../utils';
+import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { buildDateFromString, getExcelSafeSheetName, getFullNameFromListMetadata, nullifyEmptyStrings } from '../utils';
 
 describe('utils.getExcelSafeSheetName', () => {
   it('should handle simple cases', () => {
@@ -133,5 +134,42 @@ describe('utils.nullifyEmptyStrings', () => {
   it('should return the same map if it is null or undefined', () => {
     expect(nullifyEmptyStrings(null as any)).toBeNull();
     expect(nullifyEmptyStrings(undefined as any)).toBeUndefined();
+  });
+});
+
+describe('utils.buildDateFromString', () => {
+  it('should correctly build date from string in MM-DD-YYYY format', () => {
+    const date = buildDateFromString('01-31-2022', DATE_FORMATS.MM_DD_YYYY, 'date');
+    expect(date).toEqual('2022-01-31');
+  });
+
+  it('should correctly build date from string in DD-MM-YYYY format', () => {
+    const date = buildDateFromString('31-01-2022', DATE_FORMATS.DD_MM_YYYY, 'date');
+    expect(date).toEqual('2022-01-31');
+  });
+
+  it('should correctly build date from string in YYYY-MM-DD format', () => {
+    const date = buildDateFromString('2022-01-31', DATE_FORMATS.YYYY_MM_DD, 'date');
+    expect(date).toEqual('2022-01-31');
+  });
+
+  it('should return null for invalid date string', () => {
+    const date = buildDateFromString('invalid-date', DATE_FORMATS.MM_DD_YYYY, 'date');
+    expect(date).toBeNull();
+  });
+
+  it('should return null for invalid date format', () => {
+    const date = buildDateFromString('01-31-2022', 'invalid-format', 'date');
+    expect(date).toBeNull();
+  });
+
+  it('should correctly build date from string with complete representation', () => {
+    const date = buildDateFromString('01-31-2022', DATE_FORMATS.MM_DD_YYYY, 'complete');
+    expect(date).toMatch(/2022-01-31T00:00:00(\+|-)\d{2}:\d{2}/);
+  });
+
+  it('should be generous for dates not perfectly formatted', () => {
+    const date = buildDateFromString('2024-07-24 1:00', DATE_FORMATS.MM_DD_YYYY, 'date');
+    expect(date).toEqual('2024-07-24');
   });
 });

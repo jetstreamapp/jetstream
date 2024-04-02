@@ -69,6 +69,7 @@
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",
     "docs:index": "docker run -it -e APPLICATION_ID=21D7I5RB7N -e API_KEY=$ALGOLIA_API_KEY -e \"CONFIG=$(cat ./apps/docs/algolia-config.json | jq -r tostring)\" algolia/docsearch-scraper",
     "rollbar:upload-sourcemaps": "yarn generate:version && nx ./scripts/upload-source-maps.mjs",
+    "rollbar:create-deploy": "yarn generate:version && zx ./scripts/generate-rollbar-deploy.mjs",
     "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
     "generate:version": "zx ./scripts/generate-version.mjs",
     "db:generate": "prisma generate",

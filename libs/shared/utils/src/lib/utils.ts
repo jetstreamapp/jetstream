@@ -666,12 +666,16 @@ function transformTime(value: string | null) {
   }
 }
 
-function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
+export function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
   const refDate = startOfDayDate(new Date());
-  const tempValue = value.replace(REGEX.NOT_NUMERIC, '-'); // FIXME: some date formats are 'd. m. yyyy' like 'sk-SK'
+  let tempValue = value.replace(REGEX.NOT_NUMERIC, '-'); // FIXME: some date formats are 'd. m. yyyy' like 'sk-SK'
+  tempValue = representation === 'date' ? tempValue.substring(0, 10) : tempValue;
   let [first, middle, end] = tempValue.split('-');
   if (!first || !middle || !end) {
     return null;
+  }
+  if (first.length === 4 && dateFormat !== DATE_FORMATS.YYYY_MM_DD) {
+    dateFormat = DATE_FORMATS.YYYY_MM_DD;
   }
   switch (dateFormat) {
     case DATE_FORMATS.MM_DD_YYYY: {
