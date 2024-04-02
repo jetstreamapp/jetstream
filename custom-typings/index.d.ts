@@ -38,3 +38,13 @@ declare global {
     };
   }
 }
+
+declare module 'cometd' {
+  export type Listener = (message: Message) => void;
+  export interface Extension {
+    incoming?: Listener | undefined;
+    outgoing?: Listener | undefined;
+    registered?: ((name: string, cometd: CometD) => void) | undefined;
+    unregistered?: (() => void) | undefined;
+  }
+}

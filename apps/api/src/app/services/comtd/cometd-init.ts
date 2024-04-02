@@ -37,7 +37,7 @@ export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamCon
       });
 
       cometd.addListener('/meta/connect', (message) => {
-        logger.debug({ userId: user.id }, '[COMETD] connect - %s', message);
+        logger.debug({ userId: user.id }, '[COMETD] connect - %o', message);
       });
       cometd.addListener('/meta/disconnect', (message) => {
         logger.debug({ userId: user.id }, '[COMETD] disconnect - %s', message);

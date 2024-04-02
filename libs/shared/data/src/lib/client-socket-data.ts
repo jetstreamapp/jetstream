@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SocketAck } from '@jetstream/types';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
 import { io, Socket } from 'socket.io-client';
@@ -35,16 +36,17 @@ export function initSocket(serverUrl?: string) {
   });
 
   socket.on('connect_error', (err) => {
-    logger.log('[SOCKET][CONNECT][ERROR]', err);
+    logger.log('[SOCKET][CONNECT][ERROR]', getErrorMessage(err));
   });
 
   socket.on('error', (err) => {
-    logger.log('[SOCKET][CONNECT]', err);
+    logger.log('[SOCKET][CONNECT]', getErrorMessage(err));
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-export function isConnected() {}
+export function isConnected() {
+  return socket?.connected || false;
+}
 
 export async function emit<T = any, Ack = unknown>(channel: string, event: T): Promise<SocketAck<Ack>> {
   return new Promise((resolve, reject) => {

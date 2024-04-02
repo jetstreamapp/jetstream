@@ -284,9 +284,11 @@ export const TITLES = {
 
 export const SOCKET_EVENTS = {
   // PLATFORM EVENT
+  SOCKET_STATE: 'socket:state',
   PLATFORM_EVENT_MESSAGE: 'platform-event:message',
   PLATFORM_EVENT_SUBSCRIBE: 'platform-event:subscribe',
   PLATFORM_EVENT_UNSUBSCRIBE: 'platform-event:unsubscribe',
+  PLATFORM_EVENT_UNSUBSCRIBE_ALL: 'platform-event:unsubscribe:all',
 };
 
 /**

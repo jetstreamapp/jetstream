@@ -1,11 +1,11 @@
 import { getExceptionLog, logger } from '@jetstream/api-config';
 import { SOCKET_EVENTS } from '@jetstream/shared/constants';
-import { UserProfileServer } from '@jetstream/types';
+import { getErrorMessage } from '@jetstream/shared/utils';
+import { SocketAck, UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
 import { IncomingMessage, createServer } from 'http';
-import { nanoid } from 'nanoid';
-import { Server, Socket } from 'socket.io';
+import { DisconnectReason, Server, Socket } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import { environment } from '../../environments/environment';
 import { subscribeToPlatformEvent, unsubscribeFromPlatformEvent } from '../services/comtd/cometd';
@@ -18,6 +18,20 @@ let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
 function getUser(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) {
   const user = (socket.request as any).user as UserProfileServer;
   return user;
+}
+
+function onlyForHandshake(middleware: express.RequestHandler) {
+  return (req, res, next) => {
+    const isHandshake = req._query.sid === undefined;
+    if (isHandshake) {
+      middleware(req, res, (...data) => {
+        console.log(...data);
+        next(...data);
+      });
+    } else {
+      next();
+    }
+  };
 }
 
 function isValidRequest(req: IncomingMessage) {
@@ -46,29 +60,14 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
     },
   });
 
-  io.engine.generateId = (req) => {
-    return nanoid(); // must be unique across all Socket.IO servers
-  };
-
-  function onlyForHandshake(middleware: express.RequestHandler) {
-    return (req, res, next) => {
-      const isHandshake = req._query.sid === undefined;
-      if (isHandshake) {
-        middleware(req, res, (...data) => {
-          console.log(...data);
-          next(...data);
-        });
-      } else {
-        next();
-      }
-    };
-  }
+  // io.engine.generateId = (req) => {
+  //   return nanoid(); // must be unique across all Socket.IO servers
+  // };
 
   middlewareFns.forEach((middleware) => io.engine.use(onlyForHandshake(middleware) as any));
 
   io.engine.use(
     onlyForHandshake((req, res, next) => {
-      console.log(req.user);
       if (req.user) {
         logger.debug('[SOCKET][AUTH]', req.user);
         next();
@@ -76,7 +75,6 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
         logger.debug('[SOCKET][ERROR] unauthorized');
         res.writeHead(401);
         res.end();
-        // next(new Error('unauthorized'));
       }
     }) as any
   );
@@ -94,12 +92,9 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
       cometdConnections: {},
     };
     logger.debug({ socketId: socket.id, userId: user?.id || 'unknown' }, '[SOCKET][CONNECT] %s', socket.id);
-    if (user) {
-      socket.join(user.id);
-    }
 
     // server namespace disconnect, client namespace disconnect, server shutting down, ping timeout, transport close, transport error
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', (reason: DisconnectReason) => {
       logger.debug({ socketId: socket.id, userId: user?.id || 'unknown' }, '[SOCKET][DISCONNECT] %s', reason);
       // TODO: should we distinguish specific reason for disconnect before unsubscribing from cometd?
       // If browser did not really disconnect, how will it know that it is no longer subscribed to cometd?
@@ -119,6 +114,22 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
      */
     socket.on(SOCKET_EVENTS.PLATFORM_EVENT_SUBSCRIBE, subscribeToPlatformEvent(userSocketState));
     socket.on(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, unsubscribeFromPlatformEvent(userSocketState));
+    socket.on(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE_ALL, unsubscribeFromPlatformEvent(userSocketState, true));
+    socket.on(SOCKET_EVENTS.SOCKET_STATE, (data: unknown, callback: (ack: SocketAck) => void) => {
+      try {
+        callback({
+          success: true,
+          data: {
+            platformEventSubscriptions: Object.entries(userSocketState.cometdConnections).map(([key, value]) => ({
+              orgId: key,
+              subscriptions: Array.from(value.subscriptions.keys()),
+            })),
+          },
+        });
+      } catch (ex) {
+        callback({ success: false, data: { error: getErrorMessage(ex) } });
+      }
+    });
   });
 
   io.on('error', (socket) => {

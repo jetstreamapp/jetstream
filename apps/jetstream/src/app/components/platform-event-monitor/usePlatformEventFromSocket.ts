@@ -7,7 +7,7 @@ import {
   emit as socketEmit,
   subscribe as socketSubscribe,
 } from '@jetstream/shared/data';
-import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
+import { useDebounce, useInterval, useRollbar } from '@jetstream/shared/ui-utils';
 import { MapOf, Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import orderBy from 'lodash/orderBy';
@@ -15,6 +15,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useAmplitude } from '../core/analytics';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
+
+interface SocketStateData {
+  platformEventSubscriptions: {
+    orgId: string;
+    subscriptions: string[];
+  }[];
+}
 
 export type MessagesByChannel = MapOf<{ replayId?: number; messages: PlatformEventMessagePayload[] }>;
 
@@ -31,7 +38,6 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
 } {
   const isMounted = useRef(true);
   const socketConnection = useRef<Socket | null>();
-  // const cometD = useRef<CometD>();
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const [platformEvents, setPlatformEvents] = useState<PlatformEventObject[]>([]);
@@ -40,6 +46,15 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
   const [platformEventFetchError, setPlatformEventFetchError] = useState<Maybe<string>>(null);
   const [messagesByChannel, setMessagesByChannel] = useState<MessagesByChannel>({});
   const debouncedMessagesByChannel = useDebounce(messagesByChannel);
+
+  useInterval(() => {
+    logger.log('POLL');
+    socketConnection.current?.emit(SOCKET_EVENTS.SOCKET_STATE, { orgId: selectedOrg.uniqueId }, (response: SocketStateData) => {
+      // TODO: if we are subscribed to events that are not in the list, we should mark as unsubscribed?
+      // or should we try to re-subscribe?
+      logger.log('POLL RESPONSE', response);
+    });
+  }, 10000);
 
   useEffect(() => {
     isMounted.current = true;
@@ -52,14 +67,22 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
     if (selectedOrg) {
       setMessagesByChannel({});
       return () => {
-        // FIXME: do we need to unsubscribe from all channels? or does server handle this on disconnect?
-        if (socketConnection.current && socketConnection.current.connected) {
-          socketConnection.current.disconnect();
-          socketConnection.current = null;
+        if (socketConnection.current) {
+          socketConnection.current.emit(
+            SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE_ALL,
+            {
+              orgId: selectedOrg.uniqueId,
+            },
+            () => {
+              logger.log('[PLATFORM EVENT][UNSUBSCRIBE][ALL]');
+              setMessagesByChannel({});
+              trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: false });
+            }
+          );
         }
       };
     }
-  }, [selectedOrg]);
+  }, [selectedOrg, trackEvent]);
 
   const fetchPlatformEvents = useCallback(
     async (clearCache = false) => {
@@ -145,6 +168,9 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
           // TODO: where could errors happen and how to handle them?
 
           if (!socketConnection.current || !socketConnection.current.connected) {
+            if (socketConnection.current && !socketConnection.current.connected) {
+              socketConnection.current.connect();
+            }
             socketConnection.current = socketSubscribe(SOCKET_EVENTS.PLATFORM_EVENT_MESSAGE, onEvent(replayId));
           }
 
@@ -177,20 +203,25 @@ export function usePlatformEventFromSocket({ selectedOrg }: { selectedOrg: Sales
     async (channel: string) => {
       try {
         if (socketConnection.current) {
-          socketConnection.current.emit(SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE, {
-            orgId: selectedOrg.uniqueId,
-            platformEventName: channel,
-          });
-
-          setMessagesByChannel((item) => {
-            return Object.keys(item)
-              .filter((key) => key !== channel)
-              .reduce((output: MessagesByChannel, key) => {
-                output[key] = item[key];
-                return output;
-              }, {});
-          });
-          trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: true });
+          socketConnection.current.emit(
+            SOCKET_EVENTS.PLATFORM_EVENT_UNSUBSCRIBE,
+            {
+              orgId: selectedOrg.uniqueId,
+              platformEventName: channel,
+            },
+            () => {
+              logger.log('[PLATFORM EVENT][UNSUBSCRIBE]', channel);
+              setMessagesByChannel((item) => {
+                return Object.keys(item)
+                  .filter((key) => key !== channel)
+                  .reduce((output: MessagesByChannel, key) => {
+                    output[key] = item[key];
+                    return output;
+                  }, {});
+              });
+              trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: true });
+            }
+          );
         }
       } catch (ex) {
         logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);

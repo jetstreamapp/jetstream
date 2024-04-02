@@ -2,8 +2,16 @@
  * ENDED UP NOT USING THIS STUFF
  */
 import { MapOf } from '@jetstream/types';
-import { CometD, Extension, Message } from 'cometd';
+import { CometD, Message } from 'cometd';
 import { isNumber } from 'lodash';
+
+// Library types for this are incorrect
+interface Extension {
+  incoming?: (message: Message) => void | undefined;
+  outgoing?: (message: Message) => void | undefined;
+  registered?: ((name: string, cometd: CometD) => void) | undefined;
+  unregistered?: (() => void) | undefined;
+}
 
 /*
 https://github.com/developerforce/StreamingReplayClientExtensions/blob/master/javascript/cometdReplayExtension.js
@@ -74,11 +82,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 export class CometdReplayExtension implements Extension {
   static EXT_NAME = 'replay-extension';
   static REPLAY_FROM_KEY = 'replay';
-  cometd: CometD;
-  extensionEnabled = true;
-  replayFromMap: MapOf<number | undefined> = {};
 
+  public cometd: CometD;
+  public extensionEnabled = true;
+  public replayFromMap: MapOf<number | undefined> = {};
+
+  // Do I need both of these? does the name matter?
   setEnabled(extensionEnabled: boolean) {
+    this.extensionEnabled = extensionEnabled;
+  }
+
+  setExtensionEnabled(extensionEnabled: boolean) {
     this.extensionEnabled = extensionEnabled;
   }
 
@@ -92,6 +106,10 @@ export class CometdReplayExtension implements Extension {
     this.replayFromMap[channel] = undefined;
   }
 
+  removeAllChannels() {
+    this.replayFromMap = {};
+  }
+
   registered(name: string, cometd: CometD) {
     this.cometd = cometd;
   }
@@ -99,9 +117,9 @@ export class CometdReplayExtension implements Extension {
   incoming(message: Message) {
     if (isNumber(this.replayFromMap[message.channel]) && message.data?.event?.replayId) {
       this.replayFromMap[message.channel] = message.data.event.replayId;
-      return message;
+      // return message; // FIXME: these are required based on type, but do they cause problems?
     }
-    return null;
+    // return null; // FIXME: these are required based on type, but do they cause problems?
   }
 
   outgoing(message: Message) {
@@ -112,59 +130,115 @@ export class CometdReplayExtension implements Extension {
         }
         message.ext[CometdReplayExtension.REPLAY_FROM_KEY] = this.replayFromMap;
       }
-      return message;
+      // return message; // FIXME: these are required based on type, but do they cause problems?
     }
-    return null;
+    // return null; // FIXME: these are required based on type, but do they cause problems?
   }
 }
 
-export const cometdReplayExtension = function () {
-  const REPLAY_FROM_KEY = 'replay';
+// export const cometdReplayExtension = function () {
+//   const REPLAY_FROM_KEY = 'replay';
 
-  let _cometd: CometD;
-  let _extensionEnabled = false;
-  let _replay: number;
-  let _channel: string;
+//   let _cometd: CometD;
+//   let _extensionEnabled = false;
+//   let _replay: number;
+//   let _channel: string;
 
-  this.setExtensionEnabled = function (extensionEnabled: boolean) {
-    _extensionEnabled = extensionEnabled;
-  };
+//   this.setExtensionEnabled = function (extensionEnabled: boolean) {
+//     _extensionEnabled = extensionEnabled;
+//   };
 
-  this.setReplay = function (replay: string) {
-    _replay = parseInt(replay, 10);
-  };
+//   this.setReplay = function (replay: string) {
+//     _replay = parseInt(replay, 10);
+//   };
 
-  this.setChannel = function (channel: string) {
-    _channel = channel;
-  };
+//   this.setChannel = function (channel: string) {
+//     _channel = channel;
+//   };
 
-  this.registered = function (name: string, cometd: CometD) {
-    _cometd = cometd;
-  };
+//   this.registered = function (name: string, cometd: CometD) {
+//     _cometd = cometd;
+//   };
 
-  this.incoming = function (message: Message) {
-    if (message.channel === '/meta/handshake') {
-      if (message.ext && message.ext[REPLAY_FROM_KEY] == true) {
-        _extensionEnabled = true;
-      }
-    } else if (message.channel === _channel && message.data && message.data.event && message.data.event.replayId) {
-      _replay = message.data.event.replayId;
-    }
-  };
+//   this.incoming = function (message: Message) {
+//     if (message.channel === '/meta/handshake') {
+//       if (message.ext && message.ext[REPLAY_FROM_KEY] == true) {
+//         _extensionEnabled = true;
+//       }
+//     } else if (message.channel === _channel && message.data && message.data.event && message.data.event.replayId) {
+//       _replay = message.data.event.replayId;
+//     }
+//   };
 
-  this.outgoing = function (message: Message) {
-    if (message.channel === '/meta/subscribe') {
-      if (_extensionEnabled) {
-        if (!message.ext) {
-          message.ext = {};
-        }
+//   this.outgoing = function (message: Message) {
+//     if (message.channel === '/meta/subscribe') {
+//       if (_extensionEnabled) {
+//         if (!message.ext) {
+//           message.ext = {};
+//         }
 
-        const replayFromMap = {};
-        replayFromMap[_channel] = _replay;
+//         const replayFromMap = {};
+//         replayFromMap[_channel] = _replay;
 
-        // add "ext : { "replay" : { CHANNEL : REPLAY_VALUE }}" to subscribe message
-        message.ext[REPLAY_FROM_KEY] = replayFromMap;
-      }
-    }
-  };
-};
+//         // add "ext : { "replay" : { CHANNEL : REPLAY_VALUE }}" to subscribe message
+//         message.ext[REPLAY_FROM_KEY] = replayFromMap;
+//       }
+//     }
+//   };
+// };
+
+// export class CometdReplayExtension implements Extension {
+//   public REPLAY_FROM_KEY = 'replay';
+
+//   public _cometd: CometD;
+//   public _extensionEnabled = false;
+//   public _replay: number;
+//   public _channel: string;
+//   public replayFromMap: Record<string, number> = {};
+
+//   public setExtensionEnabled = (extensionEnabled: boolean) => {
+//     this._extensionEnabled = extensionEnabled;
+//   };
+
+//   public setReplay = (replay: string) => {
+//     this._replay = parseInt(replay, 10);
+//   };
+
+//   public setChannel = (channel: string) => {
+//     this._channel = channel;
+//   };
+
+//   public registered = (name: string, cometd: CometD) => {
+//     this._cometd = cometd;
+//   };
+
+//   public incoming = (message: Message) => {
+//     if (message.channel === '/meta/handshake') {
+//       if (message.ext && message.ext[this.REPLAY_FROM_KEY] == true) {
+//         this._extensionEnabled = true;
+//       }
+//     } else if (message.channel === this._channel && message.data && message.data.event && message.data.event.replayId) {
+//       this._replay = message.data.event.replayId;
+//     }
+//     return null;
+//   };
+
+//   public outgoing = (message: Message) => {
+//     if (message.channel === '/meta/subscribe') {
+//       if (this._extensionEnabled) {
+//         if (!message.ext) {
+//           message.ext = {};
+//         }
+
+//         this.replayFromMap[this._channel] = this._replay;
+//         // add "ext : { "replay" : { CHANNEL : REPLAY_VALUE }}" to subscribe message
+//         message.ext[this.REPLAY_FROM_KEY] = this.replayFromMap;
+//       }
+//     }
+//     return null;
+//   };
+
+//   public removeChannel = (channel: string) => {
+//     this.replayFromMap[this._channel] = this._replay;
+//   }
+// }

@@ -1,11 +1,11 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { SOCKET_EVENTS } from '@jetstream/shared/constants';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { getErrorMessage, orderStringsBy } from '@jetstream/shared/utils';
 import { SocketAck, SocketSubscribePlatformEvent, UserProfileServer } from '@jetstream/types';
 import { CometD } from 'cometd';
 import * as socketUtils from '../../utils/socket-utils';
-import { cometdReplayExtension } from './cometd-replay-extension';
+import { CometdReplayExtension } from './cometd-replay-extension';
 
 /**
  * TODO:
@@ -32,8 +32,7 @@ export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamCon
         cometd.setLogLevel('debug');
       }
 
-      // FIXME: type this
-      cometd.registerExtension('replayExtension', new cometdReplayExtension());
+      cometd.registerExtension('replayExtension', new CometdReplayExtension() as any);
 
       cometd.handshake((shake) => {
         if (shake.successful) {
@@ -46,7 +45,7 @@ export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamCon
       });
 
       cometd.addListener('/meta/connect', (message) => {
-        logger.trace({ userId: user.id }, '[COMETD] connect - %s', message);
+        logger.trace({ userId: user.id }, '[COMETD] connect - %o', message);
       });
       cometd.addListener('/meta/disconnect', (message) => {
         logger.trace({ userId: user.id }, '[COMETD] disconnect - %s', message);
@@ -102,7 +101,7 @@ export function subscribeToPlatformEvent(userSocketState: socketUtils.SocketConn
       cometdConnections[orgId] = cometdConnections[orgId] || {
         cometd: new CometD(),
         subscriptions: new Map(),
-        subscriptionsTimer: new Map(),
+        // subscriptionsTimer: new Map(), // TODO: something to keep track and drop subscriptions that have been around too long
       };
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -118,10 +117,9 @@ export function subscribeToPlatformEvent(userSocketState: socketUtils.SocketConn
       }
 
       // FIXME: type this
-      const replayExtension = cometd.getExtension('replayExtension') as any;
+      const replayExtension: CometdReplayExtension = cometd.getExtension('replayExtension') as any;
       if (replayExtension) {
-        replayExtension.setChannel(platformEventName);
-        replayExtension.setReplay(replayId);
+        replayExtension.addChannel(platformEventName, replayId);
       }
 
       const subscriptionHandle = cometd.subscribe(
@@ -163,42 +161,70 @@ export function subscribeToPlatformEvent(userSocketState: socketUtils.SocketConn
  * @param userSocketState
  * @returns
  */
-export function unsubscribeFromPlatformEvent(userSocketState: socketUtils.SocketConnectionState) {
+export function unsubscribeFromPlatformEvent(userSocketState: socketUtils.SocketConnectionState, allEvents = false) {
   const { cometdConnections, socket, user } = userSocketState;
   return async ({ orgId, platformEventName }: { orgId: string; platformEventName?: string }, callback: (data: SocketAck) => void) => {
-    let unsubscribed = false;
-    let activeSubscriptions: string[] = [];
-    if (userSocketState.cometdConnections[orgId]) {
-      const { cometd, subscriptions } = cometdConnections[orgId];
-      activeSubscriptions = orderStringsBy(Array.from(subscriptions.keys()));
+    try {
+      let activeSubscriptions: string[] = [];
 
-      if (cometd && platformEventName && !cometd.isDisconnected()) {
-        if (subscriptions.has(platformEventName)) {
-          // unsubscribe from one event
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          cometd.unsubscribe(subscriptions.get(platformEventName)!);
-          subscriptions.delete(platformEventName);
-          activeSubscriptions = orderStringsBy(Array.from(subscriptions.keys()));
-
-          // FIXME: type this
-          const replayExt = cometd.getExtension('replayExtension') as any;
-          if (replayExt) {
-            replayExt.removeChannel(platformEventName);
-          }
-
-          // if no active subscriptions, disconnect completely
-          if (!activeSubscriptions.length) {
-            socketUtils.disconnectCometD(cometd, socket, user);
-            delete userSocketState.cometdConnections[orgId];
-          }
-        } else {
-          // disconnect from all events
-          socketUtils.disconnectCometD(cometd, socket, user);
-          delete userSocketState.cometdConnections[orgId];
-        }
-        unsubscribed = true;
+      if (!cometdConnections[orgId]) {
+        callback({ success: true, data: { unsubscribed: false, activeSubscriptions } });
+        return;
       }
+      const cometdConnection = cometdConnections[orgId];
+
+      if (!cometdConnection.cometd) {
+        callback({ success: true, data: { unsubscribed: false, activeSubscriptions } });
+        return;
+      }
+
+      if (allEvents) {
+        activeSubscriptions = unsubscribeFromAllPlatformEvent(cometdConnection);
+      } else if (platformEventName) {
+        activeSubscriptions = unsubscribeFromSinglePlatformEvent(cometdConnection, platformEventName);
+      }
+
+      // if no active subscriptions, disconnect completely
+      if (!activeSubscriptions.length) {
+        socketUtils.disconnectCometD(cometdConnection.cometd, socket, user);
+        delete cometdConnections[orgId];
+      }
+
+      callback({ success: true, data: { unsubscribed: true, activeSubscriptions } });
+    } catch (ex) {
+      callback({ success: false, error: getErrorMessage(ex) });
     }
-    callback({ success: true, data: { unsubscribed, activeSubscriptions } });
   };
+}
+
+function unsubscribeFromSinglePlatformEvent(
+  { cometd, subscriptions }: socketUtils.SocketConnectionState['cometdConnections'][string],
+  platformEventName: string
+) {
+  if (cometd && subscriptions.has(platformEventName)) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    cometd.unsubscribe(subscriptions.get(platformEventName)!);
+    subscriptions.delete(platformEventName);
+
+    const replayExt = cometd.getExtension('replayExtension') as any;
+    if (replayExt) {
+      replayExt.removeChannel(platformEventName);
+    }
+  }
+  const activeSubscriptions = orderStringsBy(Array.from(subscriptions.keys()));
+  return activeSubscriptions;
+}
+
+function unsubscribeFromAllPlatformEvent({ cometd, subscriptions }: socketUtils.SocketConnectionState['cometdConnections'][string]) {
+  if (cometd) {
+    cometd.clearSubscriptions();
+    subscriptions.clear();
+
+    const replayExt = cometd.getExtension('replayExtension') as any;
+    if (replayExt) {
+      replayExt.removeAllChannels();
+    }
+  }
+  const activeSubscriptions = orderStringsBy(Array.from(subscriptions.keys()));
+  return activeSubscriptions;
 }

@@ -8906,10 +8906,10 @@
     "@types/node" "*"
     "@types/responselike" "*"
 
-"@types/cometd@^4.0.10":
-  version "4.0.11"
-  resolved "https://registry.npmjs.org/@types/cometd/-/cometd-4.0.11.tgz"
-  integrity sha512-bn27WenWkEyCH1ynpZZdSA6gnYW30bLWVUIu+EluxEaFNDPor6EnVJtTCVDX/wzUdriaXRcIYjOTnIP1fEuGeQ==
+"@types/cometd@^4.0.15":
+  version "4.0.15"
+  resolved "https://registry.yarnpkg.com/@types/cometd/-/cometd-4.0.15.tgz#391b95641f144ea8ab31b58347358571c74ffe4e"
+  integrity sha512-z9OiDYijTv0yQNYlXii/FECyEWI1aMVP4w+Yr2AQrG+WNQW4+vPxSIrt/oXc5DFSM4rVu8KyiaqL4/lFCxNThQ==
 
 "@types/connect-history-api-fallback@^1.3.5":
   version "1.3.5"
