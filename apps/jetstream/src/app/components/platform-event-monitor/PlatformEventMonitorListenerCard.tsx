@@ -33,6 +33,7 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
 }) => {
   return (
     <Card
+      testId="platform-event-monitor-listener-card"
       className="slds-grow"
       icon={{ type: 'standard', icon: 'events' }}
       title={
