@@ -231,6 +231,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
         res.setHeader(
           'Access-Control-Expose-Headers',
           [
+            'BAYEUX_BROWSER',
             HTTP.HEADERS.X_LOGOUT,
             HTTP.HEADERS.X_LOGOUT_URL,
             HTTP.HEADERS.X_SFDC_ID,
@@ -259,6 +260,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
       cors({
         origin: true,
         exposedHeaders: [
+          'BAYEUX_BROWSER',
           HTTP.HEADERS.X_LOGOUT,
           HTTP.HEADERS.X_LOGOUT_URL,
           HTTP.HEADERS.X_SFDC_ID,
@@ -277,6 +279,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     );
     app.use('/platform-event', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
   } else {
+    // This must come before body parser to ensure that the raw body is available to be streamed to Salesforce
     app.use('/platform-event', platformEventRoutes);
   }
 

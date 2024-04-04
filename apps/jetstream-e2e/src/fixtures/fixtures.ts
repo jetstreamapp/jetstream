@@ -1,6 +1,7 @@
 import { test as base } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import { LoadSingleObjectPage } from '../pageObjectModels/LoadSingleObjectPage.model';
+import { PlatformEventPage } from '../pageObjectModels/PlatformEventPage.model';
 import { QueryPage } from '../pageObjectModels/QueryPage.model';
 import { ApiRequestUtils } from './ApiRequestUtils';
 
@@ -15,6 +16,7 @@ type MyFixtures = {
   apiRequestUtils: ApiRequestUtils;
   queryPage: QueryPage;
   loadSingleObjectPage: LoadSingleObjectPage;
+  platformEventPage: PlatformEventPage;
 };
 
 export const test = base.extend<MyFixtures>({
@@ -37,6 +39,9 @@ export const test = base.extend<MyFixtures>({
   },
   loadSingleObjectPage: async ({ page, request, apiRequestUtils }, use) => {
     await use(new LoadSingleObjectPage(page, request, apiRequestUtils));
+  },
+  platformEventPage: async ({ page, request, apiRequestUtils }, use) => {
+    await use(new PlatformEventPage(page, request, apiRequestUtils));
   },
 });
 
