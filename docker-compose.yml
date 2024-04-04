@@ -14,14 +14,16 @@ services:
       ENVIRONMENT: production
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
       EXAMPLE_USER_OVERRIDE: true
-      JETSTREAM_SESSION_SECRET: '${JETSTREAM_SESSION_SECRET}'
+      JETSTREAM_SESSION_SECRET: '6ba0bf00ee0a0b0a65baa9f04b264972'
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
     ports:
       - '3333:3333'
+      - '9229:9229'
     links:
       - db
+    command: node dist/apps/api/main.js --inspect
   db:
     image: postgres:16.1-alpine
     restart: always
@@ -35,7 +37,7 @@ services:
     ports:
       - '5555:5432'
     volumes:
-      - db:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       # this command checks if the database is ready directly on the source db server
       test: ['CMD-SHELL', 'pg_isready']
@@ -57,5 +59,4 @@ services:
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
 
 volumes:
-  db:
-    driver: local
+  pgdata:

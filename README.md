@@ -177,9 +177,7 @@ If you want to create your own:
 ⚠️ Docker requires a computer with substantial resources.
 
 1. Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed
-2. Download the pre-built version of the application here **TODO:**
-   1. Optionally you can build from sources, following the steps above 👆
-3. Run `docker compose up` in your terminal
+2. Run `docker compose up` in your terminal
    1. This may take a while the very first time
    2. If you make any changes, you need to re-build the application using `docker compose build`
 
