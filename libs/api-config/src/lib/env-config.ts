@@ -58,6 +58,7 @@ export const ENV = {
   EXAMPLE_USER_OVERRIDE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE),
   EXAMPLE_USER: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER : null,
   EXAMPLE_USER_PROFILE: process.env.EXAMPLE_USER_OVERRIDE ? EXAMPLE_USER_PROFILE : null,
+  IS_LOCAL_DOCKER: process.env.IS_LOCAL_DOCKER || false,
   // SYSTEM
   NODE_ENV: process.env.NODE_ENV,
   ENVIRONMENT: process.env.ENVIRONMENT || 'production',
@@ -67,10 +68,10 @@ export const ENV = {
   // JETSTREAM
   JETSTREAM_SERVER_DOMAIN: process.env.JETSTREAM_SERVER_DOMAIN,
   // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
-  JETSTREAM_SESSION_SECRET: process.env.JETSTREAM_SESSION_SECRET || process.env.JESTREAM_SESSION_SECRET || '',
+  JETSTREAM_SESSION_SECRET: process.env.JETSTREAM_SESSION_SECRET || '',
   JETSTREAM_SERVER_URL: process.env.JETSTREAM_SERVER_URL,
   // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
-  JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
+  JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI,
   JETSTREAM_CLIENT_URL: process.env.JETSTREAM_CLIENT_URL,
   JETSTREAM_WORKER_URL: process.env.JETSTREAM_WORKER_URL,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),

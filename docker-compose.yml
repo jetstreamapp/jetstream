@@ -9,8 +9,9 @@ services:
     env_file:
       - .env.example
     environment:
-      NODE_ENV: production
-      ENVIRONMENT: production
+      NODE_ENV: development
+      ENVIRONMENT: development
+      IS_LOCAL_DOCKER: true
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
       EXAMPLE_USER_OVERRIDE: true
       JETSTREAM_SESSION_SECRET: '123456'

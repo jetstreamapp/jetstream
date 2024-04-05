@@ -60,7 +60,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     cookie: {
       path: '/',
       // httpOnly: true,
-      secure: environment.production,
+      secure: !ENV.IS_LOCAL_DOCKER && environment.production,
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
       // sameSite: 'strict',
     },
