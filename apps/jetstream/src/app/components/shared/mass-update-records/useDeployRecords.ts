@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob, queryAll } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { delay, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatDate from 'date-fns/format';
 import lodashGet from 'lodash/get';
@@ -101,7 +101,13 @@ export function useDeployRecords(
         } catch (ex) {
           // error loading batch
           logger.error('Error loading batch', ex);
-          rollbar.error('There was an error loading batch for mass record update', { message: ex.message, stack: ex.stack });
+
+          // Log error for investigation of failure - but do not log for known errors
+          const errorMessage = getErrorMessage(ex)?.toLowerCase() || '';
+          if (!errorMessage.includes('aborted') && !errorMessage.includes('limit exceeded')) {
+            rollbar.error('There was an error loading batch for mass record update', { message: ex.message, stack: ex.stack });
+          }
+
           deployResults.processingErrors = [...deployResults.processingErrors];
           batch.records.forEach((i, record) => deployResults.processingErrors.push({ record, errors: [ex.message], row: i }));
         } finally {
