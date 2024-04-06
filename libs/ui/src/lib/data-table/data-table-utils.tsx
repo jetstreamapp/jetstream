@@ -375,6 +375,7 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
   column.filters = ['TEXT', 'SET'];
   switch (fieldType) {
     case 'text':
+      column.renderCell = GenericRenderer;
       break;
     case 'number':
       // TODO:
