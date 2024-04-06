@@ -34,9 +34,8 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
 
     const headers = {
       Authorization: `Bearer ${jetstreamConn.sessionInfo.accessToken}`,
-      Accept: req.headers.accept,
-      'Accept-Encoding': req.headers['accept-encoding'],
-      Connection: req.headers.connection,
+      Accept: req.headers.accept || '*/*',
+      'Accept-Encoding': req.headers['accept-encoding'] || 'gzip, deflate, br, zstd',
       Cookie: req.headers.cookie,
       'user-agent': req.headers['user-agent'],
     };
