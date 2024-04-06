@@ -62,14 +62,14 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
       returnParams.message = queryParams.error_description
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      req.log.info({ ...query, requestId: res.locals.requestId }, '[OAUTH][ERROR] %s', queryParams.error);
+      req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     } else if (!orgAuth) {
       returnParams.error = 'Authentication Error';
       returnParams.message = queryParams.error_description
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      req.log.info({ ...query, requestId: res.locals.requestId }, '[OAUTH][ERROR] %s', queryParams.error);
+      req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
