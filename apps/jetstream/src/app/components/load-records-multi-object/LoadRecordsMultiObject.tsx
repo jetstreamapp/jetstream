@@ -34,7 +34,7 @@ import useProcessLoadFile from './useProcessLoadFile';
 
 initXlsx(XLSX);
 
-const TEMPLATE_DOWNLOAD_LINK = 'https://drive.google.com/u/0/uc?id=1pOCPCoX4SxQWfdGc5IFa0wjXX_BKrBcV&export=download';
+const TEMPLATE_DOWNLOAD_LINK = '/assets/content/Jetstream%20-%20Load%20Records%20to%20Multiple%20Objects%20-%20Template.xlsx';
 const HEIGHT_BUFFER = 170;
 
 export interface LoadRecordsMultiObjectProps {
