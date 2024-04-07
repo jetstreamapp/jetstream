@@ -122,6 +122,7 @@ import UtilityIcon_Search from './icons/utility/Search';
 import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
 import UtilityIcon_Share from './icons/utility/Share';
+import UtilityIcon_Shortcuts from './icons/utility/Shortcuts';
 import UtilityIcon_Steps from './icons/utility/Steps';
 import UtilityIcon_Strategy from './icons/utility/Strategy';
 import UtilityIcon_Strikethrough from './icons/utility/Strikethrough';
@@ -286,6 +287,7 @@ const utilityIcons = {
   settings: UtilityIcon_Settings,
   setup: UtilityIcon_Setup,
   share: UtilityIcon_Share,
+  shortcuts: UtilityIcon_Shortcuts,
   steps: UtilityIcon_Steps,
   strategy: UtilityIcon_Strategy,
   strikethrough: UtilityIcon_Strikethrough,

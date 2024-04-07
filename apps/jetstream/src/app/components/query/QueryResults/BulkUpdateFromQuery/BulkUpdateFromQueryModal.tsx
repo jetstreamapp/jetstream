@@ -149,6 +149,10 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   }, [selectedField, transformationOptions]);
 
   useEffect(() => {
+    setTransformationOptions((options) => (options.staticValue ? { ...options, staticValue: '' } : options));
+  }, [selectedField]);
+
+  useEffect(() => {
     if (!isNumber(batchSize) || batchSize <= 0 || batchSize > MAX_BATCH_SIZE) {
       setBatchSizeError(`The batch size must be between 1 and ${MAX_BATCH_SIZE}`);
     } else if (batchSizeError) {
@@ -171,6 +175,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             label: field.label,
             secondaryLabel: field.name,
             secondaryLabelOnNewLine: true,
+            tertiaryLabel: field.type,
             meta: field,
           }))
       );

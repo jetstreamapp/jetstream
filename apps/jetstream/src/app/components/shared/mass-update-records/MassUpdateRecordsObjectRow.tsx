@@ -5,10 +5,10 @@ import { Grid, GridCol, ScopedNotification, Spinner } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
 import { FunctionComponent, ReactNode } from 'react';
 import MassUpdateRecordTransformationText from '../../update-records/shared/MassUpdateRecordTransformationText';
-import { TransformationOptions, ValidationResults } from './mass-update-records.types';
 import MassUpdateRecordsObjectRowCriteria from './MassUpdateRecordsObjectRowCriteria';
 import MassUpdateRecordsObjectRowField from './MassUpdateRecordsObjectRowField';
 import MassUpdateRecordsObjectRowValue from './MassUpdateRecordsObjectRowValue';
+import { TransformationOptions, ValidationResults } from './mass-update-records.types';
 
 export interface MassUpdateRecordsObjectRowProps {
   className?: string;
@@ -57,6 +57,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
         <MassUpdateRecordsObjectRowValue
           sobject={sobject}
           fields={valueFields}
+          selectedField={selectedField}
           transformationOptions={transformationOptions}
           disabled={disabled}
           onOptionsChange={(options) => onOptionsChange(sobject, options)}
