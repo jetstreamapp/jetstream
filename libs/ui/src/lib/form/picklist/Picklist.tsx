@@ -318,7 +318,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
 
     return (
       <OutsideClickHandler display={containerDisplay} onOutsideClick={() => handleClose()}>
-        <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
+        <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
           <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={comboboxId}>
             {isRequired && (
               <abbr className="slds-required" title="required">

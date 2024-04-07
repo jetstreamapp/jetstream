@@ -1,7 +1,10 @@
-import { test as base } from '@playwright/test';
 import * as dotenv from 'dotenv';
+
+import { test as base } from '@playwright/test';
 import { LoadSingleObjectPage } from '../pageObjectModels/LoadSingleObjectPage.model';
+import { LoadWithoutFilePage } from '../pageObjectModels/LoadWithoutFilePage.model';
 import { PlatformEventPage } from '../pageObjectModels/PlatformEventPage.model';
+import { PlaywrightPage } from '../pageObjectModels/PlaywrightPage.model';
 import { QueryPage } from '../pageObjectModels/QueryPage.model';
 import { ApiRequestUtils } from './ApiRequestUtils';
 
@@ -14,8 +17,10 @@ dotenv.config();
 
 type MyFixtures = {
   apiRequestUtils: ApiRequestUtils;
+  playwrightPage: PlaywrightPage;
   queryPage: QueryPage;
   loadSingleObjectPage: LoadSingleObjectPage;
+  loadWithoutFilePage: LoadWithoutFilePage;
   platformEventPage: PlatformEventPage;
 };
 
@@ -34,14 +39,20 @@ export const test = base.extend<MyFixtures>({
 
     await use(new ApiRequestUtils(selectedOrgId, request));
   },
-  queryPage: async ({ page, request, apiRequestUtils }, use) => {
-    await use(new QueryPage(page, request, apiRequestUtils));
+  playwrightPage: async ({ page, request, apiRequestUtils }, use) => {
+    await use(new PlaywrightPage(page, request, apiRequestUtils));
   },
-  loadSingleObjectPage: async ({ page, request, apiRequestUtils }, use) => {
-    await use(new LoadSingleObjectPage(page, request, apiRequestUtils));
+  queryPage: async ({ page, request, apiRequestUtils, playwrightPage }, use) => {
+    await use(new QueryPage(page, request, apiRequestUtils, playwrightPage));
   },
-  platformEventPage: async ({ page, request, apiRequestUtils }, use) => {
-    await use(new PlatformEventPage(page, request, apiRequestUtils));
+  loadSingleObjectPage: async ({ page, request, apiRequestUtils, playwrightPage }, use) => {
+    await use(new LoadSingleObjectPage(page, request, apiRequestUtils, playwrightPage));
+  },
+  loadWithoutFilePage: async ({ page, request, apiRequestUtils, playwrightPage }, use) => {
+    await use(new LoadWithoutFilePage(page, request, apiRequestUtils, playwrightPage));
+  },
+  platformEventPage: async ({ page, request, apiRequestUtils, playwrightPage }, use) => {
+    await use(new PlatformEventPage(page, request, apiRequestUtils, playwrightPage));
   },
 });
 

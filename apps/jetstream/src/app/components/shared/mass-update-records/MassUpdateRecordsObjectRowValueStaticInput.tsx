@@ -104,6 +104,8 @@ export const StaticInputContent: FunctionComponent<
         className="slds-m-right_x-small slds-grow"
         items={booleanValues}
         selectedItemIds={[value]}
+        isRequired
+        scrollLength={10}
         disabled={disabled}
         onChange={(values) => onChange(values?.[0].id === 'true' ? 'true' : 'false')}
       ></Picklist>
@@ -119,6 +121,7 @@ export const StaticInputContent: FunctionComponent<
         selectedItemIds={selectedField.type === 'multipicklist' ? value.split(';') : [value]}
         multiSelection={selectedField.type === 'multipicklist'}
         omitMultiSelectPills
+        isRequired
         disabled={disabled}
         onChange={(values) => {
           if (selectedField.type === 'multipicklist') {

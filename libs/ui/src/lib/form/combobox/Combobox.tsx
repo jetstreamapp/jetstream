@@ -367,7 +367,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       );
 
     return (
-      <div className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
+      <div data-testid={`dropdown-${label || id}`} className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)}>
         <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
           {isRequired && (
             <abbr className="slds-required" title="required">
