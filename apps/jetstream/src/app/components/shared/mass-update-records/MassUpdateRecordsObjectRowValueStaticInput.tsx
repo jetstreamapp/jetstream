@@ -67,6 +67,7 @@ export const StaticInputContent: FunctionComponent<
       <DatePicker
         id="static-value-date"
         label="Provided Value"
+        className="slds-m-right_x-small slds-grow"
         isRequired
         usePortal
         disabled={disabled}
