@@ -99,6 +99,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       if (userSelection === 'user' && !selectedUserSet.has(item.lastModifiedById || '')) {
         return false;
       }
+      if (userSelection === 'currentUser' && item.lastModifiedById !== selectedOrg.userId) {
+        return false;
+      }
       if (
         dateRangeSelection === 'user' &&
         dateRangeStartState &&
@@ -117,7 +120,15 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       }
       return true;
     },
-    [userSelection, selectedUsers, dateRangeSelection, dateRangeStartState, dateRangeEndState, includeManagedPackageItems]
+    [
+      selectedUsers,
+      includeManagedPackageItems,
+      userSelection,
+      selectedOrg?.userId,
+      dateRangeSelection,
+      dateRangeStartState,
+      dateRangeEndState,
+    ]
   );
 
   useEffect(() => {
@@ -369,7 +380,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               onClick={() => handleOpenSidePanel('user-selection')}
               title="Click to adjust which users are used to filter"
             >
-              {userSelection === 'all' ? 'From All Users' : `Across ${selectedUsers.length} ${pluralizeIfMultiple('user', selectedUsers)}`}
+              {userSelection === 'all' && 'From All Users'}
+              {userSelection === 'currentUser' && 'From Current Users'}
+              {userSelection === 'user' && `Across ${selectedUsers.length} ${pluralizeIfMultiple('user', selectedUsers)}`}
             </button>
           </div>
           <div className="slds-m-right_xx-small">

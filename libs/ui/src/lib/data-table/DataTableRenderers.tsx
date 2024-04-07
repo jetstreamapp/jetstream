@@ -205,6 +205,7 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalR
         ev.stopPropagation();
       }}
       onPointerDown={(ev) => ev.stopPropagation()}
+      onKeyDown={(ev) => ev.stopPropagation()}
     >
       <Popover
         ref={popoverRef}

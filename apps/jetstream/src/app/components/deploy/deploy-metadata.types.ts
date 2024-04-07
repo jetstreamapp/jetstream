@@ -5,13 +5,14 @@ export type DeployMetadataStatus = 'idle' | 'submitting' | 'preparing' | 'adding
 type Common = 'common';
 type User = 'user';
 type All = 'all';
+type CurrentUser = 'currentUser';
 type Yes = 'Yes';
 type No = 'No';
 
 export type SidePanelType = 'type-selection' | 'user-selection' | 'date-range-selection' | 'include-managed-selection';
 
 export type CommonUser = Common | User;
-export type AllUser = All | User;
+export type AllUser = All | CurrentUser | User;
 export type YesNo = Yes | No;
 
 export interface SalesforceUser {
