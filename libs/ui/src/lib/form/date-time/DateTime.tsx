@@ -2,7 +2,7 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import { formatISO, parse as parseDate, parseISO } from 'date-fns';
 import formatDate from 'date-fns/format';
-import React, { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useState } from 'react';
 import DatePicker, { DatePickerProps } from '../date/DatePicker';
 import TimePicker, { TimePickerProps } from '../time-picker/TimePicker';
 
@@ -12,6 +12,7 @@ export interface DateTimeProps {
   timeProps: Omit<TimePickerProps, 'onChange'>;
   initialValue?: string;
   initialDateValue?: Date;
+  rowContainerClassName?: string;
   // ISO8601 date string
   onChange: (date: string | null) => void;
 }
@@ -24,6 +25,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
   timeProps,
   initialValue,
   initialDateValue,
+  rowContainerClassName,
   onChange,
 }) => {
   const [value, setValue] = useState<Maybe<string>>(() => {
@@ -87,7 +89,7 @@ export const DateTime: FunctionComponent<DateTimeProps> = ({
       {legendLabel && <legend className="slds-form-element__label slds-form-element__legend">{legendLabel}</legend>}
       <div className="slds-form-element__control">
         <div className="slds-form-element__group">
-          <div className="slds-form-element__row slds-grid_vertical-align-end">
+          <div className={rowContainerClassName ?? 'slds-form-element__row slds-grid_vertical-align-end'}>
             <DatePicker {...dateProps} initialSelectedDate={initialDateValue} onChange={handleDatePickerChange} />
             <TimePicker {...timeProps} selectedItem={timeValue} onChange={handleTimePickerChange} />
           </div>

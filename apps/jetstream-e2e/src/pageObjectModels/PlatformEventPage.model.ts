@@ -1,15 +1,18 @@
 import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { PlaywrightPage } from './PlaywrightPage.model';
 
 export class PlatformEventPage {
   readonly apiRequestUtils: ApiRequestUtils;
+  readonly playwrightPage: PlaywrightPage;
   readonly page: Page;
   readonly request: APIRequestContext;
   readonly listenerCard: Locator;
   readonly publisherCard: Locator;
 
-  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils) {
+  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
     this.apiRequestUtils = apiRequestUtils;
+    this.playwrightPage = playwrightPage;
     this.page = page;
     this.request = request;
     this.listenerCard = page.getByTestId('platform-event-monitor-listener-card');

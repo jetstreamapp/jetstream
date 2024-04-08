@@ -4,9 +4,11 @@ import { QueryFilterOperator, QueryResults } from '@jetstream/types';
 import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
 import isNumber from 'lodash/isNumber';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { PlaywrightPage } from './PlaywrightPage.model';
 
 export class QueryPage {
   readonly apiRequestUtils: ApiRequestUtils;
+  readonly playwrightPage: PlaywrightPage;
   readonly page: Page;
   readonly request: APIRequestContext;
   readonly sobjectList: Locator;
@@ -14,8 +16,9 @@ export class QueryPage {
   readonly soqlQuery: Locator;
   readonly executeBtn: Locator;
 
-  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils) {
+  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
     this.apiRequestUtils = apiRequestUtils;
+    this.playwrightPage = playwrightPage;
     this.page = page;
     this.request = request;
     this.sobjectList = page.getByTestId('sobject-list');

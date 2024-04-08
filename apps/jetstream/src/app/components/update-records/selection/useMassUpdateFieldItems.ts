@@ -97,6 +97,7 @@ function reducer(state: State, action: Action): State {
       const rowsMap = new Map(state.rowsMap);
       const row = { ...state.rowsMap.get(sobject), selectedField } as MetadataRow;
       row.isValid = isValidRow(row);
+      row.transformationOptions = { ...row.transformationOptions, staticValue: '' };
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
@@ -163,6 +164,7 @@ function reducer(state: State, action: Action): State {
             label: field.label,
             secondaryLabel: field.name,
             secondaryLabelOnNewLine: true,
+            tertiaryLabel: field.type,
             meta: field,
           })),
         valueFields: getListItemsFromFieldWithRelatedItems(allFieldMetadata),
