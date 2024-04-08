@@ -19,7 +19,7 @@ export interface MassUpdateRecordsObjectRowValueStaticInputProps {
 }
 
 export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassUpdateRecordsObjectRowValueStaticInputProps> = (props) => {
-  const { selectedField } = props;
+  const { disabled, selectedField } = props;
   const [useManualInput, setUseManualInput] = useState(false);
 
   const showManualInputToggle = selectedField && manualInputTypes.has(selectedField.type);
@@ -52,6 +52,7 @@ export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassU
           dropDownClassName="slds-dropdown_actions"
           position="right"
           items={[{ id: 'manual-toggle', value: useManualInput ? 'Use Automatic Input' : 'Use Text Input' }]}
+          disabled={disabled}
           onSelected={(item) => setUseManualInput(!useManualInput)}
         />
       )}
