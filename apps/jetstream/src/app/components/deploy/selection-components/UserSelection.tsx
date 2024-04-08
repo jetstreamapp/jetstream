@@ -1,11 +1,12 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { Grid } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { NOOP } from '@jetstream/shared/utils';
+import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { Grid, List } from '@jetstream/ui';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
+import DeployMetadataUserList from '../DeployMetadataUserList';
 import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { AllUser } from '../deploy-metadata.types';
-import DeployMetadataUserList from '../DeployMetadataUserList';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const USER_SELECTION_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
@@ -13,6 +14,11 @@ const USER_SELECTION_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
     name: 'all',
     label: 'All Users',
     value: 'all',
+  },
+  {
+    name: 'currentUser',
+    label: 'Current User',
+    value: 'currentUser',
   },
   {
     name: 'user',
@@ -78,7 +84,7 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
   }
 
   return (
-    <Fragment>
+    <>
       {requireConfirmSelection && (
         <Grid align="center">
           <button
@@ -98,8 +104,25 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
           onChange={(value: AllUser) => setUserSelection(value)}
         />
       </div>
+      {userSelection === 'currentUser' && (
+        <>
+          <hr className="slds-m-vertical_small" />
+          <List
+            items={[{ id: 'current-user', label: `${selectedOrg.displayName} (ME)`, secondaryLabel: selectedOrg.username }]}
+            isMultiSelect
+            isActive={() => true}
+            onSelected={NOOP}
+            getContent={(item: ListItem) => ({
+              key: item.id,
+              heading: item.label,
+              subheading: item.secondaryLabel,
+            })}
+            disabled
+          />
+        </>
+      )}
       {userSelection === 'user' && (
-        <Fragment>
+        <>
           <hr className="slds-m-vertical_small" />
           <DeployMetadataUserList
             selectedOrg={selectedOrg}
@@ -108,9 +131,9 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
             onUsers={setUsersList}
             onSelection={setSelectedUsers}
           />
-        </Fragment>
+        </>
       )}
-    </Fragment>
+    </>
   );
 };
 
