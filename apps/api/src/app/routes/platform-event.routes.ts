@@ -53,9 +53,11 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
         })
         .on('response', (proxyResponse) => {
           // re-write cookie path to match Jetstream's path
-          proxyResponse.headers['set-cookie'] = proxyResponse.headers['set-cookie']?.map((cookie) =>
-            cookie.replaceAll('/cometd/', '/platform-event')
-          );
+          if (proxyResponse.headers['set-cookie']) {
+            proxyResponse.headers['set-cookie'] = proxyResponse.headers['set-cookie'].map((cookie) =>
+              cookie.replaceAll('/cometd/', '/platform-event')
+            );
+          }
           // stream response back to user
           res.writeHead(proxyResponse.statusCode || 500, { ...proxyResponse.headers, 'Access-Control-Allow-Credentials': 'true' });
           proxyResponse.pipe(res, { end: true });
