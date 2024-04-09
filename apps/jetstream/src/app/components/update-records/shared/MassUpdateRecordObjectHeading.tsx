@@ -31,7 +31,7 @@ export const MassUpdateRecordObjectHeading: FunctionComponent<MassUpdateRecordOb
           <Icon type="utility" icon="error" className="slds-icon slds-icon_xx-small slds-icon-text-default" />
         </Tooltip>
       )}
-      <span className="slds-card__header-title slds-m-left_x-small">{sobject}</span>
+      <h2 className="slds-card__header-title slds-m-left_x-small">{sobject}</h2>
     </Grid>
   );
 };

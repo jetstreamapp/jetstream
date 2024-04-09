@@ -30,6 +30,25 @@ export class LoadWithoutFilePage {
     await this.playwrightPage.selectDropdownItem('Field to Update', name, { searchForValue: true });
   }
 
+  async validateAndReviewAndSubmit(batchSize?: string) {
+    await this.page.getByRole('button', { name: 'Validate Results' }).click();
+    await this.page.getByText(/[0-9]+ records will be updated/);
+
+    await this.page.getByRole('link', { name: 'Review Changes' }).click();
+
+    if (batchSize) {
+      await this.page.getByRole('button', { name: 'Advanced Options' }).click();
+      await this.page.getByPlaceholder('Set batch size').fill('1');
+    }
+
+    await this.page.getByRole('button', { name: 'Update Records' }).click();
+  }
+
+  async configureStaticField(value: string) {
+    await this.playwrightPage.selectDropdownItem('Record update to Apply', 'Provided value');
+    await this.page.getByPlaceholder('Value to set on each record').fill(value);
+  }
+
   async configureStaticPicklistField(fieldName: string) {
     await this.playwrightPage.selectDropdownItem('Record update to Apply', 'Provided value');
     await this.playwrightPage.selectDropdownItem('Provided Value', fieldName);
