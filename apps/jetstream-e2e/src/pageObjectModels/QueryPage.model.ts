@@ -239,4 +239,16 @@ export class QueryPage {
     await this.executeBtn.click();
     await this.page.waitForURL('**/query/results');
   }
+
+  async clickBulkAction(
+    action:
+      | 'Bulk update records'
+      | 'Create new record'
+      | 'Delete selected records'
+      | 'Convert selected records to Apex'
+      | 'Open selected records in Salesforce'
+  ) {
+    await this.page.getByRole('button', { name: 'Record actions' }).click();
+    await this.page.getByRole('menuitem', { name: action }).click();
+  }
 }

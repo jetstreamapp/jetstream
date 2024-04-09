@@ -210,7 +210,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
           {
             id: 'bulk-delete',
             subheader: 'Selected Record Actions',
-            value: 'Delete Selected Records',
+            value: 'Delete selected records',
             disabled: disabled || selectedRows.length === 0,
             icon: {
               icon: 'delete',
