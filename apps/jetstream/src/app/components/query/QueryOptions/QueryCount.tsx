@@ -22,14 +22,15 @@ export const QueryCount = ({ org }: QueryCountProps) => {
   const querySoqlCount = useRecoilValue(fromQueryState.querySoqlCountState);
   const debouncedQuerySoqlCount = useDebounce(querySoqlCount);
   const [recordCount, setRecordCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const fetchRecordCount = useCallback(
     async (soql: string) => {
       try {
+        if (!soql) {
+          return;
+        }
         currentReq.current++;
         const reqId = currentReq.current;
-        setLoading(true);
         const results = await query(org, soql, isTooling, includeDeleted);
         // in case results are out of order, ignore any stale results
         if (!isMounted.current || reqId !== currentReq.current) {
@@ -39,8 +40,6 @@ export const QueryCount = ({ org }: QueryCountProps) => {
       } catch (ex) {
         logger.warn('Error getting record count');
         setRecordCount(null);
-      } finally {
-        setLoading(false);
       }
     },
     [includeDeleted, isTooling, org]
