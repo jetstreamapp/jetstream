@@ -77,15 +77,18 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       }
       await controllerFn(data, req, res, next);
     } catch (ex) {
-      rollbarServer.error('Route Validation Error', {
-        message: ex.message,
-        stack: ex.stack,
-        url: req.url,
-        params: req.params,
-        query: req.query,
-        body: req.body,
-        userId: (req.user as UserProfileServer)?.id,
-        requestId: res.locals.requestId,
+      rollbarServer.error('Route Validation Error', req, {
+        context: `route#createRoute`,
+        custom: {
+          message: ex.message,
+          stack: ex.stack,
+          url: req.url,
+          params: req.params,
+          query: req.query,
+          body: req.body,
+          userId: (req.user as UserProfileServer)?.id,
+          requestId: res.locals.requestId,
+        },
       });
       req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
       next(new UserFacingError(ex));

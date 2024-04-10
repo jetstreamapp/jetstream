@@ -22,6 +22,7 @@ import parseISO from 'date-fns/parseISO';
 import isEmpty from 'lodash/isEmpty';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
+import { v4 as uuid } from 'uuid';
 import { getCacheItemHttp, saveCacheItemHttp } from './client-data-cache';
 import { SOBJECT_DESCRIBE_CACHED_RESPONSES } from './client-data-data-cached-responses';
 import { errorMiddleware } from './middleware';
@@ -125,6 +126,7 @@ function requestInterceptor<T>(options: {
     const { org, targetOrg, useCache, skipRequestCache, skipCacheIfOlderThan, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
     config.headers = config.headers || {};
+    config.headers[HTTP.HEADERS.X_CLIENT_REQUEST_ID] = uuid();
     if (!config.headers[HTTP.HEADERS.ACCEPT]) {
       config.headers[HTTP.HEADERS.ACCEPT] = HTTP.CONTENT_TYPE.JSON;
     }
@@ -204,6 +206,7 @@ function responseInterceptor<T>(options: {
       logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
     } else {
       logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+        clientRequestId: response.headers['x-client-request-id'],
         requestId: response.headers['x-request-id'],
         response: response.data,
       });
