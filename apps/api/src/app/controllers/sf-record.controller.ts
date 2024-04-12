@@ -47,7 +47,7 @@ const recordOperation = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );

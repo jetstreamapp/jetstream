@@ -75,7 +75,7 @@ const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validato
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -103,7 +103,7 @@ const salesforceRequestManual = createRoute(
 
       sendJson<ManualRequestResponse>(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );

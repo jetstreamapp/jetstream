@@ -15,6 +15,6 @@ const getSalesforceApiRequests = createRoute(routeDefinition.getSalesforceApiReq
     const results = await salesforceApiDb.findAll();
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });

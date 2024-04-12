@@ -88,7 +88,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
 
     if (err instanceof UserFacingError) {
-      res.status(400);
+      res.status(err.apiRequestError?.status || 400);
       // TODO: should we log 400s?
       responseLogger.debug({ ...getExceptionLog(err), statusCode: 400 }, '[RESPONSE][ERROR]');
       return res.json({

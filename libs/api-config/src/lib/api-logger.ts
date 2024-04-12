@@ -35,6 +35,8 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
           'user-agent': req.raw.headers['user-agent'],
           referer: req.raw.headers.referer,
           'x-sfdc-id': req.raw.headers['x-sfdc-id'],
+          'x-client-request-id': req.raw.headers['x-client-request-id'],
+          'x-retry': req.raw.headers['x-retry'],
           ip: req.raw.headers['cf-connecting-ip'] || req.raw.headers['x-forwarded-for'] || req.raw.socket.remoteAddress,
           country: req.headers['cf-ipcountry'],
         },

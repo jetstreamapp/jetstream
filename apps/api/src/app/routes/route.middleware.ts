@@ -16,7 +16,11 @@ import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/er
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || uuid();
-  res.setHeader('X-Request-Id', res.locals.requestId);
+  const clientReqId = req.header(HTTP.HEADERS.X_CLIENT_REQUEST_ID);
+  if (clientReqId) {
+    res.setHeader(HTTP.HEADERS.X_CLIENT_REQUEST_ID, clientReqId);
+  }
+  res.setHeader(HTTP.HEADERS.X_REQUEST_ID, res.locals.requestId);
   next();
 }
 
@@ -141,10 +145,17 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
                 error.message || 'An unknown error has occurred.'
               );
             }
-            rollbarServer.error('Error updating Auth0 activityExp', {
-              message: err.message,
-              stack: err.stack,
-              requestId: res.locals.requestId,
+            rollbarServer.error('Error updating Auth0 activityExp', req, {
+              context: `route#createRoute`,
+              custom: {
+                ...getExceptionLog(err),
+                url: req.url,
+                params: req.params,
+                query: req.query,
+                body: req.body,
+                userId: (req.user as UserProfileServer)?.id,
+                requestId: res.locals.requestId,
+              },
             });
           });
       }

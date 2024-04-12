@@ -27,6 +27,6 @@ const getUploadSignature = createRoute(routeDefinition.getUploadSignature.valida
 
     sendJson(res, { signature: signature, timestamp, cloudName: cloudName, apiKey: apiKey, context }, 200);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
