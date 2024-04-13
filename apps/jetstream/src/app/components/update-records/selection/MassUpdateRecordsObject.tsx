@@ -1,8 +1,8 @@
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback } from 'react';
-import { MetadataRow, TransformationOptions } from '../../shared/mass-update-records/mass-update-records.types';
 import MassUpdateRecordsObjectRow from '../../shared/mass-update-records/MassUpdateRecordsObjectRow';
+import { MetadataRow, TransformationOptions } from '../../shared/mass-update-records/mass-update-records.types';
 import MassUpdateRecordObjectHeading from '../shared/MassUpdateRecordObjectHeading';
 
 export interface MassUpdateRecordsObjectProps {
@@ -40,6 +40,7 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
         fields={row.fields}
         valueFields={row.valueFields}
         selectedField={row.selectedField}
+        selectedFieldMetadata={row.selectedFieldMetadata}
         validationResults={row.validationResults}
         transformationOptions={row.transformationOptions}
         onFieldChange={(selectedField) => onFieldSelected(row.sobject, selectedField)}

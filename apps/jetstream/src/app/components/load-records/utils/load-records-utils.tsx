@@ -496,14 +496,15 @@ export async function transformData({ data, fieldMapping, sObject, insertNulls, 
         }
         let skipField = false;
         const fieldMappingItem = fieldMapping[field];
+        const isCheckbox = fieldMappingItem.fieldMetadata?.type === 'boolean';
         // SFDC handles automatic type conversion with both bulk and batch apis (if possible, otherwise the record errors)
         let value = fieldMappingItem.type === 'STATIC' ? fieldMappingItem.staticValue : row[field];
 
         if (isNil(value) || (isString(value) && !value)) {
           if (apiMode === 'BULK' && insertNulls) {
-            value = SFDC_BULK_API_NULL_VALUE;
+            value = isCheckbox ? false : SFDC_BULK_API_NULL_VALUE;
           } else if (apiMode === 'BATCH' && insertNulls) {
-            value = null;
+            value = isCheckbox ? false : null;
           } else if (apiMode === 'BATCH') {
             // batch api will always clear the value in SFDC if a null is passed, so we must ensure it is not included at all
             skipField = true;

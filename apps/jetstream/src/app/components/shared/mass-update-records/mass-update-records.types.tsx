@@ -1,4 +1,4 @@
-import { BulkJobWithBatches, DescribeSObjectResult, ListItem, MapOf, Maybe } from '@jetstream/types';
+import { BulkJobWithBatches, DescribeSObjectResult, Field, ListItem, MapOf, Maybe } from '@jetstream/types';
 import { PrepareDataResponseError } from '../load-records-results/load-records-results-types';
 
 export interface MetadataRow {
@@ -11,6 +11,7 @@ export interface MetadataRow {
   fields: ListItem[];
   valueFields: ListItem[];
   selectedField?: Maybe<string>;
+  selectedFieldMetadata?: Maybe<Field>;
   transformationOptions: TransformationOptions;
   validationResults?: Maybe<ValidationResults>;
   deployResults: DeployResults;

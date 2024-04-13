@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/cons
 import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob, queryAll } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { BulkJobBatchInfo, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import formatDate from 'date-fns/format';
 import lodashGet from 'lodash/get';
 import { useCallback, useEffect, useRef } from 'react';
@@ -37,17 +37,23 @@ export function useDeployRecords(
   const prepareRecords = useCallback(
     (
       records: any[],
-      { selectedField, transformationOptions }: { selectedField: Maybe<string>; transformationOptions: TransformationOptions }
+      {
+        selectedField,
+        selectedFieldMetadata,
+        transformationOptions,
+      }: { selectedField: Maybe<string>; selectedFieldMetadata: Maybe<Field>; transformationOptions: TransformationOptions }
     ) => {
       return records.map((record) => {
         const newRecord = { ...record };
+        const isBoolean = selectedFieldMetadata?.type === 'boolean';
+        const emptyFieldValue = isBoolean ? false : SFDC_BULK_API_NULL_VALUE;
         if (selectedField) {
           if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
-            newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, SFDC_BULK_API_NULL_VALUE);
+            newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
           } else if (transformationOptions.option === 'staticValue') {
             newRecord[selectedField] = transformationOptions.staticValue;
           } else {
-            newRecord[selectedField] = SFDC_BULK_API_NULL_VALUE;
+            newRecord[selectedField] = emptyFieldValue;
           }
         }
         return newRecord;
@@ -144,6 +150,7 @@ export function useDeployRecords(
 
       const records = prepareRecords(queryResults.records, {
         selectedField: row.selectedField,
+        selectedFieldMetadata: row.selectedFieldMetadata,
         transformationOptions: row.transformationOptions,
       });
 
@@ -227,6 +234,7 @@ export function useDeployRecords(
       batchSize,
       serialMode,
       selectedField,
+      selectedFieldMetadata,
       transformationOptions,
     }: {
       records: any[];
@@ -236,6 +244,7 @@ export function useDeployRecords(
       batchSize: number;
       serialMode: boolean;
       selectedField: Maybe<string>;
+      selectedFieldMetadata: Maybe<Field>;
       transformationOptions: TransformationOptions;
     }) => {
       trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
@@ -270,7 +279,7 @@ export function useDeployRecords(
         }
 
         onDeployResults(sobject, { ...deployResults });
-        const records = prepareRecords(initialRecords, { selectedField, transformationOptions });
+        const records = prepareRecords(initialRecords, { selectedField, selectedFieldMetadata, transformationOptions });
 
         deployResults.status = 'In Progress - Uploading';
         onDeployResults(sobject, { ...deployResults });
