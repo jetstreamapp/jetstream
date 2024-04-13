@@ -146,7 +146,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
               );
             }
             rollbarServer.error('Error updating Auth0 activityExp', req, {
-              context: `route#createRoute`,
+              context: `route#activityExp`,
               custom: {
                 ...getExceptionLog(err),
                 url: req.url,

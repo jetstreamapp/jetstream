@@ -16,7 +16,6 @@ export const logger = pino({
 
 export const httpLogger = pinoHttp<express.Request, express.Response>({
   logger,
-  level: 'debug',
   genReqId: (req, res) => res.locals.requestId || uuid(),
   customSuccessMessage: function (req, res) {
     if (res.statusCode === 404) {

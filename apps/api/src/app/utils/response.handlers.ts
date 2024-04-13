@@ -88,9 +88,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
 
     if (err instanceof UserFacingError) {
-      res.status(err.apiRequestError?.status || 400);
-      // TODO: should we log 400s?
-      responseLogger.debug({ ...getExceptionLog(err), statusCode: 400 }, '[RESPONSE][ERROR]');
+      // Attempt to use response code from 3rd party request if we have it available
+      const statusCode = err.apiRequestError?.status || 400;
+      res.status(statusCode);
+      // TODO: should we log 400s? They happen a lot and are not necessarily errors we care about
+      responseLogger.debug({ ...getExceptionLog(err), statusCode }, '[RESPONSE][ERROR]');
       return res.json({
         error: true,
         message: err.message,

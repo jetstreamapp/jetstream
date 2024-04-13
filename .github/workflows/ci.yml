@@ -57,6 +57,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
+      LOG_LEVEL: warn
       AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
       AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
       AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
