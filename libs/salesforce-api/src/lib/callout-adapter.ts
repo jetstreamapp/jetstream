@@ -1,11 +1,30 @@
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import isObject from 'lodash/isObject';
 import { convert as xmlConverter } from 'xmlbuilder2';
-import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, Logger, SoapErrorResponse, fetchFn } from './types';
+import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchResponse, Logger, SoapErrorResponse, fetchFn } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
 // Shows up for certain API requests, such as Identity
 const BAS_ACCESS_TOKEN_403 = 'Bad_OAuth_Token';
+
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly statusText?: string;
+  readonly ok: boolean;
+  readonly headers: Headers;
+  readonly type: string;
+
+  constructor(message: string | undefined, response: FetchResponse<unknown>) {
+    super(message);
+    if (response) {
+      this.status = response.status;
+      this.statusText = response.statusText;
+      this.ok = response.ok;
+      this.headers = response.headers;
+      this.type = response.type;
+    }
+  }
+}
 
 /**
  * Factory function to get api request
@@ -102,7 +121,7 @@ export function getApiRequestFactoryFn(fetch: fetchFn) {
             return response as Response;
           }
 
-          throw new Error(handleSalesforceApiError(outputType || 'json', responseText));
+          throw new ApiRequestError(handleSalesforceApiError(outputType || 'json', responseText), response);
         })
         .then((response) => {
           return response as Response;

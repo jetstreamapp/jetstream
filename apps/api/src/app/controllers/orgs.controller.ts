@@ -45,7 +45,7 @@ const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user },
 
     sendJson(res, orgs);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -56,7 +56,7 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
 
     sendJson(res, salesforceOrg, 201);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -66,7 +66,7 @@ const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ par
 
     sendJson(res, undefined, 204);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -101,6 +101,6 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
 
     sendJson(res, undefined, 200);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });

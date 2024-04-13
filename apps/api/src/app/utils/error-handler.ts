@@ -1,8 +1,16 @@
 import { logger } from '@jetstream/api-config';
+import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ZodError } from 'zod';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class UserFacingError extends Error {
+  /**
+   * This data is propagated so that response can include the http status code
+   */
+  apiRequestError?: ApiRequestError;
+  /**
+   * additionalData will be included in http response
+   */
   additionalData?: any;
   constructor(message: string | Error | ZodError, additionalData?: any) {
     if (message instanceof ZodError) {
@@ -39,6 +47,10 @@ export class UserFacingError extends Error {
       }
       super(message);
       this.additionalData = additionalData;
+    }
+
+    if (message instanceof ApiRequestError) {
+      this.apiRequestError = message;
     }
   }
 }

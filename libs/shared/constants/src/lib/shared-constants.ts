@@ -47,6 +47,9 @@ export const HTTP = {
   },
   HEADERS: {
     ACCEPT: 'Accept',
+    X_CLIENT_REQUEST_ID: 'X-Client-Request-Id',
+    X_REQUEST_ID: 'X-Request-Id',
+    X_RETRY: 'X-RETRY',
     X_LOGOUT: 'X-AUTH-LOGOUT', // 1=true
     X_LOGOUT_URL: 'X-LOGOUT-URL',
     X_SFDC_ID: 'X-SFDC-ID',

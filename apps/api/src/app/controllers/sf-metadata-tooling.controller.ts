@@ -119,7 +119,7 @@ const describeMetadata = createRoute(routeDefinition.describeMetadata.validators
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -129,7 +129,7 @@ const listMetadata = createRoute(routeDefinition.listMetadata.validators, async 
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -142,7 +142,7 @@ const readMetadata = createRoute(routeDefinition.readMetadata.validators, async 
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -155,7 +155,7 @@ const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, as
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -171,7 +171,7 @@ const deployMetadataZip = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );
@@ -187,7 +187,7 @@ const checkMetadataResults = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );

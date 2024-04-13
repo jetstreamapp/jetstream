@@ -69,7 +69,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -81,7 +81,7 @@ const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, 
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -93,7 +93,7 @@ const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, j
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -105,7 +105,7 @@ const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ param
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -117,7 +117,7 @@ const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ par
 
     res.status(204).end();
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -126,7 +126,7 @@ const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ par
  */
 const downloadResults = createRoute(
   routeDefinition.downloadResults.validators,
-  async ({ params, query, jetstreamConn, requestId }, req, res, next) => {
+  async ({ params, query, jetstreamConn }, req, res, next) => {
     try {
       res.setHeader('Content-Type', 'text/csv');
 
@@ -142,7 +142,7 @@ const downloadResults = createRoute(
       // End the response when the stream is complete
       res.end();
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );

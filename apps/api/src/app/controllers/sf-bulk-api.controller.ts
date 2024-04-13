@@ -86,7 +86,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -98,7 +98,7 @@ const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, j
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -111,7 +111,7 @@ const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, 
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -127,7 +127,7 @@ const addBatchToJob = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );
@@ -144,7 +144,7 @@ const addBatchToJobWithBinaryAttachment = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );
@@ -178,7 +178,7 @@ const downloadResultsFile = createRoute(
       const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
       Readable.fromWeb(results as any).pipe(res);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );
@@ -244,7 +244,7 @@ const downloadResults = createRoute(
         }
       });
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );

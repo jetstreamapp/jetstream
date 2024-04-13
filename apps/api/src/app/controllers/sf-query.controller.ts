@@ -44,7 +44,7 @@ const describe = createRoute(routeDefinition.describe.validators, async ({ query
     const results = await jetstreamConn.sobject.describe(isTooling);
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -57,7 +57,7 @@ const describeSObject = createRoute(
 
       sendJson(res, results);
     } catch (ex) {
-      next(new UserFacingError(ex.message));
+      next(new UserFacingError(ex));
     }
   }
 );
@@ -72,7 +72,7 @@ const query = createRoute(routeDefinition.query.validators, async ({ body, query
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
 
@@ -84,6 +84,6 @@ const queryMore = createRoute(routeDefinition.queryMore.validators, async ({ que
 
     sendJson(res, results);
   } catch (ex) {
-    next(new UserFacingError(ex.message));
+    next(new UserFacingError(ex));
   }
 });
