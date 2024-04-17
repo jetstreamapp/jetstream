@@ -1,6 +1,7 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { UserProfileServer } from '@jetstream/types';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
 import pgSimple from 'connect-pg-simple';
@@ -11,13 +12,12 @@ import session from 'express-session';
 import helmet from 'helmet';
 import { cpus } from 'os';
 import passport from 'passport';
-import Auth0Strategy from 'passport-auth0';
-import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
 import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
 import {
   addContextMiddleware,
+  authSessionInitMiddleware,
   blockBotByUserAgentMiddleware,
   notFoundMiddleware,
   setApplicationCookieMiddleware,
@@ -28,7 +28,20 @@ import { environment } from './environments/environment';
 declare module 'express-session' {
   interface SessionData {
     activityExp: number;
+    /**
+     * Store data for oauth2 login flow
+     */
+    authState?: { code_verifier: string; nonce: string; state: string };
+    /**
+     * Store data for SFDC org login flow
+     */
     orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string };
+    /**
+     * Store data for identity linking flow
+     */
+    identityLink?: { expiration: number; state: string };
+    user?: UserProfileServer;
+    // TODO: store auth tokens and expiration and go through refresh flow when needed
   }
 }
 
@@ -81,11 +94,11 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     done(null, user!);
   });
 
-  const passportInitMiddleware = passport.initialize();
-  const passportMiddleware = passport.session();
+  // const passportInitMiddleware = passport.initialize();
+  // const passportMiddleware = passport.session();
 
   const app = express();
-  const httpServer = initSocketServer(app, [sessionMiddleware, passportInitMiddleware, passportMiddleware]);
+  const httpServer = initSocketServer(app, [sessionMiddleware, authSessionInitMiddleware]);
 
   if (environment.production) {
     app.set('trust proxy', 1); // required for environments such as heroku / {render?}
@@ -95,6 +108,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 
   // Setup session
   app.use(sessionMiddleware);
+  app.use(authSessionInitMiddleware);
 
   // app.use(compression());
   app.use(
@@ -167,60 +181,83 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(blockBotByUserAgentMiddleware);
   app.use(setApplicationCookieMiddleware);
 
-  /** Manual test user, skip Auth0 completely */
-  passport.use(
-    'custom',
-    new CustomStrategy(function (req, callback) {
-      if (req.hostname !== 'localhost' || !ENV.EXAMPLE_USER_OVERRIDE || !ENV.EXAMPLE_USER) {
-        return callback(new Error('Test user not enabled'));
-      }
+  // /** Manual test user, skip Auth0 completely */
+  // passport.use(
+  //   'custom',
+  //   new CustomStrategy(function (req, callback) {
+  //     if (req.hostname !== 'localhost' || !ENV.EXAMPLE_USER_OVERRIDE || !ENV.EXAMPLE_USER) {
+  //       return callback(new Error('Test user not enabled'));
+  //     }
 
-      const user = ENV.EXAMPLE_USER;
-      req.user = user;
-      callback(null, user);
-    })
-  );
+  //     const user = ENV.EXAMPLE_USER;
+  //     req.user = user;
+  //     callback(null, user);
+  //   })
+  // );
 
-  passport.use(
-    'auth0',
-    new Auth0Strategy(
-      {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        domain: ENV.AUTH0_DOMAIN!,
-        clientID: ENV.AUTH0_CLIENT_ID!,
-        clientSecret: ENV.AUTH0_CLIENT_SECRET!,
-        callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
-      },
-      (accessToken, refreshToken, extraParams, profile, done) => {
-        // accessToken is the token to call Auth0 API (not needed in the most cases)
-        // extraParams.id_token has the JSON Web Token
-        // profile has all the information from the user
-        return done(null, profile);
-      }
-    )
-  );
+  // passport.use(
+  //   'oauth2',
+  //   new OAuth2Strategy(
+  //     {
+  //       authorizationURL: `${ENV.AUTH_DOMAIN}${ENV.AUTH_AUTHORIZATION_PATH}`,
+  //       tokenURL: `${ENV.AUTH_DOMAIN}${ENV.AUTH_TOKEN_PATH}`,
+  //       clientID: ENV.AUTH_CLIENT_ID!,
+  //       clientSecret: ENV.AUTH_CLIENT_SECRET!,
+  //       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
+  //       scope: 'openid email profile',
+  //       state: true,
+  //       pkce: true,
+  //       skipUserProfile: false,
+  //     },
+  //     (accessToken, refreshToken, extraParams, profile, done) => {
+  //       // accessToken is the token to call Auth0 API (not needed in the most cases)
+  //       // extraParams.id_token has the JSON Web Token
+  //       // profile has all the information from the user
+  //       return done(null, profile);
+  //     }
+  //   )
+  // );
 
-  /** This configuration is used for authorization, not authentication (e.x. link second identity to user) */
-  passport.use(
-    'auth0-authz',
-    new Auth0Strategy(
-      {
-        domain: ENV.AUTH0_DOMAIN!,
-        clientID: ENV.AUTH0_CLIENT_ID!,
-        clientSecret: ENV.AUTH0_CLIENT_SECRET!,
-        callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/identity/link/callback`,
-      },
-      (accessToken, refreshToken, extraParams, profile, done) => {
-        // accessToken is the token to call Auth0 API (not needed in the most cases)
-        // extraParams.id_token has the JSON Web Token
-        // profile has all the information from the user
-        return done(null, profile);
-      }
-    )
-  );
+  // passport.use(
+  //   'auth0',
+  //   new Auth0Strategy(
+  //     {
+  //       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  //       domain: ENV.AUTH0_DOMAIN!,
+  //       clientID: ENV.AUTH0_CLIENT_ID!,
+  //       clientSecret: ENV.AUTH0_CLIENT_SECRET!,
+  //       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
+  //     },
+  //     (accessToken, refreshToken, extraParams, profile, done) => {
+  //       // accessToken is the token to call Auth0 API (not needed in the most cases)
+  //       // extraParams.id_token has the JSON Web Token
+  //       // profile has all the information from the user
+  //       return done(null, profile);
+  //     }
+  //   )
+  // );
 
-  app.use(passportInitMiddleware);
-  app.use(passportMiddleware);
+  // /** This configuration is used for authorization, not authentication (e.x. link second identity to user) */
+  // passport.use(
+  //   'auth0-authz',
+  //   new Auth0Strategy(
+  //     {
+  //       domain: ENV.AUTH0_DOMAIN!,
+  //       clientID: ENV.AUTH0_CLIENT_ID!,
+  //       clientSecret: ENV.AUTH0_CLIENT_SECRET!,
+  //       callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/identity/link/callback`,
+  //     },
+  //     (accessToken, refreshToken, extraParams, profile, done) => {
+  //       // accessToken is the token to call Auth0 API (not needed in the most cases)
+  //       // extraParams.id_token has the JSON Web Token
+  //       // profile has all the information from the user
+  //       return done(null, profile);
+  //     }
+  //   )
+  // );
+
+  // app.use(passportInitMiddleware);
+  // app.use(passportMiddleware);
   app.use(httpLogger);
 
   // proxy must be provided prior to body parser to ensure streaming response

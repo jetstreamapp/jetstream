@@ -14,6 +14,13 @@ import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { updateUserLastActivity } from '../services/auth0';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
+export function authSessionInitMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.session.user) {
+    req.user = req.session.user;
+  }
+  next();
+}
+
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || uuid();
   const clientReqId = req.header(HTTP.HEADERS.X_CLIENT_REQUEST_ID);

@@ -111,7 +111,7 @@ export type Auth0PaginatedResponse<PropertyName extends string, T> = {
 } & { [P in PropertyName]: T[] };
 
 export interface UserProfileAuth0Identity {
-  profileData?: UserProfileAuth0IdentityProfileData;
+  profileData?: UserProfileAuthIdentityProfileData;
   provider: string;
   access_token: string;
   expires_in: 3599;
@@ -120,7 +120,7 @@ export interface UserProfileAuth0Identity {
   isSocial: boolean;
 }
 
-export interface UserProfileAuth0IdentityProfileData {
+export interface UserProfileAuthIdentityProfileData {
   email: string;
   email_verified: boolean;
   name: string;
@@ -138,7 +138,7 @@ export interface UserProfileAuth0 {
   updated_at: string;
   email: string;
   email_verified: boolean;
-  identities: UserProfileAuth0Identity[];
+  identities: LogToUserProfile['identities'];
   name: string;
   nickname: string;
   picture: string;
@@ -164,13 +164,12 @@ export interface UserProfileUiWithIdentities {
   name: string;
   email: string;
   emailVerified: boolean;
-  picture?: string;
+  picture?: Maybe<string>;
   username: string;
-  nickname: string;
   preferences: {
     skipFrontdoorLogin: boolean;
   };
-  identities: UserProfileAuth0Identity[];
+  identities: LogToUserProfile['identities'];
   createdAt: string;
   updatedAt: string;
 }
@@ -195,6 +194,7 @@ export interface UserProfileUi {
 }
 
 // SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
+// FIXME: this type is specific to auth0, we should make it more generic
 export interface UserProfileServer {
   _json: Omit<UserProfileUi, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'preferences'>;
   _raw: string | null;
@@ -206,6 +206,98 @@ export interface UserProfileServer {
   picture?: string | null;
   provider: string;
   user_id: string;
+  // Logto
+  // sub: string;
+  // email: string;
+  // email_verified: boolean;
+  // name: Maybe<string>;
+  // picture: Maybe<string>;
+  // updated_at: number;
+  // username: Maybe<string>;
+  // created_at: number;
+}
+
+export interface LogToUserProfile {
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  name?: Maybe<string>;
+  picture?: Maybe<string>;
+  updated_at: string;
+  username: Maybe<string>;
+  created_at: string;
+  identities?: {
+    google?: LogToUserProfileIdentity;
+    microsoft?: LogToUserProfileIdentity;
+    salesforce?: LogToUserProfileIdentity;
+    github?: LogToUserProfileIdentity;
+  };
+}
+
+export interface LogToUserProfileIdentity {
+  userId: string;
+  details: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: Maybe<string>;
+    rawData: {
+      sub: string;
+      name: string;
+      email: string;
+      locale: string;
+      picture: string;
+      given_name: string;
+      family_name: string;
+      email_verified: boolean;
+    };
+  };
+}
+
+export interface SocialConnector_UNSAFE {
+  id: string;
+  syncProfile: boolean;
+  config: {
+    scope: string;
+    clientId: string;
+    clientSecret: string;
+    tokenEndpoint: string;
+    authorizationEndpoint: string;
+    idTokenVerificationConfig: {
+      jwksUri: string;
+    };
+  };
+  metadata: {
+    target: string;
+    name: {
+      en: string;
+    };
+    logo: string;
+    logoDark: string;
+  };
+  connectorId: string;
+  target: string;
+  name: {
+    en: string;
+  };
+  logo: string;
+  logoDark: string;
+  platform: string;
+  isStandard: boolean;
+  type: string;
+  isDemo: boolean;
+  extraInfo: unknown;
+}
+
+export interface SocialConnector {
+  id: string;
+  syncProfile: boolean;
+  connectorId: string;
+  target: string;
+  name: string;
+  logo: string;
+  logoDark: string;
+  type: string;
 }
 
 export interface SalesforceUserInfo {

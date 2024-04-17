@@ -54,7 +54,7 @@ export async function login(req: Request, res: Response) {
 
 export async function callback(req: Request, res: Response, next: NextFunction) {
   passport.authenticate(
-    'auth0',
+    'oauth2',
     {
       failureRedirect: '/',
     },
@@ -106,7 +106,7 @@ export async function logout(req: Request, res: Response) {
 /** Callback for linking accounts */
 export async function linkCallback(req: Request, res: Response, next: NextFunction) {
   passport.authorize(
-    'auth0-authz',
+    'oauth2',
     {
       failureRedirect: `/oauth-link/?error=${new URLSearchParams({ error: 'Unknown Error' as any }).toString()}`,
     } as any,

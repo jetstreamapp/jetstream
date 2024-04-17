@@ -1,68 +1,54 @@
 import { css } from '@emotion/react';
-import { Maybe, UserProfileAuth0Identity, UserProfileUiWithIdentities } from '@jetstream/types';
+import { LogToUserProfile, LogToUserProfileIdentity, Maybe, UserProfileUiWithIdentities } from '@jetstream/types';
 import { Badge, ConfirmationModalPromise } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
-function getProviderName(identity: UserProfileAuth0Identity) {
-  if (!identity.isSocial) {
-    return 'Jetstream';
-  }
-  switch (identity.connection) {
-    case 'google-oauth2':
-      return 'Google';
-    case 'salesforce':
-      return 'Salesforce';
-    case 'github':
-      return 'GitHub';
-    default:
-      return identity.connection;
-  }
-}
-
-function getUsername(identity: UserProfileAuth0Identity, fallback: UserProfileUiWithIdentities) {
-  if (!identity.isSocial) {
-    return null;
-  }
+function getUsername(
+  type: keyof LogToUserProfile['identities'],
+  identity: LogToUserProfileIdentity,
+  fallback: UserProfileUiWithIdentities
+) {
   // The first profile has root-level properties set and does not have profileData property set
-  switch (identity.connection) {
+  switch (type) {
     case 'salesforce':
-      if (!identity.profileData) {
+      if (!identity.details) {
         return fallback.username;
       }
-      return identity.profileData.username;
+      return identity.details.email; // FIXME:
     case 'github':
-      if (!identity.profileData) {
-        return fallback.nickname;
+      if (!identity.details) {
+        return fallback.username;
       }
-      return identity.profileData.nickname;
+      return identity.details.email; // FIXME:
     default:
       return null;
   }
 }
 
 export interface SettingsIdentityCardProps {
-  identity: UserProfileAuth0Identity;
+  type: keyof LogToUserProfile['identities'];
+  identity: LogToUserProfileIdentity;
   fallback: UserProfileUiWithIdentities;
   omitUnlink?: boolean;
-  onUnlink: (identity: UserProfileAuth0Identity) => void;
-  onResendVerificationEmail: (identity: UserProfileAuth0Identity) => void;
+  onUnlink: (identity: LogToUserProfileIdentity) => void;
+  onResendVerificationEmail: (identity: LogToUserProfileIdentity) => void;
 }
 
 export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> = ({
+  type,
   identity,
   fallback,
   omitUnlink,
   onResendVerificationEmail,
   onUnlink,
 }) => {
-  const [providerName] = useState<string>(() => getProviderName(identity));
-  const [username] = useState<Maybe<string>>(() => getUsername(identity, fallback));
+  const [username] = useState<Maybe<string>>(() => getUsername(type, identity, fallback));
 
-  const { profileData, user_id } = identity;
-  const name = profileData?.name || fallback.name;
-  const email = profileData?.email || fallback.email;
-  const picture = profileData?.picture || fallback.picture;
-  const emailVerified = profileData?.email_verified || fallback.emailVerified;
+  const { details, userId } = identity;
+  const name = details?.name || fallback.name;
+  const email = details?.email || fallback.email;
+  const picture = details?.rawData?.picture || fallback.picture;
+  const emailVerified = details?.rawData?.email_verified || fallback.emailVerified;
 
   async function confirmUnlink() {
     if (
@@ -73,7 +59,7 @@ export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> 
             <p>
               Are you sure you want to unlink{' '}
               <strong>
-                {providerName} - {email}
+                {type} - {email}
               </strong>
               ?
             </p>
@@ -88,15 +74,14 @@ export const SettingsIdentityCard: FunctionComponent<SettingsIdentityCardProps> 
 
   return (
     <li
-      key={user_id}
       className="slds-item read-only"
       css={css`
         max-width: 33rem;
       `}
     >
       <article className="slds-tile slds-tile_board">
-        <h3 className="slds-tile__title slds-truncate slds-text-heading_medium" title={providerName}>
-          {providerName}
+        <h3 className="slds-tile__title slds-truncate slds-text-heading_medium" title={type}>
+          {type}
         </h3>
         <div className="slds-tile__detail">
           <p className="slds-truncate" title={name}>

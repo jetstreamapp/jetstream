@@ -1,10 +1,11 @@
 import { ENV, getExceptionLog, mailgun } from '@jetstream/api-config';
 import { UpdateProfileRequestSchema } from '@jetstream/api-types';
-import { UserProfileAuth0Ui, UserProfileServer, UserProfileUi, UserProfileUiWithIdentities } from '@jetstream/types';
+import { LogToUserProfile, UserProfileServer, UserProfileUi, UserProfileUiWithIdentities } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import { deleteUserAndOrgs } from '../db/transactions.db';
 import * as userDbService from '../db/user.db';
+import * as authM2MService from '../services/auth-m2m.service';
 import * as auth0Service from '../services/auth0';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
@@ -128,8 +129,8 @@ const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, as
   sendJson(res, userProfileUi);
 });
 
-async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: UserProfileAuth0Ui) {
-  auth0User = auth0User || (await auth0Service.getUser(sessionUser));
+async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: LogToUserProfile) {
+  auth0User = auth0User || (await authM2MService.getUser(sessionUser));
   const jetstreamUser = await userDbService.findByUserId(sessionUser.id);
   if (!jetstreamUser) {
     throw new UserFacingError('User not found');
@@ -141,7 +142,7 @@ async function getFullUserProfileFn(sessionUser: UserProfileServer, auth0User?: 
     email: jetstreamUser.email,
     emailVerified: auth0User.email_verified,
     username: auth0User.username || '',
-    nickname: auth0User.nickname,
+    // nickname: auth0User.name,
     picture: auth0User.picture,
     preferences: {
       skipFrontdoorLogin: jetstreamUser.preferences?.skipFrontdoorLogin ?? false,
@@ -175,10 +176,11 @@ const updateProfile = createRoute(routeDefinition.updateProfile.validators, asyn
   const userProfile = body;
 
   try {
+    throw new Error('not implemented');
     // check for name change, if so call auth0 to update
     const auth0User = await auth0Service.updateUser(user, userProfile as any);
     // update name and preferences locally
-    const response = await getFullUserProfileFn(user, auth0User);
+    const response = await getFullUserProfileFn(user, auth0User as any);
     sendJson(res, response);
   } catch (ex) {
     if (ex.isAxiosError) {
@@ -195,11 +197,12 @@ const updateProfile = createRoute(routeDefinition.updateProfile.validators, asyn
 
 const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, async ({ query, user }, req, res, next) => {
   try {
+    throw new Error('not implemented');
     const provider = query.provider;
     const userId = query.userId;
 
     const auth0User = await auth0Service.unlinkIdentity(user, { provider, userId });
-    const response = await getFullUserProfileFn(user, auth0User);
+    const response = await getFullUserProfileFn(user, auth0User as any);
     sendJson(res, response);
   } catch (ex) {
     if (ex.isAxiosError) {

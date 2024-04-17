@@ -218,6 +218,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
               onCancel={handleCancelEdit}
             />
 
+            {/* // FIXME: this has a huge click area */}
             <CheckboxToggle
               id="frontdoor-toggle"
               checked={modifiedUser?.preferences?.skipFrontdoorLogin || false}

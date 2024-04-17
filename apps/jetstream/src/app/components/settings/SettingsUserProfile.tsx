@@ -25,16 +25,19 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
   const invalidName = !name || name.length > 255;
 
   const blockNameEdit = useMemo(
-    () => fullUserProfile.identities.some((identity) => identity.provider !== 'auth0'),
+    () => false, // fullUserProfile.identities.some((identity) => identity.provider !== 'auth0'),
     [fullUserProfile.identities]
   );
 
   return (
     <Fragment>
       <Grid className="slds-m-top_large" verticalAlign="center">
-        <div className="slds-avatar slds-avatar_circle slds-avatar_large">
-          <img alt={fullUserProfile.name} src={fullUserProfile.picture} title="Avatar" />
-        </div>
+        {/* FIXME: use fallback if needed */}
+        {fullUserProfile.picture && (
+          <div className="slds-avatar slds-avatar_circle slds-avatar_large">
+            <img alt={fullUserProfile.name} src={fullUserProfile.picture} title="Avatar" />
+          </div>
+        )}
         {/* TODO: implement this sometime */}
         {/* <div>
           <button className="slds-button slds-button_neutral slds-m-left_small">Change picture</button>

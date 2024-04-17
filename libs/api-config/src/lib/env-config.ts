@@ -77,6 +77,19 @@ export const ENV = {
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
   COMETD_DEBUG: ensureStringValue(process.env.COMETD_DEBUG, ['error', 'warn', 'info', 'debug']) as 'error' | 'warn' | 'info' | 'debug',
   // AUTH
+  AUTH_DOMAIN: process.env.AUTH_DOMAIN,
+  AUTH_AUTHORIZATION_PATH: process.env.AUTH_AUTHORIZATION_PATH,
+  AUTH_TOKEN_PATH: process.env.AUTH_TOKEN_PATH,
+  AUTH_USERINFO_PATH: process.env.AUTH_USERINFO_PATH,
+  AUTH_CLIENT_ID: process.env.AUTH_CLIENT_ID,
+  AUTH_CLIENT_SECRET: process.env.AUTH_CLIENT_SECRET,
+  // AUTH M2M
+  AUTH_M2M_API_RESOURCE: process.env.AUTH_M2M_API_RESOURCE || 'https://mo3n77.logto.app/api',
+  AUTH_M2M_CLIENT_ID: process.env.AUTH_M2M_CLIENT_ID,
+  AUTH_M2M_CLIENT_SECRET: process.env.AUTH_M2M_CLIENT_SECRET,
+  AUTH_M2M_OAUTH_GOOGLE_ID: process.env.AUTH_M2M_OAUTH_GOOGLE_ID,
+  AUTH_M2M_OAUTH_SFDC_ID: process.env.AUTH_M2M_OAUTH_SFDC_ID,
+
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   /** use for M2M tokens - in DEV this is the same, but different in production */
   AUTH0_M2M_DOMAIN: process.env.AUTH0_M2M_DOMAIN,

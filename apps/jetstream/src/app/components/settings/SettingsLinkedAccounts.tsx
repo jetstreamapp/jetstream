@@ -1,4 +1,4 @@
-import { Auth0ConnectionName, UserProfileAuth0Identity, UserProfileUiWithIdentities } from '@jetstream/types';
+import { Auth0ConnectionName, LogToUserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import SettingsIdentityCard from './SettingsIdentityCard';
@@ -6,8 +6,8 @@ import SettingsIdentityCard from './SettingsIdentityCard';
 export interface SettingsLinkedAccountsProps {
   fullUserProfile: UserProfileUiWithIdentities;
   onLink: (connection: Auth0ConnectionName) => void;
-  onUnlink: (identity: UserProfileAuth0Identity) => void;
-  onResendVerificationEmail: (identity: UserProfileAuth0Identity) => void;
+  onUnlink: (identity: LogToUserProfileIdentity) => void;
+  onResendVerificationEmail: (identity: LogToUserProfileIdentity) => void;
 }
 
 export const SettingsLinkedAccounts: FunctionComponent<SettingsLinkedAccountsProps> = ({
@@ -21,11 +21,12 @@ export const SettingsLinkedAccounts: FunctionComponent<SettingsLinkedAccountsPro
       <div className="slds-text-heading_small">Linked Accounts</div>
       <p>You can login to Jetstream using any of these accounts</p>
       <ul className="slds-has-dividers_around-space">
-        {fullUserProfile.identities.map((identity, i) => (
+        {Object.keys(fullUserProfile.identities || {}).map((key, i) => (
           <SettingsIdentityCard
-            key={identity.user_id}
+            key={key}
+            type={key as keyof UserProfileUiWithIdentities['identities']}
             omitUnlink={i === 0}
-            identity={identity}
+            identity={fullUserProfile.identities![key]}
             fallback={fullUserProfile}
             onUnlink={onUnlink}
             onResendVerificationEmail={onResendVerificationEmail}
