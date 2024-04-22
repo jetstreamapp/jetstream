@@ -80,6 +80,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       rollbarServer.error('Route Validation Error', req, {
         context: `route#createRoute`,
         custom: {
+          ...getExceptionLog(ex, true),
           message: ex.message,
           stack: ex.stack,
           url: req.url,

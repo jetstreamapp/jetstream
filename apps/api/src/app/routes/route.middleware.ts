@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
@@ -73,7 +73,7 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
 export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userAgent = req.header('User-Agent');
   if (userAgent?.toLocaleLowerCase().includes('python')) {
-    req.log.debug(
+    logger.debug(
       {
         blocked: true,
         method: req.method,
@@ -83,6 +83,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
         referrer: req.get('Referrer'),
         ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
         country: req.headers[HTTP.HEADERS.CF_IPCountry],
+        userAgent,
       },
       '[BLOCKED REQUEST][USER AGENT] %s %s',
       req.method,
