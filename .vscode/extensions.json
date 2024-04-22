@@ -8,7 +8,6 @@
     "streetsidesoftware.code-spell-checker",
     "eamodio.gitlens",
     "ms-playwright.playwright",
-    "wayou.vscode-todo-highlight",
-    "firsttris.vscode-jest-runner"
+    "wayou.vscode-todo-highlight"
   ]
 }
