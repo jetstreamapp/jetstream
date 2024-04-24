@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { convertDateToLocale, useRollbar } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes } from '@jetstream/shared/utils';
-import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import { Field, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   Checkbox,
   Grid,
@@ -34,7 +34,7 @@ import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelec
 const MAX_BATCH_SIZE = 10000;
 const IN_PROGRESS_STATUSES = new Set<DeployResults['status']>(['In Progress - Preparing', 'In Progress - Uploading', 'In Progress']);
 
-function checkIfValid(selectedField: string | null, transformationOptions: TransformationOptions) {
+function checkIfValid(selectedField: Maybe<string>, transformationOptions: TransformationOptions) {
   if (!selectedField) {
     return false;
   }
@@ -88,7 +88,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [isValid, setIsValid] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedField, setSelectedField] = useState<string | null>(null);
+  const [selectedField, setSelectedField] = useState<{ field: string; metadata: Field } | null>(null);
   const [fields, setFields] = useState<ListItem[]>([]);
   /** Fields that can be used as value */
   const [transformationOptions, setTransformationOptions] = useState<TransformationOptions>({
@@ -145,7 +145,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   }, [selectedOrg, sobject, parsedQuery]);
 
   useEffect(() => {
-    setIsValid(checkIfValid(selectedField, transformationOptions));
+    setIsValid(checkIfValid(selectedField?.field, transformationOptions));
   }, [selectedField, transformationOptions]);
 
   useEffect(() => {
@@ -221,7 +221,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         records,
         parsedQuery,
         transformationOptions,
-        selectedField,
+        selectedField: selectedField.field,
         idsToInclude,
       });
 
@@ -230,10 +230,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       await loadDataForProvidedRecords({
         records: recordsToLoad,
         sobject,
-        fields: ['Id', selectedField],
+        fields: ['Id', selectedField.field],
         batchSize: batchSize ?? 10000,
         serialMode,
-        selectedField,
+        selectedField: selectedField.field,
+        selectedFieldMetadata: selectedField.metadata,
         transformationOptions,
       });
       pollResultsUntilDone(getDeploymentResults);
@@ -330,11 +331,14 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           loading={false}
           fields={fields}
           valueFields={valueFields}
-          selectedField={selectedField}
+          selectedField={selectedField?.field}
+          selectedFieldMetadata={selectedField?.metadata}
           transformationOptions={transformationOptions}
           hasExternalWhereClause={!!parsedQuery.where}
           disabled={loading || deployInProgress || !!fatalError}
-          onFieldChange={setSelectedField}
+          onFieldChange={(field: string, metadata: Field) => {
+            setSelectedField({ field, metadata });
+          }}
           onOptionsChange={(_, options) => setTransformationOptions(options)}
           onLoadChildFields={loadChildFields}
           filterCriteriaFn={(field) => field.value !== 'custom'}
@@ -379,7 +383,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             deployResults={deployResults}
             transformationOptions={transformationOptions}
             hasExternalWhereClause={!!parsedQuery.where}
-            selectedField={selectedField}
+            selectedField={selectedField?.field}
+            selectedFieldMetadata={selectedField?.metadata}
             batchSize={batchSize ?? 10000}
             omitTransformationText
             onModalOpenChange={setIsSecondModalOpen}

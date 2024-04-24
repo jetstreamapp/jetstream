@@ -29,7 +29,7 @@ export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> 
 }
 
 export interface MassUpdateRecordsDeploymentRowProps
-  extends Pick<MetadataRow, 'sobject' | 'deployResults' | 'transformationOptions' | 'selectedField'> {
+  extends Pick<MetadataRow, 'sobject' | 'deployResults' | 'transformationOptions' | 'selectedField' | 'selectedFieldMetadata'> {
   hasExternalWhereClause?: boolean;
   validationResults?: MetadataRow['validationResults'];
   selectedOrg: SalesforceOrgUi;
@@ -44,6 +44,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
   deployResults,
   transformationOptions,
   selectedField,
+  selectedFieldMetadata,
   hasExternalWhereClause,
   validationResults,
   batchSize,
@@ -202,6 +203,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
           ) : (
             <MassUpdateRecordTransformationText
               selectedField={selectedField}
+              selectedFieldMetadata={selectedFieldMetadata}
               transformationOptions={transformationOptions}
               hasExternalWhereClause={hasExternalWhereClause}
             />

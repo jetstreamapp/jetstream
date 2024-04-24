@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { ListItem, Maybe } from '@jetstream/types';
+import { Field, ListItem, Maybe } from '@jetstream/types';
 import { ComboboxWithItems, Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 
@@ -7,7 +7,7 @@ export interface MassUpdateRecordsObjectRowFieldProps {
   fields: ListItem[];
   selectedField?: Maybe<string>;
   disabled?: boolean;
-  onchange: (selectedField: string) => void;
+  onchange: (selectedField: string, fieldMetadata: Field) => void;
 }
 
 export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecordsObjectRowFieldProps> = ({
@@ -17,7 +17,7 @@ export const MassUpdateRecordsObjectRowField: FunctionComponent<MassUpdateRecord
   onchange,
 }) => {
   function handleFieldSelection(item: ListItem) {
-    onchange(item.id);
+    onchange(item.id, item.meta as Field);
   }
 
   return (

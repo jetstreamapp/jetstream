@@ -1,4 +1,4 @@
-import { Maybe } from '@jetstream/types';
+import { Field, Maybe } from '@jetstream/types';
 import { Badge } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { TransformationOptions } from '../../shared/mass-update-records/mass-update-records.types';
@@ -6,12 +6,14 @@ import { TransformationOptions } from '../../shared/mass-update-records/mass-upd
 export interface MassUpdateRecordTransformationTextProps {
   className?: string;
   selectedField: Maybe<string>;
+  selectedFieldMetadata: Maybe<Field>;
   transformationOptions: TransformationOptions;
   hasExternalWhereClause?: boolean;
 }
 
 export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRecordTransformationTextProps> = ({
   selectedField,
+  selectedFieldMetadata,
   transformationOptions,
   hasExternalWhereClause,
 }) => {
@@ -22,6 +24,7 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
   let title = '';
   let objectAndField: JSX.Element;
   let updateCriteria: Maybe<JSX.Element>;
+  const isBoolean = selectedFieldMetadata?.type === 'boolean';
   switch (option) {
     case 'staticValue':
       title += `"${selectedField}" will be set to "${staticValue}"`;
@@ -40,8 +43,12 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
       );
       break;
     case 'null':
-      title += `"${selectedField}" will be set to null`;
-      objectAndField = <span>"{selectedField}" will be set to null</span>;
+      title += `"${selectedField}" will be set to ${isBoolean ? 'false' : 'null'}`;
+      objectAndField = (
+        <span>
+          "{selectedField}" will be set to {isBoolean ? 'false' : 'null'}
+        </span>
+      );
       break;
   }
   // 'all' | 'onlyIfBlank' | 'custom'

@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { ListItem, Maybe } from '@jetstream/types';
+import { Field, ListItem, Maybe } from '@jetstream/types';
 import { Grid, GridCol, ScopedNotification, Spinner } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
 import { FunctionComponent, ReactNode } from 'react';
@@ -17,11 +17,12 @@ export interface MassUpdateRecordsObjectRowProps {
   fields: ListItem[];
   valueFields: ListItem[];
   selectedField?: Maybe<string>;
+  selectedFieldMetadata?: Maybe<Field>;
   validationResults?: Maybe<ValidationResults>;
   transformationOptions: TransformationOptions;
   hasExternalWhereClause?: boolean;
   disabled?: boolean;
-  onFieldChange: (selectedField: string) => void;
+  onFieldChange: (selectedField: string, fieldMetadata: Field) => void;
   onOptionsChange: (sobject: string, options: TransformationOptions) => void;
   /** Used if some options should not be included in criteria dropdown */
   filterCriteriaFn?: (item: ListItem) => boolean;
@@ -36,6 +37,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
   fields,
   valueFields,
   selectedField,
+  selectedFieldMetadata,
   validationResults,
   transformationOptions,
   hasExternalWhereClause,
@@ -79,6 +81,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
           <MassUpdateRecordTransformationText
             className="slds-m-top_x-small slds-m-left_small"
             selectedField={selectedField}
+            selectedFieldMetadata={selectedFieldMetadata}
             transformationOptions={transformationOptions}
             hasExternalWhereClause={hasExternalWhereClause}
           />
