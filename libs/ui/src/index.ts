@@ -14,7 +14,7 @@ export * from './lib/data-table/DataTree';
 export * from './lib/data-table/SalesforceRecordDataTable';
 export * from './lib/data-table/data-table-context';
 export * from './lib/data-table/data-table-formatters';
-export type { ColumnWithFilter, ContextAction, ContextMenuActionData, RowWithKey } from './lib/data-table/data-table-types';
+export type { ColumnWithFilter, ContextAction, ContextMenuActionData, DataTableRef, RowWithKey } from './lib/data-table/data-table-types';
 export { getColumnsForGenericTable, getRowTypeFromValue, getSfdcRetUrl, setColumnFromType } from './lib/data-table/data-table-utils';
 export * from './lib/docked-composer/DockedComposer';
 export * from './lib/expression-group/ExpressionContainer';

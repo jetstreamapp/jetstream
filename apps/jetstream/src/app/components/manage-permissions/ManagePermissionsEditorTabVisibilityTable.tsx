@@ -1,7 +1,7 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable } from '@jetstream/ui';
-import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
@@ -30,6 +30,7 @@ export interface ManagePermissionsEditorTabVisibilityTableProps {
 
 export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
+    const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>();
     const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
@@ -45,7 +46,8 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
 
     function handleColumnAction(action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) {
       const [id, typeLabel] = columnKey.split('-');
-      onBulkUpdate(updateRowsFromColumnAction('tabVisibility', action, typeLabel as FieldPermissionTypes, id, rows));
+      const visibleRows = [...(tableRef.current?.getFilteredAndSortedRows() || rows)];
+      onBulkUpdate(updateRowsFromColumnAction('tabVisibility', action, typeLabel as FieldPermissionTypes, id, visibleRows));
     }
 
     const handleRowsChange = useCallback(
@@ -59,6 +61,7 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
       <div>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTable
+            ref={tableRef}
             columns={columns}
             data={rows}
             getRowKey={getRowKey}

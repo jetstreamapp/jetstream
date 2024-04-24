@@ -1,8 +1,8 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { MapOf } from '@jetstream/types';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTree } from '@jetstream/ui';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
-import { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { RowHeightArgs } from 'react-data-grid';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
@@ -40,6 +40,7 @@ export interface ManagePermissionsEditorFieldTableProps {
 
 export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissionsEditorFieldTableProps>(
   ({ columns, rows, totalCount, onFilter, onDirtyRows, onBulkUpdate }, ref) => {
+    const tableRef = useRef<DataTableRef<PermissionTableFieldCell>>();
     const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 
@@ -56,7 +57,8 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
 
     function handleColumnAction(action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) {
       const [id, typeLabel] = columnKey.split('-');
-      onBulkUpdate(updateRowsFromColumnAction('field', action, typeLabel as FieldPermissionTypes, id, rows));
+      const visibleRows = [...(tableRef.current?.getFilteredAndSortedRows() || rows)];
+      onBulkUpdate(updateRowsFromColumnAction('field', action, typeLabel as FieldPermissionTypes, id, visibleRows));
     }
 
     const handleRowsChange = useCallback(
@@ -70,6 +72,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
       <div>
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTree
+            ref={tableRef}
             columns={columns}
             data={rows}
             getRowKey={getRowKey}
