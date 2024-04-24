@@ -15,6 +15,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
   /** Used so that if multiple requests come in at about the same time, we can ignore results from intermediate requests as they may not be valid */
   const currentFetchToken = useRef<number>(new Date().getTime());
   const numPollErrors = useRef<number>(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [logs, setLogs] = useState<ApexLog[]>([]);
@@ -76,8 +77,12 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
   );
 
   const handlePoll = useCallback(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    !isPaused && fetchLogs();
+  }, [isPaused, fetchLogs]);
+
+  const togglePause = useCallback(() => {
+    setIsPaused((prevValue) => !prevValue);
+  }, []);
 
   useInterval(handlePoll, numPollErrors.current > MAX_POLL_ATTEMPTS ? null : intervalDelay);
 
@@ -92,5 +97,5 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
     numPollErrors.current = 0;
   }, [fetchLogs, org]);
 
-  return { fetchLogs, loading, lastChecked, logs, pollInterval, errorMessage };
+  return { togglePause, fetchLogs, isPaused, loading, lastChecked, logs, pollInterval, errorMessage };
 }
