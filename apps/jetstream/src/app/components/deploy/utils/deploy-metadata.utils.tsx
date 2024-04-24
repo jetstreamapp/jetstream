@@ -499,7 +499,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
         'Api Name': decodeURIComponent(item.fullName),
         Type: item.componentType,
         'Error Type': item.problemType,
-        'Error Message': item.problem,
+        'Error Message': decodeURIComponent(item.problem),
         Line: item.lineNumber,
         Column: item.columnNumber,
         Success: item.success,

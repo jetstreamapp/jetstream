@@ -1,5 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureArray } from '@jetstream/shared/utils';
+import { ensureArray, unSanitizeXml } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, DeployResult, Maybe } from '@jetstream/types';
 import { isEmpty, isObject } from 'lodash';
 import isString from 'lodash/isString';
@@ -271,6 +271,8 @@ export function correctInvalidXmlResponseTypes<T = any>(item: T): T {
       (item as any)[key] = null;
     } else if (isString((item as any)[key]) && ((item as any)[key] === 'true' || (item as any)[key] === 'false')) {
       (item as any)[key] = (item as any)[key] === 'true';
+    } else if (isString((item as any)[key])) {
+      (item as any)[key] = unSanitizeXml((item as any)[key]);
     } else if (!Array.isArray((item as any)[key]) && isObject((item as any)[key]) && (item as any)[key]['$']) {
       // {$: {"xsi:nil": true}}
       (item as any)[key] = null;
