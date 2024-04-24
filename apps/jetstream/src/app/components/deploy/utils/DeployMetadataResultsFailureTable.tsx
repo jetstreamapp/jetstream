@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { DeployMessage } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
@@ -14,43 +15,60 @@ export const DeployMetadataResultsFailureTable: FunctionComponent<DeployMetadata
   return (
     <Grid vertical>
       <h2 className="slds-text-heading_small">{title}</h2>
-      <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+      <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped slds-table_fixed-layout">
         <thead>
           <tr className="slds-line-height_reset">
             <th scope="col">Name</th>
-            <th scope="col">Type</th>
-            <th scope="col">Line</th>
-            <th scope="col">Column</th>
+            <th
+              css={css`
+                width: 120px;
+              `}
+              scope="col"
+            >
+              Type
+            </th>
+            <th
+              css={css`
+                width: 75px;
+              `}
+              scope="col"
+            >
+              Line
+            </th>
+            <th
+              css={css`
+                width: 75px;
+              `}
+              scope="col"
+            >
+              Column
+            </th>
             <th scope="col">Error Message</th>
           </tr>
         </thead>
         <tbody>
           {componentDetails.map((row, i) => (
             <tr className="slds-hint-parent" key={`${row.id}-row-${i}`}>
-              <th scope="row">
-                <div className="slds-truncate" title={row.fullName}>
+              <th className="slds-cell-wrap" scope="row">
+                <p className="slds-line-clamp_large" title={row.fullName}>
                   {decodeURIComponent(row.fullName)}
-                </div>
+                </p>
               </th>
-              <td>
-                <div className="slds-truncate" title={row.componentType}>
+              <td className="slds-cell-wrap">
+                <div className="slds-line-clamp_large" title={row.componentType}>
                   {row.componentType}
                 </div>
               </td>
-              <td>
-                <div className="slds-truncate" title={`${row.lineNumber}`}>
-                  {row.lineNumber}
-                </div>
-              </td>
-              <td>
-                <div className="slds-truncate" title={`${row.columnNumber}`}>
-                  {row.columnNumber}
-                </div>
+              <td className="slds-cell-wrap">
+                <div title={`${row.lineNumber}`}>{row.lineNumber}</div>
               </td>
               <td className="slds-cell-wrap">
-                <div className="slds-line-clamp" title={row.problem}>
-                  {row.problem}
-                </div>
+                <div title={`${row.columnNumber}`}>{row.columnNumber}</div>
+              </td>
+              <td className="slds-cell-wrap">
+                <p className="slds-line-clamp_large" title={row.problem}>
+                  {decodeURIComponent(row.problem)}
+                </p>
               </td>
             </tr>
           ))}

@@ -15,15 +15,22 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
   return (
     <Grid vertical>
       <h2 className="slds-text-heading_small">{title}</h2>
-      <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+      <table className="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped slds-table_fixed-layout">
         <thead>
           <tr className="slds-line-height_reset">
             <th scope="col">Name</th>
-            <th scope="col">Type</th>
             <th
               scope="col"
               css={css`
-                width: 80px;
+                width: 120px;
+              `}
+            >
+              Type
+            </th>
+            <th
+              scope="col"
+              css={css`
+                width: 65px;
               `}
             >
               Changed
@@ -31,7 +38,7 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
             <th
               scope="col"
               css={css`
-                width: 80px;
+                width: 65px;
               `}
             >
               Created
@@ -39,7 +46,7 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
             <th
               scope="col"
               css={css`
-                width: 80px;
+                width: 65px;
               `}
             >
               Deleted
@@ -50,27 +57,27 @@ export const DeployMetadataResultsSuccessTable: FunctionComponent<DeployMetadata
           {componentDetails.map((row, i) => (
             <tr className="slds-hint-parent" key={`${row.id}-row-${i}`}>
               <th scope="row">
-                <div className="slds-truncate" title={row.fullName}>
+                <div className="slds-cell-wrap" title={row.fullName}>
                   {decodeURIComponent(row.fullName)}
                 </div>
               </th>
               <td>
-                <div className="slds-truncate" title={row.componentType}>
+                <div className="slds-cell-wrap" title={row.componentType}>
                   {row.componentType}
                 </div>
               </td>
               <td>
-                <div className="slds-truncate">
+                <div>
                   <Checkbox id={`${row.componentType}-${row.fullName}-changed`} label="changed" hideLabel checked={row.changed} disabled />
                 </div>
               </td>
               <td>
-                <div className="slds-truncate">
+                <div>
                   <Checkbox id={`${row.componentType}-${row.fullName}-created`} label="created" hideLabel checked={row.created} disabled />
                 </div>
               </td>
               <td>
-                <div className="slds-truncate">
+                <div>
                   <Checkbox id={`${row.componentType}-${row.fullName}-deleted`} label="deleted" hideLabel checked={row.deleted} disabled />
                 </div>
               </td>
