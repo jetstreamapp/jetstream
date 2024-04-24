@@ -59,11 +59,13 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   },
 });
 
-export function getExceptionLog(error: unknown) {
+export function getExceptionLog(error: unknown, includeStack = false) {
+  const status = (error as any) /** UserFacingError */?.apiRequestError?.status || (error as any) /** ApiRequestError */?.status;
   if (error instanceof Error) {
     return {
       error: error.message,
-      // stack: error.stack, // This turned out to not be very useful and added a lot to logs
+      status,
+      stack: includeStack ? error.stack : undefined,
     };
   }
   return {
