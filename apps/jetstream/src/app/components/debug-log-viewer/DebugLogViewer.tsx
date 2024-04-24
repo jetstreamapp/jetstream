@@ -12,10 +12,12 @@ import {
   Icon,
   SalesforceLogin,
   Spinner,
+  Tooltip,
   ViewDocsLink,
   dataTableFileSizeFormatter,
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
+import classNames from 'classnames';
 import formatDate from 'date-fns/format';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
@@ -57,7 +59,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
 
-  const { fetchLogs, loading, lastChecked, logs, errorMessage, pollInterval } = useDebugLogs(selectedOrg, {
+  const { togglePause, fetchLogs, isPaused, loading, lastChecked, logs, pollInterval } = useDebugLogs(selectedOrg, {
     limit: showLogsFromAllUsers ? 200 : 100,
     userId: showLogsFromAllUsers ? undefined : selectedOrg.userId,
   });
@@ -245,19 +247,34 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
                     onChange={setShowLogsFromAllUsers}
                   />
                 </div>
-                <div>
+                <Grid>
                   {lastChecked && (
-                    <p title={pollTitle} className="slds-text-color_weak slds-truncate">
-                      <button
-                        className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
-                        onClick={() => fetchLogs()}
-                      >
-                        <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
-                      </button>
-                      Last Checked {formatDate(lastChecked, 'h:mm:ss')}
-                    </p>
+                    <>
+                      <Tooltip content={isPaused ? 'Resume checking for logs' : 'Pause checking for new logs'}>
+                        <button
+                          className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
+                          onClick={() => togglePause()}
+                        >
+                          <Icon type="utility" icon={isPaused ? 'play' : 'pause'} className="slds-button__icon" omitContainer />
+                        </button>
+                      </Tooltip>
+                      <p title={pollTitle} className="slds-text-color_weak slds-truncate">
+                        <button
+                          className="slds-button slds-button_icon slds-button_icon-container slds-m-around_xxx-small"
+                          onClick={() => fetchLogs()}
+                        >
+                          <Icon
+                            type="utility"
+                            icon="refresh"
+                            className={classNames('slds-button__icon', { spin: loading })}
+                            omitContainer
+                          />
+                        </button>
+                        Last Checked {formatDate(lastChecked, 'h:mm:ss')}
+                      </p>
+                    </>
                   )}
-                </div>
+                </Grid>
               </Grid>
               <DebugLogViewerTable logs={logsWithViewedFlag} onRowSelection={handleActiveLogChange} />
             </Fragment>
