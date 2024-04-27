@@ -683,29 +683,21 @@ export async function googleUploadFile(
     params: {
       uploadType: 'resumable',
       supportsAllDrives: true,
+      fields: 'webViewLink',
     },
     data: {
       name: filename,
       mimeType: targetMimeType.replace(';charset=utf-8', ''),
-      parents: [folderId].filter(Boolean),
+      parents: folderId ? [folderId] : undefined,
     },
   })
     .then((response) => ({ url: response.headers.location, fileId: response.headers['x-guploader-uploadid'] }))
     .then(({ url }) =>
-      handleExternalRequest<GoogleFileApiResponse>({
+      handleExternalRequest<GoogleFileApiResponse & { webViewLink: string }>({
         method: 'PUT',
         url,
         headers: { Authorization: `Bearer ${accessToken}` },
         data: fileData,
-      })
-    )
-    .then((response) =>
-      // Re-fetch metadata to include `webViewLink` property
-      handleExternalRequest<GoogleFileApiResponse & { webViewLink: string }>({
-        method: 'GET',
-        url: `https://www.googleapis.com/drive/v3/files/${response.data.id}`,
-        headers: { Authorization: `Bearer ${accessToken}` },
-        params: { fields: 'id, kind, mimeType, name, webViewLink', supportsAllDrives: true },
       })
     )
     .then((response) => response.data);
