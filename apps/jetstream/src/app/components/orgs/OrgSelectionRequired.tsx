@@ -55,6 +55,9 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
             <div>
               <p>There was a problem connecting your org, re-connect your org to fix it.</p>
               <p>If you recently did a sandbox refresh and have a new Organization Id, you will need to delete the old org.</p>
+              <p className="slds-m-top_x-small">
+                <strong>Message</strong>: {selectedOrg.connectionError}
+              </p>
             </div>
           </Alert>
           <div>
@@ -75,9 +78,12 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       {!selectedOrg && (
         <div>
           {hasConfiguredOrg && (
-            <Alert type="info" leadingIcon="info">
-              This action requires an org to be selected. Use the org dropdown to configure or select an org.
-            </Alert>
+            <>
+              <Alert type="info" leadingIcon="info">
+                This action requires an org to be selected. Use the org dropdown to configure or select an org.
+              </Alert>
+              <OrgWelcomeInstructions />
+            </>
           )}
           {!hasConfiguredOrg && <OrgWelcomeInstructions />}
         </div>

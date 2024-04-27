@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployOptionsTestLevel } from '@jetstream/types';
+import { DeployOptions, DeployOptionsTestLevel, SalesforceOrgUiType } from '@jetstream/types';
 import { Checkbox, Icon, Radio, RadioGroup, Textarea, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 
@@ -19,6 +19,7 @@ export interface DeployMetadataOptionsProps {
   hiddenOptions?: Set<keyof DeployOptions>;
   disabledOptions?: Set<keyof DeployOptions>;
   isSinglePackage?: boolean;
+  orgType?: SalesforceOrgUiType;
   onChange: (deployOptions: DeployOptions) => void;
 }
 
@@ -27,6 +28,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
   hiddenOptions = new Set(),
   disabledOptions = new Set(),
   isSinglePackage,
+  orgType,
   onChange,
 }) => {
   const [allowMissingFiles, setAllowMissingFiles] = useState(deployOptions.allowMissingFiles ?? false);
@@ -143,6 +145,8 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
             checked={rollbackOnError}
             label="Rollback on Error"
             labelHelp="rollbackOnError - Allow deployment to partially succeed even if there are errors with some components."
+            hasError={!rollbackOnError && orgType === 'Production'}
+            errorMessage="Rollback on Error is required for production orgs"
             onChange={setRollbackOnError}
             disabled={disabledOptions.has('rollbackOnError')}
           />

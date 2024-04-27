@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
@@ -141,7 +141,12 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
               </div>
               <div>
                 {/* OPTIONS */}
-                <DeployMetadataOptions deployOptions={deployOptions} hiddenOptions={hiddenOptions} onChange={setDeployOptions} />
+                <DeployMetadataOptions
+                  deployOptions={deployOptions}
+                  hiddenOptions={hiddenOptions}
+                  orgType={getOrgType(selectedOrg)}
+                  onChange={setDeployOptions}
+                />
               </div>
             </div>
           </GridCol>
