@@ -8,9 +8,6 @@
       }
     }
   },
-  "affected": {
-    "defaultBase": "main"
-  },
   "defaultProject": "jetstream",
   "generators": {
     "@nrwl/nest": {
@@ -166,5 +163,6 @@
         "targetName": "lint"
       }
     }
-  ]
+  ],
+  "defaultBase": "main"
 }
