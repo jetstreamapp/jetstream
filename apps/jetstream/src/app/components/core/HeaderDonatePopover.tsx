@@ -46,11 +46,11 @@ export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = 
         </div>
       }
       buttonProps={{
-        className:
-          'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
+        className: 'slds-button slds-global-actions__help cursor-pointer',
       }}
     >
-      <Icon type="custom" icon="heart" className="text-color-pink slds-button__icon slds-global-header__icon" omitContainer />
+      <Icon type="custom" icon="heart" className="text-color-pink slds-button__icon slds-m-right_x-small" omitContainer />
+      Donate
     </Popover>
   );
 };

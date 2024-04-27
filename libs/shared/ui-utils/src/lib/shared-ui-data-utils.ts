@@ -17,8 +17,8 @@ import type {
   UserTrace,
 } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
-import addHours from 'date-fns/addHours';
-import formatISO from 'date-fns/formatISO';
+import { addHours } from 'date-fns/addHours';
+import { formatISO } from 'date-fns/formatISO';
 import { composeQuery, getField } from 'soql-parser-js';
 import {
   isRelationshipField,

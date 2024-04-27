@@ -18,7 +18,7 @@ import {
 } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
-import formatDate from 'date-fns/format';
+import { formatDate } from 'date-fns/format';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';

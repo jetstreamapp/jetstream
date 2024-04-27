@@ -129,7 +129,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
               {open && (
                 <ConditionalPortal omitPortal={omitPortal} portalRef={portalRef}>
                   <HeadlessPopover.Panel
-                    ref={setPopperElement}
+                    ref={setPopperElement as any}
                     data-testid={testId}
                     style={{ ...styles.popper, ...panelStyle }}
                     {...attributes.popper}

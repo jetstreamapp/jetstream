@@ -17,11 +17,11 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import addMinutes from 'date-fns/addMinutes';
-import formatISODate from 'date-fns/formatISO';
-import isAfter from 'date-fns/isAfter';
-import isBefore from 'date-fns/isBefore';
-import startOfDay from 'date-fns/startOfDay';
+import { addMinutes } from 'date-fns/addMinutes';
+import { formatISO as formatISODate } from 'date-fns/formatISO';
+import { isAfter } from 'date-fns/isAfter';
+import { isBefore } from 'date-fns/isBefore';
+import { startOfDay } from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';

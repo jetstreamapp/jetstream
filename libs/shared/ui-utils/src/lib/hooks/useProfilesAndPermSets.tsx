@@ -1,6 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
-import { isPermissionSetWithProfile } from '../shared-ui-utils';
 import {
   ListItem,
   MapOf,
@@ -10,9 +9,10 @@ import {
   PermissionSetWithProfileRecord,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import formatRelative from 'date-fns/formatRelative';
+import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { composeQuery, getField, Query } from 'soql-parser-js';
+import { Query, composeQuery, getField } from 'soql-parser-js';
+import { isPermissionSetWithProfile } from '../shared-ui-utils';
 
 let _lastRefreshed: string;
 

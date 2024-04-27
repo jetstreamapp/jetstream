@@ -20,8 +20,8 @@ import {
   FieldType as jsforceFieldType,
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
-import fromUnixTime from 'date-fns/fromUnixTime';
-import isMatch from 'date-fns/isMatch';
+import { fromUnixTime } from 'date-fns/fromUnixTime';
+import { isMatch } from 'date-fns/isMatch';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';

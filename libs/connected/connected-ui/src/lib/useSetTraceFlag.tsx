@@ -2,10 +2,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { createDebugLevel, createOrExtendDebugTrace, getDebugLevelQuery, getTraceFlagQuery } from '@jetstream/shared/ui-utils';
 import { DebugLevel, SalesforceOrgUi, UserTrace } from '@jetstream/types';
-import addMinutes from 'date-fns/addMinutes';
-import differenceInMilliseconds from 'date-fns/differenceInMilliseconds';
-import isBefore from 'date-fns/isBefore';
-import parseISO from 'date-fns/parseISO';
+import { addMinutes } from 'date-fns/addMinutes';
+import { differenceInMilliseconds } from 'date-fns/differenceInMilliseconds';
+import { isBefore } from 'date-fns/isBefore';
+import { parseISO } from 'date-fns/parseISO';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 /**

@@ -9,7 +9,7 @@ import {
 import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
 import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import formatRelative from 'date-fns/formatRelative';
+import { formatRelative } from 'date-fns/formatRelative';
 import { Observable, Subject, from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import {

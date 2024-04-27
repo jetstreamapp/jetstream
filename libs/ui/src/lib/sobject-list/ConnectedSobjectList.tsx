@@ -3,7 +3,7 @@ import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import formatRelative from 'date-fns/formatRelative';
+import { formatRelative } from 'date-fns/formatRelative';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';

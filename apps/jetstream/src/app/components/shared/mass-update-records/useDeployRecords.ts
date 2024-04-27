@@ -4,7 +4,7 @@ import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob, queryAll } from 
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import formatDate from 'date-fns/format';
+import { formatDate } from 'date-fns/format';
 import lodashGet from 'lodash/get';
 import { useCallback, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';

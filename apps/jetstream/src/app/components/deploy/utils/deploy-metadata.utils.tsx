@@ -23,8 +23,8 @@ import {
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
-import formatISO from 'date-fns/formatISO';
-import parseISO from 'date-fns/parseISO';
+import { formatISO } from 'date-fns/formatISO';
+import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import isString from 'lodash/isString';

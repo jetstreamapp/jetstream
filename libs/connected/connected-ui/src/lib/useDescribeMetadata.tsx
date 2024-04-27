@@ -3,7 +3,7 @@ import { clearCacheForOrg, describeMetadata as describeMetadataApi } from '@jets
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderStringsBy } from '@jetstream/shared/utils';
 import { DescribeMetadataResult, MapOf, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
-import formatRelative from 'date-fns/formatRelative';
+import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { METADATA_TYPES_TO_OMIT } from './utils';
 

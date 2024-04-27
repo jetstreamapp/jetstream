@@ -2,11 +2,11 @@
 
 import { PositionLeftRight, PreviousNext } from '@jetstream/types';
 import { isAfter, isBefore, setYear } from 'date-fns';
-import addMonths from 'date-fns/addMonths';
-import formatDate from 'date-fns/format';
-import startOfDay from 'date-fns/startOfDay';
-import startOfMonth from 'date-fns/startOfMonth';
-import cloneDate from 'date-fns/toDate';
+import { addMonths } from 'date-fns/addMonths';
+import { formatDate } from 'date-fns/format';
+import { startOfDay } from 'date-fns/startOfDay';
+import { startOfMonth } from 'date-fns/startOfMonth';
+import { toDate as cloneDate } from 'date-fns/toDate';
 import { FunctionComponent, useEffect, useState } from 'react';
 import Grid from '../../grid/Grid';
 import GridCol from '../../grid/GridCol';

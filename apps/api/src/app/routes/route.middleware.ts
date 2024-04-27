@@ -6,7 +6,6 @@ import { ApplicationCookie, UserProfileServer } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
 import * as express from 'express';
-import { ValidationChain, validationResult } from 'express-validator';
 import { isNumber } from 'lodash';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
@@ -45,17 +44,6 @@ export function setApplicationCookieMiddleware(req: express.Request, res: expres
   };
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
   next();
-}
-
-export function validate(validations: ValidationChain[]) {
-  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    await Promise.all(validations.map((validation) => validation.run(req)));
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-      return next();
-    }
-    return next(new UserFacingError('The provided input is invalid', errors.array()));
-  };
 }
 
 export function notFoundMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {

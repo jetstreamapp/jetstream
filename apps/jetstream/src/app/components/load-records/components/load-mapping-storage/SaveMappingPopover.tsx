@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification, Tooltip } from '@jetstream/ui';
-import formatISO from 'date-fns/formatISO';
+import { formatISO } from 'date-fns/formatISO';
 import omit from 'lodash/omit';
 import { FunctionComponent, useMemo, useRef, useState } from 'react';
 import { useSetRecoilState } from 'recoil';

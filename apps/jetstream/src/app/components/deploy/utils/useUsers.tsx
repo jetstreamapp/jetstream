@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryAllWithCache } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
 import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import formatRelative from 'date-fns/formatRelative';
+import { formatRelative } from 'date-fns/formatRelative';
 import partition from 'lodash/partition';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { SalesforceUser } from '../deploy-metadata.types';
