@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import { Fragment, FunctionComponent, ReactNode, Suspense } from 'react';
+import { Fragment, FunctionComponent, ReactNode, Suspense, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
 import Grid from '../grid/Grid';
 
@@ -74,6 +74,8 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   isElectron,
   onUserMenuItemSelected,
 }) => {
+  const [avatarSrc, setAvatarSrc] = useState(userProfile?.picture || Avatar);
+
   return (
     <Fragment>
       {/* LOGO */}
@@ -117,7 +119,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
                 buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
                 buttonContent={
                   <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                    <img alt="Avatar" src={userProfile?.picture || Avatar} />
+                    <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
                   </span>
                 }
                 position="right"
