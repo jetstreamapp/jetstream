@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, DATE_FORMATS } from '@jetstream/shared/constants';
 import { DeployResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal, TabsRef } from '@jetstream/ui';
-import formatDate from 'date-fns/format';
+import { formatDate } from 'date-fns/format';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import ConfirmPageChange from '../../core/ConfirmPageChange';
 import OrgLabelBadge from '../../core/OrgLabelBadge';

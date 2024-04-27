@@ -9,9 +9,9 @@ import {
   QueryFilterOperator,
 } from '@jetstream/types';
 import classNames from 'classnames';
-import formatISO from 'date-fns/formatISO';
-import isValidDate from 'date-fns/isValid';
-import parseISO from 'date-fns/parseISO';
+import { formatISO } from 'date-fns/formatISO';
+import { isValid as isValidDate } from 'date-fns/isValid';
+import { parseISO } from 'date-fns/parseISO';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import { FunctionComponent, useEffect, useState } from 'react';

@@ -2,7 +2,7 @@ import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ButtonGroupContainer, DropDown, Grid, Tooltip } from '@jetstream/ui';
-import formatDate from 'date-fns/format';
+import { formatDate } from 'date-fns/format';
 import isDate from 'lodash/isDate';
 import { FunctionComponent } from 'react';
 import { FieldMappingItem } from '../../load-records-types';

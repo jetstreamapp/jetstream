@@ -11,8 +11,8 @@ import {
   QueryResultsColumns,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import parseISO from 'date-fns/parseISO';
-import startOfDay from 'date-fns/startOfDay';
+import { parseISO } from 'date-fns/parseISO';
+import { startOfDay } from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
 import { DataType, FormulaDataValue } from 'formulon';
 import lodashGet from 'lodash/get';

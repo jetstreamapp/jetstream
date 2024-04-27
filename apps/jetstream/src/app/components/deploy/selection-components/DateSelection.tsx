@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { DatePicker, Grid } from '@jetstream/ui';
-import addDays from 'date-fns/addDays';
-import isAfter from 'date-fns/isAfter';
-import isSameDay from 'date-fns/isSameDay';
+import { addDays } from 'date-fns/addDays';
+import { isAfter } from 'date-fns/isAfter';
+import { isSameDay } from 'date-fns/isSameDay';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import * as fromDeployMetadataState from '../deploy-metadata.state';

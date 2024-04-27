@@ -3,7 +3,7 @@ import { listMetadata as listMetadataApi, queryAll } from '@jetstream/shared/dat
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getMapOf, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
-import formatRelative from 'date-fns/formatRelative';
+import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_listmetadata.htm

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { Maybe } from '@jetstream/types';
-import addSeconds from 'date-fns/addSeconds';
-import isAfter from 'date-fns/isAfter';
+import { addSeconds } from 'date-fns/addSeconds';
+import { isAfter } from 'date-fns/isAfter';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';

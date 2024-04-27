@@ -8,9 +8,9 @@ import {
   SalesforceApiHistoryResponse,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import addDays from 'date-fns/addDays';
-import isBefore from 'date-fns/isBefore';
-import startOfDay from 'date-fns/startOfDay';
+import { addDays } from 'date-fns/addDays';
+import { isBefore } from 'date-fns/isBefore';
+import { startOfDay } from 'date-fns/startOfDay';
 import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';

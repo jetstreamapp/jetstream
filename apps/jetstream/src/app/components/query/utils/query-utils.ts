@@ -1,8 +1,8 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
 import { ErrorResult, ExpressionType, Field, FieldType, MapOf, Maybe, SalesforceRecord } from '@jetstream/types';
-import formatISO from 'date-fns/formatISO';
-import parseISO from 'date-fns/parseISO';
+import { formatISO } from 'date-fns/formatISO';
+import { parseISO } from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';

@@ -4,7 +4,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
 import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import formatDate from 'date-fns/format';
+import { formatDate } from 'date-fns/format';
 import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';

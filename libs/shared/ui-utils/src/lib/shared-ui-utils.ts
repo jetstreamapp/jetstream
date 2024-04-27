@@ -35,7 +35,7 @@ import type {
   UseReducerFetchAction,
   UseReducerFetchState,
 } from '@jetstream/types';
-import parseISO from 'date-fns/parseISO';
+import { parseISO } from 'date-fns/parseISO';
 import { saveAs } from 'file-saver';
 import safeGet from 'lodash/get';
 import isFunction from 'lodash/isFunction';

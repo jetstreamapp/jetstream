@@ -1,10 +1,10 @@
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useAmplitude } from './analytics';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface HeaderDonatePopoverProps {}
-
-export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = () => {
+export const HeaderDonatePopover = () => {
+  const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
 
@@ -17,40 +17,51 @@ export const HeaderDonatePopover: FunctionComponent<HeaderDonatePopoverProps> = 
 
   function closePopover() {
     popoverRef.current?.close();
+    trackEvent(ANALYTICS_KEYS.donate_popover_cta_click);
   }
 
   return (
     <Popover
       ref={popoverRef}
       placement="bottom-end"
+      onChange={(isOpen) => isOpen && trackEvent(ANALYTICS_KEYS.donate_popover_open)}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Get Help">
-            Support Jetstream
+            Support the Future of Jetstream
           </h2>
         </header>
       }
       content={
         <div>
-          <p>Jetstream is a source-available project and is paid for and supported by the community.</p>
+          <p>Jetstream thrives on the generosity and support of its community.</p>
+          <p className="slds-m-top_x-small">
+            Jetstream not only offers you a comprehensive suite of tools that save time, enhance productivity, and streamline data
+            management, but also delivers a best-in-class experience for managing Salesforce effectively.
+          </p>
+          <p className="slds-m-top_x-small">
+            <strong>
+              If Jetstream has made a difference in your work, please consider supporting us with a one-time or monthly donation.
+            </strong>
+          </p>
           <a
             href="https://github.com/sponsors/jetstreamapp"
-            className="slds-button slds-button_brand slds-m-top_medium"
+            className="slds-button slds-button_brand slds-button_stretch slds-m-top_medium"
             target="_blank"
             rel="noreferrer"
             onClick={closePopover}
           >
             <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
-            Become a sponsor
+            Donate Now
           </a>
         </div>
       }
       buttonProps={{
-        className:
-          'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
+        className: 'slds-button slds-button_brand slds-global-actions__help cursor-pointer',
       }}
     >
-      <Icon type="custom" icon="heart" className="text-color-pink slds-button__icon slds-global-header__icon" omitContainer />
+      <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
+      Donate
     </Popover>
   );
 };

@@ -1,10 +1,10 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
-import addMinutes from 'date-fns/addMinutes';
-import formatDate from 'date-fns/format';
-import isSameDay from 'date-fns/isSameDay';
-import parseDate from 'date-fns/parse';
-import React, { FunctionComponent, useState } from 'react';
+import { addMinutes } from 'date-fns/addMinutes';
+import { formatDate } from 'date-fns/format';
+import { isSameDay } from 'date-fns/isSameDay';
+import { parse as parseDate } from 'date-fns/parse';
+import { FunctionComponent, useState } from 'react';
 import Picklist, { PicklistProps } from '../picklist/Picklist';
 
 type PicklistPropsWithoutItems = Omit<

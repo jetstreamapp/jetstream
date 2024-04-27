@@ -36,7 +36,7 @@ import {
   UserProfileUi,
   UserProfileUiWithIdentities,
 } from '@jetstream/types';
-import parseISO from 'date-fns/parseISO';
+import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';

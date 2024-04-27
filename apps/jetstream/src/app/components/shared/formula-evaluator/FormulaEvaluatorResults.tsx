@@ -1,7 +1,7 @@
 import { Maybe } from '@jetstream/types';
 import { Grid, ScopedNotification } from '@jetstream/ui';
-import formatISO from 'date-fns/formatISO';
-import isValid from 'date-fns/isValid';
+import { formatISO } from 'date-fns/formatISO';
+import { isValid } from 'date-fns/isValid';
 import * as formulon from 'formulon';
 import { FunctionComponent } from 'react';
 

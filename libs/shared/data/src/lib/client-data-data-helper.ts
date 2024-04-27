@@ -19,7 +19,7 @@ import axios, {
   InternalAxiosRequestConfig,
   RawAxiosResponseHeaders,
 } from 'axios';
-import parseISO from 'date-fns/parseISO';
+import { parseISO } from 'date-fns/parseISO';
 import isEmpty from 'lodash/isEmpty';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';

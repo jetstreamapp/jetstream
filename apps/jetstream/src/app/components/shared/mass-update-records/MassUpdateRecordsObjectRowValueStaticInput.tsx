@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { Field, ListItem, Maybe } from '@jetstream/types';
 import { ControlledInput, DatePicker, DateTime, DropDown, Grid, Input, Picklist } from '@jetstream/ui';
-import formatISO from 'date-fns/formatISO';
+import { formatISO } from 'date-fns/formatISO';
 import { FunctionComponent, useMemo, useState } from 'react';
 
 const manualInputTypes = new Set(['date', 'datetime', 'boolean', 'picklist', 'multipicklist']);

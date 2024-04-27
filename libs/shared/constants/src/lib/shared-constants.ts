@@ -263,6 +263,10 @@ export const ANALYTICS_KEYS = {
   settings_unlink_account: 'settings_unlink_account',
   settings_resend_email_verification: 'settings_resend_email_verification',
   settings_delete_account: 'settings_delete_account',
+
+  /** FEEDBACK */
+  donate_popover_open: 'donate_popover_open',
+  donate_popover_cta_click: 'donate_popover_cta_click',
 } as const;
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];

@@ -39,10 +39,7 @@ if (ENV.HONEYCOMB_ENABLED) {
     instrumentations: [getNodeAutoInstrumentations()],
   });
 
-  sdk
-    .start()
-    .then(() => logger.debug('[TELEMETRY] Tracing initialized'))
-    .catch((error) => logger.error(getExceptionLog(error), '[TELEMETRY] Error initializing tracing'));
+  sdk.start();
 
   process.on('SIGTERM', () => {
     sdk
