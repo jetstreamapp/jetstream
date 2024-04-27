@@ -5541,11 +5541,6 @@
   resolved "https://registry.npmjs.org/@leichtgewicht/ip-codec/-/ip-codec-2.0.4.tgz"
   integrity sha512-Hcv+nVC0kZnQ3tD9GVu5xSMR4VVYOteQIr/hwFPVEvPdlXqgGEuRjiheChHgdM+JyqdgNcmzZOX/tnl0JOiI7A==
 
-"@mands/nx-playwright@0.6.2":
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/@mands/nx-playwright/-/nx-playwright-0.6.2.tgz#284bc328d777e95a9eb30dc72d330685be56e017"
-  integrity sha512-zgW3K8ihRgSaiSPCz+jeMsIZ7M7J5Eo7/YiTSjWtC4tAazx+QjZT31rHM3IpQHv41cUXdkeNWuJk1qdOWUwEgA==
-
 "@maxim_mazurok/gapi.client.discovery-v1@latest":
   version "0.1.20200806"
   resolved "https://registry.yarnpkg.com/@maxim_mazurok/gapi.client.discovery-v1/-/gapi.client.discovery-v1-0.1.20200806.tgz#1bdb82fadd659a159765178993dff6dbcb5968bc"
@@ -6044,6 +6039,18 @@
   version "18.3.4"
   resolved "https://registry.yarnpkg.com/@nx/nx-win32-x64-msvc/-/nx-win32-x64-msvc-18.3.4.tgz#73564706abd46b480b6f6482d1a7103738aa8f8a"
   integrity sha512-/RqEjNU9hxIBxRLafCNKoH3SaB2FShf+1ZnIYCdAoCZBxLJebDpnhiyrVs0lPnMj9248JbizEMdJj1+bs/bXig==
+
+"@nx/playwright@18.3.4":
+  version "18.3.4"
+  resolved "https://registry.yarnpkg.com/@nx/playwright/-/playwright-18.3.4.tgz#f45752b939b5dc27e16f3c45c0985bae0bdfbc1b"
+  integrity sha512-M6IjSwUkzOKRvaMYfHJVrItBVJ22ojB3oCovzo0J7qx2o0za62o+lo3cbwfmtEqMlgvl0EX8cptlvDTQJFJopQ==
+  dependencies:
+    "@nx/devkit" "18.3.4"
+    "@nx/eslint" "18.3.4"
+    "@nx/js" "18.3.4"
+    "@phenomnomnominal/tsquery" "~5.0.1"
+    minimatch "9.0.3"
+    tslib "^2.3.0"
 
 "@nx/plugin@18.3.4":
   version "18.3.4"
@@ -14722,6 +14729,11 @@ eslint-plugin-jsx-a11y@^6.7.1, eslint-plugin-jsx-a11y@^6.8.0:
     minimatch "^3.1.2"
     object.entries "^1.1.7"
     object.fromentries "^2.0.7"
+
+eslint-plugin-playwright@^0.15.3:
+  version "0.15.3"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-playwright/-/eslint-plugin-playwright-0.15.3.tgz#9fd8753688351bcaf41797eb6a7df8807fd5eb1b"
+  integrity sha512-LQMW5y0DLK5Fnpya7JR1oAYL2/7Y9wDiYw6VZqlKqcRGSgjbVKNqxraphk7ra1U3Bb5EK444xMgUlQPbMg2M1g==
 
 "eslint-plugin-react-hooks@^4.5.0 || 5.0.0-canary-7118f5dd7-20230705":
   version "4.6.0"
@@ -24044,6 +24056,13 @@ svgo@^3.0.2:
     css-tree "^2.2.1"
     csso "^5.0.5"
     picocolors "^1.0.0"
+
+swc-loader@0.1.15:
+  version "0.1.15"
+  resolved "https://registry.yarnpkg.com/swc-loader/-/swc-loader-0.1.15.tgz#cb9c630ccfbb46dabc5aebc5560cced658e32992"
+  integrity sha512-cn1WPIeQJvXM4bbo3OwdEIapsQ4uUGOfyFj0h2+2+brT0k76DCGnZXDE2KmcqTd2JSQ+b61z2NPMib7eEwMYYw==
+  dependencies:
+    loader-utils "^2.0.0"
 
 swc-loader@^0.2.3:
   version "0.2.3"
