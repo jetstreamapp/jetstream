@@ -1,3 +1,4 @@
+import { getExceptionLog } from '@jetstream/api-config';
 import { addMonths, endOfDay, format, startOfMonth } from 'date-fns';
 import { mailgun } from './config/email.config';
 import { logger } from './config/logger.config';
@@ -23,7 +24,7 @@ const MONTHS_UNTIL_DELETE = 1;
     q: `(NOT _exists_:last_login OR last_login:[* TO ${lastLoginDateCutoff}]) AND NOT _exists_:app_metadata.accountDeletionDate`,
   };
 
-  logger.debug('[inactive-account-warning][FETCHING USERS] %o', { lastLoginDateCutoff, accountDeletionDate, params }, { cronTask: true });
+  logger.debug({ lastLoginDateCutoff, accountDeletionDate, params }, '[inactive-account-warning][FETCHING USERS]');
 
   /**
    * GET USERS TO DELETE
@@ -33,18 +34,14 @@ const MONTHS_UNTIL_DELETE = 1;
   let successEmailCount = 0;
   let successAuth0UpdateCount = 0;
 
-  logger.debug('[inactive-account-warning][FOUND USERS] %o', { usersToNotifyLength: usersToNotify.length }, { cronTask: true });
+  logger.debug({ usersToNotifyLength: usersToNotify.length }, '[inactive-account-warning][FOUND USERS]');
 
   for (const user of usersToNotify) {
     /**
      * Send Email to Users
      */
     try {
-      logger.debug(
-        '[inactive-account-warning][SENDING EMAIL] %o',
-        { userId: user.user_id, email: user.email },
-        { cronTask: true, userId: user.user_id }
-      );
+      logger.debug({ userId: user.user_id, email: user.email }, '[inactive-account-warning][SENDING EMAIL]');
       // https://documentation.mailgun.com/en/latest/api-sending.html#sending
       await mailgun.messages.create('mail.getjetstream.app', {
         from: 'Jetstream Support <support@getjetstream.app>',
@@ -79,19 +76,11 @@ const MONTHS_UNTIL_DELETE = 1;
 
         successAuth0UpdateCount += 1;
 
-        logger.debug(
-          '[inactive-account-warning][USER UPDATED] %o',
-          { userId: user.user_id, email: user.email, accountDeletionDate },
-          { cronTask: true, userId: user.user_id }
-        );
+        logger.debug({ userId: user.user_id, email: user.email, accountDeletionDate }, '[inactive-account-warning][USER UPDATED]');
       } catch (ex) {
         failedCount += 1;
         // failed to update auth0
-        logger.error(
-          '[inactive-account-warning][AUTH0 UPDATE][ERROR] %o',
-          { message: ex.message, stack: ex.stack },
-          { cronTask: true, userId: user.user_id }
-        );
+        logger.error({ ...getExceptionLog(ex), userId: user.user_id }, '[inactive-account-warning][AUTH0 UPDATE][ERROR]');
         logExceptionToSlack('[inactive-account-warning][AUTH0 UPDATE][ERROR]', {
           userId: user.user_id,
           message: ex.message,

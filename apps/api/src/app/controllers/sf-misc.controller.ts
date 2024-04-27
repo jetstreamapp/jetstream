@@ -66,8 +66,6 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
   }
 });
 
-// https://github.com/jsforce/jsforce/issues/934
-// TODO: the api version in the urls needs to match - we should not have this hard-coded on front-end
 const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
     const payload = body;

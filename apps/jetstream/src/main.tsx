@@ -9,7 +9,6 @@ import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-s
 import { createRoot } from 'react-dom/client';
 import App from './app/app';
 import './main.scss';
-import classNames from 'classnames';
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const container = document.getElementById('root')!;
@@ -19,7 +18,7 @@ if (location.hostname === 'localhost' && !location.pathname.includes('/app')) {
 }
 
 createRoot(container).render(
-  <div className={classNames('app', { 'is-electron': window.electron?.isElectron })}>
+  <div className="app">
     <CONFIG.Router basename={CONFIG.baseName}>
       <App />
     </CONFIG.Router>

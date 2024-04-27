@@ -10,7 +10,7 @@ const axiosAuth0 = axios.create({
 const BASIC_AUTH_HEADER = `Basic ${Buffer.from(`${ENV.AMPLITUDE_API_KEY}:${ENV.AMPLITUDE_SECRET_KEY}`).toString('base64')}`;
 
 export async function getAmplitudeChart(chartId: string) {
-  logger.log('info', `getAmplitudeChart: ${chartId}`);
+  logger.info(`getAmplitudeChart: ${chartId}`);
   return await axiosAuth0
     .get<AmplitudeChartResult>(`/chart/${chartId}/query`, {
       headers: {

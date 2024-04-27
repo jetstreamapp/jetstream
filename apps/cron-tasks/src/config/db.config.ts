@@ -1,3 +1,4 @@
+import { getExceptionLog } from '@jetstream/api-config';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { ENV } from './env-config';
@@ -22,11 +23,11 @@ export const pgPool = new Pool({
 pgPool.on('connect', (client) => {
   // logger.info('[DB][POOL] Connected');
   client.on('error', (err) => {
-    logger.error('[DB][CLIENT][ERROR] Unexpected error on client. %o', err);
+    logger.error(getExceptionLog(err), '[DB][CLIENT][ERROR] Unexpected error on client');
   });
 });
 
 pgPool.on('error', (err, client) => {
-  logger.error('[DB][POOL][ERROR] Unexpected error on idle client. %o', err);
+  logger.error(getExceptionLog(err), '[DB][POOL][ERROR] Unexpected error on idle client');
   process.exit(-1);
 });

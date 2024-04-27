@@ -1,3 +1,4 @@
+import { getExceptionLog } from '@jetstream/api-config';
 import type { Auth0PaginatedResponse, UserProfileAuth0, UserProfileAuth0Ui } from '@jetstream/types';
 import axios, { AxiosError } from 'axios';
 import { addHours, addSeconds, isBefore } from 'date-fns';
@@ -42,13 +43,13 @@ async function initAuthorizationToken() {
     _expires = addHours(addSeconds(new Date(), response.data.expires_in), -1);
     axiosAuth0.defaults.headers.common['Authorization'] = `Bearer ${_accessToken}`;
   } catch (ex) {
-    logger.error('[AUTH0][M2M][ERROR] Obtaining token %s', ex.message);
+    logger.error(getExceptionLog(ex), '[AUTH0][M2M][ERROR] Obtaining token');
     if (ex.isAxiosError) {
       const error: AxiosError = ex;
       if (error.response) {
-        logger.error('[AUTH0][M2M][ERROR][RESPONSE] %o', error.response.data);
+        logger.error(getExceptionLog(error), '[AUTH0][M2M][ERROR][RESPONSE] %o', error.response.data);
       } else if (error.request) {
-        logger.error('[AUTH0][M2M][ERROR][REQUEST] %s', error.message || 'An unknown error has occurred.');
+        logger.error(getExceptionLog(error), '[AUTH0][M2M][ERROR][REQUEST] %s', error.message || 'An unknown error has occurred.');
       }
     }
     throw new Error('An unknown error has occurred');

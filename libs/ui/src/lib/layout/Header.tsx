@@ -1,9 +1,7 @@
-import { css } from '@emotion/react';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { Fragment, FunctionComponent, ReactNode, Suspense, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
-import Grid from '../grid/Grid';
 
 export interface HeaderProps {
   userProfile: Maybe<UserProfileUi>;
@@ -12,7 +10,6 @@ export interface HeaderProps {
   userMenuItems: DropDownItem[];
   rightHandMenuItems?: ReactNode;
   // notification?: ReactNode;
-  isElectron?: boolean;
   onUserMenuItemSelected: (id: string) => void;
   children?: React.ReactNode;
 }
@@ -23,44 +20,22 @@ export const Header: FunctionComponent<HeaderProps> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
-  isElectron,
   onUserMenuItemSelected,
   children,
 }) => {
-  if (!isElectron) {
-    return (
-      <header className="slds-global-header_container branding-header slds-no-print">
-        <div className="slds-global-header slds-grid slds-grid_align-spread">
-          <HeaderContent
-            userProfile={userProfile}
-            logo={logo}
-            orgs={orgs}
-            rightHandMenuItems={rightHandMenuItems}
-            userMenuItems={userMenuItems}
-            onUserMenuItemSelected={onUserMenuItemSelected}
-          />
-        </div>
-        {children}
-      </header>
-    );
-  }
-
   return (
-    <header className="">
-      <div className="global-titlebar draggable">
-        <Grid align="spread" verticalAlign="center" className="titlebar draggable">
-          <HeaderContent
-            userProfile={userProfile}
-            logo={logo}
-            orgs={orgs}
-            rightHandMenuItems={rightHandMenuItems}
-            userMenuItems={userMenuItems}
-            isElectron={isElectron}
-            onUserMenuItemSelected={onUserMenuItemSelected}
-          />
-        </Grid>
+    <header className="slds-global-header_container branding-header slds-no-print">
+      <div className="slds-global-header slds-grid slds-grid_align-spread">
+        <HeaderContent
+          userProfile={userProfile}
+          logo={logo}
+          orgs={orgs}
+          rightHandMenuItems={rightHandMenuItems}
+          userMenuItems={userMenuItems}
+          onUserMenuItemSelected={onUserMenuItemSelected}
+        />
       </div>
-      <div className="electron-navbar">{children}</div>
+      {children}
     </header>
   );
 };
@@ -71,7 +46,6 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
-  isElectron,
   onUserMenuItemSelected,
 }) => {
   const [avatarSrc, setAvatarSrc] = useState(userProfile?.picture || Avatar);
@@ -79,22 +53,9 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   return (
     <Fragment>
       {/* LOGO */}
-      {isElectron ? (
-        <div className="slds-global-header__item draggable">
-          <div
-            css={css`
-              height: 2.5rem;
-            `}
-            className="draggable"
-          >
-            {logo}
-          </div>
-        </div>
-      ) : (
-        <div className="slds-global-header__item draggable">
-          <div className="slds-global-header__logo draggable" style={{ backgroundImage: `url(${logo})` }}></div>
-        </div>
-      )}
+      <div className="slds-global-header__item draggable">
+        <div className="slds-global-header__logo draggable" style={{ backgroundImage: `url(${logo})` }}></div>
+      </div>
       {/* ORGS */}
       {orgs && (
         <Suspense fallback={<div>Loading...</div>}>

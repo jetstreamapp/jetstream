@@ -745,7 +745,7 @@ async function collectCustomPermissions({
   // Get all custom permissions assigned to profile and permission sets
   const customPermissions = new Set(
     [...profileMetadata, ...permissionSets].flatMap((item) => {
-      // readMetadata sometimes returns objects instead of array because of XML parsing done by JSForce
+      // readMetadata sometimes returns objects instead of array because of XML parsing
       let customPermissions = item.customPermissions || [];
       if (!Array.isArray(customPermissions)) {
         customPermissions = [customPermissions];

@@ -3,18 +3,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream-e2e/src",
   "projectType": "application",
+  "implicitDependencies": ["jetstream"],
   "targets": {
     "e2e": {
-      "executor": "@mands/nx-playwright:playwright-executor",
+      "executor": "@nx/playwright:playwright",
+      "outputs": ["{workspaceRoot}/dist/.playwright/apps/jetstream-e2e"],
       "options": {
-        "e2eFolder": "apps/jetstream-e2e",
-        "devServerTarget": "jetstream:serve",
-        "packageRunner": "yarn"
-      },
-      "configurations": {
-        "production": {
-          "devServerTarget": "jetstream:serve:production"
-        }
+        "config": "apps/jetstream-e2e/playwright.config.ts"
       }
     },
     "e2e-ci": {
@@ -30,22 +25,6 @@
           "dependencies": true
         }
       ]
-    },
-    "ts-check": {
-      "executor": "nx:run-commands",
-      "options": {
-        "commands": [
-          {
-            "command": "tsc --build --force --verbose apps/jetstream-e2e/tsconfig.json"
-          }
-        ]
-      }
-    },
-    "lint": {
-      "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"]
     }
-  },
-  "tags": ["e2e"],
-  "implicitDependencies": ["jetstream", "api"]
+  }
 }

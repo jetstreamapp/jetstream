@@ -115,7 +115,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     fileNameParts: [],
   });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
-  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
     isMounted.current = true;

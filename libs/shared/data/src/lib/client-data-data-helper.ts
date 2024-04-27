@@ -11,7 +11,6 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import axios, {
-  AxiosAdapter,
   AxiosError,
   AxiosRequestConfig,
   AxiosResponse,
@@ -69,17 +68,6 @@ function getHeader(headers: RawAxiosResponseHeaders | AxiosResponseHeaders, head
 }
 
 const baseConfig: Partial<InternalAxiosRequestConfig> = {};
-
-export function initForElectron(adapter: AxiosAdapter) {
-  // use MessagePort adapter for communicating with server
-  baseConfig.adapter = adapter;
-}
-
-export function initForElectronWorker() {
-  baseConfig.baseURL = 'http://localhost/worker';
-  // use MessagePort adapter for communicating with server
-  // baseConfig.adapter = adapter;
-}
 
 /** Use for API calls going to external locations */
 export async function handleExternalRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {

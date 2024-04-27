@@ -1,3 +1,4 @@
+import { getExceptionLog } from '@jetstream/api-config';
 import { prisma } from './config/db.config';
 import { logger } from './config/logger.config';
 import { getAmplitudeChart } from './utils/amplitude-dashboard-api';
@@ -65,11 +66,11 @@ const CHART_IDS = {
       },
     });
 
-    logger.info('[ANALYTICS SUMMARY] Query data saved', { queryResults });
+    logger.info({ queryResults }, '[ANALYTICS SUMMARY] Query data saved');
 
     logger.info('[ANALYTICS SUMMARY] Done');
   } catch (ex) {
-    logger.error('[ANALYTICS SUMMARY][ERROR] %o', ex.message);
+    logger.error(getExceptionLog(ex), '[ANALYTICS SUMMARY][ERROR]');
     logger.error(ex.stack);
   }
 })();

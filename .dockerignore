@@ -10,7 +10,6 @@
 app
 apps/landing/.next
 dist
-electron-scripts
 logs
 node_modules
 npm-debug.log
@@ -38,9 +37,7 @@ Thumbs.db
 # Not required for core jetstream
 apps/cron-tasks
 apps/docs
-apps/electron
 apps/jetstream-e2e
-electron-scripts
 *#
 *~
 .DS_Store

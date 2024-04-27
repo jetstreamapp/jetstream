@@ -34,20 +34,14 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 │   ├── cron-tasks
 │   ├── docs (DOCS WEBSITE)
 │   ├── download-zip-sw
-│   ├── electron (DESKTOP APPLICATIONS)
-│   │   ├── jetstream (DESKTOP BACKEND)
-│   │   ├── preferences (DESKTOP PREFERENCES)
-│   │   └── worker (DESKTOP WORKER - REPLACES API BACKEND NODE SERVER)
 │   ├── jetstream (FRONTEND REACT APPLICATION)
 │   ├── jetstream-e2e
 │   ├── jetstream-worker
 │   ├── landing (LANDING PAGE WEBSITE)
 │   ├── maizzle (EMAIL TEMPLATE GENERATION)
 │   └── ui-e2e
-├── build (DESKTOP BUILD)
 ├── custom-typings
 ├── dist (FOLDER CREATED ONCE APPLICATION IS BUILT)
-├── electron-scripts
 ├── libs (CORE LIBRARIES SHARED ACROSS ALL APPLICATIONS)
 │   ├── api-config
 │   ├── connected (FRONTEND DATA LIBRARY)
@@ -180,38 +174,3 @@ If you want to create your own:
 2. Run `docker compose up` in your terminal
    1. This may take a while the very first time
    2. If you make any changes, you need to re-build the application using `docker compose build`
-
-## Desktop Application
-
-This is a work in progress and may be removed as an available option.
-
-### Local development
-
-- Start jetstream local server
-  - `yarn start`
-- Start electron-worker in watch mode (background renderer - rebuild on changes)
-  - `yarn start:electron-worker`
-- Start electron app
-  - `yarn start:electron`
-
-## Packaging
-
-Packaging can only be done by resources that have access to the Apple Developer account.
-
-1. Ensure the following environment variables are set
-   1. `APPLE_ID`, `APPLE_ID_PASSWORD`, `APPLE_TEAM_ID`, `GH_TOKEN`
-2. Ensure all the certificates are installed
-   1. Login to [apple.developer](https://developer.apple.com/account/resources/certificates/list)
-   2. Download each certificate
-   3. install in system keychain
-   4. OR - if that does not work, open xcode > preferences > accounts > Manage certificates > Add App and Developer certificate
-3. Build application using Desktop build
-   1. `yarn build:electron`
-   2. Run `yarn electron:package:concurrently`
-      1. Or run each command individually if testing specific build `yarn electron:dist:macos`, `yarn electron:dist:macos-arm64`, `yarn electron:dist:win`
-
-#### Signing resources
-
-- Apple
-  - https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
-  - https://www.electronjs.org/docs/latest/tutorial/mac-app-store-submission-guide

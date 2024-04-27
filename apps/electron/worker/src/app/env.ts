@@ -1,4 +1,0 @@
-export const ENV = {
-  SFDC_CLIENT_ID: '3MVG94YrNIs0WS4d2PK0lDfKIz_loKEkofpaTrvi7_3g_tLRZSQ9_XNQpSmtNVMs7hnO77x3RqRGaxy86vnK_',
-  sfdcFallbackApiVersion: process.env.NX_SFDC_API_VERSION,
-};

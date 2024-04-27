@@ -20,7 +20,7 @@ export function useDeployRecords(
 ) {
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const isMounted = useRef(true);
-  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
 

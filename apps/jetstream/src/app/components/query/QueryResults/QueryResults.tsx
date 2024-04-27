@@ -117,7 +117,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
   );
-  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const { confirm } = useConfirmation();
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{

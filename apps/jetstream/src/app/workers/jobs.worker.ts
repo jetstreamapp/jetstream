@@ -13,7 +13,6 @@ import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
   bulkApiAddBatchToJob,
   bulkApiCreateJob,
-  initForElectron,
   queryMore,
   retrieveMetadataFromListMetadata,
   retrieveMetadataFromManifestFile,
@@ -44,7 +43,6 @@ import type {
 } from '@jetstream/types';
 import clamp from 'lodash/clamp';
 import isString from 'lodash/isString';
-import { axiosElectronAdapter, initMessageHandler } from '../components/core/electron-axios-adapter';
 
 declare const self: DedicatedWorkerGlobalScope;
 logger.log('[JOBS WORKER] INITIALIZED');
@@ -66,11 +64,6 @@ self.addEventListener('message', (event) => {
 async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload, port?: MessagePort) {
   const { org, job } = payloadData || {};
   switch (name) {
-    case 'isElectron': {
-      initForElectron(axiosElectronAdapter);
-      initMessageHandler(port);
-      break;
-    }
     case 'CancelJob': {
       const { job } = payloadData as AsyncJobWorkerMessagePayload<CancelJob>;
       cancelledJobIds.add(job.id);
@@ -95,7 +88,7 @@ async function handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMess
           try {
             // TODO: add progress notification and allow cancellation
             let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
-            tempResults = ensureArray(tempResults); // FIXME: should not need this anymore after moving off of JSForce
+            tempResults = ensureArray(tempResults);
             tempResults.forEach((result) => results.push(result));
           } catch (ex) {
             logger.error('There was a problem deleting these records');

@@ -1,5 +1,6 @@
-import { logger } from '../config/logger.config';
+import { getExceptionLog } from '@jetstream/api-config';
 import SlackNotify from 'slack-notify';
+import { logger } from '../config/logger.config';
 import { DeleteResult } from './types';
 const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
 const channel = '#auth0-notifications';
@@ -87,7 +88,7 @@ export async function logExceptionToSlack(message: string, errors: any): Promise
       ],
     });
   } catch (ex) {
-    logger.error('[ERROR] Sending to slack %s', errors);
+    logger.error(getExceptionLog(ex), '[ERROR] Sending to slack');
   }
 }
 

@@ -18,12 +18,10 @@ function init(appCookie: ApplicationCookie, version: string) {
   if (!environment.amplitudeToken) {
     return;
   }
-  const config: Config | undefined = !window.electron?.isElectron
-    ? {
-        apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
-        forceHttps: false,
-      }
-    : undefined;
+  const config: Config | undefined = {
+    apiEndpoint: `${appCookie.serverUrl.replace(REMOVE_PROTO_REGEX, '')}/analytics`,
+    forceHttps: false,
+  };
   amplitude.getInstance().init(environment.amplitudeToken, undefined, config);
   amplitude.getInstance().setVersionName(version);
 }
@@ -62,7 +60,7 @@ export function useAmplitude(optOut?: boolean) {
         .set('email-verified', userProfile.email_verified)
         .set('environment', appCookie.environment)
         .add('app-init-count', 1)
-        .add('application-type', window.electron?.platform || 'web');
+        .add('application-type', 'web');
 
       if (userPreferences.deniedNotifications) {
         identify.set('denied-notifications', userPreferences.deniedNotifications);

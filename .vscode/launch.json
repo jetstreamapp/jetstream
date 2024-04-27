@@ -35,15 +35,6 @@
       "skipFiles": ["<node_internals>/**"]
     },
     {
-      "name": "Attach to Electron Server",
-      "type": "node",
-      "request": "attach",
-      "port": 5858,
-      "sourceMaps": true,
-      "restart": true,
-      "skipFiles": ["<node_internals>/**"]
-    },
-    {
       "name": "Attach to Job Worker",
       "type": "node",
       "request": "attach",
