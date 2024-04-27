@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -118,7 +118,12 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
               />
               <div>
                 {/* OPTIONS */}
-                <DeployMetadataOptions deployOptions={deployOptions} hiddenOptions={DISABLED_OPTIONS} onChange={setDeployOptions} />
+                <DeployMetadataOptions
+                  deployOptions={deployOptions}
+                  hiddenOptions={DISABLED_OPTIONS}
+                  orgType={getOrgType(destinationOrg)}
+                  onChange={setDeployOptions}
+                />
               </div>
             </div>
           </GridCol>

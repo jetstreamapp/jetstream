@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
@@ -175,7 +175,12 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
               </div>
               <div>
                 {/* OPTIONS */}
-                <DeployMetadataOptions deployOptions={deployOptions} isSinglePackage={isSinglePackage} onChange={setDeployOptions} />
+                <DeployMetadataOptions
+                  deployOptions={deployOptions}
+                  isSinglePackage={isSinglePackage}
+                  orgType={getOrgType(destinationOrg)}
+                  onChange={setDeployOptions}
+                />
               </div>
             </div>
           </GridCol>

@@ -1,5 +1,6 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
-import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
 import { CallbackParamsType } from 'openid-client';
 import { z } from 'zod';
@@ -123,6 +124,9 @@ export async function initConnectionFromOAuthResponse({ jetstreamConn, userId }:
     }
   } catch (ex) {
     logger.warn({ userId, ...getExceptionLog(ex) }, 'Error getting org info %o', ex);
+    if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(ex.message)) {
+      throw new Error(ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
+    }
   }
 
   const orgName = companyInfoRecord?.Name || 'Unknown Organization';

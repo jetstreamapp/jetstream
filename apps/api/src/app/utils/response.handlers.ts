@@ -92,6 +92,14 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       } catch (ex) {
         responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG');
       }
+    } else if (ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(err.message) && !!res.locals?.org) {
+      try {
+        res.set(HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR, ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG);
+        const org = res.locals.org as SalesforceOrg;
+        await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG });
+      } catch (ex) {
+        responseLogger.warn(getExceptionLog(ex), '[RESPONSE][ERROR UPDATING INVALID ORG');
+      }
     }
 
     if (err instanceof UserFacingError) {

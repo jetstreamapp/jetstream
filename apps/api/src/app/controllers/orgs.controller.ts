@@ -1,5 +1,7 @@
 import { getExceptionLog } from '@jetstream/api-config';
+import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
+import { SObjectOrganization } from '@jetstream/types';
 import { z } from 'zod';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { UserFacingError } from '../utils/error-handler';
@@ -81,10 +83,25 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
     try {
       await jetstreamConn.org.identity();
       connectionError = null;
-      req.log.warn('[ORG CHECK][VALID ORG]');
+      req.log.warn('[ORG CHECK][VALID ORG][IDENTITY]');
     } catch (ex) {
       connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
       req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', ex.message);
+    }
+
+    // Ensure full API access, identity API works even without API access
+    if (!connectionError) {
+      // ensure api access is enabled
+      try {
+        await jetstreamConn.query.query<SObjectOrganization>(`SELECT Id, TrialExpirationDate FROM Organization`);
+        connectionError = null;
+        req.log.warn('[ORG CHECK][VALID ORG][API ACCESS]');
+      } catch (ex) {
+        if (ex instanceof ApiRequestError && ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED.test(ex.message)) {
+          connectionError = ERROR_MESSAGES.SFDC_REST_API_NOT_ENABLED_MSG;
+          req.log.warn(getExceptionLog(ex), '[ORG CHECK][INVALID ORG] %s', ex.message);
+        }
+      }
     }
 
     try {
