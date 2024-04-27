@@ -66,7 +66,7 @@ export default function useCreateFields({
   sObjects,
 }: UseCreateFieldsOptions) {
   const rollbar = useRollbar();
-  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [loading, setLoading] = useState(false);
   const [_results, setResults] = useState<CreateFieldsResults[]>([]);
   const [resultsById, setResultsById] = useState<MapOf<CreateFieldsResults>>({});

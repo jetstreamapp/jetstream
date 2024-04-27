@@ -17,7 +17,7 @@ import {
   QueryResultsColumn,
   SalesforceRecord,
   SoapNil,
-  FieldType as jsforceFieldType,
+  FieldType as jetstreamFieldType,
 } from '@jetstream/types';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
@@ -32,6 +32,7 @@ import orderBy from 'lodash/orderBy';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function NOOP() {}
 
 export function getErrorMessage(error: unknown) {
@@ -181,7 +182,7 @@ export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T
   if (!items || items.length === 0) {
     return [[]];
   }
-  let output: T[][] = [];
+  const output: T[][] = [];
   let currSet: T[] = [];
   items.forEach((item) => {
     if (currSet.length < maxSize) {
@@ -197,7 +198,7 @@ export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T
   return output;
 }
 
-export function toBoolean(value: Maybe<boolean | string>, defaultValue: boolean = false) {
+export function toBoolean(value: Maybe<boolean | string>, defaultValue = false) {
   if (isBoolean(value)) {
     return value;
   }
@@ -217,21 +218,21 @@ export function toNumber(value: Maybe<number | string>) {
   return value;
 }
 
-export function truncate(value: string, maxLength: number, trailingChar: string = '...'): string {
+export function truncate(value: string, maxLength: number, trailingChar = '...'): string {
   if (!value || value.length <= maxLength) {
     return value;
   }
   return `${value.substring(0, maxLength)}${trailingChar}`;
 }
 
-export function pluralizeIfMultiple(value: string, items: any[], plural: string = 's'): string {
+export function pluralizeIfMultiple(value: string, items: any[], plural = 's'): string {
   if (!items || items.length !== 1) {
     return `${value}${plural}`;
   }
   return value;
 }
 
-export function pluralizeFromNumber(value: string, num: number = 0, plural: string = 's'): string {
+export function pluralizeFromNumber(value: string, num = 0, plural = 's'): string {
   if (num !== 1) {
     return `${value}${plural}`;
   }
@@ -348,7 +349,7 @@ export function getRecordIdFromAttributes(record: any) {
 }
 
 export function getSObjectNameFromAttributes(record: any) {
-  let urlWithoutId = record.attributes.type || record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
+  const urlWithoutId = record.attributes.type || record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
   return urlWithoutId.substring(urlWithoutId.lastIndexOf('/') + 1);
 }
 
@@ -361,7 +362,7 @@ export function convertFieldWithPolymorphicToQueryFields(
     sobject: '',
     fields: [],
   };
-  let outputFields = inputFields.reduce((output: FieldType[], field) => {
+  const outputFields = inputFields.reduce((output: FieldType[], field) => {
     if (field.polymorphicObj) {
       const polymorphicField = field.field.substring(0, field.field.lastIndexOf('.'));
       const sobjectField = field.field.substring(field.field.lastIndexOf('.') + 1);
@@ -513,7 +514,7 @@ export function getValueOrSoapNull(value?: string | SoapNil, unSanitize = true):
 }
 
 // https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
-export function hashString(value: string = ''): number {
+export function hashString(value = ''): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
     hash = (Math.imul(31, hash) + value.charCodeAt(i)) | 0;
@@ -542,7 +543,7 @@ export function unSanitizeXml(value: string) {
  *
  * VALID DATE FORMATS: DATE_FORMATS.MM_DD_YYYY, DATE_FORMATS.DD_MM_YYYY, DATE_FORMATS.YYYY_MM_DD
  */
-export function transformRecordForDataLoad(value: any, fieldType: jsforceFieldType, dateFormat?: string) {
+export function transformRecordForDataLoad(value: any, fieldType: jetstreamFieldType, dateFormat?: string) {
   dateFormat = dateFormat || DATE_FORMATS.MM_DD_YYYY;
 
   if (isNil(value) || (isString(value) && !value)) {

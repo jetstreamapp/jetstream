@@ -63,26 +63,6 @@
             }
           ]
         },
-        "electron": {
-          "baseHref": "./",
-          "fileReplacements": [
-            {
-              "replace": "apps/jetstream/src/environments/environment.ts",
-              "with": "apps/jetstream/src/environments/environment.electron.ts"
-            },
-            {
-              "replace": "libs/ui/.storybook/storybook-styles.scss",
-              "with": "apps/jetstream/src/main.scss"
-            }
-          ],
-          "optimization": true,
-          "outputHashing": "none",
-          "sourceMap": false,
-          "extractCss": false,
-          "namedChunks": false,
-          "extractLicenses": false,
-          "vendorChunk": false
-        },
         "test": {
           "fileReplacements": [
             {

@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
-import { ApplicationCookie, ElectronPreferences, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
@@ -16,9 +16,6 @@ import { useAmplitude, usePageViews } from './analytics';
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
 
-export const preferencesChanged = new Subject<ElectronPreferences>();
-const preferencesChanged$ = preferencesChanged.asObservable();
-
 registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => {
   const connectionError =
     response?.headers?.[HTTP.HEADERS.X_SFDC_ORG_CONNECTION_ERROR.toLowerCase()] ||
@@ -27,13 +24,6 @@ registerMiddleware('Error', (response: AxiosResponse, org?: SalesforceOrgUi) => 
     orgConnectionError.next({ uniqueId: org.uniqueId, connectionError });
   }
 });
-
-if (window.electron?.onPreferencesChanged) {
-  window.electron?.onPreferencesChanged((_event, preferences) => {
-    logger.info('[ELEcTRON PREFERENCES][CHANGED]', preferences);
-    preferencesChanged.next(preferences);
-  });
-}
 
 // Configure IndexedDB database
 localforage.config({
@@ -50,36 +40,20 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   const { version } = useRecoilValue(fromAppState.appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const [electronPreferencesState, setElectronPreferencesState] = useRecoilState(fromAppState.electronPreferences);
   const invalidOrg = useObservable(orgConnectionError$);
-  const electronPreferences = useObservable(preferencesChanged$);
 
   useEffect(() => {
     console.log('APP VERSION', version);
   }, [version]);
 
-  useRollbar(
-    {
-      accessToken: environment.rollbarClientAccessToken,
-      environment: appCookie.environment,
-      userProfile: userProfile,
-      version,
-    },
-    electronPreferencesState && !electronPreferencesState.crashReportingOptIn
-  );
-  useAmplitude(electronPreferencesState && !electronPreferencesState.analyticsOptIn);
+  useRollbar({
+    accessToken: environment.rollbarClientAccessToken,
+    environment: appCookie.environment,
+    userProfile: userProfile,
+    version,
+  });
+  useAmplitude();
   usePageViews();
-
-  useEffect(() => {
-    if (electronPreferences) {
-      setElectronPreferencesState(electronPreferences);
-      if (!electronPreferences.analyticsOptIn) {
-        window['ga-disable-MEASUREMENT_ID'] = true;
-      } else {
-        window['ga-disable-MEASUREMENT_ID'] = false;
-      }
-    }
-  }, [electronPreferences, setElectronPreferencesState]);
 
   useEffect(() => {
     if (invalidOrg) {

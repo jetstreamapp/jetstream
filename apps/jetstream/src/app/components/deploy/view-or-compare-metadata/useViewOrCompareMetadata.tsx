@@ -180,7 +180,7 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
     files: [],
   });
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const rollbar = useRollbar();
 
   useEffect(() => {

@@ -17,7 +17,6 @@
   },
   "search.exclude": {
     "apps/api/src/assets/js": true,
-    "apps/jetstream/src/electron-assets/monaco": true,
     "dist": true,
     "logs": true,
     "tmp": true
@@ -28,8 +27,7 @@
     "**/.hg": true,
     "**/.DS_Store": true,
     "**/node_modules/**": true,
-    "apps/api/src/assets/js": true,
-    "apps/jetstream/src/electron-assets/monaco": true
+    "apps/api/src/assets/js": true
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

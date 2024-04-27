@@ -393,7 +393,7 @@ export interface FormGroupDropdownItem {
   icon?: any; // FIXME:
 }
 
-export type AsyncJobType = 'isElectron' | 'init' | 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle' | 'CancelJob';
+export type AsyncJobType = 'init' | 'BulkDelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle' | 'CancelJob';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
@@ -710,15 +710,4 @@ export interface ChangeSet {
   status: 'Open' | 'Closed'; // not sure exact types
   modifiedBy: string;
   modifiedDate: string;
-}
-
-export interface ElectronPreferences {
-  isInitialized: boolean;
-  analyticsOptIn: boolean;
-  crashReportingOptIn: boolean;
-  downloadFolder: { prompt: true; location?: string } | { prompt: false; location: string };
-  defaultApiVersion: { override: boolean; overrideValue?: string }; // format: 54.0
-  // syncOrgs: boolean;
-  // notifications
-  // bounce dock
 }

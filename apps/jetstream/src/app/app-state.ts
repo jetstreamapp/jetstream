@@ -3,15 +3,7 @@ import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
 import { getMapOf } from '@jetstream/shared/utils';
-import {
-  ApplicationCookie,
-  ElectronPreferences,
-  Maybe,
-  SalesforceOrgUi,
-  SalesforceOrgUiType,
-  UserProfilePreferences,
-  UserProfileUi,
-} from '@jetstream/types';
+import { ApplicationCookie, Maybe, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -25,7 +17,7 @@ export const STORAGE_KEYS = {
  * Parse application state with a fallback in case there is an issue parsing
  */
 function getAppCookie(): ApplicationCookie {
-  let appState = window.electron?.isElectron ? window.electron.appCookie : parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
+  let appState = parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
   appState = appState
     ? { ...appState }
     : {
@@ -43,11 +35,6 @@ function getAppCookie(): ApplicationCookie {
   appState.google_apiKey = appState.google_apiKey || 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA';
   appState.google_clientId = appState.google_clientId || '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com';
 
-  // if electron, ensure good defaults are set
-  if (window.electron?.isElectron) {
-    appState.serverUrl = 'http://localhost';
-    appState.environment = window.electron?.isElectronDev ? 'development' : 'production';
-  }
   return appState;
 }
 
@@ -125,11 +112,6 @@ export const appVersionState = atom<{ version: string }>({
 export const userProfileState = atom<UserProfileUi>({
   key: 'userState',
   default: fetchUserProfile(),
-});
-
-export const electronPreferences = atom<ElectronPreferences>({
-  key: 'electronPreferences',
-  default: window.electron?.initialPreferences,
 });
 
 export const salesforceOrgsState = atom<SalesforceOrgUi[]>({

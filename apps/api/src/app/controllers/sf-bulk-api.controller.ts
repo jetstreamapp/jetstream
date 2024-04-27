@@ -77,7 +77,6 @@ export const routeDefinition = {
   },
 };
 
-// https://github.com/jsforce/jsforce/issues/934
 const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {
     const options = body;

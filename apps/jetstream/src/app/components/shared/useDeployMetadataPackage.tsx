@@ -105,7 +105,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => v
     deployId: null,
     results: null,
   });
-  const { notifyUser } = useBrowserNotifications(serverUrl, window.electron?.isFocused);
+  const { notifyUser } = useBrowserNotifications(serverUrl);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
   useEffect(() => {

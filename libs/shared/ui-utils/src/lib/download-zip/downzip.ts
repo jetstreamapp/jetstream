@@ -33,7 +33,7 @@ export interface DownZipFile {
   size: number;
 }
 
-let swScope = 'jetstream-download-zip';
+const swScope = 'jetstream-download-zip';
 const TIMEOUT_MS = 5000;
 const KEEPALIVE_INTERVAL_MS = 5000;
 const CMD_ACKNOWLEDGE = 'ACKNOWLEDGE';
@@ -57,14 +57,7 @@ export async function cancelZipDownload(url: string) {
 
 async function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    let filename = `/download-zip.sw.js`;
-
-    if ((window as any)?.electron?.isElectron) {
-      // TODO: need to figure out how to handle this when app is packaged
-      filename = './electron-assets/download-zip-sw/download-zip.sw.js';
-      swScope = 'electron-assets/download-zip-sw';
-    }
-
+    const filename = `/download-zip.sw.js`;
     const registration = await navigator.serviceWorker.register(filename, { scope: `./${swScope}/` });
     logger.log('[SW CLIENT][REGISTRATION][SUCCESS]', registration.scope);
     return registration;

@@ -1,5 +1,5 @@
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
-import { Header, Icon, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -13,29 +13,21 @@ import { APP_ROUTES } from './app-routes';
 import Jobs from './jobs/Jobs';
 import { RecordSearchPopover } from './record-lookup/RecordSearchPopover';
 
-const isElectron = window.electron?.isElectron;
-
 export interface HeaderNavbarProps {
   userProfile: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
 }
 
 function logout(serverUrl: string) {
-  if (isElectron) {
-    window.electron?.logout();
-  } else {
-    const logoutUrl = `${serverUrl}/oauth/logout`;
-    // eslint-disable-next-line no-restricted-globals
-    location.href = logoutUrl;
-  }
+  const logoutUrl = `${serverUrl}/oauth/logout`;
+  // eslint-disable-next-line no-restricted-globals
+  location.href = logoutUrl;
 }
 
-function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean, isElectron?: boolean) {
+function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean) {
   const menu: DropDownItem[] = [];
 
-  if (!isElectron) {
-    menu.push({ id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } });
-  }
+  menu.push({ id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } });
 
   menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
@@ -74,11 +66,11 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled, isElectron));
+    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled));
   }
 
   useEffect(() => {
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications, isElectron));
+    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
   }, [userProfile, featureFlags, deniedNotifications]);
 
   return (
@@ -88,11 +80,10 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       )}
       <Header
         userProfile={userProfile}
-        logo={isElectron ? <Icon type="brand" icon="jetstream_inverse" /> : Logo}
-        orgs={<OrgsDropdown addOrgsButtonClassName={isElectron ? 'slds-button_neutral slds-m-left_small' : undefined} />}
+        logo={Logo}
+        orgs={<OrgsDropdown />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={[<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />]}
-        isElectron={isElectron}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>

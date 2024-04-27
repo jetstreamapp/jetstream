@@ -53,8 +53,6 @@ export interface PlatformEventResult {
   success: boolean;
 }
 
-// NOTE: this type is returned for composite API if an array of data is passed to SFDC
-// if one record, then the source in the jsforce type library is used
 export type RecordResult = SuccessResult | ErrorResult;
 export type RecordResultWithRecord = RecordResult & { record: any };
 
