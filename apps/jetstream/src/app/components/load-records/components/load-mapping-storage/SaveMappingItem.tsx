@@ -3,6 +3,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ButtonGroupContainer, DropDown, Grid, Tooltip } from '@jetstream/ui';
 import formatDate from 'date-fns/format';
+import isDate from 'lodash/isDate';
 import { FunctionComponent } from 'react';
 import { FieldMappingItem } from '../../load-records-types';
 import { LoadSavedMappingItem } from '../../load-records.state';
@@ -30,7 +31,9 @@ export const SaveMappingItem: FunctionComponent<SaveMappingItemProps> = ({ mappi
               </Tooltip>
             </li>
             <li>
-              <span className="slds-truncate">{formatDate(mapping.createdDate, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a)}</span>
+              <span className="slds-truncate">
+                {isDate(mapping.createdDate) ? formatDate(mapping.createdDate, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a) : ''}
+              </span>
             </li>
           </ul>
           <ButtonGroupContainer>
