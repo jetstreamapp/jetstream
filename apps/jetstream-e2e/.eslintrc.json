@@ -1,21 +1,21 @@
 {
-  "extends": ["../../.eslintrc.json"],
+  "extends": ["plugin:playwright/recommended", "../../.eslintrc.json"],
   "ignorePatterns": ["!**/*"],
   "overrides": [
     {
       "files": ["*.ts", "*.tsx", "*.js", "*.jsx"],
-      "rules": {
-        "jest/no-done-callback": "off"
-      }
+      "rules": {}
     },
     {
       "files": ["*.ts", "*.tsx"],
-      "rules": {
-        "jest/no-done-callback": "off"
-      }
+      "rules": {}
     },
     {
       "files": ["*.js", "*.jsx"],
+      "rules": {}
+    },
+    {
+      "files": ["src/**/*.{ts,js,tsx,jsx}"],
       "rules": {}
     }
   ]
