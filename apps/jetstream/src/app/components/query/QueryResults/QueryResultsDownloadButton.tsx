@@ -1,14 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import {
-  AsyncJobNew,
-  BulkDownloadJob,
-  FileExtCsvXLSXJsonGSheet,
-  MapOf,
-  Maybe,
-  QueryResultsColumn,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -27,7 +19,7 @@ export interface QueryResultsDownloadButtonProps {
   isTooling: boolean;
   nextRecordsUrl: Maybe<string>;
   fields: string[];
-  subqueryFields: Maybe<MapOf<string[]>>;
+  subqueryFields: Maybe<Record<string, string[]>>;
   records: any[];
   filteredRows: any[];
   selectedRows: any[];

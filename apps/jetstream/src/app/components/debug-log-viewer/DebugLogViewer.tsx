@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ApexLogWithViewed, AsyncJob, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ApexLogWithViewed, AsyncJob, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Card,
@@ -41,7 +41,7 @@ export interface DebugLogViewerProps {}
 export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   useTitle(TITLES.DEBUG_LOGS);
   const isMounted = useRef(true);
-  const logCache = useRef<MapOf<string>>({});
+  const logCache = useRef<Record<string, string>>({});
   const logRef = useRef<editor.IStandaloneCodeEditor>();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);

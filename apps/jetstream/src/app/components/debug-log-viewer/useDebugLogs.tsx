@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { getApexLogsQuery, useInterval, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import { ApexLog, SalesforceOrgUi, UseDebugLogsOptions } from '@jetstream/types';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -51,7 +51,11 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
             setLogs(queryResults.records);
           } else {
             setLogs((logs) =>
-              orderBy(Object.values({ ...getMapOf(logs, 'Id'), ...getMapOf(queryResults.records, 'Id') }), ['LastModifiedDate'], ['desc'])
+              orderBy(
+                Object.values({ ...groupByFlat(logs, 'Id'), ...groupByFlat(queryResults.records, 'Id') }),
+                ['LastModifiedDate'],
+                ['desc']
+              )
             );
           }
           setLoading(false);

@@ -2,14 +2,13 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, delay, getMapOf, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, delay, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import {
   DescribeGlobalSObjectResult,
   DescribeSObjectResult,
   EntityParticleRecord,
   FieldWithExtendedType,
   InsertUpdateUpsertDelete,
-  MapOf,
   Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -178,8 +177,8 @@ export function autoMapFields(
   externalId?: Maybe<string>
 ): FieldMapping {
   const output: FieldMapping = {};
-  const fieldVariations: MapOf<FieldWithRelatedEntities> = {};
-  const fieldLabelVariations: MapOf<FieldWithRelatedEntities> = {};
+  const fieldVariations: Record<string, FieldWithRelatedEntities> = {};
+  const fieldLabelVariations: Record<string, FieldWithRelatedEntities> = {};
 
   // create versions of field that can be used to match back to original field
   fields.forEach((field) => {
@@ -300,7 +299,7 @@ export function loadFieldMappingFromSavedMapping(
   fields: FieldWithRelatedEntities[],
   binaryBodyField: Maybe<string>
 ): FieldMapping {
-  const fieldMetadataByName = getMapOf(fields, 'name');
+  const fieldMetadataByName = groupByFlat(fields, 'name');
   const newMapping = inputHeader.reduce((output: FieldMapping, field) => {
     const matchedMapping = savedMapping.mapping[field];
     if (matchedMapping && matchedMapping.targetField && fieldMetadataByName[matchedMapping.targetField]) {
@@ -360,7 +359,7 @@ export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): Fiel
   fieldMapping = { ...fieldMapping };
   const mappedFieldFrequency = Object.values(fieldMapping)
     .filter((field) => !!field.targetField)
-    .reduce((output: MapOf<number>, field) => {
+    .reduce((output: Record<string, number>, field) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       output[field.targetField!] = output[field.targetField!] || 0;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -615,7 +614,7 @@ export async function fetchMappedRelatedRecords(
       const relatedValues = new Set<string>(data.map((row) => row[targetField || '']).filter((value) => !!value && isString(value)));
 
       if (relatedValues.size && selectedReferenceTo && targetLookupField) {
-        const relatedRecordsByRelatedField: MapOf<string[]> = {};
+        const relatedRecordsByRelatedField: Record<string, string[]> = {};
         // Get as many queries as required based on the size of the related fields
         const queries = getRelatedFieldsQueries(sObject, selectedReferenceTo, targetLookupField, Array.from(relatedValues));
         let currentQuery = 1;
@@ -777,7 +776,7 @@ export function convertCsvToCustomMetadata(
   const metadataByFullName: MapOfCustomMetadataRecord = {};
 
   selectedSObject = selectedSObject.replace('__mdt', '');
-  const fieldMappingByTargetField: MapOf<FieldMappingItem> = Object.values(fieldMapping)
+  const fieldMappingByTargetField: Record<string, FieldMappingItem> = Object.values(fieldMapping)
     .filter((field) => !!field.targetField)
     .reduce((output, field) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

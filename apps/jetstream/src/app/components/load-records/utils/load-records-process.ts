@@ -6,7 +6,6 @@ import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
   HttpMethod,
-  MapOf,
   RecordResultWithRecord,
   SobjectCollectionRequest,
   SobjectCollectionRequestRecord,
@@ -61,7 +60,7 @@ export async function loadBulkApiData(
     let currItem = 1;
     let fatalError = false;
     const loadErrors: Error[] = [];
-    const batchOrderMap: MapOf<number> = {};
+    const batchOrderMap: Record<string, number> = {};
     for (const batch of batches) {
       try {
         if (checkIfAborted()) {

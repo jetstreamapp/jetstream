@@ -2,7 +2,6 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, queryWithCache } from '@jetstream/shared/data';
 import {
   ListItem,
-  MapOf,
   Maybe,
   PermissionSetNoProfileRecord,
   PermissionSetRecord,
@@ -39,12 +38,12 @@ export function useProfilesAndPermSets(
   );
 
   const [profilesAndPermSetsById, setProfilesAndPermSetsById] = useState<
-    MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
+    Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
   >({});
 
   useEffect(() => {
     if (profiles && permissionSets) {
-      const newItemsById: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
+      const newItemsById: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
       profiles.forEach((item) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         newItemsById[item.id] = item.meta!;

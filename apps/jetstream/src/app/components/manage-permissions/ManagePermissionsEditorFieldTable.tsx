@@ -1,5 +1,4 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
@@ -35,13 +34,13 @@ export interface ManagePermissionsEditorFieldTableProps {
   totalCount: number;
   onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableFieldCell[], indexes?: number[]) => void;
-  onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableFieldCell>>) => void;
+  onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableFieldCell>>) => void;
 }
 
 export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissionsEditorFieldTableProps>(
   ({ columns, rows, totalCount, onFilter, onDirtyRows, onBulkUpdate }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableFieldCell>>();
-    const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
+    const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({

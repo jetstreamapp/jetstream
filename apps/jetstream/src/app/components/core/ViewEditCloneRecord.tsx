@@ -13,7 +13,6 @@ import {
   ErrorResult,
   Field,
   FileExtCsvXLSXJsonGSheet,
-  MapOf,
   Maybe,
   PicklistFieldValues,
   PicklistFieldValuesResponse,
@@ -154,7 +153,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [sobjectFields, setSobjectFields] = useState<Field[]>();
   const [picklistValues, setPicklistValues] = useState<PicklistFieldValues>();
   const [initialRecord, setInitialRecord] = useState<SalesforceRecord>();
-  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<MapOf<Maybe<SalesforceRecord>>>({});
+  const [recordWithChildrenQueries, setRecordWithChildrenQueries] = useState<Record<string, Maybe<SalesforceRecord>>>({});
   const [modifiedRecord, setModifiedRecord] = useState<SalesforceRecord>({});
   const [formIsDirty, setIsFormDirty] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -164,7 +163,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const [isViewAsJson, setIsViewAsJson] = useState(false);
 
   const [downloadModalData, setDownloadModalData] = useState<
-    { open: false } | { open: true; data: SalesforceRecord; fields: string[]; subqueryFields?: MapOf<string[]> }
+    { open: false } | { open: true; data: SalesforceRecord; fields: string[]; subqueryFields?: Record<string, string[]> }
   >({
     open: false,
   });

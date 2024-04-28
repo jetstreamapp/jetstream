@@ -26,7 +26,6 @@ import {
   ListMetadataResultRaw,
   ManualRequestPayload,
   ManualRequestResponse,
-  MapOf,
   OperationReturnType,
   QueryResults,
   RetrieveResult,
@@ -516,7 +515,7 @@ export async function checkMetadataResults(org: SalesforceOrgUi, id: string, inc
 
 export async function retrieveMetadataFromListMetadata(
   org: SalesforceOrgUi,
-  payload: MapOf<ListMetadataResult[]>
+  payload: Record<string, ListMetadataResult[]>
 ): Promise<RetrieveResult> {
   return handleRequest({ method: 'POST', url: `/api/metadata/retrieve/list-metadata`, data: payload }, { org }).then(
     unwrapResponseIgnoreCache
@@ -564,8 +563,8 @@ export async function checkMetadataRetrieveResultsAndDeployToTarget(
 
 export async function getPackageXml(
   org: SalesforceOrgUi,
-  metadata: MapOf<ListMetadataResult[]>,
-  otherFields: MapOf<string> = {}
+  metadata: Record<string, ListMetadataResult[]>,
+  otherFields: Record<string, string> = {}
 ): Promise<string> {
   return handleRequest({ method: 'POST', url: `/api/metadata/package-xml`, data: { metadata, otherFields } }, { org }).then(
     unwrapResponseIgnoreCache

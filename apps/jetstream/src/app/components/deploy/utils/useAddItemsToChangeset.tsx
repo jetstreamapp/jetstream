@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -77,7 +77,7 @@ export function useAddItemsToChangeset(
     changesetName,
     changesetDescription,
     selectedMetadata,
-  }: { changesetName: string; changesetDescription: string; selectedMetadata: MapOf<ListMetadataResult[]> }
+  }: { changesetName: string; changesetDescription: string; selectedMetadata: Record<string, ListMetadataResult[]> }
 ) {
   const isMounted = useRef(true);
 

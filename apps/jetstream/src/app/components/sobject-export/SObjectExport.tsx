@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, ListItem, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -84,7 +84,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
-  const [exportDataModalData, setExportDataModalData] = useState<MapOf<any[]>>({});
+  const [exportDataModalData, setExportDataModalData] = useState<Record<string, any[]>>({});
 
   const [hasSelectionsMade, setHasSelectionsMade] = useState(false);
   const [options, setOptions] = useState<ExportOptions>({ ...DEFAULT_OPTIONS });

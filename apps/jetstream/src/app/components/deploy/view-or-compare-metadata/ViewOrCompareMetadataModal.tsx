@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { FileExtAllTypes, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
@@ -20,7 +20,7 @@ import { generateExport, getEditorLanguage } from './viewOrCompareMetadataUtils'
 
 export interface ViewOrCompareMetadataModalProps {
   sourceOrg: SalesforceOrgUi;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
+  selectedMetadata: Record<string, ListMetadataResult[]>;
   onClose: () => void;
 }
 

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, saveFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
+import { FieldWrapper, QueryFields, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent, createRef, useEffect, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -30,7 +30,7 @@ export interface SobjectFieldListProps {
   isTooling: boolean;
   level: number;
   itemKey: string;
-  queryFieldsMap: MapOf<QueryFields>;
+  queryFieldsMap: Record<string, QueryFields>;
   sobject: string;
   onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;
   onSelectField: (key: string, field: FieldWrapper) => void;

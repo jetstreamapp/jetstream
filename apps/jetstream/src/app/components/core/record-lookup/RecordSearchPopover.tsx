@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeGlobal } from '@jetstream/shared/data';
 import { convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { CloneEditView, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner, getModifierKey } from '@jetstream/ui';
 import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
@@ -11,7 +11,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import ViewEditCloneRecord from '../ViewEditCloneRecord';
 
-type RecentRecordMap = MapOf<RecentRecord[]>;
+type RecentRecordMap = Record<string, RecentRecord[]>;
 interface RecentRecord {
   recordId: string;
   sobject: string;

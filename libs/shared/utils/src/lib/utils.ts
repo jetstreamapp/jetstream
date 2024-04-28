@@ -8,7 +8,6 @@ import {
   InsertUpdateUpsertDelete,
   ListItem,
   ListItemGroup,
-  MapOf,
   Maybe,
   QueryColumnMetadata,
   QueryFieldWithPolymorphic,
@@ -127,7 +126,7 @@ export function multiWordStringFilter(value: string): (value: string, index: num
  * Order objects by the value of a field or multiple fields
  * Strings are sorted in a case-insensitive manner
  */
-export function orderObjectsBy<T>(items: T[], fields: keyof T | [keyof T], order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
+export function orderObjectsBy<T>(items: T[], fields: keyof T | Array<keyof T>, order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fields = Array.isArray(fields) ? fields : [fields];
   order = Array.isArray(order) ? order : [order];
@@ -143,8 +142,12 @@ export function orderValues<T extends number | string | boolean>(items: T[], ord
   return orderBy(items, [orderByItereeFn], [order]);
 }
 
-export function getMapOf<T>(items: T[], prop: keyof T): MapOf<T> {
-  return items.reduce((output: MapOf<T>, item) => {
+/**
+ * Group objects by a field and return a map of key to array of objects
+ * If there are multiple objects with the same key, the last item in list will win.
+ */
+export function groupByFlat<T>(items: T[], prop: keyof T): Record<string, T> {
+  return items.reduce((output: Record<string, T>, item) => {
     output[item[prop] as any] = item;
     return output;
   }, {});
@@ -157,15 +160,15 @@ export function getMapFromObj<T>(items: T[], prop: keyof T): Map<string, T> {
   }, new Map());
 }
 
-export function populateFromMapOf<T>(mapOf: MapOf<T>, items: string[]): T[] {
+export function populateFromMapOf<T>(mapOf: Record<string, T>, items: string[]): T[] {
   return items.map((item) => mapOf[item]).filter((item) => !!item);
 }
 
-export function flattenRecords(records: SalesforceRecord[], fields: string[]): MapOf<string>[] {
+export function flattenRecords(records: SalesforceRecord[], fields: string[]): Record<string, string>[] {
   return records.map((record) => flattenRecord(record, fields));
 }
 
-export function flattenRecord(record: SalesforceRecord, fields: string[], flattObjects = true): MapOf<string> {
+export function flattenRecord(record: SalesforceRecord, fields: string[], flattObjects = true): Record<string, string> {
   return fields.reduce((obj, field) => {
     const value = lodashGet(record, field);
     if (isObject(value) && flattObjects) {
@@ -205,7 +208,7 @@ export function splitArrayToMaxSize<T = unknown>(items: T[], maxSize: number): T
   return output;
 }
 
-export function toBoolean(value: Maybe<boolean | string>, defaultValue = false) {
+export function toBoolean(value: Maybe<unknown>, defaultValue = false) {
   if (isBoolean(value)) {
     return value;
   }
@@ -215,7 +218,7 @@ export function toBoolean(value: Maybe<boolean | string>, defaultValue = false) 
   return defaultValue;
 }
 
-export function toNumber(value: Maybe<number | string>) {
+export function toNumber(value: Maybe<unknown>) {
   if (isString(value)) {
     const val = Number.parseInt(value);
     if (Number.isFinite(val)) {
@@ -247,17 +250,17 @@ export function pluralizeFromNumber(value: string, num = 0, plural = 's'): strin
 }
 
 export function getIdAndObjFromRecordUrl(url: string): [string, string] {
-  const [id, sobject] = url.split('/').reverse();
+  const [id, sobject] = url?.split('/').reverse() || [];
   return [id, sobject];
 }
 
 export function getSObjectFromRecordUrl(url: string): string {
-  const [id, sobject] = getIdAndObjFromRecordUrl(url);
+  const [_, sobject] = getIdAndObjFromRecordUrl(url);
   return sobject;
 }
 
 export function getIdFromRecordUrl(url: string): string {
-  const [id, sobject] = getIdAndObjFromRecordUrl(url);
+  const [id] = getIdAndObjFromRecordUrl(url);
   return id;
 }
 
@@ -265,7 +268,7 @@ export function getIdFromRecordUrl(url: string): string {
  * Convert empty strings to null
  * Optionally trim all strings as well
  */
-export function nullifyEmptyStrings<T extends MapOf<unknown>>(value: T, trimStrings = true): T {
+export function nullifyEmptyStrings<T extends Record<string, unknown>>(value: T, trimStrings = true): T {
   if (!value) {
     return value;
   }
@@ -278,7 +281,7 @@ export function nullifyEmptyStrings<T extends MapOf<unknown>>(value: T, trimStri
       obj[key] = null;
     }
     if (isObject(obj[key])) {
-      obj[key] = nullifyEmptyStrings(obj[key] as MapOf<unknown>, trimStrings) as unknown;
+      obj[key] = nullifyEmptyStrings(obj[key] as Record<string, unknown>, trimStrings) as unknown;
     }
     return obj;
   }, {}) as T;
@@ -314,6 +317,9 @@ export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any
 }
 
 export function queryResultColumnToTypeLabel(column: QueryResultsColumn, fallback = 'Unknown'): string {
+  if (!column) {
+    return fallback;
+  }
   if (column.textType) {
     return 'Text';
   }
@@ -352,17 +358,23 @@ function getTypeOfField(polymorphicItems: { field: string; sobject: string; fiel
 }
 
 export function getRecordIdFromAttributes(record: any) {
+  if (!record?.attributes?.url) {
+    return '';
+  }
   return record.attributes.url.substring(record.attributes.url.lastIndexOf('/') + 1);
 }
 
 export function getSObjectNameFromAttributes(record: any) {
+  if (!record?.attributes?.url) {
+    return '';
+  }
   const urlWithoutId = record.attributes.type || record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
   return urlWithoutId.substring(urlWithoutId.lastIndexOf('/') + 1);
 }
 
 export function convertFieldWithPolymorphicToQueryFields(
   inputFields: QueryFieldWithPolymorphic[],
-  filterFns: MapOf<{ fn: string; alias: string | null }> = {}
+  filterFns: Record<string, { fn: string; alias: string | null }> = {}
 ): FieldType[] {
   let polymorphicItems: { field: string; sobject: string; fields: string[] } = {
     field: '',
@@ -770,8 +782,8 @@ export function getSuccessOrFailureOrWarningChar(itemSuccessCount: number, itemF
  * @param fields
  * @param subqueryFields
  */
-export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[], subqueryFields: MapOf<string[]>) {
-  const output: MapOf<any[]> = {};
+export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[], subqueryFields: Record<string, string[]>) {
+  const output: Record<string, any[]> = {};
   // output['records'] = flattenRecords(records, fields);
 
   const subqueryFieldsSet = new Set(Object.keys(subqueryFields));
@@ -837,8 +849,8 @@ export function getSizeInMbFromBase64(data: string) {
   return (data.length * 0.75 - padding) / 1e6;
 }
 
-export function flattenObjectArray(data: MapOf<string[]>, delimiter = ','): MapOf<string> {
-  const output: MapOf<string> = {};
+export function flattenObjectArray(data: Record<string, string[]>, delimiter = ','): Record<string, string> {
+  const output: Record<string, string> = {};
   Object.keys(data).forEach((key) => {
     output[key] = data[key].join(delimiter);
   });

@@ -1,6 +1,6 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { ChildRelationship, MapOf, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { ChildRelationship, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -23,7 +23,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   onSelectionChanged,
 }) => {
   const [visibleChildRelationships, setVisibleChildRelationships] = useState<ChildRelationship[]>(childRelationships);
-  const [childRelationshipContent, setChildRelationshipContent] = useState<MapOf<ChildRelationship>>({});
+  const [childRelationshipContent, setChildRelationshipContent] = useState<Record<string, ChildRelationship>>({});
   const [textFilter, setTextFilter] = useState<string>('');
   const selectedFieldState = useRecoilValue(fromQueryState.selectedSubqueryFieldsState);
 

@@ -19,14 +19,14 @@
 //   onRestore,
 // }) => {
 //   const [isOpen, setIsOpen] = useState(false);
-//   const [snapshots, setSnapshots] = useState<MapOf<TableRowItemSnapshot[]>>();
+//   const [snapshots, setSnapshots] = useState<Record<string, TableRowItemSnapshot[]>>();
 //   const [snapshotsItems, setSnapshotItems] = useState<string[]>([]);
 //   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
 
 //   const getSnapshots = useCallback(async () => {
 //     try {
 //       const snapshotMap =
-//         (await localforage.getItem<MapOf<TableRowItemSnapshot[]>>(`${INDEXED_DB.KEYS.automationControlHistory}:${selectedOrg.uniqueId}`)) ||
+//         (await localforage.getItem<Record<string, TableRowItemSnapshot[]>>(`${INDEXED_DB.KEYS.automationControlHistory}:${selectedOrg.uniqueId}`)) ||
 //         {};
 //       setSnapshots(snapshotMap);
 //       setSnapshotItems(Object.keys(snapshotMap));

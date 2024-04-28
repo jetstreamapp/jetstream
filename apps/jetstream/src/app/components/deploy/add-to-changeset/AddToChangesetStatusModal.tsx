@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ChangeSet, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -10,7 +10,7 @@ import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToCh
 
 export interface AddToChangesetStatusModalProps {
   selectedOrg: SalesforceOrgUi;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
+  selectedMetadata: Record<string, ListMetadataResult[]>;
   changesetName: string;
   changesetDescription: string;
   changeset?: ChangeSet | null;

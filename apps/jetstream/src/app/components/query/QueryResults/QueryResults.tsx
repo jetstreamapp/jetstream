@@ -20,7 +20,6 @@ import {
   AsyncJobNew,
   CloneEditView,
   QueryResults as IQueryResults,
-  MapOf,
   Maybe,
   SalesforceOrgUi,
   SalesforceRecord,
@@ -104,7 +103,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [records, setRecords] = useState<SalesforceRecord[] | null>(null);
   const [nextRecordsUrl, setNextRecordsUrl] = useState<Maybe<string>>(null);
   const [fields, setFields] = useState<string[] | null>(null);
-  const [subqueryFields, setSubqueryFields] = useState<Maybe<MapOf<string[]>>>(null);
+  const [subqueryFields, setSubqueryFields] = useState<Maybe<Record<string, string[]>>>(null);
   const [filteredRows, setFilteredRows] = useState<SalesforceRecord[]>([]);
   const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);

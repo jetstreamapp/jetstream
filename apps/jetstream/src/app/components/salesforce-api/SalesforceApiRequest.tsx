@@ -4,7 +4,6 @@ import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import {
   HttpMethod,
-  MapOf,
   SalesforceApiHistoryItem,
   SalesforceApiHistoryRequest,
   SalesforceApiRequest as SalesforceApiReqSample,
@@ -113,7 +112,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   useNonInitialEffect(() => {
     (async () => {
       try {
-        await localforage.setItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, historyItems);
+        await localforage.setItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, historyItems);
       } catch (ex) {
         logger.warn(ex);
       }

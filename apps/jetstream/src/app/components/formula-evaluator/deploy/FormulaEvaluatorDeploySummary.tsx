@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 import { css } from '@emotion/react';
-import { getMapOf } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat } from '@jetstream/shared/utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
@@ -35,15 +35,15 @@ export function FormulaEvaluatorDeploySummary({
 }: FormulaEvaluatorDeploySummaryProps) {
   const { serverUrl } = useRecoilValue(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
-  let flsResults: MapOf<FieldPermissionRecord> = {};
-  let layoutResults: MapOf<LayoutResult> = {};
+  let flsResults: Record<string, FieldPermissionRecord> = {};
+  let layoutResults: Record<string, LayoutResult> = {};
 
   if (results?.flsRecords) {
-    flsResults = getMapOf(results.flsRecords, 'ParentId');
+    flsResults = groupByFlat(results.flsRecords, 'ParentId');
   }
 
   if (results?.updatedLayouts) {
-    layoutResults = getMapOf(results.updatedLayouts, 'id');
+    layoutResults = groupByFlat(results.updatedLayouts, 'id');
   }
 
   return (
@@ -145,7 +145,7 @@ function FlsItem({
   type: 'Profile' | 'Permission Set';
   deployed: boolean;
   item: DeployedItem;
-  flsResults: MapOf<FieldPermissionRecord>;
+  flsResults: Record<string, FieldPermissionRecord>;
 }) {
   let icon: ReactElement | undefined;
 
@@ -198,7 +198,15 @@ function FlsItem({
   );
 }
 
-function LayoutItem({ deployed, item, layoutResults }: { deployed: boolean; item: DeployedItem; layoutResults: MapOf<LayoutResult> }) {
+function LayoutItem({
+  deployed,
+  item,
+  layoutResults,
+}: {
+  deployed: boolean;
+  item: DeployedItem;
+  layoutResults: Record<string, LayoutResult>;
+}) {
   let icon: ReactElement | undefined;
 
   if (deployed && layoutResults[item.id]) {

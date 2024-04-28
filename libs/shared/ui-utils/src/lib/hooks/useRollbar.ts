@@ -162,7 +162,7 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
     setRollbarConfig(RollbarConfig.getInstance(options, optOut));
   }, [options, optOut]);
 
-  return rollbarConfig.rollbar || FALLBACK;
+  return rollbarConfig.rollbar || (FALLBACK as any);
 }
 
 // This should be used outside of a component (e.x. utility function)

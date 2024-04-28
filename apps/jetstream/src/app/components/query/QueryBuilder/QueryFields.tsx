@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, getListItemsFromFieldWithRelatedItems, sortQueryFields } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, Maybe, QueryFields, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { FieldWrapper, Maybe, QueryFieldWithPolymorphic, QueryFields } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -53,7 +53,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     const fieldKey = getQueryFieldKey(selectedOrg, selectedSObject);
     if (isEmpty(queryFieldsMap) || fieldKey !== queryFieldsKey) {
       // init query fields when object changes
-      let tempQueryFieldsMap: MapOf<QueryFields> = {};
+      let tempQueryFieldsMap: Record<string, QueryFields> = {};
       setQueryFieldsMap(tempQueryFieldsMap);
       if (selectedSObject) {
         const BASE_KEY = getQueryFieldBaseKey(selectedSObject);
@@ -71,7 +71,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   }, [selectedOrg, selectedSObject, isTooling]);
 
   const queryBaseFields = useCallback(
-    async (fieldKey: string, BASE_KEY: string, tempQueryFieldsMap: MapOf<QueryFields>) => {
+    async (fieldKey: string, BASE_KEY: string, tempQueryFieldsMap: Record<string, QueryFields>) => {
       tempQueryFieldsMap = { ...tempQueryFieldsMap };
       try {
         tempQueryFieldsMap[BASE_KEY] = await fetchFields(selectedOrg, tempQueryFieldsMap[BASE_KEY], BASE_KEY, isTooling);
@@ -104,7 +104,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
   );
 
   const queryRelatedFields = useCallback(
-    async (fieldKey: string, tempQueryFieldsMap: MapOf<QueryFields>) => {
+    async (fieldKey: string, tempQueryFieldsMap: Record<string, QueryFields>) => {
       try {
         tempQueryFieldsMap[fieldKey] = await fetchFields(selectedOrg, tempQueryFieldsMap[fieldKey], fieldKey, isTooling);
         if (isMounted.current) {
@@ -127,7 +127,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
     [selectedOrg, isTooling]
   );
 
-  function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
+  function emitSelectedFieldsChanged(fieldsMap: Record<string, QueryFields> = queryFieldsMap) {
     const fields: QueryFieldWithPolymorphic[] = getSelectedFieldsFromQueryFields(fieldsMap);
 
     onSelectionChanged(fields);

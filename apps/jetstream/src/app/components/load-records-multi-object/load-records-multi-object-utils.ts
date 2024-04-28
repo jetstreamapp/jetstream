@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { formatNumber, initXlsx } from '@jetstream/shared/ui-utils';
-import { getHttpMethod, getMapOf, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import { CompositeGraphRequest, Field, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { getHttpMethod, groupByFlat, pluralizeFromNumber, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { CompositeGraphRequest, Field, SalesforceOrgUi } from '@jetstream/types';
 import { DepGraph } from 'dependency-graph';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
@@ -127,7 +127,7 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
       dataset.referenceHeaders = new Set(
         headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
       );
-      dataset.dataById = dataset.data.reduce((output: MapOf<any>, row, i) => {
+      dataset.dataById = dataset.data.reduce((output: Record<string, any>, row, i) => {
         const referenceId = row[dataset.referenceColumnHeader || ''] || uniqueId('reference_');
         if (output[referenceId]) {
           dataset.errors = dataset.errors || [];
@@ -174,14 +174,14 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
   for (const dataset of datasets) {
     try {
       const { worksheet, operation, externalId, headers, errors, referenceColumnHeader } = dataset;
-      const errorsByProperty = getMapOf(errors, 'property');
+      const errorsByProperty = groupByFlat(errors, 'property');
 
       /** SOBJECT */
       if (!errorsByProperty.sobject) {
         try {
           dataset.metadata = (await describeSObject(org, dataset.sobject)).data;
           dataset.sobject = dataset.metadata.name;
-          dataset.fieldsByName = dataset.metadata.fields.reduce((output: MapOf<Field>, item) => {
+          dataset.fieldsByName = dataset.metadata.fields.reduce((output: Record<string, Field>, item) => {
             output[item.name.toLowerCase()] = item;
             return output;
           }, {});
@@ -195,7 +195,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
             if (fieldsWithRelationships.length) {
               dataset.fieldsByRelationshipName = dataset.metadata.fields
                 .filter((field) => field.relationshipName)
-                .reduce((output: MapOf<Field>, item) => {
+                .reduce((output: Record<string, Field>, item) => {
                   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   output[item.relationshipName!.toLowerCase()] = item;
                   return output;
@@ -379,17 +379,17 @@ export function getDataGraph(
   options: { insertNulls: boolean; dateFormat: string }
 ): LoadMultiObjectRequestWithResult[] {
   const { dateFormat, insertNulls } = options;
-  const graphs: MapOf<CompositeGraphRequest> = {};
+  const graphs: Record<string, CompositeGraphRequest> = {};
 
   /** If there is an error during dependency processing, this links back to the dataset for error identification */
-  const refIdToDataset = datasets.reduce((output: MapOf<LoadMultiObjectData>, dataset) => {
+  const refIdToDataset = datasets.reduce((output: Record<string, LoadMultiObjectData>, dataset) => {
     dataset.data.forEach((record) => {
       output[record[dataset.referenceColumnHeader]] = dataset;
     });
     return output;
   }, {});
 
-  const recordsByRefId = datasets.reduce((output: MapOf<LoadMultiObjectRecord>, dataset) => {
+  const recordsByRefId = datasets.reduce((output: Record<string, LoadMultiObjectRecord>, dataset) => {
     dataset.data.forEach((record, recordIdx) => {
       const lowercaseExternalId = dataset.externalId?.toLowerCase();
       /** Transform record values and flag which fields have references to other records */
@@ -400,7 +400,12 @@ export function getDataGraph(
             externalIdValue,
             recordIdForUpdate,
             dependencies,
-          }: { transformedRecord: MapOf<any>; externalIdValue: string | null; recordIdForUpdate: string | null; dependencies: string[] },
+          }: {
+            transformedRecord: Record<string, any>;
+            externalIdValue: string | null;
+            recordIdForUpdate: string | null;
+            dependencies: string[];
+          },
           header
         ) => {
           const isRelatedField = header.includes('.');
@@ -500,7 +505,7 @@ export function getDataGraph(
 
   const topLevelNodes = overallGraph.overallOrder(true);
   const unprocessedTopLevelNodes = new Set<string>(topLevelNodes);
-  const nodeToTopLevelNodes: MapOf<string[]> = {};
+  const nodeToTopLevelNodes: Record<string, string[]> = {};
 
   // rebuild dependency graphs for each top level node to split them out into multiple graphs
 
@@ -564,11 +569,11 @@ export function getDataGraph(
 }
 
 function processGraphDependency(
-  recordsByRefId: MapOf<LoadMultiObjectRecord>,
+  recordsByRefId: Record<string, LoadMultiObjectRecord>,
   unprocessedTopLevelNodes: Set<string>,
   graph: DepGraph<unknown>,
   overallGraph: DepGraph<unknown>,
-  nodeToTopLevelNodes: MapOf<string[]>
+  nodeToTopLevelNodes: Record<string, string[]>
 ) {
   return function processDependents(dependents: string[]) {
     // add all child nodes to graph
@@ -599,7 +604,7 @@ function processGraphDependency(
 
 function transformGraphRequestsToRequestWithResults(
   graphs: CompositeGraphRequest[],
-  recordsByRefId: MapOf<LoadMultiObjectRecord>
+  recordsByRefId: Record<string, LoadMultiObjectRecord>
 ): LoadMultiObjectRequestWithResult[] {
   return splitRequestsToMaxSize(graphs, MAX_REQ_SIZE).map(
     (compositeRequestGraph, i): LoadMultiObjectRequestWithResult => ({
@@ -609,7 +614,7 @@ function transformGraphRequestsToRequestWithResults(
       finished: null,
       data: compositeRequestGraph,
       results: null,
-      dataWithResultsByGraphId: getMapOf(
+      dataWithResultsByGraphId: groupByFlat(
         compositeRequestGraph.map((item) => ({
           graphId: item.graphId,
           isSuccess: null,
@@ -618,7 +623,7 @@ function transformGraphRequestsToRequestWithResults(
         })),
         'graphId'
       ),
-      recordWithResponseByRefId: getMapOf(
+      recordWithResponseByRefId: groupByFlat(
         compositeRequestGraph.flatMap(
           ({ compositeRequest }) =>
             compositeRequest?.map((item) => ({

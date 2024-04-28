@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { ChangeSet, DeployResult, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, DeployResult, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
@@ -26,7 +26,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
-  const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
+  const [deployResultsData, setDeployResultsData] = useState<Record<string, any[]>>();
 
   const [changesetPackageName, setChangesetPackageName] = useState<string | null>(null);
   const [changesetPackageDescription, setChangesetPackageDescription] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
   const [changesetPackage, setChangesetPackage] = useRecoilState(fromDeployMetadataState.changesetPackage);
   const [changesetPackages, setChangesetPackages] = useRecoilState(fromDeployMetadataState.changesetPackages);
 
-  const [selectedMetadata, setSelectedMetadata] = useState<MapOf<ListMetadataResult[]>>({});
+  const [selectedMetadata, setSelectedMetadata] = useState<Record<string, ListMetadataResult[]>>({});
 
   function handleClick() {
     setConfigModalOpen(true);

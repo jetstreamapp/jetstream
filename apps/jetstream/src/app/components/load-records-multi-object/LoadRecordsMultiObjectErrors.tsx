@@ -1,4 +1,3 @@
-import { MapOf } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -33,7 +32,7 @@ function getErrorLocation(error: LoadMultiObjectDataError) {
 }
 
 export const LoadRecordsMultiObjectErrors: FunctionComponent<LoadRecordsMultiObjectErrorsProps> = ({ errors }) => {
-  const [errorsByWorksheet, setErrorsByWorksheet] = useState<MapOf<LoadMultiObjectDataError[]>>();
+  const [errorsByWorksheet, setErrorsByWorksheet] = useState<Record<string, LoadMultiObjectDataError[]>>();
 
   useEffect(() => {
     setErrorsByWorksheet(groupBy(errors, 'worksheet'));

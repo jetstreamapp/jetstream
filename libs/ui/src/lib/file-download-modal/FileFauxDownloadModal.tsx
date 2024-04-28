@@ -9,7 +9,6 @@ import {
   FileExtXLSX,
   FileExtXml,
   FileExtZip,
-  MapOf,
   Maybe,
   MimeType,
   SalesforceOrgUi,
@@ -37,7 +36,7 @@ export interface FileFauxDownloadModalProps {
   modalTagline?: string;
   allowedTypes?: FileExtAllTypes[]; // defaults to all types
   org: SalesforceOrgUi;
-  header?: string[] | MapOf<any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
+  header?: string[] | Record<string, any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
   onCancel: () => void;

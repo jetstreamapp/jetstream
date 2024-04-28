@@ -1,6 +1,6 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
-import { ErrorResult, ExpressionType, Field, FieldType, MapOf, Maybe, SalesforceRecord } from '@jetstream/types';
+import { groupByFlat } from '@jetstream/shared/utils';
+import { ErrorResult, ExpressionType, Field, FieldType, Maybe, SalesforceRecord } from '@jetstream/types';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
@@ -11,7 +11,7 @@ import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlatt
 export interface EditFromErrors {
   hasErrors: boolean;
   generalErrors: string[];
-  fieldErrors: MapOf<string | undefined>;
+  fieldErrors: Record<string, string | undefined>;
 }
 
 const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
@@ -40,7 +40,7 @@ export function composeSoqlQuery(query: Query, whereExpression: ExpressionType, 
  */
 export function transformEditForm(sobjectFields: Field[], record: SalesforceRecord): SalesforceRecord {
   record = { ...record };
-  const fieldsByName = getMapOf(sobjectFields, 'name');
+  const fieldsByName = groupByFlat(sobjectFields, 'name');
   Object.keys(record).forEach((fieldName) => {
     const field = fieldsByName[fieldName];
     const value = record[fieldName];
@@ -97,9 +97,9 @@ export function combineRecordsForClone(
  * @param record
  */
 export function validateEditForm(sobjectFields: Field[], record: SalesforceRecord): EditFromErrors {
-  const fieldsByName = getMapOf(sobjectFields, 'name');
+  const fieldsByName = groupByFlat(sobjectFields, 'name');
   const output: EditFromErrors = { hasErrors: false, generalErrors: [], fieldErrors: {} };
-  output.fieldErrors = Object.keys(record).reduce((fieldErrors: MapOf<string>, fieldName) => {
+  output.fieldErrors = Object.keys(record).reduce((fieldErrors: Record<string, string>, fieldName) => {
     const field = fieldsByName[fieldName];
     const value = record[fieldName];
     if (field) {
@@ -141,11 +141,11 @@ export function handleEditFormErrorResponse(result: ErrorResult): EditFromErrors
  * @param query
  * @returns
  */
-export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query>): MapOf<string[]> {
+export function getFlattenSubqueryFlattenedFieldMap(query: Maybe<Query>): Record<string, string[]> {
   return (
     query?.fields
       ?.filter((field) => field.type === 'FieldSubquery')
-      .reduce((output: MapOf<string[]>, field: FieldSubquery) => {
+      .reduce((output: Record<string, string[]>, field: FieldSubquery) => {
         output[field.subquery.relationshipName] = getFlattenedFields(field.subquery || {});
         return output;
       }, {}) || {}

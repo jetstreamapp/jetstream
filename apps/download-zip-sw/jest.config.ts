@@ -13,6 +13,6 @@ export default {
     ],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/apps/download-zip-sw',
+
   preset: '../../jest.preset.js',
 };

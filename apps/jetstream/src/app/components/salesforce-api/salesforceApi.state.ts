@@ -1,13 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import { getMapOf, truncate } from '@jetstream/shared/utils';
-import {
-  MapOf,
-  SalesforceApiHistoryItem,
-  SalesforceApiHistoryRequest,
-  SalesforceApiHistoryResponse,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { groupByFlat, truncate } from '@jetstream/shared/utils';
+import { SalesforceApiHistoryItem, SalesforceApiHistoryRequest, SalesforceApiHistoryResponse, SalesforceOrgUi } from '@jetstream/types';
 import { addDays } from 'date-fns/addDays';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
@@ -23,7 +17,7 @@ let didRunCleanup = false;
  * If history grows to a very large size,
  * prune older entries
  */
-export async function cleanUpHistoryState(): Promise<MapOf<SalesforceApiHistoryItem> | undefined> {
+export async function cleanUpHistoryState(): Promise<Record<string, SalesforceApiHistoryItem> | undefined> {
   const ITEMS_UNTIL_PRUNE = 100; // require this many items before taking action
   const DAYS_TO_KEEP = 60; // if action is taken, remove items older than this, keep all others
   try {
@@ -35,7 +29,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<SalesforceApiHistoryI
     if (Object.keys(history).length > ITEMS_UNTIL_PRUNE) {
       logger.info('[API-HISTORY][CLEANUP]', 'Cleaning up api history');
       const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
-      const itemsToKeep = getMapOf(
+      const itemsToKeep = groupByFlat(
         Object.values(history).filter((item) => isBefore(dateCutOff, item.lastRun)),
         'key'
       );
@@ -46,7 +40,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<SalesforceApiHistoryI
       }
 
       logger.info('[API-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
-      await localforage.setItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, itemsToKeep);
+      await localforage.setItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, itemsToKeep);
       return itemsToKeep;
     }
   } catch (ex) {
@@ -54,8 +48,8 @@ export async function cleanUpHistoryState(): Promise<MapOf<SalesforceApiHistoryI
   }
 }
 
-function initSalesforceApiHistory(): Promise<MapOf<SalesforceApiHistoryItem>> {
-  return localforage.getItem<MapOf<SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory).then((item) => item || {});
+function initSalesforceApiHistory(): Promise<Record<string, SalesforceApiHistoryItem>> {
+  return localforage.getItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory).then((item) => item || {});
 }
 
 /**
@@ -97,7 +91,7 @@ export async function initSalesforceApiHistoryItem(
   return { ...historyItems, [newItem.key]: newItem };
 }
 
-export const salesforceApiHistoryState = atom<MapOf<SalesforceApiHistoryItem>>({
+export const salesforceApiHistoryState = atom<Record<string, SalesforceApiHistoryItem>>({
   key: 'salesforceApiHistory.salesforceApiHistoryState',
   default: initSalesforceApiHistory(),
 });

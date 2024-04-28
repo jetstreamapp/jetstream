@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, getIdFromRecordUrl, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { Field, MapOf, Maybe, QueryResults, QueryResultsColumn } from '@jetstream/types';
+import { Field, Maybe, QueryResults, QueryResultsColumn } from '@jetstream/types';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
 import { isSameDay } from 'date-fns/isSameDay';
@@ -129,8 +129,8 @@ export function getColumnsForGenericTable(
 export function getColumnDefinitions(
   results: QueryResults<any>,
   isTooling: boolean,
-  fieldMetadata?: Maybe<MapOf<Field>>,
-  fieldMetadataSubquery?: Maybe<MapOf<MapOf<Field>>>
+  fieldMetadata?: Maybe<Record<string, Field>>,
+  fieldMetadataSubquery?: Maybe<Record<string, Record<string, Field>>>
 ): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
@@ -143,7 +143,7 @@ export function getColumnDefinitions(
   };
 
   // map each field to the returned metadata from SFDC
-  let queryColumnsByPath: MapOf<QueryResultsColumn> = {};
+  let queryColumnsByPath: Record<string, QueryResultsColumn> = {};
   if (results.columns?.columns) {
     queryColumnsByPath = results.columns.columns.reduce((out, curr, i) => {
       out[curr.columnFullPath.toLowerCase()] = curr;
@@ -238,9 +238,9 @@ function getQueryResultColumn({
 }: {
   field: string;
   subqueryRelationshipName?: string;
-  queryColumnsByPath: MapOf<QueryResultsColumn>;
+  queryColumnsByPath: Record<string, QueryResultsColumn>;
   isSubquery: boolean;
-  fieldMetadata?: Maybe<MapOf<Field>>;
+  fieldMetadata?: Maybe<Record<string, Field>>;
   allowEdit?: boolean;
 }): ColumnWithFilter<RowWithKey> {
   const column: Mutable<ColumnWithFilter<RowWithKey>> = {
@@ -433,7 +433,7 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
 export function updateColumnWithEditMode(
   column: Mutable<ColumnWithFilter<any>>,
   { updatable, booleanType, apexType, columnName }: QueryResultsColumn,
-  fieldMetadata: Maybe<MapOf<Field>> = {}
+  fieldMetadata: Maybe<Record<string, Field>> = {}
 ) {
   column.editable = false;
   fieldMetadata = fieldMetadata || {};
@@ -504,7 +504,7 @@ export function updateColumnWithEditMode(
   }
 }
 
-export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWithKey>[], fieldMetadata: MapOf<Field>) {
+export function addFieldLabelToColumn(columnDefinitions: ColumnWithFilter<RowWithKey>[], fieldMetadata: Record<string, Field>) {
   if (fieldMetadata) {
     // set field api name and label
     return columnDefinitions.map((col) => {

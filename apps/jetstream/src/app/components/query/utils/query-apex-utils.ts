@@ -1,5 +1,5 @@
 import { REGEX } from '@jetstream/shared/utils';
-import { FieldType, MapOf } from '@jetstream/types';
+import { FieldType } from '@jetstream/types';
 import isBoolean from 'lodash/isBoolean';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
@@ -48,7 +48,7 @@ const DEF_INSERT_STATEMENT = false;
 
 export interface RecordToApexOptions {
   sobjectName: string;
-  fieldMetadata: MapOf<FieldType>;
+  fieldMetadata: Record<string, FieldType>;
   /** Inline returned apex */
   inline: boolean;
   /** Surround code in method */

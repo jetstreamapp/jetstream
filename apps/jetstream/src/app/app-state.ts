@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import { ApplicationCookie, Maybe, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
@@ -185,7 +185,7 @@ export const salesforceOrgsById = selector({
   key: 'salesforceOrgsById',
   get: ({ get }) => {
     const salesforceOrgs = get(salesforceOrgsState) || [];
-    return getMapOf(salesforceOrgs, 'uniqueId');
+    return groupByFlat(salesforceOrgs, 'uniqueId');
   },
 });
 

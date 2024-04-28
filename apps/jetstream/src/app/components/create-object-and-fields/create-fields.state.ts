@@ -1,10 +1,4 @@
-import {
-  DescribeGlobalSObjectResult,
-  ListItem,
-  MapOf,
-  PermissionSetNoProfileRecord,
-  PermissionSetWithProfileRecord,
-} from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { atom, selector } from 'recoil';
 import { FieldValues } from '../shared/create-fields/create-fields-types';
 import { getInitialValues } from '../shared/create-fields/create-fields-utils';
@@ -64,12 +58,12 @@ export const hasSelectionsMade = selector({
   },
 });
 
-export const profilesAndPermSetsByIdSelector = selector<MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>>({
+export const profilesAndPermSetsByIdSelector = selector<Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>>({
   key: 'create-fields.profilesAndPermSetsByIdSelector',
   get: ({ get }) => {
     const profiles = get(profilesState);
     const permSets = get(permissionSetsState);
-    const output: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
+    const output: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
     if (profiles) {
       profiles.reduce((output, profile) => {
         if (profile.meta) {

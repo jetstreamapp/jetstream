@@ -10,7 +10,6 @@ import {
   FileExtGDrive,
   FileExtJson,
   FileExtXLSX,
-  MapOf,
   Maybe,
   MimeType,
   QueryResultsColumn,
@@ -43,7 +42,7 @@ export interface DownloadFromServerOpts {
   fileFormat: FileExtCsvXLSXJsonGSheet;
   fileName: string;
   fields: string[];
-  subqueryFields: MapOf<string[]>;
+  subqueryFields: Record<string, string[]>;
   whichFields: 'all' | 'specified';
   includeSubquery: boolean;
   /**
@@ -66,7 +65,7 @@ export interface RecordDownloadModalProps {
   downloadModalOpen: boolean;
   columns?: QueryResultsColumn[];
   fields: string[];
-  subqueryFields?: MapOf<string[]>;
+  subqueryFields?: Record<string, string[]>;
   records: SalesforceRecord[];
   filteredRecords?: SalesforceRecord[];
   selectedRecords?: SalesforceRecord[];
@@ -253,7 +252,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         let fileData;
         switch (fileFormat) {
           case 'xlsx': {
-            let data: MapOf<any[]> = {};
+            let data: Record<string, any[]> = {};
 
             if (includeSubquery && hasSubqueryFields) {
               data = getMapOfBaseAndSubqueryRecords(activeRecords, fields, subqueryFields);

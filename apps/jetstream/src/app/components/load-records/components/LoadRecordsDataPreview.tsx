@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { REGEX, getMapOf } from '@jetstream/shared/utils';
+import { REGEX, groupByFlat } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
 import isNil from 'lodash/isNil';
@@ -134,7 +134,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
       const madeModifications = headersWithLabel.some((item) => item.key !== item.label);
       if (madeModifications) {
         // Replace all rows with sanitized header
-        const headersByOldKey = getMapOf(headersWithLabel, 'label');
+        const headersByOldKey = groupByFlat(headersWithLabel, 'label');
         _rows = data.map((row) =>
           Object.keys(row).reduce((acc, field) => {
             if (headersByOldKey[field]) {

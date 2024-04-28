@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
-import { FieldWrapper, MapOf, QueryFields, SalesforceOrgUi } from '@jetstream/types';
+import { FieldWrapper, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import Grid from '../grid/Grid';
 import { useHighlightedText } from '../hooks/useHighlightedText';
@@ -19,7 +19,7 @@ export interface SobjectFieldListItemProps {
   level: number;
   parentKey: string;
   field: FieldWrapper;
-  queryFieldsMap: MapOf<QueryFields>;
+  queryFieldsMap: Record<string, QueryFields>;
   searchTerm?: string;
   highlightText?: boolean;
   onToggleExpand: (key: string, field: FieldWrapper, relatedSobject: string) => void;

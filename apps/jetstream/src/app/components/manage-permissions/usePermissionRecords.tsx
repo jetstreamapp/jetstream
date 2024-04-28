@@ -1,11 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
-  MapOf,
   ObjectPermissionRecord,
   SalesforceOrgUi,
   TabDefinitionRecord,
@@ -32,12 +31,14 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const [fieldsByObject, setFieldsByObject] = useState<MapOf<string[]> | null>(null);
-  const [fieldsByKey, setFieldsByKey] = useState<MapOf<EntityParticlePermissionsRecord> | null>(null);
+  const [fieldsByObject, setFieldsByObject] = useState<Record<string, string[]> | null>(null);
+  const [fieldsByKey, setFieldsByKey] = useState<Record<string, EntityParticlePermissionsRecord> | null>(null);
 
-  const [objectPermissionMap, setObjectPermissionMap] = useState<MapOf<ObjectPermissionDefinitionMap> | null>(null);
-  const [fieldPermissionMap, setFieldPermissionMap] = useState<MapOf<FieldPermissionDefinitionMap> | null>(null);
-  const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useState<MapOf<TabVisibilityPermissionDefinitionMap> | null>(null);
+  const [objectPermissionMap, setObjectPermissionMap] = useState<Record<string, ObjectPermissionDefinitionMap> | null>(null);
+  const [fieldPermissionMap, setFieldPermissionMap] = useState<Record<string, FieldPermissionDefinitionMap> | null>(null);
+  const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useState<Record<string, TabVisibilityPermissionDefinitionMap> | null>(
+    null
+  );
 
   useEffect(() => {
     isMounted.current = true;
@@ -71,7 +72,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
           getQueryTabVisibilityPermissions(sobjects, permSetIds, profilePermSetIds)
         ).then((record) => record.map((item) => ({ ...item, Name: item.Name.replace('standard-', '') }))),
         queryAndCombineResults<TabDefinitionRecord>(selectedOrg, getQueryTabDefinition(sobjects), false, true).then((tabs) =>
-          getMapOf(tabs, 'SobjectName')
+          groupByFlat(tabs, 'SobjectName')
         ),
       ]).then(([fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
         return {
@@ -141,16 +142,16 @@ async function queryAndCombineResults<T>(
   return output;
 }
 
-function getAllFieldsByObject(fields: EntityParticlePermissionsRecord[]): MapOf<string[]> {
-  return fields.reduce((output: MapOf<string[]>, { QualifiedApiName, EntityDefinition }) => {
+function getAllFieldsByObject(fields: EntityParticlePermissionsRecord[]): Record<string, string[]> {
+  return fields.reduce((output: Record<string, string[]>, { QualifiedApiName, EntityDefinition }) => {
     output[EntityDefinition.QualifiedApiName] = output[EntityDefinition.QualifiedApiName] || [];
     output[EntityDefinition.QualifiedApiName].push(`${EntityDefinition.QualifiedApiName}.${QualifiedApiName}`);
     return output;
   }, {});
 }
 
-function groupFields(fields: EntityParticlePermissionsRecord[]): MapOf<EntityParticlePermissionsRecord> {
-  return fields.reduce((output: MapOf<EntityParticlePermissionsRecord>, record) => {
+function groupFields(fields: EntityParticlePermissionsRecord[]): Record<string, EntityParticlePermissionsRecord> {
+  return fields.reduce((output: Record<string, EntityParticlePermissionsRecord>, record) => {
     output[getFieldDefinitionKey(record)] = record;
     return output;
   }, {});
@@ -161,14 +162,14 @@ function getObjectPermissionMap(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissions: ObjectPermissionRecord[]
-): MapOf<ObjectPermissionDefinitionMap> {
-  const objectPermissionsByFieldByParentId = permissions.reduce((output: MapOf<MapOf<ObjectPermissionRecord>>, item) => {
+): Record<string, ObjectPermissionDefinitionMap> {
+  const objectPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, ObjectPermissionRecord>>, item) => {
     output[item.SobjectType] = output[item.SobjectType] || {};
     output[item.SobjectType][item.ParentId] = item;
     return output;
   }, {});
 
-  return sobjects.reduce((output: MapOf<ObjectPermissionDefinitionMap>, item) => {
+  return sobjects.reduce((output: Record<string, ObjectPermissionDefinitionMap>, item) => {
     const currItem: ObjectPermissionDefinitionMap = {
       apiName: item,
       label: item, // FIXME:
@@ -216,14 +217,14 @@ function getFieldPermissionMap(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissions: FieldPermissionRecord[]
-): MapOf<FieldPermissionDefinitionMap> {
-  const fieldPermissionsByFieldByParentId = permissions.reduce((output: MapOf<MapOf<FieldPermissionRecord>>, field) => {
+): Record<string, FieldPermissionDefinitionMap> {
+  const fieldPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, FieldPermissionRecord>>, field) => {
     output[field.Field] = output[field.Field] || {};
     output[field.Field][field.ParentId] = field;
     return output;
   }, {});
 
-  return fields.reduce((output: MapOf<FieldPermissionDefinitionMap>, field) => {
+  return fields.reduce((output: Record<string, FieldPermissionDefinitionMap>, field) => {
     const fieldKey = `${field.EntityDefinition.QualifiedApiName}.${field.QualifiedApiName}`;
     const currItem: FieldPermissionDefinitionMap = {
       apiName: field.QualifiedApiName,
@@ -264,15 +265,18 @@ function getTabVisibilityPermissionMap(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissions: TabVisibilityPermissionRecord[],
-  tabDefinitions: MapOf<TabDefinitionRecord>
-): MapOf<TabVisibilityPermissionDefinitionMap> {
-  const objectPermissionsByFieldByParentId = permissions.reduce((output: MapOf<MapOf<TabVisibilityPermissionRecord>>, item) => {
-    output[item.Name] = output[item.Name] || {};
-    output[item.Name][item.ParentId] = item;
-    return output;
-  }, {});
+  tabDefinitions: Record<string, TabDefinitionRecord>
+): Record<string, TabVisibilityPermissionDefinitionMap> {
+  const objectPermissionsByFieldByParentId = permissions.reduce(
+    (output: Record<string, Record<string, TabVisibilityPermissionRecord>>, item) => {
+      output[item.Name] = output[item.Name] || {};
+      output[item.Name][item.ParentId] = item;
+      return output;
+    },
+    {}
+  );
 
-  return sobjects.reduce((output: MapOf<TabVisibilityPermissionDefinitionMap>, item) => {
+  return sobjects.reduce((output: Record<string, TabVisibilityPermissionDefinitionMap>, item) => {
     const currItem: TabVisibilityPermissionDefinitionMap = {
       apiName: item,
       label: item,

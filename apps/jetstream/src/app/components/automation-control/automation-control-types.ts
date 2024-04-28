@@ -1,4 +1,4 @@
-import { MapOf, Maybe, QueryResult } from '@jetstream/types';
+import { Maybe, QueryResult } from '@jetstream/types';
 
 export type ValidationRule = 'ValidationRule';
 export type WorkflowRule = 'WorkflowRule';
@@ -66,7 +66,7 @@ export type DeploymentItemStatus =
   | 'Rolled Back'
   | 'Error';
 
-export type DeploymentItemMap = MapOf<DeploymentItem>;
+export type DeploymentItemMap = Record<string, DeploymentItem>;
 export interface DeploymentItem {
   status: DeploymentItemStatus;
   metadata: TableRowItem;

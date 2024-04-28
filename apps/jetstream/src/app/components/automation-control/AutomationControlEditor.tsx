@@ -2,14 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import {
-  FileExtAllTypes,
-  ListMetadataResult,
-  MapOf,
-  MimeType,
-  RetrievePackageFromListMetadataJob,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { FileExtAllTypes, ListMetadataResult, MimeType, RetrievePackageFromListMetadataJob, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -144,7 +137,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
       mimeType: data.mimeType,
       listMetadataItems: rows
         .filter((row) => isTableRowItem(row))
-        .reduce((output: MapOf<ListMetadataResult[]>, item: TableRowItem) => {
+        .reduce((output: Record<string, ListMetadataResult[]>, item: TableRowItem) => {
           const type = getAutomationDeployType(item.type);
           output[type] = output[type] || [];
           const record = item.record;

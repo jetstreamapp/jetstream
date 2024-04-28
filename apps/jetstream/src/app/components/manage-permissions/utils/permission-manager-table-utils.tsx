@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { getMapOf, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
+import { groupByFlat, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import {
   Checkbox,
   ColumnWithFilter,
@@ -253,7 +253,7 @@ export function resetGridChanges({
   }
 }
 
-export function getDirtyObjectPermissions(dirtyRows: MapOf<DirtyRow<PermissionTableObjectCell>>) {
+export function getDirtyObjectPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableObjectCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter(
       (permission) =>
@@ -267,13 +267,13 @@ export function getDirtyObjectPermissions(dirtyRows: MapOf<DirtyRow<PermissionTa
   );
 }
 
-export function getDirtyFieldPermissions(dirtyRows: MapOf<DirtyRow<PermissionTableFieldCell>>) {
+export function getDirtyFieldPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableFieldCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty)
   );
 }
 
-export function getDirtyTabVisibilityPermissions(dirtyRows: MapOf<DirtyRow<PermissionTableTabVisibilityCell>>) {
+export function getDirtyTabVisibilityPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
     Object.values(row.permissions).filter((permission) => permission.availableIsDirty || permission.visibleIsDirty)
   );
@@ -282,8 +282,8 @@ export function getDirtyTabVisibilityPermissions(dirtyRows: MapOf<DirtyRow<Permi
 export function getObjectColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
-  profilesById: MapOf<PermissionSetWithProfileRecord>,
-  permissionSetsById: MapOf<PermissionSetNoProfileRecord>
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
 ) {
   const newColumns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[] = [
     {
@@ -359,7 +359,7 @@ export function getObjectColumns(
   return newColumns;
 }
 
-export function getObjectRows(selectedSObjects: string[], objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>) {
+export function getObjectRows(selectedSObjects: string[], objectPermissionMap: Record<string, ObjectPermissionDefinitionMap>) {
   const rows: PermissionTableObjectCell[] = [];
   orderValues(selectedSObjects).forEach((sobject) => {
     const objectPermission = objectPermissionMap[sobject];
@@ -412,7 +412,7 @@ function getRowObjectPermissionFromObjectPermissionItem(
 
 export function updateObjectRowsAfterSave(
   rows: PermissionTableObjectCell[],
-  objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>
+  objectPermissionMap: Record<string, ObjectPermissionDefinitionMap>
 ): PermissionTableObjectCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
@@ -432,8 +432,8 @@ export function updateObjectRowsAfterSave(
 export function getFieldColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
-  profilesById: MapOf<PermissionSetWithProfileRecord>,
-  permissionSetsById: MapOf<PermissionSetNoProfileRecord>
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
 ) {
   const newColumns: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[] = [
     {
@@ -672,8 +672,8 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
 
 export function getFieldRows(
   selectedSObjects: string[],
-  fieldsByObject: MapOf<string[]>,
-  fieldPermissionMap: MapOf<FieldPermissionDefinitionMap>
+  fieldsByObject: Record<string, string[]>,
+  fieldPermissionMap: Record<string, FieldPermissionDefinitionMap>
 ) {
   const rows: PermissionTableFieldCell[] = [];
   orderValues(selectedSObjects).forEach((sobject) => {
@@ -731,7 +731,7 @@ function getRowFieldPermissionFromFieldPermissionItem(
  */
 export function updateFieldRowsAfterSave(
   rows: PermissionTableFieldCell[],
-  fieldPermissionsMap: MapOf<FieldPermissionDefinitionMap>
+  fieldPermissionsMap: Record<string, FieldPermissionDefinitionMap>
 ): PermissionTableFieldCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
@@ -751,8 +751,8 @@ export function updateFieldRowsAfterSave(
 export function getTabVisibilityColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
-  profilesById: MapOf<PermissionSetWithProfileRecord>,
-  permissionSetsById: MapOf<PermissionSetNoProfileRecord>
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
 ) {
   const newColumns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[] = [
     {
@@ -850,7 +850,10 @@ export function getTabVisibilityColumns(
   return newColumns;
 }
 
-export function getTabVisibilityRows(selectedSObjects: string[], tabVisibilityPermissionMap: MapOf<TabVisibilityPermissionDefinitionMap>) {
+export function getTabVisibilityRows(
+  selectedSObjects: string[],
+  tabVisibilityPermissionMap: Record<string, TabVisibilityPermissionDefinitionMap>
+) {
   const rows: PermissionTableTabVisibilityCell[] = [];
   orderValues(selectedSObjects).forEach((sobject) => {
     const fieldPermission = tabVisibilityPermissionMap[sobject];
@@ -877,7 +880,7 @@ export function getTabVisibilityRows(selectedSObjects: string[], tabVisibilityPe
 
 export function updateTabVisibilityRowsAfterSave(
   rows: PermissionTableTabVisibilityCell[],
-  tabVisibilityPermissionsMap: MapOf<TabVisibilityPermissionDefinitionMap>
+  tabVisibilityPermissionsMap: Record<string, TabVisibilityPermissionDefinitionMap>
 ): PermissionTableTabVisibilityCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
@@ -1030,7 +1033,7 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
 
 export function updateRowsFromRowAction<TRows extends PermissionTableCellExtended>(
   type: PermissionType,
-  checkboxesById: MapOf<BulkActionCheckbox>,
+  checkboxesById: Record<string, BulkActionCheckbox>,
   rows: TRows[]
 ): TRows[] {
   const newRows = [...rows];
@@ -1218,7 +1221,7 @@ function defaultRowActionCheckboxes(type: PermissionType, allowEditPermission: b
 export function updateCheckboxDependencies(
   which: PermissionTypes,
   type: PermissionType,
-  checkboxesById: MapOf<BulkActionCheckbox>,
+  checkboxesById: Record<string, BulkActionCheckbox>,
   value: boolean
 ) {
   if (type === 'object') {
@@ -1311,7 +1314,7 @@ export const RowActionRenderer: FunctionComponent<RenderCellProps<PermissionTabl
    * Set all dependencies when fields change
    */
   function handleChange(which: PermissionTypes, value: boolean) {
-    const checkboxesById = getMapOf(checkboxes, 'id');
+    const checkboxesById = groupByFlat(checkboxes, 'id');
     updateCheckboxDependencies(which, type, checkboxesById, value);
     if (type === 'object') {
       setCheckboxes([
@@ -1330,7 +1333,7 @@ export const RowActionRenderer: FunctionComponent<RenderCellProps<PermissionTabl
   }
 
   function handleSave() {
-    const checkboxesById = getMapOf(checkboxes, 'id');
+    const checkboxesById = groupByFlat(checkboxes, 'id');
     const [updatedRow] = updateRowsFromRowAction(type, checkboxesById, [row]);
     onRowChange(updatedRow);
   }
@@ -1440,7 +1443,7 @@ export const BulkActionRenderer = () => {
    * Set all dependencies when fields change
    */
   function handleChange(which: PermissionTypes, value: boolean) {
-    const checkboxesById = getMapOf(checkboxes, 'id');
+    const checkboxesById = groupByFlat(checkboxes, 'id');
     updateCheckboxDependencies(which, type, checkboxesById, value);
     if (type === 'object') {
       setCheckboxes([
@@ -1459,7 +1462,7 @@ export const BulkActionRenderer = () => {
   }
 
   function handleSave() {
-    const checkboxesById = getMapOf(checkboxes, 'id');
+    const checkboxesById = groupByFlat(checkboxes, 'id');
     const updatedRows = updateRowsFromRowAction(type, checkboxesById, rows);
     onBulkAction(updatedRows);
     handleClose();

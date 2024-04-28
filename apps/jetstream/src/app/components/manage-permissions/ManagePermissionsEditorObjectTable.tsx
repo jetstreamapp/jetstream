@@ -1,5 +1,4 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
@@ -25,13 +24,13 @@ export interface ManagePermissionsEditorObjectTableProps {
   totalCount: number;
   onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableObjectCell[], indexes?: number[]) => void;
-  onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableObjectCell>>) => void;
+  onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableObjectCell>>) => void;
 }
 
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableObjectCell>>();
-    const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
+    const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {

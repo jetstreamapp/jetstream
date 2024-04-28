@@ -17,7 +17,7 @@ env:
 
 jobs:
   # Build application
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -41,10 +41,15 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Test application
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
+        run: yarn test:affected
+
       - name: Build application
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
-        run: npx nx run-many --target=build --parallel=3 --projects=jetstream,api,download-zip-sw,landing --configuration=production
+        run: yarn build:ci
 
       - name: Uploading artifacts
         uses: actions/upload-artifact@v4
@@ -54,7 +59,7 @@ jobs:
 
   # e2e tests only runs if build passes, since it uses production build to run tests
   e2e:
-    needs: build
+    needs: build-and-test
     runs-on: ubuntu-latest
     env:
       LOG_LEVEL: warn

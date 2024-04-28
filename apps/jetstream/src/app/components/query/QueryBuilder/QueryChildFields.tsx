@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { FieldWrapper, MapOf, QueryFieldWithPolymorphic, QueryFields, SalesforceOrgUi } from '@jetstream/types';
+import { FieldWrapper, QueryFieldWithPolymorphic, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -87,7 +87,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
    * There is a little too much hard-coded magic here...
    * @param fieldsMap
    */
-  function emitSelectedFieldsChanged(fieldsMap: MapOf<QueryFields> = queryFieldsMap) {
+  function emitSelectedFieldsChanged(fieldsMap: Record<string, QueryFields> = queryFieldsMap) {
     const fields: QueryFieldWithPolymorphic[] = Object.values(fieldsMap)
       .filter((queryField) => queryField.key.startsWith(baseKey))
       .flatMap((queryField) => {

@@ -1,6 +1,6 @@
 import { describeSObject } from '@jetstream/shared/data';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ApiResponse, DescribeSObjectResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ApiResponse, DescribeSObjectResult, SalesforceOrgUi } from '@jetstream/types';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
 import { ExportOptions, SobjectExportField, SobjectFetchResult } from './sobject-export-types';
@@ -39,11 +39,15 @@ export async function getSobjectMetadata(org: SalesforceOrgUi, selectedSobjects:
   });
 }
 
-export function prepareExport(sobjectMetadata: SobjectFetchResult[], selectedAttributes: string[], options: ExportOptions): MapOf<any[]> {
+export function prepareExport(
+  sobjectMetadata: SobjectFetchResult[],
+  selectedAttributes: string[],
+  options: ExportOptions
+): Record<string, any[]> {
   const errors: { sobject: string; error: string }[] = [];
   const sobjectAttributes: any[] = [];
-  const rowsBySobject: MapOf<any[]> = {};
-  const output: MapOf<any[]> = {};
+  const rowsBySobject: Record<string, any[]> = {};
+  const output: Record<string, any[]> = {};
 
   const selectedAttributesSet = new Set(selectedAttributes);
   // this ensures that the order is based on original list instead of order of selected attributes

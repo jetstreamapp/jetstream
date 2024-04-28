@@ -1,6 +1,6 @@
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
@@ -144,7 +144,7 @@ function reducer(state: State, action: Action): State {
  * @param selectedOrg
  * @param changesetName
  */
-export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadata: MapOf<ListMetadataResult[]> }) {
+export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadata: Record<string, ListMetadataResult[]> }) {
   const isMounted = useRef(true);
 
   const [

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { applicationCookieState } from '../../../app-state';
@@ -74,7 +74,7 @@ function reducer(state: State, action: Action): State {
 export function useDeployMetadataBetweenOrgs(
   sourceOrg: SalesforceOrgUi,
   destinationOrg: SalesforceOrgUi,
-  selectedMetadata: MapOf<ListMetadataResult[]>,
+  selectedMetadata: Record<string, ListMetadataResult[]>,
   deployOptions: DeployOptions
 ) {
   const isMounted = useRef(true);

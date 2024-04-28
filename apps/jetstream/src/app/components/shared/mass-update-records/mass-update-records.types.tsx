@@ -1,4 +1,4 @@
-import { BulkJobWithBatches, DescribeSObjectResult, Field, ListItem, MapOf, Maybe } from '@jetstream/types';
+import { BulkJobWithBatches, DescribeSObjectResult, Field, ListItem, Maybe } from '@jetstream/types';
 import { PrepareDataResponseError } from '../load-records-results/load-records-results-types';
 
 export interface MetadataRow {
@@ -22,7 +22,7 @@ export interface DeployResults {
   done: boolean;
   records: any[];
   jobInfo?: BulkJobWithBatches;
-  batchIdToIndex: MapOf<number>;
+  batchIdToIndex: Record<string, number>;
   numberOfBatches?: number;
   processingErrors: PrepareDataResponseError[];
   processingStartTime?: Maybe<string>;

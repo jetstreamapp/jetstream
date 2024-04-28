@@ -1,6 +1,6 @@
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CloneEditView, Field, MapOf, PicklistFieldValues, SalesforceRecord } from '@jetstream/types';
+import { CloneEditView, Field, PicklistFieldValues, SalesforceRecord } from '@jetstream/types';
 import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -15,7 +15,7 @@ export interface UiRecordFormProps {
   sobjectFields: Field[];
   picklistValues: PicklistFieldValues;
   record: SalesforceRecord;
-  saveErrors?: MapOf<string | undefined>;
+  saveErrors?: Record<string, string | undefined>;
   disabled?: boolean;
   onChange: (record: SalesforceRecord) => void;
   viewRelatedRecord?: (recordId: string, metadata: Field) => void;

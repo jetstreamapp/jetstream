@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FieldWrapper, ListItem, MapOf, Maybe, QueryFields } from '@jetstream/types';
+import { FieldWrapper, ListItem, Maybe, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
 import Icon from '../widgets/Icon';
@@ -14,7 +14,7 @@ export interface SobjectExpandChildrenBtnProps {
   initialSelectedSObject?: string;
   parentKey: string;
   itemKey: string;
-  queryFieldsMap: MapOf<QueryFields>;
+  queryFieldsMap: Record<string, QueryFields>;
   field: FieldWrapper;
   isExpanded: boolean;
   allowMultiple: boolean;

@@ -9,7 +9,6 @@ import {
   BulkJobResultRecord,
   BulkJobWithBatches,
   InsertUpdateUpsertDelete,
-  MapOf,
   Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -106,7 +105,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   const [processingStartTime, setProcessingStartTime] = useState<Maybe<string>>(null);
   const [processingEndTime, setProcessingEndTime] = useState<Maybe<string>>(null);
   // Salesforce changes order of batches, so we want to ensure order is retained based on the input file
-  const [batchIdByIndex, setBatchIdByIndex] = useState<MapOf<number>>();
+  const [batchIdByIndex, setBatchIdByIndex] = useState<Record<string, number>>();
   const [intervalCount, setIntervalCount] = useState<number>(0);
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({
     open: false,
@@ -129,7 +128,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       const batchSummariesWithId = batchSummary.batchSummary.filter((batch) => batch.id);
       if (Array.isArray(batchSummariesWithId)) {
         setBatchIdByIndex(
-          batchSummariesWithId.reduce((output: MapOf<number>, batch) => {
+          batchSummariesWithId.reduce((output: Record<string, number>, batch) => {
             if (batch.id) {
               output[batch.id] = batch.batchNumber;
             }

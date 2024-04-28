@@ -48,7 +48,7 @@ export interface ApiResponse<T = unknown> {
   cache?: CacheItem;
 }
 
-export type OrgCacheItem<T> = MapOf<CacheItemWithData<T>>;
+export type OrgCacheItem<T> = Record<string, CacheItemWithData<T>>;
 
 export interface CacheItem {
   key: string;
@@ -66,10 +66,6 @@ export type Development = 'development';
 export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-
-export interface MapOf<T> {
-  [key: string]: T;
-}
 
 export interface ApplicationCookie {
   serverUrl: string;
