@@ -208,16 +208,6 @@ export const selectUserPreferenceState = selector<UserProfilePreferences>({
     const userPreferences = get(userPreferenceState);
     return userPreferences;
   },
-  // https://rollbar.com/jetstream/Jetstream/items/519/
-  // Causes error when used because this is async and async set selectors are not allowed
-  // set: async ({ set }, userPreferences: UserProfilePreferences) => {
-  //   set(userPreferenceState, userPreferences);
-  //   try {
-  //     await localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, userPreferences);
-  //   } catch (ex) {
-  //     // could not save to localstorage
-  //   }
-  // },
 });
 
 export const useUserPreferenceState = (): [UserProfilePreferences, (pref: UserProfilePreferences) => void] => {

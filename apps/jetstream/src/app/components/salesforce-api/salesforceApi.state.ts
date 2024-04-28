@@ -48,8 +48,13 @@ export async function cleanUpHistoryState(): Promise<Record<string, SalesforceAp
   }
 }
 
-function initSalesforceApiHistory(): Promise<Record<string, SalesforceApiHistoryItem>> {
-  return localforage.getItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory).then((item) => item || {});
+async function initSalesforceApiHistory(): Promise<Record<string, SalesforceApiHistoryItem>> {
+  try {
+    return (await localforage.getItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory)) || {};
+  } catch (ex) {
+    logger.error('Error getting salesforceApiHistory from localforage', ex);
+    return {};
+  }
 }
 
 /**

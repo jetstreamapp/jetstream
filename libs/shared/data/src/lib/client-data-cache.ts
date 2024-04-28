@@ -53,12 +53,16 @@ export async function getCacheItemHttp<T>(
   useQueryParamsInCacheKey?: boolean,
   useBodyInCacheKey?: boolean
 ): Promise<CacheItemWithData<T> | null> {
-  const orgId = org?.uniqueId || 'unset';
-  const cacheKey = getCacheKeyForHttp(config, useQueryParamsInCacheKey, useBodyInCacheKey);
-  const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
-  const item = cacheItem && cacheItem[cacheKey];
-  if (item && !isExpired(item.exp)) {
-    return item;
+  try {
+    const orgId = org?.uniqueId || 'unset';
+    const cacheKey = getCacheKeyForHttp(config, useQueryParamsInCacheKey, useBodyInCacheKey);
+    const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
+    const item = cacheItem && cacheItem[cacheKey];
+    if (item && !isExpired(item.exp)) {
+      return item;
+    }
+  } catch (ex) {
+    logger.log('[HTTP][CACHE][ERROR]', ex);
   }
   return null;
 }
@@ -72,12 +76,16 @@ export async function getCacheItemHttp<T>(
  * @param useQueryParamsInCacheKey
  */
 export async function getCacheItemNonHttp<T>(org: SalesforceOrgUi, key: string): Promise<CacheItemWithData<T> | null> {
-  const orgId = org.uniqueId;
-  const cacheKey = getCacheKeyForNonHttp(key);
-  const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
-  const item = cacheItem && cacheItem[cacheKey];
-  if (item && !isExpired(item.exp)) {
-    return item;
+  try {
+    const orgId = org.uniqueId;
+    const cacheKey = getCacheKeyForNonHttp(key);
+    const cacheItem = await localforage.getItem<OrgCacheItem<T>>(`${INDEXED_DB.KEYS.httpCache}:${orgId}`);
+    const item = cacheItem && cacheItem[cacheKey];
+    if (item && !isExpired(item.exp)) {
+      return item;
+    }
+  } catch (ex) {
+    logger.log('[HTTP][CACHE][ERROR]', ex);
   }
   return null;
 }

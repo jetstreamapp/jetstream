@@ -68,7 +68,12 @@ export async function cleanUpHistoryState(): Promise<Record<string, QueryHistory
 }
 
 export async function initQueryHistory(): Promise<Record<string, QueryHistoryItem>> {
-  return (await localforage.getItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)) || {};
+  try {
+    return (await localforage.getItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)) || {};
+  } catch (ex) {
+    logger.error('[QUERY-HISTORY][INIT]', 'Error initializing query history', ex);
+    return {};
+  }
 }
 
 // FIXME: there is some really poor naming conventions surrounding the entire query history
@@ -126,7 +131,10 @@ export const queryHistoryState = atom<Record<string, QueryHistoryItem>>({
           .then((storedHistory) =>
             localforage.setItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, { ...storedHistory, ...newQueryHistory })
           )
-          .then(() => setSelf(newQueryHistory));
+          .then(() => setSelf(newQueryHistory))
+          .catch((ex) => {
+            logger.error('[QUERY-HISTORY][SAVE]', 'Error saving query history', ex);
+          });
       });
     },
   ],
