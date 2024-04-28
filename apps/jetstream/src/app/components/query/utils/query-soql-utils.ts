@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, describeSObject } from '@jetstream/shared/data';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import isString from 'lodash/isString';
 import {
@@ -195,7 +195,7 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
     { fields: [], subqueries: {} }
   );
 
-  sortedOutput.fields = orderStringsBy(sortedOutput.fields.map((field) => field.toLowerCase()));
+  sortedOutput.fields = orderValues(sortedOutput.fields.map((field) => field.toLowerCase()));
 
   return sortedOutput;
 }

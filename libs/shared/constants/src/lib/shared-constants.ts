@@ -258,6 +258,7 @@ export const ANALYTICS_KEYS = {
   /** Platform Event */
   platform_event_subscribed: 'platform_event_subscribed',
   platform_event_unsubscribe: 'platform_event_unsubscribe',
+  platform_event_clear_all: 'platform_event_clear_all',
   platform_event_publish: 'platform_event_publish',
   /** Settings */
   settings_update_user: 'settings_update_user',

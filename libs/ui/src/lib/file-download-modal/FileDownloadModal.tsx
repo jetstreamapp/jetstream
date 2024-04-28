@@ -62,7 +62,7 @@ export interface FileDownloadModalProps {
   data: any[] | MapOf<any[]> | ArrayBuffer | string;
   /**
    * Header to use for download.
-   * Of omitted, then this will be auto-detected from the first row of data
+   * If omitted, then this will be auto-detected from the first row of data
    */
   header?: string[] | MapOf<any[]>;
   /**
