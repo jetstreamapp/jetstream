@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryWithCache } from '@jetstream/shared/data';
-import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import groupBy from 'lodash/groupBy';
 import { useCallback, useEffect, useState } from 'react';
 import { Query, composeQuery, getField } from 'soql-parser-js';
@@ -59,8 +59,8 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<PageLayout[]>([]);
-  const [layoutsByObject, setLayoutsByObject] = useState<MapOf<PageLayout[]>>({});
-  const [layoutsById, setLayoutsById] = useState<MapOf<PageLayout>>({});
+  const [layoutsByObject, setLayoutsByObject] = useState<Record<string, PageLayout[]>>({});
+  const [layoutsById, setLayoutsById] = useState<Record<string, PageLayout>>({});
   const [selectedLayoutIds, setSelectedLayoutIds] = useState<Set<string>>(new Set());
 
   const fetchLayouts = useCallback(async () => {
@@ -72,8 +72,8 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
         (await queryWithCache<PageLayout>(selectedOrg, query, true)).data.queryResults.records.forEach((layout) => _layouts.push(layout));
       }
       setLayouts(_layouts);
-      setLayoutsByObject(groupBy(_layouts, 'EntityDefinition.QualifiedApiName') as MapOf<PageLayout[]>);
-      setLayoutsById(getMapOf(_layouts, 'Id'));
+      setLayoutsByObject(groupBy(_layouts, 'EntityDefinition.QualifiedApiName') as Record<string, PageLayout[]>);
+      setLayoutsById(groupByFlat(_layouts, 'Id'));
     } catch (ex) {
       logger.warn('[LAYOUT][FETCH][ERROR]', ex);
       setError('There was a problem getting page layouts');

@@ -6,7 +6,6 @@ import {
   DescribeSObjectResult,
   Field,
   InsertUpdateUpsert,
-  MapOf,
   Maybe,
 } from '@jetstream/types';
 
@@ -24,15 +23,15 @@ export interface LoadMultiObjectData {
   operation: InsertUpdateUpsert;
   externalId?: string;
   data: any[];
-  dataById: MapOf<any>;
+  dataById: Record<string, any>;
   /** The heading used for the reference Id. it should be "reference id", but could be anything */
   referenceColumnHeader: string;
   headers: string[];
   /** Headers where these fields on every row is considered a related field */
   referenceHeaders: Set<string>;
   metadata: DescribeSObjectResult;
-  fieldsByName: MapOf<Field>;
-  fieldsByRelationshipName?: MapOf<Field>;
+  fieldsByName: Record<string, Field>;
+  fieldsByRelationshipName?: Record<string, Field>;
   errors: LoadMultiObjectDataError[];
 }
 
@@ -74,7 +73,7 @@ export interface LoadMultiObjectRequestWithResult {
   data: CompositeGraphRequest[];
   results: CompositeGraphResponse[] | null;
   // Same data as above, just grouped together by graph id
-  dataWithResultsByGraphId: MapOf<LoadMultiObjectRequestGraphResults>;
+  dataWithResultsByGraphId: Record<string, LoadMultiObjectRequestGraphResults>;
   // Same data as above, just grouped together by record reference id
-  recordWithResponseByRefId: MapOf<RecordWithResponse>;
+  recordWithResponseByRefId: Record<string, RecordWithResponse>;
 }

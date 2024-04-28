@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, genericRequest } from '@jetstream/shared/data';
-import { REGEX, flattenRecords, getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { REGEX, flattenRecords, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import type {
   CompositeRequestBody,
   CompositeResponse,
@@ -10,7 +10,6 @@ import type {
   Field,
   FieldWithExtendedType,
   FieldWrapper,
-  MapOf,
   Maybe,
   QueryFields,
   SalesforceOrgUi,
@@ -92,7 +91,7 @@ export function fetchFieldsProcessResults(
   const { sobject } = queryFields;
 
   const childRelationships = describeResults.childRelationships.filter((relationship) => !!relationship.relationshipName);
-  const fields: MapOf<FieldWrapper> = getMapOf(
+  const fields: Record<string, FieldWrapper> = groupByFlat(
     describeResults.fields.map((field: Field & { typeLabel: string }) => {
       const type = field.typeLabel;
 

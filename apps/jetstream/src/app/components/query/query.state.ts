@@ -5,7 +5,6 @@ import {
   DescribeGlobalSObjectResult,
   ExpressionType,
   ListItem,
-  MapOf,
   QueryFieldWithPolymorphic,
   QueryFields,
   QueryGroupByClause,
@@ -50,7 +49,7 @@ export const queryChildRelationships = atom<ChildRelationship[]>({
   default: [],
 });
 
-export const queryFieldsMapState = atom<MapOf<QueryFields>>({
+export const queryFieldsMapState = atom<Record<string, QueryFields>>({
   key: 'query.queryFieldsMapState',
   default: {},
 });
@@ -60,7 +59,7 @@ export const selectedQueryFieldsState = atom<QueryFieldWithPolymorphic[]>({
   default: [],
 });
 
-export const selectedSubqueryFieldsState = atom<MapOf<QueryFieldWithPolymorphic[]>>({
+export const selectedSubqueryFieldsState = atom<Record<string, QueryFieldWithPolymorphic[]>>({
   key: 'query.selectedSubqueryFieldsState',
   default: {},
 });
@@ -68,7 +67,7 @@ export const selectedSubqueryFieldsState = atom<MapOf<QueryFieldWithPolymorphic[
 export const selectQueryField = selector<FieldType[]>({
   key: 'query.selectQueryField',
   get: ({ get }) => {
-    const filterFieldFns = get(fieldFilterFunctions).reduce((acc: MapOf<{ fn: string; alias: string | null }>, item) => {
+    const filterFieldFns = get(fieldFilterFunctions).reduce((acc: Record<string, { fn: string; alias: string | null }>, item) => {
       if (!!item.selectedField && !!item.selectedFunction) {
         acc[item.selectedField.field] = { fn: item.selectedFunction, alias: item.alias };
       }

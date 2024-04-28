@@ -1,9 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { query, queryAll, readMetadata } from '@jetstream/shared/data';
-import { getMapOf } from '@jetstream/shared/utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import {
   Field,
-  MapOf,
   Maybe,
   PermissionSetMetadataRecord,
   ProfileMetadataRecord,
@@ -352,7 +351,7 @@ async function collectBaseQueriedRecordFields({
   }
 
   const fieldsByName = getFieldsByName(columns);
-  let lowercaseFieldMap: MapOf<Field> = {};
+  let lowercaseFieldMap: Record<string, Field> = {};
   if (parsedQuery) {
     lowercaseFieldMap = (await fetchMetadataFromSoql(selectedOrg, parsedQuery)).lowercaseFieldMap;
   }
@@ -486,7 +485,7 @@ async function collectCustomMetadata({
 
     // Group records by Api name, then get value of each used field in record
     const fieldsByName = getFieldsByName(columns);
-    let lowercaseFieldMap: MapOf<Field> = {};
+    let lowercaseFieldMap: Record<string, Field> = {};
     if (parsedQuery) {
       lowercaseFieldMap = (await fetchMetadataFromSoql(selectedOrg, parsedQuery)).lowercaseFieldMap;
     }
@@ -831,7 +830,7 @@ async function collectCustomSettingFields({
     );
 
     const fieldsByName = getFieldsByName(columns);
-    const recordsBySetupId = getMapOf(queryResults.records, 'SetupOwnerId');
+    const recordsBySetupId = groupByFlat(queryResults.records, 'SetupOwnerId');
     const record = recordsBySetupId[Id] || recordsBySetupId[ProfileId] || recordsBySetupId[selectedOrg.organizationId];
 
     fields.forEach(({ field, fullField }) => {

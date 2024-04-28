@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { Field, FieldType, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { Field, FieldType, SalesforceOrgUi } from '@jetstream/types';
 import { AxeIllustration, EmptyState, Grid, GridCol, Icon, Modal, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
 import copyToClipboard from 'copy-to-clipboard';
@@ -27,7 +27,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [fieldMetadata, setFieldMetadata] = useState<Field[]>([]);
-  const [fieldTypesByName, setFieldTypesByName] = useState<MapOf<FieldType>>({});
+  const [fieldTypesByName, setFieldTypesByName] = useState<Record<string, FieldType>>({});
   const [fields, setFields] = useState<string[]>([]);
   const [options, setOptions] = useState<RecordToApexOptionsInitialOptions>({
     sobjectName,
@@ -45,7 +45,7 @@ export const QueryResultsGetRecAsApexModal: FunctionComponent<QueryResultsGetRec
       setFieldMetadata([]);
       setFieldTypesByName({});
       const metadata = await describeSObject(org, sobjectName);
-      const fieldTypeByApiName = metadata.data.fields.reduce((output: MapOf<FieldType>, field) => {
+      const fieldTypeByApiName = metadata.data.fields.reduce((output: Record<string, FieldType>, field) => {
         output[field.name] = field.type;
         return output;
       }, {});

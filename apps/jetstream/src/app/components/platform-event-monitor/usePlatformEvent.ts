@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
 import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
-import { MapOf, Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { CometD } from 'cometd';
 import orderBy from 'lodash/orderBy';
@@ -14,7 +14,7 @@ import { useAmplitude } from '../core/analytics';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
 import * as platformEventUtils from './platform-event-monitor.utils';
 
-export type MessagesByChannel = MapOf<{ replayId?: number; channel: string; messages: PlatformEventMessagePayload[] }>;
+export type MessagesByChannel = Record<string, { replayId?: number; channel: string; messages: PlatformEventMessagePayload[] }>;
 export interface PlatformEventDownloadData {
   headers: Record<string, string[]>;
   worksheets: Record<string, any[]>;

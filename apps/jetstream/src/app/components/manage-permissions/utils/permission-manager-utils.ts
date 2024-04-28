@@ -6,7 +6,6 @@ import {
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
-  MapOf,
   ObjectPermissionRecord,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
@@ -296,8 +295,8 @@ export async function updatePermissionSetRecords(
 
 export function collectProfileAndPermissionIds(
   dirtyPermissions: PermissionTableCellPermission[],
-  profilesById: MapOf<PermissionSetWithProfileRecord>,
-  permissionSetsById: MapOf<PermissionSetNoProfileRecord>
+  profilesById: Record<string, PermissionSetWithProfileRecord>,
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
 ) {
   const profileIds = new Set<string>();
   const permissionSetIds = new Set<string>();
@@ -316,10 +315,10 @@ export function collectProfileAndPermissionIds(
  * Object Permissions
  */
 export function getUpdatedObjectPermissions(
-  objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>,
+  objectPermissionMap: Record<string, ObjectPermissionDefinitionMap>,
   permissionSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[]
 ) {
-  const output: MapOf<ObjectPermissionDefinitionMap> = { ...objectPermissionMap };
+  const output: Record<string, ObjectPermissionDefinitionMap> = { ...objectPermissionMap };
   // remove all error messages across all objects
   Object.keys(output).forEach((key) => {
     output[key] = { ...output[key] };
@@ -413,10 +412,10 @@ export function getUpdatedObjectPermissions(
  * Field Permissions
  */
 export function getUpdatedFieldPermissions(
-  fieldPermissionMap: MapOf<FieldPermissionDefinitionMap>,
+  fieldPermissionMap: Record<string, FieldPermissionDefinitionMap>,
   permissionSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[]
 ) {
-  const output: MapOf<FieldPermissionDefinitionMap> = { ...fieldPermissionMap };
+  const output: Record<string, FieldPermissionDefinitionMap> = { ...fieldPermissionMap };
   // remove all error messages across all objects
   Object.keys(output).forEach((key) => {
     output[key] = { ...output[key] };
@@ -495,10 +494,10 @@ export function getUpdatedFieldPermissions(
 }
 
 export function getUpdatedTabVisibilityPermissions(
-  objectPermissionMap: MapOf<TabVisibilityPermissionDefinitionMap>,
+  objectPermissionMap: Record<string, TabVisibilityPermissionDefinitionMap>,
   permissionSaveResults: PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
 ) {
-  const output: MapOf<TabVisibilityPermissionDefinitionMap> = { ...objectPermissionMap };
+  const output: Record<string, TabVisibilityPermissionDefinitionMap> = { ...objectPermissionMap };
   // remove all error messages across all objects
   Object.keys(output).forEach((key) => {
     output[key] = { ...output[key] };
@@ -575,8 +574,8 @@ export function getUpdatedTabVisibilityPermissions(
   return output;
 }
 
-export function clearPermissionErrorMessage<T extends PermissionDefinitionMap>(permissionMap: MapOf<T>): MapOf<T> {
-  return Object.keys(permissionMap).reduce((output: MapOf<T>, key) => {
+export function clearPermissionErrorMessage<T extends PermissionDefinitionMap>(permissionMap: Record<string, T>): Record<string, T> {
+  return Object.keys(permissionMap).reduce((output: Record<string, T>, key) => {
     output[key] = { ...permissionMap[key] };
     output[key].permissions = { ...output[key].permissions };
     output[key].permissionKeys.forEach((permissionKey) => {
@@ -586,7 +585,7 @@ export function clearPermissionErrorMessage<T extends PermissionDefinitionMap>(p
   }, {});
 }
 
-export function permissionsHaveError<T extends PermissionDefinitionMap>(permissionMap: MapOf<T>): boolean {
+export function permissionsHaveError<T extends PermissionDefinitionMap>(permissionMap: Record<string, T>): boolean {
   return Object.values(permissionMap).some((item) => Object.values(item.permissions).some((permission) => permission.errorMessage));
 }
 

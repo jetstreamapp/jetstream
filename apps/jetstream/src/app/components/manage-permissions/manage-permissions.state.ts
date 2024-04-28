@@ -2,7 +2,6 @@ import {
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
   ListItem,
-  MapOf,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
 } from '@jetstream/types';
@@ -44,28 +43,28 @@ export const selectedPermissionSetsState = atom<string[]>({
   default: [],
 });
 
-export const fieldsByObject = atom<MapOf<string[]> | null>({
+export const fieldsByObject = atom<Record<string, string[]> | null>({
   key: 'permission-manager.fieldsByObject',
   default: null,
 });
 
 // KEY = {SObject.FieldName}, ex: `${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`
-export const fieldsByKey = atom<MapOf<EntityParticlePermissionsRecord> | null>({
+export const fieldsByKey = atom<Record<string, EntityParticlePermissionsRecord> | null>({
   key: 'permission-manager.fieldsByKey',
   default: null,
 });
 
-export const objectPermissionMap = atom<MapOf<ObjectPermissionDefinitionMap> | null>({
+export const objectPermissionMap = atom<Record<string, ObjectPermissionDefinitionMap> | null>({
   key: 'permission-manager.objectPermissionMap',
   default: null,
 });
 
-export const fieldPermissionMap = atom<MapOf<FieldPermissionDefinitionMap> | null>({
+export const fieldPermissionMap = atom<Record<string, FieldPermissionDefinitionMap> | null>({
   key: 'permission-manager.fieldPermissionMap',
   default: null,
 });
 
-export const tabVisibilityPermissionMap = atom<MapOf<TabVisibilityPermissionDefinitionMap> | null>({
+export const tabVisibilityPermissionMap = atom<Record<string, TabVisibilityPermissionDefinitionMap> | null>({
   key: 'permission-manager.tabVisibilityPermissionMap',
   default: null,
 });
@@ -86,7 +85,7 @@ export const hasSelectionsMade = selector({
   },
 });
 
-export const profilesByIdSelector = selector<MapOf<PermissionSetWithProfileRecord>>({
+export const profilesByIdSelector = selector<Record<string, PermissionSetWithProfileRecord>>({
   key: 'permission-manager.profilesByIdSelector',
   get: ({ get }) => {
     const profiles = get(profilesState);
@@ -100,7 +99,7 @@ export const profilesByIdSelector = selector<MapOf<PermissionSetWithProfileRecor
   },
 });
 
-export const permissionSetsByIdSelector = selector<MapOf<PermissionSetNoProfileRecord>>({
+export const permissionSetsByIdSelector = selector<Record<string, PermissionSetNoProfileRecord>>({
   key: 'permission-manager.permissionSetsByIdSelector',
   get: ({ get }) => {
     const permSets = get(permissionSetsState);

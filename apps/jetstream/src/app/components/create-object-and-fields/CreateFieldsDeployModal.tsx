@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
-import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
+import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -18,7 +18,7 @@ export interface CreateFieldsDeployModalProps {
   selectedOrg: SalesforceOrgUi;
   profiles: string[];
   permissionSets: string[];
-  profilesAndPermSetsById: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>;
+  profilesAndPermSetsById: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>;
   sObjects: string[];
   rows: FieldValues[];
   onClose: () => void;
@@ -53,8 +53,8 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportData, setExportModalData] = useState<{
-    worksheetData: MapOf<any[]>;
-    headerData: MapOf<any[]>;
+    worksheetData: Record<string, any[]>;
+    headerData: Record<string, any[]>;
   } | null>(null);
 
   useEffect(() => {

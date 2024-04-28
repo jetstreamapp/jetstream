@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import { DeployMessage, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
@@ -120,7 +120,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
     if (!metadata) {
       return;
     }
-    const resultsByFullName = getMapOf<DeployMessage>(
+    const resultsByFullName = groupByFlat<DeployMessage>(
       results?.details?.componentSuccesses?.concat(results.details.componentFailures) || [],
       'fullName'
     );
@@ -149,7 +149,7 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
     if (!metadata) {
       return;
     }
-    const resultsByFullName = getMapOf<DeployMessage>(
+    const resultsByFullName = groupByFlat<DeployMessage>(
       results?.details?.componentSuccesses?.concat(results.details.componentFailures) || [],
       'fullName'
     );

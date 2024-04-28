@@ -4,7 +4,6 @@ import {
   FieldType,
   FieldWithExtendedType,
   InsertUpdateUpsertDelete,
-  MapOf,
   Maybe,
   RecordAttributes,
   SalesforceOrgUi,
@@ -22,7 +21,7 @@ export interface FieldWithRelatedEntities {
   externalId: boolean;
   referenceTo?: string[];
   relationshipName?: string;
-  relatedFields?: MapOf<FieldRelatedEntity[]>;
+  relatedFields?: Record<string, FieldRelatedEntity[]>;
   field: FieldWithExtendedType;
 }
 
@@ -167,7 +166,7 @@ export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> 
   type: DownloadType;
 }
 
-export type MapOfCustomMetadataRecord = MapOf<CustomMetadataRecord>;
+export type MapOfCustomMetadataRecord = Record<string, CustomMetadataRecord>;
 
 export interface CustomMetadataRecord {
   metadata: string;

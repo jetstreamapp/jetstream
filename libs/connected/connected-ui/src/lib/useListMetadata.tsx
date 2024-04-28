@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { listMetadata as listMetadataApi, queryAll } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getMapOf, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ListMetadataQuery, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -106,11 +106,11 @@ async function fetchListMetadataForItemsInFolder(
    *
    * @example {'SubSubFolder2': 'RootFolder/SubFolder1/SubSubFolder2'}
    */
-  const foldersByPath: MapOf<string> = {};
+  const foldersByPath: Record<string, string> = {};
   if (METADATA_TYPES_WITH_NESTED_FOLDERS.has(type)) {
     // query all folders and figure out all path combinations
     const reportFolders = await queryAll<FolderRecord>(selectedOrg, getFolderSoqlQuery(type));
-    const foldersById = getMapOf(reportFolders.queryResults.records, 'Id');
+    const foldersById = groupByFlat(reportFolders.queryResults.records, 'Id');
 
     reportFolders.queryResults.records.reduce((foldersByPath, folder) => {
       const { DeveloperName, ParentId } = folder;
@@ -176,7 +176,7 @@ async function fetchListMetadataForItemsInFolder(
 export function useListMetadata(selectedOrg: SalesforceOrgUi) {
   const isMounted = useRef(true);
   const rollbar = useRollbar();
-  const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem>>();
+  const [listMetadataItems, setListMetadataItems] = useState<Record<string, ListMetadataResultItem>>();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [initialLoadFinished, setInitialLoadFinished] = useState(false);
@@ -200,7 +200,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
     async (
       types: ListMetadataQueryExtended[],
       options: {
-        metadataToRetain?: MapOf<ListMetadataResultItem>;
+        metadataToRetain?: Record<string, ListMetadataResultItem>;
         skipRequestCache?: boolean;
         skipCacheIfOlderThan?: number;
       } = {}
@@ -232,7 +232,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
           })
         );
 
-        const newMetadataItems = getMapOf(itemsToProcess, 'type');
+        const newMetadataItems = groupByFlat(itemsToProcess, 'type');
 
         /**
          * If keep if existing flag is set

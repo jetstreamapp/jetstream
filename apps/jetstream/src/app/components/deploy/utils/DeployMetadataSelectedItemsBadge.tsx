@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { MapOf } from '@jetstream/types';
 import { Badge, EmptyState, Popover } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { DeployMetadataTableRow } from '../deploy-metadata.types';
@@ -15,7 +14,7 @@ export const DeployMetadataSelectedItemsBadge: FunctionComponent<DeployMetadataS
 
   useEffect(() => {
     setSelectedRowsByType(
-      Array.from(selectedRows).reduce((output: MapOf<DeployMetadataTableRow[]>, row) => {
+      Array.from(selectedRows).reduce((output: Record<string, DeployMetadataTableRow[]>, row) => {
         if (row.metadata) {
           output[row.typeLabel] = output[row.typeLabel] || [];
           output[row.typeLabel].push(row);

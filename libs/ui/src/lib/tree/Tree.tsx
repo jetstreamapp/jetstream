@@ -1,7 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { MapOf } from '@jetstream/types';
 import classNames from 'classnames';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import TreeItem from './TreeItem';
@@ -35,8 +34,8 @@ export interface TreeHandleRefFns {
 
 function getAllIds(
   items: TreeItems[],
-  output?: { ids: Set<string>; idMap: MapOf<TreeItems> }
-): { ids: Set<string>; idMap: MapOf<TreeItems> } {
+  output?: { ids: Set<string>; idMap: Record<string, TreeItems> }
+): { ids: Set<string>; idMap: Record<string, TreeItems> } {
   output = output || { ids: new Set(), idMap: {} };
   items.forEach((item) => {
     output && output.ids.add(item.id);

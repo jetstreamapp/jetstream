@@ -20,7 +20,6 @@ import type {
   ExpressionType,
   Field,
   ListItem,
-  MapOf,
   Maybe,
   MimeType,
   Nullable,
@@ -71,7 +70,7 @@ export function initXlsx(_xlsx: typeof import('xlsx')) {
       _xlsx.set_cptable(module);
     })
     .catch((ex) => {
-      logger.error('Error loading xlsx package');
+      logger.warn('Error loading xlsx package');
     });
 }
 
@@ -305,7 +304,7 @@ export function polyfillFieldDefinition(field: Field): string {
  * @returns excel file
  */
 export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string): ArrayBuffer;
-export function prepareExcelFile(data: MapOf<any[]>, header?: MapOf<string[]>, defaultSheetName?: void): ArrayBuffer;
+export function prepareExcelFile(data: Record<string, any[]>, header?: Record<string, string[]>, defaultSheetName?: void): ArrayBuffer;
 export function prepareExcelFile(data: any, header: any, defaultSheetName: any = 'Records'): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
 
@@ -347,7 +346,7 @@ export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook): ArrayBuffer
   return workbookArrayBuffer;
 }
 
-export function prepareCsvFile(data: MapOf<string>[], header: string[]): string {
+export function prepareCsvFile(data: Record<string, string>[], header: string[]): string {
   return unparse(
     {
       data,

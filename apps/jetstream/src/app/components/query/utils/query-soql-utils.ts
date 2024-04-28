@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal, describeSObject } from '@jetstream/shared/data';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import isString from 'lodash/isString';
 import {
   OrderByFieldClause,
@@ -22,24 +22,24 @@ export interface SoqlMetadataTree {
   parentKey?: string;
   level: number; // do not allow beyond 5
   metadata: DescribeSObjectResult;
-  lowercaseFieldMap: MapOf<Field>;
+  lowercaseFieldMap: Record<string, Field>;
   children: SoqlMetadataTree[];
 }
 
 export interface SoqlFetchMetadataOutput {
   sobjectMetadata: DescribeGlobalSObjectResult[];
   selectedSobjectMetadata: { global: DescribeGlobalSObjectResult; sobject: DescribeSObjectResult };
-  metadata: MapOf<SoqlMetadataTree>;
+  metadata: Record<string, SoqlMetadataTree>;
   childMetadata: {
     [childRelationshipName: string]: {
       objectMetadata: DescribeSObjectResult;
-      metadataTree: MapOf<SoqlMetadataTree>;
+      metadataTree: Record<string, SoqlMetadataTree>;
       // includes full path
-      lowercaseFieldMap: MapOf<Field>;
+      lowercaseFieldMap: Record<string, Field>;
     };
   };
   // includes full path
-  lowercaseFieldMap: MapOf<Field>;
+  lowercaseFieldMap: Record<string, Field>;
 }
 interface ParsableFields {
   fields: string[];
@@ -62,7 +62,7 @@ async function describeSObjectWithLocalCache(
   org: SalesforceOrgUi,
   SObject: string,
   isTooling = false,
-  describeCache: MapOf<DescribeSObjectResult>
+  describeCache: Record<string, DescribeSObjectResult>
 ): Promise<DescribeSObjectResult> {
   if (describeCache[SObject]) {
     return describeCache[SObject];
@@ -94,7 +94,7 @@ export async function fetchMetadataFromSoql(
     throw new Error(`Object ${query.sObject} was not found in org`);
   }
 
-  const describeCache: MapOf<DescribeSObjectResult> = {};
+  const describeCache: Record<string, DescribeSObjectResult> = {};
 
   const rootSobjectDescribe = await describeSObjectWithLocalCache(org, selectedSobjectMetadata.name, isTooling, describeCache);
 
@@ -223,7 +223,7 @@ async function fetchAllMetadata(
   isTooling: boolean,
   describeSobject: DescribeSObjectResult,
   parsableFields: string[],
-  describeCache: MapOf<DescribeSObjectResult>,
+  describeCache: Record<string, DescribeSObjectResult>,
   subqueryRelationshipName?: string
 ) {
   const fields = findRequiredRelationships(parsableFields);
@@ -270,10 +270,10 @@ async function fetchRecursiveMetadata(
   fieldRelationships: string[],
   parentMetadata: DescribeSObjectResult,
   parentKey: string,
-  describeCache: MapOf<DescribeSObjectResult>,
-  output: MapOf<SoqlMetadataTree> = {},
+  describeCache: Record<string, DescribeSObjectResult>,
+  output: Record<string, SoqlMetadataTree> = {},
   parentNode: SoqlMetadataTree | null = null
-): Promise<MapOf<SoqlMetadataTree>> {
+): Promise<Record<string, SoqlMetadataTree>> {
   // filter items to keep fields without any children relationships to fetch metadata
   const currRelationships = fieldRelationships.filter((field) => field.indexOf('.') === -1);
   if (currRelationships.length === 0) {
@@ -355,7 +355,7 @@ async function fetchRecursiveMetadata(
 }
 
 function getLowercaseFieldMap(fields: Field[]) {
-  return fields.reduce((lowercaseFieldMap: MapOf<Field>, field) => {
+  return fields.reduce((lowercaseFieldMap: Record<string, Field>, field) => {
     lowercaseFieldMap[field.name.toLowerCase()] = field;
     return lowercaseFieldMap;
   }, {});
@@ -367,8 +367,8 @@ function getLowercaseFieldMap(fields: Field[]) {
  * @param metadata
  * @param output - optional, object to add items to
  */
-function getLowercaseFieldMapWithFullPath(metadata: MapOf<SoqlMetadataTree>, output: MapOf<Field> = {}) {
-  function updateOutput(lowercaseFieldMap: MapOf<Field>, parentKey: string) {
+function getLowercaseFieldMapWithFullPath(metadata: Record<string, SoqlMetadataTree>, output: Record<string, Field> = {}) {
+  function updateOutput(lowercaseFieldMap: Record<string, Field>, parentKey: string) {
     Object.keys(lowercaseFieldMap).forEach((fieldKey) => {
       output[`${parentKey}.${fieldKey}`] = lowercaseFieldMap[fieldKey];
     });

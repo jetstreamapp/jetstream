@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl, nullifyEmptyStrings } from '@jetstream/shared/utils';
-import { CloneEditView, Field, MapOf, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { CloneEditView, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, RowsChangeData } from 'react-data-grid';
@@ -56,8 +56,8 @@ export interface SalesforceRecordDataTableProps {
   google_appId: string;
   google_clientId: string;
   queryResults: Maybe<QueryResults<any>>;
-  fieldMetadata: Maybe<MapOf<Field>>;
-  fieldMetadataSubquery: Maybe<MapOf<MapOf<Field>>>;
+  fieldMetadata: Maybe<Record<string, Field>>;
+  fieldMetadataSubquery: Maybe<Record<string, Record<string, Field>>>;
   summaryHeaderRightContent?: ReactNode;
   onSelectionChanged: (rows: any[]) => void;
   onFilteredRowsChanged: (rows: any[]) => void;
@@ -106,7 +106,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     const isMounted = useRef(true);
     const rollbar = useRollbar();
     const [columns, setColumns] = useState<Column<RowSalesforceRecordWithKey>[]>();
-    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<MapOf<ColumnWithFilter<RowSalesforceRecordWithKey, unknown>[]>>();
+    const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<Record<string, ColumnWithFilter<RowSalesforceRecordWithKey, unknown>[]>>();
     const [records, setRecords] = useState<any[]>();
     // Same as records but with additional data added
     const [fields, setFields] = useState<string[]>([]);

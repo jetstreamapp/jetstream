@@ -5,7 +5,7 @@ import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/share
 import { anonymousApex } from '@jetstream/shared/data';
 import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ApexHistoryItem, ListItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ApexHistoryItem, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -101,7 +101,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     if (apex) {
       (async () => {
         try {
-          await localforage.setItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, historyItems);
+          await localforage.setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, historyItems);
         } catch (ex) {
           logger.warn(ex);
         }

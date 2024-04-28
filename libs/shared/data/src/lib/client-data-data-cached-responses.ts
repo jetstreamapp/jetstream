@@ -2,8 +2,6 @@
  * Export is at bottom of file
  */
 
-import { MapOf } from '@jetstream/types';
-
 // Entity definition with limited fields
 // Used for metadata relationship
 const EntityDefinition = {
@@ -474,6 +472,6 @@ const EntityDefinition = {
  * Cached responses
  * These are returned instead of real responses
  */
-export const SOBJECT_DESCRIBE_CACHED_RESPONSES: MapOf<any> = {
+export const SOBJECT_DESCRIBE_CACHED_RESPONSES: Record<string, any> = {
   // '@EntityDefinition': EntityDefinition,
 };

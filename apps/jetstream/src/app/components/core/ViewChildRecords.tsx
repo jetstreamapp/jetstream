@@ -4,7 +4,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared/data';
-import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ChildRelationship, Maybe, QueryResult, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -232,7 +232,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           Fields: QueryResult<{ Id: string; QualifiedApiName: string }> | null;
         }>(selectedOrg, entityParticleQueries);
 
-        const queryResultsByObject = getMapOf(entityQueryResults.queryResults.records, 'QualifiedApiName');
+        const queryResultsByObject = groupByFlat(entityQueryResults.queryResults.records, 'QualifiedApiName');
 
         const subqueries = childRelationships
           .filter((item) => item.relationshipName && queryResultsByObject[item.childSObject]?.Fields?.records.length)

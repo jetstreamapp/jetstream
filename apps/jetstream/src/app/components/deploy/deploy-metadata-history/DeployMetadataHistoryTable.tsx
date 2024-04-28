@@ -1,4 +1,4 @@
-import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { ColumnWithFilter, DataTable, setColumnFromType } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
 import { DeployHistoryTableContext } from '../deploy-metadata.types';
@@ -55,7 +55,7 @@ const COLUMNS: ColumnWithFilter<SalesforceDeployHistoryItem>[] = [
   },
 ];
 
-const getRowHeight = (orgsById: MapOf<SalesforceOrgUi>) => (row: SalesforceDeployHistoryItem) => {
+const getRowHeight = (orgsById: Record<string, SalesforceOrgUi>) => (row: SalesforceDeployHistoryItem) => {
   const rowHeight = 27.5;
   let numberOfRows = 3;
   if (row.type === 'orgToOrg') {
@@ -71,7 +71,7 @@ const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 
 export interface DeployMetadataHistoryTableProps {
   items: SalesforceDeployHistoryItem[];
-  orgsById: MapOf<SalesforceOrgUi>;
+  orgsById: Record<string, SalesforceOrgUi>;
   modalRef: React.RefObject<HTMLDivElement>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { getMapOf, multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -138,7 +138,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
   const [visibleObjectRows, setVisibleObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
-  const [dirtyObjectRows, setDirtyObjectRows] = useState<MapOf<DirtyRow<PermissionTableObjectCell>>>({});
+  const [dirtyObjectRows, setDirtyObjectRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
   const [objectFilter, setObjectFilter] = useState('');
 
   const [tabVisibilityColumns, setTabVisibilityColumns] = useState<
@@ -146,13 +146,13 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   >([]);
   const [tabVisibilityRows, setTabVisibilityRows] = useState<PermissionTableTabVisibilityCell[] | null>(null);
   const [visibleTabVisibilityRows, setVisibleTabVisibilityRows] = useState<PermissionTableTabVisibilityCell[] | null>(null);
-  const [dirtyTabVisibilityRows, setDirtyTabVisibilityRows] = useState<MapOf<DirtyRow<PermissionTableTabVisibilityCell>>>({});
+  const [dirtyTabVisibilityRows, setDirtyTabVisibilityRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
   const [tabVisibilityFilter, setTabVisibilityFilter] = useState('');
 
   const [fieldColumns, setFieldColumns] = useState<ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[]>([]);
   const [fieldRows, setFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
   const [visibleFieldRows, setVisibleFieldRows] = useState<PermissionTableFieldCell[] | null>(null);
-  const [dirtyFieldRows, setDirtyFieldRows] = useState<MapOf<DirtyRow<PermissionTableFieldCell>>>({});
+  const [dirtyFieldRows, setDirtyFieldRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
   const [fieldFilter, setFieldFilter] = useState('');
 
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
@@ -240,7 +240,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, [tabVisibilityFilter, tabVisibilityRows]);
 
   const handleObjectBulkRowUpdate = useCallback((rows: PermissionTableObjectCell[], indexes?: number[]) => {
-    const rowsByKey = getMapOf(rows, 'key');
+    const rowsByKey = groupByFlat(rows, 'key');
     setObjectRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
     indexes = indexes || rows.map((row, index) => index);
     setDirtyObjectRows((priorValue) => {
@@ -258,7 +258,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         newValues[rowKey] = { rowKey, dirtyCount, row };
       });
       // remove items with a dirtyCount of 0 to reduce future processing required
-      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableObjectCell>>, key) => {
+      return Object.keys(newValues).reduce((output: Record<string, DirtyRow<PermissionTableObjectCell>>, key) => {
         if (newValues[key].dirtyCount) {
           output[key] = newValues[key];
         }
@@ -268,7 +268,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, []);
 
   const handleFieldBulkRowUpdate = useCallback((rows: PermissionTableFieldCell[], indexes?: number[]) => {
-    const rowsByKey = getMapOf(rows, 'key');
+    const rowsByKey = groupByFlat(rows, 'key');
     setFieldRows((prevRows) => (prevRows ? prevRows?.map((row) => rowsByKey[row.key] || row) : rows));
     indexes = indexes || rows.map((row, index) => index);
     setDirtyFieldRows((priorValue) => {
@@ -283,7 +283,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         newValues[rowKey] = { rowKey, dirtyCount, row };
       });
       // remove items with a dirtyCount of 0 to reduce future processing required
-      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableFieldCell>>, key) => {
+      return Object.keys(newValues).reduce((output: Record<string, DirtyRow<PermissionTableFieldCell>>, key) => {
         if (newValues[key].dirtyCount) {
           output[key] = newValues[key];
         }
@@ -293,7 +293,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }, []);
 
   const handleTabVisibilityBulkRowUpdate = useCallback((rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => {
-    const rowsByKey = getMapOf(rows, 'key');
+    const rowsByKey = groupByFlat(rows, 'key');
     setTabVisibilityRows((prevRows) => (prevRows ? prevRows.map((row) => rowsByKey[row.key] || row) : rows));
     indexes = indexes || rows.map((row, index) => index);
     setDirtyTabVisibilityRows((priorValue) => {
@@ -308,7 +308,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         newValues[rowKey] = { rowKey, dirtyCount, row };
       });
       // remove items with a dirtyCount of 0 to reduce future processing required
-      return Object.keys(newValues).reduce((output: MapOf<DirtyRow<PermissionTableTabVisibilityCell>>, key) => {
+      return Object.keys(newValues).reduce((output: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>, key) => {
         if (newValues[key].dirtyCount) {
           output[key] = newValues[key];
         }
@@ -319,9 +319,9 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   function initTableData(
     includeColumns = true,
-    objectPermissionMapOverride?: MapOf<ObjectPermissionDefinitionMap>,
-    fieldPermissionMapOverride?: MapOf<FieldPermissionDefinitionMap>,
-    tabVisibilityPermissionMapOverride?: MapOf<TabVisibilityPermissionDefinitionMap>
+    objectPermissionMapOverride?: Record<string, ObjectPermissionDefinitionMap>,
+    fieldPermissionMapOverride?: Record<string, FieldPermissionDefinitionMap>,
+    tabVisibilityPermissionMapOverride?: Record<string, TabVisibilityPermissionDefinitionMap>
   ) {
     if (includeColumns) {
       setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));

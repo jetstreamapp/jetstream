@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { getMapOf, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { groupByFlat, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -37,7 +37,7 @@ function SelectedItemsBadge({
 }) {
   const [items] = useState<ListItem[]>(() => {
     if (labelListItem?.length) {
-      const itemsById = getMapOf(labelListItem, 'id');
+      const itemsById = groupByFlat(labelListItem, 'id');
       return _items.map(
         (item): ListItem => ({
           id: item,

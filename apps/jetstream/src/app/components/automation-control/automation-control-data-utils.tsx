@@ -7,8 +7,8 @@ import {
   saveCacheItemNonHttp,
 } from '@jetstream/shared/data';
 import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
-import { getMapOf, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeRequest, CompositeRequestBody, CompositeResponse, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { CompositeRequest, CompositeRequestBody, CompositeResponse, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import { Observable, Subject, from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
@@ -232,7 +232,7 @@ export async function getValidationRulesMetadata(
     validationRuleRecords.map((record) => record.Id),
     apiVersion
   );
-  const validationRuleMetaById = getMapOf(
+  const validationRuleMetaById = groupByFlat(
     validationRules.compositeResponse.map((item) => item.body),
     'Id'
   );
@@ -273,7 +273,7 @@ export async function getWorkflowRulesMetadata(
     apiVersion
   );
 
-  const workflowRuleMetaById = getMapOf(
+  const workflowRuleMetaById = groupByFlat(
     workflowRules.compositeResponse.map((item) => item.body),
     'Id'
   );
@@ -319,8 +319,8 @@ export async function getProcessBuildersMetadata(
   const sobjectSet = new Set(sobjects);
   let workflowRuleRecords = (await query<FlowViewRecord>(selectedOrg, getProcessBuildersQuery(), false)).queryResults.records;
 
-  let flowIdToSobject: MapOf<string>;
-  const flowIdToSobjectCache = skipCache ? null : await getCacheItemNonHttp<MapOf<string>>(selectedOrg, PROCESS_BUILDER_CACHE_ID);
+  let flowIdToSobject: Record<string, string>;
+  const flowIdToSobjectCache = skipCache ? null : await getCacheItemNonHttp<Record<string, string>>(selectedOrg, PROCESS_BUILDER_CACHE_ID);
 
   if (flowIdToSobjectCache) {
     flowIdToSobject = flowIdToSobjectCache.data;
@@ -338,7 +338,7 @@ export async function getProcessBuildersMetadata(
 
     const definitionIdsBySObject = flowVersionWithMetadata.compositeResponse
       .map((item) => item.body)
-      .reduce((output: MapOf<string>, { Id, DefinitionId, Metadata }) => {
+      .reduce((output: Record<string, string>, { Id, DefinitionId, Metadata }) => {
         try {
           if (Metadata) {
             let sobject: string | undefined = undefined;
@@ -497,7 +497,7 @@ export function deployMetadata(
   Promise.resolve().then(async () => {
     try {
       // items with prior errors are not deployed
-      const idToKeyMap: MapOf<string> = Object.keys(itemsByKey)
+      const idToKeyMap: Record<string, string> = Object.keys(itemsByKey)
         .filter((key) => !itemsByKey[key].deploy.deployError)
         .reduce((output, key) => {
           output[itemsByKey[key].deploy.id] = key;
@@ -572,7 +572,8 @@ export async function deployMetadataFileBased(
     return null;
   }
 
-  const deployItems: MapOf<
+  const deployItems: Record<
+    string,
     {
       fullName: string;
       dirPath: string;

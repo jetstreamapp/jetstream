@@ -1,5 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -12,7 +12,7 @@ import DeleteMetadataStatusModal from './DeleteMetadataStatusModal';
 
 export interface DeleteMetadataModalProps {
   selectedOrg: SalesforceOrgUi;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
+  selectedMetadata: Record<string, ListMetadataResult[]>;
   onClose: () => void;
 }
 
@@ -24,7 +24,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
   const [file, setFile] = useState<ArrayBuffer>();
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
-  const [deployResultsData, setDeployResultsData] = useState<MapOf<any[]>>();
+  const [deployResultsData, setDeployResultsData] = useState<Record<string, any[]>>();
 
   function handleDeploy(file: ArrayBuffer, deployOptions: DeployOptions) {
     setFile(file);

@@ -1,7 +1,6 @@
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
-  MapOf,
   Maybe,
   ObjectPermissionRecord,
   RecordAttributes,
@@ -31,7 +30,7 @@ export interface ObjectPermissionDefinitionMap {
   metadata: string; // FIXME: this should probably be Describe metadata
   // used to retain order of permissions
   permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
-  permissions: MapOf<ObjectPermissionItem>;
+  permissions: Record<string, ObjectPermissionItem>;
 }
 
 export interface ObjectPermissionItem {
@@ -51,7 +50,7 @@ export interface FieldPermissionDefinitionMap {
   metadata: EntityParticlePermissionsRecord;
   // used to retain order of permissions
   permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
-  permissions: MapOf<FieldPermissionItem>;
+  permissions: Record<string, FieldPermissionItem>;
 }
 
 export interface FieldPermissionItem {
@@ -71,7 +70,7 @@ export interface TabVisibilityPermissionDefinitionMap {
   canSetPermission: boolean;
   // used to retain order of permissions
   permissionKeys: string[]; // this is permission set ids, which could apply to profile or perm set
-  permissions: MapOf<TabVisibilityPermissionItem>;
+  permissions: Record<string, TabVisibilityPermissionItem>;
 }
 
 export interface TabVisibilityPermissionItem {
@@ -118,7 +117,7 @@ export interface PermissionTableCell<T = PermissionTableFieldCellPermission | Pe
   apiName: string;
   label: string;
   tableLabel: string;
-  permissions: MapOf<T>;
+  permissions: Record<string, T>;
 }
 
 export type PermissionTableCellExtended = PermissionTableObjectCell | PermissionTableFieldCell | PermissionTableTabVisibilityCell;
@@ -183,7 +182,7 @@ export type PermissionTableCellPermission =
   | PermissionTableTabVisibilityCellPermission;
 
 export interface ManagePermissionsEditorTableProps {
-  fieldsByObject: MapOf<string[]>;
+  fieldsByObject: Record<string, string[]>;
 }
 
 export interface DirtyRow<T> {

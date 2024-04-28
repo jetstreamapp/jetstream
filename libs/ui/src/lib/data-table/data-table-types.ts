@@ -1,4 +1,4 @@
-import { MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Column } from 'react-data-grid';
 
 export type RowWithKey = Record<string, any> & { _key: string };
@@ -72,7 +72,7 @@ export interface ColumnWithFilter<TRow, TSummaryRow = unknown> extends Column<TR
 
 export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {
   parentColumns: ColumnWithFilter<TRow, TSummaryRow>[];
-  subqueryColumns: MapOf<ColumnWithFilter<TRow, TSummaryRow>[]>;
+  subqueryColumns: Record<string, ColumnWithFilter<TRow, TSummaryRow>[]>;
 }
 
 export interface FilterContextProps {
@@ -88,7 +88,7 @@ export interface SubqueryContext<TRow = any> {
   skipFrontdoorLogin: boolean;
   org: SalesforceOrgUi;
   isTooling: boolean;
-  columnDefinitions?: MapOf<ColumnWithFilter<TRow, unknown>[]>;
+  columnDefinitions?: Record<string, ColumnWithFilter<TRow, unknown>[]>;
   onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
   google_apiKey: string;
   google_appId: string;

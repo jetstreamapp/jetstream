@@ -6,7 +6,6 @@ import {
   CompositeResponse,
   DescribeGlobalSObjectResult,
   GlobalValueSetRequest,
-  MapOf,
   Maybe,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
@@ -908,7 +907,7 @@ export async function prepareCreateFieldsCompositeRequests(
 ) {
   const existingFields = await queryAllFromList<EntityParticleRecord>(org, getQueriesForAllCustomFieldsForObjects(sobjects), true);
 
-  const existingFieldsByFullName = existingFields.queryResults.records.reduce((output: MapOf<string>, record) => {
+  const existingFieldsByFullName = existingFields.queryResults.records.reduce((output: Record<string, string>, record) => {
     const [_, fieldId] = record.DurableId.split('.');
     output[`${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`.toLowerCase()] = fieldId;
     return output;
@@ -1031,7 +1030,7 @@ export async function deployLayouts(
   }));
 
   const layoutsToUpdate: LayoutRecord[] = [];
-  const updatedLayouts: MapOf<LayoutResult> = {};
+  const updatedLayouts: Record<string, LayoutResult> = {};
   const errors: string[] = [];
   layoutIds.forEach((id) => {
     updatedLayouts[id] = { id, deployed: false };
@@ -1128,7 +1127,7 @@ export function getRowsForExport(fieldValues: FieldValues[]) {
 export function prepareDownloadResultsFile(
   fieldResults: CreateFieldsResults[],
   fieldValues: FieldValues[],
-  profilesAndPermSetsById: MapOf<PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
+  profilesAndPermSetsById: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
 ) {
   let permissionRecords: FieldPermissionRecord[] = [];
   const resultsWorksheet = fieldResults.map(

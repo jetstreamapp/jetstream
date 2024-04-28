@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/api-config';
-import { MapOf, UserProfileServer } from '@jetstream/types';
+import { UserProfileServer } from '@jetstream/types';
 import { CometD, SubscriptionHandle } from 'cometd';
 import { Server, Socket } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
@@ -10,10 +10,13 @@ export interface SocketConnectionState {
   io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
   socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
   user: UserProfileServer;
-  cometdConnections: MapOf<{
-    cometd: CometD | null;
-    subscriptions: Map<string, SubscriptionHandle>;
-  }>;
+  cometdConnections: Record<
+    string,
+    {
+      cometd: CometD | null;
+      subscriptions: Map<string, SubscriptionHandle>;
+    }
+  >;
 }
 
 export async function getOrg(user: UserProfileServer, uniqueId: string) {

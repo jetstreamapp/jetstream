@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, isHKey, useGlobalEventHandler, useRollbar } from '@jetstream/shared/ui-utils';
-import { MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   EmptyState,
   FileDownloadModal,
@@ -58,7 +58,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   const [downloadItemModalState, setDownloadItemModalState] = useState<{
     open: boolean;
     org: SalesforceOrgUi | null;
-    data: MapOf<any[]> | null;
+    data: Record<string, any[]> | null;
   }>({
     open: false,
     org: null,

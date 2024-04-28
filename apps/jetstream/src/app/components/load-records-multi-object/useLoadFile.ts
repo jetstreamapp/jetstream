@@ -1,13 +1,13 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest } from '@jetstream/shared/data';
 import { useBrowserNotifications } from '@jetstream/shared/ui-utils';
-import { getMapOf, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { CompositeGraphResponse, CompositeGraphResponseBody, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { CompositeGraphResponse, CompositeGraphResponseBody, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 
 type Action =
-  | { type: 'INIT'; payload: { loading: boolean; data: MapOf<LoadMultiObjectRequestWithResult> | null } }
+  | { type: 'INIT'; payload: { loading: boolean; data: Record<string, LoadMultiObjectRequestWithResult> | null } }
   | { type: 'ITEM_STARTED'; payload: { key: string } }
   | { type: 'ITEM_FAILED'; payload: { key: string; errorMessage: string } }
   | { type: 'ITEM_FINISHED'; payload: { key: string; results: CompositeGraphResponse[] } }
@@ -15,7 +15,7 @@ type Action =
 
 interface State {
   loading: boolean;
-  data: MapOf<LoadMultiObjectRequestWithResult> | null;
+  data: Record<string, LoadMultiObjectRequestWithResult> | null;
   dataArray: LoadMultiObjectRequestWithResult[] | null;
   finished: boolean;
 }
@@ -31,7 +31,7 @@ function reducer(state: State, action: Action): State {
       };
     case 'ITEM_STARTED': {
       const { key } = action.payload;
-      const data: MapOf<LoadMultiObjectRequestWithResult> = { ...state.data };
+      const data: Record<string, LoadMultiObjectRequestWithResult> = { ...state.data };
       data[key] = {
         ...data[key],
         started: new Date(),
@@ -41,7 +41,7 @@ function reducer(state: State, action: Action): State {
     }
     case 'ITEM_FAILED': {
       const { key, errorMessage } = action.payload;
-      const data: MapOf<LoadMultiObjectRequestWithResult> = { ...state.data };
+      const data: Record<string, LoadMultiObjectRequestWithResult> = { ...state.data };
       data[key] = {
         ...data[key],
         finished: new Date(),
@@ -53,7 +53,7 @@ function reducer(state: State, action: Action): State {
     }
     case 'ITEM_FINISHED': {
       const { key, results } = action.payload;
-      const data: MapOf<LoadMultiObjectRequestWithResult> = { ...state.data };
+      const data: Record<string, LoadMultiObjectRequestWithResult> = { ...state.data };
       data[key] = {
         ...data[key],
         finished: new Date(),
@@ -152,7 +152,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
 
   const loadFile = useCallback(
     async (dataToProcess: LoadMultiObjectRequestWithResult[]) => {
-      dispatch({ type: 'INIT', payload: { loading: true, data: getMapOf(dataToProcess, 'key') } });
+      dispatch({ type: 'INIT', payload: { loading: true, data: groupByFlat(dataToProcess, 'key') } });
 
       for (const currentRequest of dataToProcess) {
         try {

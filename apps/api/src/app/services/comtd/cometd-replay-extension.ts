@@ -1,8 +1,7 @@
 /**
  * ENDED UP NOT USING THIS STUFF
  */
-import { MapOf } from '@jetstream/types';
-import { CometD, Message, Extension } from 'cometd';
+import { CometD, Extension, Message } from 'cometd';
 import { isNumber } from 'lodash';
 
 /*
@@ -61,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //           message.ext = {};
 //         }
 
-//         const replayFromMap: MapOf<number> = {};
+//         const replayFromMap: Record<string, number> = {};
 //         replayFromMap[_channel] = _replay;
 
 //         // add "ext: { "replay" : { CHANNEL : REPLAY_VALUE }}" to subscribe message
@@ -76,7 +75,7 @@ export class CometdReplayExtension implements Extension {
   static REPLAY_FROM_KEY = 'replay';
   cometd: CometD;
   extensionEnabled = true;
-  replayFromMap: MapOf<number | undefined> = {};
+  replayFromMap: Record<string, number | undefined> = {};
 
   setEnabled(extensionEnabled: boolean) {
     this.extensionEnabled = extensionEnabled;

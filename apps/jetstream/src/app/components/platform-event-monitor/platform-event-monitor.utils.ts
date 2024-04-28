@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { CometD, Extension, Message, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
 import { EventMessage, EventMessageUnsuccessful } from './platform-event-monitor.types';
@@ -131,7 +131,7 @@ class CometdReplayExtension implements Extension {
   static REPLAY_FROM_KEY = 'replay';
   cometd: CometD;
   extensionEnabled = true;
-  replayFromMap: MapOf<number | undefined> = {};
+  replayFromMap: Record<string, number | undefined> = {};
 
   setEnabled(extensionEnabled: boolean) {
     this.extensionEnabled = extensionEnabled;

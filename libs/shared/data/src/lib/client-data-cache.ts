@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { REGEX } from '@jetstream/shared/utils';
-import { CacheItemWithData, MapOf, OrgCacheItem, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { CacheItemWithData, OrgCacheItem, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { AxiosRequestConfig } from 'axios';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
@@ -26,7 +26,7 @@ export async function clearCacheForOrg(org: SalesforceOrgUi) {
 
 export async function clearQueryHistoryForOrg(org: SalesforceOrgUi) {
   try {
-    const queryHistory = (await localforage.getItem<MapOf<QueryHistoryItem | undefined>>(INDEXED_DB.KEYS.queryHistory)) || {};
+    const queryHistory = (await localforage.getItem<Record<string, QueryHistoryItem | undefined>>(INDEXED_DB.KEYS.queryHistory)) || {};
     for (const [key] of Object.entries(queryHistory)) {
       if (key.startsWith(org.uniqueId)) {
         queryHistory[key] = undefined;

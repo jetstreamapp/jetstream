@@ -1,5 +1,4 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { MapOf } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
@@ -25,13 +24,13 @@ export interface ManagePermissionsEditorTabVisibilityTableProps {
   totalCount: number;
   onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => void;
-  onDirtyRows?: (values: MapOf<DirtyRow<PermissionTableTabVisibilityCell>>) => void;
+  onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) => void;
 }
 
 export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>();
-    const [dirtyRows, setDirtyRows] = useState<MapOf<DirtyRow<PermissionTableTabVisibilityCell>>>({});
+    const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {

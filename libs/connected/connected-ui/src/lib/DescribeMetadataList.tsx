@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
-import { MapOf, MetadataObject, SalesforceOrgUi, UpDown } from '@jetstream/types';
+import { MetadataObject, SalesforceOrgUi, UpDown } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -29,11 +29,11 @@ export interface DescribeMetadataListProps {
   inputLabelPlural: string;
   org: SalesforceOrgUi;
   initialItems: string[];
-  initialItemMap: MapOf<MetadataObject>;
+  initialItemMap: Record<string, MetadataObject>;
   selectedItems: Set<string>;
   omitRefresh?: boolean;
   onItems: (items: string[]) => void;
-  onItemsMap: (itemMap: MapOf<MetadataObject>) => void;
+  onItemsMap: (itemMap: Record<string, MetadataObject>) => void;
   onSelected: (items: string[], options?: { selectAllValue?: boolean; clearSelection?: boolean }) => void;
 }
 

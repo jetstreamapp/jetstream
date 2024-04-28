@@ -1,5 +1,5 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
+import { ListMetadataResult, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
 import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
 import { UserFacingError } from '../utils/error-handler';
@@ -7,9 +7,9 @@ import { UserFacingError } from '../utils/error-handler';
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
 export function buildPackageXml(
-  types: MapOf<Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
+  types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
   version: string,
-  otherFields: Maybe<MapOf<string>> = {},
+  otherFields: Maybe<Record<string, string>> = {},
   prettyPrint = true
 ) {
   // prettier-ignore
@@ -44,7 +44,7 @@ export function buildPackageXml(
 }
 
 export function getRetrieveRequestFromListMetadata(
-  types: MapOf<Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
+  types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
   version: string
 ) {
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve_request.htm

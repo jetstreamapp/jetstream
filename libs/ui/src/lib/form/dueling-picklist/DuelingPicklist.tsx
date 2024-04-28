@@ -1,7 +1,7 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { getMapOf } from '@jetstream/shared/utils';
-import { MapOf, UpDown } from '@jetstream/types';
+import { groupByFlat } from '@jetstream/shared/utils';
+import { UpDown } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent, useRef, useState } from 'react';
 import HelpText from '../../widgets/HelpText';
@@ -52,7 +52,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
   const columnLeftRef = useRef<DuelingPicklistColumnRef>();
   const columnRightRef = useRef<DuelingPicklistColumnRef>();
   const [selectedItems, setSelectedItems] = useState(new Set(initialSelectedItems || []));
-  const [itemsByValue, setItemsByValue] = useState<MapOf<DuelingPicklistItem>>(getMapOf(items, 'value'));
+  const [itemsByValue, setItemsByValue] = useState<Record<string, DuelingPicklistItem>>(groupByFlat(items, 'value'));
   const [itemsLeft, setListLeft] = useState<DuelingPicklistItem[]>(() => items.filter((item) => !selectedItems.has(item.value)));
   const [itemsRight, setListRight] = useState<DuelingPicklistItem[]>(() => items.filter((item) => selectedItems.has(item.value)));
 

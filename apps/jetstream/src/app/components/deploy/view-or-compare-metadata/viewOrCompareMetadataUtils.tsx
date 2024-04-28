@@ -1,6 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { getMapOf, orderObjectsBy } from '@jetstream/shared/utils';
-import { MapOf } from '@jetstream/types';
+import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import { Tooltip, TreeItems } from '@jetstream/ui';
 import classNames from 'classnames';
 import JSZip from 'jszip';
@@ -53,7 +52,7 @@ export function buildTree(
   sourceResultFiles: FilePropertiesWithContent[] | null,
   targetResultFiles?: FilePropertiesWithContent[] | null
 ): TreeItems<FileItemMetadata | null>[] {
-  const targetFiles = getMapOf(targetResultFiles || [], 'fileName');
+  const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
 
   const result: TreeItems<FileItemMetadata | null>[] = [];
   // level is just a placeholder object to store intermediate results
@@ -118,7 +117,7 @@ function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): 
   return name;
 }
 
-export function compare(sourceFile: FilePropertiesWithContent, targetFiles: MapOf<FilePropertiesWithContent>) {
+export function compare(sourceFile: FilePropertiesWithContent, targetFiles: Record<string, FilePropertiesWithContent>) {
   let match = sourceFile.content === targetFiles[sourceFile.fileName]?.content;
   if (!match && sourceFile.content && targetFiles[sourceFile.fileName]?.content) {
     try {
@@ -131,7 +130,7 @@ export function compare(sourceFile: FilePropertiesWithContent, targetFiles: MapO
 }
 
 export function generateExport(sourceResultFiles: FilePropertiesWithContent[], targetResultFiles: FilePropertiesWithContent[]) {
-  const targetFiles = getMapOf(targetResultFiles || [], 'fileName');
+  const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
   return orderObjectsBy(sourceResultFiles, 'fullName')
     .filter(({ fileName }) => fileName !== 'package.xml')
     .map((source) => {

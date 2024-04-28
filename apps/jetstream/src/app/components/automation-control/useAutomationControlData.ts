@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useAmplitude } from '../core/analytics';
 import {
@@ -52,7 +52,7 @@ interface State {
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
   visibleRows: (TableRow | TableRowItem | TableRowItemChild)[];
   /** allows accessing and changing data without iteration */
-  rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>;
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>;
   /** Used to know order to rebuild rows from rowsByKey */
   keys: string[];
   dirtyCount: number;
@@ -484,14 +484,14 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
 
 function flattenTableRows(
   stateData: StateData,
-  rowsByKeyInit: MapOf<TableRow | TableRowItem | TableRowItemChild>
+  rowsByKeyInit: Record<string, TableRow | TableRowItem | TableRowItemChild>
 ): {
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
-  rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>;
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>;
   keys: string[];
 } {
   const rows: (TableRow | TableRowItem | TableRowItemChild)[] = [];
-  const rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild> = {};
+  const rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild> = {};
   const keys: string[] = [];
   Object.keys(stateData)
     .filter((type) => {
@@ -528,7 +528,7 @@ function flattenTableRows(
 
 function getVisibleRows(
   rows: (TableRow | TableRowItem | TableRowItemChild)[],
-  rowsByKey: MapOf<TableRow | TableRowItem | TableRowItemChild>
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>
 ) {
   return rows.filter((row) => {
     if (isTableRow(row)) {

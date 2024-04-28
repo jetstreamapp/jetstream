@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ChangeSet, ListItem, ListMetadataResult, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -10,7 +10,7 @@ import { useChangesetList } from '../utils/useChangesetList';
 
 export interface AddToChangesetConfigModalProps {
   selectedOrg: SalesforceOrgUi;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
+  selectedMetadata: Record<string, ListMetadataResult[]>;
   initialPackages?: Maybe<ListItem<string, ChangeSet>[]>;
   initialPackage?: string;
   initialDescription?: string | null;

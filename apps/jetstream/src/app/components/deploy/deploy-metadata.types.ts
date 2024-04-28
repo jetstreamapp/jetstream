@@ -1,4 +1,4 @@
-import { ListMetadataResult, MapOf, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListMetadataResult, SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 
 export type DeployMetadataStatus = 'idle' | 'submitting' | 'preparing' | 'adding';
 
@@ -42,7 +42,7 @@ export interface DeployMetadataTableRow {
 }
 
 export interface DeployHistoryTableContext {
-  orgsById: MapOf<SalesforceOrgUi>;
+  orgsById: Record<string, SalesforceOrgUi>;
   portalRefForFilters: React.RefObject<HTMLDivElement>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;

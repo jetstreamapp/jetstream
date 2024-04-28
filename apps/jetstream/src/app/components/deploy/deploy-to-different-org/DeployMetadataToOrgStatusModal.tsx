@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { DeployOptions, DeployResult, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -11,7 +11,7 @@ import { getStatusValue, useDeployMetadataBetweenOrgs } from '../utils/useDeploy
 export interface DeployMetadataToOrgStatusModalProps {
   sourceOrg: SalesforceOrgUi;
   destinationOrg: SalesforceOrgUi;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
+  selectedMetadata: Record<string, ListMetadataResult[]>;
   deployOptions: DeployOptions;
   // used to hide while download window is open
   hideModal: boolean;

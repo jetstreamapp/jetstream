@@ -8,7 +8,6 @@ import {
   DeployOptions,
   DeployResult,
   ListMetadataResult,
-  MapOf,
   SalesforceDeployHistoryItem,
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
@@ -79,7 +78,7 @@ export async function saveHistory({
   destinationOrg: SalesforceOrgUi;
   type: SalesforceDeployHistoryType;
   start: Date;
-  metadata?: MapOf<ListMetadataResult[]>;
+  metadata?: Record<string, ListMetadataResult[]>;
   deployOptions: DeployOptions;
   results?: DeployResult;
   file?: ArrayBuffer | string | null;
@@ -335,7 +334,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
   return output;
 }
 
-export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): DeployMetadataTableRow[] {
+export function getRows(listMetadataItems: Record<string, ListMetadataResultItem>): DeployMetadataTableRow[] {
   const output: DeployMetadataTableRow[] = [];
 
   orderValues(Object.keys(listMetadataItems)).forEach((metadataType) => {
@@ -394,7 +393,7 @@ export function convertRowsForExport(
   rows: DeployMetadataTableRow[],
   selectedRows: Set<DeployMetadataTableRow>,
   limitToSelected = false
-): MapOf<any>[] {
+): Record<string, any>[] {
   return rows
     .filter((row) => row.fullName && row.metadata && (!limitToSelected || selectedRows.has(row)))
     .map((row) => ({
@@ -409,8 +408,8 @@ export function convertRowsForExport(
     }));
 }
 
-export function convertRowsToMapOfListMetadataResults(rows: DeployMetadataTableRow[]): MapOf<ListMetadataResult[]> {
-  return rows.reduce((output: MapOf<ListMetadataResult[]>, row) => {
+export function convertRowsToMapOfListMetadataResults(rows: DeployMetadataTableRow[]): Record<string, ListMetadataResult[]> {
+  return rows.reduce((output: Record<string, ListMetadataResult[]>, row) => {
     if (row.metadata) {
       output[row.type] = output[row.type] || [];
       output[row.type].push(row.metadata);
@@ -422,7 +421,7 @@ export function convertRowsToMapOfListMetadataResults(rows: DeployMetadataTableR
 /**
  * Convert deployment results into excel compatible data
  */
-export function getDeployResultsExcelData(deployResults: DeployResult, deploymentUrl: string): MapOf<any[]> {
+export function getDeployResultsExcelData(deployResults: DeployResult, deploymentUrl: string): Record<string, any[]> {
   // The data parsing from SOAP is not reliable, so we must ensure that the formats are correct
   if (deployResults.details) {
     if (deployResults.details.componentSuccesses) {
@@ -459,7 +458,7 @@ export function getDeployResultsExcelData(deployResults: DeployResult, deploymen
       }
     }
   }
-  const xlsxData: MapOf<any[]> = {
+  const xlsxData: Record<string, any[]> = {
     [`Summary`]: [
       ['Deployment Status URL', deploymentUrl],
       ['Id', deployResults.id],

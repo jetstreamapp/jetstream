@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { detectDateFormatForLocale, formatNumber } from '@jetstream/shared/ui-utils';
-import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, MapOf, Maybe } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe } from '@jetstream/types';
 import localforage from 'localforage';
 import isNumber from 'lodash/isNumber';
 import { atom, selector, selectorFamily } from 'recoil';
@@ -31,12 +31,12 @@ export interface LoadSavedMappingItem {
   createdDate: Date;
 }
 
-const initLoadSavedMapping = async (): Promise<MapOf<MapOf<LoadSavedMappingItem>>> => {
-  const results = await localforage.getItem<MapOf<MapOf<LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping);
+const initLoadSavedMapping = async (): Promise<Record<string, Record<string, LoadSavedMappingItem>>> => {
+  const results = await localforage.getItem<Record<string, Record<string, LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping);
   return results || {};
 };
 
-export const savedFieldMappingState = atom<MapOf<MapOf<LoadSavedMappingItem>>>({
+export const savedFieldMappingState = atom<Record<string, Record<string, LoadSavedMappingItem>>>({
   key: 'load.savedFieldMappingState',
   default: initLoadSavedMapping(),
   effects: [
@@ -44,7 +44,7 @@ export const savedFieldMappingState = atom<MapOf<MapOf<LoadSavedMappingItem>>>({
       onSet(async (newValue) => {
         try {
           logger.log('Saving loadSavedMapping to localforage', newValue);
-          await localforage.setItem<MapOf<MapOf<LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping, newValue);
+          await localforage.setItem<Record<string, Record<string, LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping, newValue);
         } catch (ex) {
           logger.error('Error saving loadSavedMapping to localforage', ex);
         }

@@ -3,7 +3,7 @@ import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
@@ -65,7 +65,9 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     initialLoadFinished,
     hasError,
   } = useListMetadata(selectedOrg);
-  const [listMetadataItems, setListMetadataItems] = useState<MapOf<ListMetadataResultItem> | undefined>(listMetadataItemsUnfiltered);
+  const [listMetadataItems, setListMetadataItems] = useState<Record<string, ListMetadataResultItem> | undefined>(
+    listMetadataItemsUnfiltered
+  );
 
   // used for manifest or package download
   const [activeDownloadType, setActiveDownloadType] = useState<'manifest' | 'package' | null>(null);
@@ -79,7 +81,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const includeManagedPackageItems = useRecoilValue(fromDeployMetadataState.includeManagedPackageItems);
   const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
 
-  const [exportData, setExportData] = useState<MapOf<any> | null>(null);
+  const [exportData, setExportData] = useState<Record<string, any> | null>(null);
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();
   const [selectedRows, setSelectedRows] = useState<Set<DeployMetadataTableRow>>(new Set());
 

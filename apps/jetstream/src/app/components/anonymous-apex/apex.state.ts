@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
-import { getMapOf, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
-import { ApexHistoryItem, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
+import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
@@ -17,7 +17,7 @@ let didRunCleanup = false;
  * If history grows to a very large size,
  * prune older entries
  */
-export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | undefined> {
+export async function cleanUpHistoryState(): Promise<Record<string, ApexHistoryItem> | undefined> {
   const ITEMS_UNTIL_PRUNE = 100; // require this many items before taking action
   const DAYS_TO_KEEP = 60; // if action is taken, remove items older than this, keep all others
   try {
@@ -29,7 +29,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | un
     if (Object.keys(history).length > ITEMS_UNTIL_PRUNE) {
       logger.info('[APEX-HISTORY][CLEANUP]', 'Cleaning up apex history');
       const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
-      const itemsToKeep = getMapOf(
+      const itemsToKeep = groupByFlat(
         Object.values(history).filter((item) => isBefore(dateCutOff, item.lastRun)),
         'key'
       );
@@ -40,7 +40,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | un
       }
 
       logger.info('[APEX-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
-      await localforage.setItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
+      await localforage.setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
       return itemsToKeep;
     }
   } catch (ex) {
@@ -48,8 +48,8 @@ export async function cleanUpHistoryState(): Promise<MapOf<ApexHistoryItem> | un
   }
 }
 
-const initApexHistory = async (): Promise<MapOf<ApexHistoryItem>> => {
-  return (await localforage.getItem<MapOf<ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
+const initApexHistory = async (): Promise<Record<string, ApexHistoryItem>> => {
+  return (await localforage.getItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
 };
 
 /**
@@ -83,7 +83,7 @@ export async function initNewApexHistoryItem(org: SalesforceOrgUi, apex: string)
   return { ...historyItems, [newItem.key]: newItem };
 }
 
-export const apexHistoryState = atom<MapOf<ApexHistoryItem>>({
+export const apexHistoryState = atom<Record<string, ApexHistoryItem>>({
   key: 'apexHistory.apexHistoryState',
   default: initApexHistory(),
 });

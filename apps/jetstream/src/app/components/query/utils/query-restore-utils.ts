@@ -9,7 +9,7 @@ import {
   unescapeSoqlString,
   unFlattenedListItemsById,
 } from '@jetstream/shared/ui-utils';
-import { getMapOf, REGEX } from '@jetstream/shared/utils';
+import { groupByFlat, REGEX } from '@jetstream/shared/utils';
 import {
   ChildRelationship,
   DescribeGlobalSObjectResult,
@@ -19,7 +19,6 @@ import {
   Field,
   FieldWrapper,
   ListItem,
-  MapOf,
   QueryFields,
   QueryFieldWithPolymorphic,
   QueryGroupByClause,
@@ -63,7 +62,7 @@ import { fetchMetadataFromSoql, SoqlFetchMetadataOutput, SoqlMetadataTree } from
 
 export interface QueryRestoreErrors {
   missingFields: string[];
-  missingSubqueryFields: MapOf<string[]>;
+  missingSubqueryFields: Record<string, string[]>;
   missingMisc: string[];
 }
 
@@ -72,9 +71,9 @@ interface QueryRestoreStateItems extends QueryRestoreErrors {
   selectedSObjectState: DescribeGlobalSObjectResult;
   queryFieldsKey: string;
   queryChildRelationships: ChildRelationship[];
-  queryFieldsMapState: MapOf<QueryFields>;
+  queryFieldsMapState: Record<string, QueryFields>;
   selectedQueryFieldsState: QueryFieldWithPolymorphic[];
-  selectedSubqueryFieldsState: MapOf<QueryFieldWithPolymorphic[]>;
+  selectedSubqueryFieldsState: Record<string, QueryFieldWithPolymorphic[]>;
   fieldFilterFunctions: FieldFilterFunction[];
   filterQueryFieldsState: ListItem[];
   orderByQueryFieldsState: ListItem[];
@@ -158,19 +157,19 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
     });
 
   outputStateItems.filterQueryFieldsState = unFlattenedListItemsById(
-    getMapOf(
+    groupByFlat(
       allListItems.filter((item) => item.meta.filterable),
       'id'
     )
   );
   outputStateItems.orderByQueryFieldsState = unFlattenedListItemsById(
-    getMapOf(
+    groupByFlat(
       allListItems.filter((item) => item.meta.sortable),
       'id'
     )
   );
   outputStateItems.groupByQueryFieldsState = unFlattenedListItemsById(
-    getMapOf(
+    groupByFlat(
       allListItems.filter((item) => item.meta.groupable),
       'id'
     )
@@ -247,7 +246,7 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
  * @param stateItems
  */
 function processFieldFunctions(stateItems: Partial<QueryRestoreStateItems>, queryFields: QueryFieldType[]) {
-  const selectedQueryFieldsState = getMapOf(stateItems.selectedQueryFieldsState || [], 'field');
+  const selectedQueryFieldsState = groupByFlat(stateItems.selectedQueryFieldsState || [], 'field');
   stateItems.fieldFilterFunctions = [];
   const lowercaseFieldFnMap = getLowercaseFieldFunctionMap();
 
@@ -275,7 +274,7 @@ function processFieldFunctions(stateItems: Partial<QueryRestoreStateItems>, quer
 function processGroupBy(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
 ) {
   if (!query.groupBy) {
     return;
@@ -309,7 +308,7 @@ function processGroupBy(
 function processFilters(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
 ) {
   if (query.where) {
     const condition = query.where;
@@ -323,7 +322,7 @@ function processFilters(
 function processHavingClause(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
 ) {
   if (query.having) {
     const condition = query.having;
@@ -336,7 +335,7 @@ function processHavingClause(
 
 function flattenWhereClause(
   missingMisc: string[],
-  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>,
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
   where: WhereClause | HavingClause,
   currKey: number,
   rows: (ExpressionConditionType | ExpressionGroupType)[] = [],
@@ -484,7 +483,7 @@ function removeQuotesAndPercentage(operator: Operator, values: string | string[]
 function processOrderBy(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: MapOf<FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
 ) {
   if (query.orderBy) {
     const orderByClauses = (Array.isArray(query.orderBy) ? query.orderBy : [query.orderBy]) as QueryOrderByClause[];
@@ -538,7 +537,7 @@ function setSelectedFields(
   baseKey: string,
   baseFields: Field[],
   queryFields: QueryFieldType[],
-  metadataTree: MapOf<SoqlMetadataTree>,
+  metadataTree: Record<string, SoqlMetadataTree>,
   stateItems: Partial<QueryRestoreStateItems>,
   subqueryRelationshipName?: string
 ) {
@@ -650,7 +649,11 @@ function setSelectedFields(
  * @param baseKey
  * @param metadataTree
  */
-function updateQueryFieldsMapForRelatedFields(queryFieldsMap: MapOf<QueryFields>, baseKey: string, metadataTree: MapOf<SoqlMetadataTree>) {
+function updateQueryFieldsMapForRelatedFields(
+  queryFieldsMap: Record<string, QueryFields>,
+  baseKey: string,
+  metadataTree: Record<string, SoqlMetadataTree>
+) {
   function traverseChildren(children: SoqlMetadataTree[], parentKey: string) {
     children.forEach((currNode) => {
       const fieldMapItem = initQueryFieldStateItem(currNode.fieldKey, currNode.metadata.name, { expanded: false });
@@ -669,8 +672,8 @@ function updateQueryFieldsMapForRelatedFields(queryFieldsMap: MapOf<QueryFields>
   });
 }
 
-function getMapOfKeyToMetadataTreeNode(metadataTree: MapOf<SoqlMetadataTree>) {
-  const output: MapOf<SoqlMetadataTree> = {};
+function getMapOfKeyToMetadataTreeNode(metadataTree: Record<string, SoqlMetadataTree>) {
+  const output: Record<string, SoqlMetadataTree> = {};
 
   function traverseChildren(children: SoqlMetadataTree[]) {
     children.forEach((child) => {
@@ -688,7 +691,7 @@ function getMapOfKeyToMetadataTreeNode(metadataTree: MapOf<SoqlMetadataTree>) {
 }
 
 function getLowercaseFieldMap(fields: Field[]) {
-  return fields.reduce((lowercaseFieldMap: MapOf<Field>, field) => {
+  return fields.reduce((lowercaseFieldMap: Record<string, Field>, field) => {
     lowercaseFieldMap[field.name.toLowerCase()] = field;
     return lowercaseFieldMap;
   }, {});
@@ -702,10 +705,10 @@ function getLowercaseFieldMap(fields: Field[]) {
  *
  * @param queryFields
  */
-function getFieldWrapperPath(queryFields: MapOf<QueryFields>): MapOf<FieldWrapperWithParentKey> {
+function getFieldWrapperPath(queryFields: Record<string, QueryFields>): Record<string, FieldWrapperWithParentKey> {
   return Object.keys(queryFields)
     .filter((key) => !key.includes(CHILD_FIELD_SEPARATOR))
-    .reduce((output: MapOf<FieldWrapperWithParentKey>, key) => {
+    .reduce((output: Record<string, FieldWrapperWithParentKey>, key) => {
       const queryField = queryFields[key];
       const fieldPath = key.split(BASE_FIELD_SEPARATOR)[1] || '';
       Object.keys(queryField.fields).forEach((fieldName) => {

@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
-import { getMapOf, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
-import { MapOf, QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
+import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
 import { addDays } from 'date-fns/addDays';
 import { isBefore } from 'date-fns/isBefore';
 import { parseISO } from 'date-fns/parseISO';
@@ -29,7 +29,7 @@ export type WhichOrgType = 'ALL' | 'SELECTED';
  * If query history grows to a very large size,
  * prune older entries
  */
-export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | undefined> {
+export async function cleanUpHistoryState(): Promise<Record<string, QueryHistoryItem> | undefined> {
   const ITEMS_UNTIL_PRUNE = 750; // require this many items before taking action
   const DAYS_TO_KEEP = 90; // if action is taken, remove items older than this, keep all others
   try {
@@ -41,7 +41,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | u
     if (Object.keys(history || {}).length > ITEMS_UNTIL_PRUNE) {
       logger.info('[QUERY-HISTORY][CLEANUP]', 'Cleaning up query history');
       const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
-      const itemsToKeep = getMapOf(
+      const itemsToKeep = groupByFlat(
         Object.values(history).filter((item) => {
           // keep favorites no matter what
           if (item.isFavorite) {
@@ -59,7 +59,7 @@ export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | u
       }
 
       logger.info('[QUERY-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
-      await localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, itemsToKeep);
+      await localforage.setItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, itemsToKeep);
       return itemsToKeep;
     }
   } catch (ex) {
@@ -67,8 +67,8 @@ export async function cleanUpHistoryState(): Promise<MapOf<QueryHistoryItem> | u
   }
 }
 
-export async function initQueryHistory(): Promise<MapOf<QueryHistoryItem>> {
-  return (await localforage.getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)) || {};
+export async function initQueryHistory(): Promise<Record<string, QueryHistoryItem>> {
+  return (await localforage.getItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)) || {};
 }
 
 // FIXME: there is some really poor naming conventions surrounding the entire query history
@@ -85,7 +85,7 @@ export async function getQueryHistoryItem(
   sObject: string,
   sObjectLabel?: string,
   isTooling = false
-): Promise<{ queryHistoryItem: QueryHistoryItem; refreshedQueryHistory: MapOf<QueryHistoryItem> }> {
+): Promise<{ queryHistoryItem: QueryHistoryItem; refreshedQueryHistory: Record<string, QueryHistoryItem> }> {
   if (!sObjectLabel) {
     const resultsWithCache = await describeSObject(org, sObject, isTooling);
     const results = resultsWithCache.data;
@@ -115,16 +115,16 @@ export const selectedObjectState = atom<string>({
 
 // selectedOrgState
 
-export const queryHistoryState = atom<MapOf<QueryHistoryItem>>({
+export const queryHistoryState = atom<Record<string, QueryHistoryItem>>({
   key: 'queryHistory.queryHistoryState',
   default: initQueryHistory(),
   effects: [
     ({ setSelf, onSet }) => {
       onSet((newQueryHistory) => {
         localforage
-          .getItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)
+          .getItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory)
           .then((storedHistory) =>
-            localforage.setItem<MapOf<QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, { ...storedHistory, ...newQueryHistory })
+            localforage.setItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory, { ...storedHistory, ...newQueryHistory })
           )
           .then(() => setSelf(newQueryHistory));
       });
@@ -197,7 +197,7 @@ export const selectObjectsList = selector<QueryHistorySelection[]>({
   get: ({ get }) => {
     const queryHistoryItems = get(selectQueryHistoryItems);
     const objectList = Object.values(
-      queryHistoryItems.reduce((items: MapOf<QueryHistorySelection>, item) => {
+      queryHistoryItems.reduce((items: Record<string, QueryHistorySelection>, item) => {
         items[item.sObject] = {
           key: item.sObject,
           name: item.sObject,

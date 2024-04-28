@@ -1,11 +1,10 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem } from '@jetstream/connected-ui';
-import { MapOf } from '@jetstream/types';
 import { Popover } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 
 export interface DeployMetadataLastRefreshedPopoverProps {
-  listMetadataItems: MapOf<ListMetadataResultItem>;
+  listMetadataItems: Record<string, ListMetadataResultItem>;
   onRefreshItem: (item: string) => void;
   onRefreshAll: () => void;
 }

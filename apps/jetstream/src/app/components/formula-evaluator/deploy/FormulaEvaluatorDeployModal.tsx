@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { Field, MapOf, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip, fireToast } from '@jetstream/ui';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -66,8 +66,8 @@ export const FormulaEvaluatorDeployModal = ({
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportData, setExportModalData] = useState<{
-    worksheetData: MapOf<any[]>;
-    headerData: MapOf<any[]>;
+    worksheetData: Record<string, any[]>;
+    headerData: Record<string, any[]>;
   } | null>(null);
 
   const { deployFields, prepareFields, clearResults, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, loading, results } =

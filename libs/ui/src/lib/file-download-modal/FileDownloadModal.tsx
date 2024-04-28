@@ -13,7 +13,6 @@ import {
   FileExtXml,
   FileExtZip,
   JetstreamEvents,
-  MapOf,
   Maybe,
   MimeType,
   SalesforceOrgUi,
@@ -57,14 +56,14 @@ export interface FileDownloadModalProps {
   allowedTypes?: FileExtAllTypes[];
   org: SalesforceOrgUi;
   /**
-   * if data is MapOf<any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
+   * if data is Record<string, any[]> | ArrayBuffer then only excel is a supported option and header, if provided, should be the same type
    */
-  data: any[] | MapOf<any[]> | ArrayBuffer | string;
+  data: any[] | Record<string, any[]> | ArrayBuffer | string;
   /**
    * Header to use for download.
    * If omitted, then this will be auto-detected from the first row of data
    */
-  header?: string[] | MapOf<any[]>;
+  header?: string[] | Record<string, any[]>;
   /**
    * Words to combine into the filename
    */
@@ -176,7 +175,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               const _data = transformData ? transformData({ fileFormat, data, header: headerFields }) : data;
               fileData = prepareExcelFile(_data, headerFields);
             } else {
-              fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
+              fileData = prepareExcelFile(data as any, header as Record<string, string[]>);
             }
             mimeType = MIME_TYPES.XLSX;
             break;
@@ -241,7 +240,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data: data, header: headerFields }) : (data as any[]);
         fileData = prepareExcelFile(_data, headerFields);
       } else {
-        fileData = prepareExcelFile(data as any, header as MapOf<string[]>);
+        fileData = prepareExcelFile(data as any, header as Record<string, string[]>);
       }
     } else {
       fileType = 'zip';

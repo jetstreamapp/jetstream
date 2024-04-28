@@ -1,5 +1,5 @@
 import { COMMON_METADATA_TYPES, ListMetadataQueryExtended } from '@jetstream/connected-ui';
-import { ChangeSet, ListItem, MapOf, MetadataObject } from '@jetstream/types';
+import { ChangeSet, ListItem, MetadataObject } from '@jetstream/types';
 import { isAfter } from 'date-fns/isAfter';
 import { isSameDay } from 'date-fns/isSameDay';
 import { atom, selector } from 'recoil';
@@ -10,7 +10,7 @@ export const metadataItemsState = atom<string[] | null>({
   default: null,
 });
 
-export const metadataItemsMapState = atom<MapOf<MetadataObject>>({
+export const metadataItemsMapState = atom<Record<string, MetadataObject>>({
   key: 'deploy-metadata.metadataItemsMapState',
   default: {},
 });

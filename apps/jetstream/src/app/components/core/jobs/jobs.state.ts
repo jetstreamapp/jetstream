@@ -1,9 +1,9 @@
-import { AsyncJob, MapOf, AsyncJobStatus } from '@jetstream/types';
+import { AsyncJob, AsyncJobStatus } from '@jetstream/types';
 import { atom, selector } from 'recoil';
 
 const activeStatuses: AsyncJobStatus[] = ['pending', 'in-progress'];
 
-export const jobsState = atom<MapOf<AsyncJob<unknown>>>({
+export const jobsState = atom<Record<string, AsyncJob<unknown>>>({
   key: 'jobs.jobsState',
   default: {},
 });

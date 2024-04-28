@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { bulkApiGetJob, checkMetadataRetrieveResults } from '@jetstream/shared/data';
 import { NOOP, delay } from '@jetstream/shared/utils';
-import { BulkJobWithBatches, FieldType, MapOf, Maybe, RetrieveResult, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobWithBatches, FieldType, Maybe, RetrieveResult, SalesforceOrgUi } from '@jetstream/types';
 import isFunction from 'lodash/isFunction';
 import numeral from 'numeral';
 import { UnparseConfig, unparse, unparse as unparseCsv } from 'papaparse';
@@ -52,7 +52,7 @@ export function generateCsv(data: any[], options: UnparseConfig = {}): string {
   return unparseCsv(data, options);
 }
 
-export function prepareCsvFile(data: MapOf<string>[], header: string[]) {
+export function prepareCsvFile(data: Record<string, string>[], header: string[]) {
   return unparse(
     {
       data,
@@ -70,7 +70,7 @@ export function prepareCsvFile(data: MapOf<string>[], header: string[]) {
  * @returns excel file
  */
 export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string): ArrayBuffer;
-export function prepareExcelFile(data: MapOf<any[]>, header?: MapOf<string[]>, defaultSheetName?: void): ArrayBuffer;
+export function prepareExcelFile(data: Record<string, any[]>, header?: Record<string, string[]>, defaultSheetName?: void): ArrayBuffer;
 export function prepareExcelFile(data: any, header: any, defaultSheetName: any = 'Records'): ArrayBuffer {
   const workbook = XLSX.utils.book_new();
 
@@ -257,7 +257,7 @@ export interface FieldWithRelatedEntities {
   externalId: boolean;
   referenceTo?: string[];
   relationshipName?: string;
-  relatedFields?: MapOf<FieldRelatedEntity[]>;
+  relatedFields?: Record<string, FieldRelatedEntity[]>;
 }
 
 export interface FieldRelatedEntity {

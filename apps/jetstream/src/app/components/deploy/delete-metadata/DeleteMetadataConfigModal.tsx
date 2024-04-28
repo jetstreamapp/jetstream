@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { DeployOptions, ListMetadataResult, MapOf, SalesforceOrgUi } from '@jetstream/types';
+import { DeployOptions, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -12,7 +12,7 @@ const hiddenOptions = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUp
 export interface DeleteMetadataConfigModalProps {
   selectedOrg: SalesforceOrgUi;
   defaultApiVersion: string;
-  selectedMetadata: MapOf<ListMetadataResult[]>;
+  selectedMetadata: Record<string, ListMetadataResult[]>;
   initialOptions?: DeployOptions;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;

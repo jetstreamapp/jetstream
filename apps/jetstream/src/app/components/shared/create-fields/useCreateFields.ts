@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
 import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { REGEX, getMapOf, getSuccessOrFailureChar, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, MapOf, RecordResult, SalesforceOrgUi } from '@jetstream/types';
+import { REGEX, getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 import { FieldDefinitionMetadata, FieldPermissionRecord, FieldValues, LayoutResult, SalesforceFieldType } from './create-fields-types';
 import { deployLayouts, getFieldPermissionRecords, prepareCreateFieldsCompositeRequests, preparePayload } from './create-fields-utils';
@@ -69,7 +69,7 @@ export default function useCreateFields({
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const [loading, setLoading] = useState(false);
   const [_results, setResults] = useState<CreateFieldsResults[]>([]);
-  const [resultsById, setResultsById] = useState<MapOf<CreateFieldsResults>>({});
+  const [resultsById, setResultsById] = useState<Record<string, CreateFieldsResults>>({});
   const [fatalError, setFatalError] = useState(false);
   const [fatalErrorMessage, setFatalErrorMessage] = useState<string | null>(null);
   const [layoutErrorMessage, setLayoutErrorMessage] = useState<string | null>(null);
@@ -111,7 +111,7 @@ export default function useCreateFields({
               operation: 'INSERT',
             })
           );
-          const _resultsById = getMapOf(payload, 'key');
+          const _resultsById = groupByFlat(payload, 'key');
           setResultsById(_resultsById);
           logger.log('[DEPLOY FIELDS][PAYLOADS]', payload);
           return Object.values(_resultsById);
@@ -134,7 +134,7 @@ export default function useCreateFields({
    * DEPLOY FIELD METADATA
    */
   const deployFieldMetadata = useCallback(
-    async (_resultsById: MapOf<CreateFieldsResults>, permissionRecords: FieldPermissionRecord[]) => {
+    async (_resultsById: Record<string, CreateFieldsResults>, permissionRecords: FieldPermissionRecord[]) => {
       if (!sObjects.length) {
         throw new Error('At least one object must be selected');
       }
@@ -215,7 +215,7 @@ export default function useCreateFields({
    * DEPLOY FIELD PERMISSIONS
    */
   const deployFieldPermissions = useCallback(
-    async (_resultsById: MapOf<CreateFieldsResults>, permissionRecords: FieldPermissionRecord[]) => {
+    async (_resultsById: Record<string, CreateFieldsResults>, permissionRecords: FieldPermissionRecord[]) => {
       try {
         const permissionResults: RecordResult[] = (
           await Promise.all(
@@ -224,7 +224,7 @@ export default function useCreateFields({
             )
           )
         ).flat();
-        const resultsByFullName: MapOf<CreateFieldsResults> = Object.keys(_resultsById).reduce((output, key) => {
+        const resultsByFullName: Record<string, CreateFieldsResults> = Object.keys(_resultsById).reduce((output, key) => {
           const fullName: string = _resultsById[key].field.fullName;
           output[fullName] = _resultsById[key];
           return output;
@@ -276,7 +276,7 @@ export default function useCreateFields({
         setFatalErrorMessage(null);
         setLayoutErrorMessage(null);
 
-        let _resultsById: MapOf<CreateFieldsResults> = getMapOf(
+        let _resultsById: Record<string, CreateFieldsResults> = groupByFlat(
           results.map((result) => ({ ...result, state: 'LOADING' })),
           'key'
         );
@@ -356,7 +356,7 @@ export default function useCreateFields({
         setFatalError(true);
         setFatalErrorMessage(`An unexpected error has occurred. ${ex.message}`);
         setResultsById(
-          getMapOf(
+          groupByFlat(
             results.map((result) => (result.state === 'LOADING' ? { ...result, state: 'FAILED' } : result)),
             'key'
           )
@@ -377,7 +377,7 @@ export default function useCreateFields({
     [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg]
   );
 
-  function sendBrowserNotification(resultsById: MapOf<CreateFieldsResults>) {
+  function sendBrowserNotification(resultsById: Record<string, CreateFieldsResults>) {
     const { fieldErrors, fieldSuccess, deployedFls, flsErrors, deployedLayouts, layoutErrors } = Object.values(resultsById).reduce(
       (output, field) => {
         if (field.state === 'SUCCESS') {

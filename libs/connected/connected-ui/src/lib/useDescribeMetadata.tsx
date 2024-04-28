@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeMetadata as describeMetadataApi } from '@jetstream/shared/data';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
-import { DescribeMetadataResult, MapOf, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeMetadataResult, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { METADATA_TYPES_TO_OMIT } from './utils';
@@ -12,13 +12,13 @@ let _lastRefreshed: string;
 export function useDescribeMetadata(
   selectedOrg: SalesforceOrgUi,
   initialItems?: string[],
-  initialMetadataItemMap?: MapOf<MetadataObject>,
+  initialMetadataItemMap?: Record<string, MetadataObject>,
   loadOnInit = true
 ) {
   const isMounted = useRef(true);
   const rollbar = useRollbar();
   // map of each item or child item to parent item
-  const [metadataItemMap, setMetadataItemMap] = useState<MapOf<MetadataObject>>(initialMetadataItemMap || {});
+  const [metadataItemMap, setMetadataItemMap] = useState<Record<string, MetadataObject>>(initialMetadataItemMap || {});
   const [metadataItems, setMetadataItems] = useState<string[] | undefined>(initialItems);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -85,7 +85,7 @@ export function useDescribeMetadata(
         const { items, itemMap } = data.metadataObjects
           .filter((item) => !!item)
           .reduce(
-            (output: { items: string[]; itemMap: MapOf<MetadataObject> }, item) => {
+            (output: { items: string[]; itemMap: Record<string, MetadataObject> }, item) => {
               // map parent item
               output.items.push(item.xmlName);
               output.itemMap[item.xmlName] = item;

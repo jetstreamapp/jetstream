@@ -125,7 +125,7 @@ function requestInterceptor<T>(options: RequestOptions) {
     logger.info(`[HTTP][REQ][${config.method?.toUpperCase()}]`, config.url, { request: config });
     const { org, targetOrg, useCache, skipRequestCache, skipCacheIfOlderThan, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
-    config.headers = config.headers || {};
+    config.headers = config.headers || ({} as any);
     config.headers[HTTP.HEADERS.X_CLIENT_REQUEST_ID] = config.headers[HTTP.HEADERS.X_CLIENT_REQUEST_ID] || uuid();
 
     if (!config.headers[HTTP.HEADERS.ACCEPT]) {

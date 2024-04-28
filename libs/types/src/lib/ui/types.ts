@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';
 import { ChildRelationship, DescribeSObjectResult, Field } from '../salesforce/sobject.types';
-import { HttpMethod, MapOf, Maybe, QueryResultsColumn, SalesforceOrgUi } from '../types';
+import { HttpMethod, Maybe, QueryResultsColumn, SalesforceOrgUi } from '../types';
 
 export type DropDownItemLength = 5 | 7 | 10;
 
@@ -60,7 +60,7 @@ export interface QueryFields {
   filterTerm: string;
   sobject: string;
   isPolymorphic: boolean;
-  fields: MapOf<FieldWrapper>;
+  fields: Record<string, FieldWrapper>;
   childRelationships?: ChildRelationship[];
   visibleFields: Set<string>;
   selectedFields: Set<string>;
@@ -490,8 +490,8 @@ export interface BulkDownloadJob {
   totalRecordCount: number;
   nextRecordsUrl: Maybe<string>;
   fields: string[];
-  subqueryFields: Maybe<MapOf<string[]>>;
-  records: MapOf<string>[];
+  subqueryFields: Maybe<Record<string, string[]>>;
+  records: Record<string, string>[];
   hasAllRecords: boolean;
   fileFormat: FileExtAllTypes;
   fileName: string;
@@ -512,7 +512,7 @@ export interface RetrievePackageJob {
 
 export interface RetrievePackageFromListMetadataJob extends RetrievePackageJob {
   type: 'listMetadata';
-  listMetadataItems: MapOf<ListMetadataResult[]>;
+  listMetadataItems: Record<string, ListMetadataResult[]>;
   fileName: string;
 }
 
@@ -575,7 +575,7 @@ export interface SalesforceDeployHistoryItem {
   status: DeployResultStatus;
   type: SalesforceDeployHistoryType;
   errorMessage?: string | null;
-  metadata?: MapOf<ListMetadataResult[]>; // TODO: are there other types of metadata?
+  metadata?: Record<string, ListMetadataResult[]>; // TODO: are there other types of metadata?
   deployOptions?: DeployOptions;
   results?: DeployResult;
 }
@@ -589,7 +589,7 @@ export interface SalesforceDeploymentHistoryOrg {
 export interface SalesforceApiHistoryRequest {
   method: HttpMethod;
   url: string;
-  headers: MapOf<string>;
+  headers: Record<string, string>;
   body: string;
   bodyType: 'JSON' | 'TEXT';
 }

@@ -4,7 +4,6 @@ import {
   AsyncJobNew,
   FileExtAllTypes,
   ListMetadataResult,
-  MapOf,
   Maybe,
   MimeType,
   RetrievePackageFromListMetadataJob,
@@ -25,7 +24,7 @@ export interface DownloadPackageWithFileSelectorProps {
   modalHeader?: string;
   modalTagline?: string;
   fileNameParts?: string[];
-  listMetadataItems?: Maybe<MapOf<ListMetadataResult[]>>;
+  listMetadataItems?: Maybe<Record<string, ListMetadataResult[]>>;
   packageManifest?: Maybe<string>;
   packageNames?: Maybe<string[]>;
   onClose?: () => void;

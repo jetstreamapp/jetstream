@@ -45,7 +45,7 @@
 //           }
 //         });
 //       const snapshotMap =
-//         (await localforage.getItem<MapOf<TableRowItemSnapshot[]>>(`${INDEXED_DB.KEYS.automationControlHistory}:${selectedOrg.uniqueId}`)) ||
+//         (await localforage.getItem<Record<string, TableRowItemSnapshot[]>>(`${INDEXED_DB.KEYS.automationControlHistory}:${selectedOrg.uniqueId}`)) ||
 //         {};
 //       snapshotMap[name] = snapshot;
 
