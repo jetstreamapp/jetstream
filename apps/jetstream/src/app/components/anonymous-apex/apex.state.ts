@@ -40,7 +40,11 @@ export async function cleanUpHistoryState(): Promise<Record<string, ApexHistoryI
       }
 
       logger.info('[APEX-HISTORY][CLEANUP]', 'Keeping items', itemsToKeep);
-      await localforage.setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
+      try {
+        await localforage.setItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory, itemsToKeep);
+      } catch (ex) {
+        logger.warn('[APEX-HISTORY][CLEANUP]', 'Error saving cleaned up apex history', ex);
+      }
       return itemsToKeep;
     }
   } catch (ex) {
@@ -49,7 +53,12 @@ export async function cleanUpHistoryState(): Promise<Record<string, ApexHistoryI
 }
 
 const initApexHistory = async (): Promise<Record<string, ApexHistoryItem>> => {
-  return (await localforage.getItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
+  try {
+    return (await localforage.getItem<Record<string, ApexHistoryItem>>(INDEXED_DB.KEYS.apexHistory)) || {};
+  } catch (ex) {
+    logger.error('[APEX-HISTORY][INIT]', 'Error initializing apex history', ex);
+    return {};
+  }
 };
 
 /**

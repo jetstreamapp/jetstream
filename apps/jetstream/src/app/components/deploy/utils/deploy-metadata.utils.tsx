@@ -50,7 +50,12 @@ export function getLightningChangesetUrl(changeset: ChangeSet) {
 }
 
 export async function getHistory() {
-  return (await localforage.getItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory)) || [];
+  try {
+    return (await localforage.getItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory)) || [];
+  } catch (ex) {
+    logger.warn('[DEPLOY][HISTORY][GET ERROR]', ex);
+    return [];
+  }
 }
 
 export async function getHistoryItemFile(item: SalesforceDeployHistoryItem) {
@@ -129,11 +134,15 @@ export async function saveHistory({
     }
     const existingItems = await getHistory();
     existingItems.unshift(newItem);
-    await localforage.setItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory, existingItems.slice(0, MAX_HISTORY_ITEMS));
-    logger.log('[DEPLOY][HISTORY][SAVE]', { newItem });
+    try {
+      await localforage.setItem<SalesforceDeployHistoryItem[]>(INDEXED_DB.KEYS.deployHistory, existingItems.slice(0, MAX_HISTORY_ITEMS));
+      logger.log('[DEPLOY][HISTORY][SAVE]', { newItem });
 
-    if (file && newItem.fileKey && localforage.driver() === localforage.INDEXEDDB) {
-      await localforage.setItem(newItem.fileKey, file);
+      if (file && newItem.fileKey && localforage.driver() === localforage.INDEXEDDB) {
+        await localforage.setItem(newItem.fileKey, file);
+      }
+    } catch (ex) {
+      logger.warn('[DEPLOY][HISTORY][SAVE ERROR]', ex);
     }
     // delete files, if exists, for history items that were evicted from cache
     try {
@@ -144,27 +153,9 @@ export async function saveHistory({
       }
     } catch (ex) {
       logger.warn('[DEPLOY][HISTORY][CLEANUP ERROR] Error cleaning up files', ex);
-      logErrorToRollbar(
-        ex.message,
-        {
-          stack: ex.stack,
-          place: 'DeployMetadataHistory',
-          type: 'error cleaning up metadata history',
-        },
-        'warn'
-      );
     }
   } catch (ex) {
     logger.warn('[DEPLOY][HISTORY][SAVE ERROR]', ex);
-    logErrorToRollbar(
-      ex.message,
-      {
-        stack: ex.stack,
-        place: 'DeployMetadataHistory',
-        type: 'error saving metadata history',
-      },
-      'warn'
-    );
   }
 }
 

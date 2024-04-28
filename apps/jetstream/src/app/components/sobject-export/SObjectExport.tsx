@@ -96,20 +96,24 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
 
   useEffect(() => {
     (async () => {
-      const results = await localforage.getItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection);
-      if (results?.options) {
-        setOptions(results.options);
-        if (picklistWorksheetLayoutRef.current) {
-          picklistWorksheetLayoutRef.current.selectItem(results.options.worksheetLayout);
+      try {
+        const results = await localforage.getItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection);
+        if (results?.options) {
+          setOptions(results.options);
+          if (picklistWorksheetLayoutRef.current) {
+            picklistWorksheetLayoutRef.current.selectItem(results.options.worksheetLayout);
+          }
+          if (picklistHeaderOptionRef.current) {
+            picklistHeaderOptionRef.current.selectItem(results.options.headerOption);
+          }
         }
-        if (picklistHeaderOptionRef.current) {
-          picklistHeaderOptionRef.current.selectItem(results.options.headerOption);
+        if (results?.fields) {
+          setSelectedAttributes(results.fields);
+        } else {
+          setSelectedAttributes([...DEFAULT_SELECTION]);
         }
-      }
-      if (results?.fields) {
-        setSelectedAttributes(results.fields);
-      } else {
-        setSelectedAttributes([...DEFAULT_SELECTION]);
+      } catch (ex) {
+        logger.error('Error loading default export selection', ex);
       }
     })();
   }, [picklistWorksheetLayoutRef, picklistHeaderOptionRef]);
@@ -148,10 +152,14 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       const output = prepareExport(metadataResults, selectedAttributes, options);
 
       if (options.saveAsDefaultSelection) {
-        await localforage.setItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection, {
-          fields: selectedAttributes,
-          options: { ...options, saveAsDefaultSelection: false },
-        });
+        try {
+          await localforage.setItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection, {
+            fields: selectedAttributes,
+            options: { ...options, saveAsDefaultSelection: false },
+          });
+        } catch (ex) {
+          logger.error('Error saving default export selection', ex);
+        }
       }
 
       setExportDataModalData(output);

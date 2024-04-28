@@ -32,8 +32,12 @@ export interface LoadSavedMappingItem {
 }
 
 const initLoadSavedMapping = async (): Promise<Record<string, Record<string, LoadSavedMappingItem>>> => {
-  const results = await localforage.getItem<Record<string, Record<string, LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping);
-  return results || {};
+  try {
+    return (await localforage.getItem<Record<string, Record<string, LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping)) || {};
+  } catch (ex) {
+    logger.error('Error getting loadSavedMapping from localforage', ex);
+    return {};
+  }
 };
 
 export const savedFieldMappingState = atom<Record<string, Record<string, LoadSavedMappingItem>>>({
