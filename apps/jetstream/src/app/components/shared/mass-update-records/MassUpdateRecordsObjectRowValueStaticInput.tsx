@@ -108,7 +108,7 @@ export const StaticInputContent: FunctionComponent<
         isRequired
         scrollLength={10}
         disabled={disabled}
-        onChange={(values) => onChange(values?.[0].id === 'true' ? 'true' : 'false')}
+        onChange={(values) => onChange(values?.[0]?.id === 'true' ? 'true' : 'false')}
       ></Picklist>
     );
   }

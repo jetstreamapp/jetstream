@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 import { css } from '@emotion/react';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { create, InstanceProps } from 'react-modal-promise';
+import { InstanceProps, create } from 'react-modal-promise';
 import Picklist from '../form/picklist/Picklist';
 import Modal from './Modal';
 
@@ -42,7 +42,7 @@ const XlsxSheetSelectionModalPromiseModal: FunctionComponent<XlsxSheetSelectionM
               allowDeselection={false}
               scrollLength={5}
               items={worksheets.map((value) => ({ id: value, label: value, value }))}
-              onChange={(items) => setWorksheet(items[0].id)}
+              onChange={(items) => items?.length && setWorksheet(items[0].id)}
               selectedItemIds={[worksheet]}
             ></Picklist>
           </div>
