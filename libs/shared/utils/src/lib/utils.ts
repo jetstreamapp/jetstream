@@ -123,6 +123,10 @@ export function multiWordStringFilter(value: string): (value: string, index: num
   };
 }
 
+/**
+ * Order objects by the value of a field or multiple fields
+ * Strings are sorted in a case-insensitive manner
+ */
 export function orderObjectsBy<T>(items: T[], fields: keyof T | [keyof T], order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fields = Array.isArray(fields) ? fields : [fields];
@@ -131,7 +135,10 @@ export function orderObjectsBy<T>(items: T[], fields: keyof T | [keyof T], order
   return orderBy(items, orderByItereeFn, order);
 }
 
-export function orderStringsBy(items: string[], order: 'asc' | 'desc' = 'asc'): string[] {
+/**
+ * Case-insensitive string sort in ascending or descending order
+ */
+export function orderValues<T extends number | string | boolean>(items: T[], order: 'asc' | 'desc' = 'asc'): T[] {
   const orderByItereeFn = (value) => (isString(value) ? value.toLowerCase() : value);
   return orderBy(items, [orderByItereeFn], [order]);
 }

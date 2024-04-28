@@ -1,5 +1,5 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FieldWrapper, ListItem, MapOf, Maybe, QueryFields } from '@jetstream/types';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
@@ -46,7 +46,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
   useEffect(() => {
     if (Array.isArray(field.relatedSobject)) {
       setRelatedObjects(
-        orderStringsBy(field.relatedSobject).map(
+        orderValues(field.relatedSobject).map(
           (relationship): ListItem => ({
             id: relationship,
             label: relationship,

@@ -3,22 +3,23 @@ import { TITLES } from '@jetstream/shared/constants';
 import { useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer } from '@jetstream/ui';
+import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { applicationCookieState, selectedOrgState } from '../../app-state';
+import * as fromJetstreamEvents from '../core/jetstream-events';
 import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';
 import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
 import PlatformEventMonitorPublisherCard from './PlatformEventMonitorPublisherCard';
 import { PlatformEventObject } from './platform-event-monitor.types';
-import { usePlatformEvent } from './usePlatformEvent';
+import { PlatformEventDownloadData, usePlatformEvent } from './usePlatformEvent';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PlatformEventMonitorProps {}
 
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = ({}) => {
   useTitle(TITLES.PLATFORM_EVENTS);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const isMounted = useRef(true);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const {
@@ -27,7 +28,9 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     platformEvents,
     messagesByChannel,
     loadingPlatformEvents,
+    clearAndUnsubscribeFromAll,
     fetchPlatformEvents,
+    prepareDownloadData,
     publish,
     subscribe,
     unsubscribe,
@@ -38,6 +41,9 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
   const [picklistKey, setPicklistKey] = useState<number>(1);
   const [selectedSubscribeEvent, setSelectedSubscribeEvent] = useState<string | null>(null);
   const [selectedPublishEvent, setSelectedPublishEvent] = useState<string | null>(null);
+
+  const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState(false);
+  const [downloadResultsData, setDownloadResultsData] = useState<PlatformEventDownloadData>();
 
   useEffect(() => {
     isMounted.current = true;
@@ -124,6 +130,11 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     );
   }, [messagesByChannel, platformEventsListSubscriptions]);
 
+  const handleDownload = () => {
+    setDownloadResultsData(prepareDownloadData(messagesByChannel));
+    setDownloadResultsModalOpen(true);
+  };
+
   const hasErrorOrNoEvents = !hasPlatformEvents || platformEventFetchError;
 
   return (
@@ -158,9 +169,11 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
               selectedSubscribeEvent={selectedSubscribeEvent}
               messagesByChannel={messagesByChannel}
               fetchPlatformEvents={fetchPlatformEvents}
+              onClear={() => clearAndUnsubscribeFromAll()}
+              onDownload={handleDownload}
+              onSelectedSubscribeEvent={setSelectedSubscribeEvent}
               subscribe={subscribe}
               unsubscribe={unsubscribe}
-              onSelectedSubscribeEvent={setSelectedSubscribeEvent}
             />
           </AutoFullHeightContainer>
           <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-is-relative slds-grid slds-grid_vertical">
@@ -176,6 +189,21 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
             />
           </AutoFullHeightContainer>
         </Split>
+      )}
+      {downloadResultsModalOpen && downloadResultsData && (
+        <FileDownloadModal
+          modalHeader="Download Deploy Results"
+          org={selectedOrg}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
+          fileNameParts={['platform-event-messages']}
+          allowedTypes={['xlsx']}
+          data={downloadResultsData.worksheets}
+          header={downloadResultsData.headers}
+          onModalClose={() => setDownloadResultsModalOpen(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+        />
       )}
     </AutoFullHeightContainer>
   );

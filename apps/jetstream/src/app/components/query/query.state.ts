@@ -1,5 +1,5 @@
 import { queryFilterHasValue } from '@jetstream/shared/ui-utils';
-import { convertFieldWithPolymorphicToQueryFields, orderStringsBy } from '@jetstream/shared/utils';
+import { convertFieldWithPolymorphicToQueryFields, orderValues } from '@jetstream/shared/utils';
 import {
   ChildRelationship,
   DescribeGlobalSObjectResult,
@@ -78,7 +78,7 @@ export const selectQueryField = selector<FieldType[]>({
     const fieldsByChildRelName = get(selectedSubqueryFieldsState);
     // Concat subquery fields
     fields = fields.concat(
-      orderStringsBy(Object.keys(fieldsByChildRelName))
+      orderValues(Object.keys(fieldsByChildRelName))
         // remove subquery if no fields
         .filter((relationshipName) => fieldsByChildRelName[relationshipName].length > 0)
         .map((relationshipName) => {

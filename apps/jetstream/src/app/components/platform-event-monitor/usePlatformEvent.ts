@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
 import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
+import { orderValues } from '@jetstream/shared/utils';
 import { MapOf, Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { CometD } from 'cometd';
@@ -13,19 +14,13 @@ import { useAmplitude } from '../core/analytics';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
 import * as platformEventUtils from './platform-event-monitor.utils';
 
-export type MessagesByChannel = MapOf<{ replayId?: number; messages: PlatformEventMessagePayload[] }>;
+export type MessagesByChannel = MapOf<{ replayId?: number; channel: string; messages: PlatformEventMessagePayload[] }>;
+export interface PlatformEventDownloadData {
+  headers: Record<string, string[]>;
+  worksheets: Record<string, any[]>;
+}
 
-export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }): {
-  hasPlatformEvents: boolean;
-  platformEventFetchError?: Maybe<string>;
-  platformEvents: PlatformEventObject[];
-  messagesByChannel: MessagesByChannel;
-  loadingPlatformEvents: boolean;
-  fetchPlatformEvents: (clearCache?: boolean) => void;
-  subscribe: (platformEventName: string, replayId?: number) => Promise<any>;
-  unsubscribe: (platformEventName: string) => Promise<any>;
-  publish: (platformEventName: string, data: any) => Promise<string>;
-} {
+export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }) {
   const isMounted = useRef(true);
   const cometD = useRef<CometD>();
   const rollbar = useRollbar();
@@ -56,13 +51,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         }
       };
     }
-  }, [selectedOrg]);
-
-  useEffect(() => {
-    if (selectedOrg) {
-      fetchPlatformEvents();
-    }
-  }, [selectedOrg]);
+  }, [selectedOrg, trackEvent]);
 
   const fetchPlatformEvents = useCallback(
     async (clearCache = false) => {
@@ -96,8 +85,14 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         rollbar.error(`Fetch platform event error`, { stack: ex.stack, message: ex.message });
       }
     },
-    [selectedOrg]
+    [rollbar, selectedOrg]
   );
+
+  useEffect(() => {
+    if (selectedOrg) {
+      fetchPlatformEvents();
+    }
+  }, [fetchPlatformEvents, selectedOrg]);
 
   const onEvent = useCallback(
     (replayId?: number) => (message: PlatformEventMessage) => {
@@ -108,7 +103,15 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         setMessagesByChannel((item) => {
           item = { ...item };
           item[channel] = { ...(item[channel] || { messages: [], replayId, channel: message.channel }) };
-          item[channel].messages = [data].concat(item[channel].messages);
+          const newMessages = [data].concat(item[channel].messages);
+
+          // Order and de-duplicate events by replayId
+          const eventsByEventId = newMessages.reduce((acc: Record<number, PlatformEventMessagePayload<any>>, val) => {
+            acc[`${val.event.replayId}`] = val;
+            return acc;
+          }, {});
+
+          item[channel].messages = orderValues(Object.keys(eventsByEventId)).map((replayId) => eventsByEventId[replayId]);
           return item;
         });
       }
@@ -155,7 +158,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
 
           setMessagesByChannel((item) => {
             item = { ...item };
-            item[channel] = { messages: [], replayId };
+            item[channel] = { messages: [], channel, replayId };
             return item;
           });
           trackEvent(ANALYTICS_KEYS.platform_event_subscribed, { requiredInit, channel, replayId });
@@ -165,7 +168,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         fireToast({ type: 'error', message: 'Error connecting to Salesforce' });
       }
     },
-    [selectedOrg]
+    [defaultApiVersion, handleSubscribeError, onEvent, selectedOrg, serverUrl, trackEvent]
   );
 
   const unsubscribe = useCallback(
@@ -189,7 +192,8 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);
       }
     },
-    [selectedOrg]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedOrg, trackEvent]
   );
 
   const publish = useCallback(
@@ -203,8 +207,43 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
       // very strange, but the id of the event is in the errors array
       return message;
     },
-    [selectedOrg]
+    [selectedOrg, trackEvent]
   );
+
+  const clearAndUnsubscribeFromAll = useCallback(async (): Promise<void> => {
+    try {
+      if (cometD.current) {
+        const cometd = cometD.current;
+        platformEventUtils.unsubscribeAll({ cometd });
+        setMessagesByChannel({});
+        trackEvent(ANALYTICS_KEYS.platform_event_clear_all, { user_initiated: true });
+      }
+    } catch (ex) {
+      logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);
+    }
+  }, [trackEvent]);
+
+  const prepareDownloadData = useCallback((messagesByChannel: MessagesByChannel): PlatformEventDownloadData => {
+    const output: PlatformEventDownloadData = {
+      headers: {},
+      worksheets: {},
+    };
+
+    Object.keys(messagesByChannel)
+      .filter((key) => messagesByChannel[key].messages.length)
+      .forEach((key) => {
+        const { messages, channel } = messagesByChannel[key];
+        output.worksheets[key] = messages.map(({ event, payload }) => ({
+          channel,
+          ...payload,
+          ...event,
+        }));
+        output.headers[key] = ['EventApiName', 'channel', 'EventUuid', 'replayId', ...Object.keys(messages[0].payload)];
+      });
+
+    logger.log('[PLATFORM EVENT][DOWNLOAD]', output);
+    return output;
+  }, []);
 
   return {
     hasPlatformEvents,
@@ -212,7 +251,9 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
     platformEvents,
     messagesByChannel: debouncedMessagesByChannel,
     loadingPlatformEvents,
+    clearAndUnsubscribeFromAll,
     fetchPlatformEvents,
+    prepareDownloadData,
     publish,
     subscribe,
     unsubscribe,

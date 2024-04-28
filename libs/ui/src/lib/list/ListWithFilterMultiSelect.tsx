@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, NOOP, orderStringsBy, pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { multiWordObjectFilter, NOOP, orderValues, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { ListItem as ListItemType, Maybe, UpDown } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { createRef, Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -93,7 +93,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
       selectedItemsSet.delete(itemId);
       onSelected(Array.from(selectedItemsSet));
     } else {
-      onSelected(orderStringsBy(Array.from(selectedItemsSet).concat(itemId)));
+      onSelected(orderValues(Array.from(selectedItemsSet).concat(itemId)));
     }
   }
 
@@ -108,7 +108,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
         selectedItemsSet.delete(item.id);
       }
     });
-    onSelected(orderStringsBy(Array.from(selectedItemsSet)));
+    onSelected(orderValues(Array.from(selectedItemsSet)));
   }
 
   return (

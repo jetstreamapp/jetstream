@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { orderValues } from '@jetstream/shared/utils';
 import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, ContextMenuItem, DataTree } from '@jetstream/ui';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
@@ -95,7 +95,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
 
   useEffect(() => {
     setRows(
-      orderStringsBy(Object.keys(messagesByChannel)).flatMap((channel) =>
+      orderValues(Object.keys(messagesByChannel)).flatMap((channel) =>
         messagesByChannel[channel].messages.map(
           (message): PlatformEventRow => ({
             event: channel,

@@ -1,7 +1,7 @@
 import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { orderObjectsBy, orderStringsBy } from '@jetstream/shared/utils';
+import { orderObjectsBy, orderValues } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import escapeRegExp from 'lodash/escapeRegExp';
@@ -370,7 +370,7 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
           if (filter.type === 'BOOLEAN_SET') {
             acc[columnKey] = ['True', 'False'];
           } else {
-            acc[columnKey] = orderStringsBy(
+            acc[columnKey] = orderValues(
               Array.from(
                 new Set(
                   data

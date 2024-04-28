@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { getMapOf, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { getMapOf, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { MapOf, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import {
   Checkbox,
@@ -361,7 +361,7 @@ export function getObjectColumns(
 
 export function getObjectRows(selectedSObjects: string[], objectPermissionMap: MapOf<ObjectPermissionDefinitionMap>) {
   const rows: PermissionTableObjectCell[] = [];
-  orderStringsBy(selectedSObjects).forEach((sobject) => {
+  orderValues(selectedSObjects).forEach((sobject) => {
     const objectPermission = objectPermissionMap[sobject];
 
     const currRow: PermissionTableObjectCell = {
@@ -676,7 +676,7 @@ export function getFieldRows(
   fieldPermissionMap: MapOf<FieldPermissionDefinitionMap>
 ) {
   const rows: PermissionTableFieldCell[] = [];
-  orderStringsBy(selectedSObjects).forEach((sobject) => {
+  orderValues(selectedSObjects).forEach((sobject) => {
     fieldsByObject[sobject]?.forEach((fieldKey) => {
       const fieldPermission = fieldPermissionMap[fieldKey];
 
@@ -852,7 +852,7 @@ export function getTabVisibilityColumns(
 
 export function getTabVisibilityRows(selectedSObjects: string[], tabVisibilityPermissionMap: MapOf<TabVisibilityPermissionDefinitionMap>) {
   const rows: PermissionTableTabVisibilityCell[] = [];
-  orderStringsBy(selectedSObjects).forEach((sobject) => {
+  orderValues(selectedSObjects).forEach((sobject) => {
     const fieldPermission = tabVisibilityPermissionMap[sobject];
 
     const currRow: PermissionTableTabVisibilityCell = {

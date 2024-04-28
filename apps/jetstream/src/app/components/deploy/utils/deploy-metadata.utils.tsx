@@ -2,7 +2,7 @@ import { getMetadataLabelFromFullName, ListMetadataResultItem } from '@jetstream
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
-import { ensureArray, getSuccessOrFailureChar, orderStringsBy, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ensureArray, getSuccessOrFailureChar, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ChangeSet,
   DeployOptions,
@@ -338,7 +338,7 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
 export function getRows(listMetadataItems: MapOf<ListMetadataResultItem>): DeployMetadataTableRow[] {
   const output: DeployMetadataTableRow[] = [];
 
-  orderStringsBy(Object.keys(listMetadataItems)).forEach((metadataType) => {
+  orderValues(Object.keys(listMetadataItems)).forEach((metadataType) => {
     const { type, error, folder, items, lastRefreshed, loading } = listMetadataItems[metadataType];
     const typeLabel = getMetadataLabelFromFullName(type);
     if (loading || error) {

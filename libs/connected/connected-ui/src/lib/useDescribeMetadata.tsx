@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeMetadata as describeMetadataApi } from '@jetstream/shared/data';
 import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { orderStringsBy } from '@jetstream/shared/utils';
+import { orderValues } from '@jetstream/shared/utils';
 import { DescribeMetadataResult, MapOf, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -108,7 +108,7 @@ export function useDescribeMetadata(
           );
 
         setMetadataItemMap(itemMap);
-        setMetadataItems(orderStringsBy(items.filter((item) => !METADATA_TYPES_TO_OMIT.has(item))));
+        setMetadataItems(orderValues(items.filter((item) => !METADATA_TYPES_TO_OMIT.has(item))));
       } catch (ex) {
         logger.error(ex);
         if (!isMounted.current || uniqueId !== selectedOrg.uniqueId) {

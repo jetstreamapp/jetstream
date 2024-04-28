@@ -89,13 +89,27 @@ export function unsubscribe({ cometd, channel }: { cometd: CometD; channel: stri
   if (!cometd.isDisconnected()) {
     if (subscriptions.has(channel)) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      cometd.unsubscribe(subscriptions.get(channel)!);
+      cometd.unsubscribe(subscriptions.get(channel)!, (message) => {
+        logger.log('[COMETD][UNSUBSCRIBE] Unsubscribed', message);
+      });
       subscriptions.delete(channel);
     }
     // if no more subscriptions, disconnect everything
     if (!subscriptions.size) {
       disconnect(cometd);
     }
+  }
+}
+
+export function unsubscribeAll({ cometd }: { cometd: CometD }) {
+  if (!cometd.isDisconnected()) {
+    for (const subscription of subscriptions.values()) {
+      cometd.unsubscribe(subscription, (message) => {
+        logger.log('[COMETD][UNSUBSCRIBE] Unsubscribed', { subscription, message });
+      });
+    }
+    subscriptions.clear();
+    disconnect(cometd);
   }
 }
 
