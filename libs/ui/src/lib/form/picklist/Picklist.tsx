@@ -169,7 +169,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
     }, [disabled, isOpen]);
 
     useNonInitialEffect(() => {
-      onChange(items.filter((item) => selectedItemsIdsSet.has(item.id)));
+      onChange(items.filter((item) => selectedItemsIdsSet.has(item?.id)));
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedItemsIdsSet]);
 

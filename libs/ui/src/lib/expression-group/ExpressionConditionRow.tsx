@@ -326,7 +326,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 allowDeselection
                 scrollLength={10}
                 onChange={(item) => {
-                  if (item && item[0]) {
+                  if (item?.length) {
                     setSelectValue(item[0].id);
                   }
                 }}

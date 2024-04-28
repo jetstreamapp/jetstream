@@ -112,7 +112,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
               selectedItemIds={selectedAssignmentRule ? [selectedAssignmentRule] : undefined}
               allowDeselection={false}
               disabled={!useAssignmentRules}
-              onChange={(items: ListItem<string, AssignmentRuleRecord>[]) => setSelectedAssignmentRule(items[0].id)}
+              onChange={(items: ListItem<string, AssignmentRuleRecord>[]) => items?.length && setSelectedAssignmentRule(items[0].id)}
             />
           </Grid>
         </div>
