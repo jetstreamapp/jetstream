@@ -41,12 +41,12 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Test application
+      - name: Test all affected projects
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
         run: yarn test:affected
 
-      - name: Build application
+      - name: Build
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
         run: yarn build:ci
