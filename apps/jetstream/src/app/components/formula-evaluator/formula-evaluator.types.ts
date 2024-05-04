@@ -1,19 +1,3 @@
-const x = false; // here for local dev refresh
-
-export interface FormulaFieldsByType {
-  objectFields: string[];
-  customLabels: string[];
-  apiFields: string[];
-  customMetadata: string[];
-  organization: string[];
-  customPermissions: string[];
-  profile: string[];
-  customSettings: string[];
-  system: string[];
-  user: string[];
-  userRole: string[];
-}
-
 export interface CharacterInfo {
   textUntilPosition: string;
   mostRecentCharacter: string;

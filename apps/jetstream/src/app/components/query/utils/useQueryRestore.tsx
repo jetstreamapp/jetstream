@@ -2,11 +2,11 @@ import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
+import { selectedOrgState } from '@jetstream/ui-core';
 import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { Query, parseQuery } from 'soql-parser-js';
-import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 import { QueryRestoreErrors, UserFacingRestoreError, restoreQuery } from './query-restore-utils';
 

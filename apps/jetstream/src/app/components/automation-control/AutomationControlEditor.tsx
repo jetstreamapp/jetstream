@@ -19,14 +19,13 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
+import { applicationCookieState, fromJetstreamEvents, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
+import { useAmplitude } from '@jetstream/ui-core';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';

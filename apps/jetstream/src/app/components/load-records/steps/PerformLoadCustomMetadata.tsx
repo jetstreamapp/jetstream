@@ -3,17 +3,20 @@ import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared
 import { groupByFlat } from '@jetstream/shared/utils';
 import { DeployMessage, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, SalesforceLogin, Select, Spinner } from '@jetstream/ui';
+import {
+  ConfirmPageChange,
+  DownloadType,
+  LoadRecordsResultsModal,
+  applicationCookieState,
+  fromJetstreamEvents,
+  selectSkipFrontdoorAuth,
+  useAmplitude,
+  useDeployMetadataPackage,
+} from '@jetstream/ui-core';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
-import ConfirmPageChange from '../../core/ConfirmPageChange';
-import { useAmplitude } from '../../core/analytics';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
-import { DownloadType } from '../../shared/load-records-results/load-records-results-types';
-import { useDeployMetadataPackage } from '../../shared/useDeployMetadataPackage';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
-import LoadRecordsResultsModal from '../components/load-results/LoadRecordsResultsModal';
 import { DownloadModalData, FieldMapping, FieldWithRelatedEntities, MapOfCustomMetadataRecord, ViewModalData } from '../load-records-types';
 import { convertCsvToCustomMetadata, prepareCustomMetadata } from '../utils/load-records-utils';
 

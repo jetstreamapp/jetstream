@@ -2,6 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { selectedOrgState } from '@jetstream/ui-core';
 import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
@@ -9,7 +10,6 @@ import { startOfDay } from 'date-fns/startOfDay';
 import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
-import * as fromAppState from '../../app-state';
 
 let didRunCleanup = false;
 
@@ -110,7 +110,7 @@ const selectApexHistoryItems = selector({
   get: ({ get }) => {
     const whichOrg = get(apexHistoryWhichOrg);
     const apexHistoryItems = get(apexHistoryState);
-    const selectedOrg = get(fromAppState.selectedOrgState);
+    const selectedOrg = get(selectedOrgState);
     if (!selectedOrg || !apexHistoryItems) {
       return [];
     }

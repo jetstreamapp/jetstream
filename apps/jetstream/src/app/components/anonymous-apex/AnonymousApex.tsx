@@ -21,14 +21,14 @@ import {
   ViewDocsLink,
   getModifierKey,
 } from '@jetstream/ui';
+import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';

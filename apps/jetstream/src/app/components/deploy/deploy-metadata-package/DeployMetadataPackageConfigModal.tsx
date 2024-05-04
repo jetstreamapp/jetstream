@@ -4,12 +4,10 @@ import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
+import { OrgLabelBadge, OrgsCombobox, salesforceOrgsState } from '@jetstream/ui-core';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { salesforceOrgsState } from '../../../app-state';
-import OrgLabelBadge from '../../core/OrgLabelBadge';
-import OrgsCombobox from '../../core/OrgsCombobox';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const PACKAGE_XML = /^package\.xml$/;

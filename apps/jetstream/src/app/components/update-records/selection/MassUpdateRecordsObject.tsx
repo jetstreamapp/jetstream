@@ -1,9 +1,7 @@
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Tooltip } from '@jetstream/ui';
+import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow, TransformationOptions } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback } from 'react';
-import MassUpdateRecordsObjectRow from '../../shared/mass-update-records/MassUpdateRecordsObjectRow';
-import { MetadataRow, TransformationOptions } from '../../shared/mass-update-records/mass-update-records.types';
-import MassUpdateRecordObjectHeading from '../shared/MassUpdateRecordObjectHeading';
 
 export interface MassUpdateRecordsObjectProps {
   selectedOrg: SalesforceOrgUi;

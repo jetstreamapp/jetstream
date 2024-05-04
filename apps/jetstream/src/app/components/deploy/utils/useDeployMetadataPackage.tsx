@@ -2,9 +2,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { deployMetadataZip } from '@jetstream/shared/data';
 import { pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { DeployOptions, DeployResult, SalesforceDeployHistoryType, SalesforceOrgUi } from '@jetstream/types';
+import { applicationCookieState } from '@jetstream/ui-core';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
 import { DeployMetadataStatus } from '../deploy-metadata.types';
 import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 

@@ -1,6 +1,7 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
+import { DownloadFileStream, ErrorBoundaryFallback } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
@@ -13,8 +14,6 @@ import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
 import AppLoading from './components/core/AppLoading';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
-import { DownloadFileStream } from './components/core/DownloadFileStream';
-import ErrorBoundaryFallback from './components/core/ErrorBoundaryFallback';
 import HeaderNavbar from './components/core/HeaderNavbar';
 import LogInitializer from './components/core/LogInitializer';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';

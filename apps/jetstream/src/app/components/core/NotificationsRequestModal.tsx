@@ -1,9 +1,9 @@
 import { ANALYTICS_KEYS, FEATURE_FLAGS } from '@jetstream/shared/constants';
 import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
+import { useUserPreferenceState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useUserPreferenceState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import NotificationExampleImage from './jetstream-sample-notification.png';
 
 export interface NotificationsRequestModalProps {

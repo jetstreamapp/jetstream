@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { useDeployMetadataPackage } from '@jetstream/ui-core';
 import { useCallback, useState } from 'react';
-import { useDeployMetadataPackage } from '../../shared/useDeployMetadataPackage';
 import { CreateFieldParams } from './create-object-types';
 import { getMetadataPackage, getObjectAndTabPermissionRecords, savePermissionRecords } from './create-object-utils';
 

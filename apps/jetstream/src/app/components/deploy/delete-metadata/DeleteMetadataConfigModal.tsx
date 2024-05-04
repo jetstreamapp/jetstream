@@ -2,9 +2,9 @@ import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
+import { OrgLabelBadge } from '@jetstream/ui-core';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import OrgLabelBadge from '../../core/OrgLabelBadge';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const hiddenOptions = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'performRetrieve', 'singlePackage']);

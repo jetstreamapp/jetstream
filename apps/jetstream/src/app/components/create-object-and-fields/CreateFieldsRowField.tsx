@@ -1,15 +1,8 @@
 import { css } from '@emotion/react';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ComboboxWithItems, Grid, Icon, Input, Radio, RadioGroup, Spinner, Textarea, Tooltip } from '@jetstream/ui';
+import { FieldDefinition, FieldDefinitions, FieldValue, FieldValueState, FieldValues, SalesforceFieldType } from '@jetstream/ui-core';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import {
-  FieldDefinition,
-  FieldDefinitions,
-  FieldValue,
-  FieldValueState,
-  FieldValues,
-  SalesforceFieldType,
-} from '../shared/create-fields/create-fields-types';
 import CreateFieldsFormulaEditor from './CreateFieldsFormulaEditor';
 
 export interface CreateFieldsRowFieldProps {

@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { convertDateToLocale, useRollbar } from '@jetstream/shared/ui-utils';
+import { convertDateToLocale, filterLoadSobjects, useRollbar } from '@jetstream/shared/ui-utils';
 import { getRecordIdFromAttributes } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
@@ -18,17 +18,19 @@ import {
   Spinner,
   useFieldListItemsWithDrillIn,
 } from '@jetstream/ui';
+import {
+  DeployResults,
+  MassUpdateRecordsDeploymentRow,
+  MassUpdateRecordsObjectRow,
+  TransformationOptions,
+  applicationCookieState,
+  fetchRecordsWithRequiredFields,
+  useDeployRecords,
+} from '@jetstream/ui-core';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
-import { applicationCookieState } from '../../../../app-state';
-import { filterLoadSobjects } from '../../../load-records/utils/load-records-utils';
-import MassUpdateRecordsDeploymentRow from '../../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
-import MassUpdateRecordsObjectRow from '../../../shared/mass-update-records/MassUpdateRecordsObjectRow';
-import { DeployResults, TransformationOptions } from '../../../shared/mass-update-records/mass-update-records.types';
-import { fetchRecordsWithRequiredFields } from '../../../shared/mass-update-records/mass-update-records.utils';
-import { useDeployRecords } from '../../../shared/mass-update-records/useDeployRecords';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 
 const MAX_BATCH_SIZE = 10000;

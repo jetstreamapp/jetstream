@@ -5,7 +5,7 @@ import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatQuery, isQueryValid } from 'soql-parser-js';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
 
 export interface ManualSoqlProps {

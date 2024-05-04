@@ -3,10 +3,10 @@ import { fetchFields, getFieldKey, getListItemsFromFieldWithRelatedItems, sortQu
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { FieldWrapper, Maybe, QueryFieldWithPolymorphic, QueryFields } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui-core';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 import {
   getQueryFieldBaseKey,

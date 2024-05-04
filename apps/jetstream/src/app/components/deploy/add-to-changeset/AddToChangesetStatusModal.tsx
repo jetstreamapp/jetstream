@@ -1,9 +1,9 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ChangeSet, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
 import { getDeploymentStatusUrl, getLightningChangesetUrl } from '../utils/deploy-metadata.utils';
 import { getStatusValue, useAddItemsToChangeset } from '../utils/useAddItemsToChangeset';

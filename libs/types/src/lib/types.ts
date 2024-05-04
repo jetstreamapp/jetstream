@@ -375,3 +375,19 @@ export interface AnalyticStat {
   valueRaw: number;
   lastUpdated: string;
 }
+
+export type NullNumberBehavior = 'ZERO' | 'BLANK';
+
+export interface FormulaFieldsByType {
+  objectFields: string[];
+  customLabels: string[];
+  apiFields: string[];
+  customMetadata: string[];
+  organization: string[];
+  customPermissions: string[];
+  profile: string[];
+  customSettings: string[];
+  system: string[];
+  user: string[];
+  userRole: string[];
+}

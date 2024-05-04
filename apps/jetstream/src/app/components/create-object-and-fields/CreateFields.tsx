@@ -14,12 +14,12 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
+import { selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../app-state';
+import { useAmplitude } from '@jetstream/ui-core';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { useAmplitude } from '../core/analytics';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';

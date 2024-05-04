@@ -40,21 +40,25 @@ import {
   ToolbarItemGroup,
   useConfirmation,
 } from '@jetstream/ui';
+import {
+  ViewEditCloneRecord,
+  applicationCookieState,
+  fromJetstreamEvents,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+  useAmplitude,
+} from '@jetstream/ui-core';
+import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import classNames from 'classnames';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from 'soql-parser-js';
-import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '../../../app-state';
-import ViewEditCloneRecord from '../../core/ViewEditCloneRecord';
-import { useAmplitude } from '../../core/analytics';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
 import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import * as fromQueryState from '../query.state';
-import { getFlattenSubqueryFlattenedFieldMap } from '../utils/query-utils';
 import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
 import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';

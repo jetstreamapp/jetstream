@@ -27,11 +27,11 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
+import { userProfileState } from '@jetstream/ui-core';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
-import { userProfileState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import LoggerConfig from './LoggerConfig';
 import SettingsDeleteAccount from './SettingsDeleteAccount';
 import SettingsLinkedAccounts from './SettingsLinkedAccounts';

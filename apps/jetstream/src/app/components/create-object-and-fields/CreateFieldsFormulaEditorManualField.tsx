@@ -1,11 +1,11 @@
 import { ListItem } from '@jetstream/types';
 import { Checkbox, ComboboxWithItems, DatePicker, DateTime, Grid, Input, TimePicker } from '@jetstream/ui';
+import { FieldValue, ManualFormulaFieldType } from '@jetstream/ui-core';
 import { formatISO } from 'date-fns/formatISO';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import isDate from 'lodash/isDate';
 import { forwardRef } from 'react';
-import { FieldValue, ManualFormulaFieldType } from '../shared/create-fields/create-fields-types';
 
 const FieldTypeItems: ListItem<ManualFormulaFieldType, ManualFormulaFieldType>[] = [
   { id: 'string', label: 'Text', value: 'string' },

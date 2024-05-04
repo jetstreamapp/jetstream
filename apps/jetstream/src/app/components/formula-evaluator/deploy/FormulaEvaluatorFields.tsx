@@ -1,14 +1,15 @@
 import { ListItem } from '@jetstream/types';
 import { Grid, GridCol, Input, Picklist, Radio, RadioGroup, Textarea } from '@jetstream/ui';
-import clamp from 'lodash/clamp';
 import {
   FieldDefinitionMetadata,
   FieldValue,
-  FieldValues,
   FieldValueState,
+  FieldValues,
   SalesforceFieldType,
-} from '../../shared/create-fields/create-fields-types';
-import { calculateFieldValidity, generateApiNameFromLabel } from '../../shared/create-fields/create-fields-utils';
+  calculateFieldValidity,
+  generateApiNameFromLabel,
+} from '@jetstream/ui-core';
+import clamp from 'lodash/clamp';
 
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
 

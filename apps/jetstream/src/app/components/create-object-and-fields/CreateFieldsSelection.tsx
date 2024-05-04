@@ -14,12 +14,11 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
+import { filterCreateFieldsSobjects, selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
-import { filterCreateFieldsSobjects } from '../shared/create-fields/create-fields-utils';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateNewObject from './create-new-object/CreateNewObject';
 

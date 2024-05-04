@@ -3,7 +3,7 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import DownloadPackageWithFileSelector from '../utils/DownloadPackageWithFileSelector';
 import DownloadMetadataPackageConfigModal from './DownloadMetadataPackageConfigModal';
 

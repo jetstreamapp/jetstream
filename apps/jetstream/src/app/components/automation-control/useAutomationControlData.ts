@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { useAmplitude } from '../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import {
   fetchAutomationData,
   getAdditionalItemsWorkflowRuleText,

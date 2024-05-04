@@ -12,7 +12,7 @@ import {
 import { Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 
 export interface QueryResultsAttachmentDownloadProps {
   selectedOrg: SalesforceOrgUi;

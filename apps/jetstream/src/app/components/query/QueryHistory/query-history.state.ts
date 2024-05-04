@@ -3,6 +3,7 @@ import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
 import { groupByFlat, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
+import * as fromAppState from '@jetstream/ui-core';
 import { addDays } from 'date-fns/addDays';
 import { isBefore } from 'date-fns/isBefore';
 import { parseISO } from 'date-fns/parseISO';
@@ -11,7 +12,6 @@ import localforage from 'localforage';
 import isString from 'lodash/isString';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
-import * as fromAppState from '../../../app-state';
 
 let didRunCleanup = false;
 

@@ -14,10 +14,10 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
+import { selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { selectedOrgState } from '../../app-state';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { AutomationMetadataType } from './automation-control-types';
 import * as fromAutomationCtlState from './automation-control.state';

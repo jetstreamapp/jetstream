@@ -1,10 +1,8 @@
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems } from '@jetstream/ui';
+import { OrgsCombobox, salesforceOrgsOmitSelectedState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
-import { salesforceOrgsOmitSelectedState } from '../../../app-state';
-import OrgsCombobox from '../../core/OrgsCombobox';
 import { FileItemMetadata } from './viewOrCompareMetadataTypes';
 
 export interface ViewOrCompareMetadataSidebarProps {

@@ -1,9 +1,9 @@
 import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
 import { HttpMethod, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input } from '@jetstream/ui';
+import { applicationCookieState } from '@jetstream/ui-core';
 import { FunctionComponent, KeyboardEvent } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
 
 function getDefaultUrl(defaultApiVersion: string) {
   return `/services/${defaultApiVersion}`;

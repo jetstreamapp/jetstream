@@ -13,19 +13,19 @@ import {
   fireToast,
   onParsedMultipleWorkbooks,
 } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
-import { FieldValues } from '../shared/create-fields/create-fields-types';
 import {
+  FieldValues,
   allFields,
+  applicationCookieState,
   ensureValidSecondaryType,
   ensureValidType,
   fieldDefinitions,
+  fromJetstreamEvents,
   getRowsForExport,
-} from '../shared/create-fields/create-fields-utils';
+  useAmplitude,
+} from '@jetstream/ui-core';
+import { Fragment, FunctionComponent, useRef, useState } from 'react';
+import { useRecoilState } from 'recoil';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 
 export interface CreateFieldsImportExportProps {

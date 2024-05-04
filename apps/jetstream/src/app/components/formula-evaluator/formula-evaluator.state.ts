@@ -1,7 +1,5 @@
-import { DescribeGlobalSObjectResult, Field } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Field, NullNumberBehavior } from '@jetstream/types';
 import { atom } from 'recoil';
-
-export type NullNumberBehavior = 'ZERO' | 'BLANK';
 
 export const sourceTypeState = atom<'NEW' | 'EXISTING'>({
   key: 'formula.sourceTypeState',

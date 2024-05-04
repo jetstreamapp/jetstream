@@ -1,17 +1,20 @@
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import {
+  HeaderDonatePopover,
+  HeaderHelpPopover,
+  Jobs,
+  RecordSearchPopover,
+  applicationCookieState,
+  selectUserPreferenceState,
+} from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
-import { applicationCookieState, selectUserPreferenceState } from '../../app-state';
 import OrgsDropdown from '../orgs/OrgsDropdown';
-import HeaderDonatePopover from './HeaderDonatePopover';
-import HeaderHelpPopover from './HeaderHelpPopover';
 import NotificationsRequestModal from './NotificationsRequestModal';
 import { APP_ROUTES } from './app-routes';
-import Jobs from './jobs/Jobs';
-import { RecordSearchPopover } from './record-lookup/RecordSearchPopover';
 
 export interface HeaderNavbarProps {
   userProfile: Maybe<UserProfileUi>;

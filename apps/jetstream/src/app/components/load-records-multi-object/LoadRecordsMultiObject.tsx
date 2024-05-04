@@ -20,11 +20,11 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState, selectedOrgType } from '@jetstream/ui-core';
 import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
-import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import { LocalOrGoogle } from '../load-records/load-records-types';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';

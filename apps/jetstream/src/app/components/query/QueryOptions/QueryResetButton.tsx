@@ -5,7 +5,7 @@ import { Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import { useResetRecoilState } from 'recoil';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import * as fromQueryState from '../query.state';
 
 export interface QueryResetButtonProps {

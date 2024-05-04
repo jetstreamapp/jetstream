@@ -2,12 +2,11 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
+import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { composeQuery, parseQuery } from 'soql-parser-js';
-import { applicationCookieState } from '../../../app-state';
-import { useAmplitude } from '../../core/analytics';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
+import { useAmplitude } from '@jetstream/ui-core';
 import * as fromQueryState from '../query.state';
 
 export interface QueryResultsDownloadButtonProps {

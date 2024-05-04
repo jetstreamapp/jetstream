@@ -3,15 +3,17 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import {
+  ConfirmPageChange,
+  FieldValues,
+  applicationCookieState,
+  fromJetstreamEvents,
+  prepareDownloadResultsFile,
+  useAmplitude,
+  useCreateFields,
+} from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
-import ConfirmPageChange from '../core/ConfirmPageChange';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
-import { FieldValues } from '../shared/create-fields/create-fields-types';
-import { prepareDownloadResultsFile } from '../shared/create-fields/create-fields-utils';
-import useCreateFields from '../shared/create-fields/useCreateFields';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
 
 export interface CreateFieldsDeployModalProps {

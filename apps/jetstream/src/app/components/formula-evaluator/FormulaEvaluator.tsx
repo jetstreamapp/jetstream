@@ -24,17 +24,20 @@ import {
   Spinner,
   ViewDocsLink,
 } from '@jetstream/ui';
+import {
+  FormulaEvaluatorRecordSearch,
+  FormulaEvaluatorResults,
+  FormulaEvaluatorUserSearch,
+  applicationCookieState,
+  getFormulaData,
+  selectedOrgState,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
-import FormulaEvaluatorRecordSearch from '../shared/formula-evaluator/FormulaEvaluatorRecordSearch';
-import FormulaEvaluatorResults from '../shared/formula-evaluator/FormulaEvaluatorResults';
-import FormulaEvaluatorUserSearch from '../shared/formula-evaluator/FormulaEvaluatorUserSearch';
-import { getFormulaData } from '../shared/formula-evaluator/formula-evaluator.utils';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
 import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';

@@ -8,7 +8,7 @@ import {
   RecordAttributes,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { DownloadType, PrepareDataResponseError } from '../shared/load-records-results/load-records-results-types';
+import { DownloadType, PrepareDataResponseError } from '@jetstream/ui-core';
 
 export type LocalOrGoogle = 'local' | 'google';
 

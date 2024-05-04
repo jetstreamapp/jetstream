@@ -13,13 +13,18 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip, fireToast } from '@jetstream/ui';
+import {
+  DownloadAction,
+  DownloadType,
+  LoadRecordsBulkApiResultsTable,
+  LoadRecordsResultsModal,
+  applicationCookieState,
+  fromJetstreamEvents,
+  selectSkipFrontdoorAuth,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../../app-state';
-import { useAmplitude } from '../../../core/analytics';
-import * as fromJetstreamEvents from '../../../core/jetstream-events';
-import LoadRecordsBulkApiResultsTable from '../../../shared/load-records-results/LoadRecordsBulkApiResultsTable';
-import { DownloadAction, DownloadType } from '../../../shared/load-records-results/load-records-results-types';
 import {
   ApiMode,
   DownloadModalData,
@@ -32,7 +37,6 @@ import {
 } from '../../load-records-types';
 import { loadBulkApiData, prepareData } from '../../utils/load-records-process';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
-import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 

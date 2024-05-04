@@ -7,7 +7,7 @@ import { InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/typ
 import { Alert, ButtonGroupContainer, DropDown, Grid, GridCol, Icon, SearchInput, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
 import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
 import LoadRecordsRefreshCachePopover from '../components/LoadRecordsRefreshCachePopover';
