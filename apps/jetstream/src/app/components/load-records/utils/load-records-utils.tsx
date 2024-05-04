@@ -3,15 +3,7 @@ import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
 import { REGEX, delay, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
-import {
-  DescribeGlobalSObjectResult,
-  DescribeSObjectResult,
-  EntityParticleRecord,
-  FieldWithExtendedType,
-  InsertUpdateUpsertDelete,
-  Maybe,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
@@ -48,15 +40,6 @@ export class LoadRecordsBatchError extends Error {
     super(`${message}. ${additionalErrors ? additionalErrors.map((ex) => ex.message).join(', ') : ''}`.trim());
     this.additionalErrors = additionalErrors || [];
   }
-}
-
-export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult | DescribeSObjectResult) {
-  return (
-    (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
-    !sobject.name.endsWith('__History') &&
-    !sobject.name.endsWith('__Tag') &&
-    !sobject.name.endsWith('__Feed')
-  );
 }
 
 export const getFieldMetadataFilter = (field: FieldWithExtendedType) => field.createable || field.updateable || field.name === 'Id';

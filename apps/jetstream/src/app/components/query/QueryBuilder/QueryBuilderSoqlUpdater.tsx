@@ -1,8 +1,8 @@
+import { composeSoqlQuery } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { GroupByFieldClause, GroupByFnClause, Query } from 'soql-parser-js';
 import * as fromQueryState from '../query.state';
-import { composeSoqlQuery } from '../utils/query-utils';
 
 /**
  * This component ensures that the entire state tree is not re-rendered each time some query element needs to be modified

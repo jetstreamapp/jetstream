@@ -4,7 +4,7 @@ import { Maybe, SalesforceRecord } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 
 type WhichRecords = 'all' | 'filtered' | 'selected';
 

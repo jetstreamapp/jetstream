@@ -16,13 +16,10 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
+import { ConfirmPageChange, fromAppState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import * as fromAppState from '../../../app-state';
-import ConfirmPageChange from '../../core/ConfirmPageChange';
-import { useAmplitude } from '../../core/analytics';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';

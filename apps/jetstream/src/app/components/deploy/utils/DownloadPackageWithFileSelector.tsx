@@ -12,11 +12,10 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileFauxDownloadModal } from '@jetstream/ui';
+import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
 
 export interface DownloadPackageWithFileSelectorProps {
   type: 'manifest' | 'package';

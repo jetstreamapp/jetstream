@@ -13,6 +13,8 @@ import type {
   ChangeSet,
   DeployOptions,
   DeployResult,
+  DescribeGlobalSObjectResult,
+  DescribeSObjectResult,
   ErrorResult,
   ExpressionConditionRowSelectedItems,
   ExpressionConditionType,
@@ -1631,4 +1633,18 @@ export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
 export function isRelationshipField(field: Field): boolean {
   // Some fields are listed as a string, but are actually lookup fields
   return (field.type === 'reference' || field.type === 'string') && !!field.relationshipName && !!field.referenceTo?.length;
+}
+
+/**
+ * Filter objects for load
+ * @param sobject
+ * @returns
+ */
+export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult | DescribeSObjectResult) {
+  return (
+    (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
+    !sobject.name.endsWith('__History') &&
+    !sobject.name.endsWith('__Tag') &&
+    !sobject.name.endsWith('__Feed')
+  );
 }

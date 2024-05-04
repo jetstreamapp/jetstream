@@ -4,11 +4,10 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTree, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
+import { ErrorBoundaryFallback, useAmplitude } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useAmplitude } from '../core/analytics';
-import ErrorBoundaryFallback from '../core/ErrorBoundaryFallback';
 
 const groupedRows = ['groupName'] as const;
 

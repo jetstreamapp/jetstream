@@ -2,10 +2,9 @@ import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ChangeSet, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
+import { OrgLabelBadge, applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
-import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { useChangesetList } from '../utils/useChangesetList';
 
 export interface AddToChangesetConfigModalProps {

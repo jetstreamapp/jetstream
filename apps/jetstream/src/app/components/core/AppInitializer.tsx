@@ -4,14 +4,13 @@ import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { fromAppState, useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import * as fromAppState from '../../app-state';
-import { useAmplitude, usePageViews } from './analytics';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();

@@ -3,10 +3,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Alert, EmptyState, Icon, NoAccess2Illustration, fireToast } from '@jetstream/ui';
+import { fromAppState, fromJetstreamEvents } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import * as fromAppState from '../../app-state';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
 

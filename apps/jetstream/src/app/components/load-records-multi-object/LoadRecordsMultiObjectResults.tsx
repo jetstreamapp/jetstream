@@ -2,12 +2,11 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
+import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
-import * as fromJetstreamEvents from '../core/jetstream-events';
-import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import LoadRecordsMultiObjectResultsTable from './LoadRecordsMultiObjectResultsTable';
+import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useDownloadResults from './useDownloadResults';
 
 export interface LoadRecordsMultiObjectResultsProps {

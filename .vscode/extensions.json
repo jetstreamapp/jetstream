@@ -9,6 +9,7 @@
     "eamodio.gitlens",
     "ms-playwright.playwright",
     "wayou.vscode-todo-highlight",
-    "orta.vscode-jest"
+    "orta.vscode-jest",
+    "firsttris.vscode-jest-runner"
   ]
 }

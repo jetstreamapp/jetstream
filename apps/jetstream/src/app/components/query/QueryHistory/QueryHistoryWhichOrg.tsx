@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
+import { OrgLabelBadge } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
-import OrgLabelBadge from '../../core/OrgLabelBadge';
 import { WhichOrgType } from './query-history.state';
 
 export interface QueryHistoryWhichOrgProps {

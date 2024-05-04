@@ -1,8 +1,8 @@
 import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
 import { ConnectedSobjectList } from '@jetstream/ui';
+import { selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../../app-state';
 import * as fromQueryState from '../query.state';
 export interface QuerySObjectsProps {
   sobjects: DescribeGlobalSObjectResult[];

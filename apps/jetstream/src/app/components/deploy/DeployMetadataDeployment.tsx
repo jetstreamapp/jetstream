@@ -17,6 +17,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
+import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
@@ -25,9 +26,7 @@ import { startOfDay } from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
-import * as fromJetstreamEvents from '../core/jetstream-events';
+import { useAmplitude } from '@jetstream/ui-core';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';

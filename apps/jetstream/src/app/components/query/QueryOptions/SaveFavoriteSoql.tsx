@@ -5,7 +5,7 @@ import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jets
 import Editor from '@monaco-editor/react';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import * as fromQueryHistory from '../QueryHistory/query-history.state';
 
 export interface SaveFavoriteSoqlProps {

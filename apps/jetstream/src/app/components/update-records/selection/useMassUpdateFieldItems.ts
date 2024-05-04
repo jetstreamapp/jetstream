@@ -10,16 +10,17 @@ import {
   useRollbar,
 } from '@jetstream/shared/ui-utils';
 import { DescribeSObjectResult, Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { useAmplitude } from '../../core/analytics';
 import {
   MetadataRow,
   TransformationCriteria,
   TransformationOption,
   TransformationOptions,
-} from '../../shared/mass-update-records/mass-update-records.types';
-import { getValidationSoqlQuery, isValidRow } from '../../shared/mass-update-records/mass-update-records.utils';
+  getValidationSoqlQuery,
+  isValidRow,
+  useAmplitude,
+} from '@jetstream/ui-core';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 type Action =

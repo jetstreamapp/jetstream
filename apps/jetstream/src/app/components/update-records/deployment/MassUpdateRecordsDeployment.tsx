@@ -11,14 +11,11 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
+import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, selectedOrgState, useDeployRecords } from '@jetstream/ui-core';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../../app-state';
-import MassUpdateRecordsDeploymentRow from '../../shared/mass-update-records/MassUpdateRecordsDeploymentRow';
-import { DeployResults, MetadataRow } from '../../shared/mass-update-records/mass-update-records.types';
-import { useDeployRecords } from '../../shared/mass-update-records/useDeployRecords';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 const HEIGHT_BUFFER = 170;

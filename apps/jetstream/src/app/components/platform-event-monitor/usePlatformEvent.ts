@@ -5,12 +5,12 @@ import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
+import { applicationCookieState } from '@jetstream/ui-core';
 import { CometD } from 'cometd';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
 import * as platformEventUtils from './platform-event-monitor.utils';
 

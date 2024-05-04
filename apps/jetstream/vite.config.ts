@@ -17,8 +17,11 @@ export default defineConfig({
   server: {
     port: 4200,
     host: 'localhost',
+    fs: {
+      allow: ['..'],
+    },
   },
-
+  base: './',
   build: {
     outDir: '../../dist/apps/jetstream',
     reportCompressedSize: true,

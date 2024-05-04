@@ -1,7 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid } from '@jetstream/ui';
+import { FieldDefinitionType, FieldDefinitions, FieldValue, FieldValues } from '@jetstream/ui-core';
 import { FunctionComponent, useRef } from 'react';
-import { FieldDefinitionType, FieldDefinitions, FieldValue, FieldValues } from '../shared/create-fields/create-fields-types';
 import CreateFieldsRowField from './CreateFieldsRowField';
 import CreateNewGlobalPicklistModal from './CreateNewGlobalPicklistModal';
 

@@ -3,27 +3,26 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { Field, FieldType, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Field, FieldType, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, KeyboardShortcut, Modal, Spinner, Tabs, Textarea } from '@jetstream/ui';
-import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
-import * as formulon from 'formulon';
-import type { editor } from 'monaco-editor';
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '../core/analytics';
-import { registerCompletions } from '../formula-evaluator/formula-evaluator.editor-utils';
-import { NullNumberBehavior } from '../formula-evaluator/formula-evaluator.state';
 import {
   FieldDefinition,
   FieldValue,
   FieldValueState,
   FieldValues,
+  FormulaEvaluatorRecordSearch,
+  FormulaEvaluatorResults,
+  FormulaEvaluatorUserSearch,
   ManualFormulaRecord,
   SalesforceFieldType,
-} from '../shared/create-fields/create-fields-types';
-import FormulaEvaluatorRecordSearch from '../shared/formula-evaluator/FormulaEvaluatorRecordSearch';
-import FormulaEvaluatorResults from '../shared/formula-evaluator/FormulaEvaluatorResults';
-import FormulaEvaluatorUserSearch from '../shared/formula-evaluator/FormulaEvaluatorUserSearch';
-import { getFormulaData } from '../shared/formula-evaluator/formula-evaluator.utils';
+  getFormulaData,
+  useAmplitude,
+} from '@jetstream/ui-core';
+import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import * as formulon from 'formulon';
+import type { editor } from 'monaco-editor';
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { registerCompletions } from '../formula-evaluator/formula-evaluator.editor-utils';
 import CreateFieldsFormulaEditorManualField from './CreateFieldsFormulaEditorManualField';
 
 export interface CreateFieldsFormulaEditorProps {

@@ -1,18 +1,21 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useFetchPageLayouts, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Field, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs, Tooltip, fireToast } from '@jetstream/ui';
+import {
+  ConfirmPageChange,
+  FieldValues,
+  applicationCookieState,
+  fromJetstreamEvents,
+  getInitialValues,
+  getSecondaryTypeFromType,
+  prepareDownloadResultsFile,
+  useAmplitude,
+  useCreateFields,
+} from '@jetstream/ui-core';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../app-state';
-import ConfirmPageChange from '../../core/ConfirmPageChange';
-import { useAmplitude } from '../../core/analytics';
-import * as fromJetstreamEvents from '../../core/jetstream-events';
-import { FieldValues } from '../../shared/create-fields/create-fields-types';
-import { getInitialValues, getSecondaryTypeFromType, prepareDownloadResultsFile } from '../../shared/create-fields/create-fields-utils';
-import useCreateFields from '../../shared/create-fields/useCreateFields';
-import { NullNumberBehavior } from '../formula-evaluator.state';
 import FormulaEvaluatorDeploySummary from './FormulaEvaluatorDeploySummary';
 import FormulaEvaluatorFields from './FormulaEvaluatorFields';
 import FormulaEvaluatorPageLayouts from './FormulaEvaluatorPageLayouts';

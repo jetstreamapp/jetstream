@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { GoogleApiClientConfig, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
+import { GoogleApiClientConfig, filterLoadSobjects, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   DescribeGlobalSObjectResult,
@@ -25,7 +25,6 @@ import isString from 'lodash/isString';
 import { FunctionComponent } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 import { FieldWithRelatedEntities, LocalOrGoogle } from '../load-records-types';
-import { filterLoadSobjects } from '../utils/load-records-utils';
 
 export interface LoadRecordsSelectObjectAndFileProps {
   googleApiConfig: GoogleApiClientConfig;

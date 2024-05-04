@@ -2,11 +2,10 @@ import { TITLES } from '@jetstream/shared/constants';
 import { useLocationState, useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Spinner } from '@jetstream/ui';
+import { StateDebugObserver, selectedOrgState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import { selectedOrgState } from '../../app-state';
-import StateDebugObserver from '../core/StateDebugObserver';
 import * as fromQueryState from './query.state';
 import useQueryRestore from './utils/useQueryRestore';
 

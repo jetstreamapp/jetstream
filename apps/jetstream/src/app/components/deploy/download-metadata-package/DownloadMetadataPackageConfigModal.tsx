@@ -2,11 +2,9 @@ import { css } from '@emotion/react';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { ChangeSet, InputReadFileContent, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
+import { OrgLabelBadge, OrgsCombobox, salesforceOrgsState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { salesforceOrgsState } from '../../../app-state';
-import OrgLabelBadge from '../../../components/core/OrgLabelBadge';
-import OrgsCombobox from '../../core/OrgsCombobox';
 import { useChangesetList } from '../utils/useChangesetList';
 
 // TODO: this is used in two places, move to constants

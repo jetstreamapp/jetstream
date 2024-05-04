@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -10,15 +11,13 @@ import {
   PageHeaderTitle,
   Tooltip,
 } from '@jetstream/ui';
+import { filterMassUpdateSobject, selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import * as fromMassUpdateState from '../mass-update-records.state';
-import { filterMassUpdateSobject } from '../../shared/mass-update-records/mass-update-records.utils';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
-import { selectedOrgState } from '../../../app-state';
 
 const HEIGHT_BUFFER = 170;
 

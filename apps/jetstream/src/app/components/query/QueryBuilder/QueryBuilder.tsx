@@ -30,11 +30,11 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../../app-state';
-import { useAmplitude } from '../../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import { QueryHistoryType } from '../QueryHistory/query-history.state';
 import ManualSoql from '../QueryOptions/ManualSoql';

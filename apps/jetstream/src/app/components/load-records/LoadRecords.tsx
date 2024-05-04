@@ -16,11 +16,11 @@ import {
   PageHeaderTitle,
   Spinner,
 } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState, selectedOrgType } from '@jetstream/ui-core';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
-import { applicationCookieState, selectedOrgState, selectedOrgType } from '../../app-state';
-import { useAmplitude } from '../core/analytics';
+import { useAmplitude } from '@jetstream/ui-core';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import { FieldWithRelatedEntities, LocalOrGoogle, Step } from './load-records-types';

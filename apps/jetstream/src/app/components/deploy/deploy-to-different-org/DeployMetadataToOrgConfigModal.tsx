@@ -2,11 +2,9 @@ import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
+import { OrgLabelBadge, OrgsCombobox, salesforceOrgsOmitSelectedState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { salesforceOrgsOmitSelectedState } from '../../../app-state';
-import OrgsCombobox from '../../../components/core/OrgsCombobox';
-import OrgLabelBadge from '../../core/OrgLabelBadge';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);

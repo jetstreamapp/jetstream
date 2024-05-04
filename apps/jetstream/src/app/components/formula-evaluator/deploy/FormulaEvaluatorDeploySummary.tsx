@@ -3,12 +3,17 @@ import { css } from '@emotion/react';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
+import {
+  CreateFieldsResults,
+  FieldPermissionRecord,
+  FieldValues,
+  LayoutResult,
+  applicationCookieState,
+  selectSkipFrontdoorAuth,
+} from '@jetstream/ui-core';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../../../app-state';
-import { FieldPermissionRecord, FieldValues, LayoutResult } from '../../shared/create-fields/create-fields-types';
-import { CreateFieldsResults } from '../../shared/create-fields/useCreateFields';
 
 type DeployedItem = { id: string; label: string };
 

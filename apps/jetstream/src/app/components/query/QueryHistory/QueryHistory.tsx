@@ -27,13 +27,12 @@ import {
   Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
+import { ErrorBoundaryFallback, useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import ErrorBoundaryFallback from '../../core/ErrorBoundaryFallback';
-import { useAmplitude } from '../../core/analytics';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
 import QueryHistoryWhichOrg from './QueryHistoryWhichOrg';

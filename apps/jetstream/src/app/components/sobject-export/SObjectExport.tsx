@@ -23,11 +23,10 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
+import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../../app-state';
-import * as fromJetstreamEvents from '../core/jetstream-events';
 import { ExportHeaderOption, ExportOptions, ExportWorksheetLayout, SavedExportOptions } from './sobject-export-types';
 import { getAttributes, getSobjectMetadata, prepareExport } from './sobject-export-utils';
 

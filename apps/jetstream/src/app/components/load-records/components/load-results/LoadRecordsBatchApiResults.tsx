@@ -5,11 +5,9 @@ import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetst
 import { decodeHtmlEntity, flattenRecord, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { InsertUpdateUpsertDelete, Maybe, RecordResultWithRecord, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
+import { LoadRecordsResultsModal, applicationCookieState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../../../../app-state';
-import { useAmplitude } from '../../../core/analytics';
-import * as fromJetstreamEvents from '../../../core/jetstream-events';
 import {
   ApiMode,
   DownloadModalData,
@@ -23,7 +21,6 @@ import {
 import { loadBatchApiData, prepareData } from '../../utils/load-records-process';
 import { getFieldHeaderFromMapping } from '../../utils/load-records-utils';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
-import LoadRecordsResultsModal from './LoadRecordsResultsModal';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 
