@@ -71,7 +71,7 @@ function reducer(state: State, action: Action): State {
             batchIdToIndex: {},
           },
           transformationOptions: {
-            option: 'anotherField',
+            option: 'staticValue',
             staticValue: '',
             criteria: 'all',
             alternateField: null,

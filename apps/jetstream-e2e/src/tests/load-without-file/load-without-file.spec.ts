@@ -61,6 +61,9 @@ test.describe('LOAD WITHOUT FILE', () => {
     await page.getByTestId('dropdown-Field to Update').getByPlaceholder('Select an Option').fill('fax');
     await page.getByRole('option', { name: 'Account Fax Fax phone' }).click();
 
+    await page.getByTestId('dropdown-Record update to Apply').getByPlaceholder('Select an Option').click();
+    await page.getByRole('option', { name: 'Value from different field' }).click();
+
     await page.getByTestId('dropdown-Field to use as value').getByPlaceholder('Select an Option').click();
     await page.getByTestId('dropdown-Field to use as value').getByPlaceholder('Select an Option').fill('name');
     await page.getByRole('option', { name: 'Account Name Name' }).click();

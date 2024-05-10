@@ -17,8 +17,8 @@ export function filterMassUpdateSobject(sobject: DescribeGlobalSObjectResult) {
 }
 
 export const transformationOptionListItems: ListItem[] = [
-  { id: 'anotherField', value: 'anotherField', label: 'Value from different field' },
   { id: 'staticValue', value: 'staticValue', label: 'Provided value' },
+  { id: 'anotherField', value: 'anotherField', label: 'Value from different field' },
   { id: 'null', value: 'null', label: 'Clear field value' },
 ];
 
