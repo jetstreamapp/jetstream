@@ -94,7 +94,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [fields, setFields] = useState<ListItem[]>([]);
   /** Fields that can be used as value */
   const [transformationOptions, setTransformationOptions] = useState<TransformationOptions>({
-    option: 'anotherField',
+    option: 'staticValue',
     alternateField: undefined,
     staticValue: '',
     criteria: 'all',
