@@ -19,18 +19,18 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui-core';
+import { applicationCookieState, fromJetstreamEvents, selectSkipFrontdoorAuth, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
-import { useAmplitude } from '@jetstream/ui-core';
 import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
 import {
   getAutomationDeployType,
+  isDuplicateRecord,
   isTableRow,
   isTableRowChild,
   isTableRowItem,
@@ -145,6 +145,9 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           if (isToolingApexRecord(item.type, record)) {
             fullName = record.Name;
             fileName = `triggers/${record.Name}.trigger`;
+          } else if (isDuplicateRecord(item.type, record)) {
+            fullName = record.DeveloperName;
+            fileName = `objects/${record.SobjectType}.duplicateRule`;
           } else if (isValidationRecord(item.type, record)) {
             fullName = record.FullName;
             fileName = `objects/${record.EntityDefinition.QualifiedApiName}.object`;

@@ -10,12 +10,15 @@ import { deployMetadata, getAutomationTypeLabel, preparePayloads } from './autom
 import { AutomationDeployStatusRenderer, BooleanAndVersionRenderer } from './automation-control-table-renderers';
 import {
   AutomationControlDeploymentItem,
+  AutomationMetadataType,
   DeploymentItem,
   DeploymentItemMap,
   DeploymentItemRow,
   FlowViewRecord,
   TableRowItem,
 } from './automation-control-types';
+
+const REQUIRE_METADATA_API = new Set<AutomationMetadataType>(['ApexTrigger', 'DuplicateRule']);
 
 const COLUMNS: Column<DeploymentItemRow>[] = [
   {
@@ -68,7 +71,7 @@ function getDeploymentItemMap(rows: TableRowItem[]): DeploymentItemMap {
             : row.record.Id,
         activeVersionNumber: row.activeVersionNumber,
         value: row.isActive,
-        requireMetadataApi: row.type === 'ApexTrigger',
+        requireMetadataApi: REQUIRE_METADATA_API.has(row.type),
         metadataRetrieve: null,
         metadataDeploy: null,
         retrieveError: null,

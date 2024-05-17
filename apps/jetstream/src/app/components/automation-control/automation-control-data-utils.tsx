@@ -4,16 +4,26 @@ import {
   genericRequest,
   getCacheItemNonHttp,
   query,
+  retrieveMetadataFromListMetadata,
   saveCacheItemNonHttp,
 } from '@jetstream/shared/data';
-import { getToolingRecords, logErrorToRollbar, pollMetadataResultsUntilDone } from '@jetstream/shared/ui-utils';
+import {
+  getOrgType,
+  getToolingRecords,
+  logErrorToRollbar,
+  pollMetadataResultsUntilDone,
+  pollRetrieveMetadataResultsUntilDone,
+} from '@jetstream/shared/ui-utils';
 import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CompositeRequest, CompositeRequestBody, CompositeResponse, SalesforceOrgUi } from '@jetstream/types';
+import { CompositeRequest, CompositeRequestBody, CompositeResponse, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
+import JSZip from 'jszip';
+import isString from 'lodash/isString';
 import { Observable, Subject, from, of } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import {
   getApexTriggersQuery,
+  getDuplicateRuleQuery,
   getFlowsQuery,
   getProcessBuildersQuery,
   getValidationRulesQuery,
@@ -22,7 +32,9 @@ import {
 import {
   AutomationControlDeploymentItem,
   AutomationMetadataType,
+  DeploymentItem,
   DeploymentItemMap,
+  DuplicateRuleRecord,
   FetchErrorPayload,
   FetchSuccessPayload,
   FlowMetadata,
@@ -67,6 +79,10 @@ export function isToolingApexRecord(type: AutomationMetadataType, record: any): 
   return type === 'ApexTrigger';
 }
 
+export function isDuplicateRecord(type: AutomationMetadataType, record: any): record is DuplicateRuleRecord {
+  return type === 'DuplicateRule';
+}
+
 export function isValidationRecord(type: AutomationMetadataType, record: any): record is ToolingValidationRuleRecord {
   return type === 'ValidationRule';
 }
@@ -82,7 +98,9 @@ export function isFlowRecord(type: AutomationMetadataType, record: any): record 
 export function getAutomationTypeLabel(type: AutomationMetadataType) {
   switch (type) {
     case 'ApexTrigger':
-      return 'Apex Class';
+      return 'Apex Trigger';
+    case 'DuplicateRule':
+      return 'Duplicate Rule';
     case 'ValidationRule':
       return 'Validation Rule';
     case 'WorkflowRule':
@@ -136,6 +154,15 @@ export function fetchAutomationData(
         getApexTriggersMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'ApexTrigger', records } as FetchSuccessPayload))
       ).pipe(
         catchError((error) => of({ type: 'ApexTrigger', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
+      )
+    );
+  }
+  if (selectedTypes.has('DuplicateRule')) {
+    requests.push(
+      from(
+        getDuplicateRules(selectedOrg, selectedSObjects).then((records) => ({ type: 'DuplicateRule', records } as FetchSuccessPayload))
+      ).pipe(
+        catchError((error) => of({ type: 'DuplicateRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
       )
     );
   }
@@ -197,6 +224,18 @@ export async function getApexTriggersMetadata(selectedOrg: SalesforceOrgUi, sobj
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
         query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(currSobjects), true)
+      )
+    )
+  ).flatMap(({ queryResults }) => queryResults.records);
+  return apexClassRecords;
+}
+
+/** Query ApexTriggers */
+export async function getDuplicateRules(selectedOrg: SalesforceOrgUi, sobjects: string[]): Promise<DuplicateRuleRecord[]> {
+  const apexClassRecords = (
+    await Promise.all(
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
+        query<DuplicateRuleRecord>(selectedOrg, getDuplicateRuleQuery(currSobjects), false)
       )
     )
   ).flatMap(({ queryResults }) => queryResults.records);
@@ -418,15 +457,18 @@ export async function preparePayloadsForDeployment(
   itemsByKey: DeploymentItemMap,
   payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
 ) {
+  const duplicateRules = Object.keys(itemsByKey)
+    .filter((key) => !itemsByKey[key].deploy.metadataRetrieve && itemsByKey[key].metadata.type === 'DuplicateRule')
+    .map((key) => itemsByKey[key]);
+  const hasDuplicateRule = duplicateRules.length > 0;
   const baseFields = ['Id', 'FullName', 'Metadata'];
   // Prepare composite requests
   const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
     Object.keys(itemsByKey)
-      .filter((key) => !itemsByKey[key].deploy.metadataRetrieve)
+      .filter((key) => !itemsByKey[key].deploy.metadataRetrieve && itemsByKey[key].metadata.type !== 'DuplicateRule')
       .map((key): CompositeRequestBody => {
         const item = itemsByKey[key].deploy;
         const fields: string[] = item.type === 'ApexTrigger' ? baseFields.concat(['Body', 'ApiVersion']) : baseFields;
-
         return {
           method: 'GET',
           url: `/services/data/${apiVersion}/tooling/sobjects/${getAutomationDeployType(item.type)}/${item.id}?fields=${fields.join(',')}`,
@@ -436,7 +478,13 @@ export async function preparePayloadsForDeployment(
     25
   );
 
-  // fetch metadata required for deployment
+  // Initiate metadata API request, then pol for results after all other metadata is fetched
+  let fileBasedMetadataRequestId: string | undefined;
+  if (hasDuplicateRule) {
+    fileBasedMetadataRequestId = await initiateDuplicateRulesMetadataRequest(selectedOrg, duplicateRules);
+  }
+
+  // fetch metadata required for deployment using tooling API
   for (const compositeRequest of metadataFetchRequests) {
     const requestBody: CompositeRequest = {
       allOrNone: false,
@@ -474,6 +522,7 @@ export async function preparePayloadsForDeployment(
             deploymentItem.metadataDeploy.Metadata.active = deploymentItem.value;
             break;
           }
+          case 'DuplicateRule': // no tooling support, these are handled with metadata api
           default:
             break;
         }
@@ -483,6 +532,88 @@ export async function preparePayloadsForDeployment(
     });
     payloadEvent.next(items);
   }
+
+  // Finish waiting for metadata API requests for duplicate rules
+  if (fileBasedMetadataRequestId) {
+    const results = await pollRetrieveMetadataResultsUntilDone(selectedOrg, fileBasedMetadataRequestId);
+    if (results.success && isString(results.zipFile)) {
+      const salesforcePackage = await JSZip.loadAsync(results.zipFile, { base64: true });
+      const items = await prepareMetadataForDuplicateRules(itemsByKey, salesforcePackage, duplicateRules);
+      payloadEvent.next(items);
+    } else {
+      const items = duplicateRules.map(({ metadata }): { key: string; deploymentItem: AutomationControlDeploymentItem } => ({
+        key: metadata.key,
+        deploymentItem: {
+          ...itemsByKey[metadata.key].deploy,
+          retrieveError: [{ message: results.errorMessage || '', errorCode: 'UNKNOWN' }],
+        },
+      }));
+      payloadEvent.next(items);
+    }
+  }
+}
+
+/**
+ * Initiate metadata API request for duplicate rules
+ *
+ * @param selectedOrg
+ * @param duplicateRules
+ * @returns
+ */
+async function initiateDuplicateRulesMetadataRequest(selectedOrg: SalesforceOrgUi, duplicateRules: DeploymentItem[]) {
+  const listMetadataItems = duplicateRules
+    .filter((item) => !item.deploy.metadataRetrieve)
+    .map(({ deploy: item, metadata }): ListMetadataResult => {
+      const record = metadata.record as DuplicateRuleRecord;
+      const fullName = `${record.SobjectType}.${record.DeveloperName}`;
+      return {
+        createdById: null,
+        createdByName: null,
+        createdDate: null,
+        fileName: `duplicateRules/${fullName}.duplicateRule`,
+        fullName,
+        id: item.id,
+        lastModifiedById: null,
+        lastModifiedByName: null,
+        lastModifiedDate: null,
+        manageableState: record.NamespacePrefix ? 'installed' : 'unmanaged',
+        namespacePrefix: null,
+        type: 'DuplicateRule',
+      };
+    });
+  return (await retrieveMetadataFromListMetadata(selectedOrg, { DuplicateRule: listMetadataItems })).id;
+}
+
+async function prepareMetadataForDuplicateRules(
+  itemsByKey: DeploymentItemMap,
+  salesforcePackage: JSZip,
+  duplicateRules: DeploymentItem[]
+): Promise<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
+  const output = [] as { key: string; deploymentItem: AutomationControlDeploymentItem }[];
+  for (const duplicateRule of duplicateRules) {
+    const record = duplicateRule.metadata.record as DuplicateRuleRecord;
+    const deploymentItem = { ...itemsByKey[duplicateRule.metadata.key].deploy };
+    const fullName = `${record.SobjectType}.${record.DeveloperName}`;
+    const fileName = `duplicateRules/${fullName}.duplicateRule`;
+    if (!salesforcePackage.files[fileName]) {
+      deploymentItem.retrieveError = [{ message: 'There was an error getting metadata from Salesforce', errorCode: 'MISSING_FILE' }];
+      output.push({ key: duplicateRule.metadata.key, deploymentItem });
+      continue;
+    }
+    const fileContent = await salesforcePackage.file(fileName)?.async('string');
+    const metadata: MetadataCompositeResponseSuccess = {
+      FullName: fullName,
+      Metadata: fileContent,
+    };
+    deploymentItem.metadataRetrieve = metadata;
+    deploymentItem.metadataDeployRollback = { ...metadata };
+    deploymentItem.metadataDeploy = { ...metadata };
+    const replaceSource = deploymentItem.value ? `<isActive>false</isActive>` : `<isActive>true</isActive>`;
+    const replaceTarget = deploymentItem.value ? `<isActive>true</isActive>` : `<isActive>false</isActive>`;
+    deploymentItem.metadataDeploy.Metadata = (deploymentItem.metadataDeploy.Metadata as string).replace(replaceSource, replaceTarget);
+    output.push({ key: duplicateRule.metadata.key, deploymentItem });
+  }
+  return output;
 }
 
 export function deployMetadata(
@@ -543,11 +674,41 @@ export function deployMetadata(
       }
 
       // perform deployments that are not supported using tooling api
-      const metadataDeployResults = await deployMetadataFileBased(selectedOrg, itemsByKey, Number(apiVersion.replace(/[^0-9\.]/g, '')));
+      const metadataDeployResults = await deployMetadataFileBased(selectedOrg, itemsByKey, Number(apiVersion.replace(/[^0-9.]/g, '')));
 
       if (metadataDeployResults) {
-        const deployResults = await pollMetadataResultsUntilDone(selectedOrg, metadataDeployResults.deployResultsId);
-        payloadEvent.next(metadataDeployResults.metadataItems.map((key) => ({ key, deploymentItem: { ...itemsByKey[key].deploy } })));
+        const deployResults = await pollMetadataResultsUntilDone(selectedOrg, metadataDeployResults.deployResultsId, {
+          includeDetails: true,
+        });
+        payloadEvent.next(
+          metadataDeployResults.metadataItems.map((key) => {
+            const output = { key, deploymentItem: { ...itemsByKey[key].deploy } };
+            const failureItem = deployResults.details?.componentFailures.find(
+              (item) => item.fullName === itemsByKey[key].deploy.metadataDeploy?.FullName
+            );
+
+            if (failureItem) {
+              output.deploymentItem.deployError = [
+                {
+                  errorCode: failureItem.problemType,
+                  message: failureItem.problem,
+                },
+              ];
+              return output;
+            }
+
+            // everything failed, regardless of success/failure
+            if (!deployResults.success) {
+              output.deploymentItem.deployError = [
+                {
+                  errorCode: 'UNKNOWN_ERROR',
+                  message: 'Error deploying to Salesforce',
+                },
+              ];
+            }
+            return output;
+          })
+        );
       }
 
       payloadEvent.complete();
@@ -588,7 +749,7 @@ export async function deployMetadataFileBased(
   fileBasedMetadataItems.forEach((key) => {
     const item = itemsByKey[key];
     switch (item.deploy.type) {
-      case 'ApexTrigger':
+      case 'ApexTrigger': {
         deployItems['ApexTrigger'] = deployItems['ApexTrigger'] || [];
         deployItems['ApexTrigger'].push({
           fullName: (item.metadata.record as ToolingApexTriggerRecord).Name,
@@ -611,6 +772,24 @@ export async function deployMetadataFileBased(
           ],
         });
         break;
+      }
+      case 'DuplicateRule': {
+        if (!item.deploy.metadataDeploy) {
+          break;
+        }
+        deployItems['DuplicateRule'] = deployItems['DuplicateRule'] || [];
+        deployItems['DuplicateRule'].push({
+          fullName: item.deploy.metadataDeploy.FullName,
+          dirPath: 'duplicateRules',
+          files: [
+            {
+              name: `${item.deploy.metadataDeploy.FullName}.duplicateRule`,
+              content: item.deploy.metadataDeploy.Metadata,
+            },
+          ],
+        });
+        break;
+      }
       default:
         break;
     }
@@ -639,7 +818,10 @@ export async function deployMetadataFileBased(
   });
 
   // deploy file
-  const deployResults = await deployMetadataZip(selectedOrg, files, { singlePackage: true, rollbackOnError: true });
+  const deployResults = await deployMetadataZip(selectedOrg, files, {
+    singlePackage: true,
+    rollbackOnError: getOrgType(selectedOrg) === 'Production',
+  });
   // id is only field not deprecated
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_asyncresult.htm
   logger.info('deployResults', deployResults);

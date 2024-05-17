@@ -5,12 +5,18 @@ export type WorkflowRule = 'WorkflowRule';
 export type FlowProcessBuilder = 'FlowProcessBuilder';
 export type FlowRecordTriggered = 'FlowRecordTriggered';
 export type ApexTrigger = 'ApexTrigger';
+export type DuplicateRule = 'DuplicateRule';
 
-export type AutomationMetadataType = ValidationRule | WorkflowRule | FlowProcessBuilder | FlowRecordTriggered | ApexTrigger;
+export type AutomationMetadataType = DuplicateRule | ValidationRule | WorkflowRule | FlowProcessBuilder | FlowRecordTriggered | ApexTrigger;
 
 export interface FetchSuccessPayload {
   type: keyof StateData;
-  records: ToolingApexTriggerRecord[] | ToolingValidationRuleRecord[] | ToolingWorkflowRuleRecord[] | FlowViewRecord[];
+  records:
+    | DuplicateRuleRecord[]
+    | ToolingApexTriggerRecord[]
+    | ToolingValidationRuleRecord[]
+    | ToolingWorkflowRuleRecord[]
+    | FlowViewRecord[];
 }
 
 export interface FetchErrorPayload {
@@ -24,6 +30,13 @@ export interface StateData {
     skip: boolean;
     error?: string;
     records: ToolingApexTriggerRecord[];
+    tableRow: TableRow;
+  };
+  DuplicateRule: {
+    loading: boolean;
+    skip: boolean;
+    error?: string;
+    records: DuplicateRuleRecord[];
     tableRow: TableRow;
   };
   ValidationRule: {
@@ -82,7 +95,7 @@ export interface DeploymentItemRow extends TableRowItem {
 export type MetadataCompositeResponseSuccessOrError = MetadataCompositeResponseSuccess | MetadataCompositeResponseError[];
 
 export interface MetadataCompositeResponseSuccess {
-  Id: string;
+  Id?: string;
   FullName: string;
   Body?: string; // ApexTrigger
   ApiVersion?: number; // ApexTrigger
@@ -109,9 +122,10 @@ export interface AutomationControlDeploymentItem {
 }
 
 export interface DeploymentItemByType {
+  apexTriggers: AutomationControlDeploymentItem[];
+  duplicateRules: AutomationControlDeploymentItem[];
   validationRules: AutomationControlDeploymentItem[];
   workflowRules: AutomationControlDeploymentItem[];
-  apexTriggers: AutomationControlDeploymentItem[];
   flows: AutomationControlDeploymentItem[];
 }
 
@@ -147,6 +161,17 @@ export interface ToolingApexTriggerRecord extends SystemFields {
   EntityDefinitionId: string;
   EntityDefinition: { QualifiedApiName: string };
   Status: 'Inactive' | 'Active' | 'Deleted';
+}
+
+/** This is not tooling */
+export interface DuplicateRuleRecord extends SystemFields {
+  Id: string;
+  DeveloperName: string;
+  IsActive: boolean;
+  MasterLabel: string;
+  NamespacePrefix: string;
+  SobjectSubtype: string;
+  SobjectType: string;
 }
 
 export interface ToolingWorkflowRuleRecord extends SystemFields {
@@ -343,7 +368,7 @@ export interface TableRowItem {
   parentKey: string;
   type: AutomationMetadataType;
   sobject: string;
-  record: ToolingApexTriggerRecord | ToolingValidationRuleRecord | ToolingWorkflowRuleRecord | FlowViewRecord;
+  record: DuplicateRuleRecord | ToolingApexTriggerRecord | ToolingValidationRuleRecord | ToolingWorkflowRuleRecord | FlowViewRecord;
   link: string;
   /** True for Flow and PB as this is controlled from children */
   readOnly: boolean;
