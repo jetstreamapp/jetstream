@@ -38,6 +38,8 @@ RUN yarn build:landing
 # Remove development dependencies
 RUN yarn install --production=true
 
+# Ensure dotenv is included in the final image
+RUN yarn add dotenv
 
 # Final stage for app image
 FROM base
