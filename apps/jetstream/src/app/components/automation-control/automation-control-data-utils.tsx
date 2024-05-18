@@ -230,7 +230,7 @@ export async function getApexTriggersMetadata(selectedOrg: SalesforceOrgUi, sobj
   return apexClassRecords;
 }
 
-/** Query ApexTriggers */
+/** Query DuplicateRules */
 export async function getDuplicateRules(selectedOrg: SalesforceOrgUi, sobjects: string[]): Promise<DuplicateRuleRecord[]> {
   const apexClassRecords = (
     await Promise.all(
@@ -457,11 +457,13 @@ export async function preparePayloadsForDeployment(
   itemsByKey: DeploymentItemMap,
   payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
 ) {
+  // Duplicate Rules require metadata API
   const duplicateRules = Object.keys(itemsByKey)
     .filter((key) => !itemsByKey[key].deploy.metadataRetrieve && itemsByKey[key].metadata.type === 'DuplicateRule')
     .map((key) => itemsByKey[key]);
   const hasDuplicateRule = duplicateRules.length > 0;
   const baseFields = ['Id', 'FullName', 'Metadata'];
+
   // Prepare composite requests
   const metadataFetchRequests: CompositeRequestBody[][] = splitArrayToMaxSize(
     Object.keys(itemsByKey)
@@ -478,7 +480,7 @@ export async function preparePayloadsForDeployment(
     25
   );
 
-  // Initiate metadata API request, then pol for results after all other metadata is fetched
+  // Initiate metadata API request, then poll for results after all other metadata is fetched
   let fileBasedMetadataRequestId: string | undefined;
   if (hasDuplicateRule) {
     fileBasedMetadataRequestId = await initiateDuplicateRulesMetadataRequest(selectedOrg, duplicateRules);
@@ -522,7 +524,7 @@ export async function preparePayloadsForDeployment(
             deploymentItem.metadataDeploy.Metadata.active = deploymentItem.value;
             break;
           }
-          case 'DuplicateRule': // no tooling support, these are handled with metadata api
+          case 'DuplicateRule': // no tooling API support, handled with metadata api
           default:
             break;
         }

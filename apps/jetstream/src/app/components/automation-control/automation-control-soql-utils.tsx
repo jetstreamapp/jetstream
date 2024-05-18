@@ -84,10 +84,10 @@ export function getDuplicateRuleQuery(sobjects: string[]) {
       operator: 'AND',
       right: {
         left: {
-          field: 'ManageableState',
+          field: 'NamespacePrefix',
           operator: '=',
-          value: 'unmanaged',
-          literalType: 'STRING',
+          value: 'NULL',
+          literalType: 'NULL',
         },
       },
     },
