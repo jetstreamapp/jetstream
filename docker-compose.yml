@@ -11,6 +11,7 @@ services:
     environment:
       NODE_ENV: development
       ENVIRONMENT: development
+      LOG_LEVEL: info
       IS_LOCAL_DOCKER: true
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
       EXAMPLE_USER_OVERRIDE: true
