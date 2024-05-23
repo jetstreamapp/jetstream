@@ -2,8 +2,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { useAmplitude } from '@jetstream/ui-core';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import {
   fetchAutomationData,
   getAdditionalItemsWorkflowRuleText,
@@ -16,6 +16,7 @@ import {
 } from './automation-control-data-utils';
 import {
   AutomationMetadataType,
+  DuplicateRuleRecord,
   FetchErrorPayload,
   FetchSuccessPayload,
   FlowViewRecord,
@@ -69,6 +70,7 @@ function isDirty(row: TableRow | TableRowItem | TableRowItemChild) {
 
 type MetadataRecordType =
   | { type: 'ApexTrigger'; records: ToolingApexTriggerRecord[] }
+  | { type: 'DuplicateRule'; records: DuplicateRuleRecord[] }
   | { type: 'ValidationRule'; records: ToolingValidationRuleRecord[] }
   | { type: 'WorkflowRule'; records: ToolingWorkflowRuleRecord[] }
   | { type: 'FlowRecordTriggered'; records: FlowViewRecord[] }
@@ -85,16 +87,23 @@ function reducer(state: State, action: Action): State {
         loading: true,
         data: { ...state.data },
       };
-      (['ApexTrigger', 'ValidationRule', 'WorkflowRule', 'FlowRecordTriggered', 'FlowProcessBuilder'] as AutomationMetadataType[]).forEach(
-        (type) => {
-          output.data[type] = {
-            loading: selectedTypes.has(type),
-            skip: !selectedTypes.has(type),
-            records: [],
-            tableRow: getRowsForItems({ type, records: [] }, true),
-          };
-        }
-      );
+      (
+        [
+          'ApexTrigger',
+          'DuplicateRule',
+          'ValidationRule',
+          'WorkflowRule',
+          'FlowRecordTriggered',
+          'FlowProcessBuilder',
+        ] as AutomationMetadataType[]
+      ).forEach((type) => {
+        output.data[type] = {
+          loading: selectedTypes.has(type),
+          skip: !selectedTypes.has(type),
+          records: [],
+          tableRow: getRowsForItems({ type, records: [] }, true),
+        };
+      });
 
       const { keys, rows, rowsByKey } = flattenTableRows(output.data, {});
       output.keys = keys;
@@ -364,6 +373,28 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
       );
       break;
     }
+    case 'DuplicateRule': {
+      output.items = (records as DuplicateRuleRecord[]).map(
+        (record): TableRowItem => ({
+          path: [typeLabel, record.DeveloperName],
+          key: `${type}_${record.Id}`,
+          parentKey: type,
+          type,
+          record,
+          link: `/lightning/setup/DuplicateRules/page?address=${encodeURIComponent(`/${record.Id}?setupid=DuplicateRules`)}`,
+          sobject: record.SobjectType,
+          readOnly: false,
+          isExpanded: true,
+          isActive: record.IsActive,
+          isActiveInitialState: record.IsActive,
+          label: record.MasterLabel,
+          lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
+          description: '',
+          additionalData: [],
+        })
+      );
+      break;
+    }
     case 'ValidationRule': {
       output.items = (records as ToolingValidationRuleRecord[]).map(
         (record): TableRowItem => ({
@@ -397,7 +428,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           parentKey: type,
           type,
           record,
-          link: `/lightning/setup/WorkflowRules/page?address=%2F${record.Id}&nodeId=WorkflowRules`,
+          link: `/lightning/setup/WorkflowRules/page?address=${encodeURIComponent(`/${record.Id}?nodeId=DuplicateRules`)}`,
           sobject: record.TableEnumOrId,
           readOnly: false,
           isExpanded: true,
@@ -566,6 +597,12 @@ export function useAutomationControlData({
     hasError: false,
     data: {
       ApexTrigger: { loading: true, skip: false, records: [], tableRow: getRowsForItems({ type: 'ApexTrigger', records: [] }, false) },
+      DuplicateRule: {
+        loading: true,
+        skip: false,
+        records: [],
+        tableRow: getRowsForItems({ type: 'DuplicateRule', records: [] }, false),
+      },
       ValidationRule: {
         loading: true,
         skip: false,
@@ -599,7 +636,7 @@ export function useAutomationControlData({
     return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [selectedAutomationTypes, selectedSObjects.length, trackEvent]);
 
   const updateIsActiveFlag = useCallback((row: TableRowOrItemOrChild, value: boolean) => {
     dispatch({ type: 'UPDATE_IS_ACTIVE_FLAG', payload: { row, value } });

@@ -21,6 +21,7 @@ export const automationTypes = atom<ListItem<AutomationMetadataType>[]>({
   key: 'automation-control.automationTypes',
   default: [
     { id: 'ApexTrigger', value: 'ApexTrigger', label: 'Apex Triggers', title: 'Apex Triggers' },
+    { id: 'DuplicateRule', value: 'DuplicateRule', label: 'Duplicate Rules', title: 'Duplicate Rules' },
     { id: 'ValidationRule', value: 'ValidationRule', label: 'Validation Rules', title: 'Validation Rules' },
     { id: 'WorkflowRule', value: 'WorkflowRule', label: 'Workflow Rules', title: 'Workflow Rules' },
     { id: 'FlowRecordTriggered', value: 'FlowRecordTriggered', label: 'Record Triggered Flows', title: 'Record Triggered Flows' },
@@ -36,7 +37,7 @@ export const automationTypes = atom<ListItem<AutomationMetadataType>[]>({
 
 export const selectedAutomationTypes = atom<AutomationMetadataType[]>({
   key: 'automation-control.selectedAutomationTypes',
-  default: ['ApexTrigger', 'ValidationRule', 'WorkflowRule', 'FlowProcessBuilder', 'FlowRecordTriggered'],
+  default: ['ApexTrigger', 'DuplicateRule', 'ValidationRule', 'WorkflowRule', 'FlowRecordTriggered'],
 });
 
 export const hasSelectionsMade = selector({

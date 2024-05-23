@@ -54,6 +54,56 @@ export function getApexTriggersQuery(sobjects: string[]) {
   return soql;
 }
 
+export function getDuplicateRuleQuery(sobjects: string[]) {
+  const soql = composeQuery({
+    fields: [
+      getField('Id'),
+      getField('CreatedBy.Id'),
+      getField('CreatedBy.Name'),
+      getField('CreatedBy.Username'),
+      getField('DeveloperName'),
+      getField('IsActive'),
+      getField('LastModifiedBy.Id'),
+      getField('LastModifiedBy.Name'),
+      getField('LastModifiedBy.Username'),
+      getField('MasterLabel'),
+      getField('NamespacePrefix'),
+      getField('SobjectSubtype'),
+      getField('SobjectType'),
+      getField('FORMAT(CreatedDate)'),
+      getField('FORMAT(LastModifiedDate)'),
+    ],
+    sObject: 'DuplicateRule',
+    where: {
+      left: {
+        field: 'SobjectType',
+        operator: 'IN',
+        value: sobjects,
+        literalType: 'STRING',
+      },
+      operator: 'AND',
+      right: {
+        left: {
+          field: 'NamespacePrefix',
+          operator: '=',
+          value: 'NULL',
+          literalType: 'NULL',
+        },
+      },
+    },
+    orderBy: [
+      {
+        field: 'SobjectType',
+      },
+      {
+        field: 'MasterLabel',
+      },
+    ],
+  });
+  logger.info('getDuplicateRuleQuery()', { soql });
+  return soql;
+}
+
 export function getValidationRulesQuery(sobjects: string[]) {
   const soql = composeQuery({
     fields: [
