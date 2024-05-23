@@ -38,7 +38,6 @@ RUN yarn build:landing
 # Remove development dependencies
 RUN yarn install --production=true
 
-
 # Final stage for app image
 FROM base
 
