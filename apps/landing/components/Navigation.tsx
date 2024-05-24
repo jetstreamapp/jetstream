@@ -8,6 +8,7 @@ import { Fragment } from 'react';
 const navigation = [
   { name: 'Features', href: '/#features' },
   { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
+  { name: 'Privacy & Security', href: '/privacy' },
   { name: 'Blog', href: '/blog' },
 ];
 

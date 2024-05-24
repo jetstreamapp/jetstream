@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 import Footer from '../../components/Footer';
 import Navigation from '../../components/Navigation';
 
@@ -46,6 +46,44 @@ function Privacy() {
           This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from
           https://getjetstream.app (the “Site”).
         </p>
+        <h2>Privacy and Security Summary</h2>
+        <ol className="list-decimal pl-6">
+          <li>
+            We strive to follow industry best practices for all processes, including our development processes, deployment processes,
+            hosting processes, and data access processes.
+          </li>
+          <li>We never store any of your Salesforce record data.</li>
+          <li>We use browser-based caching to avoid having to store any metadata on our server.</li>
+          <li>We will never make API requests to Salesforce without explicit action from a user, such as executing a query.</li>
+          <li>
+            All data stored by Jetstream is{' '}
+            <a
+              className="underline"
+              href="https://cloud.google.com/docs/security/encryption/default-encryption"
+              target="_blank"
+              rel="noreferrer"
+            >
+              encrypted at rest
+            </a>{' '}
+            and stored using industry best practices.
+          </li>
+          <li>
+            Some metadata, such as Object and Field names may be included in log entries for up to 1 year with our logging provider. This is
+            used only for the purpose of troubleshooting errors and ensuring auditability for security purposes.
+          </li>
+          <li>
+            If there is a fatal error with the application, our bug tracker may store metadata and error messages based on whatever
+            Salesforce includes in the error message. Our bug tracker has data retention of 30 days.
+          </li>
+          <li>All network traffic is encrypted using HTTPS 1.1, HTTPS/2, or HTTPS/3 TLS 1.3 X35519Kyber768Draft00 and AES_128_GCM</li>
+          <li>
+            Refer to our{' '}
+            <a className="underline" href="https://getjetstream.app/subprocessors/" target="_blank" rel="noreferrer">
+              data sub-processors
+            </a>{' '}
+            for information about our vendors.
+          </li>
+        </ol>
         <h2>PERSONAL INFORMATION WE COLLECT</h2>
         <p className="mb-2 pl-2">
           When you visit the Site, we may automatically collect certain information about your device, including information about your web
@@ -80,7 +118,7 @@ function Privacy() {
         <p className="mb-2 pl-2">
           We will never store any of your Salesforce metadata or record data on any of our servers unless explicitly requested by an action
           taken by you, the user. We may store names of Salesforce objects, fields, or other metadata temporarily in logs, but we will never
-          persist this beyond our standard log retention policy of up to 14 days and will only use this data for the purpose of
+          persist this beyond our standard log retention policy of up to 1 year and will only use this data for the purpose of
           troubleshooting or other error identification.
         </p>
         <p className="mb-2 pl-2">
@@ -109,19 +147,26 @@ function Privacy() {
         <h2>SHARING YOUR PERSONAL INFORMATION</h2>
         <p className="mb-2 pl-2">
           We share your Personal Information with third parties to help us use your Personal Information, as described above. For example,
-          we use Stripe to power our payment collection. We use Mail Chimp to manage our email campaigns. We also use Google Analytics to
-          help us understand how our customers use the Site--you can read more about how Google uses your Personal Information here:
-          https://www.google.com/intl/en/policies/privacy/. You can also opt-out of Google Analytics here:
-          https://tools.google.com/dlpage/gaoptout. Finally, we may also share your Personal Information to comply with applicable laws and
-          regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to otherwise protect
-          our rights.
+          we use Stripe to power our payment collection. We use Amplitude to track what parts of the application is used and in which ways
+          to help make product decisions. We also use Google Analytics to help us understand how our customers use the Site - you can read
+          more about how Google uses your Personal Information here: https://www.google.com/intl/en/policies/privacy/. You can also opt-out
+          of Google Analytics here: https://tools.google.com/dlpage/gaoptout. Finally, we may also share your Personal Information to comply
+          with applicable laws and regulations, to respond to a subpoena, search warrant or other lawful request for information we receive,
+          or to otherwise protect our rights.
+        </p>
+        <p className="mb-2 pl-2">
+          Refer to our{' '}
+          <a className="underline" href="https://getjetstream.app/subprocessors/" target="_blank" rel="noreferrer">
+            data sub-processors
+          </a>{' '}
+          for information about our vendors.
         </p>
         <p className="mb-2 pl-2">
           We will not sell your information to 3rd parties or provide your information to 3rd parties for any other reason.
         </p>
         <h2>DO NOT TRACK</h2>
         <p className="mb-2 pl-2">
-          Please note that we do not alter our Site’s data collection and use practices when we see a Do Not Track signal from your browser.
+          Please note that we do not alter our Site's data collection and use practices when we see a Do Not Track signal from your browser.
         </p>
         <h2>YOUR RIGHTS</h2>
         <p className="mb-2 pl-2">
@@ -131,12 +176,10 @@ function Privacy() {
         </p>
         Additionally, if you are a European resident we note that we are processing your information in order to fulfill contracts we might
         have with you (for example if you make an order through the Site), or otherwise to pursue our legitimate business interests listed
-        above. Additionally, please note that your information will be transferred outside of Europe, including to Canada and the United
-        States.
+        above. Additionally, please note that your information will be transferred outside of Europe, to the United States.
         <h2>DATA RETENTION</h2>
         <p className="mb-2 pl-2">
-          When you place an order through the Site, we will maintain your Order Information for our records unless and until you ask us to
-          delete this information.
+          We will store information in our logs for up to 14 days. We will store information related to errors for up to 30 days.
         </p>
         <h2>MINORS</h2>
         <p className="mb-2 pl-2">The Site is not intended for individuals under the age of 13.</p>
@@ -148,7 +191,11 @@ function Privacy() {
         <h2>CONTACT US</h2>
         <p className="mb-2 pl-2">
           For more information about our privacy practices, if you have questions, or if you would like to make a complaint, please contact
-          us by e-mail at {email}.
+          us by e-mail at{' '}
+          <a className="underline" href={`mailto:${email}?subject=Question about Privacy Policy`} target="_blank" rel="noreferrer">
+            {email}
+          </a>
+          .
         </p>
       </div>
       <Footer />

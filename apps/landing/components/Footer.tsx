@@ -13,8 +13,8 @@ const footerNavigation = {
     { name: 'Blog', href: '/blog' },
   ],
   legal: [
-    { name: 'Privacy', href: '/privacy' },
-    { name: 'Terms', href: '/terms-of-service' },
+    { name: 'Privacy & Security', href: '/privacy' },
+    { name: 'Terms of Service', href: '/terms-of-service' },
     { name: 'Data Sub-Processors', href: '/subprocessors' },
   ],
 };
