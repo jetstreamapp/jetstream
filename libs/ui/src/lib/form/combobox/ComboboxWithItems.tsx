@@ -1,5 +1,10 @@
-import { focusElementFromRefWhenAvailable, getFlattenedListItemsById, menuItemSelectScroll, useDebounce } from '@jetstream/shared/ui-utils';
-import { multiWordObjectFilter, NOOP } from '@jetstream/shared/utils';
+import {
+  focusElementFromRefWhenAvailable,
+  getFlattenedListItemsById,
+  menuItemSelectScroll,
+  useFuzzySearchFilter,
+} from '@jetstream/shared/ui-utils';
+import { NOOP } from '@jetstream/shared/utils';
 import { ListItem, Maybe } from '@jetstream/types';
 import isNumber from 'lodash/isNumber';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -7,8 +12,6 @@ import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem, ComboboxListItemProps } from './ComboboxListItem';
 import { ComboboxListItemHeading } from './ComboboxListItemHeading';
 
-const defaultFilterFn = (filter) =>
-  multiWordObjectFilter<ListItem<string, any>>(['label', 'value', 'secondaryLabel', 'tertiaryLabel'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 
@@ -28,8 +31,6 @@ export interface ComboboxWithItemsProps {
   };
   /** Function called for each item to customize the props of <ComboboxListItem /> */
   itemProps?: (item: ListItem) => Partial<ComboboxListItemProps>;
-  /** Optional. If not provided, standard multi-word search will be used */
-  filterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   /** Used to customize what shows upon selection */
   selectedItemLabelFn?: (item: ListItem) => string;
   selectedItemTitleFn?: (item: ListItem) => Maybe<string>;
@@ -51,7 +52,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       selectedItemId,
       heading,
       itemProps = NOOP,
-      filterFn = defaultFilterFn,
       selectedItemLabelFn = defaultSelectedItemLabelFn,
       selectedItemTitleFn = defaultSelectedItemTitleFn,
       onSelected,
@@ -60,12 +60,11 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
     ref
   ) => {
     const comboboxRef = useRef<ComboboxPropsRef>(null);
-    const [filterTextNonDebounced, setFilterText] = useState<string>('');
-    const filterText = useDebounce(filterTextNonDebounced, 300);
+    const [filterText, setFilterText] = useState<string>('');
     const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
       selectedItemId ? items.find((item) => item.id === selectedItemId) : null
     );
-    const [visibleItems, setVisibleItems] = useState(items);
+    const visibleItems = useFuzzySearchFilter(items, filterText);
     const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
       if (selectedItem) {
         const selectedItem = items.find((item) => item.id === selectedItemId);
@@ -111,17 +110,6 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         setSelectedItemTitle(null);
       }
     }, [selectedItem, selectedItemLabelFn, selectedItemTitleFn]);
-
-    useEffect(() => {
-      if (!filterText) {
-        setVisibleItems(items);
-        setFocusedIndex(null);
-      } else {
-        const filter = filterText.toLowerCase().trim();
-        setVisibleItems(items.filter(filterFn(filter)));
-        setFocusedIndex(null);
-      }
-    }, [items, filterText, filterFn]);
 
     const onInputEnter = useCallback(() => {
       if (visibleItems.length > 0) {
