@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
-import { convertDateToLocale, filterLoadSobjects, useRollbar } from '@jetstream/shared/ui-utils';
-import { getRecordIdFromAttributes } from '@jetstream/shared/utils';
-import { Field, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import { convertDateToLocale, filterLoadSobjects, formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
+import { getRecordIdFromAttributes, pluralizeFromNumber } from '@jetstream/shared/utils';
+import { ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   Checkbox,
   Grid,
@@ -19,16 +19,17 @@ import {
   useFieldListItemsWithDrillIn,
 } from '@jetstream/ui';
 import {
+  DEFAULT_FIELD_CONFIGURATION,
   DeployResults,
   MassUpdateRecordsDeploymentRow,
   MassUpdateRecordsObjectRow,
-  TransformationOptions,
+  MetadataRowConfiguration,
   applicationCookieState,
   fetchRecordsWithRequiredFields,
   useDeployRecords,
 } from '@jetstream/ui-core';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import { Query } from 'soql-parser-js';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
@@ -36,17 +37,19 @@ import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelec
 const MAX_BATCH_SIZE = 10000;
 const IN_PROGRESS_STATUSES = new Set<DeployResults['status']>(['In Progress - Preparing', 'In Progress - Uploading', 'In Progress']);
 
-function checkIfValid(selectedField: Maybe<string>, transformationOptions: TransformationOptions) {
-  if (!selectedField) {
-    return false;
-  }
-  if (transformationOptions.option === 'anotherField' && !transformationOptions.alternateField) {
-    return false;
-  }
-  if (transformationOptions.option === 'staticValue' && !transformationOptions.staticValue) {
-    return false;
-  }
-  return true;
+function checkIfValid(fieldConfig: MetadataRowConfiguration[]) {
+  return fieldConfig.every(({ selectedField, transformationOptions }) => {
+    if (!selectedField) {
+      return false;
+    }
+    if (transformationOptions.option === 'anotherField' && !transformationOptions.alternateField) {
+      return false;
+    }
+    if (transformationOptions.option === 'staticValue' && !transformationOptions.staticValue) {
+      return false;
+    }
+    return true;
+  });
 }
 
 // These are stored in state to allow stable access from a callback to poll results
@@ -90,16 +93,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [isValid, setIsValid] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedField, setSelectedField] = useState<{ field: string; metadata: Field } | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<MetadataRowConfiguration[]>([{ ...DEFAULT_FIELD_CONFIGURATION }]);
   const [fields, setFields] = useState<ListItem[]>([]);
-  /** Fields that can be used as value */
-  const [transformationOptions, setTransformationOptions] = useState<TransformationOptions>({
-    option: 'staticValue',
-    alternateField: undefined,
-    staticValue: '',
-    criteria: 'all',
-    whereClause: '',
-  });
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
@@ -110,6 +105,15 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetRecoilState(deployResultsState);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const targetedRecordCount = useMemo(() => {
+    if (downloadRecordsValue === RADIO_ALL_BROWSER || downloadRecordsValue === RADIO_ALL_SERVER) {
+      return totalRecordCount;
+    }
+    if (downloadRecordsValue === RADIO_FILTERED) {
+      return filteredRecords.length;
+    }
+    return selectedRecords.length;
+  }, [downloadRecordsValue, filteredRecords.length, selectedRecords.length, totalRecordCount]);
   // this allows the pollResults to have a stable data source for updated data
   const getDeploymentResults = useRecoilCallback(
     ({ snapshot }) =>
@@ -147,12 +151,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   }, [selectedOrg, sobject, parsedQuery]);
 
   useEffect(() => {
-    setIsValid(checkIfValid(selectedField?.field, transformationOptions));
-  }, [selectedField, transformationOptions]);
-
-  useEffect(() => {
-    setTransformationOptions((options) => (options.staticValue ? { ...options, staticValue: '' } : options));
-  }, [selectedField]);
+    setIsValid(checkIfValid(selectedConfig));
+  }, [selectedConfig]);
 
   useEffect(() => {
     if (!isNumber(batchSize) || batchSize <= 0 || batchSize > MAX_BATCH_SIZE) {
@@ -192,7 +192,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   }
 
   const handleLoadRecords = async () => {
-    if (!selectedField || batchSizeError) {
+    if (batchSizeError || !isValid || !selectedConfig || selectedConfig.some(({ selectedField }) => !selectedField)) {
       return;
     }
 
@@ -222,9 +222,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         selectedOrg,
         records,
         parsedQuery,
-        transformationOptions,
-        selectedField: selectedField.field,
         idsToInclude,
+        configuration: selectedConfig,
       });
 
       setLoading(true);
@@ -232,12 +231,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       await loadDataForProvidedRecords({
         records: recordsToLoad,
         sobject,
-        fields: ['Id', selectedField.field],
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        fields: ['Id', ...selectedConfig.map(({ selectedField }) => selectedField!).filter(Boolean)],
         batchSize: batchSize ?? 10000,
         serialMode,
-        selectedField: selectedField.field,
-        selectedFieldMetadata: selectedField.metadata,
-        transformationOptions,
+        configuration: selectedConfig,
       });
       pollResultsUntilDone(getDeploymentResults);
     } catch (ex) {
@@ -294,7 +292,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               onClick={handleLoadRecords}
               disabled={!isValid || loading || !!batchSizeError || deployInProgress || !!fatalError}
             >
-              Update Records
+              Update {formatNumber(targetedRecordCount)} {pluralizeFromNumber('Record', targetedRecordCount)}
             </button>
           </div>
         </Grid>
@@ -333,17 +331,31 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           loading={false}
           fields={fields}
           valueFields={valueFields}
-          selectedField={selectedField?.field}
-          selectedFieldMetadata={selectedField?.metadata}
-          transformationOptions={transformationOptions}
+          fieldConfigurations={selectedConfig}
           hasExternalWhereClause={!!parsedQuery.where}
           disabled={loading || deployInProgress || !!fatalError}
-          onFieldChange={(field: string, metadata: Field) => {
-            setSelectedField({ field, metadata });
+          onFieldChange={(index, field, metadata) => {
+            setSelectedConfig((prev) => {
+              const newConfig = [...prev];
+              let transformationOptions = newConfig[index].transformationOptions;
+              if (transformationOptions.staticValue) {
+                transformationOptions = { ...transformationOptions, staticValue: '' };
+              }
+              newConfig[index] = { selectedField: field, selectedFieldMetadata: metadata, transformationOptions };
+              return newConfig;
+            });
           }}
-          onOptionsChange={(_, options) => setTransformationOptions(options)}
+          onOptionsChange={(index, _, transformationOptions) => {
+            setSelectedConfig((prev) => {
+              const newConfig = [...prev];
+              newConfig[index] = { ...newConfig[index], transformationOptions };
+              return newConfig;
+            });
+          }}
           onLoadChildFields={loadChildFields}
           filterCriteriaFn={(field) => field.value !== 'custom'}
+          onAddField={() => setSelectedConfig((prev) => [...prev, { ...DEFAULT_FIELD_CONFIGURATION }])}
+          onRemoveField={() => setSelectedConfig((prev) => prev.slice(0, -1))}
         />
 
         <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
@@ -383,10 +395,8 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             selectedOrg={selectedOrg}
             sobject={sobject}
             deployResults={deployResults}
-            transformationOptions={transformationOptions}
+            configuration={selectedConfig}
             hasExternalWhereClause={!!parsedQuery.where}
-            selectedField={selectedField?.field}
-            selectedFieldMetadata={selectedField?.metadata}
             batchSize={batchSize ?? 10000}
             omitTransformationText
             onModalOpenChange={setIsSecondModalOpen}

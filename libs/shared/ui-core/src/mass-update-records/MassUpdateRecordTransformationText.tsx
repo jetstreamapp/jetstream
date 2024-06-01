@@ -27,10 +27,10 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
   const isBoolean = selectedFieldMetadata?.type === 'boolean';
   switch (option) {
     case 'staticValue':
-      title += `"${selectedField}" will be set to "${staticValue}"`;
+      title += `"${selectedField}" will be set to "${staticValue || '<blank>'}"`;
       objectAndField = (
         <span>
-          "{selectedField}" will be set to "{staticValue}"
+          "{selectedField}" will be set to "{staticValue || '<blank>'}"
         </span>
       );
       break;
@@ -87,14 +87,16 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
     default:
       break;
   }
-
   return (
-    <Badge title={title}>
-      <span className="slds-line-clamp">
-        <span>{objectAndField}</span>
-        <span className="slds-m-left_xx-small">{updateCriteria}</span>
-      </span>
-    </Badge>
+    // Wrapped in div because SFDC has a CSS rule to add left margin to sibling elements
+    <div>
+      <Badge title={title} className="w-100 slds-m-top_x-small">
+        <span className="slds-line-clamp">
+          <span>{objectAndField}</span>
+          <span className="slds-m-left_xx-small">{updateCriteria}</span>
+        </span>
+      </Badge>
+    </div>
   );
 };
 

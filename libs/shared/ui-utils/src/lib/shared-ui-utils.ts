@@ -72,7 +72,7 @@ export function initXlsx(_xlsx: typeof import('xlsx')) {
       _xlsx.set_cptable(module);
     })
     .catch((ex) => {
-      logger.warn('Error loading xlsx package');
+      // ignore error
     });
 }
 

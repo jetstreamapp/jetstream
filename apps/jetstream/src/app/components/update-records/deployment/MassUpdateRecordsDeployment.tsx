@@ -157,8 +157,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
             selectedOrg={selectedOrg}
             deployResults={row.deployResults}
             sobject={row.sobject}
-            transformationOptions={row.transformationOptions}
-            selectedField={row.selectedField}
+            configuration={row.configuration}
             validationResults={row.validationResults}
             batchSize={batchSize ?? 1000}
           />

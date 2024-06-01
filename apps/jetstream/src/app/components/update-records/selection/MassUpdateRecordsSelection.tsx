@@ -43,6 +43,8 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     applyCommonOption,
     applyCommonCriteria,
     handleOptionChange,
+    handleAddField,
+    handleRemoveField,
     validateAllRowRecords,
     validateRowRecords,
   } = useMassUpdateFieldItems(selectedOrg, selectedSObjects);
@@ -129,7 +131,6 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
           <div className="slds-p-horizontal_x-small">
             {selectedSObjects && (
               <MassUpdateRecordsObjects
-                selectedOrg={selectedOrg}
                 rows={rows}
                 commonFields={commonFields}
                 onFieldSelected={onFieldSelected}
@@ -138,6 +139,8 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
                 applyCommonOption={applyCommonOption}
                 applyCommonCriteria={applyCommonCriteria}
                 handleOptionChange={handleOptionChange}
+                handleAddField={handleAddField}
+                handleRemoveField={handleRemoveField}
                 validateRowRecords={validateRowRecords}
               />
             )}
