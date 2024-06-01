@@ -44,7 +44,7 @@ jobs:
       - name: Test all affected projects
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
-        run: yarn test:affected
+        run: yarn test:all
 
       - name: Build
         env:

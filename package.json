@@ -68,7 +68,7 @@
     "icons:build:utility": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/utility ./node_modules/@salesforce-ux/design-system/assets/icons/utility",
     "test": "nx test",
     "test:affected": "TZ=UTC nx affected -t test --output-style=stream",
-    "test:all": "TZ=UTC nx run-many -t test --output-style=stream",
+    "test:all": "TZ=UTC nx run-many -t test --output-style=stream --skip-nx-cache",
     "lint": "nx workspace-lint && nx lint",
     "e2e": "nx e2e",
     "playwright:open": "yarn playwright open http://localhost:4200/app",
