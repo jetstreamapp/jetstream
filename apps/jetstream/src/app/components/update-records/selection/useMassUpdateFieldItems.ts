@@ -26,6 +26,7 @@ import * as fromMassUpdateState from '../mass-update-records.state';
 
 type Action =
   | { type: 'RESET' }
+  | { type: 'CLEAR_DEPLOYMENT_RESULTS' }
   | { type: 'OBJECTS_SELECTED'; payload: { sobjects: string[] } }
   | { type: 'OBJECTS_REMOVED'; payload: { sobjects: string[] } }
   | { type: 'FIELD_SELECTION_CHANGED'; payload: { sobject: string; selectedField: string; configIndex: number } }
@@ -58,6 +59,22 @@ function reducer(state: State, action: Action): State {
         allRowsValid: false,
         loading: false,
       };
+    }
+    case 'CLEAR_DEPLOYMENT_RESULTS': {
+      const rowsMap = new Map(state.rowsMap);
+      rowsMap.forEach((row) => {
+        rowsMap.set(row.sobject, {
+          ...row,
+          deployResults: {
+            status: 'Not Started',
+            done: false,
+            processingErrors: [],
+            records: [],
+            batchIdToIndex: {},
+          },
+        });
+      });
+      return { ...state, rowsMap };
     }
     case 'OBJECTS_SELECTED': {
       const { sobjects } = action.payload;
@@ -308,6 +325,10 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     dispatch({ type: 'RESET' });
   }, []);
 
+  const clearResults = useCallback(() => {
+    dispatch({ type: 'CLEAR_DEPLOYMENT_RESULTS' });
+  }, []);
+
   /**
    * Fetch metadata for all selected objects
    * If the user changes selection while this is running, then the results will be ignored
@@ -471,6 +492,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
 
   return {
     reset,
+    clearResults,
     rows,
     allRowsValid,
     onFieldSelected,

@@ -1,7 +1,7 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Field, ListItem, Maybe } from '@jetstream/types';
-import { Grid, GridCol, ScopedNotification, Spinner } from '@jetstream/ui';
+import { Grid, GridCol, Icon, ScopedNotification, Spinner } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, ReactNode } from 'react';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
@@ -105,7 +105,8 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
         ))}
         <GridCol size={12}>
           <div className="slds-m-top_x-small">
-            <button className="slds-button" onClick={() => onAddField(sobject)}>
+            <button className="slds-button slds-button_neutral" disabled={disabled} onClick={() => onAddField(sobject)}>
+              <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
               Add Field
             </button>
           </div>

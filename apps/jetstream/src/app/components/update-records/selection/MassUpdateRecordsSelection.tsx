@@ -34,9 +34,10 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
   const commonFields = useRecoilValue(fromMassUpdateState.commonFields);
 
   const {
-    reset,
     rows,
     allRowsValid,
+    reset,
+    clearResults,
     onFieldSelected,
     onLoadChildFields,
     applyCommonField,
@@ -50,6 +51,8 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
   } = useMassUpdateFieldItems(selectedOrg, selectedSObjects);
 
   const [allRowsValidated, setAllRowsValidated] = useState(false);
+
+  useEffect(() => clearResults(), [clearResults]);
 
   useEffect(() => {
     if (allRowsValid) {

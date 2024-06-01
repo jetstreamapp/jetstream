@@ -355,7 +355,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           onLoadChildFields={loadChildFields}
           filterCriteriaFn={(field) => field.value !== 'custom'}
           onAddField={() => setSelectedConfig((prev) => [...prev, { ...DEFAULT_FIELD_CONFIGURATION }])}
-          onRemoveField={() => setSelectedConfig((prev) => prev.slice(0, -1))}
+          onRemoveField={(_, index) => setSelectedConfig((prev) => prev.toSpliced(index, 1))}
         />
 
         <Section id="mass-update-deploy-options" label="Advanced Options" initialExpanded={false}>
