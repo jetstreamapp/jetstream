@@ -10,8 +10,6 @@ export interface ComboboxWithDrillInItemsProps extends Pick<ComboboxWithItemsPro
   selectedItemId?: string | null;
   /** Used as the heading in the dropdown when no items are selected. Will be pre-pended to child item labels */
   rootHeadingLabel?: string;
-  /** Optional. If not provided, standard multi-word search will be used */
-  filterFn?: (filter: string) => (value: unknown, index: number, array: unknown[]) => boolean;
   onSelected: (item: Maybe<ListItem>) => void;
   /** Parent component is in charge of loading items and adding items as drillInItems to this item */
   onLoadItems?: (item: ListItem) => Promise<ListItem[]>;
@@ -41,7 +39,6 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
   items,
   selectedItemId,
   rootHeadingLabel,
-  filterFn,
   onSelected,
   onLoadItems,
   ...rest
@@ -149,7 +146,6 @@ export const ComboboxWithDrillInItems: FunctionComponent<ComboboxWithDrillInItem
       heading={heading}
       items={currentItems}
       selectedItemId={selectedItemId}
-      filterFn={filterFn}
       onSelected={handleSelection}
       onClose={handleClose}
       {...rest}

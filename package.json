@@ -269,6 +269,7 @@
     "form-data": "^4.0.0",
     "formulon": "^6.25.2",
     "fs-extra": "^9.0.1",
+    "fuse.js": "^7.0.0",
     "helmet": "^4.1.1",
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
