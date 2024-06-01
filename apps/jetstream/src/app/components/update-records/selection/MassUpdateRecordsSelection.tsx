@@ -34,20 +34,25 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
   const commonFields = useRecoilValue(fromMassUpdateState.commonFields);
 
   const {
-    reset,
     rows,
     allRowsValid,
+    reset,
+    clearResults,
     onFieldSelected,
     onLoadChildFields,
     applyCommonField,
     applyCommonOption,
     applyCommonCriteria,
     handleOptionChange,
+    handleAddField,
+    handleRemoveField,
     validateAllRowRecords,
     validateRowRecords,
   } = useMassUpdateFieldItems(selectedOrg, selectedSObjects);
 
   const [allRowsValidated, setAllRowsValidated] = useState(false);
+
+  useEffect(() => clearResults(), [clearResults]);
 
   useEffect(() => {
     if (allRowsValid) {
@@ -129,7 +134,6 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
           <div className="slds-p-horizontal_x-small">
             {selectedSObjects && (
               <MassUpdateRecordsObjects
-                selectedOrg={selectedOrg}
                 rows={rows}
                 commonFields={commonFields}
                 onFieldSelected={onFieldSelected}
@@ -138,6 +142,8 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
                 applyCommonOption={applyCommonOption}
                 applyCommonCriteria={applyCommonCriteria}
                 handleOptionChange={handleOptionChange}
+                handleAddField={handleAddField}
+                handleRemoveField={handleRemoveField}
                 validateRowRecords={validateRowRecords}
               />
             )}

@@ -25,23 +25,24 @@ test.describe('LOAD WITHOUT FILE', () => {
     await expect(page.getByRole('button', { name: 'Review Changes' })).toBeDisabled();
 
     await loadWithoutFilePage.configureStaticPicklistField('Installation Partner');
-    await page.getByTitle('"Type" will be set to "Installation Partner" on all records');
+    await page.getByTitle('"Type" will be set to "Installation Partner" on all records').waitFor();
     await expect(page.getByRole('button', { name: 'Validate Results' })).toBeEnabled();
 
     await loadWithoutFilePage.configureStaticPicklistField('Prospect');
-    await page.getByTitle('"Type" will be set to "Prospect" on all records');
+    await page.getByTitle('"Type" will be set to "Prospect" on all records').waitFor();
     await expect(page.getByRole('button', { name: 'Validate Results' })).toBeEnabled();
 
     await loadWithoutFilePage.configureCriteria('Only if blank');
-    await page.getByTitle(`"Type" will be set to "Prospect" on records where "Type" is blank`);
+    await page.getByTitle(`"Type" will be set to "Prospect" on records where "Type" is blank`).waitFor();
     await expect(page.getByRole('button', { name: 'Validate Results' })).toBeEnabled();
 
     await loadWithoutFilePage.configureCriteria('Only if not blank');
-    await page.getByTitle(`"Type" will be set to "Prospect" on records where "Type" is not blank`);
+    await page.getByTitle(`"Type" will be set to "Prospect" on records where "Type" is not blank`).waitFor();
     await expect(page.getByRole('button', { name: 'Validate Results' })).toBeEnabled();
 
     await loadWithoutFilePage.configureCriteria('Custom criteria', 'type = null');
-    await page.getByTitle(`"Type" will be set to "Prospect"on records that meet your custom criteria: "type = null"`);
+    await page.getByTitle(`"Type" will be set to "Prospect"`).waitFor();
+    await page.getByTitle(`type = null`).waitFor();
     await expect(page.getByRole('button', { name: 'Validate Results' })).toBeEnabled();
 
     await page.getByRole('button', { name: 'Validate Results' }).click();
@@ -71,8 +72,8 @@ test.describe('LOAD WITHOUT FILE', () => {
     await page.getByTestId('dropdown-Which records should be updated?').getByPlaceholder('Select an Option').click();
     await page.getByRole('option', { name: 'Only if not blank' }).click();
 
-    await page.getByRole('button', { name: 'Update Records' }).click();
-    await expect(page.getByRole('button', { name: 'Update Records' })).toBeDisabled();
+    await page.getByRole('button', { name: /Update [0-9]+ Records?/g }).click();
+    await expect(page.getByRole('button', { name: /Update [0-9]+ Records?/g })).toBeDisabled();
 
     await expect(page.getByText(/(In Progress)|(Finished)/)).toBeVisible();
   });

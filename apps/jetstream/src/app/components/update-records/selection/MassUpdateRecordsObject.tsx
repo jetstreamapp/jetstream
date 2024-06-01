@@ -1,27 +1,30 @@
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem } from '@jetstream/types';
 import { Grid, GridCol, Tooltip } from '@jetstream/ui';
-import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow, TransformationOptions } from '@jetstream/ui-core';
+import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback } from 'react';
+import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
 export interface MassUpdateRecordsObjectProps {
-  selectedOrg: SalesforceOrgUi;
   row: MetadataRow;
   commonFields: ListItem[];
-  onFieldSelected: (sobject: string, selectedField: string) => void;
+  onFieldSelected: ReturnType<typeof useMassUpdateFieldItems>['onFieldSelected'];
+  handleOptionChange: ReturnType<typeof useMassUpdateFieldItems>['handleOptionChange'];
   onLoadChildFields: (sobject: string, item: ListItem) => Promise<ListItem[]>;
-  handleOptionChange: (sobject: string, transformationOptions: TransformationOptions) => void;
   validateRowRecords: (sobject: string) => void;
+  handleAddField: (sobject: string) => void;
+  handleRemoveField: (sobject: string, configIndex: number) => void;
 }
 /**
  * Load listItem for single object and handle loading child fields
  */
 export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectProps> = ({
-  selectedOrg,
   row,
   onFieldSelected,
   onLoadChildFields,
   handleOptionChange,
   validateRowRecords,
+  handleAddField,
+  handleRemoveField,
 }) => {
   const handleLoadChildFields = useCallback(
     async (item: ListItem): Promise<ListItem[]> => {
@@ -37,13 +40,13 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
         loading={row.loading}
         fields={row.fields}
         valueFields={row.valueFields}
-        selectedField={row.selectedField}
-        selectedFieldMetadata={row.selectedFieldMetadata}
+        fieldConfigurations={row.configuration}
         validationResults={row.validationResults}
-        transformationOptions={row.transformationOptions}
-        onFieldChange={(selectedField) => onFieldSelected(row.sobject, selectedField)}
-        onOptionsChange={handleOptionChange}
+        onFieldChange={(index, selectedField) => onFieldSelected(index, row.sobject, selectedField)}
+        onOptionsChange={(index, sobject, options) => handleOptionChange(index, sobject, options)}
         onLoadChildFields={handleLoadChildFields}
+        onAddField={handleAddField}
+        onRemoveField={handleRemoveField}
       >
         <GridCol size={12}>
           <Grid align="spread" verticalAlign="center">

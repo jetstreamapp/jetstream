@@ -28,23 +28,20 @@ export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> 
   type: DownloadType;
 }
 
-export interface MassUpdateRecordsDeploymentRowProps
-  extends Pick<MetadataRow, 'sobject' | 'deployResults' | 'transformationOptions' | 'selectedField' | 'selectedFieldMetadata'> {
+export type MassUpdateRecordsDeploymentRowProps = {
   hasExternalWhereClause?: boolean;
   validationResults?: MetadataRow['validationResults'];
   selectedOrg: SalesforceOrgUi;
   batchSize: number;
   omitTransformationText?: boolean;
   onModalOpenChange?: (isOpen: boolean) => void;
-}
+} & Pick<MetadataRow, 'sobject' | 'deployResults' | 'configuration'>;
 
 export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecordsDeploymentRowProps> = ({
   selectedOrg,
   sobject,
   deployResults,
-  transformationOptions,
-  selectedField,
-  selectedFieldMetadata,
+  configuration,
   hasExternalWhereClause,
   validationResults,
   batchSize,
@@ -93,14 +90,14 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       });
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const header = ['_id', '_success', '_errors'].concat(['Id', selectedField!]);
+      const header = ['_id', '_success', '_errors'].concat(['Id', ...configuration.map(({ selectedField }) => selectedField!)]);
 
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
         trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, {
           type,
           numRows: data.length,
-          transformationOptions: transformationOptions.option,
+          transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
         });
       } else {
         setDownloadModalData({
@@ -113,17 +110,16 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
         trackEvent(ANALYTICS_KEYS.mass_update_ViewRecords, {
           type,
           numRows: data.length,
-          transformationOptions: transformationOptions.option,
+          transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
         });
       }
     } catch (ex) {
       logger.warn(ex);
-      // setDownloadError(ex.message);
     }
   }
 
   function handleDownloadProcessingErrors() {
-    const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery({ transformationOptions, selectedField }));
+    const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery(configuration));
     setDownloadModalData({
       ...downloadModalData,
       open: true,
@@ -139,7 +135,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
   }
 
   function handleDownloadRecordsFromModal(type: 'results' | 'failures', data: any[]) {
-    const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery({ transformationOptions, selectedField }));
+    const header = ['_id', '_success', '_errors'].concat(getFieldsToQuery(configuration));
     setResultsModalData({ ...resultsModalData, open: false });
     setDownloadModalData({
       open: true,
@@ -151,7 +147,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       type,
       numRows: data.length,
       location: 'fromViewModal',
-      transformationOptions: transformationOptions.option,
+      transformationOptions: configuration.map(({ transformationOptions }) => transformationOptions.option),
     });
   }
 
@@ -197,17 +193,17 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
           </Grid>
         }
         footer={
-          omitTransformationText ? (
-            // eslint-disable-next-line react/jsx-no-useless-fragment
-            <></>
-          ) : (
-            <MassUpdateRecordTransformationText
-              selectedField={selectedField}
-              selectedFieldMetadata={selectedFieldMetadata}
-              transformationOptions={transformationOptions}
-              hasExternalWhereClause={hasExternalWhereClause}
-            />
-          )
+          omitTransformationText
+            ? null
+            : configuration.map(({ transformationOptions, selectedField, selectedFieldMetadata }, i) => (
+                <MassUpdateRecordTransformationText
+                  key={`${sobject}_${i}`}
+                  selectedField={selectedField}
+                  selectedFieldMetadata={selectedFieldMetadata}
+                  transformationOptions={transformationOptions}
+                  hasExternalWhereClause={hasExternalWhereClause}
+                />
+              ))
         }
       >
         {!processingStartTime && validationResults && (

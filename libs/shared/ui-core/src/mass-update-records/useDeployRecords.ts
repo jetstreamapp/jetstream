@@ -1,17 +1,16 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob, queryAll } from '@jetstream/shared/data';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { BulkJobBatchInfo, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, SalesforceOrgUi } from '@jetstream/types';
 import { formatDate } from 'date-fns/format';
-import lodashGet from 'lodash/get';
 import { useCallback, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { useAmplitude } from '../analytics';
 import { applicationCookieState } from '../app-state/app-state';
-import { DeployResults, MetadataRow, TransformationOptions } from './mass-update-records.types';
-import { composeSoqlQuery, getFieldsToQuery } from './mass-update-records.utils';
+import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
+import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 
 export function useDeployRecords(
   org: SalesforceOrgUi,
@@ -30,37 +29,6 @@ export function useDeployRecords(
       isMounted.current = false;
     };
   }, []);
-
-  /**
-   * Update field on each record
-   */
-  const prepareRecords = useCallback(
-    (
-      records: any[],
-      {
-        selectedField,
-        selectedFieldMetadata,
-        transformationOptions,
-      }: { selectedField: Maybe<string>; selectedFieldMetadata: Maybe<Field>; transformationOptions: TransformationOptions }
-    ) => {
-      return records.map((record) => {
-        const newRecord = { ...record };
-        const isBoolean = selectedFieldMetadata?.type === 'boolean';
-        const emptyFieldValue = isBoolean ? false : SFDC_BULK_API_NULL_VALUE;
-        if (selectedField) {
-          if (transformationOptions.option === 'anotherField' && transformationOptions.alternateField) {
-            newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
-          } else if (transformationOptions.option === 'staticValue') {
-            newRecord[selectedField] = transformationOptions.staticValue;
-          } else {
-            newRecord[selectedField] = emptyFieldValue;
-          }
-        }
-        return newRecord;
-      });
-    },
-    []
-  );
 
   /**
    * Submit bulk update job
@@ -139,20 +107,17 @@ export function useDeployRecords(
         status: 'In Progress - Preparing',
       };
 
-      const fields = getFieldsToQuery(row);
+      const fields = getFieldsToQuery(
+        row.configuration.map(({ transformationOptions, selectedField }) => ({ transformationOptions, selectedField }))
+      );
 
       onDeployResults(row.sobject, { ...deployResults });
 
-      const { queryResults } = await queryAll(org, composeSoqlQuery(row, fields));
+      const records = await queryAndPrepareRecordsForUpdate(row, fields, org);
+
       if (!isMounted.current) {
         return;
       }
-
-      const records = prepareRecords(queryResults.records, {
-        selectedField: row.selectedField,
-        selectedFieldMetadata: row.selectedFieldMetadata,
-        transformationOptions: row.transformationOptions,
-      });
 
       // There are no records to update for this object
       if (records.length === 0) {
@@ -176,7 +141,7 @@ export function useDeployRecords(
         deployResults,
         sobject: row.sobject,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        fields: ['Id', row.selectedField!],
+        fields: ['Id', ...row.configuration.map(({ selectedField }) => selectedField!)],
         records,
         batchSize,
         serialMode,
@@ -186,7 +151,7 @@ export function useDeployRecords(
         return;
       }
     },
-    [org, performLoad, prepareRecords, onDeployResults]
+    [org, performLoad, onDeployResults]
   );
 
   /**
@@ -233,9 +198,7 @@ export function useDeployRecords(
       fields,
       batchSize,
       serialMode,
-      selectedField,
-      selectedFieldMetadata,
-      transformationOptions,
+      configuration,
     }: {
       records: any[];
       sobject: string;
@@ -243,9 +206,7 @@ export function useDeployRecords(
       fields: string[];
       batchSize: number;
       serialMode: boolean;
-      selectedField: Maybe<string>;
-      selectedFieldMetadata: Maybe<Field>;
-      transformationOptions: TransformationOptions;
+      configuration: MetadataRowConfiguration[];
     }) => {
       trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
         batchSize: batchSize,
@@ -279,7 +240,7 @@ export function useDeployRecords(
         }
 
         onDeployResults(sobject, { ...deployResults });
-        const records = prepareRecords(initialRecords, { selectedField, selectedFieldMetadata, transformationOptions });
+        const records = prepareRecords(initialRecords, configuration);
 
         deployResults.status = 'In Progress - Uploading';
         onDeployResults(sobject, { ...deployResults });

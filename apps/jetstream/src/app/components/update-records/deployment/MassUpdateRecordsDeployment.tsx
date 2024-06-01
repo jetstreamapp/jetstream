@@ -13,7 +13,7 @@ import {
 } from '@jetstream/ui';
 import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, selectedOrgState, useDeployRecords } from '@jetstream/ui-core';
 import isNumber from 'lodash/isNumber';
-import { ChangeEvent, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
 import * as fromMassUpdateState from '../mass-update-records.state';
@@ -39,10 +39,7 @@ const updateDeploymentResultsState =
     return rowsMap;
   };
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface MassUpdateRecordsDeploymentProps {}
-
-export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDeploymentProps> = () => {
+export const MassUpdateRecordsDeployment = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rows = useRecoilValue(fromMassUpdateState.rowsState);
   const [loading, setLoading] = useState(false);
@@ -157,8 +154,7 @@ export const MassUpdateRecordsDeployment: FunctionComponent<MassUpdateRecordsDep
             selectedOrg={selectedOrg}
             deployResults={row.deployResults}
             sobject={row.sobject}
-            transformationOptions={row.transformationOptions}
-            selectedField={row.selectedField}
+            configuration={row.configuration}
             validationResults={row.validationResults}
             batchSize={batchSize ?? 1000}
           />

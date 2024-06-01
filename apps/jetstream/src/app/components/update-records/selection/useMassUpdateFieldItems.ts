@@ -11,6 +11,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { DescribeSObjectResult, Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
+  DEFAULT_FIELD_CONFIGURATION,
   MetadataRow,
   TransformationCriteria,
   TransformationOption,
@@ -25,13 +26,19 @@ import * as fromMassUpdateState from '../mass-update-records.state';
 
 type Action =
   | { type: 'RESET' }
+  | { type: 'CLEAR_DEPLOYMENT_RESULTS' }
   | { type: 'OBJECTS_SELECTED'; payload: { sobjects: string[] } }
   | { type: 'OBJECTS_REMOVED'; payload: { sobjects: string[] } }
-  | { type: 'FIELD_SELECTION_CHANGED'; payload: { sobject: string; selectedField: string } }
-  | { type: 'COMMON_FIELD_SELECTED'; payload: { selectedField: string } }
-  | { type: 'COMMON_OPTION_SELECTED'; payload: { option: TransformationOption; staticValue?: string } }
-  | { type: 'COMMON_CRITERIA_SELECTED'; payload: { criteria: TransformationCriteria; whereClause?: string } }
-  | { type: 'TRANSFORMATION_OPTION_CHANGED'; payload: { sobject: string; transformationOptions: TransformationOptions } }
+  | { type: 'FIELD_SELECTION_CHANGED'; payload: { sobject: string; selectedField: string; configIndex: number } }
+  | { type: 'COMMON_FIELD_SELECTED'; payload: { selectedField: string; configIndex: number } }
+  | { type: 'COMMON_OPTION_SELECTED'; payload: { option: TransformationOption; staticValue?: string; configIndex: number } }
+  | { type: 'COMMON_CRITERIA_SELECTED'; payload: { criteria: TransformationCriteria; whereClause?: string; configIndex: number } }
+  | {
+      type: 'TRANSFORMATION_OPTION_CHANGED';
+      payload: { sobject: string; transformationOptions: TransformationOptions; configIndex: number };
+    }
+  | { type: 'ADD_FIELD'; payload: { sobject: string } }
+  | { type: 'REMOVE_FIELD'; payload: { sobject: string; configIndex: number } }
   | { type: 'METADATA_LOADED'; payload: { sobject: string; metadata: DescribeSObjectResult } }
   | { type: 'CHILD_FIELDS_LOADED'; payload: { sobject: string; parentId: string; childFields: ListItem[] } }
   | { type: 'METADATA_ERROR'; payload: { sobject: string; error: string } }
@@ -53,6 +60,22 @@ function reducer(state: State, action: Action): State {
         loading: false,
       };
     }
+    case 'CLEAR_DEPLOYMENT_RESULTS': {
+      const rowsMap = new Map(state.rowsMap);
+      rowsMap.forEach((row) => {
+        rowsMap.set(row.sobject, {
+          ...row,
+          deployResults: {
+            status: 'Not Started',
+            done: false,
+            processingErrors: [],
+            records: [],
+            batchIdToIndex: {},
+          },
+        });
+      });
+      return { ...state, rowsMap };
+    }
     case 'OBJECTS_SELECTED': {
       const { sobjects } = action.payload;
       const rowsMap = new Map(state.rowsMap);
@@ -70,13 +93,7 @@ function reducer(state: State, action: Action): State {
             records: [],
             batchIdToIndex: {},
           },
-          transformationOptions: {
-            option: 'staticValue',
-            staticValue: '',
-            criteria: 'all',
-            alternateField: null,
-            whereClause: '',
-          },
+          configuration: [{ ...DEFAULT_FIELD_CONFIGURATION }],
         });
       });
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
@@ -94,42 +111,64 @@ function reducer(state: State, action: Action): State {
       };
     }
     case 'FIELD_SELECTION_CHANGED': {
-      const { sobject, selectedField } = action.payload;
+      const { sobject, selectedField, configIndex } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      const row = { ...state.rowsMap.get(sobject), selectedField } as MetadataRow;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const prevRow = state.rowsMap.get(sobject)!;
+      const row: MetadataRow = { ...prevRow, configuration: [...prevRow.configuration] };
+      row.configuration[configIndex] = {
+        ...row.configuration[configIndex],
+        selectedField,
+        transformationOptions: { ...row.configuration[configIndex].transformationOptions, staticValue: '' },
+      };
       row.isValid = isValidRow(row);
-      row.transformationOptions = { ...row.transformationOptions, staticValue: '' };
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
     case 'COMMON_FIELD_SELECTED': {
-      const { selectedField } = action.payload;
+      const { selectedField, configIndex } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      rowsMap.forEach((_row, key) => {
-        const row = { ..._row, selectedField, validationResults: null };
+      rowsMap.forEach((prevRow, key) => {
+        const row: MetadataRow = { ...prevRow, configuration: [...prevRow.configuration] };
+        row.configuration[configIndex] = { ...row.configuration[configIndex], selectedField };
         row.isValid = isValidRow(row);
         rowsMap.set(key, row);
       });
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
     case 'COMMON_OPTION_SELECTED': {
-      const { option, staticValue } = action.payload;
+      const { option, staticValue, configIndex } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      rowsMap.forEach((_row, key) => {
-        const _staticValue = option === 'staticValue' && staticValue ? staticValue : _row.transformationOptions.staticValue;
-        const row = { ..._row, transformationOptions: { ..._row.transformationOptions, option, staticValue: _staticValue } };
+      rowsMap.forEach((prevRow, key) => {
+        const row: MetadataRow = { ...prevRow, configuration: [...prevRow.configuration] };
+        row.configuration[configIndex] = {
+          ...row.configuration[configIndex],
+          transformationOptions: {
+            ...row.configuration[configIndex].transformationOptions,
+            option,
+            staticValue:
+              option === 'staticValue' && staticValue ? staticValue : prevRow.configuration[configIndex].transformationOptions.staticValue,
+          },
+        };
         row.isValid = isValidRow(row);
         rowsMap.set(key, row);
       });
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
     case 'COMMON_CRITERIA_SELECTED': {
-      const { criteria, whereClause } = action.payload;
+      const { criteria, whereClause, configIndex } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      rowsMap.forEach((_row, key) => {
-        const row = { ..._row, transformationOptions: { ..._row.transformationOptions, criteria }, validationResults: null };
+      rowsMap.forEach((prevRow, key) => {
+        const row: MetadataRow = { ...prevRow, configuration: [...prevRow.configuration], validationResults: null };
+        row.configuration[configIndex] = {
+          ...row.configuration[configIndex],
+          transformationOptions: {
+            ...row.configuration[configIndex].transformationOptions,
+            criteria,
+          },
+        };
         if (criteria === 'custom' && whereClause) {
-          row.transformationOptions.whereClause = whereClause;
+          row.configuration[configIndex].transformationOptions.whereClause = whereClause;
         }
         row.isValid = isValidRow(row);
         rowsMap.set(key, row);
@@ -137,9 +176,34 @@ function reducer(state: State, action: Action): State {
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
     }
     case 'TRANSFORMATION_OPTION_CHANGED': {
-      const { sobject, transformationOptions } = action.payload;
+      const { sobject, transformationOptions, configIndex } = action.payload;
       const rowsMap = new Map(state.rowsMap);
-      const row = { ...state.rowsMap.get(sobject), transformationOptions, validationResults: null } as MetadataRow;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const prevRow = state.rowsMap.get(sobject)!;
+      const row: MetadataRow = { ...prevRow, validationResults: null, configuration: [...prevRow.configuration] };
+      row.configuration[configIndex] = { ...row.configuration[configIndex], transformationOptions };
+      row.isValid = isValidRow(row);
+      rowsMap.set(sobject, row);
+      return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
+    }
+    case 'ADD_FIELD': {
+      const { sobject } = action.payload;
+      const rowsMap = new Map(state.rowsMap);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const prevRow = state.rowsMap.get(sobject)!;
+      const row: MetadataRow = { ...prevRow, configuration: [...prevRow.configuration] };
+      row.configuration.push({ ...DEFAULT_FIELD_CONFIGURATION });
+      row.isValid = false;
+      rowsMap.set(sobject, row);
+      return { ...state, rowsMap, allRowsValid: false };
+    }
+    case 'REMOVE_FIELD': {
+      const { sobject, configIndex } = action.payload;
+      const rowsMap = new Map(state.rowsMap);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const prevRow = state.rowsMap.get(sobject)!;
+      const row: MetadataRow = { ...prevRow, configuration: [...prevRow.configuration] };
+      row.configuration.splice(configIndex, 1);
       row.isValid = isValidRow(row);
       rowsMap.set(sobject, row);
       return { ...state, rowsMap, allRowsValid: Array.from(rowsMap.values()).every((row) => row.isValid) };
@@ -261,6 +325,10 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     dispatch({ type: 'RESET' });
   }, []);
 
+  const clearResults = useCallback(() => {
+    dispatch({ type: 'CLEAR_DEPLOYMENT_RESULTS' });
+  }, []);
+
   /**
    * Fetch metadata for all selected objects
    * If the user changes selection while this is running, then the results will be ignored
@@ -303,6 +371,9 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
         }
         dispatch({ type: 'START_VALIDATION', payload: { sobject } });
         const soql = getValidationSoqlQuery(row);
+        if (!soql) {
+          return;
+        }
         const results = await query(org, soql);
         if (isMounted.current) {
           dispatch({ type: 'FINISH_VALIDATION', payload: { sobject, impactedRecords: results.queryResults.totalSize, error: null } });
@@ -326,6 +397,9 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
       const { sobject } = row;
       try {
         const soql = getValidationSoqlQuery(row);
+        if (!soql) {
+          return;
+        }
         const results = await query(org, soql);
         if (isMounted.current) {
           dispatch({ type: 'FINISH_VALIDATION', payload: { sobject, impactedRecords: results.queryResults.totalSize, error: null } });
@@ -340,8 +414,8 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'VALIDATION' });
   }, [org, rows, trackEvent]);
 
-  const onFieldSelected = useCallback((sobject: string, selectedField: string) => {
-    dispatch({ type: 'FIELD_SELECTION_CHANGED', payload: { sobject, selectedField } });
+  const onFieldSelected = useCallback((configIndex: number, sobject: string, selectedField: string) => {
+    dispatch({ type: 'FIELD_SELECTION_CHANGED', payload: { sobject, selectedField, configIndex } });
   }, []);
 
   const onLoadChildFields = useCallback(
@@ -389,27 +463,36 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     }
   }, [getObjectsMetadata, rows, selectedSObjects]);
 
-  function applyCommonField(selectedField: string) {
-    dispatch({ type: 'COMMON_FIELD_SELECTED', payload: { selectedField } });
+  function applyCommonField(configIndex: number, selectedField: string) {
+    dispatch({ type: 'COMMON_FIELD_SELECTED', payload: { selectedField, configIndex } });
     trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'COMMON_FIELD_SELECTED' });
   }
 
-  function applyCommonOption(option: TransformationOption, staticValue?: string) {
-    dispatch({ type: 'COMMON_OPTION_SELECTED', payload: { option, staticValue } });
+  function applyCommonOption(configIndex: number, option: TransformationOption, staticValue?: string) {
+    dispatch({ type: 'COMMON_OPTION_SELECTED', payload: { option, staticValue, configIndex } });
     trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'COMMON_OPTION_SELECTED', option });
   }
 
-  function applyCommonCriteria(criteria: TransformationCriteria, whereClause?: string) {
-    dispatch({ type: 'COMMON_CRITERIA_SELECTED', payload: { criteria, whereClause } });
+  function applyCommonCriteria(configIndex: number, criteria: TransformationCriteria, whereClause?: string) {
+    dispatch({ type: 'COMMON_CRITERIA_SELECTED', payload: { criteria, whereClause, configIndex } });
     trackEvent(ANALYTICS_KEYS.mass_update_ApplyAll, { numObjects: rows.length, type: 'COMMON_CRITERIA_SELECTED', criteria });
   }
 
-  function handleOptionChange(sobject: string, transformationOptions: TransformationOptions) {
-    dispatch({ type: 'TRANSFORMATION_OPTION_CHANGED', payload: { sobject, transformationOptions } });
+  function handleOptionChange(configIndex: number, sobject: string, transformationOptions: TransformationOptions) {
+    dispatch({ type: 'TRANSFORMATION_OPTION_CHANGED', payload: { sobject, transformationOptions, configIndex } });
+  }
+
+  function handleAddField(sobject: string) {
+    dispatch({ type: 'ADD_FIELD', payload: { sobject } });
+  }
+
+  function handleRemoveField(sobject: string, configIndex: number) {
+    dispatch({ type: 'REMOVE_FIELD', payload: { sobject, configIndex } });
   }
 
   return {
     reset,
+    clearResults,
     rows,
     allRowsValid,
     onFieldSelected,
@@ -418,6 +501,8 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
     applyCommonOption,
     applyCommonCriteria,
     handleOptionChange,
+    handleAddField,
+    handleRemoveField,
     validateAllRowRecords,
     validateRowRecords,
   };

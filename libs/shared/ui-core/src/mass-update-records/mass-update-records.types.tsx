@@ -10,11 +10,15 @@ export interface MetadataRow {
   metadata?: DescribeSObjectResult;
   fields: ListItem[];
   valueFields: ListItem[];
+  configuration: MetadataRowConfiguration[];
+  validationResults?: Maybe<ValidationResults>;
+  deployResults: DeployResults;
+}
+
+export interface MetadataRowConfiguration {
   selectedField?: Maybe<string>;
   selectedFieldMetadata?: Maybe<Field>;
   transformationOptions: TransformationOptions;
-  validationResults?: Maybe<ValidationResults>;
-  deployResults: DeployResults;
 }
 
 export interface DeployResults {
