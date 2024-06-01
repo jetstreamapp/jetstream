@@ -32,7 +32,7 @@ export class LoadWithoutFilePage {
 
   async validateAndReviewAndSubmit(batchSize?: string) {
     await this.page.getByRole('button', { name: 'Validate Results' }).click();
-    await this.page.getByText(/[0-9]+ records will be updated/);
+    await this.page.getByText(/[0-9]+ records will be updated/).waitFor();
 
     await this.page.getByRole('link', { name: 'Review Changes' }).click();
 
@@ -41,7 +41,7 @@ export class LoadWithoutFilePage {
       await this.page.getByPlaceholder('Set batch size').fill('1');
     }
 
-    await this.page.getByRole('button', { name: 'Update Records' }).click();
+    await this.page.getByRole('button', { name: /(Update [0-9]+ Records?)|(Update Records)/g }).click();
   }
 
   async configureStaticField(value: string) {
