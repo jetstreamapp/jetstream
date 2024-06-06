@@ -36,11 +36,12 @@ const MAX_OBJ_IN_QUERY = 100;
 
 export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult) {
   return (
-    sobject.createable &&
-    sobject.updateable &&
-    !sobject.name.endsWith('__History') &&
-    !sobject.name.endsWith('__Tag') &&
-    !sobject.name.endsWith('__Share')
+    sobject.name.endsWith('__e') ||
+    (sobject.createable &&
+      sobject.updateable &&
+      !sobject.name.endsWith('__History') &&
+      !sobject.name.endsWith('__Tag') &&
+      !sobject.name.endsWith('__Share'))
   );
 }
 
