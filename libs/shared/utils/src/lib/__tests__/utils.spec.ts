@@ -13,6 +13,7 @@ import {
   getMapFromObj,
   getRecordIdFromAttributes,
   getSObjectFromRecordUrl,
+  getSObjectNameFromAttributes,
   groupByFlat,
   multiWordObjectFilter,
   multiWordStringFilter,
@@ -1123,5 +1124,43 @@ describe('utils.getRecordIdFromAttributes', () => {
     const recordId = getRecordIdFromAttributes(record);
 
     expect(recordId).toEqual('');
+  });
+});
+
+describe('utils.getRecordIdFromAttributes', () => {
+  it('gets record id from attributes', () => {
+    expect(
+      getRecordIdFromAttributes({
+        attributes: { type: 'Opportunity', url: '/services/data/v60.0/sobjects/Opportunity/0068c00000lbXugAAE' },
+      })
+    ).toBe('0068c00000lbXugAAE');
+  });
+
+  it('returns empty string if no url', () => {
+    expect(
+      getRecordIdFromAttributes({
+        attributes: { type: 'Opportunity', url: null },
+      })
+    ).toBe('');
+  });
+});
+
+describe('utils.getSObjectNameFromAttributes', () => {
+  it('gets sobject name from type if available', () => {
+    expect(
+      getSObjectNameFromAttributes({
+        attributes: { type: 'Opportunity', url: null },
+      })
+    ).toBe('Opportunity');
+  });
+  it('gets sobject name from attribute url', () => {
+    expect(
+      getSObjectNameFromAttributes({
+        attributes: { url: '/services/data/v60.0/sobjects/Opportunity/0068c00000lbXugAAE' },
+      })
+    ).toBe('Opportunity');
+  });
+  it('returns empty string if no match', () => {
+    expect(getSObjectNameFromAttributes({})).toBe('');
   });
 });

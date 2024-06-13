@@ -365,7 +365,7 @@ export function getRecordIdFromAttributes(record: any) {
 }
 
 export function getSObjectNameFromAttributes(record: any) {
-  if (!record?.attributes?.url) {
+  if (!record?.attributes?.type && !record?.attributes?.url) {
     return '';
   }
   const urlWithoutId = record.attributes.type || record.attributes.url.substring(0, record.attributes.url.lastIndexOf('/'));
