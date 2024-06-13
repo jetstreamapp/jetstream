@@ -4,7 +4,7 @@ import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
-import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
   BulkDownloadJob,
@@ -138,6 +138,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const isMounted = useRef(true);
   const modalRef = useRef(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
+  const rollbar = useRollbar();
   // If user was ever in view mode, clicking cancel will take back to view instead of close
   const hasEverBeenInViewMode = useRef(false);
   hasEverBeenInViewMode.current = action === 'view' || hasEverBeenInViewMode.current;
@@ -288,6 +289,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       }
     } catch (ex) {
       if (isMounted.current) {
+        logger.error('Error fetching metadata', ex);
+        rollbar.error('Error fetching record metadata', { message: ex.message, stack: ex.stack });
         setFormErrors({
           hasErrors: true,
           fieldErrors: {},
