@@ -866,11 +866,12 @@ function prepareFieldPayload(sobject: string, fieldValues: FieldValues, orgNames
         valueSetDefinition: {
           sorted: false,
           // sorted: fieldValues.sorted.value,
-          value: (fieldValues.valueSet.value as string).split('\n').map((value, i) => ({
-            fullName: value,
-            label: value,
-            default: fieldValues.firstAsDefault.value && i === 0,
-          })),
+          value:
+            (fieldValues.valueSet.value as string)?.split('\n').map((value, i) => ({
+              fullName: value,
+              label: value,
+              default: fieldValues.firstAsDefault.value && i === 0,
+            })) || [],
         },
       };
     }
