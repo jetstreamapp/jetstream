@@ -16,8 +16,8 @@ loader
   .catch((ex) => {
     logger.error('[ERROR] Failed to load monaco editor', ex);
     logErrorToRollbar('Failed to load monaco editor', {
-      message: ex.message,
-      stack: ex.stack,
+      message: ex?.message,
+      stack: ex?.stack,
       exception: ex,
     });
   });
