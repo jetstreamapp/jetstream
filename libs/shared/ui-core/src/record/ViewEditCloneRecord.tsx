@@ -48,8 +48,8 @@ import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState }
 import { useRecoilState } from 'recoil';
 import { composeQuery, getField } from 'soql-parser-js';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState } from '../app-state/app-state';
 import { fromJetstreamEvents } from '../jetstream-events';
+import { applicationCookieState } from '../state-management/app-state';
 import { ViewChildRecords } from './ViewChildRecords';
 
 const CHILD_RELATIONSHIP_BLOCK_LIST = new Set<string>([

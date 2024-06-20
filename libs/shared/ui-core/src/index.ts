@@ -1,7 +1,5 @@
 export { StateDebugObserver } from './StateDebugObserver';
 export * from './analytics';
-export * from './app-state/app-state';
-export * as fromAppState from './app-state/app-state';
 export * from './app/ConfirmPageChange';
 export * from './app/DownloadFileStream';
 export * from './app/EmailSupport';
@@ -41,3 +39,7 @@ export * from './orgs/useOrgPermissions';
 export * from './record/RecordSearchPopover';
 export * from './record/ViewChildRecords';
 export * from './record/ViewEditCloneRecord';
+export * from './state-management/app-state';
+export * as fromAppState from './state-management/app-state';
+export * as fromQueryHistoryState from './state-management/query-history.state';
+export * as fromQueryState from './state-management/query.state';

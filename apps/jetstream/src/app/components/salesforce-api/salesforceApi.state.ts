@@ -2,14 +2,13 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { groupByFlat, truncate } from '@jetstream/shared/utils';
 import { SalesforceApiHistoryItem, SalesforceApiHistoryRequest, SalesforceApiHistoryResponse, SalesforceOrgUi } from '@jetstream/types';
-import * as fromAppState from '@jetstream/ui-core';
+import { fromAppState, fromQueryHistoryState } from '@jetstream/ui-core';
 import { addDays } from 'date-fns/addDays';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
 import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
 import { atom, selector } from 'recoil';
-import { WhichOrgType } from '../query/QueryHistory/query-history.state';
 
 let didRunCleanup = false;
 
@@ -101,7 +100,7 @@ export const salesforceApiHistoryState = atom<Record<string, SalesforceApiHistor
   default: initSalesforceApiHistory(),
 });
 
-export const salesforceApiHistoryWhichOrg = atom<WhichOrgType>({
+export const salesforceApiHistoryWhichOrg = atom<fromQueryHistoryState.WhichOrgType>({
   key: 'salesforceApiHistory.salesforceApiHistoryWhichOrg',
   default: 'SELECTED',
 });

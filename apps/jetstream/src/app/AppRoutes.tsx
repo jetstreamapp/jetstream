@@ -9,9 +9,9 @@ import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
 const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
 
-const Query = lazy(() => import('./components/query/Query'));
-const QueryBuilder = lazy(() => import('./components/query/QueryBuilder/QueryBuilder'));
-const QueryResults = lazy(() => import('./components/query/QueryResults/QueryResults'));
+const Query = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.Query })));
+const QueryBuilder = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryBuilder })));
+const QueryResults = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryResults })));
 
 const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
 const AutomationControlSelection = lazy(() => import('./components/automation-control/AutomationControlSelection'));
