@@ -27,9 +27,13 @@ const ManagePermissions = lazy(() => import('./components/manage-permissions/Man
 const ManagePermissionsSelection = lazy(() => import('./components/manage-permissions/ManagePermissionsSelection'));
 const ManagePermissionsEditor = lazy(() => import('./components/manage-permissions/ManagePermissionsEditor'));
 
-const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
-const DeployMetadataSelection = lazy(() => import('./components/deploy/DeployMetadataSelection'));
-const DeployMetadataDeployment = lazy(() => import('./components/deploy/DeployMetadataDeployment'));
+const DeployMetadata = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadata })));
+const DeployMetadataSelection = lazy(() =>
+  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataSelection }))
+);
+const DeployMetadataDeployment = lazy(() =>
+  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataDeployment }))
+);
 
 const CreateObjectAndFields = lazy(() =>
   import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateObjectAndFields }))

@@ -23,6 +23,7 @@
       "@jetstream/feature/automation-control": ["libs/features/automation-control/src/index.ts"],
       "@jetstream/feature/create-object-and-fields": ["libs/features/create-object-and-fields/src/index.ts"],
       "@jetstream/feature/debug-log-viewer": ["libs/features/debug-log-viewer/src/index.ts"],
+      "@jetstream/feature/deploy": ["libs/features/deploy/src/index.ts"],
       "@jetstream/feature/platform-event-monitor": ["libs/features/platform-event-monitor/src/index.ts"],
       "@jetstream/feature/query": ["libs/features/query/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
