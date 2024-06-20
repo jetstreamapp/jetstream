@@ -226,8 +226,8 @@ export const FormulaEvaluatorDeployModal = ({
             <Tabs
               initialActiveId={activeTab}
               contentClassname="slds-p-bottom_none"
-              onChange={(value: Tab) => {
-                setActiveTab(value);
+              onChange={(value) => {
+                setActiveTab(value as Tab);
               }}
               tabs={[
                 {

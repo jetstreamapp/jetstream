@@ -43,7 +43,9 @@ const CreateFieldsSelection = lazy(() =>
 );
 const CreateFields = lazy(() => import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFields })));
 
-const FormulaEvaluator = lazy(() => import('./components/formula-evaluator/FormulaEvaluator'));
+const FormulaEvaluator = lazy(() =>
+  import('@jetstream/feature/formula-evaluator').then((module) => ({ default: module.FormulaEvaluator }))
+);
 
 const MassUpdateRecords = lazy(() => import('./components/update-records/MassUpdateRecords'));
 const MassUpdateRecordsSelection = lazy(() => import('./components/update-records/selection/MassUpdateRecordsSelection'));

@@ -1,8 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { fromAppState, fromAutomationControlState, fromDeployMetadataState, fromQueryState } from '@jetstream/ui-core';
+import { fromAppState, fromAutomationControlState, fromDeployMetadataState, fromFormulaState, fromQueryState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromFormulaState from '../formula-evaluator/formula-evaluator.state';
 import * as fromLoadState from '../load-records/load-records.state';
 import * as fromPermissionsState from '../manage-permissions/manage-permissions.state';
 

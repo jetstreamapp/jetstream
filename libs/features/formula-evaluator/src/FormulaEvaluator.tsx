@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -29,6 +30,7 @@ import {
   FormulaEvaluatorResults,
   FormulaEvaluatorUserSearch,
   applicationCookieState,
+  fromFormulaState,
   getFormulaData,
   registerCompletions,
   selectedOrgState,
@@ -40,7 +42,6 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
-import * as fromFormulaState from './formula-evaluator.state';
 
 // Lazy import
 const prettier = import('prettier/standalone');
@@ -156,9 +157,9 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         });
         trackEvent(ANALYTICS_KEYS.formula_execute, { success: true, fieldCount: fields.length, objectPrefix: recordId.substring(0, 3) });
       } catch (ex) {
-        logger.warn(ex);
-        setErrorMessage(ex.message);
-        trackEvent(ANALYTICS_KEYS.formula_execute, { success: false, message: ex.message, stack: ex.stack });
+        logger.error(ex);
+        setErrorMessage(getErrorMessage(ex));
+        trackEvent(ANALYTICS_KEYS.formula_execute, { success: false, ...getErrorMessageAndStackObj(ex) });
       } finally {
         setLoading(false);
       }
@@ -194,8 +195,8 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
     }
   }, [handleTestFormula, monaco, selectedOrg]);
 
-  function handleEditorChange(value, event) {
-    setFormulaValue(value);
+  function handleEditorChange(value?: string, event?: unknown) {
+    setFormulaValue(value || '');
   }
 
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {
