@@ -4,6 +4,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
 import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexHistoryItem, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -21,8 +22,7 @@ import {
   ViewDocsLink,
   getModifierKey,
 } from '@jetstream/ui';
-import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui-core';
-import { useAmplitude } from '@jetstream/ui-core';
+import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
@@ -174,12 +174,12 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             })
             .catch((ex) => {
               logger.warn('[ERROR] Could not save history', ex);
-              rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
+              rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
             });
         }
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });
       } catch (ex) {
-        setResults(`There was a problem submitting the request\n${ex.message}`);
+        setResults(`There was a problem submitting the request\n${getErrorMessage(ex)}`);
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: false });
       } finally {
         setLoading(false);
@@ -188,8 +188,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     [historyItems, selectedOrg, logLevel, setHistoryItems, trackEvent]
   );
 
-  function handleEditorChange(value, event) {
-    setApex(value);
+  function handleEditorChange(value?: string, event?: unknown) {
+    setApex(value || '');
   }
 
   const handleApexEditorMount: OnMount = (currEditor, monaco) => {

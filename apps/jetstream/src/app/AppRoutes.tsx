@@ -35,7 +35,7 @@ const MassUpdateRecords = lazy(() => import('./components/update-records/MassUpd
 const MassUpdateRecordsSelection = lazy(() => import('./components/update-records/selection/MassUpdateRecordsSelection'));
 const MassUpdateRecordsDeployment = lazy(() => import('./components/update-records/deployment/MassUpdateRecordsDeployment'));
 
-const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
+const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
 
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 
