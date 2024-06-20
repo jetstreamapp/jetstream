@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { Field, ListItem, Maybe, PicklistFieldValueItem, RecordAttributes } from '@jetstream/types';
 import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea, TimePicker } from '@jetstream/ui';
@@ -18,9 +19,17 @@ function getInitialValue(initialValue: string | boolean | null, field: EditableF
   if (initialValue) {
     const { metadata } = field;
     if (metadata.type === 'date') {
-      return formatISO(startOfDay(parseISO(initialValue as string)));
+      try {
+        return formatISO(startOfDay(parseISO(initialValue as string)));
+      } catch (ex) {
+        logger.warn('Error parsing date value', ex);
+      }
     } else if (metadata.type === 'datetime') {
-      return formatISO(roundToNearestMinutes(parseISO(initialValue as string)));
+      try {
+        return formatISO(roundToNearestMinutes(parseISO(initialValue as string)));
+      } catch (ex) {
+        logger.warn('Error parsing datetime value', ex);
+      }
     } else if (metadata.type === 'picklist') {
       return [initialValue as string];
     } else if (metadata.type === 'multipicklist') {
