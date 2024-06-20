@@ -49,7 +49,7 @@ const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((mo
 
 const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
 
-const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
+const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').then((module) => ({ default: module.DebugLogViewer })));
 
 const SObjectExport = lazy(() => import('./components/sobject-export/SObjectExport'));
 

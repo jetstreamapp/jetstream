@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ApexLogWithViewed, AsyncJob, SalesforceOrgUi } from '@jetstream/types';
+import { ApexLogWithViewed, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Card,
@@ -20,6 +20,7 @@ import {
   RequireMetadataApiBanner,
   applicationCookieState,
   fromJetstreamEvents,
+  isAsyncJob,
   selectSkipFrontdoorAuth,
   selectedOrgState,
 } from '@jetstream/ui-core';
@@ -60,7 +61,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const activeOrgId = useRef(selectedOrg.uniqueId);
   const [purgeModalOpen, setPurgeModalOpen] = useState(false);
   const bulkDeleteJob = useObservable(
-    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev: AsyncJob) => ev.type === 'BulkDelete'))
+    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev) => isAsyncJob(ev) && ev.type === 'BulkDelete'))
   );
 
   const { togglePause, fetchLogs, isPaused, loading, lastChecked, logs, pollInterval } = useDebugLogs(selectedOrg, {

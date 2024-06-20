@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
 import { getApexLogsQuery, useInterval, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { groupByFlat } from '@jetstream/shared/utils';
+import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import { ApexLog, SalesforceOrgUi, UseDebugLogsOptions } from '@jetstream/types';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -71,7 +71,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
           numPollErrors.current++;
           if (fetchToken === currentFetchToken.current) {
             // TODO: what should we do if we cannot fetch logs?
-            setErrorMessage(ex.message);
+            setErrorMessage(getErrorMessage(ex));
             setLoading(false);
           }
         }
