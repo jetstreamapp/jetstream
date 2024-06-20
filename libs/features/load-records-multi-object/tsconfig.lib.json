@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../../dist/out-tsc",
-    "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive", "vite/client"]
+    "types": ["node"]
   },
   "exclude": [
     "jest.config.ts",
@@ -15,5 +15,10 @@
     "src/**/*.spec.jsx",
     "src/**/*.test.jsx"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "../../types/src/lib/ui/load-records-results-types.ts"]
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "files": [
+    "../../../node_modules/@nx/react/typings/cssmodule.d.ts",
+    "../../../node_modules/@nx/react/typings/image.d.ts",
+    "../../../custom-typings/index.d.ts"
+  ]
 }

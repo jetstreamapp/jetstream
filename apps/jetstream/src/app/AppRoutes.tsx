@@ -6,8 +6,10 @@ import { APP_ROUTES } from './components/core/app-routes';
 import { AppHome } from './components/home/AppHome';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
-const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
-const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
+const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
+const LoadRecordsMultiObject = lazy(() =>
+  import('@jetstream/feature/load-records-multi-object').then((module) => ({ default: module.LoadRecordsMultiObject }))
+);
 
 const Query = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.Query })));
 const QueryBuilder = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryBuilder })));
