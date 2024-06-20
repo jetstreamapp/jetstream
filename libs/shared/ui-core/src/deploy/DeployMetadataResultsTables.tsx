@@ -1,13 +1,11 @@
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DeployResult, UiTabSection } from '@jetstream/types';
 import { CampingRainIllustration, EmptyState, Icon, OpenRoadIllustration, ResearchIllustration, Tabs, TabsRef } from '@jetstream/ui';
-import {
-  DeployMetadataResultsFailureTable,
-  DeployMetadataResultsSuccessTable,
-  DeployMetadataUnitTestCodeCoverageResultsTable,
-  DeployMetadataUnitTestFailuresTable,
-} from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import DeployMetadataResultsFailureTable from './DeployMetadataResultsFailureTable';
+import DeployMetadataResultsSuccessTable from './DeployMetadataResultsSuccessTable';
+import DeployMetadataUnitTestCodeCoverageResultsTable from './DeployMetadataUnitTestCodeCoverageResultsTable';
+import DeployMetadataUnitTestFailuresTable from './DeployMetadataUnitTestFailuresTable';
 
 const SuccessIcon = (
   <Icon

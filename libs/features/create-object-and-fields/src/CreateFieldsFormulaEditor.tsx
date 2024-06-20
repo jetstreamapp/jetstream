@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { Field, FieldType, Maybe, NullNumberBehavior, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, KeyboardShortcut, Modal, Spinner, Tabs, Textarea } from '@jetstream/ui';
@@ -16,13 +17,13 @@ import {
   ManualFormulaRecord,
   SalesforceFieldType,
   getFormulaData,
+  registerCompletions,
   useAmplitude,
 } from '@jetstream/ui-core';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
 import type { editor } from 'monaco-editor';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
-import { registerCompletions } from '../formula-evaluator/formula-evaluator.editor-utils';
 import CreateFieldsFormulaEditorManualField from './CreateFieldsFormulaEditorManualField';
 
 export interface CreateFieldsFormulaEditorProps {
@@ -173,8 +174,8 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
           trackEvent(ANALYTICS_KEYS.sobj_create_field_formula_execute, { success: true, fieldCount: formulaFields.length, testMethod });
         } catch (ex) {
           logger.warn(ex);
-          setFormulaErrorMessage(ex.message);
-          trackEvent(ANALYTICS_KEYS.sobj_create_field_formula_execute, { success: false, message: ex.message, stack: ex.stack });
+          setFormulaErrorMessage(getErrorMessage(ex));
+          trackEvent(ANALYTICS_KEYS.sobj_create_field_formula_execute, { success: false, ...getErrorMessageAndStackObj(ex) });
         } finally {
           setLoading(false);
         }
@@ -205,8 +206,8 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
       }
     }, [handleTestFormula, monaco, selectedOrg]);
 
-    function handleEditorChange(value, event) {
-      setFormulaValue(value);
+    function handleEditorChange(value?: string, event?: unknown) {
+      setFormulaValue(value || '');
     }
 
     const handleApexEditorMount: OnMount = (currEditor, monaco) => {
@@ -319,7 +320,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
                     Test Formula
                   </h3>
                   <Tabs
-                    onChange={(value: 'RECORD' | 'MANUAL') => setTestMethod(value)}
+                    onChange={(value) => setTestMethod(value as 'RECORD' | 'MANUAL')}
                     initialActiveId={testMethod}
                     tabs={[
                       {

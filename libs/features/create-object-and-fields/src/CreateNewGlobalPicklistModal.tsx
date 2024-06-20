@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
+import { REGEX, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { GlobalValueSetRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
 import { applicationCookieState, createGlobalPicklist, generateApiNameFromLabel, useAmplitude } from '@jetstream/ui-core';
@@ -83,10 +83,9 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
       trackEvent(ANALYTICS_KEYS.sobj_create_field_global_picklist);
       handleCloseModal();
     } catch (ex) {
-      setErrorMessage(`There was a problem creating the picklist. ${ex.message}`);
+      setErrorMessage(`There was a problem creating the picklist. ${getErrorMessage(ex)}`);
       rollbar.error('Create Fields: Global Picklist creation failed', {
-        message: ex.message,
-        stack: ex.stack,
+        ...getErrorMessageAndStackObj(ex),
         picklistData,
         payload: getPayload(picklistData),
       });

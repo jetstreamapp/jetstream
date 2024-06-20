@@ -67,7 +67,7 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
     }
     // ensure all keys are lowercase to match up with expected field names
     data = data.map((row) => {
-      return Object.keys(row).reduce((normalizedRow, key) => {
+      return Object.keys(row).reduce((normalizedRow: Record<string, unknown>, key) => {
         normalizedRow[key.toLowerCase().replace(REGEX.NOT_ALPHA, '')] = row[key];
         return normalizedRow;
       }, {});

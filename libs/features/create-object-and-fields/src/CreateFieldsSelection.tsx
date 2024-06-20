@@ -14,11 +14,10 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { filterCreateFieldsSobjects, selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, filterCreateFieldsSobjects, selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateNewObject from './create-new-object/CreateNewObject';
 
@@ -58,7 +57,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
 
-  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
+  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
   }
 

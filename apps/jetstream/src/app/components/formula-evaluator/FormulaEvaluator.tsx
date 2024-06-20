@@ -30,6 +30,7 @@ import {
   FormulaEvaluatorUserSearch,
   applicationCookieState,
   getFormulaData,
+  registerCompletions,
   selectedOrgState,
   useAmplitude,
 } from '@jetstream/ui-core';
@@ -39,7 +40,6 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
-import { registerCompletions } from './formula-evaluator.editor-utils';
 import * as fromFormulaState from './formula-evaluator.state';
 
 // Lazy import

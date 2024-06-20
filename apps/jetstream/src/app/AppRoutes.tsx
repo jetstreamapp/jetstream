@@ -31,9 +31,13 @@ const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
 const DeployMetadataSelection = lazy(() => import('./components/deploy/DeployMetadataSelection'));
 const DeployMetadataDeployment = lazy(() => import('./components/deploy/DeployMetadataDeployment'));
 
-const CreateObjectAndFields = lazy(() => import('./components/create-object-and-fields/CreateObjectAndFields'));
-const CreateFieldsSelection = lazy(() => import('./components/create-object-and-fields/CreateFieldsSelection'));
-const CreateFields = lazy(() => import('./components/create-object-and-fields/CreateFields'));
+const CreateObjectAndFields = lazy(() =>
+  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateObjectAndFields }))
+);
+const CreateFieldsSelection = lazy(() =>
+  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFieldsSelection }))
+);
+const CreateFields = lazy(() => import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFields })));
 
 const FormulaEvaluator = lazy(() => import('./components/formula-evaluator/FormulaEvaluator'));
 

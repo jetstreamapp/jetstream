@@ -79,9 +79,9 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
               disabled,
               className: 'slds-m-right_small',
             }}
-            items={FieldTypeItems}
+            items={FieldTypeItems as ListItem[]}
             selectedItemId={fieldType}
-            onSelected={handleTypeChange}
+            onSelected={(items) => handleTypeChange(items as unknown as ListItem<ManualFormulaFieldType, ManualFormulaFieldType>)}
           />
           {fieldType === 'string' && (
             <Input label="Value" className="w-100">

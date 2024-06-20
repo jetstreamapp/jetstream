@@ -3,11 +3,16 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, Icon, Modal, PreviewIllustration, SalesforceLogin, Spinner, Tabs, TabsRef } from '@jetstream/ui';
-import { ConfirmPageChange, applicationCookieState, selectSkipFrontdoorAuth, useAmplitude } from '@jetstream/ui-core';
+import {
+  ConfirmPageChange,
+  DeployMetadataProgressSummary,
+  DeployMetadataResultsTables,
+  applicationCookieState,
+  selectSkipFrontdoorAuth,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import { FunctionComponent, useRef } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import DeployMetadataProgressSummary from '../../deploy/utils/DeployMetadataProgressSummary';
-import DeployMetadataResultsTables from '../../deploy/utils/DeployMetadataResultsTables';
 import { CreateNewObjectForm } from './CreateNewObjectForm';
 import CreateNewObjectPermissions from './CreateNewObjectPermissions';
 import CreateNewObjectPermissionsResult from './CreateNewObjectPermissionsResult';
