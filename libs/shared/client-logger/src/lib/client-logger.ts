@@ -75,7 +75,7 @@ export const enableLogger = (enable: boolean) => {
     logger.log = LOG_NOOP;
     logger.info = LOG_NOOP;
     logger.warn = LOG_NOOP;
-    logger.error = LOG_NOOP;
+    logger.error = console.error.bind(globalThis.console, '%c ERROR', 'font-weight: bold;');
     logger.group = LOG_NOOP;
     logger.groupCollapsed = LOG_NOOP;
     logger.groupEnd = LOG_NOOP;
