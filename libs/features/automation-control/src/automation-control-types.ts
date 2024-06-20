@@ -1,13 +1,17 @@
-import { Maybe, QueryResult } from '@jetstream/types';
+import {
+  ApexTrigger,
+  AutomationMetadataType,
+  DuplicateRule,
+  FlowProcessBuilder,
+  FlowRecordTriggered,
+  Maybe,
+  QueryResult,
+  ValidationRule,
+  WorkflowRule,
+} from '@jetstream/types';
 
-export type ValidationRule = 'ValidationRule';
-export type WorkflowRule = 'WorkflowRule';
-export type FlowProcessBuilder = 'FlowProcessBuilder';
-export type FlowRecordTriggered = 'FlowRecordTriggered';
-export type ApexTrigger = 'ApexTrigger';
-export type DuplicateRule = 'DuplicateRule';
-
-export type AutomationMetadataType = DuplicateRule | ValidationRule | WorkflowRule | FlowProcessBuilder | FlowRecordTriggered | ApexTrigger;
+// re-export so local components do not need to update location
+export type { ApexTrigger, AutomationMetadataType, DuplicateRule, FlowProcessBuilder, FlowRecordTriggered, ValidationRule, WorkflowRule };
 
 export interface FetchSuccessPayload {
   type: keyof StateData;

@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -14,19 +14,18 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromAutomationControlState, selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import { AutomationMetadataType } from './automation-control-types';
-import * as fromAutomationCtlState from './automation-control.state';
 
 const HEIGHT_BUFFER = 170;
 
 /** TODO: include any other criteria if needed */
-export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult) {
+export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult | null) {
   return (
+    !!sobject &&
     sobject.triggerable &&
     !sobject.deprecatedAndHidden &&
     !sobject.customSetting &&
@@ -47,14 +46,14 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
-  const hasSelectionsMade = useRecoilValue(fromAutomationCtlState.hasSelectionsMade);
-  const [sobjects, setSobjects] = useRecoilState(fromAutomationCtlState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromAutomationCtlState.selectedSObjectsState);
+  const hasSelectionsMade = useRecoilValue(fromAutomationControlState.hasSelectionsMade);
+  const [sobjects, setSobjects] = useRecoilState(fromAutomationControlState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromAutomationControlState.selectedSObjectsState);
 
-  const automationTypes = useRecoilValue(fromAutomationCtlState.automationTypes);
-  const [selectedAutomationTypes, setSelectedAutomationTypes] = useRecoilState(fromAutomationCtlState.selectedAutomationTypes);
+  const automationTypes = useRecoilValue(fromAutomationControlState.automationTypes);
+  const [selectedAutomationTypes, setSelectedAutomationTypes] = useRecoilState(fromAutomationControlState.selectedAutomationTypes);
 
-  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
+  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
   }
 
@@ -123,7 +122,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
                 descriptorSingular: 'automation type',
                 descriptorPlural: 'automation types',
               }}
-              items={automationTypes}
+              items={automationTypes as ListItem[]}
               selectedItems={selectedAutomationTypes}
               loading={false}
               onSelected={(items) => setSelectedAutomationTypes(items as AutomationMetadataType[])}

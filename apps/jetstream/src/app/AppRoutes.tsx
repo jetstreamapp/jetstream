@@ -13,9 +13,15 @@ const Query = lazy(() => import('@jetstream/feature/query').then((module) => ({ 
 const QueryBuilder = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryBuilder })));
 const QueryResults = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryResults })));
 
-const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
-const AutomationControlSelection = lazy(() => import('./components/automation-control/AutomationControlSelection'));
-const AutomationControlEditor = lazy(() => import('./components/automation-control/AutomationControlEditor'));
+const AutomationControl = lazy(() =>
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControl }))
+);
+const AutomationControlEditor = lazy(() =>
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlEditor }))
+);
+const AutomationControlSelection = lazy(() =>
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlSelection }))
+);
 
 const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
 const ManagePermissionsSelection = lazy(() => import('./components/manage-permissions/ManagePermissionsSelection'));

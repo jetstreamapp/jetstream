@@ -2,7 +2,14 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { FileExtAllTypes, ListMetadataResult, MimeType, RetrievePackageFromListMetadataJob, SalesforceOrgUi } from '@jetstream/types';
+import {
+  FileExtAllTypes,
+  ListMetadataResult,
+  Maybe,
+  MimeType,
+  RetrievePackageFromListMetadataJob,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -19,12 +26,19 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectSkipFrontdoorAuth, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import {
+  RequireMetadataApiBanner,
+  applicationCookieState,
+  fromAutomationControlState,
+  fromJetstreamEvents,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+  useAmplitude,
+} from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
@@ -39,7 +53,6 @@ import {
   isWorkflowRuleRecord,
 } from './automation-control-data-utils';
 import { TableRowItem } from './automation-control-types';
-import * as fromAutomationCtlState from './automation-control.state';
 import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
@@ -55,8 +68,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
 
-  const selectedSObjects = useRecoilValue(fromAutomationCtlState.selectedSObjectsState);
-  const selectedAutomationTypes = useRecoilValue(fromAutomationCtlState.selectedAutomationTypes);
+  const selectedSObjects = useRecoilValue(fromAutomationControlState.selectedSObjectsState);
+  const selectedAutomationTypes = useRecoilValue(fromAutomationControlState.selectedAutomationTypes);
 
   const [dirtyRows, setDirtyRows] = useState<TableRowItem[]>([]);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -71,7 +84,6 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
     rows,
     visibleRows,
     hasError,
-    errorMessage,
     loading,
     fetchData,
     refreshProcessBuilders,
@@ -126,7 +138,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
     fileFormat: FileExtAllTypes;
     mimeType: MimeType;
     uploadToGoogle: boolean;
-    googleFolder?: string;
+    googleFolder?: Maybe<string>;
   }) {
     setExportMetadataModalOpen(false);
     const jobMeta: RetrievePackageFromListMetadataJob = {
@@ -136,7 +148,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
       mimeType: data.mimeType,
       listMetadataItems: rows
         .filter((row) => isTableRowItem(row))
-        .reduce((output: Record<string, ListMetadataResult[]>, item: TableRowItem) => {
+        .reduce((output: Record<string, ListMetadataResult[]>, _item) => {
+          const item = _item as unknown as TableRowItem; // filter limited item types in list
           const type = getAutomationDeployType(item.type);
           output[type] = output[type] || [];
           const record = item.record;
@@ -211,7 +224,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
   function exportSpreadsheet() {
     const exportData = rows
       .filter((row) => isTableRowItem(row))
-      .map((row: TableRowItem) => {
+      .map((_row) => {
+        const row = _row as unknown as TableRowItem;
         return {
           Type: row.type,
           Object: row.sobject,

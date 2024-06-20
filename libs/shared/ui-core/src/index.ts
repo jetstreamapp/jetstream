@@ -42,5 +42,6 @@ export * from './record/ViewChildRecords';
 export * from './record/ViewEditCloneRecord';
 export * from './state-management/app-state';
 export * as fromAppState from './state-management/app-state';
+export * as fromAutomationControlState from './state-management/automation-control.state';
 export * as fromQueryHistoryState from './state-management/query-history.state';
 export * as fromQueryState from './state-management/query.state';

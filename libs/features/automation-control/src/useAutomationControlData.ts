@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useAmplitude } from '@jetstream/ui-core';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -526,12 +527,12 @@ function flattenTableRows(
   const keys: string[] = [];
   Object.keys(stateData)
     .filter((type) => {
-      const tableRow = stateData[type].tableRow as TableRow;
+      const tableRow = stateData[type as keyof StateData].tableRow as TableRow;
       // if not selected, or loading is done and there are no items, skip
-      return !stateData[type].skip && (tableRow.loading || tableRow.hasError || tableRow.items.length);
+      return !stateData[type as keyof StateData].skip && (tableRow.loading || tableRow.hasError || tableRow.items.length);
     })
     .forEach((type) => {
-      const row = stateData[type].tableRow as TableRow;
+      const row = stateData[type as keyof StateData].tableRow as TableRow;
       rows.push(row);
       rowsByKey[row.key] = row;
       keys.push(row.key);
@@ -673,7 +674,7 @@ export function useAutomationControlData({
         error: (err) => {
           dispatch({ type: 'ERROR', payload: { errorMessage: err.message } });
           logger.error('[AUTOMATION][FETCH][ERROR]', err);
-          rollbar.error('Automation Control Fatal Error', { message: err.message, stack: err.stack });
+          rollbar.error('Automation Control Fatal Error', getErrorMessageAndStackObj(err));
         },
         complete: () => {
           dispatch({ type: 'FETCH_FINISH' });
@@ -684,7 +685,7 @@ export function useAutomationControlData({
         obs.unsubscribe();
       };
     } catch (ex) {
-      dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
+      dispatch({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
     }
   }, [selectedAutomationTypes, selectedOrg, defaultApiVersion, selectedSObjects, rollbar]);
 
@@ -695,7 +696,7 @@ export function useAutomationControlData({
       const records = await getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects, true);
       dispatch({ type: 'FETCH_SUCCESS', payload: { type: 'FlowProcessBuilder', records } });
     } catch (ex) {
-      dispatch({ type: 'FETCH_ERROR', payload: { type: 'FlowProcessBuilder', error: ex.message } });
+      dispatch({ type: 'FETCH_ERROR', payload: { type: 'FlowProcessBuilder', error: getErrorMessage(ex) } });
     } finally {
       dispatch({ type: 'FETCH_FINISH' });
     }

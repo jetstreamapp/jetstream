@@ -1,6 +1,5 @@
-import { DescribeGlobalSObjectResult, ListItem } from '@jetstream/types';
+import { AutomationMetadataType, DescribeGlobalSObjectResult, ListItem } from '@jetstream/types';
 import { atom, selector } from 'recoil';
-import { AutomationMetadataType } from './automation-control-types';
 
 export const priorSelectedOrg = atom<string | null>({
   key: 'automation-control.priorSelectedOrg',

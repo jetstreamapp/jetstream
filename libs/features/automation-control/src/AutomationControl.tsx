@@ -1,26 +1,25 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { selectedOrgState } from '@jetstream/ui-core';
+import { fromAutomationControlState, selectedOrgState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromAutomationCtlState from './automation-control.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ManagePermissionsProps {}
+export interface AutomationControlProps {}
 
-export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
+export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
   const navigate = useNavigate();
   const location = useLocation();
   const selectedOrg = useRecoilValue(selectedOrgState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationCtlState.priorSelectedOrg);
-  const resetSObjectsState = useResetRecoilState(fromAutomationCtlState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromAutomationCtlState.selectedSObjectsState);
-  const resetAutomationTypes = useResetRecoilState(fromAutomationCtlState.automationTypes);
-  const resetSelectedAutomationTypes = useResetRecoilState(fromAutomationCtlState.selectedAutomationTypes);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationControlState.priorSelectedOrg);
+  const resetSObjectsState = useResetRecoilState(fromAutomationControlState.sObjectsState);
+  const resetSelectedSObjectsState = useResetRecoilState(fromAutomationControlState.selectedSObjectsState);
+  const resetAutomationTypes = useResetRecoilState(fromAutomationControlState.automationTypes);
+  const resetSelectedAutomationTypes = useResetRecoilState(fromAutomationControlState.selectedAutomationTypes);
 
-  const hasSelectionsMade = useRecoilValue(fromAutomationCtlState.hasSelectionsMade);
+  const hasSelectionsMade = useRecoilValue(fromAutomationControlState.hasSelectionsMade);
 
   // reset everything if the selected org changes
   useEffect(() => {
@@ -50,4 +49,4 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
   );
 };
 
-export default ManagePermissions;
+export default AutomationControl;

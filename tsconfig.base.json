@@ -20,6 +20,7 @@
       "@jetstream/api-types": ["libs/api-types/src/index.ts"],
       "@jetstream/connected-ui": ["libs/connected/connected-ui/src/index.ts"],
       "@jetstream/feature/anon-apex": ["libs/features/anon-apex/src/index.ts"],
+      "@jetstream/feature/automation-control": ["libs/features/automation-control/src/index.ts"],
       "@jetstream/feature/query": ["libs/features/query/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
       "@jetstream/monaco": ["libs/monaco-configuration/src/index.ts"],

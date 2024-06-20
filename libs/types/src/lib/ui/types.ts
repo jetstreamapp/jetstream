@@ -507,7 +507,7 @@ export interface RetrievePackageJob {
   fileFormat: FileExtAllTypes;
   mimeType: MimeType;
   uploadToGoogle: boolean;
-  googleFolder?: string;
+  googleFolder?: Maybe<string>;
 }
 
 export interface RetrievePackageFromListMetadataJob extends RetrievePackageJob {
@@ -711,3 +711,12 @@ export interface ChangeSet {
   modifiedBy: string;
   modifiedDate: string;
 }
+
+export type ValidationRule = 'ValidationRule';
+export type WorkflowRule = 'WorkflowRule';
+export type FlowProcessBuilder = 'FlowProcessBuilder';
+export type FlowRecordTriggered = 'FlowRecordTriggered';
+export type ApexTrigger = 'ApexTrigger';
+export type DuplicateRule = 'DuplicateRule';
+
+export type AutomationMetadataType = DuplicateRule | ValidationRule | WorkflowRule | FlowProcessBuilder | FlowRecordTriggered | ApexTrigger;

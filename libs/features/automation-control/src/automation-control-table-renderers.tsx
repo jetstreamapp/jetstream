@@ -3,6 +3,7 @@ import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CopyToClipboard, Grid, GridCol, Icon, SalesforceLogin, Spinner, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent } from 'react';
 import { CalculatedColumn, RenderCellProps } from 'react-data-grid';
@@ -16,12 +17,19 @@ export const ExpandingLabelRenderer: FunctionComponent<{
   row: TableRowOrItemOrChild;
   toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
 }> = ({ serverUrl, selectedOrg, column, row, toggleRowExpand }) => {
-  const value = row[column.key];
+  const value = row[column.key as keyof TableRowOrItemOrChild];
   const leftMargin = isTableRowItem(row) ? 2 : isTableRowChild(row) ? 4.5 : 0;
 
   const wrappedValue =
     !isTableRow(row) && row.link && serverUrl && selectedOrg ? (
-      <SalesforceLogin serverUrl={serverUrl} org={selectedOrg} returnUrl={row.link} iconPosition="right" title={value} skipFrontDoorAuth>
+      <SalesforceLogin
+        serverUrl={serverUrl}
+        org={selectedOrg}
+        returnUrl={row.link}
+        iconPosition="right"
+        title={isString(value) ? value : undefined}
+        skipFrontDoorAuth
+      >
         {value}
       </SalesforceLogin>
     ) : (
@@ -135,9 +143,9 @@ export const AdditionalDetailRenderer: FunctionComponent<RenderCellProps<TableRo
 export const BooleanAndVersionRenderer: FunctionComponent<RenderCellProps<DeploymentItemRow, unknown>> = ({ column, row }) => {
   const metadata = row;
   const type = metadata.type;
-  const value = metadata[column.key];
+  const value = metadata[column.key as keyof TableRowOrItemOrChild];
   const checkbox = (
-    <Checkbox className="slds-align_absolute-center" id={`${column.key}-${row.key}`} checked={value} label="value" hideLabel readOnly />
+    <Checkbox className="slds-align_absolute-center" id={`${column.key}-${row.key}`} checked={!!value} label="value" hideLabel readOnly />
   );
   if (type === 'FlowRecordTriggered' || type === 'FlowProcessBuilder') {
     const activeVersionNumberInitialState = metadata.activeVersionNumberInitialState;

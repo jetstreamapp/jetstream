@@ -14,7 +14,7 @@ import {
   pollMetadataResultsUntilDone,
   pollRetrieveMetadataResultsUntilDone,
 } from '@jetstream/shared/ui-utils';
-import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeRequest, CompositeRequestBody, CompositeResponse, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
 import JSZip from 'jszip';
@@ -394,9 +394,9 @@ export async function getProcessBuildersMetadata(
         } catch (ex) {
           logger.warn('Error processing flow metadata', ex);
           logErrorToRollbar(
-            ex.message,
+            getErrorMessage(ex),
             {
-              stack: ex.stack,
+              ...getErrorMessageAndStackObj(ex),
               place: 'AutomationControl',
               type: 'getProcessBuildersMetadata()',
             },
@@ -630,9 +630,9 @@ export function deployMetadata(
   Promise.resolve().then(async () => {
     try {
       // items with prior errors are not deployed
-      const idToKeyMap: Record<string, string> = Object.keys(itemsByKey)
+      const idToKeyMap = Object.keys(itemsByKey)
         .filter((key) => !itemsByKey[key].deploy.deployError)
-        .reduce((output, key) => {
+        .reduce((output: Record<string, string>, key) => {
           output[itemsByKey[key].deploy.id] = key;
           return output;
         }, {});
