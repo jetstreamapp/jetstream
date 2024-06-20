@@ -1,6 +1,7 @@
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { clearCacheForOrg, describeSObject } from '@jetstream/shared/data';
 import { useReducerFetchFn } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Card, ComboboxWithItems, Grid, Icon, ScopedNotification, Spinner, Tooltip } from '@jetstream/ui';
 import { formatRelative } from 'date-fns';
@@ -86,10 +87,10 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
         });
       } catch (ex) {
         // ignore error if component is unmounted or if user changes org
-        if (!isMounted.current || ex.message === 'The requested resource does not exist') {
+        if (!isMounted.current || getErrorMessage(ex) === 'The requested resource does not exist') {
           return;
         }
-        dispatchSobjectDescribe({ type: 'ERROR', payload: { errorMessage: ex.message } });
+        dispatchSobjectDescribe({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
       }
     },
     [selectedOrg, selectedPublishEvent]
@@ -115,7 +116,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
         }
       } catch (ex) {
         if (isMounted.current) {
-          setPublishEventResponse({ success: false, errorMessage: ex.message });
+          setPublishEventResponse({ success: false, errorMessage: getErrorMessage(ex) });
         }
       } finally {
         if (isMounted.current) {

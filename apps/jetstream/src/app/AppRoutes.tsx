@@ -53,7 +53,9 @@ const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLog
 
 const SObjectExport = lazy(() => import('./components/sobject-export/SObjectExport'));
 
-const PlatformEventMonitor = lazy(() => import('./components/platform-event-monitor/PlatformEventMonitor'));
+const PlatformEventMonitor = lazy(() =>
+  import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
+);
 
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 

@@ -16,7 +16,7 @@ const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextEventAction>[] = [
 ];
 
 export const WrappedTextFormatter: FunctionComponent<RenderCellProps<PlatformEventRow>> = ({ column, row }) => {
-  const value = row[column.key];
+  const value = row[column.key as keyof PlatformEventRow];
   return (
     <p
       css={css`
@@ -108,11 +108,12 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
     );
   }, [messagesByChannel]);
 
+  // item: ContextMenuItem, data: ContextMenuActionData<T>
   const handleContextMenuAction = useCallback(
     (item: ContextMenuItem<ContextEventAction>, data: ContextMenuActionData<PlatformEventRow>) => {
       switch (item.value) {
         case 'COPY_CELL':
-          copyToClipboard(JSON.stringify(data.row[data.column.key], null, 2), { format: 'text/plain' });
+          copyToClipboard(JSON.stringify(data.row[data.column.key as keyof PlatformEventRow], null, 2), { format: 'text/plain' });
           break;
         case 'COPY_EVENT':
           copyToClipboard(JSON.stringify(data.row, null, 2), { format: 'text/plain' });
@@ -137,7 +138,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
         rowHeight={getRowHeight}
         contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
-        contextMenuAction={handleContextMenuAction}
+        contextMenuAction={(item, data) => handleContextMenuAction(item as ContextMenuItem<ContextEventAction>, data)}
       />
     </AutoFullHeightContainer>
   );

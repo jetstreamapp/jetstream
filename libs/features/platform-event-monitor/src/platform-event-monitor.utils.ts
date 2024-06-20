@@ -3,7 +3,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { CometD, Extension, Message, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
-import { EventMessage, EventMessageUnsuccessful } from './platform-event-monitor.types';
+import { EventMessageUnsuccessful } from './platform-event-monitor.types';
 
 const subscriptions = new Map<string, SubscriptionHandle>();
 
@@ -44,10 +44,10 @@ export function init({
       }
     });
 
-    cometd.addListener('/meta/connect', (message: EventMessage) => {
+    cometd.addListener('/meta/connect', (message) => {
       logger.log('[COMETD] connect', message);
     });
-    cometd.addListener('/meta/disconnect', (message: EventMessage) => {
+    cometd.addListener('/meta/disconnect', (message) => {
       logger.log('[COMETD] disconnect', message);
     });
     // Library appears to have incorrect type for subscription property
@@ -56,7 +56,7 @@ export function init({
       // message.subscription -> not valid
       onSubscribeError && onSubscribeError(message as EventMessageUnsuccessful);
     });
-    (cometd as any).onListenerException = (exception, subscriptionHandle, isListener, message) => {
+    (cometd as any).onListenerException = (exception: Error, subscriptionHandle: string, isListener: boolean, message: string) => {
       logger.warn('[COMETD][LISTENER][ERROR]', exception?.message, message, subscriptionHandle);
     };
   });
@@ -129,7 +129,7 @@ export function disconnect(cometd: CometD) {
 class CometdReplayExtension implements Extension {
   static EXT_NAME = 'replay-extension';
   static REPLAY_FROM_KEY = 'replay';
-  cometd: CometD;
+  cometd: CometD | undefined;
   extensionEnabled = true;
   replayFromMap: Record<string, number | undefined> = {};
 
@@ -162,7 +162,7 @@ class CometdReplayExtension implements Extension {
         if (!message.ext) {
           message.ext = {};
         }
-        message.ext[CometdReplayExtension.REPLAY_FROM_KEY] = this.replayFromMap;
+        (message.ext as Record<string, unknown>)[CometdReplayExtension.REPLAY_FROM_KEY] = this.replayFromMap;
       }
     }
     return message;

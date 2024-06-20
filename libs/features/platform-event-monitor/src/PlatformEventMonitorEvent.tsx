@@ -7,7 +7,7 @@ export interface PlatformEventMonitorEventProps {
 }
 
 export const PlatformEventMonitorEvent: FunctionComponent<PlatformEventMonitorEventProps> = (props) => {
-  const { event, payload, schema } = props.event;
+  const { event, payload } = props.event;
   const payloadJson = JSON.stringify(payload);
   return (
     <Fragment>

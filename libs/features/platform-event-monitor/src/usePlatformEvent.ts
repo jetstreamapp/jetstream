@@ -2,15 +2,14 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
 import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
-import { orderValues } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj, orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { applicationCookieState } from '@jetstream/ui-core';
+import { applicationCookieState, useAmplitude } from '@jetstream/ui-core';
 import { CometD } from 'cometd';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { useAmplitude } from '@jetstream/ui-core';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
 import * as platformEventUtils from './platform-event-monitor.utils';
 
@@ -81,8 +80,8 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
           setHasPlatformEvents(platformEvents.length > 0);
         }
       } catch (ex) {
-        setPlatformEventFetchError(ex.message);
-        rollbar.error(`Fetch platform event error`, { stack: ex.stack, message: ex.message });
+        setPlatformEventFetchError(getErrorMessage(ex));
+        rollbar.error(`Fetch platform event error`, getErrorMessageAndStackObj(ex));
       }
     },
     [rollbar, selectedOrg]
@@ -111,7 +110,9 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
             return acc;
           }, {});
 
-          item[channel].messages = orderValues(Object.keys(eventsByEventId)).map((replayId) => eventsByEventId[replayId]);
+          item[channel].messages = orderValues(Object.keys(eventsByEventId)).map(
+            (replayId) => eventsByEventId[replayId as unknown as number]
+          );
           return item;
         });
       }
@@ -164,7 +165,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
           trackEvent(ANALYTICS_KEYS.platform_event_subscribed, { requiredInit, channel, replayId });
         }
       } catch (ex) {
-        logger.warn('[PLATFORM EVENT][ERROR]', ex.message);
+        logger.warn('[PLATFORM EVENT][ERROR]', getErrorMessage(ex));
         fireToast({ type: 'error', message: 'Error connecting to Salesforce' });
       }
     },
@@ -189,7 +190,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
           trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: true });
         }
       } catch (ex) {
-        logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);
+        logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', getErrorMessage(ex));
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -219,7 +220,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         trackEvent(ANALYTICS_KEYS.platform_event_clear_all, { user_initiated: true });
       }
     } catch (ex) {
-      logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', ex.message);
+      logger.warn('[PLATFORM EVENT][ERROR] unsubscribing', getErrorMessage(ex));
     }
   }, [trackEvent]);
 

@@ -16,7 +16,7 @@ import { PlatformEventDownloadData, usePlatformEvent } from './usePlatformEvent'
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PlatformEventMonitorProps {}
 
-export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = ({}) => {
+export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const isMounted = useRef(true);
