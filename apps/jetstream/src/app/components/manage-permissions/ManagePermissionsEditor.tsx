@@ -16,11 +16,16 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { ConfirmPageChange, applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
+import {
+  ConfirmPageChange,
+  RequireMetadataApiBanner,
+  applicationCookieState,
+  fromJetstreamEvents,
+  selectedOrgState,
+} from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';

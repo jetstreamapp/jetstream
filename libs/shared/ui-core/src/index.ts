@@ -7,6 +7,7 @@ export * from './app/ErrorBoundaryFallback';
 export * from './app/HeaderDonatePopover';
 export * from './app/HeaderHelpPopover';
 export * from './app/PromptNavigation';
+export * from './app/RequireMetadataApiBanner';
 export * from './create-fields/create-fields-types';
 export * from './create-fields/create-fields-utils';
 export * from './create-fields/useCreateFields';

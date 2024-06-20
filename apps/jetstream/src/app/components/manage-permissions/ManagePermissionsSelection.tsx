@@ -13,11 +13,10 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import * as fromPermissionsState from './manage-permissions.state';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 

@@ -16,7 +16,13 @@ import {
   ViewDocsLink,
   dataTableFileSizeFormatter,
 } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui-core';
+import {
+  RequireMetadataApiBanner,
+  applicationCookieState,
+  fromJetstreamEvents,
+  selectSkipFrontdoorAuth,
+  selectedOrgState,
+} from '@jetstream/ui-core';
 import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
 import { formatDate } from 'date-fns/format';
@@ -25,7 +31,6 @@ import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
 import DebugLogViewerTable from './DebugLogViewerTable';
 import DebugLogViewerTrace from './DebugLogViewerTrace';

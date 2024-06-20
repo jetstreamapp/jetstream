@@ -12,12 +12,10 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
-import { useAmplitude } from '@jetstream/ui-core';
-import { RequireMetadataApiBanner } from '../core/RequireMetadataApiBanner';
 import './DeployMetadataSelection.scss';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
