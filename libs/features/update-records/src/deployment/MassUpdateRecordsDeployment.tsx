@@ -163,5 +163,3 @@ export const MassUpdateRecordsDeployment = () => {
     </Page>
   );
 };
-
-export default MassUpdateRecordsDeployment;

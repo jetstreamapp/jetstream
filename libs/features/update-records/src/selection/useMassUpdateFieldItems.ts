@@ -9,6 +9,7 @@ import {
   useNonInitialEffect,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { DescribeSObjectResult, Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
   DEFAULT_FIELD_CONFIGURATION,
@@ -351,10 +352,10 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
             dispatch({ type: 'METADATA_LOADED', payload: { sobject, metadata: metadata.data } });
           }
         } catch (ex) {
-          rollbar.error('Error fetching metadata for update records', { message: ex.message, stack: ex.stack });
+          rollbar.error('Error fetching metadata for update records', getErrorMessageAndStackObj(ex));
           logger.warn('Could not fetch metadata for object', ex);
           if (isMounted.current) {
-            dispatch({ type: 'METADATA_ERROR', payload: { sobject, error: ex.message } });
+            dispatch({ type: 'METADATA_ERROR', payload: { sobject, error: getErrorMessage(ex) } });
           }
         }
       }
@@ -381,7 +382,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
       } catch (ex) {
         logger.warn('Could not fetch record count', ex);
         if (isMounted.current) {
-          dispatch({ type: 'FINISH_VALIDATION', payload: { sobject, impactedRecords: null, error: ex.message } });
+          dispatch({ type: 'FINISH_VALIDATION', payload: { sobject, impactedRecords: null, error: getErrorMessage(ex) } });
         }
       }
     },
@@ -407,7 +408,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
       } catch (ex) {
         logger.warn('Could not fetch record count', ex);
         if (isMounted.current) {
-          dispatch({ type: 'FINISH_VALIDATION', payload: { sobject, impactedRecords: null, error: ex.message } });
+          dispatch({ type: 'FINISH_VALIDATION', payload: { sobject, impactedRecords: null, error: getErrorMessage(ex) } });
         }
       }
     }

@@ -55,9 +55,13 @@ const FormulaEvaluator = lazy(() =>
   import('@jetstream/feature/formula-evaluator').then((module) => ({ default: module.FormulaEvaluator }))
 );
 
-const MassUpdateRecords = lazy(() => import('./components/update-records/MassUpdateRecords'));
-const MassUpdateRecordsSelection = lazy(() => import('./components/update-records/selection/MassUpdateRecordsSelection'));
-const MassUpdateRecordsDeployment = lazy(() => import('./components/update-records/deployment/MassUpdateRecordsDeployment'));
+const MassUpdateRecords = lazy(() => import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecords })));
+const MassUpdateRecordsSelection = lazy(() =>
+  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsSelection }))
+);
+const MassUpdateRecordsDeployment = lazy(() =>
+  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsDeployment }))
+);
 
 const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
 

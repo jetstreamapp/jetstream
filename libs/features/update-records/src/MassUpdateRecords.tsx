@@ -62,5 +62,3 @@ export const MassUpdateRecords: FunctionComponent = () => {
     </Fragment>
   );
 };
-
-export default MassUpdateRecords;

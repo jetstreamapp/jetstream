@@ -153,5 +153,3 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     </Page>
   );
 };
-
-export default MassUpdateRecordsSelection;
