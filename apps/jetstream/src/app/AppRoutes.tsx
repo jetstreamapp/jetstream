@@ -61,7 +61,7 @@ const MassUpdateRecordsDeployment = lazy(() => import('./components/update-recor
 
 const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
 
-const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
+const SalesforceApi = lazy(() => import('@jetstream/feature/salesforce-api').then((module) => ({ default: module.SalesforceApi })));
 
 const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').then((module) => ({ default: module.DebugLogViewer })));
 

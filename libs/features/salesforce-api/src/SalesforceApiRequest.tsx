@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   HttpMethod,
   SalesforceApiHistoryItem,
@@ -62,7 +63,7 @@ function errorMessageReducer(state: State, action: Action): State {
         JSON.parse(action.payload.value);
         return { ...state, headersErrorMessage: undefined };
       } catch (ex) {
-        return { ...state, headersErrorMessage: ex.message };
+        return { ...state, headersErrorMessage: getErrorMessage(ex) };
       }
     }
     case 'BODY_CHANGE': {
@@ -71,7 +72,7 @@ function errorMessageReducer(state: State, action: Action): State {
           JSON.parse(action.payload.value);
           return { ...state, bodyErrorMessage: undefined };
         } catch (ex) {
-          return { ...state, bodyErrorMessage: ex.message };
+          return { ...state, bodyErrorMessage: getErrorMessage(ex) };
         }
       }
       return { ...state, bodyErrorMessage: undefined };
@@ -300,7 +301,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
                 value="JSON"
                 disabled={loading}
                 checked={bodyType === 'JSON'}
-                onChange={(value: JsonText) => setBodyType(value)}
+                onChange={(value) => setBodyType(value as JsonText)}
               />
               <RadioButton
                 name="bodyType"
@@ -308,7 +309,7 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
                 value="TEXT"
                 disabled={loading}
                 checked={bodyType === 'TEXT'}
-                onChange={(value: JsonText) => setBodyType(value)}
+                onChange={(value) => setBodyType(value as JsonText)}
               />
             </RadioGroup>
           )}

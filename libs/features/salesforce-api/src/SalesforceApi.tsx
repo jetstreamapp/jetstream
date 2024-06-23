@@ -3,13 +3,13 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { useAmplitude } from '@jetstream/ui-core';
 import SalesforceApiRequest from './SalesforceApiRequest';
 import SalesforceApiResponse from './SalesforceApiResponse';
 import * as fromSalesforceApiHistory from './salesforceApi.state';
@@ -66,7 +66,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
+            rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
           });
       } catch (ex) {
         setResults({
@@ -80,11 +80,11 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           .initSalesforceApiHistoryItem(selectedOrg, requestData)
           .then((updatedHistoryItems) => {
             setHistoryItems(updatedHistoryItems);
-            trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: false, error: ex.message });
+            trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: false, error: getErrorMessage(ex) });
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', { message: ex.message, stack: ex.stack });
+            rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
           });
       } finally {
         setLoading(false);
@@ -115,5 +115,3 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
     </AutoFullHeightContainer>
   );
 };
-
-export default SalesforceApi;
