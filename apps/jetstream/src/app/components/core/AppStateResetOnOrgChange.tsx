@@ -5,11 +5,11 @@ import {
   fromDeployMetadataState,
   fromFormulaState,
   fromLoadRecordsState,
+  fromPermissionsState,
   fromQueryState,
 } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromPermissionsState from '../manage-permissions/manage-permissions.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AppStateResetOnOrgChangeProps {}

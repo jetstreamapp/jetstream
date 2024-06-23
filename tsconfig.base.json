@@ -27,6 +27,7 @@
       "@jetstream/feature/formula-evaluator": ["libs/features/formula-evaluator/src/index.ts"],
       "@jetstream/feature/load-records": ["libs/features/load-records/src/index.ts"],
       "@jetstream/feature/load-records-multi-object": ["libs/features/load-records-multi-object/src/index.ts"],
+      "@jetstream/feature/manage-permissions": ["libs/features/manage-permissions/src/index.ts"],
       "@jetstream/feature/platform-event-monitor": ["libs/features/platform-event-monitor/src/index.ts"],
       "@jetstream/feature/query": ["libs/features/query/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],

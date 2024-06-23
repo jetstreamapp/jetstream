@@ -1,12 +1,12 @@
 import { excelWorkbookToArrayBuffer, getMaxWidthFromColumnContent, initXlsx } from '@jetstream/shared/ui-utils';
-import { ColumnWithFilter } from '@jetstream/ui';
-import * as XLSX from 'xlsx';
 import {
   PermissionTableFieldCell,
   PermissionTableObjectCell,
   PermissionTableSummaryRow,
   PermissionTableTabVisibilityCell,
-} from './permission-manager-types';
+} from '@jetstream/types';
+import { ColumnWithFilter } from '@jetstream/ui';
+import * as XLSX from 'xlsx';
 
 initXlsx(XLSX);
 

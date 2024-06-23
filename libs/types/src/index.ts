@@ -12,4 +12,5 @@ export * from './lib/types';
 export * from './lib/ui/deploy-types';
 export * from './lib/ui/load-records-results-types';
 export * from './lib/ui/load-records-types';
+export * from './lib/ui/permission-manager-types';
 export * from './lib/ui/types';

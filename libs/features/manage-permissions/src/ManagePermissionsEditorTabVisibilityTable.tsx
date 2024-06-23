@@ -1,40 +1,40 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
   FieldPermissionTypes,
   ManagePermissionsEditorTableRef,
   PermissionManagerTableContext,
-  PermissionTableObjectCell,
   PermissionTableSummaryRow,
-} from './utils/permission-manager-types';
+  PermissionTableTabVisibilityCell,
+} from '@jetstream/types';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTable, DataTableRef } from '@jetstream/ui';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 
-function getRowKey(row: PermissionTableObjectCell) {
+function getRowKey(row: PermissionTableTabVisibilityCell) {
   return row.key;
 }
 
 // summary row is just a placeholder for rendered content
 const SUMMARY_ROWS: PermissionTableSummaryRow[] = [{ type: 'HEADING' }, { type: 'ACTION' }];
 
-export interface ManagePermissionsEditorObjectTableProps {
-  columns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[];
-  rows: PermissionTableObjectCell[];
+export interface ManagePermissionsEditorTabVisibilityTableProps {
+  columns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[];
+  rows: PermissionTableTabVisibilityCell[];
   totalCount: number;
   onFilter: (value: string) => void;
-  onBulkUpdate: (rows: PermissionTableObjectCell[], indexes?: number[]) => void;
-  onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableObjectCell>>) => void;
+  onBulkUpdate: (rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => void;
+  onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) => void;
 }
 
-export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
+export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
-    const tableRef = useRef<DataTableRef<PermissionTableObjectCell>>();
-    const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
+    const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>();
+    const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({
       resetChanges() {
-        resetGridChanges({ rows, type: 'object' });
+        resetGridChanges({ rows, type: 'tabVisibility' });
         setDirtyRows({});
       },
     }));
@@ -46,11 +46,11 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
     function handleColumnAction(action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) {
       const [id, typeLabel] = columnKey.split('-');
       const visibleRows = [...(tableRef.current?.getFilteredAndSortedRows() || rows)];
-      onBulkUpdate(updateRowsFromColumnAction('object', action, typeLabel as FieldPermissionTypes, id, visibleRows));
+      onBulkUpdate(updateRowsFromColumnAction('tabVisibility', action, typeLabel as FieldPermissionTypes, id, visibleRows));
     }
 
     const handleRowsChange = useCallback(
-      (rows: PermissionTableObjectCell[], { indexes }) => {
+      (rows: PermissionTableTabVisibilityCell[], { indexes }: { indexes: number[] }) => {
         onBulkUpdate(rows, indexes);
       },
       [onBulkUpdate]
@@ -61,14 +61,14 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTable
             ref={tableRef}
-            columns={columns}
+            columns={columns as any}
             data={rows}
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}
             onRowsChange={handleRowsChange}
             context={
               {
-                type: 'object',
+                type: 'tabVisibility',
                 totalCount,
                 onFilterRows: onFilter,
                 onColumnAction: handleColumnAction,
@@ -84,4 +84,4 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
   }
 );
 
-export default ManagePermissionsEditorObjectTable;
+export default ManagePermissionsEditorTabVisibilityTable;

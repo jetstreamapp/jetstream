@@ -1,7 +1,32 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderValues, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
+import {
+  BulkActionCheckbox,
+  DirtyRow,
+  FieldPermissionDefinitionMap,
+  FieldPermissionItem,
+  FieldPermissionTypes,
+  ObjectPermissionDefinitionMap,
+  ObjectPermissionItem,
+  ObjectPermissionTypes,
+  PermissionManagerTableContext,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
+  PermissionTableCellExtended,
+  PermissionTableFieldCell,
+  PermissionTableFieldCellPermission,
+  PermissionTableObjectCell,
+  PermissionTableObjectCellPermission,
+  PermissionTableSummaryRow,
+  PermissionTableTabVisibilityCell,
+  PermissionTableTabVisibilityCellPermission,
+  PermissionType,
+  PermissionTypes,
+  TabVisibilityPermissionDefinitionMap,
+  TabVisibilityPermissionItem,
+  TabVisibilityPermissionTypes,
+} from '@jetstream/types';
 import {
   Checkbox,
   ColumnWithFilter,
@@ -17,32 +42,8 @@ import {
   setColumnFromType,
 } from '@jetstream/ui';
 import startCase from 'lodash/startCase';
-import { Fragment, FunctionComponent, useContext, useMemo, useRef, useState } from 'react';
+import { Fragment, useContext, useMemo, useRef, useState } from 'react';
 import { RenderCellProps, RenderSummaryCellProps } from 'react-data-grid';
-import {
-  BulkActionCheckbox,
-  DirtyRow,
-  FieldPermissionDefinitionMap,
-  FieldPermissionItem,
-  FieldPermissionTypes,
-  ObjectPermissionDefinitionMap,
-  ObjectPermissionItem,
-  ObjectPermissionTypes,
-  PermissionManagerTableContext,
-  PermissionTableCellExtended,
-  PermissionTableFieldCell,
-  PermissionTableFieldCellPermission,
-  PermissionTableObjectCell,
-  PermissionTableObjectCellPermission,
-  PermissionTableSummaryRow,
-  PermissionTableTabVisibilityCell,
-  PermissionTableTabVisibilityCellPermission,
-  PermissionType,
-  PermissionTypes,
-  TabVisibilityPermissionDefinitionMap,
-  TabVisibilityPermissionItem,
-  TabVisibilityPermissionTypes,
-} from './permission-manager-types';
 
 type PermissionTypeColumn<T> = T extends 'object'
   ? ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
@@ -179,10 +180,10 @@ function setTabVisibilityDependencies(
   permission.visibleIsDirty = permission.visible !== permission.record.visible;
 }
 
-export function resetGridChanges(options: {
-  rows: PermissionTableFieldCell[] | PermissionTableObjectCell[] | PermissionTableTabVisibilityCell[];
-  type: PermissionType;
-});
+// export function resetGridChanges(options: {
+//   rows: PermissionTableFieldCell[] | PermissionTableObjectCell[] | PermissionTableTabVisibilityCell[];
+//   type: PermissionType;
+// });
 // eslint-disable-next-line no-redeclare
 export function resetGridChanges({
   rows,
@@ -287,13 +288,13 @@ export function getObjectColumns(
 ) {
   const newColumns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[] = [
     {
-      ...setColumnFromType('tableLabel', 'text'),
+      ...(setColumnFromType('tableLabel', 'text') as any),
       name: 'Object',
       key: 'tableLabel',
       frozen: true,
       width: 300,
       getValue: ({ column, row }) => {
-        const data: PermissionTableFieldCell = row[column.key];
+        const data: PermissionTableFieldCell = row[column.key as keyof PermissionTableObjectCell] as any;
         return data && `${data.label} (${data.apiName})`;
       },
       summaryCellClass: 'bg-color-gray-dark no-outline',
@@ -312,7 +313,7 @@ export function getObjectColumns(
       width: 100,
       resizable: false,
       frozen: true,
-      renderCell: RowActionRenderer,
+      renderCell: RowActionRenderer as any,
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       renderSummaryCell: ({ row }) => {
         if (row.type === 'ACTION') {
@@ -437,7 +438,7 @@ export function getFieldColumns(
 ) {
   const newColumns: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[] = [
     {
-      ...setColumnFromType('sobject', 'text'),
+      ...(setColumnFromType('sobject', 'text') as any),
       name: 'Object',
       key: 'sobject',
       width: 85,
@@ -602,7 +603,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
       }
 
       const errorMessage = row.permissions[id].errorMessage;
-      const value = row.permissions[id][actionKey as any];
+      const value = (row.permissions[id] as any)[actionKey] as boolean;
 
       function handleChange(value: boolean) {
         if (permissionType === 'object') {
@@ -658,13 +659,13 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
         </div>
       );
     },
-    getValue: ({ column, row }) => row.permissions[id][actionKey as any],
+    getValue: ({ column, row }) => (row.permissions[id] as any)[actionKey as any],
     summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
     renderSummaryCell: (args) => {
       if (args.row.type === 'HEADING') {
         return <SummaryFilterRenderer columnKey={`${id}-${actionKey}`} label={actionType} />;
       }
-      return <PinnedSelectAllRendererWrapper {...args} />;
+      return <PinnedSelectAllRendererWrapper {...(args as RenderSummaryCellProps<any, unknown>)} />;
     },
   };
   return column as PermissionTypeColumn<T>;
@@ -756,13 +757,13 @@ export function getTabVisibilityColumns(
 ) {
   const newColumns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[] = [
     {
-      ...setColumnFromType('tableLabel', 'text'),
+      ...(setColumnFromType('tableLabel', 'text') as any),
       name: 'Object',
       key: 'tableLabel',
       frozen: true,
       width: 300,
       getValue: ({ column, row }) => {
-        const data: PermissionTableFieldCell = row[column.key];
+        const data: PermissionTableTabVisibilityCell = row[column.key as keyof PermissionTableTabVisibilityCell] as any;
         return data && `${data.label} (${data.apiName})`;
       },
       summaryCellClass: 'bg-color-gray-dark no-outline',
@@ -802,7 +803,7 @@ export function getTabVisibilityColumns(
             </div>
           );
         }
-        return <RowActionRenderer {...props} />;
+        return <RowActionRenderer {...(props as RenderCellProps<PermissionTableCellExtended, PermissionTableSummaryRow>)} />;
       },
       summaryCellClass: ({ type }) => (type === 'HEADING' ? 'bg-color-gray' : null),
       renderSummaryCell: ({ row }) => {
@@ -1145,7 +1146,7 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
 /**
  * Pinned row selection renderer
  */
-export const PinnedSelectAllRendererWrapper: FunctionComponent<RenderSummaryCellProps<any, unknown>> = ({ column }) => {
+export const PinnedSelectAllRendererWrapper = ({ column }: RenderSummaryCellProps<any, unknown>) => {
   const { onColumnAction } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
 
   function handleSelection(action: 'selectAll' | 'unselectAll' | 'reset') {
@@ -1302,8 +1303,14 @@ export function updateCheckboxDependencies(
  * Row action renderer
  *
  * This component provides a popover that the user can open to make changes that apply to an entire row
+ * PermissionTableObjectCell, PermissionTableSummaryRow
+ * readonly renderCell?: Maybe<(props: RenderCellProps<TRow, TSummaryRow>) => ReactNode>;
  */
-export const RowActionRenderer: FunctionComponent<RenderCellProps<PermissionTableCellExtended>> = ({ column, onRowChange, row }) => {
+export const RowActionRenderer = ({
+  column,
+  onRowChange,
+  row,
+}: RenderCellProps<PermissionTableCellExtended, PermissionTableSummaryRow>) => {
   const { type } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
   const popoverRef = useRef<PopoverRef>(null);
   const [checkboxes, setCheckboxes] = useState<BulkActionCheckbox[]>(() => {

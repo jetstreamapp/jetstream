@@ -1,17 +1,14 @@
 import {
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
+  FieldPermissionDefinitionMap,
   ListItem,
+  ObjectPermissionDefinitionMap,
   PermissionSetNoProfileRecord,
   PermissionSetWithProfileRecord,
+  TabVisibilityPermissionDefinitionMap,
 } from '@jetstream/types';
 import { atom, selector } from 'recoil';
-import {
-  FieldPermissionDefinitionMap,
-  ObjectPermissionDefinitionMap,
-  TabVisibilityPermissionDefinitionMap,
-} from './utils/permission-manager-types';
-
 export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
   key: 'permission-manager.sObjectsState',
   default: null,

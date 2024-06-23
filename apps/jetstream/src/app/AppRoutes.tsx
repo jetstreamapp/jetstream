@@ -25,9 +25,15 @@ const AutomationControlSelection = lazy(() =>
   import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlSelection }))
 );
 
-const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
-const ManagePermissionsSelection = lazy(() => import('./components/manage-permissions/ManagePermissionsSelection'));
-const ManagePermissionsEditor = lazy(() => import('./components/manage-permissions/ManagePermissionsEditor'));
+const ManagePermissions = lazy(() =>
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissions }))
+);
+const ManagePermissionsSelection = lazy(() =>
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsSelection }))
+);
+const ManagePermissionsEditor = lazy(() =>
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsEditor }))
+);
 
 const DeployMetadata = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadata })));
 const DeployMetadataSelection = lazy(() =>

@@ -1,9 +1,4 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
-import groupBy from 'lodash/groupBy';
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { RowHeightArgs } from 'react-data-grid';
-import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 import {
   DirtyRow,
   FieldPermissionTypes,
@@ -11,7 +6,12 @@ import {
   PermissionManagerTableContext,
   PermissionTableFieldCell,
   PermissionTableSummaryRow,
-} from './utils/permission-manager-types';
+} from '@jetstream/types';
+import { AutoFullHeightContainer, ColumnWithFilter, DataTableRef, DataTree } from '@jetstream/ui';
+import groupBy from 'lodash/groupBy';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { RowHeightArgs } from 'react-data-grid';
+import { resetGridChanges, updateRowsFromColumnAction } from './utils/permission-manager-table-utils';
 
 function getRowKey(row: PermissionTableFieldCell) {
   return row.key;
@@ -61,7 +61,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
     }
 
     const handleRowsChange = useCallback(
-      (rows: PermissionTableFieldCell[], { indexes }) => {
+      (rows: PermissionTableFieldCell[], { indexes }: { indexes: number[] }) => {
         onBulkUpdate(rows, indexes);
       },
       [onBulkUpdate]
@@ -72,7 +72,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
         <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={15}>
           <DataTree
             ref={tableRef}
-            columns={columns}
+            columns={columns as any}
             data={rows}
             getRowKey={getRowKey}
             topSummaryRows={SUMMARY_ROWS}

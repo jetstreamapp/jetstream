@@ -5,43 +5,42 @@ import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   DescribeGlobalSObjectResult,
   EntityParticlePermissionsRecord,
-  FieldPermissionRecord,
-  ObjectPermissionRecord,
-  PermissionSetNoProfileRecord,
-  PermissionSetWithProfileRecord,
-  RecordResult,
-  SalesforceOrgUi,
-  TabVisibilityPermissionRecord,
-} from '@jetstream/types';
-import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
-import {
   FieldPermissionDefinitionMap,
+  FieldPermissionRecord,
   FieldPermissionRecordForSave,
   ObjectPermissionDefinitionMap,
+  ObjectPermissionRecord,
   ObjectPermissionRecordForSave,
   PermissionDefinitionMap,
   PermissionFieldSaveData,
   PermissionObjectSaveData,
   PermissionSaveResults,
+  PermissionSetNoProfileRecord,
+  PermissionSetWithProfileRecord,
   PermissionTabVisibilitySaveData,
   PermissionTableCellPermission,
   PermissionTableFieldCellPermission,
   PermissionTableObjectCellPermission,
   PermissionTableTabVisibilityCellPermission,
+  RecordResult,
+  SalesforceOrgUi,
   TabVisibilityPermissionDefinitionMap,
+  TabVisibilityPermissionRecord,
   TabVisibilityPermissionRecordForSave,
-} from './permission-manager-types';
+} from '@jetstream/types';
+import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
 
 const MAX_OBJ_IN_QUERY = 100;
 
-export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult) {
+export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult | null) {
   return (
-    sobject.name.endsWith('__e') ||
-    (sobject.createable &&
-      sobject.updateable &&
-      !sobject.name.endsWith('__History') &&
-      !sobject.name.endsWith('__Tag') &&
-      !sobject.name.endsWith('__Share'))
+    !!sobject &&
+    (sobject.name.endsWith('__e') ||
+      (sobject.createable &&
+        sobject.updateable &&
+        !sobject.name.endsWith('__History') &&
+        !sobject.name.endsWith('__Tag') &&
+        !sobject.name.endsWith('__Share')))
   );
 }
 

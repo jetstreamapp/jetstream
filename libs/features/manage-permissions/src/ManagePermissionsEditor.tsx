@@ -1,7 +1,28 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import {
+  DirtyRow,
+  FieldPermissionDefinitionMap,
+  FieldPermissionRecordForSave,
+  ManagePermissionsEditorTableRef,
+  ObjectPermissionDefinitionMap,
+  ObjectPermissionRecordForSave,
+  PermissionFieldSaveData,
+  PermissionObjectSaveData,
+  PermissionSaveResults,
+  PermissionTabVisibilitySaveData,
+  PermissionTableFieldCell,
+  PermissionTableFieldCellPermission,
+  PermissionTableObjectCell,
+  PermissionTableObjectCellPermission,
+  PermissionTableSummaryRow,
+  PermissionTableTabVisibilityCell,
+  PermissionTableTabVisibilityCellPermission,
+  SalesforceOrgUi,
+  TabVisibilityPermissionDefinitionMap,
+  TabVisibilityPermissionRecordForSave,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -21,6 +42,7 @@ import {
   RequireMetadataApiBanner,
   applicationCookieState,
   fromJetstreamEvents,
+  fromPermissionsState,
   selectedOrgState,
 } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -29,7 +51,6 @@ import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
-import * as fromPermissionsState from './manage-permissions.state';
 import { usePermissionRecords } from './usePermissionRecords';
 import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
@@ -47,27 +68,6 @@ import {
   updateObjectRowsAfterSave,
   updateTabVisibilityRowsAfterSave,
 } from './utils/permission-manager-table-utils';
-import {
-  DirtyRow,
-  FieldPermissionDefinitionMap,
-  FieldPermissionRecordForSave,
-  ManagePermissionsEditorTableRef,
-  ObjectPermissionDefinitionMap,
-  ObjectPermissionRecordForSave,
-  PermissionFieldSaveData,
-  PermissionObjectSaveData,
-  PermissionSaveResults,
-  PermissionTabVisibilitySaveData,
-  PermissionTableFieldCell,
-  PermissionTableFieldCellPermission,
-  PermissionTableObjectCell,
-  PermissionTableObjectCellPermission,
-  PermissionTableSummaryRow,
-  PermissionTableTabVisibilityCell,
-  PermissionTableTabVisibilityCellPermission,
-  TabVisibilityPermissionDefinitionMap,
-  TabVisibilityPermissionRecordForSave,
-} from './utils/permission-manager-types';
 import {
   clearPermissionErrorMessage,
   collectProfileAndPermissionIds,

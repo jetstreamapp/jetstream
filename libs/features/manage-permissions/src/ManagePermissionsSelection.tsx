@@ -13,11 +13,10 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromPermissionsState, selectedOrgState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromPermissionsState from './manage-permissions.state';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -70,7 +69,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfiles, selectedPermissionSets, selectedSObjects]);
 
-  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
+  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
   }
 

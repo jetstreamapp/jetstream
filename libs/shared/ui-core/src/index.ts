@@ -54,5 +54,6 @@ export * as fromAutomationControlState from './state-management/automation-contr
 export * as fromDeployMetadataState from './state-management/deploy-metadata.state';
 export * as fromFormulaState from './state-management/formula-evaluator.state';
 export * as fromLoadRecordsState from './state-management/load-records.state';
+export * as fromPermissionsState from './state-management/manage-permissions.state';
 export * as fromQueryHistoryState from './state-management/query-history.state';
 export * as fromQueryState from './state-management/query.state';

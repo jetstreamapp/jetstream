@@ -1,12 +1,12 @@
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionRecord,
-  Maybe,
   ObjectPermissionRecord,
   RecordAttributes,
   RecordResult,
   TabVisibilityPermissionRecord,
-} from '@jetstream/types';
+} from '../salesforce/record.types';
+import { Maybe } from '../types';
 
 export type PermissionType = 'object' | 'field' | 'tabVisibility';
 export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll';

@@ -1,21 +1,19 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
-import { groupByFlat } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
 import {
   EntityParticlePermissionsRecord,
+  FieldPermissionDefinitionMap,
   FieldPermissionRecord,
+  ObjectPermissionDefinitionMap,
   ObjectPermissionRecord,
   SalesforceOrgUi,
   TabDefinitionRecord,
+  TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecord,
 } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  FieldPermissionDefinitionMap,
-  ObjectPermissionDefinitionMap,
-  TabVisibilityPermissionDefinitionMap,
-} from './utils/permission-manager-types';
 import {
   getFieldDefinitionKey,
   getQueryForAllPermissionableFields,
@@ -97,8 +95,8 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setTabVisibilityPermissionMap(output.tabVisibilityPermissionMap);
       }
     } catch (ex) {
-      logger.warn('[useProfilesAndPermSets][ERROR]', ex.message);
-      rollbar.error('[useProfilesAndPermSets][ERROR]', { message: ex.message, stack: ex.stack });
+      logger.warn('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
+      rollbar.error('[useProfilesAndPermSets][ERROR]', getErrorMessageAndStackObj(ex));
       if (isMounted.current) {
         setHasError(true);
       }
