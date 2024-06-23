@@ -63,7 +63,7 @@ export function prepareExport(
         metadata?.fields
           .filter((field) => (options.includesStandardFields ? true : field.custom))
           .flatMap((field: any) => {
-            const obj = { 'Object Name': sobject };
+            const obj = { 'Object Name': sobject } as any;
             selectedAttributeFields.forEach(({ name, label, getterFn }) => {
               const _label = options.headerOption === 'label' ? label : name;
               // TODO: transform as required
@@ -85,12 +85,12 @@ export function prepareExport(
             'label',
             ...Object.keys(metadata || {})
               .filter((key) => key !== 'name' && key !== 'label')
-              .filter((key) => typeof metadata?.[key] !== 'object'),
+              .filter((key) => typeof metadata?.[key as keyof DescribeSObjectResult] !== 'object'),
           ];
         }
         sobjectAttributes.push(
           sobjectAttributeKeys.reduce((output: any, key) => {
-            output[key] = metadata?.[key];
+            output[key] = metadata?.[key as keyof DescribeSObjectResult];
             return output;
           }, {})
         );

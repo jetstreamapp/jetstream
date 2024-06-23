@@ -65,7 +65,7 @@ const SalesforceApi = lazy(() => import('@jetstream/feature/salesforce-api').the
 
 const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').then((module) => ({ default: module.DebugLogViewer })));
 
-const SObjectExport = lazy(() => import('./components/sobject-export/SObjectExport'));
+const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').then((module) => ({ default: module.SObjectExport })));
 
 const PlatformEventMonitor = lazy(() =>
   import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))

@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { useRollbar } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -121,7 +122,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     setHasSelectionsMade(!!selectedSObjects?.length && !!selectedAttributes?.length);
   }, [selectedSObjects, selectedAttributes]);
 
-  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[]) {
+  function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
   }
 
@@ -165,8 +166,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       setExportDataModalOpen(true);
     } catch (ex) {
       logger.error(ex);
-      setErrorMessage(ex.message);
-      rollbar.error('Error preparing sobject export', { message: ex.message, stack: ex.stack });
+      setErrorMessage(getErrorMessage(ex));
+      rollbar.error('Error preparing sobject export', getErrorMessageAndStackObj(ex));
     } finally {
       setLoading(false);
     }
@@ -341,5 +342,3 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     </Fragment>
   );
 };
-
-export default SObjectExport;
