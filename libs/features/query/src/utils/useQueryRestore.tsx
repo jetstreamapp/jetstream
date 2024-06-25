@@ -6,7 +6,7 @@ import { fireToast } from '@jetstream/ui';
 import { fromQueryState, selectedOrgState } from '@jetstream/ui-core';
 import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { Query, parseQuery } from 'soql-parser-js';
 import { QueryRestoreErrors, UserFacingRestoreError, restoreQuery } from './query-restore-utils';
 
@@ -39,7 +39,7 @@ export const useQueryRestore = (
   const org = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   // we should compare setting here vs in a selector - any difference in performance?
 
-  const [isRestore, setIsRestore] = useRecoilState(fromQueryState.isRestore);
+  const setIsRestore = useSetRecoilState(fromQueryState.isRestore);
   const setIsTooling = useSetRecoilState(fromQueryState.isTooling);
   const setSObjectsState = useSetRecoilState(fromQueryState.sObjectsState);
   const setSelectedSObjectState = useSetRecoilState(fromQueryState.selectedSObjectState);

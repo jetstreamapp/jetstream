@@ -209,7 +209,7 @@ function getParsableFieldsFromFilter(where: Maybe<WhereClause>, fields: string[]
   if (isWhereOrHavingClauseWithRightCondition(where)) {
     getParsableFieldsFromFilter(where.right, fields);
   }
-  return fields;
+  return Array.from(new Set(fields));
 }
 
 /**
@@ -385,3 +385,14 @@ function getLowercaseFieldMapWithFullPath(metadata: Record<string, SoqlMetadataT
 
   return output;
 }
+
+export const __TEST_EXPORTS__ = {
+  getFieldsFromAllPartsOfQuery,
+  getParsableFields,
+  getParsableFieldsFromFilter,
+  fetchAllMetadata,
+  findRequiredRelationships,
+  fetchRecursiveMetadata,
+  getLowercaseFieldMap,
+  getLowercaseFieldMapWithFullPath,
+};
