@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useDeployMetadataPackage } from '@jetstream/ui-core';
 import { useCallback, useState } from 'react';
@@ -68,7 +69,7 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
 
         try {
           const results = await doDeployMetadata(selectedOrg, file, {
-            rollbackOnError: false,
+            rollbackOnError: true,
             singlePackage: true,
             allowMissingFiles: false,
           });
@@ -94,14 +95,14 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
           }
           setStatus('SUCCESS');
         } catch (ex) {
-          rollbar.error('Deploy object permission records Fatal Error', { message: ex.message, stack: ex.stack });
+          rollbar.error('Deploy object permission records Fatal Error', getErrorMessageAndStackObj(ex));
           setStatus('FAILED');
         } finally {
           setLoading(false);
           setDeployed(true);
         }
       } catch (ex) {
-        rollbar.error('Deploy object Fatal Error', { message: ex.message, stack: ex.stack });
+        rollbar.error('Deploy object Fatal Error', getErrorMessageAndStackObj(ex));
         setStatus('FAILED');
       }
     },
