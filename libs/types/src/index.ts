@@ -9,4 +9,8 @@ export * from './lib/salesforce/record.types';
 export * from './lib/salesforce/sobject.types';
 export * from './lib/salesforce/tooling.types';
 export * from './lib/types';
+export * from './lib/ui/deploy-types';
+export * from './lib/ui/load-records-results-types';
+export * from './lib/ui/load-records-types';
+export * from './lib/ui/permission-manager-types';
 export * from './lib/ui/types';

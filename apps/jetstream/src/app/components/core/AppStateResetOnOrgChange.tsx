@@ -1,13 +1,15 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { fromAppState } from '@jetstream/ui-core';
+import {
+  fromAppState,
+  fromAutomationControlState,
+  fromDeployMetadataState,
+  fromFormulaState,
+  fromLoadRecordsState,
+  fromPermissionsState,
+  fromQueryState,
+} from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromAutomationControlState from '../automation-control/automation-control.state';
-import * as fromDeployMetadataState from '../deploy/deploy-metadata.state';
-import * as fromFormulaState from '../formula-evaluator/formula-evaluator.state';
-import * as fromLoadState from '../load-records/load-records.state';
-import * as fromPermissionsState from '../manage-permissions/manage-permissions.state';
-import * as fromQueryState from '../query/query.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AppStateResetOnOrgChangeProps {}
@@ -33,9 +35,9 @@ export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChang
     useResetRecoilState(fromQueryState.queryOrderByState),
     useResetRecoilState(fromQueryState.querySoqlState),
     // LOAD
-    useResetRecoilState(fromLoadState.sObjectsState),
-    useResetRecoilState(fromLoadState.selectedSObjectState),
-    useResetRecoilState(fromLoadState.fieldMappingState),
+    useResetRecoilState(fromLoadRecordsState.sObjectsState),
+    useResetRecoilState(fromLoadRecordsState.selectedSObjectState),
+    useResetRecoilState(fromLoadRecordsState.fieldMappingState),
     // AUTOMATION-CONTROL
     useResetRecoilState(fromAutomationControlState.sObjectsState),
     // Manage Permissions

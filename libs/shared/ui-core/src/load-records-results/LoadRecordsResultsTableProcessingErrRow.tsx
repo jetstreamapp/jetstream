@@ -2,7 +2,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
-import { PrepareDataResponseError } from './load-records-results-types';
+import { PrepareDataResponseError } from '../../../../types/src/lib/ui/load-records-results-types';
 
 export interface LoadRecordsResultsTableProcessingErrRowProps {
   processingErrors: PrepareDataResponseError[];

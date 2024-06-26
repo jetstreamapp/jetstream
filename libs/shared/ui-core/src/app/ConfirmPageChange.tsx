@@ -1,7 +1,7 @@
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
-import * as fromAppState from '../app-state/app-state';
+import * as fromAppState from '../state-management/app-state';
 import { usePrompt } from './PromptNavigation';
 
 export interface ConfirmPageChangeProps {

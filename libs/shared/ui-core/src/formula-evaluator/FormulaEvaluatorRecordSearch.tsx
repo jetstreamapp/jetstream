@@ -5,8 +5,8 @@ import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/type
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../app-state/app-state';
 import { ViewEditCloneRecord } from '../record/ViewEditCloneRecord';
+import { applicationCookieState } from '../state-management/app-state';
 
 export interface FormulaEvaluatorRecordSearchProps {
   selectedOrg: SalesforceOrgUi;

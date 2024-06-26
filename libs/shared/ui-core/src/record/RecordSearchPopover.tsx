@@ -8,7 +8,7 @@ import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../app-state/app-state';
+import { applicationCookieState, selectedOrgState } from '../state-management/app-state';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 
 type RecentRecordMap = Record<string, RecentRecord[]>;

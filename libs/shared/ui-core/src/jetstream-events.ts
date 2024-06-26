@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { JetstreamEventPayloads, JetstreamEvents, JetstreamEventType } from '@jetstream/types';
+import { AsyncJob, JetstreamEventPayloads, JetstreamEvents, JetstreamEventType } from '@jetstream/types';
 import { Observable, Subject } from 'rxjs';
 import { filter, map, tap } from 'rxjs/operators';
 
@@ -21,4 +21,8 @@ function emit(event: JetstreamEvents) {
 export const fromJetstreamEvents = {
   getObservable,
   emit,
+};
+
+export const isAsyncJob = (event: JetstreamEventPayloads): event is AsyncJob => {
+  return 'type' in event;
 };

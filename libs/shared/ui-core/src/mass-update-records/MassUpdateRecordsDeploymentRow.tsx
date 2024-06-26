@@ -7,12 +7,12 @@ import { BulkJobBatchInfo, BulkJobResultRecord, SalesforceOrgUi } from '@jetstre
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
+import { DownloadAction, DownloadType } from '../../../../types/src/lib/ui/load-records-results-types';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../app-state/app-state';
 import { fromJetstreamEvents } from '../jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
-import { DownloadAction, DownloadType } from '../load-records-results/load-records-results-types';
 import LoadRecordsResultsModal from '../load/LoadRecordsResultsModal';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
 import { MetadataRow } from './mass-update-records.types';
 import { getFieldsToQuery } from './mass-update-records.utils';

@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { BulkJobBatchInfo, BulkJobWithBatches, Maybe } from '@jetstream/types';
 import { FunctionComponent } from 'react';
+import { DownloadAction, DownloadType, PrepareDataResponseError } from '../../../../types/src/lib/ui/load-records-results-types';
 import LoadRecordsBulkApiResultsTableRow from './LoadRecordsBulkApiResultsTableRow';
 import LoadRecordsResultsTableProcessingErrRow from './LoadRecordsResultsTableProcessingErrRow';
-import { DownloadAction, DownloadType, PrepareDataResponseError } from './load-records-results-types';
 export interface LoadRecordsBulkApiResultsTableProps {
   jobInfo: BulkJobWithBatches;
   processingErrors: PrepareDataResponseError[];

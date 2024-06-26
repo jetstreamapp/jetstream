@@ -8,7 +8,7 @@ import { formatDate } from 'date-fns/format';
 import { useCallback, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState } from '../app-state/app-state';
+import { applicationCookieState } from '../state-management/app-state';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 

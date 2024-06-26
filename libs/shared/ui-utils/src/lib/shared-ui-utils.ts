@@ -701,7 +701,7 @@ export function unescapeSoqlString(value: string) {
  * Allows case-insensitive lookup
  * @returns a map of lowercase function names to their proper case
  */
-export function getLowercaseFieldFunctionMap() {
+export function getLowercaseFieldFunctionMap(): Record<string, string> {
   return [
     'AVG',
     'COUNT',

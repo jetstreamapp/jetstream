@@ -1,0 +1,16 @@
+{
+  "name": "features-load-records-multi-object",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/load-records-multi-object/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/features/load-records-multi-object/jest.config.ts"
+      }
+    }
+  }
+}

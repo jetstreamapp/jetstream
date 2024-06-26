@@ -6,44 +6,74 @@ import { APP_ROUTES } from './components/core/app-routes';
 import { AppHome } from './components/home/AppHome';
 import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
-const LoadRecords = lazy(() => import('./components/load-records/LoadRecords'));
-const LoadRecordsMultiObject = lazy(() => import('./components/load-records-multi-object/LoadRecordsMultiObject'));
+const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
+const LoadRecordsMultiObject = lazy(() =>
+  import('@jetstream/feature/load-records-multi-object').then((module) => ({ default: module.LoadRecordsMultiObject }))
+);
 
-const Query = lazy(() => import('./components/query/Query'));
-const QueryBuilder = lazy(() => import('./components/query/QueryBuilder/QueryBuilder'));
-const QueryResults = lazy(() => import('./components/query/QueryResults/QueryResults'));
+const Query = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.Query })));
+const QueryBuilder = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryBuilder })));
+const QueryResults = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryResults })));
 
-const AutomationControl = lazy(() => import('./components/automation-control/AutomationControl'));
-const AutomationControlSelection = lazy(() => import('./components/automation-control/AutomationControlSelection'));
-const AutomationControlEditor = lazy(() => import('./components/automation-control/AutomationControlEditor'));
+const AutomationControl = lazy(() =>
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControl }))
+);
+const AutomationControlEditor = lazy(() =>
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlEditor }))
+);
+const AutomationControlSelection = lazy(() =>
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlSelection }))
+);
 
-const ManagePermissions = lazy(() => import('./components/manage-permissions/ManagePermissions'));
-const ManagePermissionsSelection = lazy(() => import('./components/manage-permissions/ManagePermissionsSelection'));
-const ManagePermissionsEditor = lazy(() => import('./components/manage-permissions/ManagePermissionsEditor'));
+const ManagePermissions = lazy(() =>
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissions }))
+);
+const ManagePermissionsSelection = lazy(() =>
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsSelection }))
+);
+const ManagePermissionsEditor = lazy(() =>
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsEditor }))
+);
 
-const DeployMetadata = lazy(() => import('./components/deploy/DeployMetadata'));
-const DeployMetadataSelection = lazy(() => import('./components/deploy/DeployMetadataSelection'));
-const DeployMetadataDeployment = lazy(() => import('./components/deploy/DeployMetadataDeployment'));
+const DeployMetadata = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadata })));
+const DeployMetadataSelection = lazy(() =>
+  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataSelection }))
+);
+const DeployMetadataDeployment = lazy(() =>
+  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataDeployment }))
+);
 
-const CreateObjectAndFields = lazy(() => import('./components/create-object-and-fields/CreateObjectAndFields'));
-const CreateFieldsSelection = lazy(() => import('./components/create-object-and-fields/CreateFieldsSelection'));
-const CreateFields = lazy(() => import('./components/create-object-and-fields/CreateFields'));
+const CreateObjectAndFields = lazy(() =>
+  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateObjectAndFields }))
+);
+const CreateFieldsSelection = lazy(() =>
+  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFieldsSelection }))
+);
+const CreateFields = lazy(() => import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFields })));
 
-const FormulaEvaluator = lazy(() => import('./components/formula-evaluator/FormulaEvaluator'));
+const FormulaEvaluator = lazy(() =>
+  import('@jetstream/feature/formula-evaluator').then((module) => ({ default: module.FormulaEvaluator }))
+);
 
-const MassUpdateRecords = lazy(() => import('./components/update-records/MassUpdateRecords'));
-const MassUpdateRecordsSelection = lazy(() => import('./components/update-records/selection/MassUpdateRecordsSelection'));
-const MassUpdateRecordsDeployment = lazy(() => import('./components/update-records/deployment/MassUpdateRecordsDeployment'));
+const MassUpdateRecords = lazy(() => import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecords })));
+const MassUpdateRecordsSelection = lazy(() =>
+  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsSelection }))
+);
+const MassUpdateRecordsDeployment = lazy(() =>
+  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsDeployment }))
+);
 
-const AnonymousApex = lazy(() => import('./components/anonymous-apex/AnonymousApex'));
+const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
 
-const SalesforceApi = lazy(() => import('./components/salesforce-api/SalesforceApi'));
+const SalesforceApi = lazy(() => import('@jetstream/feature/salesforce-api').then((module) => ({ default: module.SalesforceApi })));
 
-const DebugLogViewer = lazy(() => import('./components/debug-log-viewer/DebugLogViewer'));
+const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').then((module) => ({ default: module.DebugLogViewer })));
 
-const SObjectExport = lazy(() => import('./components/sobject-export/SObjectExport'));
+const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').then((module) => ({ default: module.SObjectExport })));
 
-const PlatformEventMonitor = lazy(() => import('./components/platform-event-monitor/PlatformEventMonitor'));
+const PlatformEventMonitor = lazy(() =>
+  import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
+);
 
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
 

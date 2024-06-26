@@ -41,6 +41,20 @@ export function getErrorMessage(error: unknown) {
   return JSON.stringify(error);
 }
 
+export function getErrorStack(error: unknown) {
+  if (error instanceof Error) {
+    return error.stack;
+  }
+  return null;
+}
+
+export function getErrorMessageAndStackObj(error: unknown) {
+  if (error instanceof Error) {
+    return { message: error.message, stack: error.stack };
+  }
+  return {};
+}
+
 export function dateFromTimestamp(timestamp: number): Date {
   return fromUnixTime(timestamp);
 }

@@ -21,8 +21,9 @@ export const DEFAULT_FIELD_CONFIGURATION: MetadataRowConfiguration = {
   },
 };
 
-export function filterMassUpdateSobject(sobject: DescribeGlobalSObjectResult) {
+export function filterMassUpdateSobject(sobject: DescribeGlobalSObjectResult | null) {
   return (
+    !!sobject &&
     (sobject.createable || sobject.updateable) &&
     !sobject.name.endsWith('__History') &&
     !sobject.name.endsWith('__Tag') &&

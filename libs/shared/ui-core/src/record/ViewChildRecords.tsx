@@ -24,7 +24,7 @@ import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, u
 import { useRecoilValue } from 'recoil';
 import { composeQuery, getField } from 'soql-parser-js';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../app-state/app-state';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 
 function getRowId(row: SalesforceRecord<ChildRecordRow>): string {
   return `${row.Id}-${row._idx}`;
