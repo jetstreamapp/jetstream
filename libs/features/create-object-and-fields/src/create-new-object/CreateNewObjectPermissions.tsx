@@ -1,10 +1,22 @@
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, Grid, ListWithFilterMultiSelect } from '@jetstream/ui';
-import { FunctionComponent, useState } from 'react';
+import { Grid, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
+import { Fragment, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
+import { CreateNewObjectPermissionsCheckboxes } from './CreateNewObjectPermissionsCheckboxes';
 import * as fromCreateObjectState from './create-object-state';
 import { CreateObjectPermissions } from './create-object-types';
+
+function getDefaultPermissions() {
+  return {
+    allowCreate: true,
+    allowDelete: true,
+    allowEdit: true,
+    allowRead: true,
+    modifyAllRecords: true,
+    viewAllRecords: true,
+  };
+}
 
 export interface CreateNewObjectPermissionsProps {
   selectedOrg: SalesforceOrgUi;
@@ -12,7 +24,7 @@ export interface CreateNewObjectPermissionsProps {
   portalRef?: Element;
 }
 
-export const CreateNewObjectPermissions: FunctionComponent<CreateNewObjectPermissionsProps> = ({ selectedOrg, loading, portalRef }) => {
+export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: CreateNewObjectPermissionsProps) => {
   const [profiles, setProfiles] = useRecoilState(fromCreateObjectState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromCreateObjectState.selectedProfilesState);
 
@@ -21,14 +33,40 @@ export const CreateNewObjectPermissions: FunctionComponent<CreateNewObjectPermis
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
-  const [objectPermissions, setObjectPermissions] = useState<CreateObjectPermissions>({
-    allowCreate: true,
-    allowDelete: true,
-    allowEdit: true,
-    allowRead: true,
-    modifyAllRecords: true,
-    viewAllRecords: true,
-  });
+  const [permissionScope, setPermissionScope] = useState<'ALL' | 'GRANULAR'>('ALL');
+
+  const [objectPermissions, setObjectPermissions] = useState<CreateObjectPermissions>(getDefaultPermissions);
+
+  const [objectPermissionsGranular, setObjectPermissionsGranular] = useState<Record<string, CreateObjectPermissions>>({});
+
+  const [permissionLabelMap, setPermissionLabelMap] = useState<Record<string, string>>({});
+
+  const selectedProfilesPermSets = [...selectedProfiles, ...selectedPermissionSets];
+
+  useEffect(() => {
+    const profilesPermSetsById = [...(profiles || []), ...(permissionSets || [])].reduce((acc: Record<string, string>, item) => {
+      acc[item.value] = item.label;
+      return acc;
+    }, {});
+    setPermissionLabelMap(
+      [...selectedProfiles, ...selectedPermissionSets].reduce((acc: Record<string, string>, id) => {
+        acc[id] = profilesPermSetsById[id];
+        return acc;
+      }, {})
+    );
+  }, [selectedProfiles, selectedPermissionSets, profiles, permissionSets]);
+
+  useEffect(() => {
+    setObjectPermissionsGranular((prevValue) => {
+      const newValue = { ...prevValue };
+      [...selectedProfiles, ...selectedPermissionSets].forEach((profileOrPermSet) => {
+        if (!newValue[profileOrPermSet]) {
+          newValue[profileOrPermSet] = getDefaultPermissions();
+        }
+      });
+      return newValue;
+    });
+  }, [selectedProfiles, selectedPermissionSets]);
 
   useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
@@ -82,48 +120,49 @@ export const CreateNewObjectPermissions: FunctionComponent<CreateNewObjectPermis
       </div>
       <div className="slds-p-left_large">
         <h2 className="slds-text-heading_medium slds-grow slds-text-align_center slds-m-bottom_xx-small">Object Permissions</h2>
-        <Checkbox
-          id="objectPermissions.allowCreate"
-          label="Allow Create"
-          checked={objectPermissions.allowCreate}
-          onChange={(value) => setObjectPermissions((priorValue) => ({ ...priorValue, allowCreate: value }))}
-          disabled={loading}
-        />
-        <Checkbox
-          id="objectPermissions.allowDelete"
-          label="Allow Delete"
-          checked={objectPermissions.allowDelete}
-          onChange={(value) => setObjectPermissions((priorValue) => ({ ...priorValue, allowDelete: value }))}
-          disabled={loading}
-        />
-        <Checkbox
-          id="objectPermissions.allowEdit"
-          label="Allow Edit"
-          checked={objectPermissions.allowEdit}
-          onChange={(value) => setObjectPermissions((priorValue) => ({ ...priorValue, allowEdit: value }))}
-          disabled={loading}
-        />
-        <Checkbox
-          id="objectPermissions.allowRead"
-          label="Allow Read"
-          checked={objectPermissions.allowRead}
-          onChange={(value) => setObjectPermissions((priorValue) => ({ ...priorValue, allowRead: value }))}
-          disabled={loading}
-        />
-        <Checkbox
-          id="objectPermissions.modifyAllRecords"
-          label="Modify All Records"
-          checked={objectPermissions.modifyAllRecords}
-          onChange={(value) => setObjectPermissions((priorValue) => ({ ...priorValue, modifyAllRecords: value }))}
-          disabled={loading}
-        />
-        <Checkbox
-          id="objectPermissions.viewAllRecords"
-          label="View All Records"
-          checked={objectPermissions.viewAllRecords}
-          onChange={(value) => setObjectPermissions((priorValue) => ({ ...priorValue, viewAllRecords: value }))}
-          disabled={loading}
-        />
+
+        <RadioGroup label="Permission Scope" className="slds-m-bottom_x-small">
+          <Radio
+            id="all-permissions"
+            name="permissions-group"
+            label="Apply Same Permissions to All"
+            value="ALL"
+            checked={permissionScope === 'ALL'}
+            onChange={(value) => setPermissionScope(value as 'ALL' | 'GRANULAR')}
+            disabled={loading}
+          />
+          <Radio
+            id="granular-permissions"
+            name="permissions-group"
+            label="Apply Granular Permissions"
+            value="GRANULAR"
+            checked={permissionScope === 'GRANULAR'}
+            onChange={(value) => setPermissionScope(value as 'ALL' | 'GRANULAR')}
+            disabled={loading}
+          />
+        </RadioGroup>
+
+        <hr className="slds-m-vertical_xx-small" />
+
+        {permissionScope === 'ALL' && (
+          <CreateNewObjectPermissionsCheckboxes
+            loading={loading}
+            objectPermissions={objectPermissions}
+            onChange={(value) => setObjectPermissions(value)}
+          />
+        )}
+
+        {permissionScope === 'GRANULAR' &&
+          selectedProfilesPermSets.map((profileOrPermSet) => (
+            <Fragment key={profileOrPermSet}>
+              <h3 className="slds-text-heading_small slds-m-top_medium slds-m-bottom_x-small">{permissionLabelMap[profileOrPermSet]}</h3>
+              <CreateNewObjectPermissionsCheckboxes
+                loading={loading}
+                objectPermissions={objectPermissionsGranular[profileOrPermSet]}
+                onChange={(value) => setObjectPermissionsGranular((prevValue) => ({ ...prevValue, [profileOrPermSet]: value }))}
+              />
+            </Fragment>
+          ))}
       </div>
     </Grid>
   );
