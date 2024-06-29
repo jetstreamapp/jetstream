@@ -2,7 +2,7 @@ import React from 'react';
 
 export function NoPreviewIllustration(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg className="slds-illustration__svg" viewBox="0 0 454 272" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <svg className="slds-illustration__svg" viewBox="0 0 272 146" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
       <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
         <g transform="translate(-14.000000, -27.000000)">
           <g transform="translate(16.000000, 29.000000)">

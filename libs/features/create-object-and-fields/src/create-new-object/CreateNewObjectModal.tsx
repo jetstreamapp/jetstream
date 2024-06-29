@@ -2,7 +2,20 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { EmptyState, Grid, GridCol, Icon, Modal, PreviewIllustration, SalesforceLogin, Spinner, Tabs, TabsRef } from '@jetstream/ui';
+import {
+  EmptyState,
+  Grid,
+  GridCol,
+  Icon,
+  Modal,
+  NoPreviewIllustration,
+  PreviewIllustration,
+  SalesforceLogin,
+  Spinner,
+  Tabs,
+  TabsRef,
+  Tooltip,
+} from '@jetstream/ui';
 import {
   ConfirmPageChange,
   DeployMetadataProgressSummary,
@@ -11,7 +24,7 @@ import {
   selectSkipFrontdoorAuth,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { FunctionComponent, useRef } from 'react';
+import { FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { CreateNewObjectForm } from './CreateNewObjectForm';
 import CreateNewObjectPermissions from './CreateNewObjectPermissions';
@@ -34,6 +47,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
   const modalRef = useRef();
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<TabsRef>();
+  const [activeTab, setActiveTab] = useState('permissions');
 
   const apiNameWithoutNamespace = useRecoilValue(fromCreateObjectState.apiNameState);
   const createTab = useRecoilValue(fromCreateObjectState.createTabState);
@@ -42,7 +56,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
   const selectedPermissionSets = useRecoilValue(fromCreateObjectState.selectedPermissionSetsState);
   const selectedProfiles = useRecoilValue(fromCreateObjectState.selectedProfilesState);
   const payload = useRecoilValue(fromCreateObjectState.payloadSelector);
-  const isValid = useRecoilValue(fromCreateObjectState.isFormValid);
+  const { objectConfigIsValid, permissionsAreValid, allValid } = useRecoilValue(fromCreateObjectState.isFormValidSelector);
 
   const apiName = `${selectedOrg.orgNamespacePrefix ? `${selectedOrg.orgNamespacePrefix}__` : ''}${apiNameWithoutNamespace}`;
 
@@ -54,7 +68,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
 
   async function handleDeploy(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isValid || !payload) {
+    if (!allValid || !payload) {
       return;
     }
 
@@ -88,6 +102,21 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
     }
   }
 
+  function advanceTab() {
+    let newTab = 'permissions';
+    switch (activeTab) {
+      case 'permissions':
+        newTab = 'field';
+        break;
+      case 'field':
+        newTab = 'results';
+        break;
+      default:
+        break;
+    }
+    tabsRef?.current?.changeTab(newTab);
+  }
+
   return (
     <>
       <ConfirmPageChange actionInProgress={loading} />
@@ -102,9 +131,16 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
               <button className="slds-button slds-button_neutral" onClick={() => handleCloseModal()} disabled={loading}>
                 Close
               </button>
-              <button className="slds-button slds-button_brand" form="create-object-form" type="submit" disabled={loading || !isValid}>
-                Create Object
-              </button>
+              {activeTab !== 'results' && (
+                <button className="slds-button slds-button_brand" onClick={advanceTab}>
+                  Continue
+                </button>
+              )}
+              {activeTab === 'results' && (
+                <button className="slds-button slds-button_brand" form="create-object-form" type="submit" disabled={loading || !allValid}>
+                  Create Object
+                </button>
+              )}
             </div>
           </Grid>
         }
@@ -120,12 +156,23 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
           <form id="create-object-form" onSubmit={handleDeploy}>
             <Tabs
               ref={tabsRef}
+              onChange={(newTab) => setActiveTab(newTab)}
               tabs={[
                 {
                   id: 'permissions',
                   title: (
                     <Grid verticalAlign="center">
                       <span>Permissions ({formatNumber(selectedProfiles.length + selectedPermissionSets.length)})</span>
+                      {!permissionsAreValid && (
+                        <Tooltip content="Permissions are not configured">
+                          <Icon
+                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-left_x-small"
+                            type="utility"
+                            icon="info"
+                            description="Permissions are not configured"
+                          />
+                        </Tooltip>
+                      )}
                     </Grid>
                   ),
                   titleText: 'Permissions',
@@ -136,6 +183,16 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                   title: (
                     <Grid verticalAlign="center">
                       <span>Object Configuration</span>
+                      {!objectConfigIsValid && (
+                        <Tooltip content="Object is not configured">
+                          <Icon
+                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-left_x-small"
+                            type="utility"
+                            icon="info"
+                            description="Object is not configured"
+                          />
+                        </Tooltip>
+                      )}
                     </Grid>
                   ),
                   content: <CreateNewObjectForm loading={loading} />,
@@ -163,7 +220,15 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
 
                       {status === 'NOT_STARTED' && (
                         <GridCol size={12}>
-                          <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />}></EmptyState>
+                          {!allValid && (
+                            <EmptyState
+                              headline="Go back and correct your configuration"
+                              illustration={<NoPreviewIllustration />}
+                            ></EmptyState>
+                          )}
+                          {allValid && (
+                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />}></EmptyState>
+                          )}
                         </GridCol>
                       )}
 

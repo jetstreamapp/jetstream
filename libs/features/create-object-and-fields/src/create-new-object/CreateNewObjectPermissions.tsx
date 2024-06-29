@@ -1,13 +1,13 @@
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Grid, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
-import { Fragment, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { EmptyState, Grid, GridCol, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
+import { Fragment, useEffect } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { CreateNewObjectPermissionsCheckboxes } from './CreateNewObjectPermissionsCheckboxes';
 import * as fromCreateObjectState from './create-object-state';
-import { CreateObjectPermissions } from './create-object-types';
+import { CreateObjectPermissions, ObjectPermissionGranularState } from './create-object-types';
 
-function getDefaultPermissions() {
+function getDefaultPermissions(): CreateObjectPermissions {
   return {
     allowCreate: true,
     allowDelete: true,
@@ -31,42 +31,30 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
   const [permissionSets, setPermissionSets] = useRecoilState(fromCreateObjectState.permissionSetsState);
   const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromCreateObjectState.selectedPermissionSetsState);
 
+  const [objectPermissionsState, setObjectPermissionsState] = useRecoilState(fromCreateObjectState.objectPermissionsState);
+
+  const selectedProfilesPermSets = useRecoilValue(fromCreateObjectState.selectedProfileAndPermLesWithLabelSelector);
+
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
-  const [permissionScope, setPermissionScope] = useState<'ALL' | 'GRANULAR'>('ALL');
-
-  const [objectPermissions, setObjectPermissions] = useState<CreateObjectPermissions>(getDefaultPermissions);
-
-  const [objectPermissionsGranular, setObjectPermissionsGranular] = useState<Record<string, CreateObjectPermissions>>({});
-
-  const [permissionLabelMap, setPermissionLabelMap] = useState<Record<string, string>>({});
-
-  const selectedProfilesPermSets = [...selectedProfiles, ...selectedPermissionSets];
-
+  // When profiles are selected or de-selected, keep the permissions in sync
   useEffect(() => {
-    const profilesPermSetsById = [...(profiles || []), ...(permissionSets || [])].reduce((acc: Record<string, string>, item) => {
-      acc[item.value] = item.label;
-      return acc;
-    }, {});
-    setPermissionLabelMap(
-      [...selectedProfiles, ...selectedPermissionSets].reduce((acc: Record<string, string>, id) => {
-        acc[id] = profilesPermSetsById[id];
-        return acc;
-      }, {})
-    );
-  }, [selectedProfiles, selectedPermissionSets, profiles, permissionSets]);
-
-  useEffect(() => {
-    setObjectPermissionsGranular((prevValue) => {
-      const newValue = { ...prevValue };
-      [...selectedProfiles, ...selectedPermissionSets].forEach((profileOrPermSet) => {
-        if (!newValue[profileOrPermSet]) {
-          newValue[profileOrPermSet] = getDefaultPermissions();
-        }
-      });
-      return newValue;
+    setObjectPermissionsState((prevValue) => {
+      if (prevValue.scope === 'GRANULAR') {
+        // If the scope is already 'ALL', we don't need to do anything
+        const newValue: ObjectPermissionGranularState = { ...prevValue, permissions: {} };
+        [...selectedProfiles, ...selectedPermissionSets].forEach((profileOrPermSet) => {
+          if (!prevValue.permissions[profileOrPermSet]) {
+            newValue.permissions[profileOrPermSet] = getDefaultPermissions();
+          } else {
+            newValue.permissions[profileOrPermSet] = { ...prevValue.permissions[profileOrPermSet] };
+          }
+        });
+        return newValue;
+      }
+      return prevValue;
     });
-  }, [selectedProfiles, selectedPermissionSets]);
+  }, [selectedProfiles, selectedPermissionSets, setObjectPermissionsState]);
 
   useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
@@ -74,9 +62,59 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
 
+  function handlePermissionScopeChange(value: 'ALL' | 'GRANULAR') {
+    setObjectPermissionsState((prevValue) => {
+      if (prevValue.scope === value) {
+        return prevValue;
+      }
+
+      if (value === 'ALL') {
+        return {
+          scope: 'ALL',
+          permissions: getDefaultPermissions(),
+        };
+      }
+
+      return {
+        scope: 'GRANULAR',
+        permissions: selectedProfilesPermSets.reduce((acc: ObjectPermissionGranularState['permissions'], { value }) => {
+          acc[value] = getDefaultPermissions();
+          return acc;
+        }, {}),
+      };
+    });
+  }
+
+  function handlePermissionsAllChange(value: CreateObjectPermissions) {
+    setObjectPermissionsState({
+      scope: 'ALL',
+      permissions: value,
+    });
+  }
+
+  function handlePermissionsGranularChange(value: CreateObjectPermissions, profileOrPermSet: string) {
+    setObjectPermissionsState((prevValue) => {
+      if (prevValue.scope === 'ALL') {
+        return {
+          scope: 'GRANULAR',
+          permissions: {
+            [profileOrPermSet]: value,
+          },
+        };
+      }
+      return {
+        scope: 'GRANULAR',
+        permissions: {
+          ...prevValue.permissions,
+          [profileOrPermSet]: value,
+        },
+      };
+    });
+  }
+
   return (
-    <Grid className="slds-scrollable_x">
-      <div className="slds-p-horizontal_x-small">
+    <Grid gutters>
+      <GridCol size={4}>
         <ListWithFilterMultiSelect
           autoFillContainerProps={{ bottomBuffer: 200 }}
           labels={{
@@ -96,8 +134,8 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
           onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
         />
-      </div>
-      <div className="slds-p-horizontal_x-small">
+      </GridCol>
+      <GridCol size={4}>
         <ListWithFilterMultiSelect
           autoFillContainerProps={{ bottomBuffer: 200 }}
           labels={{
@@ -117,9 +155,9 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
           onRefresh={() => profilesAndPermSetsData.fetchMetadata(true)}
         />
-      </div>
-      <div className="slds-p-left_large">
-        <h2 className="slds-text-heading_medium slds-grow slds-text-align_center slds-m-bottom_xx-small">Object Permissions</h2>
+      </GridCol>
+      <GridCol size={4} className="slds-p-left_large">
+        <h2 className="slds-text-heading_medium slds-grow slds-m-bottom_xx-small">Object Permissions</h2>
 
         <RadioGroup label="Permission Scope" className="slds-m-bottom_x-small">
           <Radio
@@ -127,8 +165,8 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
             name="permissions-group"
             label="Apply Same Permissions to All"
             value="ALL"
-            checked={permissionScope === 'ALL'}
-            onChange={(value) => setPermissionScope(value as 'ALL' | 'GRANULAR')}
+            checked={objectPermissionsState.scope === 'ALL'}
+            onChange={(value) => handlePermissionScopeChange(value as 'ALL' | 'GRANULAR')}
             disabled={loading}
           />
           <Radio
@@ -136,34 +174,41 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
             name="permissions-group"
             label="Apply Granular Permissions"
             value="GRANULAR"
-            checked={permissionScope === 'GRANULAR'}
-            onChange={(value) => setPermissionScope(value as 'ALL' | 'GRANULAR')}
+            checked={objectPermissionsState.scope === 'GRANULAR'}
+            onChange={(value) => handlePermissionScopeChange(value as 'ALL' | 'GRANULAR')}
             disabled={loading}
           />
         </RadioGroup>
 
         <hr className="slds-m-vertical_xx-small" />
 
-        {permissionScope === 'ALL' && (
+        {objectPermissionsState.scope === 'ALL' && (
           <CreateNewObjectPermissionsCheckboxes
+            label="All Profiles and Permission Sets"
             loading={loading}
-            objectPermissions={objectPermissions}
-            onChange={(value) => setObjectPermissions(value)}
+            objectPermissions={objectPermissionsState.permissions}
+            onChange={(value) => handlePermissionsAllChange(value)}
           />
         )}
 
-        {permissionScope === 'GRANULAR' &&
-          selectedProfilesPermSets.map((profileOrPermSet) => (
-            <Fragment key={profileOrPermSet}>
-              <h3 className="slds-text-heading_small slds-m-top_medium slds-m-bottom_x-small">{permissionLabelMap[profileOrPermSet]}</h3>
-              <CreateNewObjectPermissionsCheckboxes
-                loading={loading}
-                objectPermissions={objectPermissionsGranular[profileOrPermSet]}
-                onChange={(value) => setObjectPermissionsGranular((prevValue) => ({ ...prevValue, [profileOrPermSet]: value }))}
-              />
-            </Fragment>
-          ))}
-      </div>
+        {objectPermissionsState.scope === 'GRANULAR' && (
+          <>
+            {selectedProfilesPermSets.length === 0 && <EmptyState headline="Choose at least one Profile or Permission Set" size="small" />}
+            {selectedProfilesPermSets
+              .filter(({ value }) => objectPermissionsState.permissions[value])
+              .map((item) => (
+                <Fragment key={item.value}>
+                  <CreateNewObjectPermissionsCheckboxes
+                    label={item.label}
+                    loading={loading}
+                    objectPermissions={objectPermissionsState.permissions[item.value]}
+                    onChange={(value) => handlePermissionsGranularChange(value, item.value)}
+                  />
+                </Fragment>
+              ))}
+          </>
+        )}
+      </GridCol>
     </Grid>
   );
 };

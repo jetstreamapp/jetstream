@@ -1,7 +1,7 @@
 import { REGEX } from '@jetstream/shared/utils';
 import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { atom, selector } from 'recoil';
-import { CreateObjectPayload, CreateObjectPermissions } from './create-object-types';
+import { CreateObjectPayload, ObjectPermissionState } from './create-object-types';
 
 export const labelState = atom({ key: 'create-object.labelState', default: '' });
 export const pluralLabelState = atom({ key: 'create-object.pluralLabelState', default: '' });
@@ -34,15 +34,32 @@ export const permissionSetsState = atom<ListItem<string, PermissionSetNoProfileR
 export const selectedProfilesState = atom<string[]>({ key: 'create-object.selectedProfilesState', default: [] });
 export const selectedPermissionSetsState = atom<string[]>({ key: 'create-object.selectedPermissionSetsState', default: [] });
 
-export const objectPermissionsState = atom<CreateObjectPermissions>({
+export const objectPermissionsState = atom<ObjectPermissionState>({
   key: 'create-object.objectPermissionsState',
   default: {
-    allowCreate: true,
-    allowDelete: true,
-    allowEdit: true,
-    allowRead: true,
-    modifyAllRecords: true,
-    viewAllRecords: true,
+    scope: 'ALL',
+    permissions: {
+      allowCreate: true,
+      allowDelete: true,
+      allowEdit: true,
+      allowRead: true,
+      modifyAllRecords: true,
+      viewAllRecords: true,
+    },
+  },
+});
+
+export const selectedProfileAndPermLesWithLabelSelector = selector({
+  key: 'create-object.selectedProfileAndPermLesWithLabelSelector',
+  get: ({ get }) => {
+    const selectedProfiles = new Set(get(selectedProfilesState));
+    const selectedPermissionSets = new Set(get(selectedPermissionSetsState));
+    const profiles = get(profilesState);
+    const permissionSets = get(permissionSetsState);
+    return [
+      ...(profiles || []).filter((profile) => selectedProfiles.has(profile.value)),
+      ...(permissionSets || []).filter((permissionSet) => selectedPermissionSets.has(permissionSet.value)),
+    ];
   },
 });
 
@@ -91,14 +108,42 @@ export const payloadSelector = selector<CreateObjectPayload>({
   },
 });
 
-export const isFormValid = selector<boolean>({
+export const isFormValidSelector = selector<{
+  permissionsAreValid: boolean;
+  objectConfigIsValid: boolean;
+  allValid: boolean;
+}>({
   key: 'create-object.isFormValid',
   get: ({ get }) => {
+    const selectedProfiles = get(selectedProfilesState);
+    const selectedPermissionSets = get(selectedPermissionSetsState);
     const payload = get(payloadSelector);
-    let isValid = !!payload.label && !!payload.pluralLabel && !!get(apiNameState) && !!payload.nameField.label;
-    if (payload.nameField.type === 'AutoNumber') {
-      isValid = isValid && !!payload.nameField.displayFormat && REGEX.NUMERIC.test(payload.nameField.startingNumber || '');
+    const objectPermissions = get(objectPermissionsState);
+    let permissionsAreValid = true;
+    // Assigning permissions is optional - we only validate config if at least one profile or permission set is selected
+    if (selectedProfiles.length || selectedPermissionSets.length) {
+      permissionsAreValid = (
+        objectPermissions.scope === 'ALL' ? [objectPermissions.permissions] : Object.values(objectPermissions.permissions)
+      ).every(
+        (permissions) =>
+          permissions.allowCreate ||
+          permissions.allowDelete ||
+          permissions.allowEdit ||
+          permissions.allowRead ||
+          permissions.modifyAllRecords ||
+          permissions.viewAllRecords
+      );
     }
-    return isValid;
+
+    let objectConfigIsValid = !!payload.label && !!payload.pluralLabel && !!get(apiNameState) && !!payload.nameField.label;
+    if (payload.nameField.type === 'AutoNumber') {
+      objectConfigIsValid =
+        objectConfigIsValid && !!payload.nameField.displayFormat && REGEX.NUMERIC.test(payload.nameField.startingNumber || '');
+    }
+    return {
+      permissionsAreValid,
+      objectConfigIsValid,
+      allValid: permissionsAreValid && objectConfigIsValid,
+    };
   },
 });
