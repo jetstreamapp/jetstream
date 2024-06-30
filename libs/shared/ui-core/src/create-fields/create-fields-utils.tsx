@@ -31,7 +31,7 @@ import {
 } from './create-fields-types';
 import { CreateFieldsResults } from './useCreateFields';
 
-const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
+export const READ_ONLY_FIELD_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
 const MAX_OBJ_IN_QUERY = 100;
 
@@ -951,7 +951,7 @@ export function getFieldPermissionRecords(fullName: string, type: SalesforceFiel
     },
     Field: fullName,
     ParentId,
-    PermissionsEdit: READ_ONLY_TYPES.has(type) ? false : true,
+    PermissionsEdit: READ_ONLY_FIELD_TYPES.has(type) ? false : true,
     PermissionsRead: true,
     SobjectType,
   }));
@@ -972,7 +972,7 @@ export function addFieldToLayout(fields: FieldDefinitionMetadata[], layout: Layo
   const fieldsToAdd = Object.keys(fieldsByApiName).filter((field) => !layoutSectionsJson.includes(`"field":"${field}"`));
   fieldsToAdd.forEach((field) => {
     let behavior: 'Edit' | 'Readonly' | 'Required' = 'Edit';
-    if (READ_ONLY_TYPES.has(fieldsByApiName[field].type) || fieldsByApiName[field].formula) {
+    if (READ_ONLY_FIELD_TYPES.has(fieldsByApiName[field].type) || fieldsByApiName[field].formula) {
       behavior = 'Readonly';
     } else if (fieldsByApiName[field].required) {
       behavior = 'Required';

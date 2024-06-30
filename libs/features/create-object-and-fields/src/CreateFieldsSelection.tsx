@@ -18,8 +18,8 @@ import { RequireMetadataApiBanner, filterCreateFieldsSobjects, selectedOrgState 
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import * as fromCreateFieldsState from './create-fields.state';
-import CreateNewObject from './create-new-object/CreateNewObject';
+import * as fromCreateFieldsState from './create-fields/create-fields.state';
+import CreateNewObject from './create-object/CreateNewObject';
 
 const HEIGHT_BUFFER = 170;
 

@@ -5,7 +5,7 @@ import { StateDebugObserver, selectedOrgState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromCreateFieldsState from './create-fields.state';
+import * as fromCreateFieldsState from './create-fields/create-fields.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CreateObjectAndFieldsProps {}

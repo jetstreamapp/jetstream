@@ -18,11 +18,11 @@ import { RequireMetadataApiBanner, selectedOrgState, useAmplitude } from '@jetst
 import { FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import CreateFieldsDeployModal from './CreateFieldsDeployModal';
-import CreateFieldsImportExport from './CreateFieldsImportExport';
-import CreateFieldsRow from './CreateFieldsRow';
-import * as fromCreateFieldsState from './create-fields.state';
-import { useFieldValues } from './useFieldValues';
+import CreateFieldsImportExport from './create-fields/CreateFieldsImportExport';
+import CreateFieldsRow from './create-fields/CreateFieldsRow';
+import * as fromCreateFieldsState from './create-fields/create-fields.state';
+import CreateFieldsDeployModal from './create-fields/deploy-modal/CreateFieldsDeployModal';
+import { useFieldValues } from './create-fields/useFieldValues';
 
 function SelectedItemsBadge({
   items: _items,

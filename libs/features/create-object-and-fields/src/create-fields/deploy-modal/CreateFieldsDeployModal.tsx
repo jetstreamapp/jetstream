@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useFetchPageLayouts } from '@jetstream/shared/ui-utils';
 import { PermissionSetNoProfileRecord, PermissionSetWithProfileRecord, SalesforceOrgUi } from '@jetstream/types';
-import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
+import { ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Tabs } from '@jetstream/ui';
 import {
   ConfirmPageChange,
   FieldValues,
@@ -14,7 +13,8 @@ import {
 } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
+import CreateFieldsDeployModalDeployment from './CreateFieldsDeployModalDeployment';
+import CreateFieldsDeployModalPermissions from './CreateFieldsDeployModalPermissions';
 
 export interface CreateFieldsDeployModalProps {
   selectedOrg: SalesforceOrgUi;
@@ -37,13 +37,17 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
 }) => {
   const { trackEvent } = useAmplitude();
   const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
-  const {
-    loading: loadingLayouts,
-    error: loadingLayoutsError,
-    layoutsByObject,
-    selectedLayoutIds,
-    handleSelectLayout,
-  } = useFetchPageLayouts(selectedOrg, sObjects);
+  const [selectedLayoutIds, setSelectedLayoutIds] = useState(new Set<string>());
+  const [selectedPermissions, setSelectedPermissions] = useState<any>({});
+
+  // const {
+  //   loading: loadingLayouts,
+  //   error: loadingLayoutsError,
+  //   layoutsByObject,
+  //   selectedLayoutIds,
+  //   handleSelectLayout,
+  // } = useFetchPageLayouts(selectedOrg, sObjects);
+
   const { results, loading, deployed, fatalError, fatalErrorMessage, layoutErrorMessage, prepareFields, deployFields } = useCreateFields({
     apiVersion: defaultApiVersion,
     serverUrl,
@@ -52,6 +56,7 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
     permissionSets,
     sObjects,
   });
+
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportData, setExportModalData] = useState<{
@@ -160,126 +165,52 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
               overflow-x: auto;
             `}
           >
-            {fatalError && (
-              <div className="slds-m-around-medium">
-                <ScopedNotification theme="error" className="slds-m-top_medium">
-                  <p>{fatalErrorMessage}</p>
-                </ScopedNotification>
-              </div>
-            )}
-            {layoutErrorMessage && (
-              <div className="slds-m-around-medium">
-                <ScopedNotification theme="warning" className="slds-m-top_medium">
-                  <strong>Page Layout Errors</strong>
-                  <p>{layoutErrorMessage}</p>
-                </ScopedNotification>
-              </div>
-            )}
-            <Grid>
-              <table
-                className="slds-table slds-table_cell-buffer slds-no-row-hover slds-table_bordered slds-table_fixed-layout"
-                css={css`
-                  min-width: 650px;
-                `}
-              >
-                <thead>
-                  <tr className="slds-line-height_reset">
-                    <th scope="col">
-                      <div className="slds-truncate" title="Field">
-                        Field
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      css={css`
-                        width: 150px;
-                      `}
-                    >
-                      <div className="slds-truncate" title="Status">
-                        Status
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      css={css`
-                        width: 125px;
-                      `}
-                    >
-                      <div className="slds-truncate" title="Field Creation">
-                        Field Creation
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      css={css`
-                        width: 125px;
-                      `}
-                    >
-                      <div className="slds-truncate" title="FLS">
-                        FLS
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      css={css`
-                        width: 125px;
-                      `}
-                    >
-                      <div className="slds-truncate" title="Page Layouts">
-                        Page Layouts
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map((result) => (
-                    <CreateFieldsDeployModalRow key={result.key} selectedOrg={selectedOrg} serverUrl={serverUrl} result={result} />
-                  ))}
-                </tbody>
-              </table>
-              <div
-                className="slds-is-relative"
-                dir="rtl"
-                css={css`
-                  width: 400px;
-                `}
-              >
-                {loadingLayoutsError && (
-                  <div className="slds-m-around-medium">
-                    <ScopedNotification theme="error" className="slds-m-top_medium">
-                      <p>{loadingLayoutsError}</p>
-                    </ScopedNotification>
-                  </div>
-                )}
-                {loadingLayouts && <Spinner />}
-                <div className="slds-text-heading_small slds-truncate" title="Add to Page Layouts">
-                  Add to Page Layouts
-                </div>
-                {Object.keys(layoutsByObject).map((objectName) => (
-                  <fieldset className="slds-form-element slds-m-top_small slds-p-right_x-small" key={`layout-heading-${objectName}`}>
-                    <legend
-                      className="slds-form-element__label slds-truncate"
-                      title={objectName}
-                      css={css`
-                        font-weight: 700;
-                      `}
-                    >
-                      {objectName}
-                    </legend>
-                    {layoutsByObject[objectName].map((layout) => (
-                      <Checkbox
-                        key={`layout-${layout.Id}`}
-                        id={`layout-${layout.Id}`}
-                        label={layout.Name}
-                        checked={selectedLayoutIds.has(layout.Id)}
-                        disabled={loadingLayouts || loading}
-                        onChange={(value) => handleSelectLayout(layout.Id)}
-                      />
-                    ))}
-                  </fieldset>
-                ))}
-              </div>
-            </Grid>
+            <Tabs
+              tabs={[
+                {
+                  id: 'deploy-tab-1',
+                  title: 'Configure Permissions and Layouts',
+                  content: (
+                    <CreateFieldsDeployModalPermissions
+                      selectedOrg={selectedOrg}
+                      profiles={profiles}
+                      permissionSets={permissionSets}
+                      profilesAndPermSetsById={profilesAndPermSetsById}
+                      sObjects={sObjects}
+                      rows={rows}
+                      loading={loading}
+                      // TODO:
+                      onPermissionsChange={setSelectedPermissions}
+                      onLayoutsChange={setSelectedLayoutIds}
+                    />
+                  ),
+                },
+                {
+                  id: 'deploy-tab-2',
+                  title: 'Deploy Fields',
+                  content: (
+                    <div>
+                      {fatalError && (
+                        <div className="slds-m-around-medium">
+                          <ScopedNotification theme="error" className="slds-m-top_medium">
+                            <p>{fatalErrorMessage}</p>
+                          </ScopedNotification>
+                        </div>
+                      )}
+                      {layoutErrorMessage && (
+                        <div className="slds-m-around-medium">
+                          <ScopedNotification theme="warning" className="slds-m-top_medium">
+                            <strong>Page Layout Errors</strong>
+                            <p>{layoutErrorMessage}</p>
+                          </ScopedNotification>
+                        </div>
+                      )}
+                      <CreateFieldsDeployModalDeployment selectedOrg={selectedOrg} serverUrl={serverUrl} results={results} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         </Modal>
       )}
