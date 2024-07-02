@@ -13,6 +13,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { fetchMetadataFromSoql } from '@jetstream/ui-core/shared';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
 import * as formulon from 'formulon';
@@ -20,7 +21,6 @@ import { DataType, FormulaDataValue } from 'formulon';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
-import { composeQuery, getField } from 'soql-parser-js';
 import { ManualFormulaRecord } from '../create-fields/create-fields-types';
 
 const MATCH_FORMULA_SPECIAL_LABEL = /^\$[a-zA-Z]+\./;

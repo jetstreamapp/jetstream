@@ -26,7 +26,6 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { fromQueryState } from '@jetstream/ui-core';
-import isString from 'lodash/isString';
 import {
   Condition,
   DateLiteral,
@@ -43,7 +42,8 @@ import {
   Query,
   FieldType as QueryFieldType,
   WhereClause,
-} from 'soql-parser-js';
+} from '@jetstreamapp/soql-parser-js';
+import isString from 'lodash/isString';
 import {
   BASE_FIELD_SEPARATOR,
   CHILD_FIELD_SEPARATOR,

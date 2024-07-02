@@ -2,10 +2,10 @@ import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
 import { fromQueryHistoryState } from '@jetstream/ui-core';
+import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useEffect, useReducer, useRef, useState } from 'react';
-import { formatQuery, parseQuery } from 'soql-parser-js';
 import SaveFavoriteSoql from '../QueryOptions/SaveFavoriteSoql';
 
 type Action =

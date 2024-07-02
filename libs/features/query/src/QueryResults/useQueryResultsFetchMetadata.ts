@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Query } from '@jetstreamapp/soql-parser-js';
 import { useCallback, useEffect, useState } from 'react';
-import { Query } from 'soql-parser-js';
 import { fetchMetadataFromSoql } from '../utils/query-soql-utils';
 
 /**

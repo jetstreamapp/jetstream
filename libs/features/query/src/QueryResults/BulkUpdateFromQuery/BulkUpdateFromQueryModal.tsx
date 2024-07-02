@@ -28,10 +28,10 @@ import {
   fetchRecordsWithRequiredFields,
   useDeployRecords,
 } from '@jetstream/ui-core';
+import { Query } from '@jetstreamapp/soql-parser-js';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
-import { Query } from 'soql-parser-js';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 
 const MAX_BATCH_SIZE = 10000;

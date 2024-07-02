@@ -28,7 +28,7 @@ import {
   TabVisibilityPermissionRecord,
   TabVisibilityPermissionRecordForSave,
 } from '@jetstream/types';
-import { Query, WhereClause, composeQuery, getField } from 'soql-parser-js';
+import { Query, WhereClause, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 
 const MAX_OBJ_IN_QUERY = 100;
 

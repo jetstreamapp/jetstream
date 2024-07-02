@@ -1,8 +1,8 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { SalesforceRecord } from '@jetstream/types';
 import { RADIO_ALL_BROWSER, RADIO_ALL_SERVER, RADIO_FILTERED, RADIO_SELECTED, Radio, RadioGroup } from '@jetstream/ui';
+import { Query } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent } from 'react';
-import { Query } from 'soql-parser-js';
 
 export interface BulkUpdateFromQueryRecordSelectionProps {
   disabled?: boolean;

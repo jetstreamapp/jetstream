@@ -2,9 +2,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll } from '@jetstream/shared/data';
 import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import { Query, composeQuery, getField, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import lodashGet from 'lodash/get';
 import isNil from 'lodash/isNil';
-import { Query, composeQuery, getField, isQueryValid } from 'soql-parser-js';
 import { MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 
 export const startsWithWhereRgx = /^( )*WHERE( )*/i;

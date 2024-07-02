@@ -12,10 +12,10 @@ import {
   SalesforceOrgUi,
   ToolingApiResponse,
 } from '@jetstream/types';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
-import { composeQuery, getField } from 'soql-parser-js';
 import {
   EntityParticleRecord,
   FieldDefinitionMetadata,

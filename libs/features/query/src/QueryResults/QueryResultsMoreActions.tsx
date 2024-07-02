@@ -4,10 +4,9 @@ import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { AsyncJobNew, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { DropDown, Input, getSfdcRetUrl, salesforceLoginAndRedirect, useConfirmation } from '@jetstream/ui';
-import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { Query } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { Query } from 'soql-parser-js';
-import { useAmplitude } from '@jetstream/ui-core';
 import BulkUpdateFromQueryModal from './BulkUpdateFromQuery/BulkUpdateFromQueryModal';
 import QueryResultsGetRecAsApexModal from './QueryResultsGetRecAsApexModal';
 

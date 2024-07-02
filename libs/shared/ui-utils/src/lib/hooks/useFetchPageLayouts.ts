@@ -2,9 +2,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { queryWithCache } from '@jetstream/shared/data';
 import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
+import { Query, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import groupBy from 'lodash/groupBy';
 import { useCallback, useEffect, useState } from 'react';
-import { Query, composeQuery, getField } from 'soql-parser-js';
 import { useRollbar } from './useRollbar';
 
 const MAX_OBJ_IN_QUERY = 100;

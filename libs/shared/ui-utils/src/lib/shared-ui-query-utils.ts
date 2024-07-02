@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { FetchDebugLogOptions } from '@jetstream/types';
+import { composeQuery, ConditionWithValueQuery, getField, Query, WhereClauseWithoutOperator } from '@jetstreamapp/soql-parser-js';
 import isNumber from 'lodash/isNumber';
-import { composeQuery, ConditionWithValueQuery, getField, Query, WhereClauseWithoutOperator } from 'soql-parser-js';
 
 export function getApexLogsQuery({ userId, limit, asOfId }: FetchDebugLogOptions = {}) {
   limit = isNumber(limit) ? Math.abs(limit) : 100;

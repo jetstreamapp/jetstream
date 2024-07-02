@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import { ListItem } from '@jetstream/types';
 import { ComboboxWithItems, ControlledTextarea, Grid, Textarea } from '@jetstream/ui';
+import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { isQueryValid } from 'soql-parser-js';
 import { TransformationCriteria, TransformationOptions } from './mass-update-records.types';
 import { startsWithWhereRgx, transformationCriteriaListItems } from './mass-update-records.utils';
 

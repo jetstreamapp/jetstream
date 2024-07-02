@@ -1,9 +1,9 @@
 import { queryAll, sobjectOperation } from '@jetstream/shared/data';
 import { REGEX, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { Maybe, ObjectPermissionRecordInsert, RecordResult, SalesforceOrgUi, TabPermissionRecordInsert } from '@jetstream/types';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import JSZip from 'jszip';
 import partition from 'lodash/partition';
-import { composeQuery, getField } from 'soql-parser-js';
 import { CreateFieldParams, CreateObjectPayload } from './create-object-types';
 
 export function generateApiNameFromLabel(value: string) {

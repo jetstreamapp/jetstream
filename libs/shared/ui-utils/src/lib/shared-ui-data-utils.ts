@@ -15,10 +15,10 @@ import type {
   SalesforceOrgUi,
   UserTrace,
 } from '@jetstream/types';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import copyToClipboard from 'copy-to-clipboard';
 import { addHours } from 'date-fns/addHours';
 import { formatISO } from 'date-fns/formatISO';
-import { composeQuery, getField } from 'soql-parser-js';
 import {
   isRelationshipField,
   polyfillFieldDefinition,

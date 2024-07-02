@@ -3,7 +3,6 @@ import { describeGlobal, describeSObject } from '@jetstream/shared/data';
 import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import isString from 'lodash/isString';
 import {
   Query,
   FieldType as QueryFieldType,
@@ -11,7 +10,8 @@ import {
   isOrderByField,
   isValueCondition,
   isWhereOrHavingClauseWithRightCondition,
-} from 'soql-parser-js';
+} from '@jetstreamapp/soql-parser-js';
+import isString from 'lodash/isString';
 import { getQueryFieldBaseKey, getSubqueryFieldBaseKey } from './query-fields-utils';
 
 export interface SoqlMetadataTree {

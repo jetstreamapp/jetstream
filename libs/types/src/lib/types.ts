@@ -1,4 +1,4 @@
-import type { Query } from 'soql-parser-js';
+import type { Query } from '@jetstreamapp/soql-parser-js';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';

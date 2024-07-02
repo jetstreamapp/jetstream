@@ -19,10 +19,10 @@ import {
   Tooltip,
   setColumnFromType,
 } from '@jetstream/ui';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { composeQuery, getField } from 'soql-parser-js';
 import { useAmplitude } from '../analytics';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 

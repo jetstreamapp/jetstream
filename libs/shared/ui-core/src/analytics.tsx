@@ -8,8 +8,8 @@ import { useLocation } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import { fromAppState } from '.';
 
-const amplitudeToken = import.meta.env.NX_AMPLITUDE_KEY;
-const authAudience = import.meta.env.NX_AUTH_AUDIENCE;
+const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
+const authAudience = import.meta.env.NX_PUBLIC_AUTH_AUDIENCE;
 
 let hasInit = false;
 let hasProfileInit = false;

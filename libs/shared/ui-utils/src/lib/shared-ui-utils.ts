@@ -36,15 +36,6 @@ import type {
   UseReducerFetchAction,
   UseReducerFetchState,
 } from '@jetstream/types';
-import { parseISO } from 'date-fns/parseISO';
-import { saveAs } from 'file-saver';
-import safeGet from 'lodash/get';
-import isFunction from 'lodash/isFunction';
-import isNil from 'lodash/isNil';
-import isString from 'lodash/isString';
-import isUndefined from 'lodash/isUndefined';
-import numeral from 'numeral';
-import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import {
   HavingClause,
   HavingClauseWithRightCondition,
@@ -55,7 +46,16 @@ import {
   ValueWithDateLiteralCondition,
   WhereClause,
   WhereClauseWithRightCondition,
-} from 'soql-parser-js';
+} from '@jetstreamapp/soql-parser-js';
+import { parseISO } from 'date-fns/parseISO';
+import { saveAs } from 'file-saver';
+import safeGet from 'lodash/get';
+import isFunction from 'lodash/isFunction';
+import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
+import numeral from 'numeral';
+import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
 

@@ -10,8 +10,8 @@ import {
   transformationCriteriaListItems,
   transformationOptionListItems,
 } from '@jetstream/ui-core';
+import { isQueryValid } from '@jetstreamapp/soql-parser-js';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { isQueryValid } from 'soql-parser-js';
 
 export interface MassUpdateRecordsApplyToAllRowProps {
   commonFields: ListItem[];

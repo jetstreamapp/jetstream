@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { composeQuery, getField } from 'soql-parser-js';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 
 /**
  * SOQL QUERIES
