@@ -5,7 +5,7 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { HorizontalVertical, UiTabSection } from '@jetstream/types';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import React, { forwardRef, ReactNode, useEffect, useImperativeHandle, useState } from 'react';
+import React, { ReactNode, forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import Tab from './Tab';
 
@@ -63,7 +63,12 @@ export const Tabs = forwardRef<unknown, TabsProps>(
     const [filterValue, setFilterValue] = useState('');
     const [filteredTabs, setFilteredTabs] = useState(tabs);
 
-    useImperativeHandle<unknown, TabsRef>(ref, () => ({ changeTab: (id: string) => setActiveId(id) }));
+    useImperativeHandle<unknown, TabsRef>(ref, () => ({
+      changeTab: (id: string) => {
+        setActiveId(id);
+        onChange?.(id);
+      },
+    }));
 
     useEffect(() => {
       if (tabs && activeId) {
