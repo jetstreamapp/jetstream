@@ -11,9 +11,9 @@ env:
   CONTENTFUL_SPACE: wuv9tl5d77ll
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
   NX_CLOUD_DISTRIBUTED_EXECUTION: false
-  NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
-  NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
-  NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
+  NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
+  NX_PUBLIC_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+  NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
 
 jobs:
   # Build application
@@ -79,10 +79,10 @@ jobs:
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
-      NX_AMPLITUDE_KEY: ${{ secrets.NX_AMPLITUDE_KEY }}
-      NX_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
+      NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
+      NX_PUBLIC_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
       NX_CLOUD_DISTRIBUTED_EXECUTION: false
-      NX_ROLLBAR_KEY: ${{ secrets.NX_ROLLBAR_KEY }}
+      NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
       SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
       SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
       SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
