@@ -18,6 +18,7 @@ import {
   SoapNil,
   FieldType as jetstreamFieldType,
 } from '@jetstream/types';
+import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from '@jetstreamapp/soql-parser-js';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isMatch } from 'date-fns/isMatch';
@@ -28,7 +29,6 @@ import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import orderBy from 'lodash/orderBy';
-import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

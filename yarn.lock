@@ -5408,6 +5408,15 @@
     "@types/yargs" "^17.0.8"
     chalk "^4.0.0"
 
+"@jetstreamapp/soql-parser-js@^6.1.0":
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/@jetstreamapp/soql-parser-js/-/soql-parser-js-6.1.0.tgz#ac97350b1ce80fe809efecf10a30ae7714a20607"
+  integrity sha512-YLdYY5w6VWRGJ+7JF6p0jXrHM6GijdwJxM0L9M2O25usptzeLKImyItMEs1fRJJqAl4CTu+dMLrOJ3LYVk0+IA==
+  dependencies:
+    chevrotain "^10.5.0"
+    commander "^2.20.3"
+    lodash.get "^4.4.2"
+
 "@jridgewell/gen-mapping@^0.1.0":
   version "0.1.1"
   resolved "https://registry.npmjs.org/@jridgewell/gen-mapping/-/gen-mapping-0.1.1.tgz"
@@ -23918,15 +23927,6 @@ sonic-boom@^3.0.0, sonic-boom@^3.7.0:
   integrity sha512-ybz6OYOUjoQQCQ/i4LU8kaToD8ACtYP+Cj5qd2AO36bwbdewxWJ3ArmJ2cr6AvxlL2o0PqnCcPGUgkILbfkaCA==
   dependencies:
     atomic-sleep "^1.0.0"
-
-soql-parser-js@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/soql-parser-js/-/soql-parser-js-5.0.1.tgz#eb96a56eb6ef0238a6eef0c6a533e8b01720ae48"
-  integrity sha512-1TEHwUwB+wl/W8avFBwk+iTX0rbt2zEOKK3p7M1AACSUoqq7+eTdZq+Xvy1xA9Hwgp4TrabPXjt4hD8JCGy6+w==
-  dependencies:
-    chevrotain "^10.5.0"
-    commander "^2.20.3"
-    lodash.get "^4.4.2"
 
 sort-keys-length@^1.0.0:
   version "1.0.1"

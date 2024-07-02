@@ -1,4 +1,4 @@
-import { FieldType as QueryFieldType, parseQuery } from 'soql-parser-js';
+import { FieldType as QueryFieldType, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { SoqlMetadataTree, __TEST_EXPORTS__ } from '../query-soql-utils';
 
 const {

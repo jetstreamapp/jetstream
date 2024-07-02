@@ -11,8 +11,16 @@ import {
   QueryOrderByClause,
 } from '@jetstream/types';
 import { isExpressionConditionType } from '@jetstream/ui';
+import {
+  FieldType,
+  GroupByFieldClause,
+  GroupByFnClause,
+  OrderByClause,
+  OrderByFieldClause,
+  Subquery,
+  getField,
+} from '@jetstreamapp/soql-parser-js';
 import { atom, selector } from 'recoil';
-import { FieldType, GroupByFieldClause, GroupByFnClause, OrderByClause, OrderByFieldClause, Subquery, getField } from 'soql-parser-js';
 
 export const isRestore = atom<boolean>({
   key: 'query.isRestore',
