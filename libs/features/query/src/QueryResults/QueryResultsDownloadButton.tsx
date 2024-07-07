@@ -3,9 +3,9 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
 import { applicationCookieState, fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui-core';
+import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { composeQuery, parseQuery } from 'soql-parser-js';
 
 export interface QueryResultsDownloadButtonProps {
   selectedOrg: SalesforceOrgUi;

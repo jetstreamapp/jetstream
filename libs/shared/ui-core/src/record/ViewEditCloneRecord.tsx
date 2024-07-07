@@ -41,12 +41,12 @@ import {
   transformEditForm,
   validateEditForm,
 } from '@jetstream/ui-core/shared';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import Editor from '@monaco-editor/react';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { composeQuery, getField } from 'soql-parser-js';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { applicationCookieState } from '../state-management/app-state';

@@ -30,13 +30,13 @@ import {
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
+import { composeQuery, getField, Query } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import JSZip from 'jszip';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { SELECT_COLUMN_KEY, SelectColumn } from 'react-data-grid';
-import { composeQuery, getField, Query } from 'soql-parser-js';
 
 const MAX_HISTORY_ITEMS = 500;
 
