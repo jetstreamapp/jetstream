@@ -2,10 +2,10 @@ import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetst
 import { ListMetadataResult, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
 import { isObjectLike, isString, get as lodashGet } from 'lodash';
 import { create as xmlBuilder } from 'xmlbuilder2';
-import { UserFacingError } from '../utils/error-handler';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
+// TODO: deprecate in favor of xml-utils version
 export function buildPackageXml(
   types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
   version: string,
@@ -81,11 +81,11 @@ export function getRetrieveRequestFromManifest(packageManifest: string) {
   try {
     manifestXml = xmlBuilder(packageManifest).toObject({ wellFormed: true }) as any;
   } catch (ex) {
-    throw new UserFacingError('The package manifest format is invalid');
+    throw new Error('The package manifest format is invalid');
   }
   // validate parsed package manifest
   if (!manifestXml || Array.isArray(manifestXml)) {
-    throw new UserFacingError('The package manifest format is invalid');
+    throw new Error('The package manifest format is invalid');
   } else {
     const version: string = lodashGet(manifestXml, 'Package.version');
     let types: PackageTypeMembers[] = lodashGet(manifestXml, 'Package.types');
@@ -93,9 +93,9 @@ export function getRetrieveRequestFromManifest(packageManifest: string) {
       types = ensureArray(types);
     }
     if (!isString(version) || !VALID_PACKAGE_VERSION.test(version)) {
-      throw new UserFacingError('The package manifest version is invalid or is missing');
+      throw new Error('The package manifest version is invalid or is missing');
     } else if (!Array.isArray(types) || !types.length) {
-      throw new UserFacingError('The package manifest is missing types');
+      throw new Error('The package manifest is missing types');
     }
 
     const retrieveRequest: RetrieveRequest = {

@@ -1463,6 +1463,32 @@ export function useReducerFetchFn<T>() {
 }
 
 /**
+ * Validate if a string is a valid salesforce id
+ * https://gist.github.com/step307/3d265b7c7cb4eccdf0cf55a68c9cfefa
+ */
+export function isValidSalesforceRecordId(recordId?: string) {
+  if (!recordId || !/[a-z0-9]{15}|[a-z0-9]{18}/i.test(recordId)) {
+    return false;
+  }
+  if (recordId.length === 15) {
+    // no way to completely validate this
+    return true;
+  }
+  const upperCaseToBit = (char: string) => (char.match(/[A-Z]/) ? '1' : '0');
+  const binaryToSymbol = (digit: number) => (digit <= 25 ? String.fromCharCode(digit + 65) : String.fromCharCode(digit - 26 + 48));
+
+  const parts = [
+    recordId.slice(0, 5).split('').reverse().map(upperCaseToBit).join(''),
+    recordId.slice(5, 10).split('').reverse().map(upperCaseToBit).join(''),
+    recordId.slice(10, 15).split('').reverse().map(upperCaseToBit).join(''),
+  ];
+
+  const check = parts.map((str) => binaryToSymbol(parseInt(str, 2))).join('');
+
+  return check === recordId.slice(-3);
+}
+
+/**
  * Convert Salesforce 15 digit id to 18 digit id
  * If value is not in correct format, return original value
  * https://github.com/mslabina/sf15to18/blob/master/sf15to18.js

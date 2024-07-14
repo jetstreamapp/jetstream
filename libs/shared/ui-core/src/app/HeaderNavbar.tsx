@@ -1,24 +1,23 @@
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
-import {
-  HeaderDonatePopover,
-  HeaderHelpPopover,
-  Jobs,
-  RecordSearchPopover,
-  applicationCookieState,
-  selectUserPreferenceState,
-} from '@jetstream/ui-core';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import Logo from '../../../assets/images/jetstream-logo-v1-200w.png';
+import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
+import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
+import { RecordSearchPopover } from '../record/RecordSearchPopover';
+import { applicationCookieState, selectUserPreferenceState } from '../state-management/app-state';
+import HeaderDonatePopover from './HeaderDonatePopover';
+import HeaderHelpPopover from './HeaderHelpPopover';
 import NotificationsRequestModal from './NotificationsRequestModal';
 import { APP_ROUTES } from './app-routes';
+import Logo from './jetstream-logo-v1-200w.png';
 
 export interface HeaderNavbarProps {
   userProfile: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
+  isChromeExtension?: boolean;
 }
 
 function logout(serverUrl: string) {
@@ -44,7 +43,7 @@ function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<strin
   return menu;
 }
 
-export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags }) => {
+export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags, isChromeExtension }) => {
   const navigate = useNavigate();
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
@@ -76,6 +75,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
     userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
   }, [userProfile, featureFlags, deniedNotifications]);
 
+  const rightHandMenuItems = useMemo(() => {
+    return isChromeExtension
+      ? [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />]
+      : [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
+  }, [isChromeExtension]);
+
   return (
     <Fragment>
       {enableNotifications && (
@@ -84,9 +89,10 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       <Header
         userProfile={userProfile}
         logo={Logo}
-        orgs={<OrgsDropdown />}
+        orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown />}
         userMenuItems={userMenuItems}
-        rightHandMenuItems={[<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />]}
+        rightHandMenuItems={rightHandMenuItems}
+        isChromeExtension={isChromeExtension}
         onUserMenuItemSelected={handleUserMenuSelection}
       >
         <Navbar>

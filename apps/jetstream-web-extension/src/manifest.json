@@ -1,0 +1,46 @@
+{
+  "name": "Jetstream",
+  "description": "Jetstream is a set of tools that supercharge your administration of Salesforce.com.",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage", "cookies", "activeTab"],
+  "host_permissions": [
+    "https://*.cloudforce.com/*",
+    "https://*.force.com/*",
+    "https://*.lightning.force.com/*",
+    "https://*.salesforce.com/*",
+    "https://*.visual.force.com/*",
+    "https://*.visualforce.com/*"
+  ],
+  "background": {
+    "service_worker": "serviceWorker.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.cloudforce.com/*",
+        "https://*.force.com/*",
+        "https://*.lightning.force.com/*",
+        "https://*.salesforce.com/*",
+        "https://*.visual.force.com/*",
+        "https://*.visualforce.com/*"
+      ],
+      "all_frames": true,
+      "js": ["contentScript.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["*.html", "*.js", "*.css", "*.map", "*.png", "*.svg", "/app/", "/assets/"],
+      "matches": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"]
+    }
+  ],
+  "minimum_chrome_version": "110"
+}

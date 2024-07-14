@@ -59,9 +59,10 @@
     },
     "@nx/react": {
       "application": {
+        "babel": true,
         "style": "@emotion/styled",
         "linter": "eslint",
-        "babel": true
+        "bundler": "vite"
       },
       "library": {
         "style": "@emotion/styled",
@@ -126,6 +127,11 @@
       "inputs": ["default", "^production"]
     },
     "@nx/vite:build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "@nx/js:tsc": {
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]

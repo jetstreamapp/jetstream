@@ -9,7 +9,7 @@ import { ApiSObject } from './api-sobject';
 import { getApiRequestFactoryFn } from './callout-adapter';
 import { Logger, SessionInfo } from './types';
 
-interface ApiConnectionOptions {
+export interface ApiConnectionOptions {
   apiRequestAdapter: ReturnType<typeof getApiRequestFactoryFn>;
   userId: string;
   organizationId: string;
@@ -62,7 +62,7 @@ export class ApiConnection {
     this.sessionInfo = {
       userId,
       organizationId,
-      instanceUrl: instanceUrl,
+      instanceUrl,
       accessToken,
       refreshToken,
       apiVersion,
@@ -81,8 +81,42 @@ export class ApiConnection {
     this.sobject = new ApiSObject(this);
   }
 
-  handleRefresh(accessToken: string) {
-    // todo: do we need to do anything here?
+  public updateSessionInfo({
+    accessToken,
+    apiVersion,
+    callOptions,
+    instanceUrl,
+    organizationId,
+    refreshToken,
+    sfdcClientId,
+    sfdcClientSecret,
+    userId,
+  }: Partial<
+    Pick<
+      ApiConnectionOptions,
+      | 'accessToken'
+      | 'apiVersion'
+      | 'callOptions'
+      | 'instanceUrl'
+      | 'organizationId'
+      | 'refreshToken'
+      | 'sfdcClientId'
+      | 'sfdcClientSecret'
+      | 'userId'
+    >
+  >) {
+    this.sessionInfo.accessToken = accessToken ?? this.sessionInfo.accessToken;
+    this.sessionInfo.apiVersion = apiVersion ?? this.sessionInfo.apiVersion;
+    this.sessionInfo.callOptions = callOptions ?? this.sessionInfo.callOptions;
+    this.sessionInfo.instanceUrl = instanceUrl ?? this.sessionInfo.instanceUrl;
+    this.sessionInfo.organizationId = organizationId ?? this.sessionInfo.organizationId;
+    this.sessionInfo.refreshToken = refreshToken ?? this.sessionInfo.refreshToken;
+    this.sessionInfo.sfdcClientId = sfdcClientId ?? this.sessionInfo.sfdcClientId;
+    this.sessionInfo.sfdcClientSecret = sfdcClientSecret ?? this.sessionInfo.sfdcClientSecret;
+    this.sessionInfo.userId = userId ?? this.sessionInfo.userId;
+  }
+
+  public handleRefresh(accessToken: string) {
     this.sessionInfo.accessToken = accessToken;
     this.refreshCallback?.(accessToken, this.sessionInfo.refreshToken!);
   }

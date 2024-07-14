@@ -81,5 +81,11 @@
     "statusBarItem.remoteBackground": "#111827",
     "statusBarItem.remoteForeground": "#e7e7e7",
     "commandCenter.border": "#e7e7e799"
-  }
+  },
+  "json.schemas": [
+    {
+      "fileMatch": ["jetstream-web-extension/**/manifest.json"],
+      "url": "https://json.schemastore.org/chrome-manifest"
+    }
+  ]
 }

@@ -1,7 +1,16 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeGlobal } from '@jetstream/shared/data';
-import { convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import {
+  appActionObservable$,
+  appActionRecordEventFilter,
+  convertId15To18,
+  hasModifierKey,
+  isKKey,
+  isValidSalesforceRecordId,
+  useGlobalEventHandler,
+  useObservable,
+} from '@jetstream/shared/ui-utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner, getModifierKey } from '@jetstream/ui';
 import localforage from 'localforage';
@@ -35,6 +44,21 @@ export const RecordSearchPopover: FunctionComponent = () => {
   const [recordId, setRecordId] = useState<string>('');
   const [sobjectName, setSobjectName] = useState<string | null>(null);
   const [action, setAction] = useState<CloneEditView>('view');
+
+  const appActionEvents = useObservable(appActionObservable$.pipe(appActionRecordEventFilter));
+
+  useEffect(() => {
+    if (appActionEvents && appActionEvents.action === 'VIEW_RECORD' && isValidSalesforceRecordId(appActionEvents.payload.recordId)) {
+      handleSubmit(null, appActionEvents.payload.recordId);
+      setRecordId(appActionEvents.payload.recordId);
+      setAction('view');
+    } else if (appActionEvents && appActionEvents.action === 'EDIT_RECORD' && isValidSalesforceRecordId(appActionEvents.payload.recordId)) {
+      handleSubmit(null, appActionEvents.payload.recordId);
+      setRecordId(appActionEvents.payload.recordId);
+      setAction('edit');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appActionEvents]);
 
   const getRecentRecords = useCallback(async () => {
     setRecordId('');

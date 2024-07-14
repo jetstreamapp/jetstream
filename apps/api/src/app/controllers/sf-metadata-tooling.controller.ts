@@ -11,11 +11,11 @@ import {
   RetrievePackageFromExistingServerPackagesRequestSchema,
   RetrievePackageFromLisMetadataResultsRequestSchema,
 } from '@jetstream/api-types';
+import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '@jetstream/salesforce-api';
 import { RetrieveRequest } from '@jetstream/types';
 import JSZip from 'jszip';
 import { isString } from 'lodash';
 import { z } from 'zod';
-import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '../services/salesforce.service';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';

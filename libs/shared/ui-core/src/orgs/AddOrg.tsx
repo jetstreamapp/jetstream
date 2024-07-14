@@ -1,10 +1,10 @@
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
-import { applicationCookieState } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
+import { applicationCookieState } from '../state-management/app-state';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 

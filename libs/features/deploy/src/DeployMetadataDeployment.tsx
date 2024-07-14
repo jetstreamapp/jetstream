@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, formatNumber, isChromeExtension } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { DeployMetadataTableRow, ListMetadataResult, SalesforceOrgUi, SidePanelType } from '@jetstream/types';
 import {
@@ -17,7 +17,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, fromDeployMetadataState, fromJetstreamEvents, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
@@ -33,7 +33,6 @@ import AddToChangeset from './add-to-changeset/AddToChangeset';
 import DeleteMetadataModal from './delete-metadata/DeleteMetadataModal';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
-import * as fromDeployMetadataState from './deploy-metadata.state';
 import DeployMetadataToOrg from './deploy-to-different-org/DeployMetadataToOrg';
 import DeployMetadataSelectedItemsBadge from './utils/DeployMetadataSelectedItemsBadge';
 import DownloadPackageWithFileSelector from './utils/DownloadPackageWithFileSelector';
@@ -88,6 +87,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
 
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
   const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
+
+  const [chromeExtension] = useState(() => isChromeExtension());
 
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {
@@ -305,7 +306,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
               loading={loading}
               selectedRows={selectedRows}
             />
-            <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />
+            {!chromeExtension && <DeployMetadataToOrg selectedOrg={selectedOrg} loading={loading} selectedRows={selectedRows} />}
             <DropDown
               className="slds-button_last"
               position="right"

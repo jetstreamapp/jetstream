@@ -20,12 +20,7 @@
     "useDefineForClassFields": true
   },
   "files": [],
-  "include": [
-    "src",
-    "../../libs/shared/ui-core/src/state-management/app-state.ts",
-    "../../libs/shared/ui-core/src/jetstream-events.ts",
-    "../../libs/shared/ui-core/src/analytics.tsx"
-  ],
+  "include": ["src"],
   "exclude": ["**/*.js/*.worker.ts"],
   "references": [
     {

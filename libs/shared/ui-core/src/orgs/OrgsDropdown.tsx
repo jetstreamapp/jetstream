@@ -3,13 +3,13 @@ import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOr
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
-import { OrgsCombobox, fromAppState, fromJetstreamEvents, useOrgPermissions } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { Observable } from 'rxjs';
+import { fromAppState, fromJetstreamEvents, OrgsCombobox, useOrgPermissions } from '..';
 import AddOrg from './AddOrg';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';

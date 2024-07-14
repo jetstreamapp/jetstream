@@ -32,6 +32,13 @@ export class ApiOrg extends SalesforceApi {
     });
   }
 
+  async discovery(): Promise<Record<string, string>> {
+    return await this.apiRequest<Record<string, string>>({
+      sessionInfo: this.sessionInfo,
+      url: this.getRestApiUrl(),
+    });
+  }
+
   async apiVersions(): Promise<{ label: string; url: string; version: string }[]> {
     return await this.apiRequest<{ label: string; url: string; version: string }[]>({
       sessionInfo: this.sessionInfo,

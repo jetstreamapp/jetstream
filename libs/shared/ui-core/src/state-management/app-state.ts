@@ -1,12 +1,37 @@
+/// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
-import { getOrgType, parseCookie } from '@jetstream/shared/ui-utils';
+import { getChromeExtensionVersion, getOrgType, isChromeExtension, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { ApplicationCookie, Maybe, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
+
+const DEFAULT_PROFILE = {
+  email: 'unknown',
+  email_verified: true,
+  name: 'unknown',
+  nickname: 'unknown',
+  picture: 'unknown',
+  sub: 'unknown',
+  updated_at: 'unknown',
+  id: 'unknown',
+  userId: 'unknown',
+  createdAt: 'unknown',
+  updatedAt: 'unknown',
+  'http://getjetstream.app/app_metadata': {
+    featureFlags: {
+      flagVersion: '',
+      flags: [],
+      isDefault: true,
+    },
+  },
+  preferences: {
+    skipFrontdoorLogin: true,
+  },
+} as UserProfileUi;
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
@@ -56,7 +81,7 @@ async function getUserPreferences(): Promise<UserProfilePreferences> {
 
 async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   try {
-    const orgs = await getOrgs();
+    const orgs = isChromeExtension() ? [] : await getOrgs();
     return orgs || [];
   } catch (ex) {
     return [];
@@ -78,14 +103,15 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
 
 async function fetchAppVersion() {
   try {
-    return await checkHeartbeat();
+    return isChromeExtension() ? { version: getChromeExtensionVersion() } : await checkHeartbeat();
   } catch (ex) {
     return { version: 'unknown' };
   }
 }
 
 async function fetchUserProfile(): Promise<UserProfileUi> {
-  const userProfile = await getUserProfile();
+  // FIXME: this is a temporary fix to get the extension working, will want to fetch from server
+  const userProfile = isChromeExtension() ? DEFAULT_PROFILE : await getUserProfile();
   return userProfile;
 }
 

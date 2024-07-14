@@ -14,11 +14,11 @@ import {
   SalesforceLogin,
   Spinner,
 } from '@jetstream/ui';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 
 const EMPTY_COLOR = '_none_';
 
@@ -44,9 +44,10 @@ export interface OrgInfoPopoverProps {
   org: SalesforceOrgUi;
   loading?: boolean;
   disableOrgActions?: boolean;
-  onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
-  onRemoveOrg: (org: SalesforceOrgUi) => void;
-  onUpdateOrg: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
+  isReadOnly?: boolean;
+  onAddOrg?: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
+  onRemoveOrg?: (org: SalesforceOrgUi) => void;
+  onUpdateOrg?: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
 }
 
 function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: boolean, prop: keyof SalesforceOrgUi, label?: string) {
@@ -98,6 +99,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   org,
   loading,
   disableOrgActions,
+  isReadOnly = false,
   onAddOrg,
   onRemoveOrg,
   onUpdateOrg,
@@ -125,7 +127,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
 
   function handleFixOrg() {
     addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl }, (addedOrg: SalesforceOrgUi) => {
-      onAddOrg(addedOrg, true);
+      onAddOrg?.(addedOrg, true);
     });
   }
 
@@ -146,12 +148,12 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }
 
   function handleSave() {
-    onUpdateOrg(org, { label: orgLabel, color: getColor(orgColor) });
+    onUpdateOrg?.(org, { label: orgLabel, color: getColor(orgColor) });
   }
 
   function handleColorSelection(color: ColorSwatchItem) {
     setOrgColor(color.id);
-    onUpdateOrg(org, { label: org.label, color: getColor(color.id) });
+    onUpdateOrg?.(org, { label: org.label, color: getColor(color.id) });
   }
 
   async function handleClearCache() {
@@ -242,40 +244,44 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               </tr>
             </thead>
             <tbody>
-              <tr className={classNames('slds-hint-parent', { 'active-item-yellow-bg': isDirty })}>
-                <td>
-                  <div title="Label">Label</div>
-                </td>
-                <td>
-                  <div className="slds-p-right_small">
-                    <Input>
-                      <input
-                        className="slds-input"
-                        onChange={handleLabelChange}
-                        value={orgLabel}
-                        onKeyDown={handleLabelKeyDown}
-                        maxLength={100}
-                      />
-                    </Input>
-                    {isDirty && (
-                      <Grid className="slds-p-top_xx-small">
-                        <button className="slds-button slds-button_brand" disabled={!orgLabel} onClick={handleSave}>
-                          Save
-                        </button>
-                        <button className="slds-button slds-button_neutral" disabled={!orgLabel} onClick={handleReset}>
-                          Undo
-                        </button>
-                      </Grid>
-                    )}
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>Color</td>
-                <td>
-                  <ColorSwatches items={ORG_COLORS} selectedItem={orgColor} onSelection={handleColorSelection} />
-                </td>
-              </tr>
+              {!isReadOnly && (
+                <>
+                  <tr className={classNames('slds-hint-parent', { 'active-item-yellow-bg': isDirty })}>
+                    <td>
+                      <div title="Label">Label</div>
+                    </td>
+                    <td>
+                      <div className="slds-p-right_small">
+                        <Input>
+                          <input
+                            className="slds-input"
+                            onChange={handleLabelChange}
+                            value={orgLabel}
+                            onKeyDown={handleLabelKeyDown}
+                            maxLength={100}
+                          />
+                        </Input>
+                        {isDirty && (
+                          <Grid className="slds-p-top_xx-small">
+                            <button className="slds-button slds-button_brand" disabled={!orgLabel} onClick={handleSave}>
+                              Save
+                            </button>
+                            <button className="slds-button slds-button_neutral" disabled={!orgLabel} onClick={handleReset}>
+                              Undo
+                            </button>
+                          </Grid>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Color</td>
+                    <td>
+                      <ColorSwatches items={ORG_COLORS} selectedItem={orgColor} onSelection={handleColorSelection} />
+                    </td>
+                  </tr>
+                </>
+              )}
               {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgName', 'Org Name')}
               {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'organizationId', 'Org Id')}
               {getOrgProp(serverUrl, org, skipFrontDoorAuth, 'orgInstanceName', 'Instance')}
@@ -301,41 +307,43 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               </button>
             </ButtonGroupContainer>
           </div>
-          <div className="slds-p-around_xx-small">
-            {!removeOrgActive && (
-              <ButtonGroupContainer className="slds-button_stretch">
-                <button
-                  className={classNames('slds-button slds-button_stretch', {
-                    'slds-button_text-destructive': !hasError,
-                    'slds-button_destructive': hasError,
-                  })}
-                  onClick={() => setRemoveOrgActive(true)}
-                  disabled={disableOrgActions}
-                >
-                  <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Remove Org
-                </button>
-              </ButtonGroupContainer>
-            )}
-            {removeOrgActive && (
-              <Fragment>
-                <div className="slds-text-color_destructive slds-m-vertical_x-small">
-                  <p className="slds-align_absolute-center">This action will remove this org from jetstream,</p>
-                  <p className="slds-align_absolute-center">are you sure you want to continue?</p>
-                </div>
-                <Grid align="center">
-                  <GridCol>
-                    <button className="slds-button slds-button_neutral" onClick={() => setRemoveOrgActive(false)}>
-                      Keep Org
-                    </button>
-                    <button className="slds-button slds-button_brand" onClick={() => onRemoveOrg(org)}>
-                      Remove Org
-                    </button>
-                  </GridCol>
-                </Grid>
-              </Fragment>
-            )}
-          </div>
+          {!isReadOnly && (
+            <div className="slds-p-around_xx-small">
+              {!removeOrgActive && (
+                <ButtonGroupContainer className="slds-button_stretch">
+                  <button
+                    className={classNames('slds-button slds-button_stretch', {
+                      'slds-button_text-destructive': !hasError,
+                      'slds-button_destructive': hasError,
+                    })}
+                    onClick={() => setRemoveOrgActive(true)}
+                    disabled={disableOrgActions}
+                  >
+                    <Icon type="utility" icon="delete" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Remove Org
+                  </button>
+                </ButtonGroupContainer>
+              )}
+              {removeOrgActive && (
+                <Fragment>
+                  <div className="slds-text-color_destructive slds-m-vertical_x-small">
+                    <p className="slds-align_absolute-center">This action will remove this org from jetstream,</p>
+                    <p className="slds-align_absolute-center">are you sure you want to continue?</p>
+                  </div>
+                  <Grid align="center">
+                    <GridCol>
+                      <button className="slds-button slds-button_neutral" onClick={() => setRemoveOrgActive(false)}>
+                        Keep Org
+                      </button>
+                      <button className="slds-button slds-button_brand" onClick={() => onRemoveOrg?.(org)}>
+                        Remove Org
+                      </button>
+                    </GridCol>
+                  </Grid>
+                </Fragment>
+              )}
+            </div>
+          )}
         </div>
       }
       buttonProps={{

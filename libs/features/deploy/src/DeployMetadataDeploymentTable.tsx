@@ -1,4 +1,4 @@
-import { formatNumber } from '@jetstream/shared/ui-utils';
+import { formatNumber, isChromeExtension } from '@jetstream/shared/ui-utils';
 import { DeployMetadataTableRow } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTableSelectedContext, DataTree, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
@@ -26,6 +26,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   onSelectedRows,
   onViewOrCompareOpen,
 }) => {
+  const [chromeExtension] = useState(() => isChromeExtension());
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());
@@ -47,7 +48,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
           <Grid>
             <button className="slds-button slds-button_brand" disabled={!hasSelectedRows} onClick={onViewOrCompareOpen}>
               <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
-              View or Compare Selected Items
+              {chromeExtension ? 'View Selected Items' : 'View or Compare Selected Items'}
             </button>
           </Grid>
           <SearchInput id="metadata-filter" placeholder="Search metadata..." onChange={setGlobalFilter} />

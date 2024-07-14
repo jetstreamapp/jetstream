@@ -1,7 +1,7 @@
 import { CommonUser } from '@jetstream/types';
+import { fromDeployMetadataState } from '@jetstream/ui-core';
 import isBoolean from 'lodash/isBoolean';
 import { useRecoilState } from 'recoil';
-import * as fromDeployMetadataState from '../deploy-metadata.state';
 
 export function useMetadataSelection() {
   const [metadataSelectionType, setMetadataSelectionType] = useRecoilState<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
