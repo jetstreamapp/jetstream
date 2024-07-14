@@ -45,17 +45,6 @@ chrome.runtime.onInstalled.addListener(async () => {
   console.log('Jetstream Extension successfully installed!');
 });
 
-chrome.runtime.onStartup.addListener(() => console.log('[SW EVENT] onStartup'));
-chrome.runtime.onSuspend.addListener(() => console.log('[SW EVENT] onSuspend'));
-chrome.runtime.onConnect.addListener((ev) => console.log('[SW EVENT] onConnect', ev));
-chrome.runtime.onConnectExternal.addListener((ev) => console.log('[SW EVENT] onConnectExternal', ev));
-chrome.runtime.onMessageExternal.addListener((ev) => console.log('[SW EVENT] onMessageExternal', ev));
-chrome.runtime.onRestartRequired.addListener((ev) => console.log('[SW EVENT] onRestartRequired', ev));
-chrome.runtime.onSuspendCanceled.addListener(() => console.log('[SW EVENT] onSuspendCanceled'));
-chrome.runtime.onUpdateAvailable.addListener((ev) => console.log('[SW EVENT] onUpdateAvailable', ev));
-chrome.runtime.onUserScriptConnect.addListener((ev) => console.log('[SW EVENT] onUserScriptConnect', ev));
-chrome.runtime.onUserScriptMessage.addListener((ev) => console.log('[SW EVENT] onUserScriptMessage', ev));
-
 chrome.runtime.onMessage.addListener(
   (request: Message['request'], sender: chrome.runtime.MessageSender, sendResponse: (response: MessageResponse) => void) => {
     console.log('[SW EVENT] onMessage', request);

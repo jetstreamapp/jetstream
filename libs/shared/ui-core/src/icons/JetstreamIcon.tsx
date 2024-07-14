@@ -9,8 +9,6 @@ export const JetstreamIcon: FunctionComponent<React.SVGProps<SVGSVGElement>> = (
       stroke-linejoin: round;
       stroke-miterlimit: 2;
     `}
-    width="100%"
-    height="100%"
     viewBox="0 0 181 180"
     {...props}
   >

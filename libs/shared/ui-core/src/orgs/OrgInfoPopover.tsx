@@ -190,10 +190,10 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
         </header>
       }
       content={
-        <div className="slds-is-relative">
+        <div className="slds-is-relative slds-p-around_xx-small">
           {loading && <Spinner />}
           {hasError && (
-            <div className="slds-p-around_xx-small">
+            <div className="slds-p-around_x-small">
               <ButtonGroupContainer className="slds-button_stretch">
                 <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg} disabled={disableOrgActions}>
                   <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />

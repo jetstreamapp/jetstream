@@ -2,7 +2,7 @@
 import { css } from '@emotion/react';
 import { isValidSalesforceRecordId, useInterval } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { Grid, GridCol, Icon, OutsideClickHandler } from '@jetstream/ui';
+import { Grid, GridCol, OutsideClickHandler } from '@jetstream/ui';
 import { fromAppState, JetstreamIcon, JetstreamLogo } from '@jetstream/ui-core';
 import { sendMessage } from '@jetstream/web-extension-utils';
 import { useEffect, useState } from 'react';
@@ -31,6 +31,32 @@ function getRecordPageRecordId() {
   return recordId;
 }
 
+const PAGE_LINKS = [
+  {
+    link: '/query',
+    label: 'Query Records',
+  },
+  {
+    link: '/load',
+    label: 'Load Records',
+  },
+  {
+    link: '/automation-control',
+    label: 'Automation Control',
+  },
+  {
+    link: '/permissions-manager',
+    label: 'Manage Permissions',
+  },
+  {
+    link: '/deploy-metadata',
+    label: 'Deploy and Compare Metadata',
+  },
+  {
+    link: '/apex',
+    label: 'Anonymous Apex',
+  },
+];
 export function Button() {
   const [isOnSalesforcePage] = useState(
     () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('visualforce.com')
@@ -86,26 +112,6 @@ export function Button() {
     }
   }, [isOnSalesforcePage, setSalesforceOrgs, setSelectedOrgId]);
 
-  // async function handleClick() {
-  //   console.log('click');
-
-  //   if (sfHost) {
-  //     getSession(sfHost).then(async (session) => {
-  //       console.log('session', session);
-  //       // split by `!` to get the org id
-  //       if (session) {
-  //         const conn = new Connection({
-  //           instanceUrl: `https://${session.hostname}`,
-  //           accessToken: session.key,
-  //         });
-  //         console.log(conn);
-  //         const results = await conn.identity();
-  //         console.log(results);
-  //       }
-  //     });
-  //   }
-  // }
-
   if (!isOnSalesforcePage || !sfHost) {
     return null;
   }
@@ -143,7 +149,6 @@ export function Button() {
       `}
         onClick={() => setIsOpen(true)}
       >
-        {/* href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}`} */}
         <JetstreamIcon />
       </button>
       {isOpen && (
@@ -159,43 +164,32 @@ export function Button() {
           className="slds-popover"
           onOutsideClick={() => setIsOpen(false)}
         >
-          <button
-            className="slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close"
-            title="Close dialog"
-            onClick={() => setIsOpen(false)}
-          >
-            <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
-            <span className="slds-assistive-text">Close dialog</span>
-          </button>
-          {/* TODO: optimize the logo */}
-          <a href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}`} target="_blank" rel="noreferrer">
-            <header className="slds-p-left_medium slds-p-around_small slds-grid">
+          <header className="slds-p-left_medium slds-p-around_small slds-grid">
+            <a
+              href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}`}
+              css={css`
+                width: 100%;
+              `}
+              target="_blank"
+              rel="noreferrer"
+            >
               <JetstreamLogo />
-            </header>
-          </a>
+            </a>
+          </header>
           <div className="slds-popover__body slds-p-around_small slds-is-relative">
             <Grid vertical gutters>
-              {/* FIXME: better type safety on the params */}
-              <GridCol className="slds-m-bottom_x-small">
-                <a
-                  href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent('/query')}`}
-                  className="slds-button slds-button_neutral slds-button_stretch"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Query Records
-                </a>
-              </GridCol>
-              <GridCol className="slds-m-bottom_x-small">
-                <a
-                  href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent('/load')}`}
-                  className="slds-button slds-button_neutral slds-button_stretch"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Load Records
-                </a>
-              </GridCol>
+              {PAGE_LINKS.map((item) => (
+                <GridCol key={item.link} className="slds-m-bottom_x-small">
+                  <a
+                    href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent(item.link)}`}
+                    className="slds-button slds-button_neutral slds-button_stretch"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {item.label}
+                  </a>
+                </GridCol>
+              ))}
               {recordId && (
                 <>
                   <hr className="slds-m-vertical_medium" />
