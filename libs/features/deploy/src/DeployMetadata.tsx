@@ -1,11 +1,10 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { StateDebugObserver, selectedOrgState } from '@jetstream/ui-core';
+import { StateDebugObserver, fromDeployMetadataState, selectedOrgState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import * as fromDeployMetadataState from './deploy-metadata.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DeployMetadataProps {}

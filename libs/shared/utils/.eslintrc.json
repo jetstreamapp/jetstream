@@ -9,6 +9,7 @@
         "project": ["libs/shared/utils/tsconfig.*?.json"]
       },
       "rules": {
+        "@typescript-eslint/ban-ts-comment": "warn",
         "no-restricted-imports": [
           "error",
           {

@@ -1,0 +1,527 @@
+@import '@salesforce-ux/design-system/scss/_design-tokens';
+
+html {
+  background-color: rgb(17, 24, 39);
+}
+
+.app {
+  // brand styling
+}
+
+pre {
+  margin: 0;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.display-none {
+  display: none !important;
+}
+
+.white-space-nowrap {
+  white-space: nowrap;
+}
+
+.break-normal {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.break-words {
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
+}
+
+.opacity-5 {
+  opacity: 0.5;
+}
+
+.opacity-6 {
+  opacity: 0.6;
+}
+
+.opacity-8 {
+  opacity: 0.8;
+}
+
+.no-outline {
+  outline: none !important;
+}
+
+.bg-color-gray {
+  background-color: $color-background;
+}
+
+.bg-color-gray-light {
+  background-color: $color-gray-3;
+}
+
+.bg-color-gray-dark {
+  background-color: $color-background-dark;
+}
+
+.bg-color-color-orange {
+  background-color: $color-background-customer;
+}
+
+.bg-color-inverse {
+  background-color: $color-background-alt-inverse;
+}
+
+.bg-color-backdrop-tint {
+  background-color: $color-background-backdrop-tint;
+}
+
+.bg-color-pink {
+  background-color: $palette-pink-60;
+}
+
+.text-color-pink {
+  color: $palette-pink-60;
+}
+
+.text-color_warning {
+  color: $color-text-warning-alt;
+}
+
+.text-color_inverse-warning {
+  color: $color-text-warning;
+}
+
+.text-color_brand {
+  color: $color-text-link-hover;
+}
+
+.button-focus-color {
+  color: var(--sds-c-button-text-color-hover, $brand-accessible-active);
+}
+
+.slds-text-link {
+  cursor: pointer;
+  fill: $brand-text-link;
+  .faux-button-link {
+    :hover {
+      color: $brand-accessible;
+    }
+  }
+}
+
+.gutter {
+  background-color: $color-background;
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+  background-image: url('assets/images/split-grip-vertical.png');
+  cursor: col-resize;
+}
+
+.gutter.gutter-vertical {
+  background-image: url('assets/images/split-grip-horizontal.png');
+  cursor: row-resize;
+}
+
+.bg-white {
+  background-color: $color-background-alt;
+}
+
+.width-100 {
+  width: 100%;
+}
+
+.modal-full-height {
+}
+
+.border-bottom-thick {
+  border-bottom: 3px solid #dddbda;
+}
+
+.active-item-yellow-bg {
+  background-color: $color-background-highlight;
+}
+
+.bg-background-selection {
+  background-color: $color-background-selection;
+}
+
+.bg-new-item {
+  background-color: $color-background-row-new;
+}
+
+.slds-item {
+  &:not(.read-only) {
+    cursor: pointer;
+  }
+  &.disabled {
+    cursor: not-allowed;
+  }
+  margin: 1px;
+  &:not(.disabled):not(.read-only):hover {
+    background-color: $color-background;
+  }
+  &:not(.read-only).is-active {
+    background-color: $color-background-highlight;
+  }
+}
+
+.table-row.is-selected {
+  background-color: $color-background-highlight;
+}
+
+.is-disabled {
+  background-color: $color-background-input-disabled;
+}
+
+.border-radius-25 {
+  border-radius: 0.25rem;
+}
+
+.border-color-brand {
+  border-color: $color-border-brand;
+}
+
+.border-color-brand-dark {
+  border-color: $color-border-brand-dark;
+}
+
+.slds-text-color_brand {
+  color: $brand-accessible;
+}
+
+.slds-popover_x-large {
+  width: 75%;
+}
+
+.slds-panel.slds-size_full {
+  width: 75vw;
+}
+
+/**
+ * Apply to a button to make it look like a link
+ */
+.link-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline;
+  margin: 0;
+  padding: 0;
+
+  color: $brand-text-link;
+  text-decoration: none;
+  transition: color 0.1s linear;
+
+  &:hover,
+  &:active,
+  &:focus {
+    text-decoration: underline;
+    color: $brand-text-link-active;
+  }
+}
+
+.collapsible-button {
+  min-height: 2rem;
+
+  span:not(.slds-icon_container) {
+    display: none;
+  }
+
+  svg.slds-button__icon_left {
+    margin-right: 0;
+  }
+
+  &.collapsible-button-xs {
+    @media (max-width: 500px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 500px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-sm {
+    @media (max-width: 800px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 800px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-md {
+    @media (max-width: 830px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 830px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-lg {
+    @media (max-width: 890px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 890px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-xl {
+    @media (max-width: 1000px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 1000px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  &.collapsible-button-xxl {
+    @media (max-width: 1075px) {
+      width: 2rem;
+      padding-left: unset;
+      padding-right: unset;
+    }
+
+    @media (min-width: 1075px) {
+      span {
+        display: inline;
+      }
+
+      svg.slds-button__icon_left {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+}
+
+.modal-card-override {
+  background: #fff;
+  border: 1px solid #dddbda !important;
+  border-radius: 0.25rem;
+  background-clip: padding-box;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.d-inline {
+  display: inline;
+}
+.d-block {
+  display: block;
+}
+.d-inline-block {
+  display: inline-block;
+}
+
+.text-uppercase {
+  text-transform: uppercase;
+}
+
+.text-color-highlight {
+  background-color: $color-background-highlight-search;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.w-50 {
+  width: 100%;
+}
+
+.w-25 {
+  width: 100%;
+}
+
+.h-100 {
+  height: 100%;
+}
+
+.h-50 {
+  height: 100%;
+}
+
+.h-25 {
+  height: 100%;
+}
+
+.ql-editor {
+  height: 100%;
+}
+
+.drop-zone-border {
+  outline: 1px solid #1b96ff;
+}
+
+button.ql-active {
+  background-color: #0176d3;
+  border-color: #0176d3;
+  color: #fff;
+  &:focus,
+  &:active,
+  &:hover {
+    background-color: #014486;
+    border-color: #014486;
+    color: #fff;
+  }
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid $color-gray-6;
+  padding-left: 4px;
+  margin: 1rem !important;
+}
+
+.ql-editor pre.ql-syntax {
+  background-color: $color-background-inverse;
+  color: $color-text-inverse;
+  overflow: visible;
+  white-space: pre-wrap;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  border-radius: $border-radius-medium;
+}
+
+.ql-editor pre {
+  white-space: pre-wrap;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  padding: 5px 10px;
+}
+
+.ql-editor code,
+.ql-editor pre {
+  background-color: $color-gray-3;
+  border-radius: $border-radius-medium;
+}
+
+.ql-editor code {
+  font-size: $font-size-2;
+  padding: 2px 4px;
+}
+
+.text-bold {
+  font-weight: $font-weight-bold;
+}
+
+:root {
+  --title-bar-height: 50px;
+  --app-top-offset: 90px;
+  --app-brand-color: rgb(17, 24, 39);
+}
+
+.app-container {
+  margin-top: var(--app-top-offset);
+}
+
+.is-electron {
+  .app-container {
+    margin-top: unset;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: var(--app-top-offset);
+    // overflow-x: hidden;
+  }
+
+  .slds-modal {
+    top: var(--app-top-offset);
+  }
+
+  .global-titlebar {
+    position: absolute;
+    top: env(titlebar-area-y, 0);
+    // height: env(titlebar-area-height, var(--title-bar-height));
+    height: var(--title-bar-height);
+    // width: 100%;
+    width: env(titlebar-area-width, 100%);
+    background-color: var(--app-brand-color);
+
+    .draggable {
+      app-region: drag;
+      /* Pre-fix app-region during standardization process */
+      -webkit-app-region: drag;
+    }
+
+    .non-draggable {
+      app-region: no-drag;
+      /* Pre-fix app-region during standardization process */
+      -webkit-app-region: no-drag;
+    }
+
+    .titlebar {
+      position: absolute;
+      top: 0;
+      display: flex;
+      user-select: none;
+      height: 100%;
+      left: env(titlebar-area-x, 0);
+      width: calc(100vw - 5.5rem);
+    }
+
+    .slds-button.slds-button_icon {
+      color: white;
+      &.slds-button_icon-border-filled {
+        color: $brand-header-icon;
+      }
+    }
+  }
+
+  .electron-navbar {
+    margin-top: var(--title-bar-height);
+  }
+}

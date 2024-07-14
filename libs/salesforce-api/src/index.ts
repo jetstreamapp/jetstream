@@ -1,3 +1,4 @@
 export * from './lib/callout-adapter';
 export * from './lib/connection';
-export { FetchResponse } from './lib/types';
+export * from './lib/salesforce-package.utils';
+export { type FetchResponse } from './lib/types';

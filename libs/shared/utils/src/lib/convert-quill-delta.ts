@@ -1,3 +1,4 @@
+// @ts-nocheck
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';

@@ -1,10 +1,8 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
+import { APP_ROUTES, AppHome, OrgSelectionRequired } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import lazy from './components/core/LazyLoad';
-import { APP_ROUTES } from './components/core/app-routes';
-import { AppHome } from './components/home/AppHome';
-import OrgSelectionRequired from './components/orgs/OrgSelectionRequired';
 
 const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
 const LoadRecordsMultiObject = lazy(() =>

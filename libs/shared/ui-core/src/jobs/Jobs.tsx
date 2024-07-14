@@ -8,6 +8,7 @@ import {
   AsyncJob,
   AsyncJobNew,
   AsyncJobType,
+  AsyncJobWorkerMessagePayload,
   AsyncJobWorkerMessageResponse,
   ErrorResult,
   FileExtAllTypes,
@@ -19,7 +20,7 @@ import {
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent, useEffect, useRef } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { fromJetstreamEvents } from '../jetstream-events';
@@ -27,12 +28,19 @@ import { applicationCookieState } from '../state-management/app-state';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';
+import { WorkerAdapter } from './JobWorker';
 
-let jobsWorker: Worker;
-
-export function setJobsWorker(worker: Worker) {
-  jobsWorker = worker;
+export interface WorkerCompatibleShim {
+  postMessage: (message: WorkerMessage<AsyncJobType, AsyncJobWorkerMessagePayload>) => void;
+  onmessage?: (event: { data: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse> }) => void;
 }
+
+const jobsWorker = new WorkerAdapter();
+
+// Deprecated, no longer using web-worker for jobs as it wasn't needed and caused issues with web-extension
+// export function setJobsWorker(worker: WorkerCompatibleShim) {
+//   jobsWorker = worker;
+// }
 
 export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
@@ -76,229 +84,150 @@ export const Jobs: FunctionComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newJobsToProcess]);
 
-  useEffect(() => {
-    if (jobsWorker) {
-      jobsWorker.onmessage = (event: MessageEvent) => {
-        logger.info(event.data);
-        const { name, data, error } = event.data as WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse>;
-        switch (name) {
-          case 'BulkDelete': {
-            try {
-              let newJob = { ...data.job };
-              if (error) {
-                newJob = {
-                  ...newJob,
-                  finished: new Date(),
-                  lastActivity: new Date(),
-                  status: 'failed',
-                  statusMessage: error || 'An unknown error ocurred',
-                };
-                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-                notifyUser(`Delete records failed`, { body: newJob.statusMessage, tag: 'BulkDelete' });
-              } else {
-                const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
-                const firstErrorRec = results.filter((record) => !record.success) as ErrorResult[];
+  const handleEvent = useCallback(({ name, data, error }: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse>) => {
+    logger.info('[WORKER EVENT]', { name, data, error });
+    switch (name) {
+      case 'BulkDelete': {
+        try {
+          let newJob = { ...data.job };
+          if (error) {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'failed',
+              statusMessage: error || 'An unknown error ocurred',
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            notifyUser(`Delete records failed`, { body: newJob.statusMessage, tag: 'BulkDelete' });
+          } else {
+            const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
+            const firstErrorRec = results.filter((record) => !record.success) as ErrorResult[];
 
-                newJob = {
-                  ...newJob,
-                  results,
-                  finished: new Date(),
-                  lastActivity: new Date(),
-                  status: firstErrorRec.length ? 'failed' : 'success',
-                  statusMessage: firstErrorRec.length
-                    ? `${firstErrorRec.length} ${pluralizeIfMultiple('Error', firstErrorRec)} - ${
-                        firstErrorRec[0]?.errors[0]?.message || 'An unknown error ocurred'
-                      }`
-                    : `${results.length.toLocaleString()} ${pluralizeIfMultiple('record', results)} deleted successfully`,
-                };
-                notifyUser(`Delete records finished`, { body: newJob.statusMessage, tag: 'BulkDelete' });
-              }
-              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-            } catch (ex) {
-              // TODO:
-              logger.error('[ERROR][JOB] Error processing job results', ex);
-            }
-            break;
+            newJob = {
+              ...newJob,
+              results,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: firstErrorRec.length ? 'failed' : 'success',
+              statusMessage: firstErrorRec.length
+                ? `${firstErrorRec.length} ${pluralizeIfMultiple('Error', firstErrorRec)} - ${
+                    firstErrorRec[0]?.errors[0]?.message || 'An unknown error ocurred'
+                  }`
+                : `${results.length.toLocaleString()} ${pluralizeIfMultiple('record', results)} deleted successfully`,
+            };
+            notifyUser(`Delete records finished`, { body: newJob.statusMessage, tag: 'BulkDelete' });
           }
-          case 'BulkDownload': {
-            try {
-              let newJob = { ...data.job };
-              if (error) {
-                newJob = {
-                  ...newJob,
-                  finished: new Date(),
-                  lastActivity: new Date(),
-                  status: 'failed',
-                  statusMessage: error || 'An unknown error ocurred',
-                };
-                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-                notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
-              } else if (data.lastActivityUpdate) {
-                newJob = {
-                  ...newJob,
-                  lastActivity: new Date(),
-                };
-                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-              } else {
-                const { done, progress, fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
-                  done: boolean;
-                  progress: number;
-                  fileData: any;
-                  useBulkApi?: boolean;
-                  mimeType: MimeType;
-                  fileFormat: string;
-                  results?: string;
-                  googleFolder?: string;
-                };
-                let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
+          setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+        } catch (ex) {
+          // TODO:
+          logger.error('[ERROR][JOB] Error processing job results', ex);
+        }
+        break;
+      }
+      case 'BulkDownload': {
+        try {
+          let newJob = { ...data.job };
+          if (error) {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'failed',
+              statusMessage: error || 'An unknown error ocurred',
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
+          } else if (data.lastActivityUpdate) {
+            newJob = {
+              ...newJob,
+              lastActivity: new Date(),
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+          } else {
+            const { done, progress, fileData, useBulkApi, fileFormat, results, googleFolder } = data.results as {
+              done: boolean;
+              progress: number;
+              fileData: any;
+              useBulkApi?: boolean;
+              mimeType: MimeType;
+              fileFormat: string;
+              results?: string;
+              googleFolder?: string;
+            };
+            let { fileName, mimeType } = data.results as { fileName: string; mimeType: MimeType };
 
-                if (!done) {
-                  newJob = {
-                    ...newJob,
-                    lastActivity: new Date(),
-                    status: 'in-progress',
-                    statusMessage: `Download in progress ${progress}%`,
-                  };
-                  setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-                } else {
-                  newJob = {
-                    ...newJob,
-                    finished: new Date(),
-                    lastActivity: new Date(),
-                    status: 'success',
-                    statusMessage: 'Records downloaded successfully',
-                  };
-                  if (useBulkApi) {
-                    if (results) {
-                      fromJetstreamEvents.emit({
-                        type: 'streamFileDownload',
-                        payload: {
-                          fileName,
-                          link: results,
-                        },
-                      });
-                      setJobs((prevJobs) => ({
-                        ...prevJobs,
-                        [newJob.id]: {
-                          ...newJob,
-                          results,
-                          finished: new Date(),
-                          lastActivity: new Date(),
-                        },
-                      }));
-                    } else {
-                      // TODO: handle error
-                    }
-                  } else if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
-                    // show status of uploading to Google
-                    setJobs((prevJobs) => ({
-                      ...prevJobs,
-                      [newJob.id]: {
-                        ...newJob,
-                        lastActivity: new Date(),
-                        status: 'in-progress',
-                        statusMessage: 'Uploading file to Google',
-                      },
-                    }));
-
-                    newJob = {
-                      ...newJob,
-                      status: 'success',
-                      statusMessage: 'Records downloaded and saved to Google successfully',
-                    };
-
-                    googleUploadFile(gapi.client.getToken().access_token, {
-                      fileMimeType: MIME_TYPES.XLSX_OPEN_OFFICE,
-                      filename: fileName,
-                      folderId: googleFolder,
-                      fileData,
-                    })
-                      .then(({ id, webViewLink }) => {
-                        newJob.results = webViewLink;
-                      })
-                      .catch((err) => {
-                        // Failed to upload to google, save locally
-                        newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
-                        newJob.status = 'finished-warning';
-                        mimeType = MIME_TYPES.XLSX;
-                        saveFile(fileData, `${fileName}.xlsx`, mimeType);
-                        notifyUser(newJob.statusMessage, { tag: 'BulkDownload' });
-                        rollbar.error('Error saving to Google Drive', { err, message: err?.message });
-                      })
-                      .finally(() => {
-                        setJobs((prevJobs) => ({
-                          ...prevJobs,
-                          [newJob.id]: {
-                            ...newJob,
-                            finished: new Date(),
-                            lastActivity: new Date(),
-                          },
-                        }));
-                      });
-                  } else {
-                    if (fileFormat === 'gdrive') {
-                      // Failed to upload to google, save locally
-                      mimeType = MIME_TYPES.XLSX;
-                      fileName = `${fileName}.xlsx`;
-                      newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
-                      newJob.status = 'finished-warning';
-                    }
-                    saveFile(fileData, fileName, mimeType);
-                    notifyUser(`Download records finished`, { tag: 'BulkDownload' });
-                    setJobs((prevJobs) => ({
-                      ...prevJobs,
-                      [newJob.id]: {
-                        ...newJob,
-                        finished: new Date(),
-                        lastActivity: new Date(),
-                      },
-                    }));
-                  }
-                }
-              }
-            } catch (ex) {
-              // TODO:
-              logger.error('[ERROR][JOB] Error processing job results', ex);
-            }
-            break;
-          }
-          case 'UploadToGoogle': {
-            try {
-              // TODO: can we share code with bulk download?
-              let newJob = { ...data.job };
-              const { fileName, fileData, fileType, googleFolder } = data.results as UploadToGoogleJob;
+            if (!done) {
               newJob = {
                 ...newJob,
                 lastActivity: new Date(),
                 status: 'in-progress',
-                statusMessage: 'Uploading file to Google',
+                statusMessage: `Download in progress ${progress}%`,
               };
               setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-
+            } else {
               newJob = {
                 ...newJob,
+                finished: new Date(),
+                lastActivity: new Date(),
                 status: 'success',
-                statusMessage: 'Records downloaded and saved to Google successfully',
+                statusMessage: 'Records downloaded successfully',
               };
-
-              if (gapi?.client?.getToken()?.access_token) {
-                googleUploadFile(
-                  gapi.client.getToken().access_token,
-                  {
-                    fileMimeType:
-                      fileType === 'xlsx' ? MIME_TYPES.XLSX_OPEN_OFFICE : fileExtToMimeType[fileType].replace(';charset=utf-8', ''),
-                    filename: fileName,
-                    folderId: googleFolder,
-                    fileData,
+              if (useBulkApi) {
+                if (results) {
+                  fromJetstreamEvents.emit({
+                    type: 'streamFileDownload',
+                    payload: {
+                      fileName,
+                      link: results,
+                    },
+                  });
+                  setJobs((prevJobs) => ({
+                    ...prevJobs,
+                    [newJob.id]: {
+                      ...newJob,
+                      results,
+                      finished: new Date(),
+                      lastActivity: new Date(),
+                    },
+                  }));
+                } else {
+                  // TODO: handle error
+                }
+              } else if (fileFormat === 'gdrive' && gapi?.client?.getToken()?.access_token) {
+                // show status of uploading to Google
+                setJobs((prevJobs) => ({
+                  ...prevJobs,
+                  [newJob.id]: {
+                    ...newJob,
+                    lastActivity: new Date(),
+                    status: 'in-progress',
+                    statusMessage: 'Uploading file to Google',
                   },
-                  fileExtToGoogleDriveMimeType[fileType]
-                )
+                }));
+
+                newJob = {
+                  ...newJob,
+                  status: 'success',
+                  statusMessage: 'Records downloaded and saved to Google successfully',
+                };
+
+                googleUploadFile(gapi.client.getToken().access_token, {
+                  fileMimeType: MIME_TYPES.XLSX_OPEN_OFFICE,
+                  filename: fileName,
+                  folderId: googleFolder,
+                  fileData,
+                })
                   .then(({ id, webViewLink }) => {
                     newJob.results = webViewLink;
                   })
                   .catch((err) => {
                     // Failed to upload to google, save locally
-                    handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+                    newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
+                    newJob.status = 'finished-warning';
+                    mimeType = MIME_TYPES.XLSX;
+                    saveFile(fileData, `${fileName}.xlsx`, mimeType);
+                    notifyUser(newJob.statusMessage, { tag: 'BulkDownload' });
                     rollbar.error('Error saving to Google Drive', { err, message: err?.message });
                   })
                   .finally(() => {
@@ -312,7 +241,15 @@ export const Jobs: FunctionComponent = () => {
                     }));
                   });
               } else {
-                handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+                if (fileFormat === 'gdrive') {
+                  // Failed to upload to google, save locally
+                  mimeType = MIME_TYPES.XLSX;
+                  fileName = `${fileName}.xlsx`;
+                  newJob.statusMessage = 'Records downloaded and saved to computer, saving to Google failed.';
+                  newJob.status = 'finished-warning';
+                }
+                saveFile(fileData, fileName, mimeType);
+                notifyUser(`Download records finished`, { tag: 'BulkDownload' });
                 setJobs((prevJobs) => ({
                   ...prevJobs,
                   [newJob.id]: {
@@ -322,100 +259,156 @@ export const Jobs: FunctionComponent = () => {
                   },
                 }));
               }
-            } catch (ex) {
-              // TODO:
-              logger.error('[ERROR][JOB] Error processing job results', ex);
             }
-            break;
           }
-          case 'RetrievePackageZip': {
-            try {
-              let newJob = { ...data.job };
-              if (error) {
-                newJob = {
-                  ...newJob,
-                  finished: new Date(),
-                  lastActivity: new Date(),
-                  status: 'failed',
-                  statusMessage: error || 'An unknown error ocurred',
-                };
-                notifyUser(`Package download failed`, { body: newJob.statusMessage, tag: 'RetrievePackageZip' });
-                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-              } else if (data.lastActivityUpdate) {
-                newJob = {
-                  ...newJob,
-                  lastActivity: new Date(),
-                };
-                setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-              } else {
-                const { fileData, mimeType, fileName, fileFormat, uploadToGoogle, googleFolder } = data.results as {
-                  fileData: ArrayBuffer;
-                  mimeType: MimeType;
-                  fileName: string;
-                  fileFormat: FileExtAllTypes;
-                  uploadToGoogle: boolean;
-                  googleFolder?: string;
-                };
+        } catch (ex) {
+          // TODO:
+          logger.error('[ERROR][JOB] Error processing job results', ex);
+        }
+        break;
+      }
+      case 'UploadToGoogle': {
+        try {
+          // TODO: can we share code with bulk download?
+          let newJob = { ...data.job };
+          const { fileName, fileData, fileType, googleFolder } = data.results as UploadToGoogleJob;
+          newJob = {
+            ...newJob,
+            lastActivity: new Date(),
+            status: 'in-progress',
+            statusMessage: 'Uploading file to Google',
+          };
+          setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
 
-                if (!uploadToGoogle) {
-                  newJob = {
+          newJob = {
+            ...newJob,
+            status: 'success',
+            statusMessage: 'Records downloaded and saved to Google successfully',
+          };
+
+          if (gapi?.client?.getToken()?.access_token) {
+            googleUploadFile(
+              gapi.client.getToken().access_token,
+              {
+                fileMimeType: fileType === 'xlsx' ? MIME_TYPES.XLSX_OPEN_OFFICE : fileExtToMimeType[fileType].replace(';charset=utf-8', ''),
+                filename: fileName,
+                folderId: googleFolder,
+                fileData,
+              },
+              fileExtToGoogleDriveMimeType[fileType]
+            )
+              .then(({ id, webViewLink }) => {
+                newJob.results = webViewLink;
+              })
+              .catch((err) => {
+                // Failed to upload to google, save locally
+                handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+                rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+              })
+              .finally(() => {
+                setJobs((prevJobs) => ({
+                  ...prevJobs,
+                  [newJob.id]: {
                     ...newJob,
                     finished: new Date(),
                     lastActivity: new Date(),
-                    status: 'success',
-                    statusMessage: 'Package downloaded successfully',
-                  };
+                  },
+                }));
+              });
+          } else {
+            handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
+            setJobs((prevJobs) => ({
+              ...prevJobs,
+              [newJob.id]: {
+                ...newJob,
+                finished: new Date(),
+                lastActivity: new Date(),
+              },
+            }));
+          }
+        } catch (ex) {
+          // TODO:
+          logger.error('[ERROR][JOB] Error processing job results', ex);
+        }
+        break;
+      }
+      case 'RetrievePackageZip': {
+        try {
+          let newJob = { ...data.job };
+          if (error) {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'failed',
+              statusMessage: error || 'An unknown error ocurred',
+            };
+            notifyUser(`Package download failed`, { body: newJob.statusMessage, tag: 'RetrievePackageZip' });
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+          } else if (data.lastActivityUpdate) {
+            newJob = {
+              ...newJob,
+              lastActivity: new Date(),
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+          } else {
+            const { fileData, mimeType, fileName, fileFormat, uploadToGoogle, googleFolder } = data.results as {
+              fileData: ArrayBuffer;
+              mimeType: MimeType;
+              fileName: string;
+              fileFormat: FileExtAllTypes;
+              uploadToGoogle: boolean;
+              googleFolder?: string;
+            };
 
-                  saveFile(fileData, `${fileName}.${fileFormat}`, mimeType);
-                  notifyUser(`Package download finished`, { tag: 'RetrievePackageZip' });
-                  setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
-                } else {
-                  newJob = {
-                    ...newJob,
-                    lastActivity: new Date(),
-                    status: 'in-progress',
-                    statusMessage: 'Uploading file to Google',
-                  };
-                  setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            if (!uploadToGoogle) {
+              newJob = {
+                ...newJob,
+                finished: new Date(),
+                lastActivity: new Date(),
+                status: 'success',
+                statusMessage: 'Package downloaded successfully',
+              };
 
-                  newJob = {
-                    ...newJob,
-                    status: 'success',
-                    statusMessage: 'Package saved to Google successfully',
-                  };
+              saveFile(fileData, `${fileName}.${fileFormat}`, mimeType);
+              notifyUser(`Package download finished`, { tag: 'RetrievePackageZip' });
+              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            } else {
+              newJob = {
+                ...newJob,
+                lastActivity: new Date(),
+                status: 'in-progress',
+                statusMessage: 'Uploading file to Google',
+              };
+              setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
 
-                  if (gapi?.client?.getToken()?.access_token) {
-                    const targetMimeType = (fileExtToGoogleDriveMimeType as any)[fileFormat];
-                    googleUploadFile(
-                      gapi.client.getToken().access_token,
-                      {
-                        fileMimeType: mimeType,
-                        filename: targetMimeType === MIME_TYPES.GSHEET ? fileName : `${fileName}.${fileFormat}`,
-                        folderId: googleFolder,
-                        fileData,
-                      },
-                      targetMimeType
-                    )
-                      .then(({ id, webViewLink }) => {
-                        newJob.results = webViewLink;
-                      })
-                      .catch((err) => {
-                        // Failed to upload to google, save locally
-                        handleGoogleUploadFailure({ fileData, fileName, fileType: 'zip' }, newJob);
-                        rollbar.error('Error saving to Google Drive', { err, message: err?.message });
-                      })
-                      .finally(() => {
-                        setJobs((prevJobs) => ({
-                          ...prevJobs,
-                          [newJob.id]: {
-                            ...newJob,
-                            finished: new Date(),
-                            lastActivity: new Date(),
-                          },
-                        }));
-                      });
-                  } else {
+              newJob = {
+                ...newJob,
+                status: 'success',
+                statusMessage: 'Package saved to Google successfully',
+              };
+
+              if (gapi?.client?.getToken()?.access_token) {
+                const targetMimeType = (fileExtToGoogleDriveMimeType as any)[fileFormat];
+                googleUploadFile(
+                  gapi.client.getToken().access_token,
+                  {
+                    fileMimeType: mimeType,
+                    filename: targetMimeType === MIME_TYPES.GSHEET ? fileName : `${fileName}.${fileFormat}`,
+                    folderId: googleFolder,
+                    fileData,
+                  },
+                  targetMimeType
+                )
+                  .then(({ id, webViewLink }) => {
+                    newJob.results = webViewLink;
+                  })
+                  .catch((err) => {
+                    // Failed to upload to google, save locally
                     handleGoogleUploadFailure({ fileData, fileName, fileType: 'zip' }, newJob);
+                    rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+                  })
+                  .finally(() => {
                     setJobs((prevJobs) => ({
                       ...prevJobs,
                       [newJob.id]: {
@@ -424,27 +417,45 @@ export const Jobs: FunctionComponent = () => {
                         lastActivity: new Date(),
                       },
                     }));
-                  }
-                }
+                  });
+              } else {
+                handleGoogleUploadFailure({ fileData, fileName, fileType: 'zip' }, newJob);
+                setJobs((prevJobs) => ({
+                  ...prevJobs,
+                  [newJob.id]: {
+                    ...newJob,
+                    finished: new Date(),
+                    lastActivity: new Date(),
+                  },
+                }));
               }
-            } catch (ex) {
-              // TODO:
-              logger.error('[ERROR][JOB] Error processing job results', ex);
             }
-            break;
           }
-          default:
-            break;
+        } catch (ex) {
+          // TODO:
+          logger.error('[ERROR][JOB] Error processing job results', ex);
         }
-        if (data && data.lastActivityUpdate) {
-          fromJetstreamEvents.emit({ type: 'lastActivityUpdate', payload: data.job });
-        }
-        if (data && !data.lastActivityUpdate && data.job) {
-          fromJetstreamEvents.emit({ type: 'jobFinished', payload: data.job });
-        }
+        break;
+      }
+      default:
+        break;
+    }
+    if (data && data.lastActivityUpdate) {
+      fromJetstreamEvents.emit({ type: 'lastActivityUpdate', payload: data.job });
+    }
+    if (data && !data.lastActivityUpdate && data.job) {
+      fromJetstreamEvents.emit({ type: 'jobFinished', payload: data.job });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (jobsWorker) {
+      jobsWorker.onmessage = (event: MessageEvent) => {
+        handleEvent(event.data as WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse>);
       };
     }
-  }, [jobsWorker, setJobs]);
+  }, [handleEvent, setJobs]);
 
   function handleGoogleUploadFailure(
     {

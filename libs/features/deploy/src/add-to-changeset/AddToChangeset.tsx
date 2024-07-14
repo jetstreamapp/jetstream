@@ -1,11 +1,10 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { ChangeSet, DeployMetadataTableRow, DeployResult, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import AddToChangesetConfigModal from './AddToChangesetConfigModal';
 import AddToChangesetStatusModal from './AddToChangesetStatusModal';

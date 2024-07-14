@@ -1,8 +1,8 @@
 import { YesNo } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
+import { fromDeployMetadataState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const INCL_MANAGED_PACKAGE_RADIO_BUTTONS: RadioButtonItem<YesNo>[] = [

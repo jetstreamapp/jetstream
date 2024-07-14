@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/release-it@17/schema/release-it.json",
+  "plugins": {
+    "@release-it/bumper": {
+      "in": "apps/jetstream-web-extension/src/manifest.json",
+      "out": "apps/jetstream-web-extension/src/manifest.json"
+    }
+  },
+  "git": {
+    "tagAnnotation": "Release web extension ${version}",
+    "commitMessage": "chore: release web extension ${version}",
+    "tag": true,
+    "tagName": "web-ext-v${version}"
+  },
+  "npm": false,
+  "github": {
+    "release": true,
+    "releaseName": "Jetstream Web Extension ${version}",
+    "assets": ["dist/jetstream-web-extension-${version}.zip"]
+  },
+  "hooks": {
+    "after:bump": [
+      "npx prettier --write apps/jetstream-web-extension/src/manifest.json",
+      "yarn build:web-extension",
+      "rm -f dist/apps/jetstream-web-extension-${version}.zip *",
+      "cd dist/apps/jetstream-web-extension && zip -r -9 ../../jetstream-web-extension-${version}.zip *"
+    ],
+    "after:release": "echo Successfully released ${name} v${version}."
+  }
+}

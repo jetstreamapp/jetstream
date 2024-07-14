@@ -1,5 +1,5 @@
 import { DeployOptions, ListMetadataRequest, ReadMetadataRequest } from '@jetstream/api-types';
-import { arrayBufferToBase64, ensureArray, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { arrayBufferToBase64, ensureArray, splitArrayToMaxSize, uint8ArrayToBase64 } from '@jetstream/shared/utils';
 import {
   AsyncResult,
   DeployResult,
@@ -110,10 +110,10 @@ export class ApiMetadata extends SalesforceApi {
    * Deploy metadata
    * Zip should be an array buffer or base64 encoded string
    */
-  async deploy(body: ArrayBuffer | Buffer | string, options: DeployOptions): Promise<AsyncResult> {
+  async deploy(body: ArrayBuffer | Uint8Array | string, options: DeployOptions): Promise<AsyncResult> {
     let ZipFile: string;
-    if (body instanceof Buffer) {
-      ZipFile = body.toString('base64');
+    if (body instanceof Uint8Array) {
+      ZipFile = uint8ArrayToBase64(body);
     } else if (body instanceof ArrayBuffer) {
       ZipFile = arrayBufferToBase64(body);
     } else if (isString(body)) {

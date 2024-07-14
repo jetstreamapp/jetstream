@@ -10,6 +10,7 @@ export interface HeaderProps {
   userMenuItems: DropDownItem[];
   rightHandMenuItems?: ReactNode;
   // notification?: ReactNode;
+  isChromeExtension?: boolean;
   onUserMenuItemSelected: (id: string) => void;
   children?: React.ReactNode;
 }
@@ -20,6 +21,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
+  isChromeExtension,
   onUserMenuItemSelected,
   children,
 }) => {
@@ -32,6 +34,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
           orgs={orgs}
           rightHandMenuItems={rightHandMenuItems}
           userMenuItems={userMenuItems}
+          isChromeExtension={isChromeExtension}
           onUserMenuItemSelected={onUserMenuItemSelected}
         />
       </div>
@@ -46,6 +49,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
+  isChromeExtension,
   onUserMenuItemSelected,
 }) => {
   const [avatarSrc, setAvatarSrc] = useState(userProfile?.picture || Avatar);
@@ -74,22 +78,24 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
           ) : (
             <li className="slds-global-actions__item non-draggable">{rightHandMenuItems}</li>
           )}
-          <li className="slds-global-actions__item non-draggable">
-            <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
-              <DropDown
-                buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
-                buttonContent={
-                  <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                    <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
-                  </span>
-                }
-                position="right"
-                actionText="view user options"
-                items={userMenuItems}
-                onSelected={onUserMenuItemSelected}
-              />
-            </div>
-          </li>
+          {!isChromeExtension && (
+            <li className="slds-global-actions__item non-draggable">
+              <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
+                <DropDown
+                  buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
+                  buttonContent={
+                    <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
+                      <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
+                    </span>
+                  }
+                  position="right"
+                  actionText="view user options"
+                  items={userMenuItems}
+                  onSelected={onUserMenuItemSelected}
+                />
+              </div>
+            </li>
+          )}
         </ul>
       </div>
     </Fragment>
