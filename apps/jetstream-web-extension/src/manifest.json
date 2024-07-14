@@ -1,7 +1,7 @@
 {
   "name": "Jetstream",
   "description": "Jetstream is a set of tools that supercharge your administration of Salesforce.com.",
-  "version": "1.0",
+  "version": "0.0.1",
   "manifest_version": 3,
   "action": {
     "default_popup": "popup.html"
