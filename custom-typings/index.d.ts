@@ -10,6 +10,7 @@ declare module 'worker-loader!*' {
 }
 
 declare global {
+  declare const __IS_CHROME_EXTENSION__: boolean;
   interface Window {
     // placeholder for any global properties
   }

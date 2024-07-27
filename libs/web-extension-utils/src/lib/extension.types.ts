@@ -1,7 +1,7 @@
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 
-export type Message = GetSfHost | GetSession | GetPageUrl | InitOrg;
+export type Message = ToggleExtension | GetSfHost | GetSession | GetPageUrl | InitOrg;
 export type MessageRequest = Message['request'];
 export interface MessageResponse<T extends Message['response'] = Message['response']> {
   data: T;
@@ -10,6 +10,14 @@ export interface MessageResponse<T extends Message['response'] = Message['respon
 export interface SessionInfo {
   hostname: string;
   key: string;
+}
+
+export interface ToggleExtension {
+  request: {
+    message: 'TOGGLE_EXTENSION';
+    data: boolean;
+  };
+  response: void;
 }
 
 export interface GetSfHost {

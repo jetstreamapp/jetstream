@@ -50,6 +50,7 @@
     "build:landing:sitemap": "next-sitemap",
     "build:docs": "cd apps/docs && yarn build",
     "build:storybook": "storybook build -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
+    "build:web-extension:dev": "nx run jetstream-web-extension:build --configuration=development",
     "build:web-extension": "nx run jetstream-web-extension:build",
     "release": "dotenv release-it ${0}",
     "release:build": "zx ./scripts/build-release.mjs",

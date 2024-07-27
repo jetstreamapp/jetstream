@@ -18,6 +18,9 @@
     "https://*.visual.force.com/*",
     "https://*.visualforce.com/*"
   ],
+  "action": {
+    "default_popup": "popup.html"
+  },
   "background": {
     "service_worker": "serviceWorker.js"
   },
