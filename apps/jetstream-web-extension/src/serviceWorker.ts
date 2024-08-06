@@ -150,7 +150,13 @@ const handleResponse = (data: Message['response'], sendResponse: (response: Mess
 
 const handleError = (sendResponse: (response: MessageResponse) => void) => (err: unknown) => {
   console.log('ERROR', err);
-  sendResponse({ data: null });
+  sendResponse({
+    data: null,
+    error: {
+      error: true,
+      message: err instanceof Error ? err.message : 'An unknown error occurred',
+    },
+  });
 };
 
 /**

@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { isValidSalesforceRecordId, useInterval } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler } from '@jetstream/ui';
@@ -158,8 +159,7 @@ export function Button() {
                 }
               }
             } catch (ex) {
-              console.error(ex);
-              // FIXME: we need to tell the user there was a problem - most likely they are not logged in
+              logger.error('Error initializing org', ex);
             }
           })();
         })
@@ -294,14 +294,16 @@ export function Button() {
                   <hr
                     className="slds-m-vertical_medium"
                     css={css`
-                      margin-top: var(--lwc-spacingMedium, 1rem);
-                      margin-bottom: var(--lwc-spacingMedium, 1rem);
+                      margin-top: 0.5rem;
+                      margin-bottom: 1rem;
                       display: block;
-                      border-top: 1px solid var(--slds-g-color-border-base-1, var(--lwc-colorBorder, rgb(229, 229, 229)));
+                      border: 0;
+                      border-top: 1px solid rgb(229, 229, 229);
                       height: 1px;
                       clear: both;
                       padding: 0;
                       box-sizing: content-box;
+                      width: 100%;
                     `}
                   />
                   <GridCol

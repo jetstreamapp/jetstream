@@ -3,8 +3,15 @@ import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 
 export type Message = ToggleExtension | GetSfHost | GetSession | GetPageUrl | InitOrg;
 export type MessageRequest = Message['request'];
+
+export interface ResponseError {
+  error: true;
+  message: string;
+}
+
 export interface MessageResponse<T extends Message['response'] = Message['response']> {
   data: T;
+  error?: ResponseError;
 }
 
 export interface SessionInfo {
