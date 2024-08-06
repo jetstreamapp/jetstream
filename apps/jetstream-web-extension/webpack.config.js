@@ -11,7 +11,7 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   config.devtool = isDev ? 'inline-source-map' : 'source-map';
 
   config.entry = {
-    app: './src/pages/app/app.tsx',
+    app: './src/pages/app/App.tsx',
     popup: './src/pages/popup/Popup.tsx',
     options: './src/pages/options/Options.tsx',
     serviceWorker: './src/serviceWorker.ts',
