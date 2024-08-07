@@ -81,7 +81,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   children,
 }) => {
   const hasGoogleInputConfigured =
-    !__IS_CHROME_EXTENSION__ && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
+    !globalThis.__IS_CHROME_EXTENSION__ && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
       const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });

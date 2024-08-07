@@ -21,15 +21,10 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
     filename: '[name].js',
     path: config.output?.path,
     clean: true,
-    // publicPath: 'http://localhost:4201/',
-    // publicPath: ASSET_PATH,
   };
   config.resolve = {
     ...config.resolve,
   };
-  // config.optimization = {
-  //   minimize: false,
-  // };
   // if runtime chunk is enabled, then the service worker will not work
   config.optimization = {
     ...config.optimization,

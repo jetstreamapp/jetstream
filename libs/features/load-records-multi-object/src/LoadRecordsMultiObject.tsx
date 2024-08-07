@@ -238,7 +238,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
               </select>
             </Select>
             <FileOrGoogleSelector
-              omitGoogle={__IS_CHROME_EXTENSION__}
+              omitGoogle={globalThis.__IS_CHROME_EXTENSION__}
               fileSelectorProps={{
                 id: 'upload-load-template',
                 label: 'Data File (Excel File)',

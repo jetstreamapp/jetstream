@@ -10,7 +10,7 @@ import { useRollbar } from './useRollbar';
 let useInjectScriptGapi: () => [boolean, boolean] = () => [false, false];
 let useInjectScriptGis: () => [boolean, boolean] = () => [false, false];
 
-if (!__IS_CHROME_EXTENSION__) {
+if (!globalThis.__IS_CHROME_EXTENSION__) {
   useInjectScriptGapi = getUseInjectScript('https://apis.google.com/js/api.js');
   useInjectScriptGis = getUseInjectScript('https://accounts.google.com/gsi/client');
 }
