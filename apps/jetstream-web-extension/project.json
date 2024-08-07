@@ -21,14 +21,17 @@
       },
       "configurations": {
         "development": {
-          "extractLicenses": false,
+          "fileReplacements": [],
           "optimization": false,
+          "outputHashing": "none",
           "sourceMap": true,
-          "vendorChunk": true
+          "namedChunks": false,
+          "extractLicenses": false,
+          "vendorChunk": false
         },
         "production": {
           "fileReplacements": [],
-          "optimization": false,
+          "optimization": true,
           "outputHashing": "none",
           "sourceMap": true,
           "namedChunks": false,

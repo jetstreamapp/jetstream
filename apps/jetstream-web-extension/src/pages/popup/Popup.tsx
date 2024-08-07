@@ -1,19 +1,43 @@
-/* eslint-disable no-restricted-globals */
-import { JetstreamLogoInverse } from '@jetstream/ui-core';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { CheckboxToggle } from '@jetstream/ui';
+import { JetstreamLogo } from '@jetstream/ui-core';
 import { initAndRenderReact } from '@jetstream/web-extension-utils';
+import { useEffect, useState } from 'react';
 import { AppWrapperNotJetstreamOwnedPage } from '../../core/AppWrapperNotJetstreamOwnedPage';
 
 initAndRenderReact(<Component />);
 
 export function Component() {
-  function handleClick() {
-    console.log('click');
-  }
+  const [enabled, setEnabled] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const storage = (await chrome.storage.local.get('options')) || {};
+      storage.options = storage.options || { enabled: true };
+      setEnabled(storage.options.enabled);
+    })();
+  }, []);
+
+  useNonInitialEffect(() => {
+    (async () => {
+      chrome.storage.local.set({ options: { enabled } });
+    })();
+  }, [enabled]);
 
   return (
     <AppWrapperNotJetstreamOwnedPage>
-      <JetstreamLogoInverse className="slds-p-around_x-small" width="200px" />
-      <button onClick={handleClick}>click me</button>
+      <header className="slds-m-bottom_medium">
+        <JetstreamLogo />
+      </header>
+      <div>
+        <CheckboxToggle
+          id="enable-extension-button"
+          checked={enabled}
+          label="Enable Page Extension"
+          labelHelp="If you want to disabled Jetstream, uncheck this box."
+          onChange={(value) => setEnabled(value)}
+        />
+      </div>
     </AppWrapperNotJetstreamOwnedPage>
   );
 }

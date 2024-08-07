@@ -17,13 +17,37 @@ console.log('Content script loaded.', __webpack_public_path__);
 
 const elementId = 'jetstream-app-container';
 
-const app = document.createElement('div');
-app.id = elementId;
-document.body.appendChild(app);
+function renderApp() {
+  // TODO: check storage to see if app is disabled before mounting
+  if (!document.getElementById(elementId)) {
+    const app = document.createElement('div');
+    app.id = elementId;
+    document.body.appendChild(app);
+    initAndRenderReact(
+      <AppWrapperNotJetstreamOwnedPage>
+        <Button />
+      </AppWrapperNotJetstreamOwnedPage>,
+      { elementId }
+    );
+  }
+}
 
-initAndRenderReact(
-  <AppWrapperNotJetstreamOwnedPage>
-    <Button />
-  </AppWrapperNotJetstreamOwnedPage>,
-  { elementId }
-);
+function destroyApp() {
+  const app = document.getElementById(elementId);
+  if (app) {
+    app.remove();
+  }
+}
+
+renderApp();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.options?.newValue) {
+    const { enabled } = changes.options.newValue;
+    if (enabled) {
+      renderApp();
+    } else {
+      destroyApp();
+    }
+  }
+});

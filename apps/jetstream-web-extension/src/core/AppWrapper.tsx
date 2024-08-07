@@ -16,8 +16,6 @@ import AppInitializer from './AppInitializer';
 
 enableLogger(true);
 
-const featureFlags = new Set<string>();
-
 export function AppWrapper({ children }: { children: ReactNode }) {
   return (
     <ConfirmationServiceProvider>

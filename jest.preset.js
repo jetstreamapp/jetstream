@@ -11,6 +11,10 @@ const config = {
   resolver: '@nx/jest/plugins/resolver',
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageReporters: ['html'],
+  globals: {
+    ...nxPreset.globals,
+    __IS_CHROME_EXTENSION__: false,
+  },
 };
 
 module.exports = config;

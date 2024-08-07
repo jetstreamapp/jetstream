@@ -1,7 +1,9 @@
+import { Fragment, FunctionComponent, lazy } from 'react';
 import Tabs from '../../tabs/Tabs';
-import { Fragment, FunctionComponent } from 'react';
 import FileSelector, { FileSelectorProps } from './FileSelector';
-import GoogleFileSelector, { GoogleFileSelectorProps } from './GoogleFileSelector';
+import type { GoogleFileSelectorProps } from './GoogleFileSelector';
+
+const GoogleFileSelector = lazy(() => import('./GoogleFileSelector'));
 
 export interface FileOrGoogleSelectorProps {
   fileSelectorProps: FileSelectorProps;
