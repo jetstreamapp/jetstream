@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -12,6 +13,8 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useRecoilValue } from 'recoil';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -22,6 +25,7 @@ const COL_WIDTH_MAP = {
 const getRowHeight = (row: any) => (row?._errors ? 75 : 25);
 
 export interface LoadRecordsResultsModalProps {
+  org: SalesforceOrgUi;
   type: 'results' | 'failures';
   loading?: boolean;
   header: string[];
@@ -35,9 +39,12 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   loading = false,
   header,
   rows,
+  org,
   onDownload,
   onClose,
 }) => {
+  const { serverUrl, defaultApiVersion } = useRecoilValue(applicationCookieState);
+  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
   const modalRef = useRef();
   const [columns, setColumns] = useState<ColumnWithFilter<any>[] | null>(null);
   // Store each row as key and the index as a value to use as a unique id for the row
@@ -47,7 +54,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
     if (header) {
       setColumns(
         header.map((item) => {
-          const baseColumn = setColumnFromType(item, getRowTypeFromValue(rows?.[0]?.[item], false));
+          const baseColumn = setColumnFromType(item, item === '_id' ? 'salesforceId' : getRowTypeFromValue(rows?.[0]?.[item], false));
           return {
             ...baseColumn,
             name: item,
@@ -118,11 +125,14 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
             {loading && <Spinner />}
             {Array.isArray(rows) && Array.isArray(columns) && (
               <DataTable
+                org={org}
+                serverUrl={serverUrl}
+                skipFrontdoorLogin={skipFrontdoorLogin}
                 columns={columns}
                 data={rows}
                 getRowKey={getRowKey}
                 rowHeight={getRowHeight}
-                context={{ portalRefForFilters: modalRef }}
+                context={{ defaultApiVersion, portalRefForFilters: modalRef }}
               />
             )}
           </AutoFullHeightContainer>

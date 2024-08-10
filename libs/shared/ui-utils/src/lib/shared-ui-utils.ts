@@ -1462,15 +1462,19 @@ export function useReducerFetchFn<T>() {
   return reducer;
 }
 
+const is15or18Digits = /[a-z0-9]{15}|[a-z0-9]{18}/i;
+const is18Digits = /[a-z0-9]{18}/i;
+
 /**
  * Validate if a string is a valid salesforce id
  * https://gist.github.com/step307/3d265b7c7cb4eccdf0cf55a68c9cfefa
  */
-export function isValidSalesforceRecordId(recordId?: string) {
-  if (!recordId || !/[a-z0-9]{15}|[a-z0-9]{18}/i.test(recordId)) {
+export function isValidSalesforceRecordId(recordId?: string, allow15Char = true): boolean {
+  const regex = allow15Char ? is15or18Digits : is18Digits;
+  if (!recordId || !regex.test(recordId)) {
     return false;
   }
-  if (recordId.length === 15) {
+  if (recordId.length === 15 && allow15Char) {
     // no way to completely validate this
     return true;
   }

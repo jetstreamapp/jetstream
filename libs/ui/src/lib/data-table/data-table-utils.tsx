@@ -36,6 +36,7 @@ import {
   IdLinkRenderer,
   SelectFormatter,
   SelectHeaderRenderer,
+  TextOrIdLinkRenderer,
 } from './DataTableRenderers';
 import { SubqueryRenderer } from './DataTableSubqueryRenderer';
 import {
@@ -98,7 +99,7 @@ export function getColumnsForGenericTable(
       resizable: true,
       sortable: true,
       filters: defaultFilters,
-      renderCell: GenericRenderer,
+      renderCell: TextOrIdLinkRenderer,
       renderHeaderCell: (props) => (
         <FilterRenderer {...props}>
           {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
@@ -363,7 +364,7 @@ export function getRowTypeFromValue(value: unknown, allowObject = true): ColumnT
   } else if (typeof value === 'number') {
     return 'number';
   }
-  return 'text';
+  return 'textOrSalesforceId';
 }
 
 /**
@@ -420,6 +421,10 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       break;
     case 'salesforceId':
       column.renderCell = IdLinkRenderer;
+      column.width = 175;
+      break;
+    case 'textOrSalesforceId':
+      column.renderCell = TextOrIdLinkRenderer;
       column.width = 175;
       break;
     default:

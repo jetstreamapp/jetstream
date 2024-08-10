@@ -175,6 +175,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       )}
       {resultsModalData.open && (
         <LoadRecordsResultsModal
+          org={selectedOrg}
           type={resultsModalData.type}
           header={resultsModalData.header}
           rows={resultsModalData.data}
