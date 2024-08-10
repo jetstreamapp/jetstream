@@ -17,6 +17,7 @@ export interface NotSeeingRecentMetadataPopoverProps {
     title: string;
     link: string;
   };
+  disabled?: boolean;
   onReload: () => void;
 }
 
@@ -30,6 +31,7 @@ export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMe
     link: `/lightning/setup/ObjectManager/home`,
     title: `View object in Salesforce setup`,
   },
+  disabled,
   onReload,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
@@ -83,6 +85,7 @@ export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMe
       }
       buttonProps={{
         className: 'slds-button',
+        disabled,
       }}
     >
       {loading && <Spinner size="x-small" />}

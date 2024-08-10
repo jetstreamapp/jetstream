@@ -60,18 +60,21 @@ export function useDeployRecords(
       deployResults.jobInfo = jobInfo;
       deployResults.numberOfBatches = batches.length;
       deployResults.records = records;
-      onDeployResults(sobject, { ...deployResults });
+      isMounted.current && onDeployResults(sobject, { ...deployResults });
 
       let currItem = 0;
       for (const batch of batches) {
         try {
+          if (!isMounted.current) {
+            return;
+          }
           const batchResult = await bulkApiAddBatchToJob(org, jobId, batch.csv, currItem === batches.length - 1);
           deployResults.batchIdToIndex = { ...deployResults.batchIdToIndex, [batchResult.id]: currItem };
           deployResults.jobInfo = { ...deployResults.jobInfo };
           deployResults.jobInfo.batches = deployResults.jobInfo.batches || [];
           deployResults.jobInfo.batches = [...deployResults.jobInfo.batches, batchResult];
 
-          onDeployResults(sobject, { ...deployResults });
+          isMounted.current && onDeployResults(sobject, { ...deployResults });
         } catch (ex) {
           // error loading batch
           logger.error('Error loading batch', ex);
@@ -90,7 +93,7 @@ export function useDeployRecords(
       }
       deployResults.status = 'In Progress';
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
-      onDeployResults(sobject, { ...deployResults });
+      isMounted.current && onDeployResults(sobject, { ...deployResults });
     },
     [org, rollbar, onDeployResults]
   );
@@ -130,12 +133,12 @@ export function useDeployRecords(
           batchIdToIndex: {},
           status: 'Finished',
         };
-        onDeployResults(row.sobject, { ...deployResults });
+        isMounted.current && onDeployResults(row.sobject, { ...deployResults });
         return;
       }
 
       deployResults.status = 'In Progress - Uploading';
-      onDeployResults(row.sobject, { ...deployResults });
+      isMounted.current && onDeployResults(row.sobject, { ...deployResults });
 
       await performLoad({
         deployResults,
@@ -146,10 +149,6 @@ export function useDeployRecords(
         batchSize,
         serialMode,
       });
-
-      if (!isMounted.current) {
-        return;
-      }
     },
     [org, performLoad, onDeployResults]
   );
@@ -178,7 +177,7 @@ export function useDeployRecords(
             status: 'Error',
           };
 
-          onDeployResults(row.sobject, deployResults);
+          isMounted.current && onDeployResults(row.sobject, deployResults);
 
           rollbar.error('There was an error loading data for mass record update', { message: ex.message, stack: ex.stack });
           logger.error('Error loading data for row', ex);
