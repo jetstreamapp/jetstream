@@ -102,5 +102,5 @@ export const ENV = {
   // HONEYCOMB
   HONEYCOMB_ENABLED: ensureBoolean(process.env.HONEYCOMB_ENABLED),
   HONEYCOMB_API_KEY: process.env.HONEYCOMB_API_KEY,
-  AUTH_AUDIENCE: process.env.NX_AUTH_AUDIENCE,
+  AUTH_AUDIENCE: process.env.NX_PUBLIC_AUTH_AUDIENCE,
 };

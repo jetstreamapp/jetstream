@@ -18,6 +18,7 @@ import {
   SoapNil,
   FieldType as jetstreamFieldType,
 } from '@jetstream/types';
+import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from '@jetstreamapp/soql-parser-js';
 import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isMatch } from 'date-fns/isMatch';
@@ -28,7 +29,6 @@ import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import orderBy from 'lodash/orderBy';
-import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from 'soql-parser-js';
 import { REGEX } from './regex';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -980,8 +980,11 @@ export function flattenQueryColumn(column: QueryColumnMetadata, prevColumnPath?:
 }
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  return uint8ArrayToBase64(new Uint8Array(buffer));
+}
+
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
   let binary = '';
-  const bytes = new Uint8Array(buffer);
   const len = bytes.byteLength;
   for (let i = 0; i < len; i++) {
     binary += String.fromCharCode(bytes[i]);

@@ -17,12 +17,12 @@ import type {
   PrepareDataResponse,
 } from '@jetstream/types';
 import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Query, WhereClauseWithRightCondition, WhereClauseWithoutOperator, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
-import { Query, WhereClauseWithRightCondition, WhereClauseWithoutOperator, composeQuery, getField } from 'soql-parser-js';
 
 // Duplicated here to avoid circular dependency
 export interface SavedFieldMapping {

@@ -12,14 +12,13 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, RequireMetadataApiBanner, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import './DeployMetadataSelection.scss';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
-import * as fromDeployMetadataState from './deploy-metadata.state';
 import DownloadMetadataPackage from './download-metadata-package/DownloadMetadataPackage';
 import DateSelection from './selection-components/DateSelection';
 import ManagedPackageSelection from './selection-components/ManagedPackageSelection';

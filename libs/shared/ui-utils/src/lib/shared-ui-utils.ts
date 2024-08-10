@@ -36,15 +36,6 @@ import type {
   UseReducerFetchAction,
   UseReducerFetchState,
 } from '@jetstream/types';
-import { parseISO } from 'date-fns/parseISO';
-import { saveAs } from 'file-saver';
-import safeGet from 'lodash/get';
-import isFunction from 'lodash/isFunction';
-import isNil from 'lodash/isNil';
-import isString from 'lodash/isString';
-import isUndefined from 'lodash/isUndefined';
-import numeral from 'numeral';
-import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import {
   HavingClause,
   HavingClauseWithRightCondition,
@@ -55,7 +46,16 @@ import {
   ValueWithDateLiteralCondition,
   WhereClause,
   WhereClauseWithRightCondition,
-} from 'soql-parser-js';
+} from '@jetstreamapp/soql-parser-js';
+import { parseISO } from 'date-fns/parseISO';
+import { saveAs } from 'file-saver';
+import safeGet from 'lodash/get';
+import isFunction from 'lodash/isFunction';
+import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
+import isUndefined from 'lodash/isUndefined';
+import numeral from 'numeral';
+import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
 import { Placement as tippyPlacement } from 'tippy.js';
 import * as XLSX from 'xlsx';
 
@@ -1460,6 +1460,36 @@ export function useReducerFetchFn<T>() {
     }
   }
   return reducer;
+}
+
+const is15or18Digits = /[a-z0-9]{15}|[a-z0-9]{18}/i;
+const is18Digits = /[a-z0-9]{18}/i;
+
+/**
+ * Validate if a string is a valid salesforce id
+ * https://gist.github.com/step307/3d265b7c7cb4eccdf0cf55a68c9cfefa
+ */
+export function isValidSalesforceRecordId(recordId?: string, allow15Char = true): boolean {
+  const regex = allow15Char ? is15or18Digits : is18Digits;
+  if (!recordId || !regex.test(recordId)) {
+    return false;
+  }
+  if (recordId.length === 15 && allow15Char) {
+    // no way to completely validate this
+    return true;
+  }
+  const upperCaseToBit = (char: string) => (char.match(/[A-Z]/) ? '1' : '0');
+  const binaryToSymbol = (digit: number) => (digit <= 25 ? String.fromCharCode(digit + 65) : String.fromCharCode(digit - 26 + 48));
+
+  const parts = [
+    recordId.slice(0, 5).split('').reverse().map(upperCaseToBit).join(''),
+    recordId.slice(5, 10).split('').reverse().map(upperCaseToBit).join(''),
+    recordId.slice(10, 15).split('').reverse().map(upperCaseToBit).join(''),
+  ];
+
+  const check = parts.map((str) => binaryToSymbol(parseInt(str, 2))).join('');
+
+  return check === recordId.slice(-3);
 }
 
 /**

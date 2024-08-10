@@ -5,15 +5,6 @@
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "**/*.spec.tsx", "**/*.test.tsx", "jest.config.ts"],
-  "include": [
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.ts",
-    "**/*.tsx",
-    "../../custom-typings/index.d.ts",
-    "../../libs/shared/ui-core/src/state-management/app-state.ts",
-    "../../libs/shared/ui-core/src/jetstream-events.ts",
-    "../../libs/shared/ui-core/src/analytics.tsx"
-  ],
+  "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "../../custom-typings/index.d.ts"],
   "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"]
 }

@@ -7,8 +7,13 @@ import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';
 import { useRollbar } from './useRollbar';
 
-const useInjectScriptGapi = getUseInjectScript('https://apis.google.com/js/api.js');
-const useInjectScriptGis = getUseInjectScript('https://accounts.google.com/gsi/client');
+let useInjectScriptGapi: () => [boolean, boolean] = () => [false, false];
+let useInjectScriptGis: () => [boolean, boolean] = () => [false, false];
+
+if (!globalThis.__IS_CHROME_EXTENSION__) {
+  useInjectScriptGapi = getUseInjectScript('https://apis.google.com/js/api.js');
+  useInjectScriptGis = getUseInjectScript('https://accounts.google.com/gsi/client');
+}
 
 let _apiLoaded = false;
 let _tokenClient: Maybe<google.accounts.oauth2.TokenClient>;

@@ -2,10 +2,10 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
 import { AllUser, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, List } from '@jetstream/ui';
+import { fromDeployMetadataState } from '@jetstream/ui-core';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import DeployMetadataUserList from '../DeployMetadataUserList';
-import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const USER_SELECTION_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [

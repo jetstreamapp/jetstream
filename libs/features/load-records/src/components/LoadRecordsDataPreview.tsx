@@ -5,12 +5,12 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, groupByFlat } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
-import { ErrorBoundaryFallback, fromLoadRecordsState } from '@jetstream/ui-core';
+import { ErrorBoundaryFallback, applicationCookieState, fromLoadRecordsState, selectSkipFrontdoorAuth } from '@jetstream/ui-core';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
 const MAX_COLUMNS_TO_KEEP_SET_FILTER = 2000;
@@ -81,6 +81,8 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   loadType,
 }) => {
   const isMounted = useRef(true);
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
@@ -191,7 +193,14 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               <p className="slds-text-heading_small">File Preview</p>
               <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                 <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                  <DataTable columns={columns} data={rows} getRowKey={getRowId} />
+                  <DataTable
+                    org={selectedOrg}
+                    serverUrl={serverUrl}
+                    skipFrontdoorLogin={skipFrontdoorLogin}
+                    columns={columns}
+                    data={rows}
+                    getRowKey={getRowId}
+                  />
                 </AutoFullHeightContainer>
               </ErrorBoundary>
             </div>

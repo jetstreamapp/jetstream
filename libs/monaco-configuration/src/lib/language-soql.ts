@@ -1,8 +1,8 @@
 // Used SQL as a starting point
 // https://github.com/microsoft/monaco-languages/blob/main/src/sql/sql.ts
 // TODO: consider open sourcing the apex part
+import { formatQuery } from '@jetstreamapp/soql-parser-js';
 import type * as monaco from 'monaco-editor';
-import { formatQuery } from 'soql-parser-js';
 
 type Monaco = typeof monaco;
 

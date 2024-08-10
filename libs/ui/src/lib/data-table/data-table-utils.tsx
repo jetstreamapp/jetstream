@@ -3,6 +3,7 @@ import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, getIdFromRecordUrl, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Field, Maybe, QueryResults, QueryResultsColumn } from '@jetstream/types';
+import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from '@jetstreamapp/soql-parser-js';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
 import { isSameDay } from 'date-fns/isSameDay';
@@ -17,7 +18,6 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
-import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from 'soql-parser-js';
 import { ContextMenuItem } from '../popover/ContextMenu';
 import {
   DataTableEditorBoolean,
@@ -36,6 +36,7 @@ import {
   IdLinkRenderer,
   SelectFormatter,
   SelectHeaderRenderer,
+  TextOrIdLinkRenderer,
 } from './DataTableRenderers';
 import { SubqueryRenderer } from './DataTableSubqueryRenderer';
 import {
@@ -98,7 +99,7 @@ export function getColumnsForGenericTable(
       resizable: true,
       sortable: true,
       filters: defaultFilters,
-      renderCell: GenericRenderer,
+      renderCell: TextOrIdLinkRenderer,
       renderHeaderCell: (props) => (
         <FilterRenderer {...props}>
           {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
@@ -363,7 +364,7 @@ export function getRowTypeFromValue(value: unknown, allowObject = true): ColumnT
   } else if (typeof value === 'number') {
     return 'number';
   }
-  return 'text';
+  return 'textOrSalesforceId';
 }
 
 /**
@@ -420,6 +421,10 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       break;
     case 'salesforceId':
       column.renderCell = IdLinkRenderer;
+      column.width = 175;
+      break;
+    case 'textOrSalesforceId':
+      column.renderCell = TextOrIdLinkRenderer;
       column.width = 175;
       break;
     default:

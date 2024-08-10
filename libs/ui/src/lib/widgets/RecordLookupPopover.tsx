@@ -21,6 +21,7 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
+  portalRef?: Element;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 
@@ -31,6 +32,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   skipFrontDoorAuth,
   returnUrl,
   isTooling,
+  portalRef,
   onRecordAction,
 }) => {
   const isMounted = useRef(true);
@@ -117,6 +119,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
       panelProps={{
         onDoubleClick: (event) => event.stopPropagation(),
       }}
+      portalRef={portalRef}
       content={
         <div>
           <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={returnUrl} skipFrontDoorAuth={skipFrontDoorAuth}>

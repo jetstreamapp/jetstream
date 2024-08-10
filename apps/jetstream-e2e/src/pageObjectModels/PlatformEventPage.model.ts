@@ -11,6 +11,7 @@ export class PlatformEventPage {
   readonly publisherCard: Locator;
 
   constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
+    page.evaluate('__IS_CHROME_EXTENSION__ = false;');
     this.apiRequestUtils = apiRequestUtils;
     this.playwrightPage = playwrightPage;
     this.page = page;

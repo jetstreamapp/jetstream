@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isChromeExtension, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
@@ -28,6 +28,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
   selectedMetadata,
   onClose,
 }) => {
+  const [chromeExtension] = useState(() => isChromeExtension());
   const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const editorRef = useRef<editor.IStandaloneCodeEditor>();
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor>();
@@ -228,7 +229,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
       )}
       {!downloadFileModalConfig.open && (
         <Modal
-          header="View or Compare Metadata"
+          header={chromeExtension ? 'View Metadata' : 'View or Compare Metadata'}
           footer={
             <ViewOrCompareMetadataModalFooter
               hasSourceMetadata={!!sourceResults}
@@ -238,6 +239,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
               sourceLastChecked={sourceLastChecked}
               targetLoading={targetLoading}
               targetLastChecked={targetLastChecked}
+              isChromeExtension={chromeExtension}
               reloadMetadata={handleReload}
               onDownloadPackage={handleDownload}
               onExportSummary={handleExport}
@@ -277,6 +279,7 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
                     hasTargetResults={!!targetResults}
                     sourceError={sourceError}
                     targetError={targetError}
+                    isChromeExtension={chromeExtension}
                     onEditorTypeChange={setEditorType}
                     onSelectedFile={setActiveFile}
                     onTargetOrgChange={handleTargetOrg}

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://unpkg.com/release-it@17/schema/release-it.json",
   "plugins": {},
   "git": {
     "commitMessage": "chore: release ${version}",
@@ -10,7 +11,8 @@
     "publish": false
   },
   "github": {
-    "release": true
+    "release": true,
+    "releaseName": "Jetstream ${version}"
   },
   "hooks": {
     "before:init": ["yarn test:all", "SKIP_ROLLBAR=true yarn build"],

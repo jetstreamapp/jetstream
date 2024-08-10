@@ -8,8 +8,20 @@ import { useLocation } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import { fromAppState } from '.';
 
-const amplitudeToken = import.meta.env.NX_AMPLITUDE_KEY;
-const authAudience = import.meta.env.NX_AUTH_AUDIENCE;
+let amplitudeToken = '';
+let authAudience = 'http://getjetstream.app/app_metadata';
+
+try {
+  amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
+} catch (ex) {
+  logger.warn('Amplitude key not found');
+}
+
+try {
+  authAudience = import.meta.env.NX_PUBLIC_AUTH_AUDIENCE;
+} catch (ex) {
+  logger.warn('authAudience key not found');
+}
 
 let hasInit = false;
 let hasProfileInit = false;

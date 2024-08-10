@@ -1,5 +1,4 @@
-import { BulkJobWithBatches, DescribeSObjectResult, Field, ListItem, Maybe } from '@jetstream/types';
-import { PrepareDataResponseError } from '../../../../types/src/lib/ui/load-records-results-types';
+import { BulkJobWithBatches, DescribeSObjectResult, Field, ListItem, Maybe, PrepareDataResponseError } from '@jetstream/types';
 
 export interface MetadataRow {
   /** Confirmed all input is valid, but does not indicate that the row has been validated */

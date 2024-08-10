@@ -58,3 +58,4 @@ package-lock.json
 **/playwright/.cache
 
 .nx/cache
+.nx/workspace-data

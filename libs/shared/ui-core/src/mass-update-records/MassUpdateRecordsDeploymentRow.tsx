@@ -3,11 +3,10 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiGetRecords } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { decodeHtmlEntity, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { BulkJobBatchInfo, BulkJobResultRecord, SalesforceOrgUi } from '@jetstream/types';
+import { BulkJobBatchInfo, BulkJobResultRecord, DownloadAction, DownloadType, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { DownloadAction, DownloadType } from '../../../../types/src/lib/ui/load-records-results-types';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
@@ -176,6 +175,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       )}
       {resultsModalData.open && (
         <LoadRecordsResultsModal
+          org={selectedOrg}
           type={resultsModalData.type}
           header={resultsModalData.header}
           rows={resultsModalData.data}

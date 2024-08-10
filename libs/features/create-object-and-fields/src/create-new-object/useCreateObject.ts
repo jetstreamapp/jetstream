@@ -69,7 +69,7 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
 
         try {
           const results = await doDeployMetadata(selectedOrg, file, {
-            rollbackOnError: false,
+            rollbackOnError: true,
             singlePackage: true,
             allowMissingFiles: false,
           });

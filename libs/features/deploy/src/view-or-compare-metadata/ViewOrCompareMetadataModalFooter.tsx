@@ -10,6 +10,7 @@ export interface ViewOrCompareMetadataModalFooterProps {
   sourceLastChecked: Date | null;
   targetLoading: boolean;
   targetLastChecked: Date | null;
+  isChromeExtension: boolean;
   reloadMetadata?: () => void;
   onDownloadPackage: (which: OrgType) => void;
   onExportSummary: () => void;
@@ -24,6 +25,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
   sourceLastChecked,
   targetLoading,
   targetLastChecked,
+  isChromeExtension,
   reloadMetadata,
   onDownloadPackage,
   onExportSummary,
@@ -59,19 +61,23 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
           Download Source Package
         </button>
 
-        <button
-          className="slds-button slds-button_neutral"
-          onClick={() => onDownloadPackage('TARGET')}
-          disabled={!hasTargetMetadata || targetLoading || !hasTargetMetadataContent}
-        >
-          <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Download Target Package
-        </button>
+        {!isChromeExtension && (
+          <>
+            <button
+              className="slds-button slds-button_neutral"
+              onClick={() => onDownloadPackage('TARGET')}
+              disabled={!hasTargetMetadata || targetLoading || !hasTargetMetadataContent}
+            >
+              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Download Target Package
+            </button>
 
-        <button className="slds-button slds-button_neutral" onClick={() => onExportSummary()} disabled={!hasBoth}>
-          <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Export Comparison
-        </button>
+            <button className="slds-button slds-button_neutral" onClick={() => onExportSummary()} disabled={!hasBoth}>
+              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Export Comparison
+            </button>
+          </>
+        )}
 
         <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
           Close

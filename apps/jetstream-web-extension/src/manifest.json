@@ -1,0 +1,48 @@
+{
+  "name": "Jetstream",
+  "description": "Jetstream is a set of tools that supercharge your administration of Salesforce.com.",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "icons": {
+    "16": "assets/icons/jetstream-icon-16.png",
+    "32": "assets/icons/jetstream-icon-32.png",
+    "48": "assets/icons/jetstream-icon-48.png",
+    "128": "assets/icons/jetstream-icon-128.png"
+  },
+  "permissions": ["storage", "cookies"],
+  "host_permissions": [
+    "https://*.cloudforce.com/*",
+    "https://*.force.com/*",
+    "https://*.lightning.force.com/*",
+    "https://*.salesforce.com/*",
+    "https://*.visual.force.com/*",
+    "https://*.visualforce.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "serviceWorker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.cloudforce.com/*",
+        "https://*.force.com/*",
+        "https://*.lightning.force.com/*",
+        "https://*.salesforce.com/*",
+        "https://*.visual.force.com/*",
+        "https://*.visualforce.com/*"
+      ],
+      "all_frames": true,
+      "js": ["contentScript.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["*.html", "*.js", "*.css", "*.map", "*.png", "*.svg", "/app/", "/assets/"],
+      "matches": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"]
+    }
+  ],
+  "minimum_chrome_version": "110"
+}

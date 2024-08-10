@@ -2,10 +2,10 @@ import { COMMON_METADATA_TYPES, DescribeMetadataList, getMetadataLabelFromFullNa
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CommonUser, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Grid, ReadonlyList } from '@jetstream/ui';
+import { fromDeployMetadataState } from '@jetstream/ui-core';
 import isBoolean from 'lodash/isBoolean';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import * as fromDeployMetadataState from '../deploy-metadata.state';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const METADATA_TYPES_RADIO_BUTTONS: RadioButtonItem<CommonUser>[] = [

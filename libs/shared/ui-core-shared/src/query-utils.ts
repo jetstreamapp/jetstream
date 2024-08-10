@@ -1,12 +1,12 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { ErrorResult, ExpressionType, Field, FieldType, Maybe, SalesforceRecord } from '@jetstream/types';
+import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlattenedFields } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlattenedFields } from 'soql-parser-js';
 
 export interface EditFromErrors {
   hasErrors: boolean;

@@ -8,9 +8,9 @@ import {
   PermissionSetWithProfileRecord,
   SalesforceOrgUi,
 } from '@jetstream/types';
+import { Query, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { formatRelative } from 'date-fns/formatRelative';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Query, composeQuery, getField } from 'soql-parser-js';
 import { isPermissionSetWithProfile } from '../shared-ui-utils';
 
 let _lastRefreshed: string;

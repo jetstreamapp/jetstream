@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import { isChromeExtension, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
@@ -10,6 +10,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';
 import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
 import PlatformEventMonitorPublisherCard from './PlatformEventMonitorPublisherCard';
+import PlatformEventMonitorSubscribeNotAvailableCard from './PlatformEventMonitorSubscribeNotAvailableCard';
 import { PlatformEventObject } from './platform-event-monitor.types';
 import { PlatformEventDownloadData, usePlatformEvent } from './usePlatformEvent';
 
@@ -18,6 +19,7 @@ export interface PlatformEventMonitorProps {}
 
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
+  const [chromeExtension] = useState(() => isChromeExtension());
   const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
   const isMounted = useRef(true);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -160,20 +162,24 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
           `}
         >
           <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-grid slds-grid_vertical">
-            <PlatformEventMonitorListenerCard
-              loading={loadingPlatformEvents}
-              picklistKey={picklistKey}
-              platformEventsList={platformEventsListSubscriptions}
-              subscribedPlatformEventsList={subscribedPlatformEventsList}
-              selectedSubscribeEvent={selectedSubscribeEvent}
-              messagesByChannel={messagesByChannel}
-              fetchPlatformEvents={fetchPlatformEvents}
-              onClear={() => clearAndUnsubscribeFromAll()}
-              onDownload={handleDownload}
-              onSelectedSubscribeEvent={setSelectedSubscribeEvent}
-              subscribe={subscribe}
-              unsubscribe={unsubscribe}
-            />
+            {chromeExtension ? (
+              <PlatformEventMonitorSubscribeNotAvailableCard />
+            ) : (
+              <PlatformEventMonitorListenerCard
+                loading={loadingPlatformEvents}
+                picklistKey={picklistKey}
+                platformEventsList={platformEventsListSubscriptions}
+                subscribedPlatformEventsList={subscribedPlatformEventsList}
+                selectedSubscribeEvent={selectedSubscribeEvent}
+                messagesByChannel={messagesByChannel}
+                fetchPlatformEvents={fetchPlatformEvents}
+                onClear={() => clearAndUnsubscribeFromAll()}
+                onDownload={handleDownload}
+                onSelectedSubscribeEvent={setSelectedSubscribeEvent}
+                subscribe={subscribe}
+                unsubscribe={unsubscribe}
+              />
+            )}
           </AutoFullHeightContainer>
           <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-is-relative slds-grid slds-grid_vertical">
             <PlatformEventMonitorPublisherCard

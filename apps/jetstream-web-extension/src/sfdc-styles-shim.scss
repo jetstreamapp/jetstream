@@ -1,0 +1,173 @@
+@import '@salesforce-ux/design-system/scss/_design-tokens';
+
+.slds-popover {
+  position: relative;
+  border-radius: var(--lwc-borderRadiusMedium, 0.25rem);
+  width: var(--lwc-sizeMedium, 20rem);
+  min-height: 2rem;
+  z-index: var(--slds-c-popover-position-zindex, var(--lwc-zIndexDialog, 6000));
+  background-color: var(--slds-g-color-neutral-base-100, var(--lwc-colorBackgroundAlt, rgb(255, 255, 255)));
+  display: inline-block;
+  box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.16);
+  border: var(--lwc-borderWidthThin, 1px) solid var(--slds-g-color-border-base-1, var(--lwc-colorBorder, rgb(229, 229, 229)));
+}
+
+.slds-p-around_small,
+.slds-p-around--small {
+  padding: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.slds-p-left_medium,
+.slds-p-left--medium {
+  padding-left: var(--lwc-spacingMedium, 1rem);
+}
+
+.slds-grid {
+  display: flex;
+}
+
+slds-popover *:last-child {
+  margin-bottom: 0;
+}
+
+.slds-is-relative {
+  position: relative;
+}
+
+.slds-p-around_small,
+.slds-p-around--small {
+  padding: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.slds-popover__body,
+.slds-popover__header,
+.slds-popover__footer {
+  position: relative;
+  padding: var(--lwc-spacingXSmall, 0.5rem) var(--lwc-spacingSmall, 0.75rem);
+  word-wrap: break-word;
+}
+
+.slds-popover__body {
+  padding: var(--lwc-spacingXSmall, 0.5rem) var(--lwc-spacingSmall, 0.75rem);
+}
+
+.slds-popover *:last-child {
+  margin-bottom: 0;
+}
+
+.slds-gutters {
+  margin-right: calc(-1 * var(--lwc-spacingSmall, 0.75rem));
+  margin-left: calc(-1 * var(--lwc-spacingSmall, 0.75rem));
+}
+
+.slds-grid_vertical,
+.slds-grid--vertical {
+  flex-direction: column;
+}
+
+.slds-grid {
+  display: flex;
+}
+
+.slds-gutters .slds-col {
+  padding-right: var(--lwc-spacingSmall, 0.75rem);
+  padding-left: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.slds-m-bottom_x-small,
+.slds-m-bottom--x-small {
+  margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
+}
+
+.slds-col,
+.slds-col_padded-around-medium,
+.slds-col--padded-around-medium,
+.slds-col_padded-medium,
+.slds-col--padded-medium,
+.slds-col_padded-around-large,
+.slds-col--padded-around-large,
+.slds-col_padded-large,
+.slds-col--padded-large,
+.slds-col_padded-around,
+.slds-col--padded-around,
+.slds-col_padded,
+.slds-col--padded {
+  flex: 1 1 auto;
+}
+
+a.slds-button {
+  text-align: center;
+}
+
+.slds-button_stretch {
+  justify-content: center;
+  width: 100%;
+}
+
+.slds-button_neutral,
+.slds-button--neutral {
+  --slds-c-button-spacing-inline-start: var(
+    --slds-c-button-neutral-spacing-inline-start,
+    var(--sds-c-button-neutral-spacing-inline-start, var(--lwc-spacingMedium, 1rem))
+  );
+  --slds-c-button-spacing-inline-end: var(
+    --slds-c-button-neutral-spacing-inline-end,
+    var(--sds-c-button-neutral-spacing-inline-end, var(--lwc-spacingMedium, 1rem))
+  );
+  text-align: center;
+  justify-content: center;
+  transition: border 0.15s linear;
+  --slds-c-button-color-background: var(
+    --slds-c-button-neutral-color-background,
+    var(
+      --sds-c-button-neutral-color-background,
+      var(--slds-g-color-neutral-base-100, var(--lwc-buttonColorBackgroundPrimary, rgb(255, 255, 255)))
+    )
+  );
+  --slds-c-button-color-border: var(
+    --slds-c-button-neutral-color-border,
+    var(--sds-c-button-neutral-color-border, var(--slds-g-color-border-base-4, var(--lwc-buttonColorBorderPrimary, rgb(201, 201, 201))))
+  );
+}
+
+.slds-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-top: var(--slds-c-button-spacing-block-start, var(--sds-c-button-spacing-block-start, 0));
+  padding-right: var(--slds-c-button-spacing-inline-end, var(--sds-c-button-spacing-inline-end, 0));
+  padding-bottom: var(--slds-c-button-spacing-block-end, var(--sds-c-button-spacing-block-end, 0));
+  padding-left: var(--slds-c-button-spacing-inline-start, var(--sds-c-button-spacing-inline-start, 0));
+  background: none;
+  background-color: var(--slds-c-button-color-background, var(--sds-c-button-color-background, transparent));
+  background-clip: border-box;
+  border-color: var(--slds-c-button-color-border, var(--sds-c-button-color-border, transparent));
+  border-style: solid;
+  border-width: var(--slds-c-button-sizing-border, var(--sds-c-button-sizing-border, var(--lwc-borderWidthThin, 1px)));
+  border-radius: var(--slds-c-button-radius-border, var(--sds-c-button-radius-border, var(--lwc-buttonBorderRadius, 0.25rem)));
+  box-shadow: var(--slds-c-button-shadow, var(--sds-c-button-shadow));
+  line-height: var(--slds-c-button-line-height, var(--sds-c-button-line-height, var(--lwc-lineHeightButton, 1.875rem)));
+  text-decoration: none;
+  color: var(--slds-c-button-text-color, var(--sds-c-button-text-color, var(--lwc-brandAccessible, rgba(1, 118, 211, 1))));
+  -webkit-appearance: none;
+  white-space: normal;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+a,
+button {
+  cursor: pointer;
+}
+
+a {
+  color: var(--lwc-brandTextLink, rgba(11, 92, 171, 1));
+  text-decoration: none;
+  transition: color 0.1s linear;
+}
+
+a {
+  background-color: transparent;
+}

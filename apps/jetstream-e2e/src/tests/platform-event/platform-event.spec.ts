@@ -1,6 +1,7 @@
 import { expect, test } from '../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
+  await page.evaluate('__IS_CHROME_EXTENSION__ = false;');
   await page.goto('/app');
 });
 
