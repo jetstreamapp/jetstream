@@ -490,6 +490,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       )}
       {resultsModalData.open && (
         <LoadRecordsResultsModal
+          org={selectedOrg}
           type={resultsModalData.type}
           header={resultsModalData.header}
           rows={resultsModalData.data}

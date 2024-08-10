@@ -393,6 +393,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       )}
       {resultsModalData.open && (
         <LoadRecordsResultsModal
+          org={selectedOrg}
           type={resultsModalData.type}
           header={resultsModalData.header}
           rows={resultsModalData.data}

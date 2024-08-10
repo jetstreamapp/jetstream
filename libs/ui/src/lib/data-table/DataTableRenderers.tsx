@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
-import { useDebounce } from '@jetstream/shared/ui-utils';
+import { isValidSalesforceRecordId, useDebounce } from '@jetstream/shared/ui-utils';
 import { multiWordStringFilter } from '@jetstream/shared/utils';
 import { CloneEditView, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -9,6 +9,7 @@ import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
+import isString from 'lodash/isString';
 import { Fragment, FunctionComponent, MutableRefObject, memo, useContext, useEffect, useRef, useState } from 'react';
 import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, useRowSelection } from 'react-data-grid';
 import Checkbox from '../form/checkbox/Checkbox';
@@ -579,9 +580,10 @@ export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, 
   );
 };
 
-export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row, onRowChange }) => {
-  const { onRecordAction } = useContext(DataTableGenericContext) as {
+export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row }) => {
+  const { onRecordAction, portalRefForFilters } = useContext(DataTableGenericContext) as {
     onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
+    portalRefForFilters?: MutableRefObject<HTMLElement>;
   };
   const recordId = row[column.key];
   const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId, _skipFrontdoorLogin);
@@ -593,10 +595,31 @@ export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = 
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}
+      portalRef={portalRefForFilters?.current}
       onRecordAction={onRecordAction}
     />
   );
 };
+
+export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
+  const { column, row } = RenderCellProps;
+
+  if (!row) {
+    return <div />;
+  }
+
+  const maybeSalesforceId = row[column.key];
+
+  if (_org && isString(maybeSalesforceId) && maybeSalesforceId.length === 18 && isValidSalesforceRecordId(maybeSalesforceId, false)) {
+    return (
+      <a href={`${_org.instanceUrl}/${maybeSalesforceId}`} target="_blank" rel="noopener noreferrer">
+        {maybeSalesforceId}
+      </a>
+    );
+  }
+
+  return GenericRenderer(RenderCellProps);
+}
 
 export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   if (!isFunction(row?._action)) {
