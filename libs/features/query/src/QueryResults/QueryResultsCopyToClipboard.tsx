@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
-import { Maybe, SalesforceRecord } from '@jetstream/types';
+import { CopyAsDataType, Maybe, SalesforceRecord } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Icon, Modal, Radio, RadioGroup, Tooltip } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
@@ -29,7 +29,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
 }) => {
   const { trackEvent } = useAmplitude();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [format, setFormat] = useState<'excel' | 'json'>('excel');
+  const [format, setFormat] = useState<CopyAsDataType>('excel');
   const [whichRecords, setWhichRecords] = useState<WhichRecords>('all');
   const [hasFilteredRows, setHasFilteredRows] = useState<boolean>(false);
   const [hasPartialSelectedRows, setHasPartialSelectedRows] = useState<boolean>(false);
@@ -50,7 +50,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     setWhichRecords('all');
   }, [records, filteredRows, selectedRows]);
 
-  async function handleCopyToClipboard(format: 'excel' | 'json' = 'excel') {
+  async function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
     if (
       (records && hasFilteredRows && filteredRows.length < records.length) ||
       (records && hasPartialSelectedRows && selectedRows.length < records.length)
@@ -108,8 +108,11 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
           dropDownClassName="slds-dropdown_actions"
           position="right"
           disabled={!hasRecords}
-          items={[{ id: 'json', value: 'Copy as JSON' }]}
-          onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'json')}
+          items={[
+            { id: 'csv', value: 'Copy as CSV' },
+            { id: 'json', value: 'Copy as JSON' },
+          ]}
+          onSelected={(item) => handleCopyToClipboard(item as CopyAsDataType)}
         />
       </ButtonGroupContainer>
       {isModalOpen && (

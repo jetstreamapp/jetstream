@@ -4,6 +4,7 @@ import { REGEX, flattenRecords, groupByFlat, splitArrayToMaxSize } from '@jetstr
 import type {
   CompositeRequestBody,
   CompositeResponse,
+  CopyAsDataType,
   DebugLevel,
   DescribeSObjectResult,
   DescribeSObjectResultWithExtendedField,
@@ -19,6 +20,7 @@ import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import copyToClipboard from 'copy-to-clipboard';
 import { addHours } from 'date-fns/addHours';
 import { formatISO } from 'date-fns/formatISO';
+import { unparse } from 'papaparse';
 import {
   isRelationshipField,
   polyfillFieldDefinition,
@@ -301,7 +303,7 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
  */
 export async function copyRecordsToClipboard(
   recordsToCopy: any,
-  copyFormat: 'excel' | 'json' = 'excel',
+  copyFormat: CopyAsDataType = 'excel',
   fields?: Maybe<string[]>,
   includeHeader = true
 ) {
@@ -311,6 +313,12 @@ export async function copyRecordsToClipboard(
       const clipboardItem = new ClipboardItem({
         'text/plain': new Blob([transformTabularDataToExcelStr(recordsToCopy, fields, includeHeader)], { type: 'text/plain' }),
         'text/html': new Blob([transformTabularDataToHtml(recordsToCopy, fields, includeHeader)], { type: 'text/html' }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
+    } else if (copyFormat === 'csv') {
+      recordsToCopy = fields ? flattenRecords(recordsToCopy, fields) : recordsToCopy;
+      const clipboardItem = new ClipboardItem({
+        'text/plain': new Blob([unparse(recordsToCopy, { header: includeHeader })], { type: 'text/plain' }),
       });
       await navigator.clipboard.write([clipboardItem]);
     } else if (copyFormat === 'json') {
@@ -325,6 +333,9 @@ export async function copyRecordsToClipboard(
     if (copyFormat === 'excel' && fields) {
       const flattenedData = flattenRecords(recordsToCopy, fields);
       copyToClipboard(transformTabularDataToExcelStr(flattenedData, fields, includeHeader), { format: 'text/plain' });
+    } else if (copyFormat === 'csv' && fields) {
+      const flattenedData = flattenRecords(recordsToCopy, fields);
+      copyToClipboard(unparse(flattenedData, { header: includeHeader }), { format: 'text/plain' });
     } else if (copyFormat === 'json') {
       copyToClipboard(JSON.stringify(recordsToCopy, null, 2), { format: 'text/plain' });
     }
