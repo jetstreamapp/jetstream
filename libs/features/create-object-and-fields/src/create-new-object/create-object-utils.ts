@@ -4,7 +4,51 @@ import { Maybe, ObjectPermissionRecordInsert, RecordResult, SalesforceOrgUi, Tab
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import JSZip from 'jszip';
 import partition from 'lodash/partition';
-import { CreateFieldParams, CreateObjectPayload } from './create-object-types';
+import { CreateFieldParams, CreateObjectPayload, CreateObjectPermissions } from './create-object-types';
+
+/**
+ * Set dependent permissions based on what selection was made
+ */
+export function setSObjectPermissionDependencies(
+  permissions: CreateObjectPermissions,
+  modifiedKey: keyof CreateObjectPermissions,
+  newValue: boolean
+) {
+  const output = { ...permissions };
+  let fieldsToSetIfTrue: (keyof CreateObjectPermissions)[] = [];
+  let fieldsToSetIfFalse: (keyof CreateObjectPermissions)[] = [];
+  if (modifiedKey === 'allowCreate') {
+    output.allowCreate = newValue;
+    fieldsToSetIfTrue = ['allowRead'];
+    fieldsToSetIfFalse = [];
+  } else if (modifiedKey === 'allowRead') {
+    output.allowRead = newValue;
+    fieldsToSetIfTrue = [];
+    fieldsToSetIfFalse = ['allowCreate', 'allowEdit', 'allowDelete', 'viewAllRecords', 'modifyAllRecords'];
+  } else if (modifiedKey === 'allowEdit') {
+    output.allowEdit = newValue;
+    fieldsToSetIfTrue = ['allowRead'];
+    fieldsToSetIfFalse = ['allowDelete', 'modifyAllRecords'];
+  } else if (modifiedKey === 'allowDelete') {
+    output.allowDelete = newValue;
+    fieldsToSetIfTrue = ['allowRead', 'allowEdit'];
+    fieldsToSetIfFalse = ['modifyAllRecords'];
+  } else if (modifiedKey === 'viewAllRecords') {
+    output.viewAllRecords = newValue;
+    fieldsToSetIfTrue = ['allowRead'];
+    fieldsToSetIfFalse = ['modifyAllRecords'];
+  } else if (modifiedKey === 'modifyAllRecords') {
+    output.modifyAllRecords = newValue;
+    fieldsToSetIfTrue = ['allowRead', 'allowEdit', 'allowDelete', 'viewAllRecords'];
+    fieldsToSetIfFalse = [];
+  }
+  if (newValue) {
+    fieldsToSetIfTrue.forEach((prop) => (output[prop] = newValue));
+  } else {
+    fieldsToSetIfFalse.forEach((prop) => (output[prop] = newValue));
+  }
+  return output;
+}
 
 export function generateApiNameFromLabel(value: string) {
   let apiNameLabel = value;
@@ -33,15 +77,16 @@ export function getObjectAndTabPermissionRecords(
   const tabPermissions: TabPermissionRecordInsert[] = [];
 
   profiles.forEach((id) => {
+    const permissions = objectPermissions.scope === 'ALL' ? objectPermissions.permissions : objectPermissions.permissions[id];
     _objectPermissions.push({
       attributes: { type: 'ObjectPermissions' },
       ParentId: id,
-      PermissionsCreate: objectPermissions.allowCreate,
-      PermissionsDelete: objectPermissions.allowDelete,
-      PermissionsEdit: objectPermissions.allowEdit,
-      PermissionsModifyAllRecords: objectPermissions.modifyAllRecords,
-      PermissionsRead: objectPermissions.allowRead,
-      PermissionsViewAllRecords: objectPermissions.viewAllRecords,
+      PermissionsCreate: permissions.allowCreate,
+      PermissionsDelete: permissions.allowDelete,
+      PermissionsEdit: permissions.allowEdit,
+      PermissionsModifyAllRecords: permissions.modifyAllRecords,
+      PermissionsRead: permissions.allowRead,
+      PermissionsViewAllRecords: permissions.viewAllRecords,
       SobjectType: apiName,
     });
     if (createTab) {
@@ -55,15 +100,16 @@ export function getObjectAndTabPermissionRecords(
   });
 
   permissionSets.forEach((id) => {
+    const permissions = objectPermissions.scope === 'ALL' ? objectPermissions.permissions : objectPermissions.permissions[id];
     _objectPermissions.push({
       attributes: { type: 'ObjectPermissions' },
       ParentId: id,
-      PermissionsCreate: objectPermissions.allowCreate,
-      PermissionsDelete: objectPermissions.allowDelete,
-      PermissionsEdit: objectPermissions.allowEdit,
-      PermissionsModifyAllRecords: objectPermissions.modifyAllRecords,
-      PermissionsRead: objectPermissions.allowRead,
-      PermissionsViewAllRecords: objectPermissions.viewAllRecords,
+      PermissionsCreate: permissions.allowCreate,
+      PermissionsDelete: permissions.allowDelete,
+      PermissionsEdit: permissions.allowEdit,
+      PermissionsModifyAllRecords: permissions.modifyAllRecords,
+      PermissionsRead: permissions.allowRead,
+      PermissionsViewAllRecords: permissions.viewAllRecords,
       SobjectType: apiName,
     });
     if (createTab) {

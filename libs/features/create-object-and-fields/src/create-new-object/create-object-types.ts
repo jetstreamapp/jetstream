@@ -1,9 +1,23 @@
+export type PermissionScope = 'ALL' | 'GRANULAR';
+
+export interface ObjectPermissionAllState {
+  scope: 'ALL';
+  permissions: CreateObjectPermissions;
+}
+
+export interface ObjectPermissionGranularState {
+  scope: 'GRANULAR';
+  permissions: Record<string, CreateObjectPermissions>;
+}
+
+export type ObjectPermissionState = ObjectPermissionAllState | ObjectPermissionGranularState;
+
 export interface CreateFieldParams {
   apiName: string;
   createTab: boolean;
   tabMotif: string;
   payload: CreateObjectPayload;
-  objectPermissions: CreateObjectPermissions;
+  objectPermissions: ObjectPermissionState;
   permissionSets: string[];
   profiles: string[];
 }
