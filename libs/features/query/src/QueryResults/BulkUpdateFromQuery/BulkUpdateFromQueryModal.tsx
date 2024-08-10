@@ -271,6 +271,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
       size="lg"
       closeOnBackdropClick={false}
       closeOnEsc={false}
+      closeDisabled={deployInProgress}
       hide={isSecondModalOpen}
       footer={
         <Grid align="spread">
@@ -278,10 +279,11 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             org={selectedOrg}
             loading={refreshLoading}
             serverUrl={serverUrl}
+            disabled={deployInProgress}
             onReload={handleRefreshMetadata}
           />
           <div>
-            <button className="slds-button slds-button_neutral" onClick={() => onModalClose(didDeploy)}>
+            <button className="slds-button slds-button_neutral" disabled={deployInProgress} onClick={() => onModalClose(didDeploy)}>
               Close
             </button>
             <button

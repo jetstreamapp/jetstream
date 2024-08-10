@@ -8,6 +8,7 @@ import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spi
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
+import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
 import LoadRecordsResultsModal from '../load/LoadRecordsResultsModal';
@@ -160,6 +161,7 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
 
   return (
     <Fragment>
+      <ConfirmPageChange actionInProgress={status?.includes('In Progress')} />
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
