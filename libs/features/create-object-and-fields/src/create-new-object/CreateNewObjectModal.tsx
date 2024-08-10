@@ -123,6 +123,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
       <Modal
         closeOnEsc={false}
         closeOnBackdropClick={false}
+        closeDisabled={loading}
         header="Create Object"
         ref={modalRef}
         footer={
@@ -195,6 +196,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                       )}
                     </Grid>
                   ),
+                  titleText: 'Object Configuration',
                   content: <CreateNewObjectForm loading={loading} />,
                 },
                 {
@@ -221,13 +223,10 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                       {status === 'NOT_STARTED' && (
                         <GridCol size={12}>
                           {!allValid && (
-                            <EmptyState
-                              headline="Go back and correct your configuration"
-                              illustration={<NoPreviewIllustration />}
-                            ></EmptyState>
+                            <EmptyState headline="Go back and correct your configuration" illustration={<NoPreviewIllustration />} />
                           )}
                           {allValid && (
-                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />}></EmptyState>
+                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />} />
                           )}
                         </GridCol>
                       )}
