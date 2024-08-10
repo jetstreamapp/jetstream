@@ -10,6 +10,7 @@ import {
   BulkDownloadJob,
   ChildRelationship,
   CloneEditView,
+  CopyAsDataType,
   ErrorResult,
   Field,
   FileExtCsvXLSXJsonGSheet,
@@ -371,8 +372,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       subqueryFields: Object.keys(record)
         .filter((field) => field !== 'attributes')
         .reduce((acc, field) => {
-          if (record[field] && isObject(record[field]) && Array.isArray(record[field]?.records)) {
-            const firstRecord = record[field]?.records?.[0] || {};
+          if (record[field] && isObject(record[field]) && Array.isArray((record[field] as any)?.records)) {
+            const firstRecord = (record[field] as any)?.records?.[0] || {};
             acc[field] = Object.keys(firstRecord)
               .filter((field) => field !== 'attributes')
               .map((field) => {
@@ -436,7 +437,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     });
   }
 
-  function handleCopyToClipboard(format: 'excel' | 'json' = 'excel') {
+  function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
     if (!initialRecord) {
       return;
     }
@@ -602,8 +603,11 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       className="slds-button_last"
                       dropDownClassName="slds-dropdown_actions"
                       position="right"
-                      items={[{ id: 'json', value: 'Copy as JSON' }]}
-                      onSelected={(item) => handleCopyToClipboard(item as 'excel' | 'json')}
+                      items={[
+                        { id: 'csv', value: 'Copy as CSV' },
+                        { id: 'json', value: 'Copy as JSON' },
+                      ]}
+                      onSelected={(item) => handleCopyToClipboard(item as CopyAsDataType)}
                     />
                   </ButtonGroupContainer>
                   <button

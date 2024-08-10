@@ -3,6 +3,8 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
+export type CopyAsDataType = 'excel' | 'csv' | 'json';
+
 export interface RequestResult<T> {
   data: T;
 }
