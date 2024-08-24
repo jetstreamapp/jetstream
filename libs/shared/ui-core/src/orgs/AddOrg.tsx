@@ -1,6 +1,6 @@
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
+import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
@@ -34,6 +34,8 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
+  const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);
+  const [addLoginTrue, setAddLoginTrue] = useState(false);
   const [applicationState] = useRecoilState(applicationCookieState);
 
   useEffect(() => {
@@ -46,19 +48,30 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
     setLoginUrl(url);
   }, [orgType, customUrl]);
 
-  // FIXME: we should have a way to know what org was being "fixed" and always replace it in the DB and here
   function handleAddOrg() {
     loginUrl &&
-      addOrg({ serverUrl: applicationState.serverUrl, loginUrl }, (addedOrg: SalesforceOrgUi) => {
-        popoverRef.current?.close();
-        onAddOrg(addedOrg, true);
-      });
+      addOrg(
+        { serverUrl: applicationState.serverUrl, loginUrl, addLoginTrue: advancedOptionsEnabled && addLoginTrue },
+        (addedOrg: SalesforceOrgUi) => {
+          popoverRef.current?.close();
+          onAddOrg(addedOrg, true);
+        }
+      );
+  }
+
+  function handleReset() {
+    setOrgType('prod');
+    setCustomUrl('');
+    setLoginUrl(null);
+    setAdvancedOptionsEnabled(false);
+    setAddLoginTrue(false);
   }
 
   return (
     // TODO: figure out way to close this once an org is added - this was fixed, but it caused the component to fully re-render each time!
     <Popover
       ref={popoverRef}
+      onChange={(isOpen) => !isOpen && handleReset()}
       // placement="bottom-end"
       header={
         <header className="slds-popover__header">
@@ -116,6 +129,24 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
               />
             </Input>
           )}
+          <div className="slds-m-top_small">
+            <CheckboxToggle
+              id="advanced-settings-toggle"
+              checked={advancedOptionsEnabled}
+              label="Advanced"
+              labelPosition="right"
+              onChange={setAdvancedOptionsEnabled}
+            />
+            {advancedOptionsEnabled && (
+              <Checkbox
+                id="advanced-settings-login-true"
+                label={`Add "login=true" to url`}
+                labelHelp="Allows bypassing SSO if your admin has enabled this option."
+                checked={addLoginTrue}
+                onChange={setAddLoginTrue}
+              />
+            )}
+          </div>
         </div>
       }
       footer={
