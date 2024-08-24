@@ -1,6 +1,6 @@
 import { ENV } from '@jetstream/api-config';
 import { SalesforceUserInfo } from '@jetstream/types';
-import { CallbackParamsType, Issuer, generators } from 'openid-client';
+import { AuthorizationParameters, CallbackParamsType, Issuer, generators } from 'openid-client';
 
 function getSalesforceAuthClient(loginUrl: string) {
   const { Client } = new Issuer({
@@ -29,7 +29,10 @@ function getSalesforceAuthClient(loginUrl: string) {
 /**
  * Get redirectUrl and authData for Salesforce OAuth
  */
-export function salesforceOauthInit(loginUrl: string, loginHint?: string) {
+export function salesforceOauthInit(
+  loginUrl: string,
+  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: string } = {}
+) {
   // https://login.salesforce.com/.well-known/openid-configuration
 
   const nonce = generators.nonce();
@@ -39,7 +42,7 @@ export function salesforceOauthInit(loginUrl: string, loginHint?: string) {
 
   const authClient = getSalesforceAuthClient(loginUrl);
 
-  const authorizationUrl = authClient.authorizationUrl({
+  const params: AuthorizationParameters = {
     code_challenge_method: 'S256',
     code_challenge,
     login_hint: loginHint,
@@ -47,7 +50,13 @@ export function salesforceOauthInit(loginUrl: string, loginHint?: string) {
     prompt: 'login',
     scope: 'api web refresh_token',
     state,
-  });
+  };
+
+  if (addLoginParam) {
+    params['login'] = 'true';
+  }
+
+  const authorizationUrl = authClient.authorizationUrl(params);
 
   return { code_verifier, nonce, state, authorizationUrl };
 }

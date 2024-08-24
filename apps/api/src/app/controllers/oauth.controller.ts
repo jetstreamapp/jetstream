@@ -15,6 +15,10 @@ export const routeDefinition = {
     validators: {
       query: z.object({
         loginUrl: z.string().min(1),
+        addLoginParam: z
+          .enum(['true', 'false'])
+          .nullish()
+          .transform((val) => val === 'true'),
       }),
       hasSourceOrg: false,
     },
@@ -34,8 +38,8 @@ export const routeDefinition = {
  * @param res
  */
 const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res, next) => {
-  const loginUrl = query.loginUrl;
-  const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl);
+  const { loginUrl, addLoginParam } = query;
+  const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam });
   req.session.orgAuth = { code_verifier, nonce, state, loginUrl };
   res.redirect(authorizationUrl);
 });
