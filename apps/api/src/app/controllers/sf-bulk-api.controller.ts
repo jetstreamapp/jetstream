@@ -116,7 +116,7 @@ const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, 
 
 const addBatchToJob = createRoute(
   routeDefinition.addBatchToJob.validators,
-  async ({ body, params, query, user, jetstreamConn }, req, res, next) => {
+  async ({ body, params, query, jetstreamConn }, req, res, next) => {
     try {
       const jobId = params.jobId;
       const csv = body;

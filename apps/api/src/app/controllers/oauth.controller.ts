@@ -1,13 +1,24 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
-import { ERROR_MESSAGES } from '@jetstream/shared/constants';
+import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
+import cookie from 'cookie';
 import { CallbackParamsType } from 'openid-client';
 import { z } from 'zod';
+import { environment } from '../../environments/environment';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
 import { createRoute } from '../utils/route.utils';
-import { OauthLinkParams } from './auth.controller';
+
+export interface OauthLinkParams {
+  type: 'salesforce';
+  error?: string;
+  message?: string;
+  clientUrl: string;
+  data?: string;
+}
+
+type PkceData = { code_verifier: string; nonce: string; state: string; loginUrl: string };
 
 export const routeDefinition = {
   salesforceOauthInitAuth: {
@@ -40,7 +51,26 @@ export const routeDefinition = {
 const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res, next) => {
   const { loginUrl, addLoginParam } = query;
   const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam });
-  req.session.orgAuth = { code_verifier, nonce, state, loginUrl };
+  const pkceData: PkceData = { code_verifier, nonce, state, loginUrl };
+
+  // Set the HTTP-only cookie
+  res.setHeader('Set-Cookie', [
+    cookie.serialize(HTTP.COOKIE.PKCE, JSON.stringify(pkceData), {
+      httpOnly: true,
+      secure: !ENV.IS_LOCAL_DOCKER && environment.production,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 1, // 1 hour
+    }),
+    cookie.serialize(HTTP.COOKIE.PKCE_CLERK_UAT, req.cookies['__client_uat'], {
+      httpOnly: true,
+      secure: !ENV.IS_LOCAL_DOCKER && environment.production,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 1, // 1 hour
+    }),
+  ]);
+
   res.redirect(authorizationUrl);
 });
 
@@ -49,71 +79,69 @@ const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitA
  * @param req
  * @param res
  */
-const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallback.validators, async ({ query, user }, req, res, next) => {
-  const queryParams = query as CallbackParamsType;
-  const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
-  const returnParams: OauthLinkParams = {
-    type: 'salesforce',
-    clientUrl,
-  };
+const salesforceOauthCallback = createRoute(
+  routeDefinition.salesforceOauthCallback.validators,
+  async ({ query, userId }, req, res, next) => {
+    const queryParams = query as CallbackParamsType;
+    const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
+    const returnParams: OauthLinkParams = {
+      type: 'salesforce',
+      clientUrl,
+    };
 
-  try {
-    const orgAuth = req.session.orgAuth;
-    req.session.orgAuth = undefined;
+    try {
+      if (!req.cookies[HTTP.COOKIE.PKCE]) {
+        returnParams.error = 'Authentication Error';
+        returnParams.message = 'You are not authorized to access this page. Please try again.';
+        return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+      }
 
-    // ERROR PATH
-    if (queryParams.error) {
-      returnParams.error = (queryParams.error as string) || 'Unexpected Error';
-      returnParams.message = queryParams.error_description
-        ? (queryParams.error_description as string)
-        : 'There was an error authenticating with Salesforce.';
-      req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+      // ERROR PATH
+      if (queryParams.error) {
+        returnParams.error = (queryParams.error as string) || 'Unexpected Error';
+        returnParams.message = queryParams.error_description
+          ? (queryParams.error_description as string)
+          : 'There was an error authenticating with Salesforce.';
+        req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+        return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+      }
+
+      const { code_verifier, loginUrl, nonce, state } = JSON.parse(req.cookies[HTTP.COOKIE.PKCE] || '{}') as PkceData;
+      const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(loginUrl, query, {
+        code_verifier,
+        nonce,
+        state,
+      });
+
+      const jetstreamConn = new ApiConnection({
+        apiRequestAdapter: getApiRequestFactoryFn(fetch),
+        userId: userInfo.user_id,
+        organizationId: userInfo.organization_id,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        accessToken: access_token!,
+        apiVersion: ENV.SFDC_API_VERSION,
+        instanceUrl: userInfo.urls.custom_domain || loginUrl,
+        refreshToken: refresh_token,
+        logging: ENV.LOG_LEVEL === 'trace',
+      });
+
+      const salesforceOrg = await initConnectionFromOAuthResponse({
+        jetstreamConn,
+        userId,
+      });
+
+      returnParams.data = JSON.stringify(salesforceOrg);
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
-    } else if (!orgAuth) {
-      returnParams.error = 'Authentication Error';
-      returnParams.message = queryParams.error_description
-        ? (queryParams.error_description as string)
+    } catch (ex) {
+      req.log.info({ ...getExceptionLog(ex) }, '[OAUTH][ERROR]');
+      returnParams.error = ex.message || 'Unexpected Error';
+      returnParams.message = query.error_description
+        ? (query.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
-
-    const { code_verifier, nonce, state, loginUrl } = orgAuth;
-
-    const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(loginUrl, query, {
-      code_verifier,
-      nonce,
-      state,
-    });
-
-    const jetstreamConn = new ApiConnection({
-      apiRequestAdapter: getApiRequestFactoryFn(fetch),
-      userId: userInfo.user_id,
-      organizationId: userInfo.organization_id,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      accessToken: access_token!,
-      apiVersion: ENV.SFDC_API_VERSION,
-      instanceUrl: userInfo.urls.custom_domain || loginUrl,
-      refreshToken: refresh_token,
-      logging: ENV.LOG_LEVEL === 'trace',
-    });
-
-    const salesforceOrg = await initConnectionFromOAuthResponse({
-      jetstreamConn,
-      userId: user.id,
-    });
-
-    returnParams.data = JSON.stringify(salesforceOrg);
-    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
-  } catch (ex) {
-    req.log.info({ ...getExceptionLog(ex) }, '[OAUTH][ERROR]');
-    returnParams.error = ex.message || 'Unexpected Error';
-    returnParams.message = query.error_description
-      ? (query.error_description as string)
-      : 'There was an error authenticating with Salesforce.';
-    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
   }
-});
+);
 
 export async function initConnectionFromOAuthResponse({ jetstreamConn, userId }: { jetstreamConn: ApiConnection; userId: string }) {
   const identity = await jetstreamConn.org.identity();

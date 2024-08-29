@@ -70,9 +70,9 @@ export function useAmplitude(optOut?: boolean) {
     if (!hasProfileInit && userProfile && appCookie) {
       hasProfileInit = true;
       const identify = new amplitude.Identify()
-        .set('id', userProfile.sub)
-        .set('email', userProfile.email)
-        .set('email-verified', userProfile.email_verified)
+        .set('id', userProfile.id)
+        .set('email', userProfile.primaryEmailAddress)
+        .set('email-verified', userProfile.hasVerifiedEmailAddress)
         .set('environment', appCookie.environment)
         .add('app-init-count', 1)
         .add('application-type', 'web');
@@ -86,7 +86,7 @@ export function useAmplitude(optOut?: boolean) {
       }
 
       amplitude.getInstance().identify(identify);
-      amplitude.getInstance().setUserId(userProfile.email);
+      amplitude.getInstance().setUserId(userProfile.primaryEmailAddress);
     }
   }, [userProfile, appCookie, userPreferences]);
 

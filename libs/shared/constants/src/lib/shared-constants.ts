@@ -44,6 +44,8 @@ export const INPUT_ACCEPT_FILETYPES: {
 export const HTTP = {
   COOKIE: {
     JETSTREAM: 'jetstream',
+    PKCE: 'jetstream-pkce',
+    PKCE_CLERK_UAT: 'jetstream-pkce-uat',
   },
   HEADERS: {
     ACCEPT: 'Accept',

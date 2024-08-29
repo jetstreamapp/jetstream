@@ -1,21 +1,18 @@
+import { StrictAuthProp } from '@clerk/clerk-sdk-node';
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
-import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { ENV, getExceptionLog, httpLogger, logger } from '@jetstream/api-config';
+import { HTTP } from '@jetstream/shared/constants';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
-import pgSimple from 'connect-pg-simple';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import proxy from 'express-http-proxy';
-import session from 'express-session';
 import helmet from 'helmet';
 import { cpus } from 'os';
-import passport from 'passport';
-import Auth0Strategy from 'passport-auth0';
-import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
+import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes, webhookRoutes } from './app/routes';
 import {
   addContextMiddleware,
   blockBotByUserAgentMiddleware,
@@ -25,10 +22,13 @@ import {
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
-declare module 'express-session' {
-  interface SessionData {
-    activityExp: number;
-    orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string };
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface Request extends StrictAuthProp {
+      rawBody?: Buffer;
+    }
   }
 }
 
@@ -50,51 +50,37 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 } else {
   logger.info(`Worker ${process.pid} started`);
 
-  const pgSession = pgSimple(session);
+  // const pgSession = pgSimple(session);
 
-  const sessionMiddleware = session({
-    store: new pgSession({
-      pool: pgPool,
-      tableName: 'sessions',
-    }),
-    cookie: {
-      path: '/',
-      // httpOnly: true,
-      secure: !ENV.IS_LOCAL_DOCKER && environment.production,
-      maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      // sameSite: 'strict',
-    },
-    secret: ENV.JETSTREAM_SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    // This will extend the cookie expiration date if there is a request of any kind to a logged in user
-    rolling: true,
-    name: 'sessionid',
-  });
-
-  passport.serializeUser(function (user, done) {
-    done(null, user);
-  });
-
-  passport.deserializeUser(function (user, done) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    done(null, user!);
-  });
-
-  const passportInitMiddleware = passport.initialize();
-  const passportMiddleware = passport.session();
+  // const sessionMiddleware = session({
+  //   store: new pgSession({
+  //     pool: pgPool,
+  //     tableName: 'sessions',
+  //   }),
+  //   cookie: {
+  //     path: '/',
+  //     // httpOnly: true,
+  //     secure: !ENV.IS_LOCAL_DOCKER && environment.production,
+  //     maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
+  //     // sameSite: 'strict',
+  //   },
+  //   secret: ENV.JETSTREAM_SESSION_SECRET,
+  //   resave: false,
+  //   saveUninitialized: false,
+  //   // This will extend the cookie expiration date if there is a request of any kind to a logged in user
+  //   rolling: true,
+  //   name: 'sessionid',
+  // });
 
   const app = express();
-  const httpServer = initSocketServer(app, [sessionMiddleware, passportInitMiddleware, passportMiddleware]);
+  const httpServer = initSocketServer(app, []);
 
   if (environment.production) {
     app.set('trust proxy', 1); // required for environments such as heroku / {render?}
   }
 
+  app.use(cookieParser());
   app.use(addContextMiddleware);
-
-  // Setup session
-  app.use(sessionMiddleware);
 
   // app.use(compression());
   app.use(
@@ -130,6 +116,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
             '*.gstatic.com',
             '*.salesforce.com',
             '*.wp.com',
+            'img.clerk.com',
           ],
           objectSrc: ["'none'"],
           scriptSrc: [
@@ -141,9 +128,17 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
             '*.gstatic.com',
             '*.google-analytics.com',
             '*.googletagmanager.com',
+            'https://challenges.cloudflare.com',
+            'https://clerk.advanced.midge-20.lcl.dev', // TODO: env var
           ],
+          connectSrc: [
+            "'self'",
+            'https://clerk.advanced.midge-20.lcl.dev', // TODO: env var
+          ],
+          workerSrc: ["'self'", 'blob:'],
           scriptSrcAttr: ["'none'"],
           styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+          frameSrc: ["'self'", 'https://challenges.cloudflare.com'],
           upgradeInsecureRequests: [],
         },
       },
@@ -167,60 +162,6 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(blockBotByUserAgentMiddleware);
   app.use(setApplicationCookieMiddleware);
 
-  /** Manual test user, skip Auth0 completely */
-  passport.use(
-    'custom',
-    new CustomStrategy(function (req, callback) {
-      if (req.hostname !== 'localhost' || !ENV.EXAMPLE_USER_OVERRIDE || !ENV.EXAMPLE_USER) {
-        return callback(new Error('Test user not enabled'));
-      }
-
-      const user = ENV.EXAMPLE_USER;
-      req.user = user;
-      callback(null, user);
-    })
-  );
-
-  passport.use(
-    'auth0',
-    new Auth0Strategy(
-      {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        domain: ENV.AUTH0_DOMAIN!,
-        clientID: ENV.AUTH0_CLIENT_ID!,
-        clientSecret: ENV.AUTH0_CLIENT_SECRET!,
-        callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
-      },
-      (accessToken, refreshToken, extraParams, profile, done) => {
-        // accessToken is the token to call Auth0 API (not needed in the most cases)
-        // extraParams.id_token has the JSON Web Token
-        // profile has all the information from the user
-        return done(null, profile);
-      }
-    )
-  );
-
-  /** This configuration is used for authorization, not authentication (e.x. link second identity to user) */
-  passport.use(
-    'auth0-authz',
-    new Auth0Strategy(
-      {
-        domain: ENV.AUTH0_DOMAIN!,
-        clientID: ENV.AUTH0_CLIENT_ID!,
-        clientSecret: ENV.AUTH0_CLIENT_SECRET!,
-        callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/identity/link/callback`,
-      },
-      (accessToken, refreshToken, extraParams, profile, done) => {
-        // accessToken is the token to call Auth0 API (not needed in the most cases)
-        // extraParams.id_token has the JSON Web Token
-        // profile has all the information from the user
-        return done(null, profile);
-      }
-    )
-  );
-
-  app.use(passportInitMiddleware);
-  app.use(passportMiddleware);
   app.use(httpLogger);
 
   // proxy must be provided prior to body parser to ensure streaming response
@@ -283,15 +224,22 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     app.use('/platform-event', platformEventRoutes);
   }
 
+  const rawBodySaver = function (req, res, buffer, encoding) {
+    if (buffer && buffer.length) {
+      req.rawBody = buffer;
+    }
+  };
+
   app.use(raw({ limit: '30mb', type: ['text/csv'] }));
   app.use(raw({ limit: '30mb', type: ['application/zip'] }));
-  app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
+  app.use(json({ limit: '20mb', verify: rawBodySaver, type: ['json', 'application/csp-report'] }));
   app.use(urlencoded({ extended: true }));
 
   app.use('/healthz', healthCheck);
   app.use('/api', apiRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
+  app.use('/webhook', webhookRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI) {
     app.use('/test', testRoutes);

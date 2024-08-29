@@ -1,16 +1,15 @@
-import { ENV, getExceptionLog, logger, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { WithAuthProp } from '@clerk/clerk-sdk-node';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
-import { ApplicationCookie, UserProfileServer } from '@jetstream/types';
-import { AxiosError } from 'axios';
-import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
+import { ApplicationCookie } from '@jetstream/types';
+import { addDays, getUnixTime } from 'date-fns';
 import * as express from 'express';
-import { isNumber } from 'lodash';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { updateUserLastActivity } from '../services/auth0';
+import { clerkClient, incomingMessageToClerkRequest } from '../services/auth.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -88,69 +87,23 @@ function getActivityExp() {
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER && req.hostname === 'localhost') {
-    req.user = ENV.EXAMPLE_USER;
+    // req.user = ENV.EXAMPLE_USER;
     return next();
   }
-  if (req.user) {
-    telemetryAddUserToAttributes(req.user as UserProfileServer);
-    try {
-      if (!isNumber(req.session.activityExp)) {
-        req.session.activityExp = getActivityExp();
-      } else if (req.session.activityExp < getUnixTime(new Date())) {
-        req.session.activityExp = getActivityExp();
-        // Update auth0 with expiration date
-        updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
-          .then(() => {
-            req.log.debug(
-              {
-                userId: (req.user as any)?.user_id,
-                requestId: res.locals.requestId,
-              },
-              '[AUTH][LAST-ACTIVITY][UPDATED] %s',
-              req.session.activityExp
-            );
-          })
-          .catch((err) => {
-            // send error to rollbar
-            const error: AxiosError = err;
-            if (error.response) {
-              req.log.error(
-                {
-                  userId: (req.user as any)?.user_id,
-                  requestId: res.locals.requestId,
-                  ...getExceptionLog(err),
-                },
-                '[AUTH][LAST-ACTIVITY][ERROR] %o',
-                error.response.data
-              );
-            } else if (error.request) {
-              req.log.error(
-                {
-                  userId: (req.user as any)?.user_id,
-                  requestId: res.locals.requestId,
-                  ...getExceptionLog(err),
-                },
-                '[AUTH][LAST-ACTIVITY][ERROR] %s',
-                error.message || 'An unknown error has occurred.'
-              );
-            }
-            rollbarServer.error('Error updating Auth0 activityExp', req, {
-              context: `route#activityExp`,
-              custom: {
-                ...getExceptionLog(err),
-                url: req.url,
-                params: req.params,
-                query: req.query,
-                body: req.body,
-                userId: (req.user as UserProfileServer)?.id,
-                requestId: res.locals.requestId,
-              },
-            });
-          });
-      }
-    } catch (ex) {
-      req.log.warn(getExceptionLog(ex), '[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message);
-    }
+
+  // This is used in SFDC oauth flow, the clerk uat token does not carry through on the redirect back from SFDC
+  const extraHeaders: Record<string, string> = {};
+  if (req.path === '/sfdc/callback' && !req.cookies.__client_uat && req.cookies[HTTP.COOKIE.PKCE_CLERK_UAT]) {
+    extraHeaders.cookie = req.headers.cookie + `; __client_uat=${req.cookies[HTTP.COOKIE.PKCE_CLERK_UAT]}`;
+  }
+
+  const authResults = await clerkClient.authenticateRequest(incomingMessageToClerkRequest(req, extraHeaders), {});
+  (req as WithAuthProp<any>).auth = {
+    ...authResults.toAuth(),
+    claims: authResults.toAuth()?.sessionClaims,
+  };
+
+  if (authResults.isSignedIn) {
     return next();
   }
   req.log.error('[AUTH][UNAUTHORIZED]');
@@ -225,29 +178,29 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
   const includeCallOptions = ensureBoolean(
     req.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (req.query.includeCallOptions as string | undefined)
   );
-  const user = req.user as UserProfileServer;
+  const userId = req.auth?.userId;
 
-  if (!uniqueId) {
+  if (!userId || !uniqueId) {
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, req.log, apiVersion, includeCallOptions, requestId);
+  return getOrgForRequest(userId, uniqueId, req.log, apiVersion, includeCallOptions, requestId);
 }
 
 export async function getOrgForRequest(
-  user: UserProfileServer,
+  userId: string,
   uniqueId: string,
   logger: pino.Logger | typeof console = console,
   apiVersion?: string,
   includeCallOptions?: boolean,
   requestId?: string
 ) {
-  const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
+  const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(userId, uniqueId);
   if (!org) {
     throw new UserFacingError('An org was not found with the provided id');
   }
 
-  const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId, organizationId } = org;
+  const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId: sfdcUserId, organizationId } = org;
   const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
 
   apiVersion = apiVersion || org.apiVersion || ENV.SFDC_API_VERSION;
@@ -276,7 +229,7 @@ export async function getOrgForRequest(
   const jetstreamConn = new ApiConnection(
     {
       apiRequestAdapter: getApiRequestFactoryFn(fetch),
-      userId,
+      userId: sfdcUserId,
       organizationId,
       accessToken,
       apiVersion,

@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 
+import { setupClerkTestingToken } from '@clerk/testing/playwright';
 import { test as base } from '@playwright/test';
 import { LoadSingleObjectPage } from '../pageObjectModels/LoadSingleObjectPage.model';
 import { LoadWithoutFilePage } from '../pageObjectModels/LoadWithoutFilePage.model';
@@ -28,6 +29,8 @@ type MyFixtures = {
 
 export const test = base.extend<MyFixtures>({
   apiRequestUtils: async ({ page, request }, use) => {
+    await setupClerkTestingToken({ page });
+
     await page.goto('/app');
     // TODO: figure this out
     // TODO: this should be e2e org

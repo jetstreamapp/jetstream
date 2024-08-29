@@ -1,6 +1,6 @@
+import { SignedInAuthObject } from '@clerk/backend/dist/internal';
 import { getExceptionLog, rollbarServer } from '@jetstream/api-config';
 import { ApiConnection } from '@jetstream/salesforce-api';
-import { UserProfileServer } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
@@ -22,7 +22,8 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     query: z.infer<TQuerySchema>;
     jetstreamConn: ApiConnection;
     targetJetstreamConn: ApiConnection;
-    user: UserProfileServer;
+    userId: string;
+    auth: SignedInAuthObject;
     requestId: string;
     org: NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>;
     targetOrg: NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>;
@@ -54,7 +55,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     try {
-      const data = {
+      const data: Parameters<ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>>[0] = {
         params: params ? params.parse(req.params) : undefined,
         body: body ? body.parse(req.body) : undefined,
         query: query ? query.parse(req.query) : undefined,
@@ -64,7 +65,8 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         org: res.locals.org as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // this will exist if targetJetstreamConn exists, otherwise will throw
         targetOrg: res.locals.targetOrg as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
-        user: req.user as UserProfileServer,
+        auth: req.auth,
+        userId: req.auth.userId,
         requestId: res.locals.requestId,
       };
       if (hasSourceOrg && !data.jetstreamConn) {
@@ -87,7 +89,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
           params: req.params,
           query: req.query,
           body: req.body,
-          userId: (req.user as UserProfileServer)?.id,
+          userId: req.auth?.userId,
           requestId: res.locals.requestId,
         },
       });

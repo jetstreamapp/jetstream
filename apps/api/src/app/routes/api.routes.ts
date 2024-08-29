@@ -33,12 +33,6 @@ routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
  * userController Routes
  * ************************************
  */
-routes.get('/me', userController.getUserProfile.controllerFn());
-routes.delete('/me', userController.deleteAccount.controllerFn());
-routes.get('/me/profile', userController.getFullUserProfile.controllerFn());
-routes.post('/me/profile', userController.updateProfile.controllerFn());
-routes.delete('/me/profile/identity', userController.unlinkIdentity.controllerFn());
-routes.post('/me/profile/identity/verify-email', userController.resendVerificationEmail.controllerFn());
 routes.post('/support/email', upload.array('files', 5) as any, userController.emailSupport.controllerFn());
 
 /**

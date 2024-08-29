@@ -1,5 +1,6 @@
-import { ENV, getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserJSON } from '@clerk/backend';
+import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
+import { UserWithId } from '@jetstream/types';
 import { Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
@@ -30,10 +31,7 @@ export async function findByUserId(userId: string) {
   return user;
 }
 
-export async function updateUser(
-  user: UserProfileServer,
-  data: { name: string; preferences: { skipFrontdoorLogin: boolean } }
-): Promise<User> {
+export async function updateUser(user: UserWithId, data: { name: string; preferences: { skipFrontdoorLogin: boolean } }): Promise<User> {
   try {
     const existingUser = await prisma.user.findUnique({
       where: { userId: user.id },
@@ -63,15 +61,16 @@ export async function updateUser(
 /**
  * This is called each time a user logs in (e.x. goes through OAuth2 flow with Auth Provider)
  */
-export async function createOrUpdateUser(user: UserProfileServer): Promise<{ created: boolean; user: User }> {
+export async function createOrUpdateUser(user: UserJSON): Promise<{ created: boolean; user: User }> {
   try {
-    const existingUser = await findByUserId(user.id);
+    const existingUser = await findByUserId(user.external_id || user.id);
 
     if (existingUser) {
       const updatedUser = await prisma.user.update({
         where: { userId: user.id },
         data: {
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          // TODO: do we want to store more info here?
+          appMetadata: JSON.stringify(user.public_metadata || {}),
           preferences: {
             upsert: {
               create: { skipFrontdoorLogin: false },
@@ -87,11 +86,11 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
       const createdUser = await prisma.user.create({
         data: {
           userId: user.id,
-          email: user._json.email,
-          name: user._json.name,
-          nickname: user._json.nickname,
-          picture: user._json.picture,
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          email: user.email_addresses.find(({ id }) => id === user.primary_phone_number_id)?.email_address || 'unknown@unknown.com',
+          name: `${user.first_name} ${user.last_name}`,
+          picture: user.image_url,
+          appMetadata: JSON.stringify(user.public_metadata || {}),
+          // TODO: should we move this to unsafe_metadata?
           preferences: { create: { skipFrontdoorLogin: false } },
         },
         select: userSelect,

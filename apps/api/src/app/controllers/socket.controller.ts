@@ -1,5 +1,4 @@
 import { getExceptionLog, logger } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
 import { IncomingMessage, createServer } from 'http';
@@ -19,7 +18,7 @@ const wrapMiddleware =
     middleware(socket.request, {}, next);
 
 function getUser(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) {
-  const user = (socket.request as any).user as UserProfileServer;
+  const user = (socket.request as any).user as { id: string };
   return user;
 }
 
@@ -50,17 +49,6 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
   io.engine.generateId = (req) => {
     return nanoid(); // must be unique across all Socket.IO servers
   };
-
-  // can we do anything here?
-  // io.engine.on("initial_headers", (headers, req) => {
-  // headers["test"] = "123";
-  // headers["set-cookie"] = "mycookie=456";
-  // });
-
-  // can we do anything here?
-  // io.engine.on("headers", (headers, req) => {
-  // headers["test"] = "789";
-  // });
 
   // Possible app structures
   // https://socket.io/docs/v4/server-application-structure/

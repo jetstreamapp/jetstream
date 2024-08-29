@@ -11,6 +11,7 @@ import type {
   AndOr,
   BulkJobWithBatches,
   ChangeSet,
+  ClerkUser,
   DeployOptions,
   DeployResult,
   DescribeGlobalSObjectResult,
@@ -35,6 +36,7 @@ import type {
   SalesforceOrgUiType,
   UseReducerFetchAction,
   UseReducerFetchState,
+  UserProfileUi,
 } from '@jetstream/types';
 import {
   HavingClause,
@@ -1680,4 +1682,22 @@ export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult | Descri
     !sobject.name.endsWith('__Tag') &&
     !sobject.name.endsWith('__Feed')
   );
+}
+
+export function convertClerkUserToUserProfile(user: ClerkUser): UserProfileUi {
+  return {
+    id: user.id,
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
+    fullName: user.fullName ?? '',
+    username: user.username ?? user.primaryEmailAddress?.emailAddress ?? '',
+    primaryEmailAddress: user.primaryEmailAddress?.emailAddress || '',
+    emailAddresses: user.emailAddresses.map((email) => email.emailAddress),
+    hasVerifiedEmailAddress: user.hasVerifiedEmailAddress,
+    publicMetadata: user.publicMetadata,
+    unsafeMetadata: user.unsafeMetadata,
+    lastSignInAt: user.lastSignInAt?.toISOString(),
+    createdAt: user.createdAt?.toISOString(),
+    updatedAt: user.updatedAt?.toISOString(),
+  };
 }

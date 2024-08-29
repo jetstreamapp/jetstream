@@ -5,6 +5,11 @@ const { composePlugins, withNx } = require('@nx/next');
  **/
 const nextConfig = {
   trailingSlash: true,
+  env: {
+    NX_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NX_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    NX_PUBLIC_CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL,
+    NX_PUBLIC_LANDING_PAGE_URL: process.env.NX_PUBLIC_CLIENT_URL,
+  },
   nx: {
     // Set this to true if you would like to use SVGR
     // See: https://github.com/gregberge/svgr

@@ -23,7 +23,7 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const userProfile = useRecoilValue(fromAppState.userProfileState);
 
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);

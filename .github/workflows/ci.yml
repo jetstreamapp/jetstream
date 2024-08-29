@@ -14,6 +14,7 @@ env:
   NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
   NX_PUBLIC_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
   NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
+  NX_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NX_PUBLIC_CLERK_PUBLISHABLE_KEY }}
 
 jobs:
   # Build application
@@ -63,12 +64,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LOG_LEVEL: warn
+      E2E: true
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
       AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
       AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
       E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
       E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
       E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
+      E2E_USER_ID: $E2E_USER_ID,
       EXAMPLE_USER_OVERRIDE: true
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
