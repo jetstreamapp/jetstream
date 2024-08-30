@@ -6,11 +6,33 @@ import { ensureBoolean } from '@jetstream/shared/utils';
 import { ApplicationCookie } from '@jetstream/types';
 import { addDays, getUnixTime } from 'date-fns';
 import * as express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { clerkClient, incomingMessageToClerkRequest } from '../services/auth.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+
+export const rateLimitStandardMiddleware = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  limit: 900, // limit each IP to 1000 requests per minute (15/RPS)
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+export const rateLimitMediumMiddleware = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 1000, // limit each IP to 1000 requests per 10 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+export const rateLimitStrictMiddleware = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 100, // limit each IP to 100 requests per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || uuid();

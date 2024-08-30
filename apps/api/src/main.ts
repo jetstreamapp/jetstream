@@ -17,6 +17,9 @@ import {
   addContextMiddleware,
   blockBotByUserAgentMiddleware,
   notFoundMiddleware,
+  rateLimitMediumMiddleware,
+  rateLimitStandardMiddleware,
+  rateLimitStrictMiddleware,
   setApplicationCookieMiddleware,
 } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
@@ -235,11 +238,11 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(json({ limit: '20mb', verify: rawBodySaver, type: ['json', 'application/csp-report'] }));
   app.use(urlencoded({ extended: true }));
 
-  app.use('/healthz', healthCheck);
-  app.use('/api', apiRoutes);
-  app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
-  app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
-  app.use('/webhook', webhookRoutes);
+  app.use('/healthz', rateLimitStandardMiddleware, healthCheck);
+  app.use('/api', rateLimitStandardMiddleware, apiRoutes);
+  app.use('/static', rateLimitMediumMiddleware, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
+  app.use('/oauth', rateLimitStrictMiddleware, oauthRoutes); // NOTE: there are also static files with same path
+  app.use('/webhook', rateLimitMediumMiddleware, webhookRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI) {
     app.use('/test', testRoutes);

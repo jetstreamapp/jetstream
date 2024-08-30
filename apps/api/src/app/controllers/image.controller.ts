@@ -21,7 +21,7 @@ const getUploadSignature = createRoute(routeDefinition.getUploadSignature.valida
     const apiKey = cloudinary.config().api_key;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const apiSecret = cloudinary.config().api_secret!;
-    const context = `caption=${userId.replace('|', '\\|')}|environment=${ENV.JETSTREAM_SERVER_URL}`;
+    const context = `caption=${userId.replaceAll('|', '\\|')}|environment=${ENV.JETSTREAM_SERVER_URL}`;
 
     const signature = cloudinary.utils.api_sign_request({ timestamp, upload_preset: 'jetstream-issues', context }, apiSecret);
 
