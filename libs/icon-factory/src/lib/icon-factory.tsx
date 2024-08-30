@@ -2,8 +2,10 @@
  * Every icon used in the application must be individually imported
  * This ensures that we do not include icons that are not used in the application in the final bundle
  */
+import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
+import ActionIcon_Announcement from './icons/action/Announcement';
 import BrandIcon_Jetstream from './icons/brand/Jetstream';
 import BrandIcon_JetstreamInverse from './icons/brand/JetstreamInverse';
 import CustomIcon_Heart from './icons/custom/Heart';
@@ -141,14 +143,16 @@ import UtilityIcon_Warning from './icons/utility/Warning';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility' | 'brand';
 
-export type IconName = StandardIcon | CustomIcon | UtilityIcon | DoctypeIcon | BrandIcon;
+export type IconName = ActionIcon | StandardIcon | CustomIcon | UtilityIcon | DoctypeIcon | BrandIcon;
 
+export type ActionIconObj = typeof actionIcons;
 export type StandardIconObj = typeof standardIcons;
 export type CustomIconObj = typeof customIcons;
 export type DoctypeIconObj = typeof doctypeIcons;
 export type UtilityIconObj = typeof utilityIcons;
 export type BrandIconObj = typeof brandIcons;
 
+export type ActionIcon = keyof ActionIconObj;
 export type StandardIcon = keyof StandardIconObj;
 export type CustomIcon = keyof CustomIconObj;
 export type DoctypeIcon = keyof DoctypeIconObj;
@@ -161,6 +165,10 @@ export interface IconObj {
   title?: string;
   description?: string;
 }
+
+const actionIcons = {
+  announcement: ActionIcon_Announcement,
+} as const;
 
 const standardIcons = {
   actions_and_buttons: StandardIcon_ActionsAndButtons,
@@ -311,10 +319,16 @@ const brandIcons = {
   jetstream_inverse: BrandIcon_JetstreamInverse,
 } as const;
 
-export function getIcon(type: IconType, icon: string, className?: string) {
+export function getIcon(type: IconType, icon: string, className?: string, svgCss?: SerializedStyles) {
   let found = false;
   let IconOrFallback = UtilityIcon_Fallback;
   switch (type) {
+    case 'action':
+      if (actionIcons[icon]) {
+        IconOrFallback = actionIcons[icon];
+        found = true;
+      }
+      break;
     case 'standard':
       if (standardIcons[icon]) {
         IconOrFallback = standardIcons[icon];
@@ -351,11 +365,13 @@ export function getIcon(type: IconType, icon: string, className?: string) {
   if (!found) {
     logger.warn('[ICON NOT FOUND]', `icon ${type}-${icon} not found, providing fallback`);
   }
-  return <IconOrFallback className={classNames(className || 'slds-icon')} />;
+  return <IconOrFallback className={classNames(className || 'slds-icon')} css={svgCss} />;
 }
 
 export function getIconTypes(type: Omit<IconType, 'action' | 'custom'>): IconName[] {
   switch (type) {
+    case 'action':
+      return Object.keys(actionIcons) as ActionIcon[];
     case 'doctype':
       return Object.keys(doctypeIcons) as StandardIcon[];
     case 'standard':

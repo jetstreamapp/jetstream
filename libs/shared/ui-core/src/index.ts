@@ -6,6 +6,7 @@ export * from './app/ConfirmPageChange';
 export * from './app/DownloadFileStream';
 export * from './app/EmailSupport';
 export * from './app/ErrorBoundaryFallback';
+export * from './app/HeaderAnnouncementPopover';
 export * from './app/HeaderDonatePopover';
 export * from './app/HeaderHelpPopover';
 export * from './app/HeaderNavbar';

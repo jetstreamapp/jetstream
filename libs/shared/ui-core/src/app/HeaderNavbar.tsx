@@ -1,13 +1,14 @@
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
-import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { FeedbackLink, Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { applicationCookieState, selectUserPreferenceState } from '../state-management/app-state';
+import { HeaderAnnouncementPopover } from './HeaderAnnouncementPopover';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import NotificationsRequestModal from './NotificationsRequestModal';
@@ -78,8 +79,37 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
   const rightHandMenuItems = useMemo(() => {
     return isChromeExtension
       ? [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />]
-      : [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
-  }, [isChromeExtension]);
+      : [
+          <HeaderAnnouncementPopover>
+            <p className="">We are working on upgrades to our authentication and user management systems in the coming weeks.</p>
+            <p className="slds-text-title_caps slds-m-top_x-small">Upcoming Features:</p>
+            <ul className="slds-list_dotted slds-m-vertical_x-small">
+              <li>Multi-factor authentication</li>
+              <li>Visibility to all active sessions</li>
+            </ul>
+            <p className="slds-text-title_caps">Important information:</p>
+            <ul className="slds-list_dotted slds-m-vertical_x-small">
+              <li>All users will be signed out and need to sign back in</li>
+              <li>Some users may require a password reset to log back in</li>
+            </ul>
+            <hr className="slds-m-vertical_small" />
+            Stay tuned for a timeline. If you have any questions <FeedbackLink type="EMAIL" label="Send us an email" />.
+            {!!userProfile && !userProfile.email_verified && (
+              <>
+                <hr className="slds-m-vertical_small" />
+                <p className="slds-text-color_error">
+                  Your email address is not verified, make sure <Link to="/settings">verify your email address</Link> or{' '}
+                  <Link to="/settings">link a social identity</Link> to make sure you can continue to login.
+                </p>
+              </>
+            )}
+          </HeaderAnnouncementPopover>,
+          <RecordSearchPopover />,
+          <Jobs />,
+          <HeaderHelpPopover />,
+          <HeaderDonatePopover />,
+        ];
+  }, [isChromeExtension, userProfile]);
 
   return (
     <Fragment>
