@@ -33,7 +33,7 @@ export interface PopoverProps {
   bodyClassName?: string;
   bodyStyle?: SerializedStyles;
   placement?: Placement;
-  content: JSX.Element;
+  content: ReactNode;
   header?: JSX.Element;
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
