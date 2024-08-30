@@ -1,7 +1,7 @@
 /// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
-import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
+import { checkHeartbeat, getOrgs } from '@jetstream/shared/data';
 import { getChromeExtensionVersion, getOrgType, isChromeExtension, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { ApplicationCookie, Maybe, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
@@ -9,29 +9,21 @@ import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
 
-const DEFAULT_PROFILE = {
-  email: 'unknown',
-  email_verified: true,
-  name: 'unknown',
-  nickname: 'unknown',
-  picture: 'unknown',
-  sub: 'unknown',
-  updated_at: 'unknown',
+const DEFAULT_PROFILE: UserProfileUi = {
   id: 'unknown',
-  userId: 'unknown',
-  createdAt: 'unknown',
-  updatedAt: 'unknown',
-  'http://getjetstream.app/app_metadata': {
-    featureFlags: {
-      flagVersion: '',
-      flags: [],
-      isDefault: true,
-    },
-  },
-  preferences: {
-    skipFrontdoorLogin: true,
-  },
-} as UserProfileUi;
+  firstName: 'unknown',
+  lastName: 'unknown',
+  fullName: 'unknown unknown',
+  username: 'unknown@getjetstream.app',
+  primaryEmailAddress: 'unknown@getjetstream.app',
+  emailAddresses: ['unknown@getjetstream.app'],
+  hasVerifiedEmailAddress: true,
+  publicMetadata: null,
+  unsafeMetadata: null,
+  lastSignInAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
@@ -109,12 +101,6 @@ async function fetchAppVersion() {
   }
 }
 
-async function fetchUserProfile(): Promise<UserProfileUi> {
-  // FIXME: this is a temporary fix to get the extension working, will want to fetch from server
-  const userProfile = isChromeExtension() ? DEFAULT_PROFILE : await getUserProfile();
-  return userProfile;
-}
-
 const userPreferenceState = atom<UserProfilePreferences>({
   key: 'userPreferenceState',
   default: getUserPreferences(),
@@ -135,9 +121,9 @@ export const appVersionState = atom<{ version: string }>({
   default: fetchAppVersion(),
 });
 
-export const userProfileState = atom<UserProfileUi>({
-  key: 'userState',
-  default: fetchUserProfile(),
+export const userProfileState = atom<UserProfileUi | null>({
+  key: 'userProfileState',
+  default: isChromeExtension() ? DEFAULT_PROFILE : null,
 });
 
 export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
@@ -203,7 +189,7 @@ export const selectSkipFrontdoorAuth = selector({
   key: 'selectSkipFrontdoorAuth',
   get: ({ get }) => {
     const userProfile = get(userProfileState);
-    return userProfile?.preferences?.skipFrontdoorLogin || false;
+    return userProfile?.unsafeMetadata?.skipFrontdoorLogin ? true : false;
   },
 });
 

@@ -21,15 +21,13 @@ routes.post(
     const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL;
 
     if (
-      // && ENV.ENVIRONMENT === 'test'
+      process.env.E2E === 'true' &&
+      process.env.E2E_USER_ID &&
       E2E_LOGIN_USERNAME &&
       E2E_LOGIN_PASSWORD &&
       E2E_LOGIN_URL &&
-      ENV.EXAMPLE_USER_OVERRIDE &&
-      ENV.EXAMPLE_USER &&
       req.hostname === 'localhost'
     ) {
-      req.user = ENV.EXAMPLE_USER;
       return next();
     }
     return next(new NotAllowedError('Route not allowed in this environment'));
@@ -60,7 +58,7 @@ routes.post(
 
     const salesforceOrg = await initConnectionFromOAuthResponse({
       jetstreamConn,
-      userId: 'EXAMPLE_USER',
+      userId: process.env.E2E_USER_ID!,
     });
 
     sendJson(res, salesforceOrg);

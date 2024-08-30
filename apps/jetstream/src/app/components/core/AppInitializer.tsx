@@ -1,16 +1,18 @@
 /* eslint-disable no-restricted-globals */
+import { useUser } from '@clerk/clerk-react';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
-import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { convertClerkUserToUserProfile, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
-import { fromAppState, useAmplitude, usePageViews } from '@jetstream/ui-core';
+import { AppLoading, fromAppState, useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { loadMonacoEditor } from './monaco-loader';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -35,11 +37,27 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const { isLoaded: isClerkLoaded, user } = useUser();
+  const [userProfile, setUserProfile] = useRecoilState(fromAppState.userProfileState);
   const { version } = useRecoilValue(fromAppState.appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+
+  useEffect(() => {
+    // Monaco loader has a conflict with ClerkJS loader
+    // https://github.com/clerk/javascript/issues/1643#issuecomment-1748840400
+    if (isClerkLoaded) {
+      loadMonacoEditor();
+    }
+  }, [isClerkLoaded]);
+
+  useEffect(() => {
+    if (user) {
+      logger.info(user);
+      setUserProfile(convertClerkUserToUserProfile(user));
+    }
+  }, [user, setUserProfile]);
 
   useEffect(() => {
     console.log('APP VERSION', version);
@@ -48,7 +66,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   useRollbar({
     accessToken: environment.rollbarClientAccessToken,
     environment: appCookie.environment,
-    userProfile: userProfile,
+    userProfile,
     version,
   });
   useAmplitude();
@@ -100,6 +118,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
     document.addEventListener('visibilitychange', handleWindowFocus);
     return () => document.removeEventListener('visibilitychange', handleWindowFocus);
   }, [handleWindowFocus]);
+
+  if (!isClerkLoaded) {
+    return <AppLoading />;
+  }
 
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <Fragment>{children}</Fragment>;

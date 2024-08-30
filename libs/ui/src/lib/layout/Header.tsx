@@ -1,13 +1,24 @@
+import { UserButton } from '@clerk/clerk-react';
+import { IconName, IconType } from '@jetstream/icon-factory';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
-import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import { Fragment, FunctionComponent, ReactNode, Suspense, useState } from 'react';
-import DropDown from '../form/dropdown/DropDown';
+import { Fragment, FunctionComponent, ReactNode, Suspense } from 'react';
+import Icon from '../widgets/Icon';
 
 export interface HeaderProps {
   userProfile: Maybe<UserProfileUi>;
   logo: string | ReactNode;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
+  accountPages?: {
+    label: string;
+    url: string;
+    icon: {
+      type: string;
+      icon: string;
+      description?: string;
+    };
+    content: ReactNode;
+  }[];
   rightHandMenuItems?: ReactNode;
   // notification?: ReactNode;
   isChromeExtension?: boolean;
@@ -21,6 +32,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
+  accountPages = [],
   isChromeExtension,
   onUserMenuItemSelected,
   children,
@@ -34,6 +46,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
           orgs={orgs}
           rightHandMenuItems={rightHandMenuItems}
           userMenuItems={userMenuItems}
+          accountPages={accountPages}
           isChromeExtension={isChromeExtension}
           onUserMenuItemSelected={onUserMenuItemSelected}
         />
@@ -49,11 +62,10 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   orgs,
   rightHandMenuItems,
   userMenuItems,
+  accountPages,
   isChromeExtension,
   onUserMenuItemSelected,
 }) => {
-  const [avatarSrc, setAvatarSrc] = useState(userProfile?.picture || Avatar);
-
   return (
     <Fragment>
       {/* LOGO */}
@@ -81,18 +93,45 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
           {!isChromeExtension && (
             <li className="slds-global-actions__item non-draggable">
               <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
-                <DropDown
-                  buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
-                  buttonContent={
-                    <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                      <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
-                    </span>
-                  }
-                  position="right"
-                  actionText="view user options"
-                  items={userMenuItems}
-                  onSelected={onUserMenuItemSelected}
-                />
+                <UserButton>
+                  <UserButton.MenuItems>
+                    {userMenuItems.map(({ id, value, title, icon }, i) => (
+                      <UserButton.Action
+                        key={id}
+                        label={String(value)}
+                        onClick={() => onUserMenuItemSelected(id)}
+                        labelIcon={
+                          <Icon
+                            type={icon!.type as IconType}
+                            icon={icon!.icon as IconName}
+                            description={icon!.description}
+                            omitContainer
+                            className="slds-icon slds-icon_xx-small slds-icon-text-default"
+                          />
+                        }
+                      />
+                    ))}
+                    <UserButton.Action label="signOut" />
+                  </UserButton.MenuItems>
+                  {accountPages?.map(({ content, icon, label, url }) => (
+                    <UserButton.UserProfilePage
+                      key={label}
+                      label={label}
+                      url={url}
+                      labelIcon={
+                        <Icon
+                          type={icon.type as IconType}
+                          icon={icon.icon as IconName}
+                          description={icon.description}
+                          omitContainer
+                          className="slds-icon slds-icon_xx-small slds-icon-text-default"
+                        />
+                      }
+                    >
+                      {content}
+                    </UserButton.UserProfilePage>
+                  ))}
+                </UserButton>
               </div>
             </li>
           )}

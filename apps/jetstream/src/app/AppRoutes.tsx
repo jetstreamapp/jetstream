@@ -244,7 +244,6 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         }
       />
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
-      <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings featureFlags={featureFlags} userProfile={userProfile} />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );

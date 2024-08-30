@@ -19,7 +19,6 @@ if (process.cwd().endsWith('/apps/jetstream-e2e')) {
  */
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
-  globalSetup: require.resolve('./src/setup/global-setup.ts'),
   retries: 3,
   expect: {
     timeout: THIRTY_SECONDS,
@@ -39,8 +38,13 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /global\.setup\.ts/,
+    },
+    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth.json' },
+      dependencies: ['setup'],
     },
 
     // {

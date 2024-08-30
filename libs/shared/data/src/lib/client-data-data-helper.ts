@@ -285,7 +285,7 @@ function responseErrorInterceptor<T>(options: {
       // take user to login page
       if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
-        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
+        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/sign-in';
         // stupid unit tests - location.href is readonly TS compilation failure
         // eslint-disable-next-line no-restricted-globals
         (location as any).href = logoutUrl;

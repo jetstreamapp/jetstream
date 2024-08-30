@@ -373,7 +373,7 @@ export interface DropDownItem<T = any> {
     type: string;
     icon: string;
     description?: string;
-  }; // FIXME: unable to import cross module boundaries
+  };
   trailingDivider?: boolean;
   disabled?: boolean;
   title?: string;

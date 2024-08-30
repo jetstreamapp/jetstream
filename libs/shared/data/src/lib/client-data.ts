@@ -32,8 +32,6 @@ import {
   SalesforceApiRequest,
   SalesforceOrgUi,
   SobjectOperation,
-  UserProfileUi,
-  UserProfileUiWithIdentities,
 } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
@@ -71,30 +69,6 @@ export async function emailSupport(emailBody: string, attachments: InputReadFile
   form.append('emailBody', emailBody);
   attachments.forEach((attachment) => form.append('files', new Blob([attachment.content]), attachment.filename));
   return handleRequest({ method: 'POST', url: '/api/support/email', data: form }).then(unwrapResponseIgnoreCache);
-}
-
-export async function getUserProfile(): Promise<UserProfileUi> {
-  return handleRequest({ method: 'GET', url: '/api/me' }).then(unwrapResponseIgnoreCache);
-}
-
-export async function deleteUserProfile(reason?: string): Promise<void> {
-  return handleRequest({ method: 'DELETE', url: '/api/me', data: { reason } }).then(unwrapResponseIgnoreCache);
-}
-
-export async function getFullUserProfile(): Promise<UserProfileUiWithIdentities> {
-  return handleRequest({ method: 'GET', url: '/api/me/profile' }).then(unwrapResponseIgnoreCache);
-}
-
-export async function updateUserProfile(userProfile: { name: string }): Promise<UserProfileUiWithIdentities> {
-  return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
-}
-
-export async function unlinkIdentityFromProfile(identity: { provider: string; userId: string }): Promise<UserProfileUiWithIdentities> {
-  return handleRequest({ method: 'DELETE', url: '/api/me/profile/identity', params: identity }).then(unwrapResponseIgnoreCache);
-}
-
-export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<void> {
-  return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getOrgs(): Promise<SalesforceOrgUi[]> {

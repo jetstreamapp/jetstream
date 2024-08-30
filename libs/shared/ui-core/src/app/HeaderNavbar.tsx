@@ -1,6 +1,6 @@
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { Fragment, FunctionComponent, ReactNode, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Jobs from '../jobs/Jobs';
@@ -18,6 +18,16 @@ export interface HeaderNavbarProps {
   userProfile: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
   isChromeExtension?: boolean;
+  accountPages?: {
+    label: string;
+    url: string;
+    icon: {
+      type: string;
+      icon: string;
+      description?: string;
+    };
+    content: ReactNode;
+  }[];
 }
 
 function logout(serverUrl: string) {
@@ -29,9 +39,9 @@ function logout(serverUrl: string) {
 function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean) {
   const menu: DropDownItem[] = [];
 
-  menu.push({ id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } });
+  // menu.push({ id: 'settings', value: 'Settings', subheader: userProfile?.primaryEmailAddress, icon: { type: 'utility', icon: 'settings' } });
 
-  menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
+  // menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
     menu.unshift({
       id: 'enable-notifications',
@@ -43,12 +53,12 @@ function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<strin
   return menu;
 }
 
-export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags, isChromeExtension }) => {
+export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags, isChromeExtension, accountPages }) => {
   const navigate = useNavigate();
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
-  const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
+  const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>(() => getMenuItems(userProfile, featureFlags, deniedNotifications));
 
   function handleUserMenuSelection(id: string) {
     switch (id) {
@@ -92,6 +102,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}
+        accountPages={accountPages}
         isChromeExtension={isChromeExtension}
         onUserMenuItemSelected={handleUserMenuSelection}
       >

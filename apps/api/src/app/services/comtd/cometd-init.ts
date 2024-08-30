@@ -3,11 +3,10 @@
  */
 import { ENV, logger } from '@jetstream/api-config';
 import { ApiConnection } from '@jetstream/salesforce-api';
-import { UserProfileServer } from '@jetstream/types';
 import { CometD } from 'cometd';
 import { CometdReplayExtension } from './cometd-replay-extension';
 
-export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamConn: ApiConnection) {
+export function initCometD<T extends { id: string }>(user: T, cometd: CometD, jetstreamConn: ApiConnection) {
   return new Promise<void>((resolve, reject) => {
     if (cometd.isDisconnected()) {
       // This appears to be unsupported

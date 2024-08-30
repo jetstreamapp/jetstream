@@ -41,9 +41,9 @@ export const routeDefinition = {
   },
 };
 
-const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, req, res, next) => {
+const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ userId }, req, res, next) => {
   try {
-    const orgs = await salesforceOrgsDb.findByUserId(user.id);
+    const orgs = await salesforceOrgsDb.findByUserId(userId);
 
     sendJson(res, orgs);
   } catch (ex) {
@@ -51,10 +51,10 @@ const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user },
   }
 });
 
-const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params, user }, req, res, next) => {
+const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params, userId }, req, res, next) => {
   try {
     const data = { label: body.label, color: body.color };
-    const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(user.id, params.uniqueId, data);
+    const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(userId, params.uniqueId, data);
 
     sendJson(res, salesforceOrg, 201);
   } catch (ex) {
@@ -62,9 +62,9 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
   }
 });
 
-const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, req, res, next) => {
+const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, userId }, req, res, next) => {
   try {
-    salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
+    salesforceOrgsDb.deleteSalesforceOrg(userId, params.uniqueId);
 
     sendJson(res, undefined, 204);
   } catch (ex) {

@@ -9,4 +9,6 @@ export const environment = {
   PROD: import.meta.env.PROD,
   DEV: import.meta.env.DEV,
   SSR: import.meta.env.SSR,
+  clerkPublishableKey: import.meta.env.NX_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  serverUrl: import.meta.env.NX_PUBLIC_SERVER_URL,
 };

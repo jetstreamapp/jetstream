@@ -97,6 +97,8 @@ export async function salesforceOauthRefresh(loginUrl: string, refreshToken: str
 
 /**
  * Login to Salesforce using username and password
+ *
+ * This is only used for integration tests and is never used for any customer facing code
  */
 export async function salesforceLoginUsernamePassword_UNSAFE(
   loginUrl: string,

@@ -3,6 +3,12 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
+declare global {
+  interface UserUnsafeMetadata {
+    skipFrontdoorLogin?: boolean;
+  }
+}
+
 export type CopyAsDataType = 'excel' | 'csv' | 'json';
 
 export interface RequestResult<T> {
@@ -173,37 +179,32 @@ export interface UserProfileUiWithIdentities {
   updatedAt: string;
 }
 
-export interface UserProfileUi {
-  email: string;
-  email_verified: boolean;
-  // Set from environment variable, could be different
-  'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
-  name: string;
-  nickname: string;
-  picture?: string | null;
-  sub: string; // userid
-  updated_at: string;
+export interface UserWithId {
   id: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  preferences: {
-    skipFrontdoorLogin: boolean;
-  };
 }
 
-// SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
-export interface UserProfileServer {
-  _json: Omit<UserProfileUi, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'preferences'>;
-  _raw: string | null;
+export interface UserProfileUi extends UserWithId {
   id: string;
-  displayName: string;
-  emails: { value: string }[];
-  name: any;
-  nickname: string;
-  picture?: string | null;
-  provider: string;
-  user_id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  username: string;
+  primaryEmailAddress: string;
+  emailAddresses: string[];
+  hasVerifiedEmailAddress: boolean;
+  publicMetadata: Record<string, any> | null;
+  unsafeMetadata: Record<string, any> | null;
+  lastSignInAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  // FIXME: ideally we add this to unsafeMetadata
+  // preferences: {
+  //   skipFrontdoorLogin: boolean;
+  // };
+}
+
+export interface UserProfileServer extends UserProfileUi {
+  privateMetadata: Record<string, any> | null;
 }
 
 export interface SalesforceUserInfo {

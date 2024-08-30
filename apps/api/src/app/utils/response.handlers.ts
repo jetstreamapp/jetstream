@@ -1,6 +1,5 @@
 import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
-import { UserProfileServer } from '@jetstream/types';
 import { SalesforceOrg } from '@prisma/client';
 import * as express from 'express';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
@@ -65,7 +64,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
             params: req.params,
             query: req.query,
             body: req.body,
-            userId: (req.user as UserProfileServer)?.id,
+            userId: req.auth?.userId,
             requestId: res.locals.requestId,
           },
         });
@@ -117,7 +116,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       responseLogger.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
       res.status(401);
       res.set(HTTP.HEADERS.X_LOGOUT, '1');
-      res.set(HTTP.HEADERS.X_LOGOUT_URL, `${ENV.JETSTREAM_SERVER_URL}/oauth/login`);
+      res.set(HTTP.HEADERS.X_LOGOUT_URL, `${ENV.JETSTREAM_SERVER_URL}/sign-in`);
       if (isJson) {
         return res.json({
           error: true,
@@ -156,7 +155,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           params: req.params,
           query: req.query,
           body: req.body,
-          userId: (req.user as UserProfileServer)?.id,
+          userId: req.auth?.userId,
           requestId: res.locals.requestId,
         },
       });
