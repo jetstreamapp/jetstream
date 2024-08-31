@@ -50,15 +50,24 @@ const numberSchema = z
 
 export const ENV = z
   .object({
-    LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).nullish().default('debug'),
+    LOG_LEVEL: z
+      .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
+      .nullish()
+      .transform((value) => value ?? 'debug'),
     IS_CI: booleanSchema,
     // LOCAL OVERRIDE
     EXAMPLE_USER_OVERRIDE: booleanSchema,
     EXAMPLE_USER: z.record(z.any()).nullish(),
     IS_LOCAL_DOCKER: booleanSchema,
     // SYSTEM
-    NODE_ENV: z.string().nullish().default('production'),
-    ENVIRONMENT: z.string().nullish().default('production'),
+    NODE_ENV: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? 'production'),
+    ENVIRONMENT: z
+      .string()
+      .nullish()
+      .transform((value) => value ?? 'production'),
     PORT: numberSchema.default(3333),
     GIT_VERSION: z.string().nullish(),
     ROLLBAR_SERVER_TOKEN: z.string().nullish(),
@@ -82,7 +91,7 @@ export const ENV = z
     MAILGUN_PUBLIC_KEY: z.string().nullish(),
     MAILGUN_WEBHOOK_KEY: z.string().nullish(),
     // SFDC
-    SFDC_API_VERSION: z.string().default('61.0'),
+    SFDC_API_VERSION: z.string(),
     SFDC_CONSUMER_SECRET: z.string(),
     SFDC_CONSUMER_KEY: z.string(),
     SFDC_CALLBACK_URL: z.string().url(),
