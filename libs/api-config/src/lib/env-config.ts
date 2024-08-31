@@ -63,7 +63,7 @@ export const ENV = z
     GIT_VERSION: z.string().nullish(),
     ROLLBAR_SERVER_TOKEN: z.string().nullish(),
     // JETSTREAM
-    JETSTREAM_SERVER_DOMAIN: z.string().url(),
+    JETSTREAM_SERVER_DOMAIN: z.string(),
     JETSTREAM_SESSION_SECRET: z.string(),
     JETSTREAM_SERVER_URL: z.string().url(),
     JETSTREAM_POSTGRES_DBURI: z.string(),
