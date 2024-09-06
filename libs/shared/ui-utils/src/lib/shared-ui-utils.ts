@@ -931,8 +931,11 @@ function handleWindowEvent(event: MessageEvent) {
   }
 }
 
-export function addOrg(options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean }, callback: (org: SalesforceOrgUi) => void) {
-  const { serverUrl, loginUrl, addLoginTrue } = options;
+export function addOrg(
+  options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
+  callback: (org: SalesforceOrgUi) => void
+) {
+  const { serverUrl, loginUrl, addLoginTrue, jetstreamOrganizationId } = options;
   addOrgCallbackFn = callback;
   window.removeEventListener('message', handleWindowEvent);
   const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
@@ -941,6 +944,9 @@ export function addOrg(options: { serverUrl: string; loginUrl: string; addLoginT
   url.searchParams.set('clientUrl', document.location.origin);
   if (addLoginTrue) {
     url.searchParams.set('addLoginParam', 'true');
+  }
+  if (jetstreamOrganizationId) {
+    url.searchParams.set('jetstreamOrganizationId', jetstreamOrganizationId);
   }
   windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
   window.addEventListener('message', handleWindowEvent, false);

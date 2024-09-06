@@ -23,6 +23,7 @@ import StandardIcon_Apex from './icons/standard/Apex';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
+import StandardIcon_EmployeeOrganization from './icons/standard/EmployeeOrganization';
 import StandardIcon_Entity from './icons/standard/Entity';
 import StandardIcon_Events from './icons/standard/Events';
 import StandardIcon_Feed from './icons/standard/Feed';
@@ -177,6 +178,7 @@ const standardIcons = {
   asset_relationship: StandardIcon_AssetRelationship,
   bundle_config: StandardIcon_BundleConfig,
   data_streams: StandardIcon_DataStreams,
+  employee_organization: StandardIcon_EmployeeOrganization,
   entity: StandardIcon_Entity,
   events: StandardIcon_Events,
   feed: StandardIcon_Feed,

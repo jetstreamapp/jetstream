@@ -39,6 +39,18 @@ export const routeDefinition = {
     controllerFn: () => checkOrgHealth,
     validators: {},
   },
+  moveOrg: {
+    controllerFn: () => moveOrg,
+    validators: {
+      params: z.object({
+        uniqueId: z.string().min(1),
+      }),
+      body: z.object({
+        jetstreamOrganizationId: z.string().uuid().nullish(),
+      }),
+      hasSourceOrg: false,
+    },
+  },
 };
 
 const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, req, res, next) => {
@@ -117,6 +129,17 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
     }
 
     sendJson(res, undefined, 200);
+  } catch (ex) {
+    next(new UserFacingError(ex));
+  }
+});
+
+const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, params, user }, req, res, next) => {
+  try {
+    const { uniqueId } = params;
+    const salesforceOrg = await salesforceOrgsDb.moveSalesforceOrg(user.id, uniqueId, body);
+
+    sendJson(res, salesforceOrg, 201);
   } catch (ex) {
     next(new UserFacingError(ex));
   }

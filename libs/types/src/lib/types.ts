@@ -286,6 +286,7 @@ export interface CloudinaryUploadResponse {
 }
 
 export interface SalesforceOrgUi {
+  jetstreamOrganizationId?: Maybe<string>;
   id?: number;
   uniqueId: string;
   label: string;

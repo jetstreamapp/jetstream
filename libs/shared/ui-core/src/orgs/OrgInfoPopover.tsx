@@ -9,6 +9,7 @@ import {
   Grid,
   GridCol,
   Icon,
+  IconProps,
   Input,
   Popover,
   SalesforceLogin,
@@ -45,6 +46,8 @@ export interface OrgInfoPopoverProps {
   loading?: boolean;
   disableOrgActions?: boolean;
   isReadOnly?: boolean;
+  dropdownIconProps?: Partial<IconProps>;
+  iconButtonClassName?: string;
   onAddOrg?: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
   onRemoveOrg?: (org: SalesforceOrgUi) => void;
   onUpdateOrg?: (org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) => void;
@@ -100,6 +103,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   loading,
   disableOrgActions,
   isReadOnly = false,
+  dropdownIconProps,
+  iconButtonClassName,
   onAddOrg,
   onRemoveOrg,
   onUpdateOrg,
@@ -347,10 +352,10 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
         </div>
       }
       buttonProps={{
-        className: 'slds-button slds-button_icon',
+        className: iconButtonClassName || 'slds-button slds-button_icon',
       }}
     >
-      <Icon type="utility" icon="settings" className="slds-button__icon slds-button__icon_left slds-current-color" omitContainer />
+      <Icon type="utility" icon="settings" className="slds-button__icon slds-current-color" omitContainer {...dropdownIconProps} />
     </Popover>
   );
 };
