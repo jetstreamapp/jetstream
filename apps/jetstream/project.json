@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream/src",
   "projectType": "application",
+  "tags": [],
   "generators": {},
   "targets": {
     "build": {
@@ -142,8 +143,8 @@
         "production": {
           "buildTarget": "jetstream:build:production"
         }
-      }
+      },
+      "dependsOn": ["build"]
     }
-  },
-  "tags": []
+  }
 }
