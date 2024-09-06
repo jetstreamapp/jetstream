@@ -8,17 +8,18 @@ datasource db {
 }
 
 model User {
-  id          String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId      String          @unique @db.VarChar
-  email       String          @db.VarChar
-  name        String?         @db.VarChar
-  nickname    String?         @db.VarChar
-  picture     String?         @db.VarChar
-  appMetadata Json?           @db.Json
-  preferences UserPreference?
-  deletedAt   DateTime?
-  createdAt   DateTime        @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime        @updatedAt
+  id            String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId        String                  @unique @db.VarChar
+  email         String                  @db.VarChar
+  name          String?                 @db.VarChar
+  nickname      String?                 @db.VarChar
+  picture       String?                 @db.VarChar
+  appMetadata   Json?                   @db.Json
+  preferences   UserPreference?
+  organizations JetstreamOrganization[]
+  deletedAt     DateTime?
+  createdAt     DateTime                @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime                @updatedAt
 }
 
 model UserPreference {
@@ -28,6 +29,19 @@ model UserPreference {
   skipFrontdoorLogin Boolean  @default(false)
   createdAt          DateTime @default(now()) @db.Timestamp(6)
   updatedAt          DateTime @updatedAt
+}
+
+model JetstreamOrganization {
+  id          String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user        User            @relation(fields: [userId], references: [id])
+  userId      String          @db.Uuid
+  orgs        SalesforceOrg[]
+  name        String          @db.VarChar(60)
+  description String?         @db.VarChar(255)
+  createdAt   DateTime        @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime        @updatedAt
+
+  @@map("jetstream_organization")
 }
 
 model SalesforceApi {
@@ -47,34 +61,36 @@ model SalesforceApi {
 }
 
 model SalesforceOrg {
-  id                     Int       @id @default(autoincrement())
-  jetstreamUserId        String    @db.VarChar
-  uniqueId               String    @db.VarChar
-  filterText             String    @db.VarChar
-  accessToken            String    @db.VarChar
-  instanceUrl            String    @db.VarChar
-  loginUrl               String    @db.VarChar
-  userId                 String    @db.VarChar(18)
-  email                  String    @db.VarChar
-  organizationId         String    @db.VarChar(18)
-  username               String    @db.VarChar
-  displayName            String    @db.VarChar
-  thumbnail              String?   @db.VarChar
-  apiVersion             String?   @db.VarChar
-  orgName                String?   @db.VarChar
-  orgCountry             String?   @db.VarChar
-  orgInstanceName        String?   @db.VarChar
-  orgIsSandbox           Boolean?
-  orgLanguageLocaleKey   String?   @db.VarChar
-  orgNamespacePrefix     String?   @db.VarChar
-  orgTrialExpirationDate DateTime? @db.Date
-  createdAt              DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt              DateTime  @updatedAt
-  connectionError        String?   @db.VarChar
-  jetstreamUrl           String?   @db.VarChar
-  label                  String?   @db.VarChar(100)
-  orgOrganizationType    String?   @db.VarChar
-  color                  String?   @db.VarChar(10)
+  id                      Int                    @id @default(autoincrement())
+  jetstreamUserId         String                 @db.VarChar
+  jetstreamOrganization   JetstreamOrganization? @relation(fields: [jetstreamOrganizationId], references: [id])
+  jetstreamOrganizationId String?                @db.Uuid
+  uniqueId                String                 @db.VarChar
+  filterText              String                 @db.VarChar
+  accessToken             String                 @db.VarChar
+  instanceUrl             String                 @db.VarChar
+  loginUrl                String                 @db.VarChar
+  userId                  String                 @db.VarChar(18)
+  email                   String                 @db.VarChar
+  organizationId          String                 @db.VarChar(18)
+  username                String                 @db.VarChar
+  displayName             String                 @db.VarChar
+  thumbnail               String?                @db.VarChar
+  apiVersion              String?                @db.VarChar
+  orgName                 String?                @db.VarChar
+  orgCountry              String?                @db.VarChar
+  orgInstanceName         String?                @db.VarChar
+  orgIsSandbox            Boolean?
+  orgLanguageLocaleKey    String?                @db.VarChar
+  orgNamespacePrefix      String?                @db.VarChar
+  orgTrialExpirationDate  DateTime?              @db.Date
+  createdAt               DateTime               @default(now()) @db.Timestamp(6)
+  updatedAt               DateTime               @updatedAt
+  connectionError         String?                @db.VarChar
+  jetstreamUrl            String?                @db.VarChar
+  label                   String?                @db.VarChar(100)
+  orgOrganizationType     String?                @db.VarChar
+  color                   String?                @db.VarChar(10)
 
   @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
   @@map("salesforce_org")

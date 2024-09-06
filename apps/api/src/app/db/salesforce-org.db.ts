@@ -7,6 +7,7 @@ import { parseISO } from 'date-fns/parseISO';
 import isUndefined from 'lodash/isUndefined';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
+  jetstreamOrganizationId: true,
   uniqueId: true,
   label: true,
   filterText: true,
@@ -32,6 +33,8 @@ const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   createdAt: true,
   updatedAt: true,
 });
+
+export const SALESFORCE_ORG_SELECT = SELECT;
 
 /**
  * TODO: add better error handling with non-db error messages!
@@ -111,6 +114,8 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
     where: findUniqueOrg({ jetstreamUserId, uniqueId: salesforceOrgUi.uniqueId! }),
   });
 
+  // FIXME: need to include organization - added orgs should be added to current organization
+
   let orgToDelete: Maybe<{ id: number }>;
   /**
    * After a sandbox refresh, the orgId will change but the username will remain the same
@@ -130,7 +135,8 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
   }
 
   if (existingOrg) {
-    const data: Prisma.SalesforceOrgUpdateInput = {
+    const data: Prisma.XOR<Prisma.SalesforceOrgUpdateInput, Prisma.SalesforceOrgUncheckedUpdateInput> = {
+      jetstreamOrganizationId: salesforceOrgUi.jetstreamOrganizationId ?? existingOrg.jetstreamOrganizationId,
       uniqueId: salesforceOrgUi.uniqueId ?? existingOrg.uniqueId,
       accessToken: salesforceOrgUi.accessToken ?? existingOrg.accessToken,
       instanceUrl: salesforceOrgUi.instanceUrl ?? existingOrg.instanceUrl,
@@ -174,6 +180,7 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
       data: {
         jetstreamUserId,
         jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
+        jetstreamOrganizationId: salesforceOrgUi.jetstreamOrganizationId,
         label: salesforceOrgUi.label || salesforceOrgUi.username,
         uniqueId: salesforceOrgUi.uniqueId!,
         accessToken: salesforceOrgUi.accessToken!,
@@ -225,6 +232,25 @@ export async function updateSalesforceOrg(jetstreamUserId: string, uniqueId: str
       label,
       color,
       filterText: `${existingOrg.username}${existingOrg.orgName}${label}`,
+    },
+  });
+}
+
+export async function moveSalesforceOrg(jetstreamUserId: string, uniqueId: string, data: { jetstreamOrganizationId?: Maybe<string> }) {
+  const existingOrg = await prisma.salesforceOrg.findUnique({
+    select: { id: true },
+    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+  });
+
+  if (!existingOrg) {
+    throw new Error('An org does not exist with the provided input');
+  }
+
+  return await prisma.salesforceOrg.update({
+    select: SELECT,
+    where: { id: existingOrg.id },
+    data: {
+      jetstreamOrganizationId: data.jetstreamOrganizationId ?? null,
     },
   });
 }

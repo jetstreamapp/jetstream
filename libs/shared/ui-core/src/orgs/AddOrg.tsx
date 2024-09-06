@@ -1,10 +1,12 @@
+import { css } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
-import { applicationCookieState } from '../state-management/app-state';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { fromAppState, useAmplitude } from '..';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 
@@ -31,12 +33,15 @@ export interface AddOrgProps {
 
 export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
   const popoverRef = useRef<PopoverRef>(null);
+  const { trackEvent } = useAmplitude();
   const [orgType, setOrgType] = useState<OrgType>('prod');
   const [customUrl, setCustomUrl] = useState<string>('');
-  const [loginUrl, setLoginUrl] = useState<string | null>(null);
+  const [loginUrl, setLoginUrl] = useState<string | null>(loginUrlMap.prod);
   const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);
   const [addLoginTrue, setAddLoginTrue] = useState(false);
-  const [applicationState] = useRecoilState(applicationCookieState);
+  const [addToActiveOrganization, setAddToActiveOrganization] = useState(true);
+  const [applicationState] = useRecoilState(fromAppState.applicationCookieState);
+  const jetstreamOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
 
   useEffect(() => {
     let url: string;
@@ -51,20 +56,27 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
   function handleAddOrg() {
     loginUrl &&
       addOrg(
-        { serverUrl: applicationState.serverUrl, loginUrl, addLoginTrue: advancedOptionsEnabled && addLoginTrue },
+        {
+          serverUrl: applicationState.serverUrl,
+          loginUrl,
+          addLoginTrue: advancedOptionsEnabled && addLoginTrue,
+          jetstreamOrganizationId: addToActiveOrganization ? jetstreamOrganization?.id : null,
+        },
         (addedOrg: SalesforceOrgUi) => {
           popoverRef.current?.close();
           onAddOrg(addedOrg, true);
         }
       );
+    trackEvent(ANALYTICS_KEYS.sfdc_org_add_org, { orgType, advancedOptionsEnabled, addLoginTrue, addToActiveOrganization });
   }
 
   function handleReset() {
     setOrgType('prod');
     setCustomUrl('');
-    setLoginUrl(null);
+    setLoginUrl(loginUrlMap.prod);
     setAdvancedOptionsEnabled(false);
     setAddLoginTrue(false);
+    setAddToActiveOrganization(true);
   }
 
   return (
@@ -147,6 +159,16 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
               />
             )}
           </div>
+          {jetstreamOrganization && (
+            <Checkbox
+              id="add-to-active-organization"
+              className="slds-m-top_small"
+              label={`Add to "${jetstreamOrganization.name}" organization`}
+              labelHelp="If unselected, then the org will not be added to any organization."
+              checked={addToActiveOrganization}
+              onChange={setAddToActiveOrganization}
+            />
+          )}
         </div>
       }
       footer={
@@ -166,7 +188,13 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
       }}
     >
       <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
-      {label}
+      <span
+        css={css`
+          text-wrap: nowrap;
+        `}
+      >
+        {label}
+      </span>
     </Popover>
   );
 };

@@ -1,132 +1,123 @@
-import { logger } from '@jetstream/shared/client-logger';
-import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgs, updateOrg } from '@jetstream/shared/data';
-import { useObservable } from '@jetstream/shared/ui-utils';
-import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
+import { css } from '@emotion/react';
+import { JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
-import orderBy from 'lodash/orderBy';
-import uniqBy from 'lodash/uniqBy';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { Observable } from 'rxjs';
-import { fromAppState, fromJetstreamEvents, OrgsCombobox, useOrgPermissions } from '..';
+import { Fragment, FunctionComponent } from 'react';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { fromAppState, OrgsCombobox, useOrgPermissions } from '..';
+import { hasOrderByConfigured } from '../state-management/query.state';
 import AddOrg from './AddOrg';
+import { OrganizationSelector } from './OrganizationSelector';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
+import { useUpdateOrgs } from './useUpdateOrgs';
 
 interface OrgsDropdownProps {
   addOrgsButtonClassName?: string;
+  omitAddOrgsButton?: boolean;
+  omitOrganizationSelector?: boolean;
 }
 
-export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({ addOrgsButtonClassName }) => {
-  const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const actionInProgress = useRecoilValue(fromAppState.actionInProgressState);
+export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
+  addOrgsButtonClassName,
+  omitOrganizationSelector,
+  omitAddOrgsButton,
+}) => {
+  const allOrgs = useRecoilValue(fromAppState.salesforceOrgsState);
+  const orgs = useRecoilValue(fromAppState.salesforceOrgsForOrganizationSelector);
   const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
-  const orgType = useRecoilValue(fromAppState.selectedOrgType);
-  const [orgLoading, setOrgLoading] = useState(false);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
+  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
+  const orgType = useRecoilValue(fromAppState.selectedOrgType);
+  const jetstreamOrganizations = useRecoilValue(fromAppState.jetstreamOrganizationsState);
+  const hasOrganizationsConfigured = useRecoilValue(fromAppState.jetstreamOrganizationsExistsSelector);
+  const setActiveOrganization = useSetRecoilState(fromAppState.jetstreamActiveOrganizationState);
+  const activeOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
 
-  // subscribe to org changes from other places in the application
-  const onAddOrgFromExternalSource = useObservable(fromJetstreamEvents.getObservable('addOrg') as Observable<JetstreamEventAddOrgPayload>);
+  const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
 
-  useEffect(() => {
-    if (onAddOrgFromExternalSource && onAddOrgFromExternalSource.org) {
-      handleAddOrg(onAddOrgFromExternalSource.org, onAddOrgFromExternalSource.switchActiveOrg);
+  function handleOrganizationChange(organization: Maybe<JetstreamOrganization>) {
+    if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
+      if (organization.orgs.length === 1) {
+        setSelectedOrgId(organization.orgs[0].uniqueId);
+      } else {
+        setSelectedOrgId(null);
+      }
+    } else if (!organization && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
+      const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
+      if (orgsWithNoOrganization.length === 1) {
+        setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
+      } else {
+        setSelectedOrgId(null);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onAddOrgFromExternalSource]);
-
-  /**
-   * This is not in a useCallback because it caused an infinite loop since orgs changes a lot and is a dependency
-   */
-  function handleAddOrg(org: SalesforceOrgUi, switchActiveOrg: boolean) {
-    const sortedOrgs = uniqBy(orderBy([org, ...orgs], 'username'), 'uniqueId');
-    setOrgs(sortedOrgs);
-    if (switchActiveOrg) {
-      setSelectedOrgId(org.uniqueId);
-    }
-    handleRefetchOrgs();
-  }
-
-  async function handleRefetchOrgs() {
-    try {
-      setOrgs(await getOrgs());
-    } catch (ex) {
-      logger.warn('Error refreshing orgs', ex);
-    }
-  }
-
-  async function handleRemoveOrg(org: SalesforceOrgUi) {
-    try {
-      await deleteOrg(org);
-      handleRefetchOrgs();
-      setSelectedOrgId(null);
-      // async, but results are ignored as this will not throw
-      clearCacheForOrg(org);
-      clearQueryHistoryForOrg(org);
-    } catch (ex) {
-      logger.warn('Error removing org', ex);
-    }
-  }
-
-  async function handleUpdateOrg(org: SalesforceOrgUi, updatedOrg: Partial<SalesforceOrgUi>) {
-    try {
-      setOrgLoading(true);
-      await updateOrg(org, updatedOrg);
-      setOrgs(await getOrgs());
-    } catch (ex) {
-      logger.warn('Error updating org', ex);
-    } finally {
-      setOrgLoading(false);
-    }
+    setActiveOrganization(organization?.id);
   }
 
   return (
     <Fragment>
       <OrgPersistence />
-      <Grid noWrap verticalAlign="center">
-        {!hasMetadataAccess && (
-          <Tooltip
-            id={`limited-org-access`}
-            content={`Your user does not have the permission "Modify Metadata Through Metadata API Functions" Or "Modify All Data". Some Jetstream features will not work properly.`}
-          >
-            <div className={classNames('slds-col slds-p-around_xx-small')}>
-              <Badge type="warning" title="Limited Access">
-                <Icon type="utility" icon="warning" className="slds-icon_xx-small slds-m-right_xx-small" />
-                Limited Access
-              </Badge>
-            </div>
-          </Tooltip>
+      <Grid vertical>
+        {!omitOrganizationSelector && hasOrganizationsConfigured && (
+          <OrganizationSelector
+            organizations={jetstreamOrganizations}
+            selectedOrganization={activeOrganization}
+            salesforceOrgsWithoutOrganization={allOrgs.filter((org) => !org.jetstreamOrganizationId).length}
+            onSelection={handleOrganizationChange}
+          />
         )}
-        <div className={classNames('slds-col slds-p-around_xx-small')}>
-          {orgType && (
-            <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
-              {orgType}
-            </Badge>
+        <Grid
+          noWrap
+          verticalAlign="center"
+          // This is a hack to make the content fit better without having to deal with other spacing considerations
+          css={css`
+            ${hasOrderByConfigured ? 'zoom: 90%;' : ''}
+          `}
+        >
+          {!hasMetadataAccess && (
+            <Tooltip
+              id={`limited-org-access`}
+              content={`Your user does not have the permission "Modify Metadata Through Metadata API Functions" Or "Modify All Data". Some Jetstream features will not work properly.`}
+            >
+              <div className={classNames('slds-col slds-p-around_xx-small')}>
+                <Badge type="warning" title="Limited Access">
+                  <Icon type="utility" icon="warning" className="slds-icon_xx-small slds-m-right_xx-small" />
+                  Limited Access
+                </Badge>
+              </div>
+            </Tooltip>
           )}
-        </div>
-        <OrgsCombobox
-          orgs={orgs}
-          selectedOrg={selectedOrg}
-          disabled={actionInProgress}
-          onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)}
-        />
-        {selectedOrg && (
-          <div className="slds-col slds-m-left--xx-small org-info-button">
-            <OrgInfoPopover
-              org={selectedOrg}
-              loading={orgLoading}
-              disableOrgActions={actionInProgress}
-              onAddOrg={handleAddOrg}
-              onRemoveOrg={handleRemoveOrg}
-              onUpdateOrg={handleUpdateOrg}
-            />
+          <div className={classNames('slds-col slds-p-around_xx-small')}>
+            {orgType && (
+              <Badge type={orgType === 'Production' ? 'warning' : 'light'} title={orgType}>
+                {orgType}
+              </Badge>
+            )}
           </div>
-        )}
-        <div className="slds-col">
-          <AddOrg className={addOrgsButtonClassName} onAddOrg={handleAddOrg} disabled={actionInProgress} />
-        </div>
+          <OrgsCombobox
+            orgs={orgs}
+            selectedOrg={selectedOrg}
+            disabled={actionInProgress}
+            onSelected={(org: SalesforceOrgUi) => setSelectedOrgId(org.uniqueId)}
+          />
+          {selectedOrg && (
+            <div className="slds-col slds-m-left--xx-small org-info-button">
+              <OrgInfoPopover
+                org={selectedOrg}
+                loading={orgLoading}
+                disableOrgActions={actionInProgress}
+                onAddOrg={handleAddOrg}
+                onRemoveOrg={handleRemoveOrg}
+                onUpdateOrg={handleUpdateOrg}
+              />
+            </div>
+          )}
+          {!omitAddOrgsButton && (
+            <div className="slds-col">
+              <AddOrg className={addOrgsButtonClassName} onAddOrg={handleAddOrg} disabled={actionInProgress} />
+            </div>
+          )}
+        </Grid>
       </Grid>
     </Fragment>
   );

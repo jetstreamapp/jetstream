@@ -21,11 +21,13 @@ import {
   GenericRequestPayload,
   GoogleFileApiResponse,
   InputReadFileContent,
+  JetstreamOrganization,
   ListMetadataQuery,
   ListMetadataResult,
   ListMetadataResultRaw,
   ManualRequestPayload,
   ManualRequestResponse,
+  Maybe,
   OperationReturnType,
   QueryResults,
   RetrieveResult,
@@ -111,6 +113,54 @@ export async function deleteOrg(org: SalesforceOrgUi): Promise<void> {
 
 export async function checkOrgHealth(org: SalesforceOrgUi): Promise<void> {
   return handleRequest({ method: 'POST', url: `/api/orgs/health-check` }, { org }).then(unwrapResponseIgnoreCache);
+}
+
+export async function addSfdcOrgToOrganization({
+  sfdcOrgUniqueId,
+  jetstreamOrganizationId,
+}: {
+  jetstreamOrganizationId?: Maybe<string>;
+  sfdcOrgUniqueId: string;
+}): Promise<SalesforceOrgUi> {
+  return handleRequest({ method: 'PUT', url: `/api/orgs/${sfdcOrgUniqueId}/move`, data: { jetstreamOrganizationId } }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function getJetstreamOrganizations(): Promise<JetstreamOrganization[]> {
+  return handleRequest({
+    method: 'GET',
+    url: `/api/jetstream-organizations`,
+  }).then(unwrapResponseIgnoreCache);
+}
+
+export async function createJetstreamOrganization(data: { name: string; description?: Maybe<string> }): Promise<JetstreamOrganization> {
+  return handleRequest({
+    method: 'POST',
+    url: `/api/jetstream-organizations`,
+    data,
+  }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateJetstreamOrganization(
+  id: string,
+  data: {
+    name: string;
+    description?: Maybe<string>;
+  }
+): Promise<JetstreamOrganization> {
+  return handleRequest({
+    method: 'PUT',
+    url: `/api/jetstream-organizations/${id}`,
+    data,
+  }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteJetstreamOrganization(id: string): Promise<void> {
+  return handleRequest({
+    method: 'DELETE',
+    url: `/api/jetstream-organizations/${id}`,
+  }).then(unwrapResponseIgnoreCache);
 }
 
 /**

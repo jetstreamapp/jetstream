@@ -1,6 +1,7 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
+import { Maybe } from '@jetstream/types';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
 import pgSimple from 'connect-pg-simple';
@@ -28,7 +29,7 @@ import { environment } from './environments/environment';
 declare module 'express-session' {
   interface SessionData {
     activityExp: number;
-    orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string };
+    orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; jetstreamOrganizationId?: Maybe<string> };
   }
 }
 
@@ -61,6 +62,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
       path: '/',
       // httpOnly: true,
       secure: !ENV.IS_LOCAL_DOCKER && environment.production,
+      // Set to two - if you don't login for 48 hours, then expire session - consider changing to 1
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
       // sameSite: 'strict',
     },

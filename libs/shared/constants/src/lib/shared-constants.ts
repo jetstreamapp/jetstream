@@ -9,7 +9,7 @@ import {
 
 export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 
-export const SESSION_EXP_DAYS = 5;
+export const SESSION_EXP_DAYS = 2;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
 
@@ -267,6 +267,16 @@ export const ANALYTICS_KEYS = {
   settings_resend_email_verification: 'settings_resend_email_verification',
   settings_delete_account: 'settings_delete_account',
 
+  /** ORGANIZATIONS */
+  organizations_create_modal_open: 'organizations_create_modal_open',
+  organizations_created: 'organizations_created',
+  organizations_deleted: 'organizations_deleted',
+  organizations_updated: 'organizations_updated',
+  organizations_moved: 'organizations_moved',
+
+  /** SFDC ORGS */
+  sfdc_org_add_org: 'sfdc_org_add_org',
+
   /** FEEDBACK */
   donate_popover_open: 'donate_popover_open',
   donate_popover_cta_click: 'donate_popover_cta_click',
@@ -290,6 +300,7 @@ export const TITLES = {
   PLATFORM_EVENTS: 'Platform Events | Jetstream',
   FEEDBACK: 'Support & Feedback | Jetstream',
   SETTINGS: 'Account Settings | Jetstream',
+  ORGANIZATIONS: 'Manage Organizations | Jetstream',
 };
 
 export const SOCKET_EVENTS = {

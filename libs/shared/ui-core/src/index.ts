@@ -60,6 +60,7 @@ export * from './orgs/OrgsDropdown';
 export * from './orgs/OrgSelectionRequired';
 export * from './orgs/OrgWelcomeInstructions';
 export * from './orgs/useOrgPermissions';
+export * from './orgs/useUpdateOrgs';
 export * from './record/RecordSearchPopover';
 export * from './record/ViewChildRecords';
 export * from './record/ViewEditCloneRecord';

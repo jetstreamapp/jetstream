@@ -1,5 +1,6 @@
 type RouteKey =
   | 'HOME'
+  | 'ORGANIZATIONS'
   | 'QUERY'
   | 'LOAD'
   | 'LOAD_MULTIPLE'
@@ -32,6 +33,13 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/home',
     TITLE: 'Home',
     DESCRIPTION: 'Welcome to Jetstream',
+  },
+  ORGANIZATIONS: {
+    ROUTE: '/organizations',
+    DOCS: 'https://docs.getjetstream.app/organizations',
+    TITLE: 'Organizations',
+    DESCRIPTION: 'Setup organizations to group Salesforce Orgs',
+    NEW_UNTIL: new Date(2024, 11, 31, 23, 59, 59).getTime(), // October 31, 2024
   },
   QUERY: {
     ROUTE: '/query',

@@ -1,9 +1,11 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
-import { SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
+import { getErrorMessage } from '@jetstream/shared/utils';
+import { Maybe, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
 import { CallbackParamsType } from 'openid-client';
 import { z } from 'zod';
+import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
 import { createRoute } from '../utils/route.utils';
@@ -19,6 +21,7 @@ export const routeDefinition = {
           .enum(['true', 'false'])
           .nullish()
           .transform((val) => val === 'true'),
+        jetstreamOrganizationId: z.string().nullish(),
       }),
       hasSourceOrg: false,
     },
@@ -38,9 +41,9 @@ export const routeDefinition = {
  * @param res
  */
 const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res, next) => {
-  const { loginUrl, addLoginParam } = query;
+  const { loginUrl, addLoginParam, jetstreamOrganizationId } = query;
   const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam });
-  req.session.orgAuth = { code_verifier, nonce, state, loginUrl };
+  req.session.orgAuth = { code_verifier, nonce, state, loginUrl, jetstreamOrganizationId };
   res.redirect(authorizationUrl);
 });
 
@@ -78,7 +81,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
-    const { code_verifier, nonce, state, loginUrl } = orgAuth;
+    const { code_verifier, nonce, state, loginUrl, jetstreamOrganizationId } = orgAuth;
 
     const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(loginUrl, query, {
       code_verifier,
@@ -101,6 +104,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
     const salesforceOrg = await initConnectionFromOAuthResponse({
       jetstreamConn,
       userId: user.id,
+      jetstreamOrganizationId,
     });
 
     returnParams.data = JSON.stringify(salesforceOrg);
@@ -115,7 +119,15 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
   }
 });
 
-export async function initConnectionFromOAuthResponse({ jetstreamConn, userId }: { jetstreamConn: ApiConnection; userId: string }) {
+export async function initConnectionFromOAuthResponse({
+  jetstreamConn,
+  userId,
+  jetstreamOrganizationId,
+}: {
+  jetstreamConn: ApiConnection;
+  userId: string;
+  jetstreamOrganizationId?: Maybe<string>;
+}) {
   const identity = await jetstreamConn.org.identity();
   let companyInfoRecord: SObjectOrganization | undefined;
 
@@ -156,6 +168,18 @@ export async function initConnectionFromOAuthResponse({ jetstreamConn, userId }:
     orgNamespacePrefix: companyInfoRecord?.NamespacePrefix,
     orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
   };
+
+  if (jetstreamOrganizationId) {
+    try {
+      salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: jetstreamOrganizationId, userId })).id;
+    } catch (ex) {
+      logger.warn(
+        { userId, jetstreamOrganizationId, ...getExceptionLog(ex) },
+        'Error getting jetstream org with provided id %s',
+        getErrorMessage(ex)
+      );
+    }
+  }
 
   const salesforceOrg = await salesforceOrgsDb.createOrUpdateSalesforceOrg(userId, salesforceOrgUi);
   return salesforceOrg;

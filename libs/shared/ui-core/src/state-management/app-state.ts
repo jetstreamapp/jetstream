@@ -1,13 +1,22 @@
 /// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
-import { checkHeartbeat, getOrgs, getUserProfile } from '@jetstream/shared/data';
+import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getChromeExtensionVersion, getOrgType, isChromeExtension, parseCookie } from '@jetstream/shared/ui-utils';
-import { groupByFlat } from '@jetstream/shared/utils';
-import { ApplicationCookie, Maybe, SalesforceOrgUi, SalesforceOrgUiType, UserProfilePreferences, UserProfileUi } from '@jetstream/types';
+import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
+import {
+  ApplicationCookie,
+  JetstreamOrganization,
+  JetstreamOrganizationWithOrgs,
+  Maybe,
+  SalesforceOrgUi,
+  SalesforceOrgUiType,
+  UserProfilePreferences,
+  UserProfileUi,
+} from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, selector, useRecoilValue, useSetRecoilState } from 'recoil';
+import { atom, DefaultValue, selector, useRecoilValue, useSetRecoilState } from 'recoil';
 
 const DEFAULT_PROFILE = {
   email: 'unknown',
@@ -35,6 +44,7 @@ const DEFAULT_PROFILE = {
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
+  SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY: `SELECTED_JETSTREAM_ORGANIZATION`,
   ANONYMOUS_APEX_STORAGE_KEY: `ANONYMOUS_APEX`,
 };
 
@@ -88,6 +98,15 @@ async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   }
 }
 
+async function fetchJetstreamOrganizations(): Promise<JetstreamOrganization[]> {
+  try {
+    const orgs = isChromeExtension() ? [] : await getJetstreamOrganizations();
+    return orgs || [];
+  } catch (ex) {
+    return [];
+  }
+}
+
 async function getSelectedOrgFromStorage(): Promise<string | undefined> {
   try {
     const selectedOrgIdBase64 =
@@ -98,6 +117,31 @@ async function getSelectedOrgFromStorage(): Promise<string | undefined> {
     return undefined;
   } catch (ex) {
     return undefined;
+  }
+}
+
+function getSelectedJetstreamOrganizationFromStorage(): Maybe<string> {
+  try {
+    return (
+      sessionStorage.getItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY) ||
+      localStorage.getItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY)
+    );
+  } catch (ex) {
+    return undefined;
+  }
+}
+
+function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
+  try {
+    if (!id) {
+      sessionStorage.removeItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY, id);
+      localStorage.setItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY, id);
+    }
+  } catch (ex) {
+    logger.warn('could not save organization to localstorage', ex);
   }
 }
 
@@ -140,14 +184,83 @@ export const userProfileState = atom<UserProfileUi>({
   default: fetchUserProfile(),
 });
 
+export const jetstreamOrganizationsState = atom<JetstreamOrganization[]>({
+  key: 'jetstreamOrganizationsState',
+  default: fetchJetstreamOrganizations(),
+});
+
+// Combine orgs with organizations
+export const jetstreamOrganizationsWithOrgsSelector = selector<JetstreamOrganizationWithOrgs[]>({
+  key: 'jetstreamOrganizationsWithOrgsSelector',
+  get: ({ get }) => {
+    const orgsById = get(salesforceOrgsById);
+    return get(jetstreamOrganizationsState).map((organization) => ({
+      ...organization,
+      orgs: organization.orgs.map(({ uniqueId }) => orgsById[uniqueId]).filter(Boolean),
+    }));
+  },
+  set: ({ set }, newValue) => {
+    if (newValue instanceof DefaultValue) {
+      return set(jetstreamOrganizationsState, newValue);
+    } else {
+      return set(
+        jetstreamOrganizationsState,
+        newValue.map((organization) => ({
+          ...organization,
+          orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
+        }))
+      );
+    }
+  },
+});
+
+export const jetstreamOrganizationsExistsSelector = selector<boolean>({
+  key: 'jetstreamOrganizationsExistsSelector',
+  get: ({ get }) => get(jetstreamOrganizationsState).length > 0,
+});
+
+export const jetstreamActiveOrganizationState = atom<Maybe<string>>({
+  key: 'jetstreamActiveOrganizationState',
+  default: getSelectedJetstreamOrganizationFromStorage(),
+  effects: [({ onSet }) => onSet((newID) => setSelectedJetstreamOrganizationFromStorage(newID))],
+});
+
+export const jetstreamActiveOrganizationSelector = selector<Maybe<JetstreamOrganizationWithOrgs>>({
+  key: 'jetstreamActiveOrganizationSelector',
+  get: ({ get }) => {
+    const organizations = get(jetstreamOrganizationsWithOrgsSelector);
+    const selectedItemId = get(jetstreamActiveOrganizationState);
+    return organizations.find((org) => org.id === selectedItemId);
+  },
+});
+
 export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
   key: 'salesforceOrgsState',
   default: getOrgsFromStorage(),
 });
 
+export const salesforceOrgsForOrganizationSelector = selector({
+  key: 'salesforceOrgsForOrganizationSelector',
+  get: ({ get }) => {
+    const salesforceOrgs = get(salesforceOrgsState);
+    const selectedOrganizationId = get(jetstreamActiveOrganizationState) || null;
+    return salesforceOrgs.filter((org) => (org.jetstreamOrganizationId || null) === selectedOrganizationId);
+  },
+});
+
 export const selectedOrgIdState = atom<Maybe<string>>({
   key: 'selectedOrgIdState',
   default: getSelectedOrgFromStorage(),
+});
+
+export const salesforceOrgsWithoutOrganizationSelector = selector({
+  key: 'salesforceOrgsWithoutOrganizationSelector',
+  get: ({ get }) => {
+    return orderObjectsBy(
+      get(salesforceOrgsState).filter((org) => !org.jetstreamOrganizationId),
+      'label'
+    );
+  },
 });
 
 export const selectedOrgStateWithoutPlaceholder = selector({

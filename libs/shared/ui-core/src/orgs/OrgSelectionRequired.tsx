@@ -1,22 +1,28 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { Alert, EmptyState, Icon, NoAccess2Illustration, fireToast } from '@jetstream/ui';
+import { JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { fromAppState, fromJetstreamEvents } from '..';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { fromAppState, fromJetstreamEvents, OrgsDropdown } from '..';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
+import { OrganizationSelector } from './OrganizationSelector';
 
 export interface OrgSelectionRequiredProps {
   children?: React.ReactNode;
 }
 
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ children }) => {
+  const [allOrgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi | undefined>(fromAppState.selectedOrgStateWithoutPlaceholder);
   const hasConfiguredOrg = useRecoilValue<boolean>(fromAppState.hasConfiguredOrgState);
-  const setOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
+  const jetstreamOrganizations = useRecoilValue(fromAppState.jetstreamOrganizationsState);
+  const hasOrganizationsConfigured = useRecoilValue(fromAppState.jetstreamOrganizationsExistsSelector);
+  const setActiveOrganization = useSetRecoilState(fromAppState.jetstreamActiveOrganizationState);
+  const activeOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
 
   const [loadingRetry, setLoadingRetry] = useState(false);
 
@@ -40,6 +46,24 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       setLoadingRetry(false);
     }
   };
+
+  function handleOrganizationChange(organization: Maybe<JetstreamOrganization>) {
+    if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
+      if (organization.orgs.length === 1) {
+        setSelectedOrgId(organization.orgs[0].uniqueId);
+      } else {
+        setSelectedOrgId(null);
+      }
+    } else if (!organization && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
+      const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
+      if (orgsWithNoOrganization.length === 1) {
+        setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
+      } else {
+        setSelectedOrgId(null);
+      }
+    }
+    setActiveOrganization(organization?.id);
+  }
 
   return (
     <Fragment>
@@ -81,7 +105,39 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
               <Alert type="info" leadingIcon="info">
                 This action requires an org to be selected. Use the org dropdown to configure or select an org.
               </Alert>
-              <OrgWelcomeInstructions />
+              <Grid vertical align="spread" verticalAlign="center" className="slds-m-top_medium">
+                <Card
+                  css={css`
+                    min-width: 20rem;
+                  `}
+                  title="Select a Salesforce Org"
+                >
+                  <OrgsDropdown omitAddOrgsButton omitOrganizationSelector />
+                </Card>
+                {hasOrganizationsConfigured && (
+                  <Card
+                    css={css`
+                      min-width: 20rem;
+                    `}
+                    title={activeOrganization ? 'Switch Organizations' : 'Choose an organization'}
+                  >
+                    <OrganizationSelector
+                      organizations={jetstreamOrganizations}
+                      selectedOrganization={activeOrganization}
+                      salesforceOrgsWithoutOrganization={allOrgs.filter((org) => !org.jetstreamOrganizationId).length}
+                      onSelection={handleOrganizationChange}
+                    />
+                  </Card>
+                )}
+                <Card
+                  css={css`
+                    min-width: 20rem;
+                  `}
+                  title="Add a new Salesforce Org"
+                >
+                  <AddOrg className="slds-button slds-button_neutral" label="Add Salesforce Org" onAddOrg={handleAddOrg} />
+                </Card>
+              </Grid>
             </>
           )}
           {!hasConfiguredOrg && <OrgWelcomeInstructions />}

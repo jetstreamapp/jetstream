@@ -65,6 +65,55 @@ export const AppHome = () => {
           justify-content: center;
         `}
       >
+        <div
+          className="slds-box slds-box_x-small"
+          css={css`
+            background-color: white;
+            grid-column: span 3;
+          `}
+        >
+          <article className="slds-tile slds-media">
+            <div className="slds-media__figure">
+              <Icon
+                type="standard"
+                icon="employee_organization"
+                containerClassname="slds-icon_container"
+                className={classNames('slds-icon slds-icon_small', `slds-icon-standard-employee-organization`)}
+              />
+            </div>
+            <div className="slds-media__body">
+              <h3
+                className="slds-text-title_caps"
+                css={css`
+                  line-height: 1.5rem;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                `}
+              >
+                {APP_ROUTES.ORGANIZATIONS.TITLE}
+                {APP_ROUTES.ORGANIZATIONS.NEW_UNTIL && APP_ROUTES.ORGANIZATIONS.NEW_UNTIL >= CURRENT_TIME && (
+                  <Badge type="success" className="slds-m-left_xx-small">
+                    NEW
+                  </Badge>
+                )}
+              </h3>
+              <Link to={APP_ROUTES.ORGANIZATIONS.ROUTE} className="slds-text-heading_x-small">
+                Manage Organizations
+              </Link>
+              <p>Group your Salesforce Orgs within an Organization so that you can isolate which orgs you are working with.</p>
+
+              <a href={APP_ROUTES.ORGANIZATIONS.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+                Documentation
+                <Icon
+                  type="utility"
+                  icon="help_doc_ext"
+                  className="slds-icon slds-icon_xx-small slds-icon-text-default slds-m-left_xx-small"
+                  omitContainer
+                />
+              </a>
+            </div>
+          </article>
+        </div>
         {HOME_ITEMS.map((card) => (
           <div
             key={card.title}

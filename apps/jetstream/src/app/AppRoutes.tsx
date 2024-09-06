@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import lazy from './components/core/LazyLoad';
 
+const Organizations = lazy(() => import('@jetstream/feature/organizations').then((module) => ({ default: module.Organizations })));
+
 const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
 const LoadRecordsMultiObject = lazy(() =>
   import('@jetstream/feature/load-records-multi-object').then((module) => ({ default: module.LoadRecordsMultiObject }))
@@ -119,6 +121,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         <Route path="results" element={<QueryResults />} />
         <Route path="*" element={<Navigate to=".." />} />
       </Route>
+      <Route path={APP_ROUTES.ORGANIZATIONS.ROUTE} element={<Organizations />} />
       <Route
         path={APP_ROUTES.LOAD.ROUTE}
         element={

@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { Fragment, FunctionComponent, ReactNode, Suspense, useState } from 'react';
@@ -57,17 +58,40 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   return (
     <Fragment>
       {/* LOGO */}
-      <div className="slds-global-header__item draggable">
-        <div className="slds-global-header__logo draggable" style={{ backgroundImage: `url(${logo})` }}></div>
+      <div
+        className="slds-global-header__item non-draggable"
+        css={css`
+          padding: 0 0.25rem;
+        `}
+      >
+        <div
+          css={css`
+            width: 10.7rem;
+          `}
+          className="slds-global-header__logo non-draggable"
+          style={{ backgroundImage: `url(${logo})` }}
+        ></div>
       </div>
       {/* ORGS */}
       {orgs && (
         <Suspense fallback={<div>Loading...</div>}>
-          <div className="slds-global-header__item non-draggable">{orgs}</div>
+          <div
+            className="slds-global-header__item non-draggable"
+            css={css`
+              padding: 0 0.25rem;
+            `}
+          >
+            {orgs}
+          </div>
         </Suspense>
       )}
       {/* RIGHT HAND AREA */}
-      <div className="slds-global-header__item draggable">
+      <div
+        className="slds-global-header__item non-draggable"
+        css={css`
+          padding: 0 0.25rem;
+        `}
+      >
         <ul className="slds-global-actions non-draggable">
           {rightHandMenuItems && Array.isArray(rightHandMenuItems) ? (
             rightHandMenuItems.map((item, i) => (
@@ -79,7 +103,12 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
             <li className="slds-global-actions__item non-draggable">{rightHandMenuItems}</li>
           )}
           {!isChromeExtension && (
-            <li className="slds-global-actions__item non-draggable">
+            <li
+              className="slds-global-actions__item non-draggable"
+              css={css`
+                padding: 0 0.25rem;
+              `}
+            >
               <div className="slds-dropdown-trigger slds-dropdown-trigger_click">
                 <DropDown
                   buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"

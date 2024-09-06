@@ -19,6 +19,10 @@ const userSelect: Prisma.UserSelect = {
   userId: true,
 };
 
+export const findIdByUserId = ({ userId }: { userId: string }) => {
+  return prisma.user.findFirstOrThrow({ where: { userId }, select: { id: true } }).then(({ id }) => id);
+};
+
 /**
  * Find by Auth0 userId, not Jetstream Id
  */
@@ -72,6 +76,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
         where: { userId: user.id },
         data: {
           appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          deletedAt: null,
           preferences: {
             upsert: {
               create: { skipFrontdoorLogin: false },
@@ -92,6 +97,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
           nickname: user._json.nickname,
           picture: user._json.picture,
           appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
+          deletedAt: null,
           preferences: { create: { skipFrontdoorLogin: false } },
         },
         select: userSelect,

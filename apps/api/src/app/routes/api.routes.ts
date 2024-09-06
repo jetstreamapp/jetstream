@@ -3,6 +3,7 @@ import express from 'express';
 import Router from 'express-promise-router';
 import multer from 'multer';
 import { routeDefinition as imageController } from '../controllers/image.controller';
+import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
 import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
 import { routeDefinition as bulkApiController } from '../controllers/sf-bulk-api.controller';
@@ -50,6 +51,12 @@ routes.post('/orgs/health-check', orgsController.checkOrgHealth.controllerFn());
 routes.get('/orgs', orgsController.getOrgs.controllerFn());
 routes.patch('/orgs/:uniqueId', orgsController.updateOrg.controllerFn());
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg.controllerFn());
+routes.put('/orgs/:uniqueId/move', orgsController.moveOrg.controllerFn());
+
+routes.get('/jetstream-organizations', jetstreamOrganizationsController.getOrganizations.controllerFn());
+routes.post('/jetstream-organizations', jetstreamOrganizationsController.createOrganization.controllerFn());
+routes.put('/jetstream-organizations/:id', jetstreamOrganizationsController.updateOrganization.controllerFn());
+routes.delete('/jetstream-organizations/:id', jetstreamOrganizationsController.deleteOrganization.controllerFn());
 
 /**
  * ************************************

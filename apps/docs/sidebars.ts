@@ -3,7 +3,7 @@ const sidebar = {
     {
       type: 'category',
       label: 'Getting Started',
-      items: ['getting-started/overview', 'getting-started/feedback'],
+      items: ['getting-started/overview', 'getting-started/organizations', 'getting-started/feedback'],
     },
     {
       type: 'category',
