@@ -35,7 +35,10 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   const { formId, ariaDescribedbyText, labelHelpId, helpTextId, errorMessageId } = useFormIds(idPrefix);
 
   return (
-    <fieldset className={classNames('slds-form-element', { 'slds-has-error': hasError }, className)} aria-describedby={ariaDescribedbyText}>
+    <fieldset
+      className={classNames('slds-form-element', { 'slds-has-error': hasError, 'slds-is-required': required }, className)}
+      aria-describedby={ariaDescribedbyText}
+    >
       {label && (
         <Fragment>
           <legend className="slds-form-element__legend slds-form-element__label">
