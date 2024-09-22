@@ -118,7 +118,7 @@
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@release-it/bumper": "^6.0.1",
     "@release-it/conventional-changelog": "^5.0.0",
-    "@salesforce-ux/design-system": "^2.23.2",
+    "@salesforce-ux/design-system": "^2.25.1",
     "@storybook/addon-essentials": "8.2.9",
     "@storybook/addon-knobs": "^7.0.2",
     "@storybook/core-server": "8.2.9",
