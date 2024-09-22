@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgBan(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M26 2C12.8 2 2 12.8 2 26s10.8 24 24 24 24-10.8 24-24S39.2 2 26 2zm11.9 25.7c-.1.7-.7 1.3-1.5 1.3H15.6c-.8 0-1.4-.5-1.5-1.3-.1-1.2-.1-2.3 0-3.4.1-.7.7-1.3 1.5-1.3h20.8c.8 0 1.4.6 1.5 1.3.1 1.2.1 2.3 0 3.4z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M260 20C128 20 20 128 20 260s108 240 240 240 240-108 240-240S392 20 260 20zm119 257c-1 7-7 13-15 13H156c-8 0-14-5-15-13v-34c1-7 7-13 15-13h208c8 0 14 6 15 13v34z" />
     </svg>
   );
 }

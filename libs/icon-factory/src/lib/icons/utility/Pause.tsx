@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgPause(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M30 43c0 1 .9 2 2 2h4c1.1 0 2-1.1 2-2V9c0-1-.9-2-2-2h-4c-1.1 0-2 1.1-2 2v34zM14 43c0 1 .9 2 2 2h4c1.1 0 2-1.1 2-2V9c0-1-.9-2-2-2h-4c-1.1 0-2 1.1-2 2v34z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M300 430c0 10 9 20 20 20h40c11 0 20-11 20-20V90c0-10-9-20-20-20h-40c-11 0-20 11-20 20zm-160 0c0 10 9 20 20 20h40c11 0 20-11 20-20V90c0-10-9-20-20-20h-40c-11 0-20 11-20 20z" />
     </svg>
   );
 }

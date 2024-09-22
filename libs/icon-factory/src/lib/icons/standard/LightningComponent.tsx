@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgLightningComponent(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M61.1 20H44.2c-2.5 0-4.7 1.5-5.6 3.8L28.1 50.9c-.8 2 .7 4.1 2.8 4.1h17.2l-6.4 22.4c-.6 2.1 2 3.5 3.4 1.8L71.4 48c1.7-1.9.3-5-2.3-5h-13l11.4-18.4c1.2-2-.2-4.6-2.6-4.6h-3.8z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M611 200H442c-25 0-47 15-56 38L281 509c-8 20 7 41 28 41h172l-64 224c-6 21 20 35 34 18l263-312c17-19 3-50-23-50H561l114-184c12-20-2-46-26-46z" />
     </svg>
   );
 }

@@ -1,10 +1,8 @@
 import * as React from 'react';
 function SvgNewCustom26(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M6.8 2C4.2 2 2 4.2 2 6.8c0 1.4.6 2.7 1.6 3.6v36.4C3.6 48.6 5 50 6.8 50c1.8 0 3.2-1.4 3.2-3.2V10.4c1-.9 1.6-2.2 1.6-3.6C11.6 4.2 9.4 2 6.8 2zM48.8 10.6c-12.6 6.6-21.1-4.7-33-.4-.6.2-1 .8-1 1.5v20.6c0 1 1 1.8 2.1 1.5 11.4-3.4 19.9 7.3 32.3.5.5-.2.8-.8.8-1.4V11.4c0-.7-.6-1.1-1.2-.8z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M68 20c-26 0-48 22-48 48 0 14 6 27 16 36v364c0 18 14 32 32 32s32-14 32-32V104c10-9 16-22 16-36 0-26-22-48-48-48zm420 86c-126 66-211-47-330-4-6 2-10 8-10 15v206c0 10 10 18 21 15 114-34 199 73 323 5 5-2 8-8 8-14V114c0-7-6-11-12-8z" />
     </svg>
   );
 }

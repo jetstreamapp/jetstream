@@ -1,17 +1,11 @@
 import * as React from 'react';
 function SvgWebex(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" aria-hidden="true" {...props}>
-      <g fillRule="evenodd" clipRule="evenodd">
-        <path
-          d="M5.152.011A5.074 5.074 0 00.078 5.085v53.841A5.074 5.074 0 005.152 64h45.773A5.075 5.075 0 0056 58.926V20.32L37.098.011H5.152z"
-          fill="#3BA755"
-        />
-        <path d="M55.977 20.352v1H43.178s-6.312-1.26-6.129-6.707c0 0 .208 5.707 6.004 5.707h12.924z" fill="#22683E" />
-        <path d="M37.074 0v14.561c0 1.656 1.104 5.791 6.104 5.791h12.799L37.074 0z" fill="#CDEFC4" />
-      </g>
-      <path d="M20.463 53.854c5.161-.271 9.261-4.538 9.261-9.767a9.78 9.78 0 00-9.26-9.767l-.001 19.534z" fill="#CDEFC4" />
-      <path d="M19.338 53.852c-5.119-.316-9.174-4.565-9.174-9.764s4.056-9.447 9.174-9.763v19.527z" fill="unset" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5600 6400" aria-hidden="true" {...props}>
+      <path fill="#3ba755" d="M515 1A507 507 0 008 509v5384c0 280 227 507 507 507h4578c280 0 507-227 507-507V2032L3710 1z" />
+      <path fill="#22683e" d="M5598 2035v100H4318s-631-126-613-671c0 1 21 571 600 571z" />
+      <path fill="#cdefc4" d="M3707 0v1456c0 166 111 579 611 579h1280zM2046 5385a978 978 0 000-1953z" />
+      <path fill="unset" d="M1934 5385a978 978 0 010-1952z" />
     </svg>
   );
 }

@@ -1,9 +1,8 @@
 import * as React from 'react';
 function SvgPicklist(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path fill="unset" d="M48 41c1.1 0 2-.9 2-2V13c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v26c0 1.1.9 2 2 2h44zM6 37V15h40v22H6z" />
-      <path fill="unset" d="M32.5 23h9.3c.3 0 .4.3.2.5l-4.6 5.3c-.2.2-.5.2-.7 0l-4.6-5.3c-.1-.2.1-.5.4-.5z" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M480 410a20 20 0 0020-20V130a20 20 0 00-20-20H40a20 20 0 00-20 20v260c0 11 9 20 20 20h440zM60 370V150h400v220H60zm265-140h93c3 0 4 3 2 5l-46 53c-2 2-5 2-7 0l-46-53c-1-2 1-5 4-5z" />
     </svg>
   );
 }

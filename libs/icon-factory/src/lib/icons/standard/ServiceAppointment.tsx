@@ -1,18 +1,14 @@
 import * as React from 'react';
 function SvgServiceAppointment(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <rect x={60.31} y={60.99} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
-      <rect x={60.31} y={70.12} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
-      <rect x={51.17} y={60.99} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
-      <rect x={51.17} y={70.12} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
-      <rect x={42.03} y={60.99} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
-      <rect x={42.03} y={70.12} width={5.48} height={5.48} rx={0.91} ry={0.91} fill="unset" />
-      <path
-        d="M71.83 20H28.3a8.11 8.11 0 00-8.3 7.81v44.38A8.08 8.08 0 0028.16 80h5.9a3.62 3.62 0 01-.4-1.66V56A1.41 1.41 0 0135 54.6h37.51a1.41 1.41 0 011.37 1.4v22.34a3.62 3.62 0 01-.31 1.47A8 8 0 0080 72.19V27.81c.14-4.25-3.58-7.81-8.17-7.81zM30.78 36.1A2.85 2.85 0 0128 33.35V30.6a2.85 2.85 0 012.76-2.75h14.09a2.85 2.85 0 012.76 2.75v2.75a2.85 2.85 0 01-2.76 2.75zm43.1 14.14a1.41 1.41 0 01-1.37 1.37H35a1.41 1.41 0 01-1.37-1.37V48a3.67 3.67 0 013.66-3.65h4.57v-1.87a2.74 2.74 0 015.48 0v1.82h12.8v-1.82a2.74 2.74 0 015.48 0v1.82h4.57a3.67 3.67 0 013.69 3.7z"
-        fill="unset"
-        fillRule="evenodd"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M718 200H283a81 81 0 00-83 78v444a81 81 0 0082 78h59a36 36 0 01-4-17V560a14 14 0 0113-14h375a14 14 0 0114 14v223a36 36 0 01-3 15 80 80 0 0064-76V278c1-42-36-78-82-78zM308 361a29 29 0 01-28-27v-28a29 29 0 0128-27h141a29 29 0 0127 27v28a29 29 0 01-27 27zm431 141a14 14 0 01-14 14H350a14 14 0 01-14-14v-22a37 37 0 0137-36h46v-19a27 27 0 0154 0v18h128v-18a27 27 0 0155 0v18h46a37 37 0 0137 37z" />
+      <rect width={55} height={55} x={603} y={610} rx={9} />
+      <rect width={55} height={55} x={603} y={702} rx={9} />
+      <rect width={55} height={55} x={512} y={610} rx={9} />
+      <rect width={55} height={55} x={512} y={702} rx={9} />
+      <rect width={55} height={55} x={420} y={610} rx={9} />
+      <rect width={55} height={55} x={420} y={701} rx={9} />
     </svg>
   );
 }

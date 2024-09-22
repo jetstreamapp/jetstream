@@ -1,8 +1,8 @@
 import * as React from 'react';
 function SvgDash(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path fill="unset" d="M50 27.5c0 .8-.7 1.5-1.5 1.5h-45c-.8 0-1.5-.7-1.5-1.5v-3c0-.8.7-1.5 1.5-1.5h45c.8 0 1.5.7 1.5 1.5v3z" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M500 275c0 8-7 15-15 15H35c-8 0-15-7-15-15v-30c0-8 7-15 15-15h450c8 0 15 7 15 15z" />
     </svg>
   );
 }

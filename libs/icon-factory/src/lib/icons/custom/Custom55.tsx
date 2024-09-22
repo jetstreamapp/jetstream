@@ -1,12 +1,8 @@
 import * as React from 'react';
 function SvgCustom55(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M32 61h13c1.1 0 2-.9 2-2V29c0-2.2-2-4-4-4H32.3C31 25 30 26 30 27.3V59c0 1.1.9 2 2 2z" />
-        <path d="M76 31v32c0 2.2-1.8 4-4 4H28c-2.2 0-4-1.8-4-4V31c-3.3 0-6 2.7-6 6v30c0 3.3 2.7 6 6 6h19c1.1 0 2 .9 2 2s.9 2 2 2h6c1.1 0 2-.9 2-2s.9-2 2-2h19c3.3 0 6-2.7 6-6V37c0-3.3-2.7-6-6-6z" />
-        <path d="M55 61h12.7c1.3 0 2.3-1 2.3-2.3V27c0-1.1-.9-2-2-2H57c-2 0-4 1.8-4 4v30c0 1.1.9 2 2 2z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="unset" aria-hidden="true" {...props}>
+      <path d="M32 61h13a2 2 0 002-2V29c0-2.2-2-4-4-4H32.3a2.3 2.3 0 00-2.3 2.3V59c0 1.1.9 2 2 2zm44-30v32a4 4 0 01-4 4H28a4 4 0 01-4-4V31a6 6 0 00-6 6v30a6 6 0 006 6h19a2 2 0 012 2c0 1.1.9 2 2 2h6a2 2 0 002-2c0-1.1.9-2 2-2h19a6 6 0 006-6V37a6 6 0 00-6-6zM55 61h12.7a2.3 2.3 0 002.3-2.3V27a2 2 0 00-2-2H57c-2 0-4 1.8-4 4v30c0 1.1.9 2 2 2z" />
     </svg>
   );
 }

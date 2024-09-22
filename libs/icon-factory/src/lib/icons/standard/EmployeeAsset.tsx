@@ -1,13 +1,9 @@
 import * as React from 'react';
 function SvgEmployeeAsset(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        d="M74.8 20.3H25.2a5 5 0 00-5 5v34.3a5 5 0 005 5h49.5a5 5 0 005-5V25.2a4.91 4.91 0 00-4.9-4.9zm-2.5 34.9a2 2 0 01-1.9 1.9H29.6a1.9 1.9 0 01-1.9-1.9V29.6a2 2 0 011.9-1.9h40.7a2 2 0 012 1.9zM41.3 72.3a5 5 0 00-5 5v.6a2 2 0 001.9 1.9h23.5a2 2 0 001.9-1.9v-.6a5 5 0 00-5-5z"
-        fill="unset"
-      />
-      <circle cx={50.1} cy={37.6} r={5.8} fill="unset" />
-      <path d="M50.2 44.4h-.4a8.83 8.83 0 00-8.7 7.5c0 .4.1 1.2 1.5 1.2h14.9c1.4 0 1.5-.9 1.5-1.2a9 9 0 00-8.8-7.5z" fill="unset" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M748 203H252a50 50 0 00-50 50v343a50 50 0 0050 50h495a50 50 0 0050-50V252a49 49 0 00-49-49zm-25 349a20 20 0 01-19 19H296a19 19 0 01-19-19V296a20 20 0 0119-19h407a20 20 0 0120 19zM413 723a50 50 0 00-50 50v6a20 20 0 0019 19h235a20 20 0 0019-19v-6a50 50 0 00-50-50zm89-279h-4a88 88 0 00-87 75c0 4 1 12 15 12h149c14 0 15-9 15-12a90 90 0 00-88-75z" />
+      <circle cx={501} cy={376} r={58} />
     </svg>
   );
 }

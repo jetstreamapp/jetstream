@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgInspectorPanel(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M3.8 45.3h45c.8 0 1.5-.7 1.5-1.5v-8.3c0-.8-.7-1.5-1.5-1.5h-45c-.8 0-1.5.7-1.5 1.5v8.3c0 .8.7 1.5 1.5 1.5zm0-38.6c-.8 0-1.6.7-1.6 1.5v20.4c0 .7.8 1.4 1.6 1.4h44.8c.8 0 1.5-.7 1.5-1.5V8.2c0-.8-.7-1.5-1.5-1.5H3.8z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M38 453h450c8 0 15-7 15-15v-83c0-8-7-15-15-15H38c-8 0-15 7-15 15v83c0 8 7 15 15 15zm0-386c-8 0-16 7-16 15v204c0 7 8 14 16 14h448c8 0 15-7 15-15V82c0-8-7-15-15-15z" />
     </svg>
   );
 }

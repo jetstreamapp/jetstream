@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgTableau(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M33.9 27.2h-6.6v7.2h-2.6v-7.2h-6.6v-2.6h6.6v-7.2h2.6v7.2h6.6zM20.7 36.5h-5.9v-6.6h-2.2v6.6h-6v2h6V45h2.2v-6.5h5.9zM45.5 13.2h-5.9V6.7h-2.2v6.5h-5.9v2.1h5.9v6.5h2.2v-6.5h5.9zM31 43.6h-4v-4.5h-1.9v4.5H21v1.8h4.1V50H27v-4.6h4zM20.7 13.2h-6V6.7h-2.1v6.5h-6v2h6v6.6h2.1v-6.6h6zM50 25h-4v-4.5h-1.9V25H40v1.8h4.1v4.5H46v-4.5h4zM45.5 36.5h-5.9v-6.6h-2.2v6.6h-5.9v2h5.9V45h2.2v-6.5h5.9zM30.7 6.5h-4V2h-1.4v4.5h-4v1.4h4v4.4h1.5V7.9h4zM11.4 25.2h-4v-4.4H6v4.4H2v1.4h4V31h1.4v-4.4h4z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M339 272h-66v72h-26v-72h-66v-26h66v-72h26v72h66zm-132 93h-59v-66h-22v66H66v20h60v65h22v-65h59zm248-233h-59V67h-22v65h-59v21h59v65h22v-65h59zM310 436h-40v-45h-19v45h-41v18h41v46h19v-46h40zM207 132h-60V67h-21v65H66v20h60v66h21v-66h60zm293 118h-40v-45h-19v45h-41v18h41v45h19v-45h40zm-45 115h-59v-66h-22v66h-59v20h59v65h22v-65h59zM307 65h-40V20h-14v45h-40v14h40v44h15V79h40zM114 252H74v-44H60v44H20v14h40v44h14v-44h40z" />
     </svg>
   );
 }

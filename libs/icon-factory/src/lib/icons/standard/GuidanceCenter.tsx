@@ -1,15 +1,13 @@
 import * as React from 'react';
 function SvgGuidanceCenter(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <rect height={7.26} rx={1.81} width={7.25} x={20.02} y={20.05} />
-        <rect height={7.33} rx={1.83} width={42} x={32.24} y={20.05} />
-        <rect height={7.33} rx={1.83} width={42} x={32.24} y={35.04} />
-        <rect height={7.33} rx={1.83} width={7.33} x={20.02} y={35.04} />
-        <rect height={7.33} rx={1.83} width={7.33} x={20.02} y={50.03} />
-        <path d="M63.71 47.42A16.18 16.18 0 1079.89 63.6a16.22 16.22 0 00-16.18-16.18zm0 28A11.87 11.87 0 1175.58 63.6a11.9 11.9 0 01-11.87 11.86zM70 56.64l-9 3.24a1.61 1.61 0 00-1 1l-3.23 8.95a.55.55 0 00.7.7l8.95-3.23a1.59 1.59 0 001-1l3.24-9a.55.55 0 00-.66-.66zm-6.26 9.11a2.16 2.16 0 112.16-2.15 2.16 2.16 0 01-2.19 2.15zM47.61 50H34.07a1.87 1.87 0 00-1.83 1.83v3.66a1.88 1.88 0 001.83 1.84h9.52A20.89 20.89 0 0147.61 50z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M637 474a162 162 0 10162 162 162 162 0 00-162-162zm0 280a119 119 0 11119-118 119 119 0 01-119 119zm63-188l-90 33a16 16 0 00-10 10l-32 89a6 6 0 007 7l89-32a16 16 0 0010-10l33-90a6 6 0 00-7-7zm-63 92a22 22 0 1122-22 22 22 0 01-22 22zM476 500H341a19 19 0 00-19 18v37a19 19 0 0019 18h95a209 209 0 0140-73z" />
+      <rect height={73} rx={18} width={73} x={200} y={200} />
+      <rect height={73} rx={18} width={420} x={322} y={200} />
+      <rect height={73} rx={18} width={420} x={322} y={350} />
+      <rect height={73} rx={18} width={73} x={200} y={350} />
+      <rect height={73} rx={18} width={73} x={200} y={500} />
     </svg>
   );
 }

@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgRelationship(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M71.25 70.002h-3.751V62.5h3.751c.749 0 1.25-.501 1.25-1.25v-32.5c0-.75-.501-1.25-1.25-1.25h-32.5c-.75 0-1.25.5-1.25 1.25v3.75H30v-3.75A8.696 8.696 0 0138.75 20h32.5A8.696 8.696 0 0180 28.75v32.5c0 4.876-3.872 8.752-8.75 8.752z" />
-        <path d="M57.5 37.5H25c-2.749 0-5 2.249-5 5V75c0 2.75 2.251 5 5 5h32.5c2.75 0 5-2.25 5-5V42.5c0-2.75-2.248-5-5-5z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M713 700h-38v-75h38c7 0 12-5 12-12V288c0-8-5-13-12-13H388c-8 0-13 5-13 13v37h-75v-37c0-49 39-88 88-88h325c48 0 87 39 87 88v325c0 48-39 87-87 87zM575 375H250c-27 0-50 22-50 50v325c0 28 23 50 50 50h325c28 0 50-22 50-50V425c0-27-22-50-50-50z" />
     </svg>
   );
 }

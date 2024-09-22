@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgTabset(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M31.6 2H20.4c-.7 0-1.2.6-1.2 1.3v2.5c0 .7.6 1.3 1.2 1.3h11.2c.7 0 1.2-.6 1.2-1.3V3.3c.1-.7-.5-1.3-1.2-1.3zM48.7 2H37.5c-.7 0-1.3.6-1.3 1.3v2.5c0 .7.6 1.3 1.3 1.3h11.2c.7-.1 1.3-.6 1.3-1.3V3.3c0-.7-.6-1.3-1.3-1.3z"
-      />
-      <path
-        fill="unset"
-        d="M48.7 10.4H17c-.7 0-1.3-.6-1.3-1.3V3.3c0-.7-.6-1.3-1.3-1.3H3.3C2.6 2 2 2.6 2 3.3v45.5c0 .6.6 1.2 1.3 1.2H48.7c.7 0 1.3-.6 1.3-1.3v-37c0-.7-.6-1.3-1.3-1.3z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M316 20H204c-7 0-12 6-12 13v25c0 7 6 13 12 13h112c7 0 12-6 12-13V33c1-7-5-13-12-13zm171 0H375c-7 0-13 6-13 13v25c0 7 6 13 13 13h112c7-1 13-6 13-13V33c0-7-6-13-13-13zm0 84H170c-7 0-13-6-13-13V33c0-7-6-13-13-13H33c-7 0-13 6-13 13v455c0 6 6 12 13 12h454c7 0 13-6 13-13V117c0-7-6-13-13-13z" />
     </svg>
   );
 }

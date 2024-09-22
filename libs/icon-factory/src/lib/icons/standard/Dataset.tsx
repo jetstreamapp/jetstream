@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgDataset(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M52 20.6l23.4 11.5c1.6.8 2.6 2.4 2.6 4.1V63c0 1.8-1 3.4-2.6 4.1L52 78.6c-1.3.6-2.8.6-4.1 0L24.6 67.1C23 66.3 22 64.7 22 63V36.2c0-1.8 1-3.4 2.6-4.1L48 20.6c1.2-.6 2.8-.6 4 0z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M520 206l234 115c16 8 26 24 26 41v268c0 18-10 34-26 41L520 786c-13 6-28 6-41 0L246 671c-16-8-26-24-26-41V362c0-18 10-34 26-41l234-115c12-6 28-6 40 0z" />
     </svg>
   );
 }

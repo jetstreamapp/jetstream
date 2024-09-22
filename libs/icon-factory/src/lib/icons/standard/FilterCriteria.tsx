@@ -1,12 +1,8 @@
 import * as React from 'react';
 function SvgFilterCriteria(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path d="M38.86 32h21.81a2 2 0 002-2v-4a6 6 0 00-5.95-6H42.83a6 6 0 00-5.95 6v4a2 2 0 001.98 2z" fill="unset" />
-      <path
-        d="M29.93 25a.94.94 0 011 1v4a8 8 0 007.93 8h21.81a8 8 0 007.94-8v-4a.94.94 0 011-1h2a6 6 0 016 6v43a6 6 0 01-6 6H28a6 6 0 01-6-6V31a6 6 0 016-6h2zm31.22 23h-22.3a.86.86 0 00-.65 1.41l9.74 11.39a2.08 2.08 0 01.45 1.31v7.23a.82.82 0 00.81.75h1.5a.73.73 0 00.71-.75v-7.23A1.84 1.84 0 0152 60.8l9.8-11.39a.86.86 0 00-.65-1.41z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M389 320h218a20 20 0 0020-20v-40a60 60 0 00-60-60H428a60 60 0 00-59 60v40a20 20 0 0020 20zm-90-70a9 9 0 0110 10v40a80 80 0 0080 80h218a80 80 0 0079-80v-40a9 9 0 0110-10h20a60 60 0 0160 60v430a60 60 0 01-60 60H280a60 60 0 01-60-60V310a60 60 0 0160-60h20zm313 230H389a9 9 0 00-7 14l97 114a21 21 0 015 13v72a8 8 0 008 8h15a7 7 0 007-8v-72a18 18 0 016-13l98-114a9 9 0 00-6-14z" />
     </svg>
   );
 }
