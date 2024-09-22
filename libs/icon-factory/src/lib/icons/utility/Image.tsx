@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgImage(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M50 10c0-2.2-1.8-4-4-4H6c-2.2 0-4 1.8-4 4v32c0 2.2 1.8 4 4 4h40c2.2 0 4-1.8 4-4V10zM39.6 38h-29c-1.2 0-1.9-1.3-1.3-2.3l8.8-15.3c.4-.7 1.3-.7 1.7 0l5.3 9.1c.4.6 1.3.7 1.7.1l4.3-6.2c.4-.6 1.3-.6 1.7 0L40.7 36c.6.9 0 2-1.1 2zM37 20c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M500 100a40 40 0 00-40-40H60a40 40 0 00-40 40v320a40 40 0 0040 40h400a40 40 0 0040-40V100zM396 380H106a15 15 0 01-13-23l88-153c4-7 13-7 17 0l53 91c4 6 13 7 17 1l43-62a10 10 0 0117 0l79 126c6 9 0 20-11 20zm-26-180c-22 0-40-18-40-40s18-40 40-40 40 18 40 40-18 40-40 40z" />
     </svg>
   );
 }

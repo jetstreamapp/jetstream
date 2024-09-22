@@ -1,10 +1,8 @@
 import * as React from 'react';
 function SvgVolumeOff(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M24.6 2.6L12 18H6c-2.2 0-4 1.8-4 4v8c0 2.2 1.8 4 4 4h6l12.6 15.4c1.3 1.3 3.4.4 3.4-1.4V4c0-1.8-2.2-2.7-3.4-1.4zM44.8 26l4.9-4.9c.4-.4.4-1 0-1.4l-1.4-1.4c-.4-.4-1-.4-1.4 0L42 23.2l-4.9-4.9c-.4-.4-1-.4-1.4 0l-1.4 1.4c-.4.4-.4 1 0 1.4l4.9 4.9-4.9 4.9c-.4.4-.4 1 0 1.4l1.4 1.4c.4.4 1 .4 1.4 0l4.9-4.9 4.9 4.9c.4.4 1 .4 1.4 0l1.4-1.4c.4-.4.4-1 0-1.4L44.8 26z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M246 26L120 180H60a40 40 0 00-40 40v80a40 40 0 0040 40h60l126 154a20 20 0 0034-14V40c0-18-22-27-34-14zm202 234l49-49c4-4 4-10 0-14l-14-14a10 10 0 00-14 0l-49 49-49-49a10 10 0 00-14 0l-14 14a10 10 0 000 14l49 49-49 49a10 10 0 000 14l14 14c4 4 10 4 14 0l49-49 49 49c4 4 10 4 14 0l14-14c4-4 4-10 0-14z" />
     </svg>
   );
 }

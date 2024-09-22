@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgTabletPortrait(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M46 6c0-2.2-1.8-4-4-4H10C7.8 2 6 3.8 6 6v40c0 2.2 1.8 4 4 4h32c2.2 0 4-1.8 4-4V6zM25.9 48c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.4 3-3 3zM40 38.5c0 .8-.7 1.5-1.5 1.5h-25c-.8 0-1.5-.7-1.5-1.5v-29c0-.8.7-1.5 1.5-1.5h25c.8 0 1.5.7 1.5 1.5v29z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M460 60a40 40 0 00-40-40H100a40 40 0 00-40 40v400a40 40 0 0040 40h320a40 40 0 0040-40V60zM259 480c-17 0-30-13-30-30s13-30 30-30 30 13 30 30-14 30-30 30zm141-95c0 8-7 15-15 15H135c-8 0-15-7-15-15V95c0-8 7-15 15-15h250c8 0 15 7 15 15v290z" />
     </svg>
   );
 }

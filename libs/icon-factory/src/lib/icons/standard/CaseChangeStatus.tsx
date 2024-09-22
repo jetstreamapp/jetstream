@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgCaseChangeStatus(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M38 30h4c.6 0 1-.4 1-1v-3h14v3c0 .6.4 1 1 1h4c.6 0 1-.4 1-1v-3c0-3.3-2.7-6-6-6H43c-3.3 0-6 2.7-6 6v3c0 .6.4 1 1 1zM74 36H26c-3.3 0-6 2.7-6 6v32c0 3.3 2.7 6 6 6h48c3.3 0 6-2.7 6-6V42c0-3.3-2.7-6-6-6zM58.5 58.1L48 70.7c-.6.6-1.6.1-1.4-.7l2.6-9h-6.9c-.8 0-1.4-.8-1.1-1.6l4.2-10.8c.4-.9 1.2-1.5 2.2-1.5h8.3c.9 0 1.5.9 1 1.7L52.4 56h5.2c1 0 1.6 1.3.9 2.1z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M380 300h40c6 0 10-4 10-10v-30h140v30c0 6 4 10 10 10h40c6 0 10-4 10-10v-30c0-33-27-60-60-60H430c-33 0-60 27-60 60v30c0 6 4 10 10 10zm360 60H260c-33 0-60 27-60 60v320c0 33 27 60 60 60h480c33 0 60-27 60-60V420c0-33-27-60-60-60zM585 581L480 707c-6 6-16 1-14-7l26-90h-69c-8 0-14-8-11-16l42-108c4-9 12-15 22-15h83c9 0 15 9 10 17l-45 72h52c10 0 16 13 9 21z" />
     </svg>
   );
 }

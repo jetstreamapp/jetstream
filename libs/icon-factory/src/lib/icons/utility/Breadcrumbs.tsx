@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgBreadcrumbs(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M8.4 42c-.6 0-1-.4-1-1V10.9c0-.6.4-1 1-1h8.1c.4 0 .9.2 1.2.5L29.3 25c.4.5.4 1.3 0 1.9L17.6 41.5c-.3.4-.8.6-1.3.6L8.4 42z"
-      />
-      <path
-        fill="unset"
-        d="M44.3 25L32.6 10.5c-.5-.6-1.4-.8-2.1-.2l-2.3 1.9c-.7.5-.8 1.5-.2 2.1L37.5 26 28 37.8c-.5.6-.4 1.6.2 2.1l2.3 1.9c.7.5 1.5.4 2.1-.2L44.3 27c.4-.8.4-1.5 0-2z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M84 420a10 10 0 01-10-10V109a10 10 0 0110-10h81c4 0 9 2 12 5l116 146c4 5 4 13 0 19L176 415c-3 4-8 6-13 6zm359-170L326 105c-5-6-14-8-21-2l-23 19c-7 5-8 15-2 21l95 117-95 118c-5 6-4 16 2 21l23 19c7 5 15 4 21-2l117-146c4-8 4-15 0-20z" />
     </svg>
   );
 }

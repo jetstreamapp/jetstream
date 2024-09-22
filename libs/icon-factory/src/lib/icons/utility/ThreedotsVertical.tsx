@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgThreedotsVertical(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M20 44c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6-6-2.7-6-6zm0-18c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6-6-2.7-6-6zm0-18c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6-6-2.7-6-6z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M200 440c0-33 27-60 60-60s60 27 60 60-27 60-60 60-60-27-60-60zm0-180c0-33 27-60 60-60s60 27 60 60-27 60-60 60-60-27-60-60zm0-180c0-33 27-60 60-60s60 27 60 60-27 60-60 60-60-27-60-60z" />
     </svg>
   );
 }

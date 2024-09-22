@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgHazmatEquipment(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M31.81 27.92a5.86 5.86 0 10-5.87 5.86 5.86 5.86 0 005.87-5.86zM26 19.89a8 8 0 013 .57l8-14.14a24 24 0 00-22 .04l8 14.1a7.78 7.78 0 013-.57zM18 29H2a24.06 24.06 0 0011.26 19.1l7.81-13.79a9 9 0 01-.8-.71A8 8 0 0118 29zM31.64 33.6a8.82 8.82 0 01-.81.7l7.83 13.84A24.05 24.05 0 0050 29H33.91a8.08 8.08 0 01-2.27 4.6z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M318 280a59 59 0 10-59 58 59 59 0 0060-59zm-58-81a80 80 0 0130 6l80-142a240 240 0 00-220 0l80 142a78 78 0 0130-6zm-80 91H20a240 240 0 00113 191l77-138a90 90 0 01-8-7 80 80 0 01-22-46zm136 46a88 88 0 01-8 7l79 138a240 240 0 00113-191H340a80 80 0 01-24 46z" />
     </svg>
   );
 }

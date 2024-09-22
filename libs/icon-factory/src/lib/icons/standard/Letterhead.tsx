@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgLetterhead(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M73.8 20H26.2c-3.4 0-6.2 2.8-6.2 6.2v47.6c0 3.4 2.8 6.2 6.2 6.2h47.6c3.4 0 6.2-2.8 6.2-6.2V26.2c0-3.4-2.8-6.2-6.2-6.2zM71 69.1c0 .8-.8 1.4-1.6 1.4H30.5c-.8 0-1.4-.8-1.4-1.6v-9c0-.8.8-1.4 1.6-1.4h38.9c.8 0 1.4.8 1.4 1.6v9zm0-29.2c0 .8-.8 1.4-1.6 1.4H30.5c-.8 0-1.4-.8-1.4-1.6v-9c0-.8.8-1.4 1.6-1.4h38.9c.8 0 1.4.8 1.4 1.6v9z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M738 200H262c-34 0-62 28-62 62v476c0 34 28 62 62 62h476c34 0 62-28 62-62V262c0-34-28-62-62-62zm-28 491c0 8-8 14-16 14H305c-8 0-14-8-14-16v-90c0-8 8-14 16-14h389c8 0 14 8 14 16zm0-292c0 8-8 14-16 14H305c-8 0-14-8-14-16v-90c0-8 8-14 16-14h389c8 0 14 8 14 16z" />
     </svg>
   );
 }

@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgNewCustom8(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M23.7 3L4.8 23.8c-1.1 1.2-1.1 3.1 0 4.3L23.7 49c1.3 1.4 3.4 1.4 4.6 0l18.9-20.8c1.1-1.2 1.1-3.1 0-4.3L28.3 3c-1.2-1.3-3.4-1.3-4.6 0z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M237 30L48 238a32 32 0 000 43l189 209c13 14 34 14 46 0l189-208c11-12 11-31 0-43L283 30a32 32 0 00-46 0z" />
     </svg>
   );
 }

@@ -1,12 +1,8 @@
 import * as React from 'react';
 function SvgVideoOff(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M49.69 4.64l-.06-.07-2.2-2.21a1.81 1.81 0 00-2.53.35L34.4 13.18l-2.29 2.29H9.21a2.13 2.13 0 00-2.13 2.13v16.8a2.13 2.13 0 002.13 2.13h1.84L2.68 44.9a2 2 0 00-.32 2.52l2.21 2.21A1.75 1.75 0 007 49.38l.06-.07L49.32 7.09a1.75 1.75 0 00.37-2.45zM32.68 35.92a2.13 2.13 0 002.13-2.13v-4.34l8.6 6.15a.87.87 0 001.49-.6V17.82l-18.09 18.1z"
-        fill="unset"
-        fillRule="evenodd"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M497 46l-23-22a18 18 0 00-25 3L344 132l-23 23H92a21 21 0 00-21 21v168a21 21 0 0021 21h19l-84 85a20 20 0 00-3 25l22 22a18 18 0 0024-2L494 70a18 18 0 004-25zM327 360a21 21 0 0021-21v-43l86 61a9 9 0 0016-7V178L269 360z" />
     </svg>
   );
 }

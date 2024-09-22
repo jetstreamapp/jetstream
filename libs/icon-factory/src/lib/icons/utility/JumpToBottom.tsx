@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgJumpToBottom(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M40.6 30.4L27.1 44c-.6.6-1.6.6-2.2 0L11.4 30.4c-.6-.6-.6-1.6 0-2.2l2.2-2.2c.6-.6 1.6-.6 2.2 0l9.1 9.4c.6.6 1.6.6 2.2 0l9.1-9.3c.6-.6 1.6-.6 2.2 0l2.2 2.2c.5.6.5 1.5 0 2.1z" />
-        <path d="M40.6 12.3L27.1 26.1c-.6.6-1.6.6-2.2 0L11.4 12.3c-.6-.6-.6-1.6 0-2.2l2.2-2.2c.6-.6 1.6-.6 2.2 0l9.1 9.4c.6.6 1.6.6 2.2 0L36.2 8c.6-.6 1.6-.6 2.2 0l2.2 2.2c.5.6.5 1.6 0 2.1z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M406 304L271 440c-6 6-16 6-22 0L114 304c-6-6-6-16 0-22l22-22c6-6 16-6 22 0l91 94c6 6 16 6 22 0l91-93c6-6 16-6 22 0l22 22c5 6 5 15 0 21zm0-181L271 261c-6 6-16 6-22 0L114 123c-6-6-6-16 0-22l22-22c6-6 16-6 22 0l91 94c6 6 16 6 22 0l91-93c6-6 16-6 22 0l22 22c5 6 5 16 0 21z" />
     </svg>
   );
 }

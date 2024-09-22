@@ -1,10 +1,8 @@
 import * as React from 'react';
 function SvgEdit(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M48.8 7.4l-4.2-4.2c-1.6-1.6-4.1-1.6-5.6 0l-3.3 3.3c-.4.4-.4 1 0 1.4l8.5 8.5c.4.4 1 .4 1.4 0l3.3-3.3c1.5-1.6 1.5-4.1-.1-5.7zM32.9 10.7c-.4-.4-1-.4-1.4 0L5.4 36.8 2.1 48.1c-.3 1.1.7 2.2 1.8 1.9l11.4-3.2h-.1l26.1-26.1c.4-.4.4-1 0-1.4l-8.4-8.6z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M488 74l-42-42a39 39 0 00-56 0l-33 33c-4 4-4 10 0 14l85 85c4 4 10 4 14 0l33-33c15-16 15-41-1-57zm-159 33c-4-4-10-4-14 0L54 368 21 481c-3 11 7 22 18 19l114-32h-1l261-261c4-4 4-10 0-14z" />
     </svg>
   );
 }

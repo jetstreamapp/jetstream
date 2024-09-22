@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgToday(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M50 20c-16.5 0-30 13.5-30 30s13.5 30 30 30 30-13.5 30-30-13.5-30-30-30zm0 54c-13.2 0-24-10.8-24-24s10.8-24 24-24 24 10.8 24 24-10.8 24-24 24z"
-      />
-      <path
-        fill="unset"
-        d="M53 48.8V36c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v14c0 .8.3 1.6.9 2.1l9.6 9.6c.8.8 2 .8 2.8 0l1.4-1.4c.8-.8.8-2 0-2.8L53 48.8z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M500 200c-165 0-300 135-300 300s135 300 300 300 300-135 300-300-135-300-300-300zm0 540c-132 0-240-108-240-240s108-240 240-240 240 108 240 240-108 240-240 240zm30-252V360c0-11-9-20-20-20h-20c-11 0-20 9-20 20v140c0 8 3 16 9 21l96 96c8 8 20 8 28 0l14-14c8-8 8-20 0-28z" />
     </svg>
   );
 }

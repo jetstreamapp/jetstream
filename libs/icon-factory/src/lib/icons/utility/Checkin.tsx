@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgCheckin(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M26 2C15.5 2 7 10.5 7 21.1c0 13.2 13.6 25.3 17.8 28.5.7.6 1.7.6 2.5 0C31.5 46.3 45 34.3 45 21.1 45 10.5 36.5 2 26 2zm0 27c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M260 20A190 190 0 0070 211c0 132 136 253 178 285 7 6 17 6 25 0 42-33 177-153 177-285A190 190 0 00260 20zm0 270c-44 0-80-36-80-80s36-80 80-80 80 36 80 80-36 80-80 80z" />
     </svg>
   );
 }

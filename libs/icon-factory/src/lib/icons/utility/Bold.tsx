@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgBold(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M41 19c0-6-4.8-11-10.5-11H14c-1.1 0-2 .9-2 2v33c0 1.1.9 2 2 2h16.5C36.2 45 41 40 41 34c0-2.9-1.1-5.5-2.9-7.5 1.8-2 2.9-4.6 2.9-7.5zM30.5 38H19v-8h11.5c1.9 0 3.6 1.9 3.6 4s-1.7 4-3.6 4zm0-15H19v-8h11.5c1.9 0 3.6 1.9 3.6 4s-1.7 4-3.6 4z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M410 190c0-60-48-110-105-110H140a20 20 0 00-20 20v330c0 11 9 20 20 20h165c57 0 105-50 105-110 0-29-11-55-29-75 18-20 29-46 29-75zM305 380H190v-80h115c19 0 36 19 36 40s-17 40-36 40zm0-150H190v-80h115c19 0 36 19 36 40s-17 40-36 40z" />
     </svg>
   );
 }

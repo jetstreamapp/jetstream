@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgTextBackgroundColor(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M25.9 16l4.3 10h-9l3.9-10h.8zM48 8v36c0 2.2-1.8 4-4 4H8c-2.2 0-4-1.8-4-4V8c0-2.2 1.8-4 4-4h36c2.2 0 4 1.8 4 4zm-5.5 32.7L30.5 11c-.3-.6-.8-1-1.5-1h-7.1c-.6 0-1.2.4-1.4 1l-11 29.7c-.2.6.2 1.3.9 1.3h4.1c.6 0 1.2-.5 1.4-1.1l3.2-8.9h13.4l3.5 8.9c.2.6.8 1.1 1.4 1.1h4.1c.7 0 1.2-.7 1-1.3z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M259 160l43 100h-90l39-100h8zm221-80v360a40 40 0 01-40 40H80a40 40 0 01-40-40V80a40 40 0 0140-40h360a40 40 0 0140 40zm-55 327L305 110c-3-6-8-10-15-10h-71c-6 0-12 4-14 10L95 407c-2 6 2 13 9 13h41c6 0 12-5 14-11l32-89h134l35 89c2 6 8 11 14 11h41c7 0 12-7 10-13z" />
     </svg>
   );
 }

@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgAnywhereChat(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
-      <path
-        d="M26 2.7c-13.21 0-24 9.62-24 21.59v.42a20.64 20.64 0 007.71 15.43l.32.27v.08a11.05 11.05 0 01-3.1 4.67 1.79 1.79 0 001.45 3.12l1.17-.17.53-.08c4.76-.73 8.13-1.59 10.23-2.66l.15-.08.5.11a27.38 27.38 0 005.06.48c13.21 0 24-9.62 24-21.59S39.21 2.7 26 2.7z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M260 27C128 27 20 123 20 243v4a206 206 0 0077 154l3 3a111 111 0 01-30 48 18 18 0 0014 31h12l5-2c47-7 81-16 102-26l2-1 5 1a274 274 0 0050 5c132 0 240-96 240-216S392 27 260 27z" />
     </svg>
   );
 }

@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgRemoveRelationship(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M36.001 20c0-2.2-1.799-4-4-4H6c-2.199 0-4 1.8-4 4v26c0 2.2 1.801 4 4 4h26.001c2.201 0 4-1.8 4-4V20zM11 35c-.5 0-1-.5-1-1v-2c0-.5.5-1 1-1h16.001c.5 0 1 .5 1 1v2c0 .5-.5 1-1 1H11zm32.001 7h-3v-6h3c.6 0 1-.4 1-1V9c0-.6-.4-1-1-1H17c-.6 0-1 .4-1 1v3h-6V9c0-3.9 3.102-7 7-7h26.001c3.9 0 7 3.1 7 7v26c0 3.9-3.1 7-7 7z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M360 200c0-22-18-40-40-40H60c-22 0-40 18-40 40v260c0 22 18 40 40 40h260c22 0 40-18 40-40zM110 350c-5 0-10-5-10-10v-20c0-5 5-10 10-10h160c5 0 10 5 10 10v20c0 5-5 10-10 10zm320 70h-30v-60h30c6 0 10-4 10-10V90c0-6-4-10-10-10H170c-6 0-10 4-10 10v30h-60V90c0-39 31-70 70-70h260c39 0 70 31 70 70v260c0 39-31 70-70 70z" />
     </svg>
   );
 }

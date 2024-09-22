@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgAppsAdmin(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M73 21H27c-3.3 0-6 2.7-6 6v46c0 3.3 2.7 6 6 6h46c3.3 0 6-2.7 6-6V27c0-3.3-2.7-6-6-6zm-2 52H29c-1.1 0-2-.9-2-2V29c0-1.1.9-2 2-2h42c1.1 0 2 .9 2 2v42c0 1.1-.9 2-2 2z"
-      />
-      <path
-        fill="unset"
-        d="M45 33H35c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V35c0-1.1-.9-2-2-2zM65 33H55c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V35c0-1.1-.9-2-2-2zM45 53H35c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V55c0-1.1-.9-2-2-2zM65 53H55c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V55c0-1.1-.9-2-2-2z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="unset" aria-hidden="true" {...props}>
+      <path d="M73 21H27a6 6 0 00-6 6v46a6 6 0 006 6h46a6 6 0 006-6V27a6 6 0 00-6-6zm-2 52H29a2 2 0 01-2-2V29c0-1.1.9-2 2-2h42a2 2 0 012 2v42a2 2 0 01-2 2zM45 33H35a2 2 0 00-2 2v10c0 1.1.9 2 2 2h10a2 2 0 002-2V35a2 2 0 00-2-2zm20 0H55a2 2 0 00-2 2v10c0 1.1.9 2 2 2h10a2 2 0 002-2V35a2 2 0 00-2-2zM45 53H35a2 2 0 00-2 2v10c0 1.1.9 2 2 2h10a2 2 0 002-2V55a2 2 0 00-2-2zm20 0H55a2 2 0 00-2 2v10c0 1.1.9 2 2 2h10a2 2 0 002-2V55a2 2 0 00-2-2z" />
     </svg>
   );
 }

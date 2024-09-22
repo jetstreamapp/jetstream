@@ -1,12 +1,8 @@
 import * as React from 'react';
 function SvgCalculatedInsights(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M44 6.81a6 6 0 00-4.77 9.56l-5 8.82h-.63a6 6 0 00-3 .81l-6.35-4.67A5.9 5.9 0 0024.4 20a6 6 0 10-10.73 3.67L8.52 33.2H8a5.94 5.94 0 00-3.69 1.25 6 6 0 108.41 1.08L17.89 26h.51a5.94 5.94 0 003-.8l6.35 4.67a5.9 5.9 0 00-.15 1.33 6 6 0 1010.78-3.58l5-8.82H44a6 6 0 100-12z"
-        fill="unset"
-        fillRule="evenodd"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M440 68a60 60 0 00-48 96l-50 88h-6a60 60 0 00-30 8l-63-47a59 59 0 001-13 60 60 0 10-107 37l-52 95h-5a60 60 0 00-37 13 60 60 0 1084 10l53-95h5a60 60 0 0030-8l64 47a59 59 0 00-2 13 60 60 0 10108-36l50-88h6a60 60 0 100-120z" />
     </svg>
   );
 }

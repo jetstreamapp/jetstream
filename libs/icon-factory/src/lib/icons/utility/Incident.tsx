@@ -1,16 +1,9 @@
 import * as React from 'react';
 function SvgIncident(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M16.4 10h3.2a.76.76 0 00.8-.8V6.8h11.2v2.4a.76.76 0 00.8.8h3.2a.76.76 0 00.8-.8V6.8A4.81 4.81 0 0031.6 2H20.4a4.81 4.81 0 00-4.8 4.8v2.4a.76.76 0 00.8.8zM26 36.66a1.79 1.79 0 101.8 1.79 1.76 1.76 0 00-1.8-1.79z"
-        fill="unset"
-      />
-      <rect x={24.22} y={26.49} width={3.59} height={8.97} rx={0.6} fill="unset" />
-      <path
-        d="M45.2 14.8H6.8A4.81 4.81 0 002 19.6v25.6A4.81 4.81 0 006.8 50h38.4a4.81 4.81 0 004.8-4.8V19.6a4.81 4.81 0 00-4.8-4.8zM39.7 45H12.33c-1.5 0-2.34-1.92-1.5-3.29l13.69-22.09a1.7 1.7 0 013 0l13.67 22.12A2.1 2.1 0 0139.7 45z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M164 100h32a8 8 0 008-8V68h112v24a8 8 0 008 8h32a8 8 0 008-8V68a48 48 0 00-48-48H204a48 48 0 00-48 48v24a8 8 0 008 8zm96 267a18 18 0 1018 17 18 18 0 00-18-17zm192-219H68a48 48 0 00-48 48v256a48 48 0 0048 48h384a48 48 0 0048-48V196a48 48 0 00-48-48zm-55 302H123c-15 0-23-19-15-33l137-221a17 17 0 0130 0l137 221a21 21 0 01-15 33z" />
+      <rect width={36} height={90} x={242} y={265} rx={6} />
     </svg>
   );
 }

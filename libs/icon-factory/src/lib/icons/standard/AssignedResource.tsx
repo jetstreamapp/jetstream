@@ -1,17 +1,8 @@
 import * as React from 'react';
 function SvgAssignedResource(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        d="M49.91 20a25.4 25.4 0 1025.18 25.5c0-13.79-11.24-25.5-25.18-25.5zm16.54 23.24L55.93 53.38c-.76.76-1.77.13-1.77-1.14v-6.08c-7.6 0-12.67 5.19-12.67 12.8h-7.6a20.12 20.12 0 0120.27-20.4v-6.21c0-1.27 1.14-1.9 1.77-1.14l10.52 10.26a1.52 1.52 0 010 1.77z"
-        fill="unset"
-        fillRule="evenodd"
-      />
-      <path
-        d="M26 64.21h-1.27A4.75 4.75 0 0020 68.95v6.31A4.74 4.74 0 0024.73 80h50.54A4.75 4.75 0 0080 75.26v-6.31a4.74 4.74 0 00-4.73-4.74h-1.54a30.15 30.15 0 01-47.72 0z"
-        fill="unset"
-        fillRule="evenodd"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M499 200a254 254 0 10252 255c0-138-112-255-252-255zm166 232L559 534c-7 7-17 1-17-12v-60c-76 0-127 51-127 128h-76a201 201 0 01203-204v-62c0-13 11-19 17-12l106 103a15 15 0 010 17zM260 642h-13a48 48 0 00-47 48v63a47 47 0 0047 47h506a48 48 0 0047-47v-63a47 47 0 00-47-48h-16a302 302 0 01-477 0z" />
     </svg>
   );
 }

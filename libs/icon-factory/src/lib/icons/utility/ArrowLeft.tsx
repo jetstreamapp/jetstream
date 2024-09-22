@@ -1,12 +1,8 @@
 import * as React from 'react';
 function SvgArrowLeft(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M10.17 42.34a2 2 0 01-2 2H4a2 2 0 01-2-2V9.66a2 2 0 012-2h4.13a2 2 0 012 2zM50 28a2.11 2.11 0 01-2 2.05H30.6a1.3 1.3 0 00-.92 2.24l4.69 4.8a2 2 0 010 2.86l-2.75 2.86a1.87 1.87 0 01-2.76 0l-15-15.42a2 2 0 010-2.86l15-15.32a1.87 1.87 0 012.76 0L34.37 12a2 2 0 010 2.86l-4.69 4.8a1.3 1.3 0 00.92 2.24H48a2.2 2.2 0 012 2.1z"
-        fill="unset"
-        fillRule="evenodd"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M102 423a20 20 0 01-20 20H40a20 20 0 01-20-20V97a20 20 0 0120-20h41a20 20 0 0120 20zm398-143a21 21 0 01-20 20H306a13 13 0 00-10 23l48 48a20 20 0 010 28l-28 30a19 19 0 01-27 0L139 274a20 20 0 010-29L289 92a19 19 0 0127 0l28 28a20 20 0 010 29l-47 48a13 13 0 009 22h174a22 22 0 0120 21z" />
     </svg>
   );
 }

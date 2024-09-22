@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgVideo(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M46.9 13.1l-11 7.9v-5.6c0-1.5-1.2-2.7-2.7-2.7H4.7c-1.5 0-2.7 1.2-2.7 2.7v21.3c0 1.5 1.2 2.7 2.7 2.7h28.6c1.5 0 2.7-1.2 2.7-2.7v-5.5L46.9 39c.7.7 1.9.2 1.9-.8V13.9c0-1-1.2-1.5-1.9-.8z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M469 131l-110 79v-56c0-15-12-27-27-27H47a27 27 0 00-27 27v213c0 15 12 27 27 27h286c15 0 27-12 27-27v-55l109 78c7 7 19 2 19-8V139c0-10-12-15-19-8z" />
     </svg>
   );
 }

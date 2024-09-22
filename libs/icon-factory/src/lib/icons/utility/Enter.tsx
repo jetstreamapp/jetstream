@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgEnter(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M44 30.5s.1 1.6-1.5 1.6H15.2c-.9 0-1.3-1.2-.7-1.8l5.6-5.6c.6-.6.6-1.5 0-2.1L18 20.5c-.6-.6-1.5-.6-2.1 0L2.4 34c-.6.6-.6 1.5 0 2.1L16 49.6c.6.6 1.5.6 2.1 0l2.1-2.1c.6-.6.6-1.5 0-2.1l-5.6-5.6c-.6-.7-.2-1.7.7-1.7h33.2c.7 0 1.5-.8 1.5-1.6v-33c0-.7-.7-1.5-1.5-1.5h-3c-.8 0-1.5.8-1.5 1.5v27z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M440 305s1 16-15 16H152c-9 0-13-12-7-18l56-56c6-6 6-15 0-21l-21-21c-6-6-15-6-21 0L24 340c-6 6-6 15 0 21l136 135c6 6 15 6 21 0l21-21c6-6 6-15 0-21l-56-56c-6-7-2-17 7-17h332c7 0 15-8 15-16V35c0-7-7-15-15-15h-30c-8 0-15 8-15 15v270z" />
     </svg>
   );
 }

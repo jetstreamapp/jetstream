@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgArrowBottom(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M42.34 41.83a2 2 0 012 2V48a2 2 0 01-2 2H9.66a2 2 0 01-2-2v-4.13a2 2 0 012-2zM28 2a2.12 2.12 0 012.05 2v17.4a1.3 1.3 0 002.24.92l4.8-4.69a2 2 0 012.86 0l2.86 2.75a1.86 1.86 0 010 2.76l-15.42 15a2 2 0 01-2.86 0l-15.32-15a1.86 1.86 0 010-2.76L12 17.63a2 2 0 012.86 0l4.8 4.69a1.3 1.3 0 002.24-.92V4A2.19 2.19 0 0124 2h4z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M423 418a20 20 0 0120 20v42a20 20 0 01-20 20H97a20 20 0 01-20-20v-41a20 20 0 0120-20zM280 20a21 21 0 0120 20v174a13 13 0 0023 10l48-48a20 20 0 0128 0l30 28a19 19 0 010 27L274 381a20 20 0 01-29 0L92 231a19 19 0 010-27l28-28a20 20 0 0129 0l48 47a13 13 0 0022-9V40a22 22 0 0121-20h40z" />
     </svg>
   );
 }

@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgFallback(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M28 3.5l-3 14.6c0 .6.4.9.9.9h15.6c1.1 0 1.8 1.3 1.3 2.3l-17 27.9c-.7 1.4-2.8.9-2.8-.7l3-17.2c0-.6-.5-.4-1.1-.4H8.5c-1.1 0-1.9-1.6-1.3-2.6l18-25.5c.7-1.3 2.8-.9 2.8.7z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M280 35l-30 146c0 6 4 9 9 9h156c11 0 18 13 13 23L258 492c-7 14-28 9-28-7l30-172c0-6-5-4-11-4H85c-11 0-19-16-13-26L252 28c7-13 28-9 28 7z" />
     </svg>
   );
 }
