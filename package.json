@@ -52,6 +52,7 @@
     "build:storybook": "storybook build -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
     "build:web-extension:dev": "nx run jetstream-web-extension:build --configuration=development",
     "build:web-extension": "nx run jetstream-web-extension:build",
+    "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",
     "release": "dotenv release-it ${0}",
     "release:build": "zx ./scripts/build-release.mjs",
     "release:web-extension": "dotenv -- release-it --config .release-it-web-ext.json",
@@ -62,8 +63,8 @@
     "generate:data-table-css": "nx workspace-generator convert-sass-to-css ui --filename /src/lib/data-table/data-table-styles.scss",
     "generate:version": "zx ./scripts/generate-version.mjs",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:seed": "chmod +x prisma/seed.sh && prisma db seed",
+    "db:migrate": "npx --yes prisma migrate deploy",
+    "db:seed": "chmod +x prisma/seed.sh && npx --yes prisma db seed",
     "icons:build": "npm-run-all icons:build:*",
     "icons:build:action": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/action ./node_modules/@salesforce-ux/design-system/assets/icons/action",
     "icons:build:custom": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/custom ./node_modules/@salesforce-ux/design-system/assets/icons/custom",
@@ -87,7 +88,7 @@
   },
   "private": true,
   "prisma": {
-    "seed": "ts-node prisma/seed-salesforce-api.ts"
+    "seed": "node prisma/seed-salesforce-api.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.24.4",

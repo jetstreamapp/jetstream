@@ -1,45 +1,39 @@
-.editorconfig
-.env
-.env.example
-.env.staging
-.git
-.github
-.nx
-.vscode
-.workspace.code-workspace
-app
-apps/landing/.next
-dist
-logs
-node_modules
-npm-debug.log
-test-results
-tmp
-yarn-error.log
+# ignore everything
+*
 
-# System Files
-.DS_Store
-Thumbs.db
+# Include directories
+!/apps/api
+!/apps/jetstream
+!/apps/landing
+!/custom-typings
+!/libs
+!/migrations
+!/prisma
+!/scripts
 
-# Generated Docusaurus files
-.docusaurus/
-.cache-loader/
+# Include specific files
+!/yarn.lock
+!/.eslintrc.json
+!/.gitignore
+!/babel.config.json
+!/Dockerfile
+!/formulon.d.ts
+!/LICENSE.md
+!/next-sitemap.config.js
+!/nx.json
+!/package.json
+!/README.md
+!/schema.prisma
+!/seed-salesforce-api.ts
+!/seed.sh
+!/tsconfig.base.json
+!/webpack-server.config.js
+!/webpack-sw.config.js
 
-# Next.js
-.next
-
-# Playwright
-**/test-results
-**/playwright-report
-**/playwright/.cache
-.nx
-
-# Not required for core jetstream
-apps/cron-tasks
-apps/docs
-apps/jetstream-e2e
+# Ignore unnecessary files inside allowed directories
 *#
-*~
-.DS_Store
-Thumbs.db
+**/*~
+**/*.log
+**/.DS_Store
+**/Thumbs.db
 
