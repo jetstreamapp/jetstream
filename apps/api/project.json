@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/api/src",
   "projectType": "application",
+  "tags": ["server"],
   "targets": {
     "build": {
       "executor": "@nx/esbuild:esbuild",
@@ -92,6 +93,5 @@
       "dependsOn": ["build"],
       "command": "docker build -f apps/api/Dockerfile . -t api"
     }
-  },
-  "tags": ["server"]
+  }
 }
