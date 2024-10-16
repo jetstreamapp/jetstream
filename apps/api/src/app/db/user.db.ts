@@ -77,6 +77,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
         data: {
           appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
           deletedAt: null,
+          lastLoggedIn: new Date(),
           preferences: {
             upsert: {
               create: { skipFrontdoorLogin: false },
@@ -98,6 +99,7 @@ export async function createOrUpdateUser(user: UserProfileServer): Promise<{ cre
           picture: user._json.picture,
           appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
           deletedAt: null,
+          lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
         },
         select: userSelect,
