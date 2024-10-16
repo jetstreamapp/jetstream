@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id            String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId        String                  @unique @db.VarChar
-  email         String                  @db.VarChar
-  name          String?                 @db.VarChar
-  nickname      String?                 @db.VarChar
-  picture       String?                 @db.VarChar
-  appMetadata   Json?                   @db.Json
-  preferences   UserPreference?
-  organizations JetstreamOrganization[]
-  deletedAt     DateTime?
-  createdAt     DateTime                @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime                @updatedAt
+  id             String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId         String                  @unique @db.VarChar
+  email          String                  @db.VarChar
+  name           String?                 @db.VarChar
+  nickname       String?                 @db.VarChar
+  picture        String?                 @db.VarChar
+  appMetadata    Json?                   @db.Json
+  preferences    UserPreference?
+  salesforceOrgs SalesforceOrg[]
+  organizations  JetstreamOrganization[]
+  deletedAt      DateTime?
+  createdAt      DateTime                @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime                @updatedAt
 }
 
 model UserPreference {
@@ -63,6 +64,8 @@ model SalesforceApi {
 model SalesforceOrg {
   id                      Int                    @id @default(autoincrement())
   jetstreamUserId         String                 @db.VarChar
+  jetstreamUser           User?                  @relation(fields: [jetstreamUserId2], references: [id], onDelete: Cascade)
+  jetstreamUserId2        String?                @db.Uuid
   jetstreamOrganization   JetstreamOrganization? @relation(fields: [jetstreamOrganizationId], references: [id])
   jetstreamOrganizationId String?                @db.Uuid
   uniqueId                String                 @db.VarChar
