@@ -3,7 +3,7 @@
 ARG NODE_VERSION=20.10.0
 ARG ENVIRONMENT=production
 
-FROM node:${NODE_VERSION}-slim as base
+FROM node:${NODE_VERSION}-slim AS base
 
 # App lives here
 WORKDIR /app
@@ -14,7 +14,7 @@ ARG YARN_VERSION=1.22.21
 RUN npm install -g yarn@$YARN_VERSION --force
 
 # Throw-away build stage to reduce size of final image
-FROM base as build
+FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
@@ -32,11 +32,15 @@ RUN yarn run db:generate
 COPY --link . .
 
 # Build application
-RUN yarn build:core
-RUN yarn build:landing
+RUN yarn build:core && \
+    yarn build:landing && \
+    # Replace dependencies with only the ones required by API
+    yarn scripts:replace-deps && \
+    rm -rf .nx
 
-# Remove development dependencies
-RUN yarn install --production=true
+# Remove development dependencies and unused prod dependecies
+RUN yarn install --production=true && \
+    yarn add cross-env npm-run-all --save-dev
 
 # Final stage for app image
 FROM base
