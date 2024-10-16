@@ -115,7 +115,7 @@
     "@nx/web": "19.6.5",
     "@nx/webpack": "19.6.5",
     "@nx/workspace": "19.6.5",
-    "@playwright/test": "^1.43.1",
+    "@playwright/test": "^1.48.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@release-it/bumper": "^6.0.1",
     "@release-it/conventional-changelog": "^5.0.0",
