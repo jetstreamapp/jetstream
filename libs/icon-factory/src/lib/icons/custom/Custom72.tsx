@@ -1,12 +1,10 @@
 import * as React from 'react';
 function SvgCustom72(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M77 20H23c-1.7 0-3 1.3-3 3s1.3 3 3 3h24v6.2c-10.8 1.4-19 10.6-19 21.7v6.9C28 68.1 33.8 74 41.2 74h17.7C66.2 74 72 68.1 72 60.7v-6.9c0-11.1-8.2-20.3-19-21.7V26h24c1.7 0 3-1.3 3-3s-1.3-3-3-3zM64 53.8c0 .1 0 0 0 0 0 2.9-2.3 5.2-5.2 5.2H41.2c-2.9 0-5.1-2.3-5.2-5.2v.1-.1.101C36.1 46.2 42.2 40 49.8 40h.4c7.6 0 13.7 6.2 13.8 13.8z" />
-        <circle cx={26} cy={76} r={4} />
-        <circle cx={74} cy={76} r={4} />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M770 200H230c-17 0-30 13-30 30s13 30 30 30h240v62a218 218 0 00-190 217v69c0 73 58 132 132 132h177c73 0 131-59 131-133v-69c0-111-82-203-190-217v-61h240c17 0 30-13 30-30s-13-30-30-30zM640 538c0 29-23 52-52 52H412c-29 0-51-23-52-52v1-1 1c1-77 62-139 138-139h4c76 0 137 62 138 138z" />
+      <circle cx={260} cy={760} r={40} />
+      <circle cx={740} cy={760} r={40} />
     </svg>
   );
 }

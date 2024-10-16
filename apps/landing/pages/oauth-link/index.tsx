@@ -46,7 +46,7 @@ const STATUS_MAP: StatusMap = {
 /**
  * QUERY PARAMS:
  * type=auth|salesforce
- * clientUrl=whitelisted domain to send back to (e.x. new URL(ENV.JETSTREAM_CLIENT_URL).origin)
+ * clientUrl=allowed domain to send back to (e.x. new URL(ENV.JETSTREAM_CLIENT_URL).origin)
  *
  * If Error:
  * - error=any truthy string

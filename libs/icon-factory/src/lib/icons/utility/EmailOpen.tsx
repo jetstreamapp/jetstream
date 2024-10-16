@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgEmailOpen(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M45.8 28.1c0-.8-1-1.3-1.7-.7L29.5 40.9c-1 .9-2.2 1.4-3.6 1.4s-2.6-.5-3.6-1.3L7.8 27.4c-.7-.6-1.7-.2-1.7.7-.1-.2-.1 18-.1 18 0 1.8 1.5 3.3 3.3 3.3h33.1c1.8 0 3.3-1.5 3.3-3.3v-18z"
-      />
-      <path
-        fill="unset"
-        d="M45.6 20.6c.2-.2.3-.4.3-.6 0-.3-.1-.5-.3-.7L26.8 2c-.5-.5-1.2-.5-1.7 0L6.5 19.2c-.1.1-.1.2-.2.2v.1c0 .1-.1.2-.1.3 0 .3.1.5.3.7L25 37.7c.5.5 1.2.5 1.7 0l18.9-17.1c0 .1 0 0 0 0z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M458 281c0-8-10-13-17-7L295 409c-10 9-22 14-36 14s-26-5-36-13L78 274c-7-6-17-2-17 7-1-2-1 180-1 180 0 18 15 33 33 33h331c18 0 33-15 33-33V281zm-2-75l3-6a10 10 0 00-3-7L268 20c-5-5-12-5-17 0L65 192l-2 2v1l-1 3c0 3 1 5 3 7l185 172c5 5 12 5 17 0z" />
     </svg>
   );
 }

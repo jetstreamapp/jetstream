@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgJumpToLeft(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M21.5 40.6L7.9 27.1a1.57 1.57 0 010-2.2l13.6-13.5a1.57 1.57 0 012.2 0l2.2 2.2a1.57 1.57 0 010 2.2l-9.4 9.1a1.57 1.57 0 000 2.2l9.3 9.1a1.57 1.57 0 010 2.2l-2.2 2.2a1.66 1.66 0 01-2.1 0z"
-        fill="unset"
-      />
-      <path
-        d="M39.6 40.6L25.8 27.1a1.57 1.57 0 010-2.2l13.8-13.5a1.57 1.57 0 012.2 0l2.2 2.2a1.57 1.57 0 010 2.2l-9.4 9.1a1.57 1.57 0 000 2.2l9.3 9.1a1.57 1.57 0 010 2.2l-2.2 2.2a1.66 1.66 0 01-2.1 0z"
-        fill="unset"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M215 406L79 271a16 16 0 010-22l136-135a16 16 0 0122 0l22 22a16 16 0 010 22l-94 91a16 16 0 000 22l93 91a16 16 0 010 22l-22 22a17 17 0 01-21 0zm181 0L258 271a16 16 0 010-22l138-135a16 16 0 0122 0l22 22a16 16 0 010 22l-94 91a16 16 0 000 22l93 91a16 16 0 010 22l-22 22a17 17 0 01-21 0z" />
     </svg>
   );
 }

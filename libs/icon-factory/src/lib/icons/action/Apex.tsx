@@ -1,10 +1,8 @@
 import * as React from 'react';
 function SvgApex(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <g fill="unset">
-        <path d="M48.5 40h-27c-.8 0-1.5.7-1.5 1.5v3c0 .8.7 1.5 1.5 1.5h27c.8 0 1.5-.7 1.5-1.5v-3c0-.8-.7-1.5-1.5-1.5zM25.4 21.8L6 6.3c-.6-.5-1.5-.4-2 .3L2.3 9c-.5.7-.3 1.6.3 2.1l13.8 11c.5.4.5 1.2 0 1.6l-13.8 11c-.6.5-.8 1.5-.3 2.1L4 39.4c.5.7 1.4.8 2 .3l19.4-15.5c.8-.6.8-1.8 0-2.4z" />
-      </g>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M485 400H215c-8 0-15 7-15 15v30c0 8 7 15 15 15h270c8 0 15-7 15-15v-30c0-8-7-15-15-15zM254 218L60 63c-6-5-15-4-20 3L23 90c-5 7-3 16 3 21l138 110c5 4 5 12 0 16L26 347c-6 5-8 15-3 21l17 26c5 7 14 8 20 3l194-155c8-6 8-18 0-24z" />
     </svg>
   );
 }

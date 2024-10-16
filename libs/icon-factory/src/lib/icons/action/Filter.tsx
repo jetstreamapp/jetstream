@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgFilter(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M48.2 4H3.8C2.4 4 1.6 5.7 2.5 6.8L22 29.5c.6.7 1 1.7 1 2.6v14.4c0 .8.7 1.5 1.5 1.5h3c.8 0 1.5-.7 1.5-1.5V32.1c0-1 .3-1.9 1-2.6L49.5 6.8c.9-1.1.2-2.8-1.3-2.8z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M482 40H38c-14 0-22 17-13 28l195 227c6 7 10 17 10 26v144c0 8 7 15 15 15h30c8 0 15-7 15-15V321c0-10 3-19 10-26L495 68c9-11 2-28-13-28z" />
     </svg>
   );
 }

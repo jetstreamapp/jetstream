@@ -1,17 +1,8 @@
 import * as React from 'react';
 function SvgLabels(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        d="M41.92 26.35L32.58 17c-.63-.7-1.51-1.11-2.45-1.13l-24.25-.19a3.91 3.91 0 00-3.81 3.78L2 38.42a3.909 3.909 0 003.78 3.8l23.92.15c.88.06 1.73-.26 2.35-.89l9.79-9.72a4 4 0 00.08-5.41z"
-        fill="unset"
-        fillRule="evenodd"
-      />
-      <path
-        d="M46 28.82a3.996 3.996 0 00.08-5.48l-9.34-9.53a3.297 3.297 0 00-2.45-1.13L10 12.53c-.27 0-.54.04-.81.1a4 4 0 013.71-3l24.26.16c.94.01 1.82.43 2.44 1.13l9.4 9.53a3.996 3.996 0 01-.08 5.48"
-        fill="unset"
-        fillRule="evenodd"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M420 264l-95-94a34 34 0 00-25-11l-240-2a40 40 0 00-40 38l-1 190a39 39 0 0038 37l239 2a30 30 0 0024-10l97-96a40 40 0 001-55zm40 24a40 40 0 000-55l-93-95a33 33 0 00-24-11l-243-2-8 1a40 40 0 0137-30l243 2c9 0 18 4 24 11l94 95a40 40 0 010 55" />
     </svg>
   );
 }

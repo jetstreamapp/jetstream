@@ -1,15 +1,8 @@
 import * as React from 'react';
 function SvgConnectedApps(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M73 21H27c-3.3 0-6 2.7-6 6v46c0 3.3 2.7 6 6 6h46c3.3 0 6-2.7 6-6V27c0-3.3-2.7-6-6-6zm-2 52H29c-1.1 0-2-.9-2-2V29c0-1.1.9-2 2-2h42c1.1 0 2 .9 2 2v42c0 1.1-.9 2-2 2z"
-      />
-      <path
-        fill="unset"
-        d="M58.5 47H52l5.7-9.4c.6-1-.1-2.6-1.3-2.6h-8.3c-1.2 0-2.3.8-2.8 1.9l-5.2 13.8c-.4 1 .3 2.3 1.4 2.3h6.6l-3.2 10.9c-.3 1 1 1.6 1.7.8l13.1-15.4c.8-1 .1-2.3-1.2-2.3z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M730 210H270c-33 0-60 27-60 60v460c0 33 27 60 60 60h460c33 0 60-27 60-60V270c0-33-27-60-60-60zm-20 520H290c-11 0-20-9-20-20V290c0-11 9-20 20-20h420c11 0 20 9 20 20v420c0 11-9 20-20 20zM585 470h-65l57-94c6-10-1-26-13-26h-83c-12 0-23 8-28 19l-52 138c-4 10 3 23 14 23h66l-32 109c-3 10 10 16 17 8l131-154c8-10 1-23-12-23z" />
     </svg>
   );
 }

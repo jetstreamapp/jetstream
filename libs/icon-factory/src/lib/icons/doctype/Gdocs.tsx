@@ -1,13 +1,13 @@
 import * as React from 'react';
 function SvgGdocs(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 64" aria-hidden="true" {...props}>
-      <path fill="#0176D3" d="M5.1 0C2.3 0 0 2.3 0 5.1v53.8C0 61.7 2.3 64 5.1 64h45.8c2.8 0 5.1-2.3 5.1-5.1V20.3L37.1 0h-32z" />
-      <path fill="#014486" d="M56 20.4v1H43.2s-6.4-1.3-6.2-6.7c0 0 .2 5.7 6 5.7h13z" />
-      <path fill="#AACBFF" d="M37.1 0v14.6c0 1.6 1.1 5.8 6.1 5.8H56L37.1 0z" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 640" aria-hidden="true" {...props}>
+      <path fill="#0176d3" d="M51 0A51 51 0 000 51v538c0 28 23 51 51 51h458c28 0 51-23 51-51V203L371 0z" />
+      <path fill="#014486" d="M560 204v10H432s-64-13-62-67c0 0 2 57 60 57z" />
+      <path fill="#aacbff" d="M371 0v146c0 16 11 58 61 58h128z" />
       <path
         fill="unset"
-        d="M25.9 45.1h-7.6v2.2h5.4c-.3 3.2-2.9 4.5-5.4 4.5-3.2 0-5.9-2.5-5.9-6 0-3.4 2.6-6 5.9-6 2.5 0 4.1 1.6 4.1 1.6l1.6-1.6s-2-2.2-5.7-2.2c-4.7 0-8.3 4-8.3 8.2 0 4.2 3.4 8.3 8.4 8.3 4.4 0 7.7-3 7.7-7.5-.1-.9-.2-1.5-.2-1.5z"
+        d="M259 451h-76v22h54c-3 32-29 45-54 45a59 59 0 01-59-60c0-34 26-60 59-60 25 0 41 16 41 16l16-16s-20-22-57-22a84 84 0 00-83 82c0 42 34 83 84 83 44 0 77-30 77-75z"
       />
     </svg>
   );

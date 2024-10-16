@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgShortcuts(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M12.1 2.7h26.5c.9 0 1.6.7 1.6 1.6 0 .5-.2.9-.5 1.2l-7.2 7.2c4.4 3.9 16.7 17.5 2.3 34.9l-.2.2c0 .1-.1.1-.2.2-.3.4-.8.7-1.4.7-.9 0-1.6-.7-1.6-1.6v-.2-.1c0-.1 0-.2.1-.2.5-2.2 3.6-17.2-9.6-23.4l-8.7 8.7c-.3.3-.7.5-1.1.5-.9 0-1.6-.7-1.6-1.6V4.4c-.1-.9.7-1.7 1.6-1.7z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M121 27h265c9 0 16 7 16 16 0 5-2 9-5 12l-72 72c44 39 167 175 23 349l-2 2-2 2c-3 4-8 7-14 7-9 0-16-7-16-16v-3l1-2c5-22 36-172-96-234l-87 87c-3 3-7 5-11 5-9 0-16-7-16-16V44c-1-9 7-17 16-17z" />
     </svg>
   );
 }

@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgOrderItem(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M21.2 51.9L48 64.6c1.2.6 2.7.6 3.9 0l26.9-12.7c1.6-.8 1.6-2.9 0-3.7L51.9 35.5c-1.2-.6-2.7-.6-3.9 0L21.2 48.3c-1.7.7-1.7 2.9 0 3.6z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="unset" aria-hidden="true" {...props}>
+      <path d="M212 519l268 127c12 6 27 6 39 0l269-127c16-8 16-29 0-37L519 355c-12-6-27-6-39 0L212 483c-17 7-17 29 0 36z" />
     </svg>
   );
 }

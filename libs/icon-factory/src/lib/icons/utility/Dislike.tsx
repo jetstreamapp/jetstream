@@ -1,11 +1,8 @@
 import * as React from 'react';
 function SvgDislike(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" aria-hidden="true" {...props}>
-      <path
-        fill="unset"
-        d="M12 29.5V9c0-2.2-1.8-4-4-4H5.5C4.7 5 4 5.7 4 6.5v23c0 .8.7 1.5 1.5 1.5h5c.8 0 1.5-.7 1.5-1.5zM48 26V13.5C48 4.8 41.1 4 33.6 4c-7.1 0-9.4 2.7-16.2 3-.8 0-1.4.7-1.4 1.5v20c0 .8.7 1.5 1.5 1.5 4.8 0 8.5 5.2 8.5 10.5v6c0 .8.7 1.5 1.5 1.5H30c2.2 0 4-1.8 4-4V34c0-2.2 1.8-4 4-4h6c2.2 0 4-1.8 4-4z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" fill="unset" aria-hidden="true" {...props}>
+      <path d="M120 295V90a40 40 0 00-40-40H55c-8 0-15 7-15 15v230c0 8 7 15 15 15h50c8 0 15-7 15-15zm360-35V135c0-87-69-95-144-95-71 0-94 27-162 30-8 0-14 7-14 15v200c0 8 7 15 15 15 48 0 85 52 85 105v60c0 8 7 15 15 15h25a40 40 0 0040-40V340a40 40 0 0140-40h60a40 40 0 0040-40z" />
     </svg>
   );
 }
