@@ -13,5 +13,6 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "strictNullChecks": true,
+    "jsx": "react"
   }
 }

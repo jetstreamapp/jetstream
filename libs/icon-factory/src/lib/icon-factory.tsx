@@ -42,7 +42,9 @@ import StandardIcon_RecordDelete from './icons/standard/RecordDelete';
 import StandardIcon_RecordLookup from './icons/standard/RecordLookup';
 import StandardIcon_RecordUpdate from './icons/standard/RecordUpdate';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
+import StandardIcon_Screen from './icons/standard/Screen';
 import StandardIcon_Settings from './icons/standard/Settings';
+import StandardIcon_User from './icons/standard/User';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
@@ -106,6 +108,7 @@ import UtilityIcon_Paste from './icons/utility/Paste';
 import UtilityIcon_Pause from './icons/utility/Pause';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_Preview from './icons/utility/Preview';
+import UtilityIcon_ProfileAlt from './icons/utility/ProfileAlt';
 import UtilityIcon_PromptEdit from './icons/utility/PromptEdit';
 import UtilityIcon_QuotationMarks from './icons/utility/QuotationMarks';
 import UtilityIcon_RecordCreate from './icons/utility/RecordCreate';
@@ -136,6 +139,8 @@ import UtilityIcon_Sync from './icons/utility/Sync';
 import UtilityIcon_Table from './icons/utility/Table';
 import UtilityIcon_Task from './icons/utility/Task';
 import UtilityIcon_Text from './icons/utility/Text';
+import UtilityIcon_ToggleOff from './icons/utility/ToggleOff';
+import UtilityIcon_ToggleOn from './icons/utility/ToggleOn';
 import UtilityIcon_Underline from './icons/utility/Underline';
 import UtilityIcon_Undo from './icons/utility/Undo';
 import UtilityIcon_Up from './icons/utility/Up';
@@ -197,7 +202,9 @@ const standardIcons = {
   record_update: StandardIcon_RecordUpdate,
   record: StandardIcon_Record,
   related_list: StandardIcon_RelatedList,
+  screen: StandardIcon_Screen,
   settings: StandardIcon_Settings,
+  user: StandardIcon_User,
 } as const;
 
 const customIcons = {
@@ -279,6 +286,7 @@ const utilityIcons = {
   pause: UtilityIcon_Pause,
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,
+  profile_alt: UtilityIcon_ProfileAlt,
   prompt_edit: UtilityIcon_PromptEdit,
   quotation_marks: UtilityIcon_QuotationMarks,
   record_create: UtilityIcon_RecordCreate,
@@ -309,6 +317,8 @@ const utilityIcons = {
   table: UtilityIcon_Table,
   task: UtilityIcon_Task,
   text: UtilityIcon_Text,
+  toggle_off: UtilityIcon_ToggleOff,
+  toggle_on: UtilityIcon_ToggleOn,
   underline: UtilityIcon_Underline,
   undo: UtilityIcon_Undo,
   up: UtilityIcon_Up,

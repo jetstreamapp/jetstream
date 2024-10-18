@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { CometD, SubscriptionHandle } from 'cometd';
 import { Server, Socket } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
@@ -9,7 +9,7 @@ import { UserFacingError } from '../utils/error-handler';
 export interface SocketConnectionState {
   io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
   socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
-  user: UserProfileServer;
+  user: UserProfileSession;
   cometdConnections: Record<
     string,
     {
@@ -19,7 +19,7 @@ export interface SocketConnectionState {
   >;
 }
 
-export async function getOrg(user: UserProfileServer, uniqueId: string) {
+export async function getOrg(user: UserProfileSession, uniqueId: string) {
   if (!user || !uniqueId) {
     throw new UserFacingError('An org was not found with the provided id');
   }
@@ -29,7 +29,7 @@ export async function getOrg(user: UserProfileServer, uniqueId: string) {
 export function disconnectCometD(
   cometd: CometD,
   socket?: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>,
-  user?: UserProfileServer
+  user?: UserProfileSession
 ) {
   if (cometd) {
     cometd.clearListeners();

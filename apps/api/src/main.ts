@@ -1,7 +1,10 @@
+import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import { pruneExpiredRecords } from '@jetstream/auth/server';
+import { SessionData as JetstreamSessionData } from '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
-import { Maybe } from '@jetstream/types';
+import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
 import { json, raw, urlencoded } from 'body-parser';
 import cluster from 'cluster';
 import pgSimple from 'connect-pg-simple';
@@ -11,34 +14,40 @@ import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
 import { cpus } from 'os';
-import passport from 'passport';
-import Auth0Strategy from 'passport-auth0';
-import { Strategy as CustomStrategy } from 'passport-custom';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
+import { apiRoutes, authRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
 import {
   addContextMiddleware,
   blockBotByUserAgentMiddleware,
+  destroySessionIfPendingVerificationIsExpired,
   notFoundMiddleware,
+  redirectIfPendingVerificationMiddleware,
   setApplicationCookieMiddleware,
 } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
 
 declare module 'express-session' {
-  interface SessionData {
-    activityExp: number;
-    orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; jetstreamOrganizationId?: Maybe<string> };
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface SessionData extends JetstreamSessionData {}
 }
 
 // NOTE: render reports more CPUs than are actually available
 const CPU_COUNT = Math.min(cpus().length, 3);
 
+if (ENV.NODE_ENV !== 'production' || cluster.isPrimary) {
+  setTimeout(() => {
+    new AsyncIntervalTimer(pruneExpiredRecords, { name: 'pruneExpiredRecords', intervalMs: /** 1 hour */ 60 * 60 * 1000, runOnInit: true });
+  }, 1000 * 5); // Delay 5 seconds to allow for other services to start
+}
+
 if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   logger.info(`Number of CPUs is ${CPU_COUNT}`);
   logger.info(`Master ${process.pid} is running`);
+
+  const rateLimiterStore = new ClusterMemoryStorePrimary();
+  rateLimiterStore.init();
 
   for (let i = 0; i < CPU_COUNT; i++) {
     cluster.fork();
@@ -60,11 +69,11 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     }),
     cookie: {
       path: '/',
-      // httpOnly: true,
       secure: !ENV.IS_LOCAL_DOCKER && environment.production,
       // Set to two - if you don't login for 48 hours, then expire session - consider changing to 1
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
-      // sameSite: 'strict',
+      httpOnly: true,
+      sameSite: 'lax',
     },
     secret: ENV.JETSTREAM_SESSION_SECRET,
     resave: false,
@@ -74,20 +83,8 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     name: 'sessionid',
   });
 
-  passport.serializeUser(function (user, done) {
-    done(null, user);
-  });
-
-  passport.deserializeUser(function (user, done) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    done(null, user!);
-  });
-
-  const passportInitMiddleware = passport.initialize();
-  const passportMiddleware = passport.session();
-
   const app = express();
-  const httpServer = initSocketServer(app, [sessionMiddleware, passportInitMiddleware, passportMiddleware]);
+  const httpServer = initSocketServer(app, [sessionMiddleware]);
 
   if (environment.production) {
     app.set('trust proxy', 1); // required for environments such as heroku / {render?}
@@ -112,6 +109,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
             '*.rollbar.com',
             'api.amplitude.com',
             'api.cloudinary.com',
+            'ip-api.com',
           ],
           baseUri: ["'self'"],
           blockAllMixedContent: [],
@@ -169,60 +167,6 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(blockBotByUserAgentMiddleware);
   app.use(setApplicationCookieMiddleware);
 
-  /** Manual test user, skip Auth0 completely */
-  passport.use(
-    'custom',
-    new CustomStrategy(function (req, callback) {
-      if (req.hostname !== 'localhost' || !ENV.EXAMPLE_USER_OVERRIDE || !ENV.EXAMPLE_USER) {
-        return callback(new Error('Test user not enabled'));
-      }
-
-      const user = ENV.EXAMPLE_USER;
-      req.user = user;
-      callback(null, user);
-    })
-  );
-
-  passport.use(
-    'auth0',
-    new Auth0Strategy(
-      {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        domain: ENV.AUTH0_DOMAIN!,
-        clientID: ENV.AUTH0_CLIENT_ID!,
-        clientSecret: ENV.AUTH0_CLIENT_SECRET!,
-        callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/callback`,
-      },
-      (accessToken, refreshToken, extraParams, profile, done) => {
-        // accessToken is the token to call Auth0 API (not needed in the most cases)
-        // extraParams.id_token has the JSON Web Token
-        // profile has all the information from the user
-        return done(null, profile);
-      }
-    )
-  );
-
-  /** This configuration is used for authorization, not authentication (e.x. link second identity to user) */
-  passport.use(
-    'auth0-authz',
-    new Auth0Strategy(
-      {
-        domain: ENV.AUTH0_DOMAIN!,
-        clientID: ENV.AUTH0_CLIENT_ID!,
-        clientSecret: ENV.AUTH0_CLIENT_SECRET!,
-        callbackURL: `${ENV.JETSTREAM_SERVER_URL}/oauth/identity/link/callback`,
-      },
-      (accessToken, refreshToken, extraParams, profile, done) => {
-        // accessToken is the token to call Auth0 API (not needed in the most cases)
-        // extraParams.id_token has the JSON Web Token
-        // profile has all the information from the user
-        return done(null, profile);
-      }
-    )
-  );
-
-  app.use(passportInitMiddleware);
-  app.use(passportMiddleware);
   app.use(httpLogger);
 
   // proxy must be provided prior to body parser to ensure streaming response
@@ -230,6 +174,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (req.headers.origin?.includes('localhost')) {
         res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader(
           'Access-Control-Expose-Headers',
           [
@@ -290,7 +235,10 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
   app.use(urlencoded({ extended: true }));
 
+  app.use(destroySessionIfPendingVerificationIsExpired);
+
   app.use('/healthz', healthCheck);
+  app.use('/api/auth', authRoutes);
   app.use('/api', apiRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
@@ -298,10 +246,6 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   if (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI) {
     app.use('/test', testRoutes);
   }
-
-  // const server = app.listen(Number(ENV.PORT), () => {
-  //   logger.info('Listening at http://localhost:' + ENV.PORT);
-  // });
 
   const server = httpServer.listen(Number(ENV.PORT), () => {
     logger.info('Listening at http://localhost:' + ENV.PORT);
@@ -325,7 +269,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 
   if (environment.production || ENV.IS_CI) {
     app.use(express.static(join(__dirname, '../jetstream')));
-    app.use('/app', (req: express.Request, res: express.Response) => {
+    app.use('/app', redirectIfPendingVerificationMiddleware, (req: express.Request, res: express.Response) => {
       res.sendFile(join(__dirname, '../jetstream/index.html'));
     });
   }

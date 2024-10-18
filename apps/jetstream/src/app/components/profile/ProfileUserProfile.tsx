@@ -1,9 +1,11 @@
 import { css } from '@emotion/react';
-import { UserProfileUiWithIdentities } from '@jetstream/types';
+import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { Form, FormRow, FormRowItem, Grid, Input, ReadOnlyFormItem } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useMemo } from 'react';
+import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
+import { Fragment, FunctionComponent, useMemo, useState } from 'react';
+import { ProfileUserPassword } from './ProfileUserPassword';
 
-export interface SettingsUserProfileProps {
+export interface ProfileUserProfileProps {
   fullUserProfile: UserProfileUiWithIdentities;
   name: string;
   editMode: boolean;
@@ -11,9 +13,12 @@ export interface SettingsUserProfileProps {
   onChange: (value: { name: string }) => void;
   onSave: () => void;
   onCancel: () => void;
+  onSetPassword: (password: string) => Promise<void>;
+  onResetPassword: () => Promise<void>;
+  onRemovePassword: () => Promise<void>;
 }
 
-export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = ({
+export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
   fullUserProfile,
   name,
   editMode,
@@ -21,19 +26,24 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
   onChange,
   onSave,
   onCancel,
+  onSetPassword,
+  onResetPassword,
+  onRemovePassword,
 }) => {
   const invalidName = !name || name.length > 255;
 
   const blockNameEdit = useMemo(
-    () => fullUserProfile.identities.some((identity) => identity.provider !== 'auth0'),
+    () => fullUserProfile.identities.some((identity) => identity.isPrimary && identity.provider !== 'credentials'),
     [fullUserProfile.identities]
   );
+
+  const [avatarSrc, setAvatarSrc] = useState(fullUserProfile?.picture || Avatar);
 
   return (
     <Fragment>
       <Grid className="slds-m-top_large" verticalAlign="center">
         <div className="slds-avatar slds-avatar_circle slds-avatar_large">
-          <img alt={fullUserProfile.name} src={fullUserProfile.picture} title="Avatar" />
+          <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
         </div>
         {/* TODO: implement this sometime */}
         {/* <div>
@@ -76,6 +86,12 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
                 {fullUserProfile.email}
               </ReadOnlyFormItem>
             </FormRowItem>
+            <ProfileUserPassword
+              fullUserProfile={fullUserProfile}
+              onResetPassword={onResetPassword}
+              onSetPassword={onSetPassword}
+              onRemovePassword={onRemovePassword}
+            />
           </FormRow>
           {editMode && (
             <FormRow className="slds-align_absolute-center slds-m-top_medium">
@@ -92,5 +108,3 @@ export const SettingsUserProfile: FunctionComponent<SettingsUserProfileProps> = 
     </Fragment>
   );
 };
-
-export default SettingsUserProfile;

@@ -9,18 +9,11 @@ import { useRecoilValue } from 'recoil';
 import { fromAppState } from '.';
 
 let amplitudeToken = '';
-let authAudience = 'http://getjetstream.app/app_metadata';
 
 try {
   amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
 } catch (ex) {
   logger.warn('Amplitude key not found');
-}
-
-try {
-  authAudience = import.meta.env.NX_PUBLIC_AUTH_AUDIENCE;
-} catch (ex) {
-  logger.warn('authAudience key not found');
 }
 
 let hasInit = false;
@@ -70,19 +63,15 @@ export function useAmplitude(optOut?: boolean) {
     if (!hasProfileInit && userProfile && appCookie) {
       hasProfileInit = true;
       const identify = new amplitude.Identify()
-        .set('id', userProfile.sub)
+        .set('id', userProfile.id)
         .set('email', userProfile.email)
-        .set('email-verified', userProfile.email_verified)
+        .set('email-verified', userProfile.emailVerified)
         .set('environment', appCookie.environment)
         .add('app-init-count', 1)
         .add('application-type', 'web');
 
       if (userPreferences.deniedNotifications) {
         identify.set('denied-notifications', userPreferences.deniedNotifications);
-      }
-
-      if (authAudience) {
-        identify.set('feature-flags', (userProfile as any)[authAudience]?.featureFlags);
       }
 
       amplitude.getInstance().identify(identify);

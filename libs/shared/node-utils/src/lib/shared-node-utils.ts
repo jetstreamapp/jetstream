@@ -1,5 +1,4 @@
 import * as crypto from 'crypto';
-import { Transform } from 'stream';
 
 export function generateKey(): string {
   // Generates 32 byte cryptographically strong pseudo-random data as a base64 encoded string

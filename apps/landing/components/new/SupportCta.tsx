@@ -32,7 +32,7 @@ const items = [
 
 export const SupportCta = () => (
   <div className="relative bg-gray-900">
-    <div className="relative h-56 bg-indigo-600 sm:h-72 md:absolute md:left-0 md:h-full md:w-1/2">
+    <div className="relative h-56 bg-blue-600 sm:h-72 md:absolute md:left-0 md:h-full md:w-1/2">
       <img
         className="w-full h-full object-cover"
         src="https://res.cloudinary.com/getjetstream/image/upload/v1634695304/public/website/jetstream-landing-support-cta.jpg"
@@ -49,7 +49,7 @@ export const SupportCta = () => (
           {items.map(({ image, footer, link, subtitle, title }) => (
             <div
               key={title}
-              className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-3 shadow focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
+              className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-3 shadow focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
             >
               <div className="flex-shrink-0">
                 <img className="h-10 w-10" src={image} alt="" />

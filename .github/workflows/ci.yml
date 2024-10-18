@@ -12,7 +12,6 @@ env:
   CONTENTFUL_TOKEN: ${{ secrets.CONTENTFUL_TOKEN }}
   NX_CLOUD_DISTRIBUTED_EXECUTION: false
   NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
-  NX_PUBLIC_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
   NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
 
 jobs:
@@ -63,9 +62,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LOG_LEVEL: warn
-      AUTH0_CLIENT_ID: 'shxza1G0595Ut2htmAd3NfbMMsqelrE5'
-      AUTH0_CLIENT_SECRET: 'NOT-NEEDED'
-      AUTH0_DOMAIN: 'getjetstream-dev.us.auth0.com'
       E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
       E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
       E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
@@ -80,7 +76,6 @@ jobs:
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
       NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
-      NX_PUBLIC_AUTH_AUDIENCE: http://getjetstream.app/app_metadata
       NX_CLOUD_DISTRIBUTED_EXECUTION: false
       NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
       SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
