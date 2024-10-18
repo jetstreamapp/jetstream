@@ -16,6 +16,7 @@ type RouteKey =
   | 'SALESFORCE_API'
   | 'PLATFORM_EVENT_MONITOR'
   | 'FEEDBACK_SUPPORT'
+  | 'PROFILE'
   | 'SETTINGS';
 
 interface RouteItem {
@@ -130,6 +131,11 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/feedback',
     TITLE: 'Feedback and Support',
     DESCRIPTION: 'Report bugs and request features',
+  },
+  PROFILE: {
+    ROUTE: '/profile',
+    TITLE: 'Profile',
+    DESCRIPTION: 'Update your user profile',
   },
   SETTINGS: {
     ROUTE: '/settings',

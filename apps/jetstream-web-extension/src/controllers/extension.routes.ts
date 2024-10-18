@@ -16,29 +16,18 @@ router.get('/api/heartbeat', async (req) => {
 });
 router.get('/api/me', async (req) => {
   return handleJsonResponse({
-    email: 'unknown',
-    email_verified: true,
-    name: 'unknown',
-    nickname: 'unknown',
-    picture: 'unknown',
-    sub: 'unknown',
-    updated_at: 'unknown',
     id: 'unknown',
     userId: 'unknown',
-    createdAt: 'unknown',
-    updatedAt: 'unknown',
-    'http://getjetstream.app/app_metadata': {
-      featureFlags: {
-        flagVersion: '',
-        flags: [],
-        isDefault: true,
-      },
-    },
+    email: 'unknown',
+    name: 'unknown',
+    emailVerified: true,
+    picture: null,
     preferences: {
       skipFrontdoorLogin: true,
     },
   } as UserProfileUi);
 });
+
 router.get('/api/orgs', async (req) => {
   return handleJsonResponse([]);
 });

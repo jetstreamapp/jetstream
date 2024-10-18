@@ -1,4 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
+  Providers,
+  SessionIpData,
+  TwoFactorTypeWithoutEmail,
+  UserProfileAuthFactor,
+  UserProfileUiWithIdentities,
+  UserSession,
+  UserSessionWithLocation,
+} from '@jetstream/auth/types';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
   AnonymousApexResponse,
@@ -35,12 +44,12 @@ import {
   SalesforceOrgUi,
   SobjectOperation,
   UserProfileUi,
-  UserProfileUiWithIdentities,
 } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
+
 //// LANDING PAGE ROUTES
 
 let cloudinarySignature: CloudinarySignature;
@@ -87,11 +96,95 @@ export async function getFullUserProfile(): Promise<UserProfileUiWithIdentities>
   return handleRequest({ method: 'GET', url: '/api/me/profile' }).then(unwrapResponseIgnoreCache);
 }
 
+export async function initPassword(password: string): Promise<UserProfileUiWithIdentities> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/password/init', data: { password } }).then(unwrapResponseIgnoreCache);
+}
+
+export async function initResetPassword(): Promise<UserProfileUiWithIdentities> {
+  return handleRequest({ method: 'POST', url: '/api/me/profile/password/reset' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function removePassword(): Promise<UserProfileUiWithIdentities> {
+  return handleRequest({ method: 'DELETE', url: '/api/me/profile/password' }).then(unwrapResponseIgnoreCache);
+}
+
 export async function updateUserProfile(userProfile: { name: string }): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
 }
 
-export async function unlinkIdentityFromProfile(identity: { provider: string; userId: string }): Promise<UserProfileUiWithIdentities> {
+export async function getUserSessions(): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
+  return handleRequest({ method: 'GET', url: '/api/me/profile/sessions' }).then(unwrapResponseIgnoreCache).then(addLocationToSession);
+}
+
+export async function getAuthProviders(): Promise<Providers> {
+  return handleRequest({ method: 'GET', url: '/api/auth/providers' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getCsrfToken(): Promise<{ csrfToken: string }> {
+  return handleRequest({ method: 'GET', url: '/api/auth/csrf' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function revokeUserSession(sessionId: string): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
+  return handleRequest({ method: 'DELETE', url: `/api/me/profile/sessions/${sessionId}` })
+    .then(unwrapResponseIgnoreCache)
+    .then(addLocationToSession);
+}
+
+export async function revokeAllUserSessions(exceptId?: string): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
+  return handleRequest({ method: 'DELETE', url: '/api/me/profile/sessions/', data: { exceptId } })
+    .then(unwrapResponseIgnoreCache)
+    .then(addLocationToSession);
+}
+
+export async function addLocationToSession({
+  currentSessionId,
+  sessions,
+}: {
+  currentSessionId: string;
+  sessions: UserSession[];
+}): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
+  const locations = await getIpLocationInformation(sessions.map((session) => session.ipAddress));
+  return {
+    currentSessionId,
+    sessions: sessions.map((session, i) => ({
+      ...session,
+      location: locations[i],
+    })),
+  };
+}
+
+export async function getIpLocationInformation(ipAddresses: string[]): Promise<SessionIpData[]> {
+  const params = new URLSearchParams({
+    fields: 'status,country,countryCode,region,regionName,city,isp,query',
+  });
+  return handleExternalRequest({ method: 'POST', url: `http://ip-api.com/batch?fields?${params.toString()}`, data: ipAddresses }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+export async function getOtpQrCode(): Promise<{ secret: string; secretToken: string; imageUri: string; uri: string }> {
+  return handleRequest({ method: 'GET', url: '/api/me/profile/2fa-otp' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function saveOtpAuthFactor(secretToken: string, code: string): Promise<UserProfileAuthFactor[]> {
+  return handleRequest({ method: 'POST', url: `/api/me/profile/2fa-otp`, data: { secretToken, code } }).then(unwrapResponseIgnoreCache);
+}
+
+export async function toggleEnableDisableAuthFactor(
+  type: TwoFactorTypeWithoutEmail,
+  action: 'enable' | 'disable'
+): Promise<UserProfileAuthFactor[]> {
+  return handleRequest({ method: 'POST', url: `/api/me/profile/2fa/${type}/${action}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteAuthFactor(type: TwoFactorTypeWithoutEmail): Promise<UserProfileAuthFactor[]> {
+  return handleRequest({ method: 'DELETE', url: `/api/me/profile/2fa/${type}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function unlinkIdentityFromProfile(identity: {
+  provider: string;
+  providerAccountId: string;
+}): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'DELETE', url: '/api/me/profile/identity', params: identity }).then(unwrapResponseIgnoreCache);
 }
 

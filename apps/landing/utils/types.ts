@@ -1,5 +1,8 @@
 import { Document } from '@contentful/rich-text-types';
 import { Asset, EntryFields, Sys } from 'contentful';
+import { z } from 'zod';
+
+export const PasswordSchema = z.string().min(8).max(255);
 
 export interface AnalyticSummaryItem {
   type: 'LOAD_SUMMARY' | 'QUERY_SUMMARY';

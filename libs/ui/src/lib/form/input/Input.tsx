@@ -11,6 +11,7 @@ export interface InputProps {
   className?: string;
   formControlClassName?: string;
   label?: string;
+  labelClassName?: string;
   hideLabel?: boolean;
   labelHelp?: string | JSX.Element | null;
   helpText?: React.ReactNode | string;
@@ -34,6 +35,7 @@ export const Input: FunctionComponent<InputProps> = ({
   className,
   formControlClassName,
   label,
+  labelClassName,
   hideLabel = false,
   labelHelp,
   helpText,
@@ -61,7 +63,7 @@ export const Input: FunctionComponent<InputProps> = ({
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
-          <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+          <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel }, labelClassName)} htmlFor={id}>
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}

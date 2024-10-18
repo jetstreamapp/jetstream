@@ -1,8 +1,7 @@
-import { UserProfileAuth0 } from '@jetstream/types';
 import { prisma } from '../config/db.config';
 import { logger } from '../config/logger.config';
 
-export async function deleteUserAndOrgs(user: UserProfileAuth0) {
+export async function deleteUserAndOrgs(user: any) {
   if (!user?.user_id) {
     throw new Error('A valid user must be provided');
   }

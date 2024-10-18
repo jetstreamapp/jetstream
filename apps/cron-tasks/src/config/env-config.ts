@@ -22,15 +22,6 @@ export const ENV = {
   JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
   PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
 
-  // AUTH
-  AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
-  /** use for M2M tokens - in DEV this is the same, but different in production */
-  AUTH0_M2M_DOMAIN: process.env.AUTH0_M2M_DOMAIN,
-  AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID,
-  AUTH0_CLIENT_SECRET: process.env.AUTH0_CLIENT_SECRET,
-  AUTH0_MGMT_CLIENT_ID: process.env.AUTH0_MGMT_CLIENT_ID,
-  AUTH0_MGMT_CLIENT_SECRET: process.env.AUTH0_MGMT_CLIENT_SECRET,
-
   // MAILGUN
   MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,
   MAILGUN_PUBLIC_KEY: process.env.MAILGUN_PUBLIC_KEY,

@@ -1,9 +1,11 @@
 import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
+import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
-import { UserProfileServer } from '@jetstream/types';
 import { SalesforceOrg } from '@prisma/client';
+import { serialize } from 'cookie';
 import * as express from 'express';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { Response } from '../types/types';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
 export async function healthCheck(req: express.Request, res: express.Response) {
@@ -23,7 +25,46 @@ export async function healthCheck(req: express.Request, res: express.Response) {
   }
 }
 
-export function sendJson<ResponseType = any>(res: express.Response, content?: ResponseType, status = 200) {
+export async function setCsrfCookie(res: Response) {
+  const { csrfToken, cookie: csrfCookie } = await createCSRFToken({ secret: ENV.JETSTREAM_AUTH_SECRET });
+  const cookieConfig = getCookieConfig(ENV.ENVIRONMENT === 'production');
+  res.locals.cookies = res.locals.cookies || {};
+  res.locals.cookies[cookieConfig.csrfToken.name] = {
+    name: cookieConfig.csrfToken.name,
+    value: csrfCookie,
+    options: cookieConfig.csrfToken.options,
+  };
+  return csrfToken;
+}
+
+/**
+ * Sets all cookies stored in res.locals to actual headers
+ * This is centralized here to ensure all cookies are set and to avoid clearing and setting the same cookie
+ */
+function setCookieHeaders(res: Response) {
+  try {
+    Object.values(res.locals?.cookies || {}).forEach(({ name, options, clear, value }) => {
+      try {
+        if (clear) {
+          res.appendHeader('Set-Cookie', serialize(name, '', { ...options, expires: new Date(0) }));
+          return;
+        }
+        res.appendHeader('Set-Cookie', serialize(name, value, options));
+      } catch (ex) {
+        logger.error({ ...getExceptionLog(ex) }, 'Error setting cookie: %s', name);
+      }
+    });
+  } catch (ex) {
+    logger.error({ ...getExceptionLog(ex) }, 'Error setting cookies');
+  }
+}
+
+export function redirect(res: Response, url, status = 302) {
+  setCookieHeaders(res);
+  res.redirect(status, url);
+}
+
+export function sendJson<ResponseType = any>(res: Response, content?: ResponseType, status = 200) {
   if (res.headersSent) {
     res.log.warn('Response headers already sent');
     try {
@@ -38,12 +79,13 @@ export function sendJson<ResponseType = any>(res: express.Response, content?: Re
     }
     return;
   }
+  setCookieHeaders(res);
   res.status(status);
   return res.json({ data: content || {} });
 }
 
 export function blockBotHandler(req: express.Request, res: express.Response) {
-  res.log.debug('[BLOCKED REQUEST] %s %s');
+  res.log.debug('[BLOCKED REQUEST]');
   res.status(403).send('Forbidden');
 }
 
@@ -51,6 +93,7 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
+    setCookieHeaders(res as any);
     // Logger is not added to the response object in all cases depending on where error is encountered
     const responseLogger = res.log || logger;
 
@@ -65,7 +108,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
             params: req.params,
             query: req.query,
             body: req.body,
-            userId: (req.user as UserProfileServer)?.id,
+            userId: req.session.user?.id,
             requestId: res.locals.requestId,
           },
         });
@@ -102,22 +145,42 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       }
     }
 
-    if (err instanceof UserFacingError) {
+    if (err instanceof AuthError) {
+      // These errors are emitted during the authentication process
+      responseLogger.warn({ ...getExceptionLog(err, true), type: err.type }, '[RESPONSE][AUTH_ERROR]');
+      if (isJson) {
+        return res.json({
+          error: true,
+          errorType: err.type,
+          data: {
+            error: true,
+            errorType: err.type,
+          },
+        });
+      }
+      const params = new URLSearchParams({ error: err.type }).toString();
+      return res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params}`);
+    } else if (err instanceof UserFacingError) {
       // Attempt to use response code from 3rd party request if we have it available
       const statusCode = err.apiRequestError?.status || 400;
       res.status(statusCode);
       // TODO: should we log 400s? They happen a lot and are not necessarily errors we care about
-      responseLogger.debug({ ...getExceptionLog(err), statusCode }, '[RESPONSE][ERROR]');
+      responseLogger.debug({ ...getExceptionLog(err, true), statusCode }, '[RESPONSE][ERROR]');
       return res.json({
         error: true,
         message: err.message,
         data: err.additionalData,
       });
     } else if (err instanceof AuthenticationError) {
+      // This error is emitted when a user attempts to make a request taht requires authentication, but the user is not logged in
       responseLogger.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
       res.status(401);
       res.set(HTTP.HEADERS.X_LOGOUT, '1');
-      res.set(HTTP.HEADERS.X_LOGOUT_URL, `${ENV.JETSTREAM_SERVER_URL}/oauth/login`);
+      let redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
+      if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
+        redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify?type=${req.session.pendingVerification[0].type}`;
+      }
+      res.set(HTTP.HEADERS.X_LOGOUT_URL, redirectUrl);
       if (isJson) {
         return res.json({
           error: true,
@@ -156,7 +219,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           params: req.params,
           query: req.query,
           body: req.body,
-          userId: (req.user as UserProfileServer)?.id,
+          userId: req.session.user?.id,
           requestId: res.locals.requestId,
         },
       });
@@ -170,7 +233,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       status = 500;
     }
     res.status(status);
-    responseLogger.warn({ ...getExceptionLog(err), statusCode: 500 }, '[RESPONSE][ERROR]');
+    responseLogger.warn({ ...getExceptionLog(err, true), statusCode: 500 }, '[RESPONSE][ERROR]');
     // Return JSON error response for all other scenarios
     return res.json({
       error: errorMessage,
@@ -178,7 +241,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       data: err.data,
     });
   } catch (ex) {
-    logger.error(getExceptionLog(ex), 'Error in uncaughtErrorHandler');
+    logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, message: 'Internal Server Error' });
   }
 }

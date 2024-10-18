@@ -72,18 +72,15 @@ const baseConfig: Partial<InternalAxiosRequestConfig> = {};
 /** Use for API calls going to external locations */
 export async function handleExternalRequest<T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
   const axiosInstance = axios.create({ ...baseConfig, ...config });
-  axiosInstance.interceptors.request.use(requestInterceptor({}));
   axiosInstance.interceptors.response.use(
     (response) => {
       logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
-        requestId: response.headers['x-request-id'],
         response: response.data,
       });
       return response;
     },
     (error: AxiosError) => {
       logger.error('[HTTP][RESPONSE][ERROR]', {
-        requestId: response.headers['x-request-id'],
         errorName: error.name,
         errorMessage: error.message,
       });
@@ -285,7 +282,7 @@ function responseErrorInterceptor<T>(options: {
       // take user to login page
       if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
-        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/oauth/login';
+        const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
         // stupid unit tests - location.href is readonly TS compilation failure
         // eslint-disable-next-line no-restricted-globals
         (location as any).href = logoutUrl;

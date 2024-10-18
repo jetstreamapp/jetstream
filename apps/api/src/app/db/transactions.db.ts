@@ -1,12 +1,12 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { PrismaPromise } from '@prisma/client';
 
 /**
  * This file manages db operations as transactions that span multiple tables
  */
 
-export async function deleteUserAndOrgs(user: UserProfileServer) {
+export async function deleteUserAndOrgs(user: UserProfileSession) {
   if (!user?.id) {
     throw new Error('A valid user must be provided');
   }
