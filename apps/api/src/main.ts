@@ -1,5 +1,5 @@
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import { ENV, getExceptionLog, httpLogger, logger, pgPool, prisma } from '@jetstream/api-config';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
 import { json, raw, urlencoded } from 'body-parser';
@@ -363,4 +363,33 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   server.on('error', (error: Error) => {
     logger.error(getExceptionLog(error), '[SERVER][ERROR]');
   });
+}
+
+if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER && (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI)) {
+  const id = 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA';
+  logger.info('Upserting example user. id: %s', id);
+  prisma.user
+    .upsert({
+      create: {
+        id,
+        userId: ENV.EXAMPLE_USER.user_id,
+        email: ENV.EXAMPLE_USER._json.email,
+        name: ENV.EXAMPLE_USER._json.name,
+        nickname: ENV.EXAMPLE_USER._json.nickname,
+        picture: ENV.EXAMPLE_USER._json.picture,
+        appMetadata: JSON.stringify(ENV.EXAMPLE_USER._json[ENV.AUTH_AUDIENCE!]),
+        deletedAt: null,
+        lastLoggedIn: new Date(),
+        preferences: { create: { skipFrontdoorLogin: false } },
+      },
+      update: {},
+      where: { id },
+    })
+    .then(() => {
+      logger.info('Example user created');
+    })
+    .catch((ex) => {
+      logger.error(getExceptionLog(ex), '[EXAMPLE_USER][ERROR] Fatal error, could not create example user');
+      process.exit(1);
+    });
 }
