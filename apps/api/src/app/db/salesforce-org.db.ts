@@ -5,6 +5,7 @@ import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
 import { parseISO } from 'date-fns/parseISO';
 import isUndefined from 'lodash/isUndefined';
+import { findIdByUserId } from './user.db';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   jetstreamOrganizationId: true,
@@ -50,8 +51,9 @@ const findUniqueOrg = ({ jetstreamUserId, uniqueId }: { jetstreamUserId: string;
   });
 };
 
-const findUsersOrgs = ({ jetstreamUserId }: { jetstreamUserId: string }) => {
+const findUsersOrgs = ({ jetstreamUserId, actualUserId }: { jetstreamUserId: string; actualUserId: string }) => {
   return Prisma.validator<Prisma.SalesforceOrgWhereInput>()({
+    jetstreamUserId2: actualUserId,
     jetstreamUserId,
     jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
   });
@@ -103,13 +105,15 @@ export async function findByUniqueId(jetstreamUserId: string, uniqueId: string) 
 }
 
 export async function findByUserId(jetstreamUserId: string) {
+  const actualUserId = await findIdByUserId({ userId: jetstreamUserId });
   return await prisma.salesforceOrg.findMany({
     select: SELECT,
-    where: findUsersOrgs({ jetstreamUserId }),
+    where: findUsersOrgs({ jetstreamUserId, actualUserId }),
   });
 }
 
 export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, salesforceOrgUi: Partial<SalesforceOrgUi>) {
+  const actualUserId = await findIdByUserId({ userId: jetstreamUserId });
   const existingOrg = await prisma.salesforceOrg.findUnique({
     where: findUniqueOrg({ jetstreamUserId, uniqueId: salesforceOrgUi.uniqueId! }),
   });
@@ -126,6 +130,7 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
     orgToDelete = await prisma.salesforceOrg.findFirst({
       select: { id: true },
       where: {
+        jetstreamUserId2: { equals: actualUserId },
         jetstreamUserId: { equals: jetstreamUserId },
         jetstreamUrl: { equals: ENV.JETSTREAM_SERVER_URL! },
         username: { equals: salesforceOrgUi.username },
@@ -178,6 +183,7 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
     const org = await prisma.salesforceOrg.create({
       select: SELECT,
       data: {
+        jetstreamUserId2: actualUserId,
         jetstreamUserId,
         jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
         jetstreamOrganizationId: salesforceOrgUi.jetstreamOrganizationId,
