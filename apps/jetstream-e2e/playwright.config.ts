@@ -61,7 +61,7 @@ export default defineConfig({
       },
       testMatch: /.*\.spec\.ts/,
       dependencies: ['setup'],
-      // teardown: 'teardown',
+      teardown: 'teardown',
     },
 
     // {

@@ -65,7 +65,7 @@ export function redirect(res: Response, url, status = 302) {
   res.redirect(status, url);
 }
 
-export function sendJson<ResponseType = any>(res: Response, content?: ResponseType, status = 200) {
+export function sendJson<ResponseType = unknown>(res: Response, content?: ResponseType, status = 200) {
   if (res.headersSent) {
     res.log.warn('Response headers already sent');
     try {
@@ -90,10 +90,10 @@ export function blockBotHandler(req: express.Request, res: express.Response) {
   res.status(403).send('Forbidden');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 export async function uncaughtErrorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setCookieHeaders(res as any);
     // Logger is not added to the response object in all cases depending on where error is encountered
     const responseLogger = res.log || logger;

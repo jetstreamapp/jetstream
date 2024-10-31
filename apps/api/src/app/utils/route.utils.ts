@@ -67,7 +67,8 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         org: res.locals.org as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // this will exist if targetJetstreamConn exists, otherwise will throw
         targetOrg: res.locals.targetOrg as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
-        user: req.session.user!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        user: req.session.user!, // It is possible this is null, but middleware asserts it exists so this is easier to work with
         requestId: res.locals.requestId,
         setCookie: (name: string, value: string, options: CookieOptions) => {
           res.locals.cookies = res.locals.cookies || {};

@@ -42,7 +42,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
     throw new Error('A valid userId must be provided');
   }
   try {
-    const dbTransactions: PrismaPromise<any>[] = [];
+    const dbTransactions: PrismaPromise<unknown>[] = [];
 
     if ((await prisma.salesforceOrg.count({ where: { jetstreamUserId: userId } })) > 0) {
       dbTransactions.push(

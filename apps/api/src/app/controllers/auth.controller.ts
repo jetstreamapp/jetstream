@@ -29,7 +29,7 @@ import {
   verify2faTotpOrThrow,
   verifyCSRFFromRequestOrThrow,
 } from '@jetstream/auth/server';
-import { OauthProviderType, OauthProviderTypeSchema, Provider, ProviderKeysSchema } from '@jetstream/auth/types';
+import { OauthProviderType, OauthProviderTypeSchema, Provider, ProviderKeysSchema, UserProfileSession } from '@jetstream/auth/types';
 import {
   sendAuthenticationChangeConfirmation,
   sendEmailVerification,
@@ -174,7 +174,7 @@ function initSession(
   req.session.ipAddress = req.ip;
   req.session.loginTime = new Date().getTime();
   req.session.provider = provider;
-  req.session.user = user as any;
+  req.session.user = user as UserProfileSession;
   req.session.pendingVerification = null;
 
   if (verificationRequired) {
@@ -201,16 +201,16 @@ function initSession(
   }
 }
 
-const logout = createRoute(routeDefinition.logout.validators, async ({ query }, req, res, next) => {
+const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
   req.session.destroy((err) => {
     if (err) {
       logger.error({ ...getExceptionLog(err) }, '[AUTH][LOGOUT][ERROR] Error destroying session');
     }
-    redirect(res, ENV.JETSTREAM_SERVER_URL!);
+    redirect(res, ENV.JETSTREAM_SERVER_URL);
   });
 });
 
-const getProviders = createRoute(routeDefinition.getProviders.validators, async ({ query }, req, res, next) => {
+const getProviders = createRoute(routeDefinition.getProviders.validators, async ({}, req, res, next) => {
   try {
     const providers = listProviders();
 
@@ -481,7 +481,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
   } catch (ex) {
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'LOGIN',
-      email: (body as any)?.email,
+      email: body && 'email' in body ? body.email : undefined,
       method: provider?.provider?.toUpperCase(),
       success: false,
     });
@@ -517,7 +517,7 @@ const verification = createRoute(routeDefinition.verification.validators, async 
         if (token !== code) {
           throw new InvalidVerificationToken();
         }
-        req.session.user = (await setUserEmailVerified(req.session.user.id)) as any;
+        req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
         break;
       }
       case '2fa-email': {
@@ -744,7 +744,7 @@ const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, 
         if (token !== code) {
           throw new InvalidVerificationToken();
         }
-        req.session.user = (await setUserEmailVerified(req.session.user.id)) as any;
+        req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
         break;
       }
       default: {

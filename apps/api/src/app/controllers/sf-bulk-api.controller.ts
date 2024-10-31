@@ -116,7 +116,7 @@ const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, 
 
 const addBatchToJob = createRoute(
   routeDefinition.addBatchToJob.validators,
-  async ({ body, params, query, user, jetstreamConn }, req, res, next) => {
+  async ({ body, params, query, jetstreamConn }, req, res, next) => {
     try {
       const jobId = params.jobId;
       const csv = body;
@@ -175,6 +175,7 @@ const downloadResultsFile = createRoute(
       }
 
       const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       Readable.fromWeb(results as any).pipe(res);
     } catch (ex) {
       next(new UserFacingError(ex));
@@ -211,9 +212,11 @@ const downloadResults = createRoute(
       if (isQuery) {
         const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
         const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Readable.fromWeb(results as any).pipe(csvParseStream);
       } else {
         const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Readable.fromWeb(results as any).pipe(csvParseStream);
       }
 

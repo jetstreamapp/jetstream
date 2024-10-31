@@ -45,7 +45,7 @@ export const routeDefinition = {
   },
 };
 
-const getOrganizations = createRoute(routeDefinition.getOrganizations.validators, async ({ user, query }, req, res, next) => {
+const getOrganizations = createRoute(routeDefinition.getOrganizations.validators, async ({ user }, req, res, next) => {
   try {
     const organizations = await jetstreamOrganizationsDb.findByUserId({ userId: user.id });
 

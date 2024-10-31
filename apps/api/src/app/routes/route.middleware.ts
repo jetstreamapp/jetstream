@@ -31,7 +31,8 @@ export function addContextMiddleware(req: express.Request, res: express.Response
 export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const appCookie: ApplicationCookie = {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    serverUrl: ENV.JETSTREAM_SERVER_URL!,
+    serverUrl: ENV.JETSTREAM_SERVER_URL,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     environment: ENV.ENVIRONMENT as any,
     defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -246,12 +247,12 @@ export async function getOrgForRequest(
   const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
 
   apiVersion = apiVersion || org.apiVersion || ENV.SFDC_API_VERSION;
-  let callOptions = {
+  let callOptions: Record<string, string> = {
     client: 'jetstream',
   };
 
   if (orgNamespacePrefix && includeCallOptions) {
-    callOptions = { ...callOptions, defaultNamespace: orgNamespacePrefix } as any;
+    callOptions = { ...callOptions, defaultNamespace: orgNamespacePrefix };
   }
 
   // Handle org refresh - then remove event listener if refreshed
@@ -322,7 +323,7 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
       logger.warn({ token, res }, '[CAPTCHA][FAILED]');
       throw new InvalidCaptcha();
     })
-    .catch((err) => {
+    .catch(() => {
       next(new InvalidCaptcha());
     });
 }

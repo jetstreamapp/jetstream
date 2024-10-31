@@ -77,6 +77,7 @@ export async function salesforceOauthCallback(
 
   const tokenSet = await authClient.oauthCallback(ENV.SFDC_CALLBACK_URL, callbackQueryParams, authData);
   const { access_token, refresh_token } = tokenSet;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const userInfo = await authClient.userinfo<SalesforceUserInfo>(access_token!);
 
   return {

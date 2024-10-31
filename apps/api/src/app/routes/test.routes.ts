@@ -25,6 +25,7 @@ routes.use((req, res, next) => {
  * Create an org for the integration user to use in testing
  * this avoids the need to perform oauth for integration test environment
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 routes.post('/e2e-integration-org', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL!;
   const E2E_LOGIN_USERNAME = process.env.E2E_LOGIN_USERNAME!;
@@ -54,6 +55,7 @@ routes.post('/e2e-integration-org', async (req: express.Request, res: express.Re
     userId: ENV.EXAMPLE_USER!.id,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendJson(res as any, salesforceOrg);
 });
 
