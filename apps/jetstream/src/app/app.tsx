@@ -3,13 +3,12 @@ import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
-import { environment } from '../environments/environment';
 import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
@@ -25,14 +24,7 @@ import './components/core/monaco-loader';
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();
-  const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (userProfile && userProfile[environment.authAudience || '']?.featureFlags) {
-      const flags = new Set<string>(userProfile[environment.authAudience || ''].featureFlags.flags);
-      setFeatureFlags(flags);
-    }
-  }, [userProfile]);
+  const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set(['all']));
 
   return (
     <ConfirmationServiceProvider>

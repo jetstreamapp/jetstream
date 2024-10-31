@@ -70,6 +70,17 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 2. If you are using docker, make sure you have Docker installed.
 3. If you want to run the dev server, make sure you have yarn version 1 installed.
 
+### Installing Dependencies
+
+### Setting up your environment
+
+Run this script to copy `.env.example` to `.env` which will generate encryption keys which are required to run the application.
+You will be asked some questions which will determine some of the environment variables.
+
+```bash
+yarn scripts:generate-env
+```
+
 📓 You can choose to skip authentication locally by setting the environment variable `EXAMPLE_USER_OVERRIDE=true`. This is set to true by default in the `.env.example` file.
 🌟 To use this, don't click the login button, but instead just go to `http://localhost:3333/app` or `http://localhost:4200/app` (if running the react development server) directly.
 
@@ -91,8 +102,9 @@ docker compose up
 
 - Jetstream will be running at `http://localhost:3333`
 - Postgres will be running on port `5555` if you wanted to connect to it locally.
-- When you click "Login", you should immediately be logged in without having to sign in.
-  - You can set `EXAMPLE_USER_OVERRIDE` if you want to disable this behavior
+- You can login with the `Example` user
+  - The username is `test@example.com`
+  - The password is contained in the `.env` file
 - If assets on the page don't load, do a hard refresh (hold cmd or shift and press refresh)
   - This might happen if you have re-built the image and the browser has cached the page with now missing resources.
 
@@ -100,7 +112,7 @@ docker compose up
 
 Use this option if you want to contribute to the codebase.
 
-Jetstream relies on a Postgres database, so you either need to [run Postgresql locally](https://www.postgresql.org/download/) or use a managed provider such as one from the list below. Optionally you can run jetstream in a Docker container which includes Postgresql.
+Jetstream relies on a Postgres database, so you either need to [run Postgresql locally](https://www.postgresql.org/download/), in a docker container, or use a managed provider such as one from the list below. Optionally you can run jetstream in a Docker container which includes Postgresql.
 
 - [Render](https://render.com/) (Jetstream is hosted here)
 - [elephantsql](https://www.elephantsql.com/plans.html)

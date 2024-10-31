@@ -5,6 +5,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Bulk', () => {
+  test.beforeAll(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   test('Bulk Job - Create,Get,Add Batch', async ({ apiRequestUtils }) => {
     const createJobResponse = await apiRequestUtils.makeRequest<BulkJob>('POST', `/api/bulk`, {
       externalId: null,

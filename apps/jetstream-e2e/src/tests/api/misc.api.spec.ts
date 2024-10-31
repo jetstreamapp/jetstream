@@ -4,6 +4,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Misc', () => {
+  test.beforeAll(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   test('Stream file download', async ({ apiRequestUtils }) => {
     const file = await apiRequestUtils.makeRequestRaw(
       'GET',

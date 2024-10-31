@@ -91,7 +91,7 @@ class RollbarConfig {
   private configure() {
     if (!this.rollbarIsConfigured && this.userProfile) {
       this.rollbarIsConfigured = true;
-      const { sub, email } = this.userProfile;
+      const { id, email } = this.userProfile;
       this.rollbar.configure({
         enabled: !this.optOut,
         codeVersion: this.version,
@@ -123,7 +123,7 @@ class RollbarConfig {
             },
           },
           person: {
-            id: sub,
+            id,
             email,
           },
         },

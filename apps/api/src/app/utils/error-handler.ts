@@ -2,16 +2,24 @@ import { logger } from '@jetstream/api-config';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ZodError } from 'zod';
 
+function initStatus(data: unknown, fallback: number) {
+  if (data && typeof data === 'object' && 'status' in data && typeof data.status === 'number') {
+    return data.status;
+  }
+  return fallback;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export class UserFacingError extends Error {
+  readonly status: number;
   /**
    * This data is propagated so that response can include the http status code
    */
-  apiRequestError?: ApiRequestError;
+  readonly apiRequestError?: ApiRequestError;
   /**
    * additionalData will be included in http response
    */
-  additionalData?: any;
+  readonly additionalData?: any;
   constructor(message: string | Error | ZodError, additionalData?: any) {
     if (message instanceof ZodError) {
       const errorDetails = Object.values(
@@ -49,6 +57,8 @@ export class UserFacingError extends Error {
       this.additionalData = additionalData;
     }
 
+    this.status = initStatus(message, 400);
+
     if (message instanceof ApiRequestError) {
       this.apiRequestError = message;
     }
@@ -56,7 +66,8 @@ export class UserFacingError extends Error {
 }
 
 export class AuthenticationError extends Error {
-  additionalData?: any;
+  readonly status: number;
+  readonly additionalData?: any;
   constructor(message: string | Error, additionalData?: any) {
     if (message instanceof Error) {
       super(message.message);
@@ -65,12 +76,14 @@ export class AuthenticationError extends Error {
     } else {
       super(message);
     }
+    this.status = initStatus(message, 401);
     this.additionalData = additionalData;
   }
 }
 
 export class NotFoundError extends Error {
-  additionalData?: any;
+  readonly status: number;
+  readonly additionalData?: any;
   constructor(message: string | Error, additionalData?: any) {
     if (message instanceof Error) {
       super(message.message);
@@ -79,12 +92,14 @@ export class NotFoundError extends Error {
     } else {
       super(message);
     }
+    this.status = initStatus(message, 404);
     this.additionalData = additionalData;
   }
 }
 
 export class NotAllowedError extends Error {
-  additionalData?: any;
+  readonly status: number;
+  readonly additionalData?: any;
   constructor(message: string | Error, additionalData?: any) {
     logger.warn({ message, additionalData }, '[ROUTE NOT ALLOWED]');
     if (message instanceof Error) {
@@ -94,6 +109,7 @@ export class NotAllowedError extends Error {
     } else {
       super(message);
     }
+    this.status = initStatus(message, 403);
     this.additionalData = additionalData;
   }
 }

@@ -30,6 +30,7 @@ import Icon from '../../widgets/Icon';
 
 export interface DropDownProps {
   className?: string;
+  testId?: string;
   disabled?: boolean;
   position?: 'left' | 'right';
   leadingIcon?: IconObj; // ignored if buttonContent is provided
@@ -47,6 +48,7 @@ export interface DropDownProps {
 
 export const DropDown: FunctionComponent<DropDownProps> = ({
   className,
+  testId,
   disabled,
   position = 'left',
   leadingIcon,
@@ -168,6 +170,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
       <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}>
         <button
+          data-testid={testId}
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
           aria-haspopup="true"
           aria-expanded={isOpen}

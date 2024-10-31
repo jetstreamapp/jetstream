@@ -4,6 +4,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Query', () => {
+  test.beforeAll(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   test('describe global', async ({ apiRequestUtils }) => {
     const [describeSuccess, describeToolingSuccess, invalidParam] = await Promise.all([
       apiRequestUtils.makeRequest<DescribeGlobalResult>('GET', `/api/describe`),

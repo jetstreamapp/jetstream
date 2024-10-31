@@ -1,5 +1,5 @@
 import { getExceptionLog, logger } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileSession } from '@jetstream/auth/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
 import { IncomingMessage, createServer } from 'http';
@@ -19,7 +19,7 @@ const wrapMiddleware =
     middleware(socket.request, {}, next);
 
 function getUser(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) {
-  const user = (socket.request as any).user as UserProfileServer;
+  const user = (socket.request as any).user as UserProfileSession;
   return user;
 }
 

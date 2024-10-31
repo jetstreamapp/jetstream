@@ -69,7 +69,7 @@ const updateOrganization = createRoute(routeDefinition.updateOrganization.valida
   try {
     const organization = await jetstreamOrganizationsDb.update(user.id, params.id, body);
 
-    sendJson(res, organization, 201);
+    sendJson(res, organization, 200);
   } catch (ex) {
     next(new UserFacingError(ex));
   }

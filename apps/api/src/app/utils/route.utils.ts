@@ -1,6 +1,6 @@
 import { getExceptionLog, rollbarServer } from '@jetstream/api-config';
+import { CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
-import { UserProfileServer } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
@@ -20,9 +20,11 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     params: z.infer<TParamsSchema>;
     body: z.infer<TBodySchema>;
     query: z.infer<TQuerySchema>;
+    setCookie: (name: string, value: string, options: CookieOptions) => void;
+    clearCookie: (name: string, options: CookieOptions) => void;
     jetstreamConn: ApiConnection;
     targetJetstreamConn: ApiConnection;
-    user: UserProfileServer;
+    user: UserProfileSession;
     requestId: string;
     org: NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>;
     targetOrg: NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>;
@@ -54,6 +56,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     try {
+      res.locals.cookies = res.locals.cookies || {};
       const data = {
         params: params ? params.parse(req.params) : undefined,
         body: body ? body.parse(req.body) : undefined,
@@ -64,8 +67,20 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         org: res.locals.org as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // this will exist if targetJetstreamConn exists, otherwise will throw
         targetOrg: res.locals.targetOrg as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
-        user: req.user as UserProfileServer,
+        user: req.session.user!,
         requestId: res.locals.requestId,
+        setCookie: (name: string, value: string, options: CookieOptions) => {
+          res.locals.cookies = res.locals.cookies || {};
+          res.locals.cookies[name] = { name, value, options };
+        },
+        clearCookie: (name: string, options: CookieOptions) => {
+          res.locals.cookies = res.locals.cookies || {};
+          res.locals.cookies[name] = {
+            clear: true,
+            name,
+            options,
+          };
+        },
       };
       if (hasSourceOrg && !data.jetstreamConn) {
         req.log.info('[INIT-ORG][ERROR] A source org did not exist on locals');
@@ -75,7 +90,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         req.log.info('[INIT-ORG][ERROR] A target org did not exist on locals');
         return next(new UserFacingError('A source and target org are required for this action'));
       }
-      await controllerFn(data, req, res, next);
+      try {
+        await controllerFn(data, req, res, next);
+      } catch (ex) {
+        next(ex);
+      }
     } catch (ex) {
       rollbarServer.error('Route Validation Error', req, {
         context: `route#createRoute`,
@@ -87,7 +106,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
           params: req.params,
           query: req.query,
           body: req.body,
-          userId: (req.user as UserProfileServer)?.id,
+          userId: req.session.user?.id,
           requestId: res.locals.requestId,
         },
       });

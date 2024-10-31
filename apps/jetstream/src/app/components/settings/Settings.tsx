@@ -1,21 +1,8 @@
+import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import {
-  deleteUserProfile,
-  getFullUserProfile,
-  getUserProfile as getUserProfileUi,
-  resendVerificationEmail,
-  updateUserProfile,
-} from '@jetstream/shared/data';
+import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import {
-  Auth0ConnectionName,
-  Maybe,
-  UserProfileAuth0Identity,
-  UserProfileAuth0Ui,
-  UserProfileUi,
-  UserProfileUiWithIdentities,
-} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
@@ -27,25 +14,16 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { userProfileState } from '@jetstream/ui-core';
+import { useAmplitude, userProfileState } from '@jetstream/ui-core';
 import localforage from 'localforage';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
-import { useAmplitude } from '@jetstream/ui-core';
 import LoggerConfig from './LoggerConfig';
-import SettingsDeleteAccount from './SettingsDeleteAccount';
-import SettingsLinkedAccounts from './SettingsLinkedAccounts';
-import SettingsUserProfile from './SettingsUserProfile';
-import { useLinkAccount } from './useLinkAccount';
+import { SettingsDeleteAccount } from './SettingsDeleteAccount';
 
 const HEIGHT_BUFFER = 170;
 
-export interface SettingsProps {
-  userProfile: Maybe<UserProfileUi>;
-  featureFlags: Set<string>;
-}
-
-export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featureFlags }) => {
+export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
@@ -55,8 +33,6 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
   const setUserProfile = useSetRecoilState(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
-  const [editMode, setEditMode] = useState(false);
-  const { linkAccount, unlinkAccount, loading: linkAccountLoading } = useLinkAccount();
 
   useEffect(() => {
     isMounted.current = true;
@@ -110,59 +86,13 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
       rollbar.error('Settings: Error updating user', { stack: ex.stack, message: ex.message });
     } finally {
       setLoading(false);
-      setEditMode(false);
     }
-  }
-
-  function handleCancelEdit() {
-    setEditMode(false);
-    fullUserProfile && setModifiedUser({ ...fullUserProfile });
-  }
-
-  async function handleUnlinkAccount(identity: UserProfileAuth0Identity) {
-    try {
-      const userProfile = await unlinkAccount(identity);
-      setFullUserProfile(userProfile);
-      trackEvent(ANALYTICS_KEYS.settings_unlink_account, { provider: identity.provider, userId: identity.user_id });
-    } catch (ex) {
-      fireToast({
-        message: 'There was a problem unlinking your account. Try again or file a support ticket for assistance.',
-        type: 'error',
-      });
-      rollbar.error('Settings: Error unlinking account', { stack: ex.stack, message: ex.message });
-    }
-  }
-
-  async function handleOnResendVerificationEmail(identity: UserProfileAuth0Identity) {
-    try {
-      await resendVerificationEmail({ provider: identity.provider, userId: identity.user_id });
-      fireToast({
-        message: 'You have been sent an email to verify your email address.',
-        type: 'success',
-      });
-      trackEvent(ANALYTICS_KEYS.settings_resend_email_verification, { provider: identity.provider, userId: identity.user_id });
-    } catch (ex) {
-      fireToast({
-        message: 'There was a problem sending the email verification. Try again or file a support ticket for assistance.',
-        type: 'error',
-      });
-      rollbar.error('Settings: Error sending verification email', { stack: ex.stack, message: ex.message });
-    }
-  }
-
-  function handleProfileChange(modified: Pick<UserProfileAuth0Ui, 'name'>) {
-    setModifiedUser((priorValue) => ({ ...fullUserProfile, ...priorValue, ...modified } as UserProfileUiWithIdentities));
   }
 
   function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
     const _modifiedUser = { ...modifiedUser, preferences: { skipFrontdoorLogin } } as UserProfileUiWithIdentities;
     setModifiedUser(_modifiedUser);
     handleSave(_modifiedUser);
-  }
-
-  function handleLinkAccount(connection: Auth0ConnectionName) {
-    linkAccount(connection, getUserProfile);
-    trackEvent(ANALYTICS_KEYS.settings_link_account, { provider: connection });
   }
 
   async function handleDelete(reason: string) {
@@ -199,7 +129,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
         {/* Settings */}
-        {(loading || linkAccountLoading) && <Spinner />}
+        {loading && <Spinner />}
         {loadingError && (
           <ScopedNotification theme="error" className="slds-m-vertical_medium">
             There was a problem getting your profile information. Make sure you have an internet connection and file a support ticket if you
@@ -207,17 +137,7 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
           </ScopedNotification>
         )}
         {fullUserProfile && (
-          <Fragment>
-            <SettingsUserProfile
-              fullUserProfile={fullUserProfile}
-              name={modifiedUser?.name || ''}
-              editMode={editMode}
-              onEditMode={setEditMode}
-              onChange={handleProfileChange}
-              onSave={handleSave}
-              onCancel={handleCancelEdit}
-            />
-
+          <div className="slds-m-top_medium">
             <CheckboxToggle
               id="frontdoor-toggle"
               checked={modifiedUser?.preferences?.skipFrontdoorLogin || false}
@@ -226,19 +146,12 @@ export const Settings: FunctionComponent<SettingsProps> = ({ userProfile, featur
               onChange={handleFrontdoorLoginChange}
             />
 
-            <SettingsLinkedAccounts
-              fullUserProfile={fullUserProfile}
-              onLink={handleLinkAccount}
-              onUnlink={handleUnlinkAccount}
-              onResendVerificationEmail={handleOnResendVerificationEmail}
-            />
-
-            <div className="slds-m-top_medium">
+            <div className="slds-m-top_large">
               <LoggerConfig />
             </div>
 
             <SettingsDeleteAccount onDeleteAccount={handleDelete} />
-          </Fragment>
+          </div>
         )}
       </AutoFullHeightContainer>
     </Page>

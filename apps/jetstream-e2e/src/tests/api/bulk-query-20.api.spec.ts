@@ -5,6 +5,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Bulk Query 2.0', () => {
+  test.beforeAll(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   /**
    * This test is super flaky because it relies on how fast salesforce starts processing the job
    */

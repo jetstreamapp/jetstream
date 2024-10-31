@@ -1,0 +1,9 @@
+{
+  "name": "auth-types",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/auth/types/src",
+  "projectType": "library",
+  "tags": ["types", "scope:any"],
+  "// targets": "to see all targets run: nx show project auth-types --web",
+  "targets": {}
+}

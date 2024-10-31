@@ -8,25 +8,125 @@ datasource db {
 }
 
 model User {
-  id             String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId         String                  @unique @db.VarChar
-  email          String                  @db.VarChar
-  name           String?                 @db.VarChar
-  nickname       String?                 @db.VarChar
-  picture        String?                 @db.VarChar
-  appMetadata    Json?                   @db.Json
-  preferences    UserPreference?
-  salesforceOrgs SalesforceOrg[]
-  organizations  JetstreamOrganization[]
-  lastLoggedIn   DateTime?
-  deletedAt      DateTime?
-  createdAt      DateTime                @default(now()) @db.Timestamp(6)
-  updatedAt      DateTime                @updatedAt
+  id                String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  // TODO: we should deprecate this field - is there a purpose of having two user ids?
+  // Might be nice to rename this to something like "legacyId" for reference
+  userId            String                  @unique @db.VarChar
+  // TODO: we want to make this unique
+  email             String                  @db.VarChar
+  emailVerified     Boolean                 @default(false)
+  password          String?                 @db.VarChar
+  passwordUpdatedAt DateTime?
+  name              String                  @db.VarChar
+  nickname          String?                 @db.VarChar
+  picture           String?                 @db.VarChar
+  appMetadata       Json?                   @db.Json
+  preferences       UserPreference?
+  salesforceOrgs    SalesforceOrg[]
+  organizations     JetstreamOrganization[]
+  identities        AuthIdentity[]
+  authFactors       AuthFactors[]
+  loginActivity     LoginActivity[]
+  rememberdDevices  RememberedDevice[]
+  lastLoggedIn      DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime                @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime                @updatedAt
+}
+
+model AuthFactors {
+  userId  String  @db.Uuid
+  type    String
+  enabled Boolean @default(false)
+  secret  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, type])
+}
+
+model PasswordResetToken {
+  email     String
+  token     String   @unique @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  expiresAt DateTime
+
+  @@unique([email, token])
+}
+
+model RememberedDevice {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @db.Uuid
+  deviceId  String   @unique
+  ipAddress String
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuthIdentity {
+  userId            String  @db.Uuid
+  isPrimary         Boolean @default(false)
+  type              String
+  provider          String
+  providerAccountId String
+  email             String
+  emailVerified     Boolean @default(false)
+  username          String
+  name              String
+  givenName         String?
+  familyName        String?
+  picture           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+// TODO: I should be able to store in server sessions and not in DB
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model LoginActivity {
+  id           Int      @id @default(autoincrement())
+  action       String
+  method       String?
+  email        String?
+  userId       String?  @db.Uuid
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ipAddress    String?
+  userAgent    String?
+  success      Boolean
+  errorMessage String?
+  requestId    String?
+  createdAt    DateTime @default(now())
+}
+
+model EmailActivity {
+  id         Int      @id @default(autoincrement())
+  email      String
+  subject    String
+  status     String?
+  providerId String?
+  createdAt  DateTime @default(now())
 }
 
 model UserPreference {
   id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user               User     @relation(fields: [userId], references: [id])
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String   @unique @db.Uuid
   skipFrontdoorLogin Boolean  @default(false)
   createdAt          DateTime @default(now()) @db.Timestamp(6)
@@ -35,7 +135,7 @@ model UserPreference {
 
 model JetstreamOrganization {
   id          String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user        User            @relation(fields: [userId], references: [id])
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String          @db.Uuid
   orgs        SalesforceOrg[]
   name        String          @db.VarChar(60)
@@ -67,7 +167,7 @@ model SalesforceOrg {
   jetstreamUserId         String                 @db.VarChar
   jetstreamUser           User?                  @relation(fields: [jetstreamUserId2], references: [id], onDelete: Cascade)
   jetstreamUserId2        String?                @db.Uuid
-  jetstreamOrganization   JetstreamOrganization? @relation(fields: [jetstreamOrganizationId], references: [id])
+  jetstreamOrganization   JetstreamOrganization? @relation(fields: [jetstreamOrganizationId], references: [id], onDelete: SetNull)
   jetstreamOrganizationId String?                @db.Uuid
   uniqueId                String                 @db.VarChar
   filterText              String                 @db.VarChar
@@ -96,7 +196,7 @@ model SalesforceOrg {
   orgOrganizationType     String?                @db.VarChar
   color                   String?                @db.VarChar(10)
 
-  @@unique([jetstreamUserId, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
+  @@unique([jetstreamUserId2, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
   @@map("salesforce_org")
 }
 

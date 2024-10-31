@@ -35,7 +35,6 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   config.plugins.push(
     // @ts-expect-error this is valid, not sure why it is complaining
     new webpack.EnvironmentPlugin({
-      NX_PUBLIC_AUTH_AUDIENCE: 'http://getjetstream.app/app_metadata',
       NX_PUBLIC_AMPLITUDE_KEY: '',
       NX_PUBLIC_ROLLBAR_KEY: '',
     }),

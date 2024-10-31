@@ -4,6 +4,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Record Controller', () => {
+  test.beforeAll(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   test('Record Operation', async ({ apiRequestUtils }) => {
     const [lead, leadInvalid] = await apiRequestUtils.makeRequest<[SuccessResult, ErrorResult]>(
       'POST',

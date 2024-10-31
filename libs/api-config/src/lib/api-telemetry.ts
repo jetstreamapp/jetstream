@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { credentials, Metadata } from '@grpc/grpc-js';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileSession } from '@jetstream/auth/types';
 import telemetryApi from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
@@ -50,10 +50,10 @@ if (ENV.HONEYCOMB_ENABLED) {
   });
 }
 
-export function telemetryAddUserToAttributes(user?: UserProfileServer) {
-  if (ENV.HONEYCOMB_ENABLED && user && (user.user_id || user.id)) {
+export function telemetryAddUserToAttributes(user?: UserProfileSession) {
+  if (ENV.HONEYCOMB_ENABLED && user?.id) {
     try {
-      telemetryApi.trace.getSpan(telemetryApi.context.active())?.setAttribute('user.id', user.user_id || user.id);
+      telemetryApi.trace.getSpan(telemetryApi.context.active())?.setAttribute('user.id', user.id);
     } catch (ex) {
       logger.warn(getExceptionLog(ex), '[TELEMETRY] Error adding user to attributes');
     }

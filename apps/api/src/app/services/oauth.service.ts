@@ -48,7 +48,7 @@ export function salesforceOauthInit(
     login_hint: loginHint,
     nonce,
     prompt: 'login',
-    scope: 'api web refresh_token',
+    scope: 'api refresh_token',
     state,
   };
 
@@ -97,6 +97,8 @@ export async function salesforceOauthRefresh(loginUrl: string, refreshToken: str
 
 /**
  * Login to Salesforce using username and password
+ *
+ * This is only used in tests to get an access_token to avoid having to go through OAuth+redirect flow
  */
 export async function salesforceLoginUsernamePassword_UNSAFE(
   loginUrl: string,

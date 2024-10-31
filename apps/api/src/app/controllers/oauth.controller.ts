@@ -9,7 +9,14 @@ import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
 import { createRoute } from '../utils/route.utils';
-import { OauthLinkParams } from './auth.controller';
+
+export interface OauthLinkParams {
+  type: 'auth' | 'salesforce';
+  error?: string;
+  message?: string;
+  clientUrl: string;
+  data?: string;
+}
 
 export const routeDefinition = {
   salesforceOauthInitAuth: {
@@ -40,7 +47,7 @@ export const routeDefinition = {
  * @param req
  * @param res
  */
-const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res, next) => {
+const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res) => {
   const { loginUrl, addLoginParam, jetstreamOrganizationId } = query;
   const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam });
   req.session.orgAuth = { code_verifier, nonce, state, loginUrl, jetstreamOrganizationId };
@@ -52,7 +59,7 @@ const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitA
  * @param req
  * @param res
  */
-const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallback.validators, async ({ query, user }, req, res, next) => {
+const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallback.validators, async ({ query, user }, req, res) => {
   const queryParams = query as CallbackParamsType;
   const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
   const returnParams: OauthLinkParams = {

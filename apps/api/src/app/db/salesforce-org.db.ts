@@ -5,7 +5,7 @@ import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Prisma, SalesforceOrg } from '@prisma/client';
 import { parseISO } from 'date-fns/parseISO';
 import isUndefined from 'lodash/isUndefined';
-import { findIdByUserId } from './user.db';
+import { NotFoundError } from '../utils/error-handler';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   jetstreamOrganizationId: true,
@@ -37,24 +37,19 @@ const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
 
 export const SALESFORCE_ORG_SELECT = SELECT;
 
-/**
- * TODO: add better error handling with non-db error messages!
- */
-
-const findUniqueOrg = ({ jetstreamUserId, uniqueId }: { jetstreamUserId: string; uniqueId: string }) => {
+const findUniqueOrg = ({ userId, uniqueId }: { userId: string; uniqueId: string }) => {
   return Prisma.validator<Prisma.SalesforceOrgWhereUniqueInput>()({
     uniqueOrg: {
-      jetstreamUserId,
+      jetstreamUserId2: userId,
       jetstreamUrl: ENV.JETSTREAM_SERVER_URL!,
       uniqueId: uniqueId,
     },
   });
 };
 
-const findUsersOrgs = ({ jetstreamUserId, actualUserId }: { jetstreamUserId: string; actualUserId: string }) => {
+const findUsersOrgs = ({ userId }: { userId: string }) => {
   return Prisma.validator<Prisma.SalesforceOrgWhereInput>()({
-    jetstreamUserId2: actualUserId,
-    jetstreamUserId,
+    jetstreamUserId2: userId,
     jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
   });
 };
@@ -64,6 +59,8 @@ export function encryptAccessToken(accessToken: string, refreshToken: string) {
 }
 
 export function decryptAccessToken(encryptedAccessToken: string) {
+  // FIXME: we should use a dedicated encryption key for this
+  // TODO: if org is not used for X timeperiod, we should auto-expire the token
   return decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET!)).split(' ');
 }
 
@@ -71,13 +68,13 @@ export function decryptAccessToken(encryptedAccessToken: string) {
  * Finds by unique id and returns all fields
  * This is unsafe to send to the browser and should only be used internally
  *
- * @param jetstreamUserId
+ * @param userId
  * @param uniqueId
  * @returns
  */
-export async function findByUniqueId_UNSAFE(jetstreamUserId: string, uniqueId: string) {
+export async function findByUniqueId_UNSAFE(userId: string, uniqueId: string) {
   return await prisma.salesforceOrg.findUnique({
-    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+    where: findUniqueOrg({ userId, uniqueId }),
   });
 }
 
@@ -97,28 +94,30 @@ export async function updateOrg_UNSAFE(org: SalesforceOrg, data: Partial<Salesfo
   });
 }
 
-export async function findByUniqueId(jetstreamUserId: string, uniqueId: string) {
+export async function findByUniqueId(userId: string, uniqueId: string) {
   return await prisma.salesforceOrg.findUnique({
     select: SELECT,
-    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+    where: findUniqueOrg({ userId, uniqueId }),
   });
 }
 
-export async function findByUserId(jetstreamUserId: string) {
-  const actualUserId = await findIdByUserId({ userId: jetstreamUserId });
+export async function findByUserId(userId: string) {
   return await prisma.salesforceOrg.findMany({
     select: SELECT,
-    where: findUsersOrgs({ jetstreamUserId, actualUserId }),
+    where: findUsersOrgs({ userId }),
   });
 }
 
-export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, salesforceOrgUi: Partial<SalesforceOrgUi>) {
-  const actualUserId = await findIdByUserId({ userId: jetstreamUserId });
-  const existingOrg = await prisma.salesforceOrg.findUnique({
-    where: findUniqueOrg({ jetstreamUserId, uniqueId: salesforceOrgUi.uniqueId! }),
+export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgUi: Partial<SalesforceOrgUi>) {
+  const userWithOrgs = await prisma.user.findFirstOrThrow({
+    where: { id: userId },
+    select: { id: true, userId: true, salesforceOrgs: true },
   });
+  const existingOrg = userWithOrgs.salesforceOrgs.find((org) => org.uniqueId === salesforceOrgUi.uniqueId);
 
-  // FIXME: need to include organization - added orgs should be added to current organization
+  if (!salesforceOrgUi.uniqueId) {
+    throw new Error('uniqueId is required');
+  }
 
   let orgToDelete: Maybe<{ id: number }>;
   /**
@@ -127,16 +126,10 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
    * After a user does a sandbox refresh, this deletes the old org no matter how the user initiated the connection
    */
   if (salesforceOrgUi.organizationId && salesforceOrgUi.username) {
-    orgToDelete = await prisma.salesforceOrg.findFirst({
-      select: { id: true },
-      where: {
-        jetstreamUserId2: { equals: actualUserId },
-        jetstreamUserId: { equals: jetstreamUserId },
-        jetstreamUrl: { equals: ENV.JETSTREAM_SERVER_URL! },
-        username: { equals: salesforceOrgUi.username },
-        uniqueId: { not: { equals: salesforceOrgUi.uniqueId! } },
-      },
-    });
+    orgToDelete = userWithOrgs.salesforceOrgs.find(
+      ({ uniqueId, username, jetstreamUrl }) =>
+        uniqueId !== salesforceOrgUi.uniqueId && username === salesforceOrgUi.username && jetstreamUrl === ENV.JETSTREAM_SERVER_URL
+    );
   }
 
   if (existingOrg) {
@@ -183,8 +176,8 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
     const org = await prisma.salesforceOrg.create({
       select: SELECT,
       data: {
-        jetstreamUserId2: actualUserId,
-        jetstreamUserId,
+        jetstreamUserId2: userWithOrgs.id,
+        jetstreamUserId: userWithOrgs.userId,
         jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
         jetstreamOrganizationId: salesforceOrgUi.jetstreamOrganizationId,
         label: salesforceOrgUi.label || salesforceOrgUi.username,
@@ -218,14 +211,14 @@ export async function createOrUpdateSalesforceOrg(jetstreamUserId: string, sales
   }
 }
 
-export async function updateSalesforceOrg(jetstreamUserId: string, uniqueId: string, data: { label: string; color?: string | null }) {
+export async function updateSalesforceOrg(userId: string, uniqueId: string, data: { label: string; color?: string | null }) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
     select: { id: true, username: true, label: true, orgName: true, color: true },
-    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+    where: findUniqueOrg({ userId, uniqueId }),
   });
 
   if (!existingOrg) {
-    throw new Error('An org does not exist with the provided input');
+    throw new NotFoundError('An org does not exist with the provided input');
   }
 
   const label = data.label || existingOrg.username;
@@ -242,14 +235,14 @@ export async function updateSalesforceOrg(jetstreamUserId: string, uniqueId: str
   });
 }
 
-export async function moveSalesforceOrg(jetstreamUserId: string, uniqueId: string, data: { jetstreamOrganizationId?: Maybe<string> }) {
+export async function moveSalesforceOrg(userId: string, uniqueId: string, data: { jetstreamOrganizationId?: Maybe<string> }) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
     select: { id: true },
-    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+    where: findUniqueOrg({ userId, uniqueId }),
   });
 
   if (!existingOrg) {
-    throw new Error('An org does not exist with the provided input');
+    throw new NotFoundError('An org does not exist with the provided input');
   }
 
   return await prisma.salesforceOrg.update({
@@ -261,14 +254,14 @@ export async function moveSalesforceOrg(jetstreamUserId: string, uniqueId: strin
   });
 }
 
-export async function deleteSalesforceOrg(jetstreamUserId: string, uniqueId: string) {
+export async function deleteSalesforceOrg(userId: string, uniqueId: string) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
     select: { id: true, username: true, label: true, orgName: true },
-    where: findUniqueOrg({ jetstreamUserId, uniqueId }),
+    where: findUniqueOrg({ userId, uniqueId }),
   });
 
   if (!existingOrg) {
-    throw new Error('An org does not exist with the provided input');
+    throw new NotFoundError('An org does not exist with the provided input');
   }
 
   await prisma.salesforceOrg.delete({

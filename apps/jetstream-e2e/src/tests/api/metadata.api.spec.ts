@@ -6,6 +6,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Metadata', () => {
+  test.beforeAll(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   test('describe metadata', async ({ apiRequestUtils }) => {
     const results = await apiRequestUtils.makeRequest<DescribeMetadataResult>('GET', `/api/metadata/describe`);
 

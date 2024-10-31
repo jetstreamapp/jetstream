@@ -7,6 +7,7 @@ import './lib/env-config';
 // Exports
 export * from './lib/api-db-config';
 export * from './lib/api-logger';
+export * from './lib/api-rate-limit.config';
 export * from './lib/api-rollbar-config';
 export * from './lib/api-telemetry';
 export * from './lib/email.config';

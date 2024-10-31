@@ -1,3 +1,4 @@
+import { ResponseLocalsCookies } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { SalesforceOrg } from '@prisma/client';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
@@ -27,5 +28,12 @@ export type Response<ResBody = unknown> = ExpressResponse<
     org: SalesforceOrg;
     targetJetstreamConn?: ApiConnection;
     targetOrg?: SalesforceOrg;
+    /**
+     * Cookie configuration
+     * This is used to store all the cookies that need to be set or cleared
+     * This ensures that if we want to clear and set the same cookie, we can just set it without worrying about clearing it first
+     * which simplifies having the same header specified twice
+     */
+    cookies?: ResponseLocalsCookies;
   }
 > & { log: pino.Logger };

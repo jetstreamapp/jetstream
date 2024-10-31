@@ -1,7 +1,6 @@
 import { ENV } from '@jetstream/api-config';
 import express from 'express';
 import Router from 'express-promise-router';
-import multer from 'multer';
 import { routeDefinition as imageController } from '../controllers/image.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -16,9 +15,6 @@ import { routeDefinition as userController } from '../controllers/user.controlle
 import { sendJson } from '../utils/response.handlers';
 import { addOrgsToLocal, checkAuth, ensureTargetOrgExists } from './route.middleware';
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
 const routes: express.Router = Router();
 
 routes.use(checkAuth);
@@ -26,7 +22,7 @@ routes.use(addOrgsToLocal);
 
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
-  sendJson(res, { version: ENV.GIT_VERSION || null });
+  sendJson(res as any, { version: ENV.GIT_VERSION || null });
 });
 
 /**
@@ -39,8 +35,23 @@ routes.delete('/me', userController.deleteAccount.controllerFn());
 routes.get('/me/profile', userController.getFullUserProfile.controllerFn());
 routes.post('/me/profile', userController.updateProfile.controllerFn());
 routes.delete('/me/profile/identity', userController.unlinkIdentity.controllerFn());
-routes.post('/me/profile/identity/verify-email', userController.resendVerificationEmail.controllerFn());
-routes.post('/support/email', upload.array('files', 5) as any, userController.emailSupport.controllerFn());
+routes.get('/me/profile/sessions', userController.getSessions.controllerFn());
+routes.delete('/me/profile/sessions/:id', userController.revokeSession.controllerFn());
+routes.delete('/me/profile/sessions', userController.revokeAllSessions.controllerFn());
+/**
+ * Password Management Routes
+ */
+routes.post('/me/profile/password/init', userController.initPassword.controllerFn());
+routes.post('/me/profile/password/reset', userController.initResetPassword.controllerFn());
+// TODO: should we allow users to remove their password if they have social login?
+routes.delete('/me/profile/password', userController.deletePassword.controllerFn());
+/**
+ * 2FA Routes
+ */
+routes.get('/me/profile/2fa-otp', userController.getOtpQrCode.controllerFn());
+routes.post('/me/profile/2fa-otp', userController.saveOtpAuthFactor.controllerFn());
+routes.post('/me/profile/2fa/:type/:action', userController.toggleEnableDisableAuthFactor.controllerFn());
+routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controllerFn());
 
 /**
  * ************************************
