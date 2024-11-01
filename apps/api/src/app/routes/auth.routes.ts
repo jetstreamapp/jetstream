@@ -9,7 +9,7 @@ import { verifyCaptcha } from './route.middleware';
  */
 
 function getMaxRequests(value: number) {
-  return ENV.IS_CI ? 10000 : value;
+  return ENV.CI ? 10000 : value;
 }
 
 export const LAX_AuthRateLimit = createRateLimit('auth_lax', {

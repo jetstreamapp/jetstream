@@ -67,7 +67,7 @@ const parseResults = z
       .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
       .nullish()
       .transform((value) => value ?? 'debug'),
-    IS_CI: booleanSchema,
+    CI: booleanSchema,
     // LOCAL OVERRIDE
     EXAMPLE_USER: z.record(z.any()).nullish(),
     EXAMPLE_USER_PASSWORD: z.string().nullish(),

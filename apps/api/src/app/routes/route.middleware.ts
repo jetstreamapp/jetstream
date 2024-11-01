@@ -291,7 +291,7 @@ export async function getOrgForRequest(
 }
 
 export function verifyCaptcha(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!ENV.CAPTCHA_SECRET_KEY || ENV.IS_CI) {
+  if (!ENV.CAPTCHA_SECRET_KEY || ENV.CI) {
     return next();
   }
   const token = req.body?.[ENV.CAPTCHA_PROPERTY];

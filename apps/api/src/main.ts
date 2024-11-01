@@ -248,7 +248,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
 
-  if (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI) {
+  if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);
   }
 
@@ -272,7 +272,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
   });
 
-  if (environment.production || ENV.IS_CI) {
+  if (environment.production || ENV.CI) {
     app.use(express.static(join(__dirname, '../jetstream')));
     app.use('/app', redirectIfPendingVerificationMiddleware, (req: express.Request, res: express.Response) => {
       res.sendFile(join(__dirname, '../jetstream/index.html'));
@@ -317,7 +317,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 /**
  * FIXME: Should this live somewhere else and be de-coupled with application?
  */
-if (ENV.EXAMPLE_USER && ENV.EXAMPLE_USER_PASSWORD && (ENV.ENVIRONMENT !== 'production' || ENV.IS_CI)) {
+if (ENV.EXAMPLE_USER && ENV.EXAMPLE_USER_PASSWORD && (ENV.ENVIRONMENT !== 'production' || ENV.CI)) {
   (async () => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
