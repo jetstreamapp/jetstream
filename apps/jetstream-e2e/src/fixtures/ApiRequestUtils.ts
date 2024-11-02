@@ -12,8 +12,7 @@ export class ApiRequestUtils {
   selectedOrgId: string;
 
   constructor(page: Page, e2eLoginUsername: string) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.BASE_URL = process.env.JETSTREAM_SERVER_URL!;
+    this.BASE_URL = process.env.JETSTREAM_SERVER_URL;
     this.page = page;
     this.E2E_LOGIN_USERNAME = e2eLoginUsername;
     this.request = page.request;

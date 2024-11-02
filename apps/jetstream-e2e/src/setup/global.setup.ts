@@ -1,5 +1,4 @@
 import { ENV } from '@jetstream/api-config';
-import { UserProfileSession } from '@jetstream/auth/types';
 import { expect, test as setup } from '@playwright/test';
 import { join } from 'path';
 
@@ -16,7 +15,7 @@ setup('login and ensure org exists', async ({ page, request }) => {
   });
 
   console.log('Logging in as example user');
-  const user = ENV.EXAMPLE_USER as UserProfileSession;
+  const user = ENV.EXAMPLE_USER;
 
   await page.goto(baseApiURL);
   await page.getByRole('link', { name: 'Log in' }).click();

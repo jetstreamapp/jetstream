@@ -41,7 +41,7 @@ const findUniqueOrg = ({ userId, uniqueId }: { userId: string; uniqueId: string 
   return Prisma.validator<Prisma.SalesforceOrgWhereUniqueInput>()({
     uniqueOrg: {
       jetstreamUserId2: userId,
-      jetstreamUrl: ENV.JETSTREAM_SERVER_URL!,
+      jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
       uniqueId: uniqueId,
     },
   });
@@ -55,13 +55,13 @@ const findUsersOrgs = ({ userId }: { userId: string }) => {
 };
 
 export function encryptAccessToken(accessToken: string, refreshToken: string) {
-  return encryptString(`${accessToken} ${refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET!));
+  return encryptString(`${accessToken} ${refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
 }
 
 export function decryptAccessToken(encryptedAccessToken: string) {
   // FIXME: we should use a dedicated encryption key for this
   // TODO: if org is not used for X timeperiod, we should auto-expire the token
-  return decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET!)).split(' ');
+  return decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET)).split(' ');
 }
 
 /**

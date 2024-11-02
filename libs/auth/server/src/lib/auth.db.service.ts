@@ -169,13 +169,13 @@ export async function getTotpAuthenticationFactor(userId: string) {
     })
     .then((factor) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const secret = decryptString(factor.secret!, ENV.JETSTREAM_AUTH_OTP_SECRET as string);
+      const secret = decryptString(factor.secret!, ENV.JETSTREAM_AUTH_OTP_SECRET);
       return { type: '2fa-otp', enabled: factor.enabled, secret };
     });
 }
 
 export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainText: string) {
-  const secret = encryptString(secretPlainText, ENV.JETSTREAM_AUTH_OTP_SECRET as string);
+  const secret = encryptString(secretPlainText, ENV.JETSTREAM_AUTH_OTP_SECRET);
 
   const factors = await prisma.authFactors.findMany({
     select: { type: true, userId: true },
@@ -280,7 +280,7 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
 
       const params = new URLSearchParams({
         fields: 'status,country,countryCode,region,regionName,city,isp,query',
-        key: ENV.IP_API_KEY as string,
+        key: ENV.IP_API_KEY,
       });
 
       const response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {

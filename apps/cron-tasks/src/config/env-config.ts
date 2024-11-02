@@ -1,3 +1,4 @@
+import { getExceptionLog } from '@jetstream/api-config';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
@@ -9,7 +10,7 @@ try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
   console.warn(`APP VERSION ${VERSION}`);
 } catch (ex) {
-  console.warn('COULD NOT READ VERSION FILE', ex.message);
+  console.warn('COULD NOT READ VERSION FILE', getExceptionLog(ex));
 }
 
 export const ENV = {

@@ -166,7 +166,7 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
     const cookies = parseCookie(cookieString);
     const cookieValue = cookies[cookieConfig.csrfToken.name];
     const validCSRFToken = await validateCSRFToken({
-      secret: ENV.JETSTREAM_AUTH_SECRET as string,
+      secret: ENV.JETSTREAM_AUTH_SECRET,
       bodyValue: csrfToken,
       cookieValue,
     });
@@ -231,9 +231,7 @@ async function handleOauthCallback(
 ) {
   const oauth = await oauthPromise;
   // TODO: should move to function to support other providers
-  const clientAuth = oauth.ClientSecretPost(
-    provider === 'salesforce' ? (ENV.AUTH_SFDC_CLIENT_SECRET as string) : (ENV.AUTH_GOOGLE_CLIENT_SECRET as string)
-  );
+  const clientAuth = oauth.ClientSecretPost(provider === 'salesforce' ? ENV.AUTH_SFDC_CLIENT_SECRET : ENV.AUTH_GOOGLE_CLIENT_SECRET);
   const params = oauth.validateAuthResponse(authorizationServer, client, parameters);
 
   const response = await oauth.authorizationCodeGrantRequest(

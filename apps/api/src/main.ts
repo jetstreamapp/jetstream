@@ -2,7 +2,7 @@ import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-st
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, getExceptionLog, httpLogger, logger, pgPool, prisma } from '@jetstream/api-config';
 import { hashPassword, pruneExpiredRecords } from '@jetstream/auth/server';
-import { SessionData as JetstreamSessionData, UserProfileSession } from '@jetstream/auth/types';
+import { SessionData as JetstreamSessionData } from '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
 import { json, raw, urlencoded } from 'body-parser';
@@ -272,7 +272,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
   });
 
-  if (environment.production || ENV.CI) {
+  if (environment.production || ENV.CI || ENV.JETSTREAM_CLIENT_URL.replace('/app', '') === ENV.JETSTREAM_SERVER_URL) {
     app.use(express.static(join(__dirname, '../jetstream')));
     app.use('/app', redirectIfPendingVerificationMiddleware, (req: express.Request, res: express.Response) => {
       res.sendFile(join(__dirname, '../jetstream/index.html'));
@@ -317,12 +317,11 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
 /**
  * FIXME: Should this live somewhere else and be de-coupled with application?
  */
-if (ENV.EXAMPLE_USER && ENV.EXAMPLE_USER_PASSWORD && (ENV.ENVIRONMENT !== 'production' || ENV.CI)) {
+try {
   (async () => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const passwordHash = await hashPassword(ENV.EXAMPLE_USER_PASSWORD!);
-      const user = ENV.EXAMPLE_USER as UserProfileSession;
+    if (ENV.EXAMPLE_USER && ENV.EXAMPLE_USER_PASSWORD && (ENV.ENVIRONMENT !== 'production' || ENV.CI)) {
+      const passwordHash = await hashPassword(ENV.EXAMPLE_USER_PASSWORD);
+      const user = ENV.EXAMPLE_USER;
       logger.info('Upserting example user. id: %s', user.id);
       await prisma.user.upsert({
         create: {
@@ -342,9 +341,9 @@ if (ENV.EXAMPLE_USER && ENV.EXAMPLE_USER_PASSWORD && (ENV.ENVIRONMENT !== 'produ
         where: { id: user.id },
       });
       logger.info('Example user created');
-    } catch (ex) {
-      logger.error(getExceptionLog(ex), '[EXAMPLE_USER][ERROR] Fatal error, could not upsert example user');
-      process.exit(1);
     }
   })();
+} catch (ex) {
+  logger.error(getExceptionLog(ex), '[EXAMPLE_USER][ERROR] Fatal error, could not upsert example user');
+  process.exit(1);
 }

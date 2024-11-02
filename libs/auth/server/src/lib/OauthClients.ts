@@ -43,17 +43,11 @@ export class OauthClients {
       oauth
         .discoveryRequest(this.providers.salesforce)
         .then((response) => oauth.processDiscoveryResponse(this.providers.salesforce, response))
-        .then((authorizationServer) =>
-          // FIXME: why is this coming back as unknown?
-          this.getClient(authorizationServer, ENV.AUTH_SFDC_CLIENT_ID as string, ENV.AUTH_SFDC_CLIENT_SECRET as string)
-        ),
+        .then((authorizationServer) => this.getClient(authorizationServer, ENV.AUTH_SFDC_CLIENT_ID, ENV.AUTH_SFDC_CLIENT_SECRET)),
       oauth
         .discoveryRequest(this.providers.google)
         .then((response) => oauth.processDiscoveryResponse(this.providers.google, response))
-        .then((authorizationServer) =>
-          // FIXME: why is this coming back as unknown?
-          this.getClient(authorizationServer, ENV.AUTH_GOOGLE_CLIENT_ID as string, ENV.AUTH_GOOGLE_CLIENT_SECRET as string)
-        ),
+        .then((authorizationServer) => this.getClient(authorizationServer, ENV.AUTH_GOOGLE_CLIENT_ID, ENV.AUTH_GOOGLE_CLIENT_SECRET)),
     ]);
     this.salesforce = salesforceClient;
     this.google = googleClient;

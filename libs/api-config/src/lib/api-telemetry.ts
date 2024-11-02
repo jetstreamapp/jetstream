@@ -15,7 +15,7 @@ import { ENV } from './env-config';
 // A dataset is basically a bucket where observability data goes.
 // It's also a way to organize your data based on services or environments.
 const metadata = new Metadata();
-metadata.set('x-honeycomb-team', ENV.HONEYCOMB_API_KEY!);
+metadata.set('x-honeycomb-team', ENV.HONEYCOMB_API_KEY || '');
 metadata.set('x-honeycomb-dataset', `JETSTREAM-${ENV.ENVIRONMENT}`.toUpperCase());
 
 // Only enable tracing if the environment variable is set to true.
