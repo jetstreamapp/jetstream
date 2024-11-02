@@ -345,16 +345,29 @@ export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<str
 }
 
 export async function setPasswordForUser(id: string, password: string) {
-  const UNSAFE_userWithPassword = await prisma.user.findFirst({
-    select: { id: true, password: true },
+  const UNSAFE_userWithPassword = await prisma.user.findUnique({
+    select: { id: true, password: true, email: true },
     where: { id },
   });
+
   if (!UNSAFE_userWithPassword) {
     return { error: new InvalidCredentials() };
   }
+
+  // FIXME: this is kinda dumb since the user can remove the password then re-add it
   if (UNSAFE_userWithPassword.password) {
     return { error: new Error('Cannot set password when already set, you must go through the password reset flow') };
   }
+
+  const usersWithSamesEmail = await prisma.user.findFirst({
+    select: { id: true, email: true, hasPasswordSet: true },
+    where: { id: { not: id }, email: UNSAFE_userWithPassword.email },
+  });
+
+  if (usersWithSamesEmail && usersWithSamesEmail.hasPasswordSet) {
+    return { error: new Error('Cannot set password, another user with the same email address already has a password set') };
+  }
+
   return prisma.user.update({
     select: userSelect,
     data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
@@ -363,11 +376,18 @@ export async function setPasswordForUser(id: string, password: string) {
 }
 
 export const generatePasswordResetToken = async (email: string) => {
-  const user = await prisma.user.findFirst({
-    where: { email },
+  // NOTE: There could be duplicate users with the same email, but only one with a password set
+  // These users were migrated from Auth0, but we do not support this as a standard path
+  const user = await prisma.user.findMany({
+    where: { email, password: { not: null } },
+    take: 2,
   });
 
-  if (!user) {
+  if (!user.length) {
+    throw new InvalidAction();
+  }
+
+  if (user.length > 1) {
     throw new InvalidAction();
   }
 
@@ -384,6 +404,7 @@ export const generatePasswordResetToken = async (email: string) => {
 
   const passwordResetToken = await prisma.passwordResetToken.create({
     data: {
+      userId: user[0].id,
       email,
       expiresAt: addMinutes(new Date(), 10),
     },
@@ -394,28 +415,20 @@ export const generatePasswordResetToken = async (email: string) => {
 
 export const resetUserPassword = async (email: string, token: string, password: string) => {
   // if there is an existing token, delete it
-  const existingToken = await prisma.passwordResetToken.findUnique({
+  const restToken = await prisma.passwordResetToken.findUnique({
     where: { email_token: { email, token } },
   });
 
-  if (!existingToken) {
+  if (!restToken) {
     throw new InvalidOrExpiredResetToken();
   }
 
   // delete token - we don't need it anymore and if we fail later, the user will need to reset again
   await prisma.passwordResetToken.delete({
-    where: { email_token: { email, token: existingToken.token } },
+    where: { email_token: { email, token: restToken.token } },
   });
 
-  if (existingToken.expiresAt < new Date()) {
-    throw new InvalidOrExpiredResetToken();
-  }
-
-  const user = await prisma.user.findFirst({
-    where: { email },
-  });
-
-  if (!user) {
+  if (restToken.expiresAt < new Date()) {
     throw new InvalidOrExpiredResetToken();
   }
 
@@ -427,11 +440,11 @@ export const resetUserPassword = async (email: string, token: string, password: 
       passwordUpdatedAt: new Date(),
     },
     where: {
-      id: user.id,
+      id: restToken.userId,
     },
   });
 
-  await revokeAllUserSessions(user.id);
+  await revokeAllUserSessions(restToken.userId);
 };
 
 export const removePasswordFromUser = async (id: string) => {
@@ -464,6 +477,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
   if (!UNSAFE_userWithPassword) {
     return { error: new InvalidCredentials() };
   }
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (await verifyPassword(password, UNSAFE_userWithPassword.password!)) {
     return {
       error: null,
@@ -536,6 +550,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
       email: providerUser.email,
       // TODO: do we really get any benefit from storing this userId like this?
       // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
+      // TODO: this is nice as we can identify which identity is primary without joining the identity table - but could solve in other ways
       userId: `${provider}|${providerUser.id}`,
       name: providerUser.name,
       emailVerified: providerUser.emailVerified,

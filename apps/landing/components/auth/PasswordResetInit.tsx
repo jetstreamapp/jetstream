@@ -99,7 +99,12 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">Reset Password</h2>
         </div>
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-          {isSubmitted && <Alert message="Check your email to continue the reset process." type="success" />}
+          {isSubmitted && (
+            <Alert
+              message="You will receive an email with instructions if an account exists and is eligible for password reset. Contact support@getjetstream.app if you need further assistance."
+              type="success"
+            />
+          )}
           {!isSubmitted && (
             <form onSubmit={handleSubmit(onSubmit)} method="POST" noValidate className="space-y-6">
               <input type="hidden" {...register('csrfToken')} />

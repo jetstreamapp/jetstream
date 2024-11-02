@@ -129,7 +129,54 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             {action === 'login' ? 'Sign in' : 'Sign up'}
           </h2>
         </div>
+
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+          <div className="grid grid-cols-2 gap-4">
+            <form action={providers?.google.signinUrl} method="POST">
+              <input type="hidden" name="csrfToken" value={csrfToken} />
+
+              {providers?.google.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.google.callbackUrl} />}
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
+              >
+                <img
+                  src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
+                  alt="Google Logo"
+                  className="h-5 w-5"
+                />
+                <span className="text-sm font-semibold leading-6">Google</span>
+              </button>
+            </form>
+            <form action={providers?.salesforce.signinUrl} method="POST">
+              <input type="hidden" name="csrfToken" value={csrfToken} />
+
+              {providers?.salesforce.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.salesforce.callbackUrl} />}
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
+              >
+                <img
+                  src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
+                  alt="Salesforce Logo"
+                  className="h-5 w-5"
+                />
+                <span className="text-sm font-semibold leading-6">Salesforce</span>
+              </button>
+            </form>
+          </div>
+
+          <div>
+            <div className="relative mt-10">
+              <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm font-medium leading-6">
+                <span className="bg-white px-6 text-gray-900">Or continue with</span>
+              </div>
+            </div>
+          </div>
+
           <form
             action={providers?.credentials.callbackUrl}
             onSubmit={handleSubmit(onSubmit)}
@@ -223,54 +270,6 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               </button>
             </div>
           </form>
-
-          <div>
-            <div className="relative mt-10">
-              <div aria-hidden="true" className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-sm font-medium leading-6">
-                <span className="bg-white px-6 text-gray-900">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <form action={providers?.google.signinUrl} method="POST">
-                <input type="hidden" name="csrfToken" value={csrfToken} />
-                <input type="hidden" name="captchaToken" value={captchaToken} />
-
-                {providers?.google.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.google.callbackUrl} />}
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-                >
-                  <img
-                    src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
-                    alt="Google Logo"
-                    className="h-5 w-5"
-                  />
-                  <span className="text-sm font-semibold leading-6">Google</span>
-                </button>
-              </form>
-              <form action={providers?.salesforce.signinUrl} method="POST">
-                <input type="hidden" name="csrfToken" value={csrfToken} />
-                <input type="hidden" name="captchaToken" value={captchaToken} />
-
-                {providers?.salesforce.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.salesforce.callbackUrl} />}
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-                >
-                  <img
-                    src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
-                    alt="Salesforce Logo"
-                    className="h-5 w-5"
-                  />
-                  <span className="text-sm font-semibold leading-6">Salesforce</span>
-                </button>
-              </form>
-            </div>
-          </div>
 
           <RegisterOrSignUpLink action={action} />
         </div>

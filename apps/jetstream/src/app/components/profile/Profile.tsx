@@ -121,7 +121,7 @@ export const Profile = () => {
       trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'set-password' });
     } catch (ex) {
       fireToast({
-        message: 'There was a problem setting your password. Try again or file a support ticket for assistance.',
+        message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
       rollbar.error('Settings: Error setting password', { stack: ex.stack, message: ex.message });
@@ -138,7 +138,7 @@ export const Profile = () => {
       });
     } catch (ex) {
       fireToast({
-        message: 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
+        message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
       rollbar.error('Settings: Error resetting password', { stack: ex.stack, message: ex.message });

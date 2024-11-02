@@ -183,7 +183,10 @@ const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.valida
 
 const initPassword = createRoute(routeDefinition.initPassword.validators, async ({ body, user }, req, res) => {
   const { password } = body;
-  await setPasswordForUser(user.id, password);
+  const results = await setPasswordForUser(user.id, password);
+  if ('error' in results) {
+    throw new UserFacingError(results.error);
+  }
   sendJson(res, await userDbService.findUserWithIdentitiesById(user.id));
 
   createUserActivityFromReq(req, res, {

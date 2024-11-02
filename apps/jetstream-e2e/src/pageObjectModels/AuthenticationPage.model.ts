@@ -228,7 +228,9 @@ export class AuthenticationPage {
 
     await this.goToPasswordReset();
     await this.fillOutResetPasswordForm(email);
-    await expect(this.page.getByText('Check your email to continue the reset process.')).toBeVisible();
+    await expect(
+      this.page.getByText('You will receive an email with instructions if an account exists and is eligible for password reset.')
+    ).toBeVisible();
 
     // ensure email verification was sent
     await prisma.emailActivity.findFirstOrThrow({ where: { email, subject: { contains: 'Reset your password' } } });

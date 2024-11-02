@@ -38,7 +38,7 @@ routes.get('/csrf', LAX_AuthRateLimit, authController.routeDefinition.getCsrfTok
 routes.get('/session', LAX_AuthRateLimit, authController.routeDefinition.getSession.controllerFn());
 
 // Init OAuth flow
-routes.post('/signin/:provider', STRICT_AuthRateLimit, verifyCaptcha, authController.routeDefinition.signin.controllerFn());
+routes.post('/signin/:provider', STRICT_AuthRateLimit, authController.routeDefinition.signin.controllerFn());
 // Login via OAuth or credentials
 routes.get('/callback/:provider', STRICT_AuthRateLimit, authController.routeDefinition.callback.controllerFn());
 routes.post('/callback/:provider', STRICT_AuthRateLimit, verifyCaptcha, authController.routeDefinition.callback.controllerFn());

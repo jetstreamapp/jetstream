@@ -8,30 +8,31 @@ datasource db {
 }
 
 model User {
-  id                String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                  String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   // TODO: we should deprecate this field - is there a purpose of having two user ids?
   // Might be nice to rename this to something like "legacyId" for reference
-  userId            String                  @unique @db.VarChar
+  userId              String                  @unique @db.VarChar
   // TODO: we want to make this unique
-  email             String                  @db.VarChar
-  emailVerified     Boolean                 @default(false)
-  password          String?                 @db.VarChar
-  passwordUpdatedAt DateTime?
-  name              String                  @db.VarChar
-  nickname          String?                 @db.VarChar
-  picture           String?                 @db.VarChar
-  appMetadata       Json?                   @db.Json
-  preferences       UserPreference?
-  salesforceOrgs    SalesforceOrg[]
-  organizations     JetstreamOrganization[]
-  identities        AuthIdentity[]
-  authFactors       AuthFactors[]
-  loginActivity     LoginActivity[]
-  rememberdDevices  RememberedDevice[]
-  lastLoggedIn      DateTime?
-  deletedAt         DateTime?
-  createdAt         DateTime                @default(now()) @db.Timestamp(6)
-  updatedAt         DateTime                @updatedAt
+  email               String                  @db.VarChar
+  emailVerified       Boolean                 @default(false)
+  password            String?                 @db.VarChar
+  passwordUpdatedAt   DateTime?
+  name                String                  @db.VarChar
+  nickname            String?                 @db.VarChar
+  picture             String?                 @db.VarChar
+  appMetadata         Json?                   @db.Json
+  preferences         UserPreference?
+  salesforceOrgs      SalesforceOrg[]
+  organizations       JetstreamOrganization[]
+  identities          AuthIdentity[]
+  authFactors         AuthFactors[]
+  loginActivity       LoginActivity[]
+  rememberdDevices    RememberedDevice[]
+  passwordResetTokens PasswordResetToken[]
+  lastLoggedIn        DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime                @default(now()) @db.Timestamp(6)
+  updatedAt           DateTime                @updatedAt
 }
 
 model AuthFactors {
@@ -49,9 +50,12 @@ model AuthFactors {
 }
 
 model PasswordResetToken {
+  userId    String   @db.Uuid
   email     String
   token     String   @unique @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([email, token])
 }
