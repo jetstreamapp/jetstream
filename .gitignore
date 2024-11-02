@@ -60,3 +60,7 @@ package-lock.json
 .nx/cache
 .nx/workspace-data
 **/playwright/.auth/user.json
+
+# Ignore data directory in scripts
+/scripts/**/data/**/*
+!/scripts/**/data/.gitkeep

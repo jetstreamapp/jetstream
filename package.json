@@ -175,6 +175,7 @@
     "@vitejs/plugin-react": "4.2.1",
     "@vitest/coverage-v8": "1.5.2",
     "@vitest/ui": "1.5.2",
+    "auth0": "^4.10.0",
     "autoprefixer": "10.4.13",
     "babel-jest": "29.7.0",
     "babel-loader": "^9.1.3",
