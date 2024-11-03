@@ -5577,9 +5577,9 @@
     "@types/gapi.client.discovery-v1" "*"
 
 "@maxim_mazurok/gapi.client.drive-v3@latest":
-  version "0.0.20240422"
-  resolved "https://registry.yarnpkg.com/@maxim_mazurok/gapi.client.drive-v3/-/gapi.client.drive-v3-0.0.20240422.tgz#9a1f3324c709c5007019a0fc038f7698f22a9409"
-  integrity sha512-icuJRgm+jySdgZCkfCsaiC2oUdgmOLv+rNZdybuJ+qHMCIK9qB+UJWM8CPdFryeA7gRPRFK7U1HEQgOyjhlpyg==
+  version "0.0.20241101"
+  resolved "https://registry.yarnpkg.com/@maxim_mazurok/gapi.client.drive-v3/-/gapi.client.drive-v3-0.0.20241101.tgz#b467721370c96cdfb87180099c2db5db06d901c7"
+  integrity sha512-cr3RshkAPa1bvcRAgBKz6E4SKm6+KgggH3H2SkBX/94Kr9NHD2apt80hqwp7FPS4nOM1mo143YfU4sreTQv9iQ==
   dependencies:
     "@types/gapi.client" "*"
     "@types/gapi.client.discovery-v1" "*"
@@ -8909,13 +8909,6 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.1.tgz#aa22750962f3bf0e79d753d3cc067f010c95f194"
   integrity sha512-LG4opVs2ANWZ1TJoKc937iMmNstM/d0ae1vNbnBvBhqCSezgVUOzcLCqbI5elV8Vy6WKwKjaqR+zO9VKirBBCA==
 
-"@types/express-rate-limit@^6.0.0":
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/@types/express-rate-limit/-/express-rate-limit-6.0.0.tgz#11a314477895a8a888958f27650ed0d1ddad01b0"
-  integrity sha512-nZxo3nwU20EkTl/f2eGdndQkDIJYwkXIX4S3Vrp2jMdSdFJ6AWtIda8gOz0wiMuOFoeH/UUlCAiacz3x3eWNFA==
-  dependencies:
-    express-rate-limit "*"
-
 "@types/express-serve-static-core@*", "@types/express-serve-static-core@^4.17.18":
   version "4.17.29"
   resolved "https://registry.npmjs.org/@types/express-serve-static-core/-/express-serve-static-core-4.17.29.tgz"
@@ -9008,17 +9001,17 @@
   dependencies:
     "@maxim_mazurok/gapi.client.discovery-v1" latest
 
-"@types/gapi.client.drive@^3.0.15":
-  version "3.0.15"
-  resolved "https://registry.yarnpkg.com/@types/gapi.client.drive/-/gapi.client.drive-3.0.15.tgz#4c93f2335ccb53fa4032d8971e8d14e3a5a37783"
-  integrity sha512-qEfI0LxUBadOLmym4FkaNGpI4ibBCBPJHiUFWKIv0GIp7yKT2d+wztJYKr9giIRecErUCF+jGSDw1fzTZ6hPVQ==
+"@types/gapi.client.drive-v3@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@types/gapi.client.drive-v3/-/gapi.client.drive-v3-0.0.5.tgz#19aa36500e6cd4c27bf9646fdde370792f72230f"
+  integrity sha512-yYBxiqMqJVBg4bns4Q28+f2XdJnd3tVA9dxQX1lXMVmzT2B+pZdyCi1u9HLwGveVlookSsAXuqfLfS9KO6MF6w==
   dependencies:
     "@maxim_mazurok/gapi.client.drive-v3" latest
 
 "@types/gapi.client@*":
-  version "1.0.5"
-  resolved "https://registry.npmjs.org/@types/gapi.client/-/gapi.client-1.0.5.tgz"
-  integrity sha512-OTpbBMuzfC4lkvaomxqskI/iWRGW3zOZbDXZLNSyiuswTiSSGgILRLkg0POuZ4EgzEdaYaTlXpnXiCp07ri/Yw==
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/@types/gapi.client/-/gapi.client-1.0.8.tgz#8e02c57493b014521f2fa3359166c01dc2861cd7"
+  integrity sha512-qJQUmmumbYym3Amax0S8CVzuSngcXsC1fJdwRS2zeW5lM63zXkw4wJFP+bG0jzgi0R6EsJKoHnGNVTDbOyG1ng==
 
 "@types/gapi@*":
   version "0.0.42"
@@ -14694,7 +14687,7 @@ express-promise-router@^4.1.1:
     lodash.flattendeep "^4.0.0"
     methods "^1.0.0"
 
-express-rate-limit@*, express-rate-limit@^7.4.0:
+express-rate-limit@^7.4.0:
   version "7.4.0"
   resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-7.4.0.tgz#5db412b8de83fa07ddb40f610c585ac8c1dab988"
   integrity sha512-v1204w3cXu5gCDmAvgvzI6qjzZzoMWKnyVDk3ACgfswTQLYiGen+r8w0VnXnGMmzEN/g8fwIQ4JrFFd4ZP6ssg==
