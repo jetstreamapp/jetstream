@@ -69,7 +69,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
     }),
     cookie: {
       path: '/',
-      secure: !ENV.IS_LOCAL_DOCKER && environment.production,
+      secure: ENV.USE_SECURE_COOKIES,
       // Set to two - if you don't login for 48 hours, then expire session - consider changing to 1
       maxAge: 1000 * 60 * 60 * 24 * SESSION_EXP_DAYS,
       httpOnly: true,

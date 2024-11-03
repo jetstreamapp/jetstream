@@ -264,7 +264,7 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
     const providers = listProviders();
 
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
-    const cookieConfig = getCookieConfig(ENV.ENVIRONMENT === 'production');
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
     provider = providers[params.provider];
     if (provider.type === 'oauth') {
@@ -329,7 +329,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       linkIdentity: linkIdentityCookie,
       returnUrl,
       rememberDevice,
-    } = getCookieConfig(ENV.ENVIRONMENT === 'production');
+    } = getCookieConfig(ENV.USE_SECURE_COOKIES);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const cookies = parseCookie(req.headers.cookie!);
     clearOauthCookies(res);
@@ -499,7 +499,7 @@ const verification = createRoute(routeDefinition.verification.validators, async 
     const pendingVerification = req.session.pendingVerification.find((item) => item.type === type);
     let rememberDeviceId: string | undefined;
 
-    const cookieConfig = getCookieConfig(ENV.ENVIRONMENT === 'production');
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
     if (!pendingVerification) {
       throw new InvalidSession();

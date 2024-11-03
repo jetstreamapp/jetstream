@@ -348,7 +348,7 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
 
 const linkIdentity = createRoute(routeDefinition.linkIdentity.validators, async ({ query, user, setCookie }, req, res) => {
   const { provider } = query;
-  const cookieConfig = getCookieConfig(ENV.ENVIRONMENT === 'production');
+  const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
   clearOauthCookies(res);
   const { authorizationUrl, code_verifier, nonce } = await getAuthorizationUrl(provider);

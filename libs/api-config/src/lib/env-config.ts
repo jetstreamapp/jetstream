@@ -98,6 +98,7 @@ const envSchema = z.object({
     .optional()
     .transform((value) => value ?? 'production'),
   PORT: numberSchema.default(3333),
+  USE_SECURE_COOKIES: booleanSchema,
   CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
@@ -189,6 +190,7 @@ const envSchema = z.object({
 
 const parseResults = envSchema.safeParse({
   ...process.env,
+  USE_SECURE_COOKIES: ensureBoolean(process.env.ENVIRONMENT === 'production' && process.env.JETSTREAM_SERVER_URL?.startsWith('https')),
   EXAMPLE_USER: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER : null,
   EXAMPLE_USER_PASSWORD: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? process.env.EXAMPLE_USER_PASSWORD : null,
   EXAMPLE_USER_FULL_PROFILE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER_FULL_PROFILE : null,
@@ -203,5 +205,21 @@ ${chalk.yellow(JSON.stringify(parseResults.error.flatten().fieldErrors, null, 2)
 }
 
 export type Env = z.infer<typeof envSchema>;
-
 export const ENV: Env = parseResults.data;
+
+// prettier-ignore
+console.log(`
+     ██╗███████╗████████╗███████╗████████╗██████╗ ███████╗ █████╗ ███╗   ███╗
+     ██║██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔══██╗██╔════╝██╔══██╗████╗ ████║
+     ██║█████╗     ██║   ███████╗   ██║   ██████╔╝█████╗  ███████║██╔████╔██║
+██   ██║██╔══╝     ██║   ╚════██║   ██║   ██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║
+╚█████╔╝███████╗   ██║   ███████║   ██║   ██║  ██║███████╗██║  ██║██║ ╚═╝ ██║
+ ╚════╝ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
+
+NODE_ENV=${ENV.NODE_ENV}
+ENVIRONMENT=${ENV.ENVIRONMENT}
+GIT_VERSION=${ENV.GIT_VERSION ?? '<unspecified>'}
+LOG_LEVEL=${ENV.LOG_LEVEL}
+JETSTREAM_SERVER_URL=${ENV.JETSTREAM_SERVER_URL}
+JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
+`);

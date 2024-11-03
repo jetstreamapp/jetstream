@@ -1,4 +1,4 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { OauthProviderType, Providers, ResponseLocalsCookies } from '@jetstream/auth/types';
 import { parse as parseCookie } from 'cookie';
 import * as crypto from 'crypto';
@@ -56,7 +56,7 @@ export function getProviders(): Providers {
 }
 
 export function clearOauthCookies(res: Response) {
-  const cookieConfig = getCookieConfig(ENV.ENVIRONMENT === 'production');
+  const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
   res.locals['cookies'] = res.locals['cookies'] || {};
   const cookies = res.locals['cookies'] as ResponseLocalsCookies;
@@ -162,7 +162,7 @@ export async function validateCallback(
 
 export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieString: string) {
   try {
-    const cookieConfig = getCookieConfig(ENV.ENVIRONMENT === 'production');
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
     const cookies = parseCookie(cookieString);
     const cookieValue = cookies[cookieConfig.csrfToken.name];
     const validCSRFToken = await validateCSRFToken({
@@ -175,6 +175,7 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
       throw new InvalidCsrfToken();
     }
   } catch (ex) {
+    logger.error(getExceptionLog(ex), '[ERROR] verifyCSRFFromRequestOrThrow');
     throw new InvalidCsrfToken();
   }
 }

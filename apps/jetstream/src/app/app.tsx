@@ -1,6 +1,5 @@
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-// import { initSocket } from '@jetstream/shared/data';
 import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useState } from 'react';
@@ -15,12 +14,6 @@ import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange
 import LogInitializer from './components/core/LogInitializer';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import './components/core/monaco-loader';
-
-/**
- * TODO: disabled socket from browser until we have a solid use-case for it
- * previously this was used for platform events, but that was moved to browser
- */
-// initSocket();
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();

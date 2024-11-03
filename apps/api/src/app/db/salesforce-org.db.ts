@@ -160,7 +160,7 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
       connectionError: null,
     };
     data.label = data.label || data.username;
-    data.filterText = `${data.username}${data.orgName}${data.label}`;
+    data.filterText = `${data.username}${data.orgName}${data.label || ''}`;
     // update existing
     const org = await prisma.salesforceOrg.update({
       select: SELECT,
