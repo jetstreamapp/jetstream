@@ -7,7 +7,7 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - .env.example
+      - .env
     environment:
       NODE_ENV: development
       ENVIRONMENT: development
@@ -16,13 +16,10 @@ services:
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
       EXAMPLE_USER_OVERRIDE: true
       EXAMPLE_USER_PASSWORD: 'EXAMPLE_123!'
-      JETSTREAM_SESSION_SECRET: '8e52194ce3b6650b93e95a5c40a705b2'
-      JETSTREAM_AUTH_SECRET: 'l26oD1TYqkJP/AZccmFwX2gPO45rG1qQuSXjVxRj9U/3'
-      JETSTREAM_AUTH_OTP_SECRET: 'pD0AwvBhZU5COntz97OBDAtonoEe/Z0lz5ulNFl4K04='
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
-      NEXT_PUBLIC_CLIENT_URL: 'http://localhost:4200/app'
+      NEXT_PUBLIC_CLIENT_URL: 'http://localhost:3333/app'
       NEXT_PUBLIC_SERVER_URL: 'http://localhost:3333'
 
     ports:

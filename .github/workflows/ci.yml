@@ -13,6 +13,8 @@ env:
   NX_CLOUD_DISTRIBUTED_EXECUTION: false
   NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
   NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
+  NEXT_PUBLIC_CLIENT_URL: 'http://localhost:3333/app'
+  NEXT_PUBLIC_SERVER_URL: 'http://localhost:3333'
 
 jobs:
   # Build application
@@ -61,34 +63,29 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     env:
-      LOG_LEVEL: warn
+      NX_CLOUD_DISTRIBUTED_EXECUTION: false
+      AUTH_SFDC_CLIENT_ID: ${{ secrets.SFDC_CONSUMER_KEY }}
+      AUTH_SFDC_CLIENT_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+      E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
       E2E_LOGIN_URL: 'https://jetstream-e2e-dev-ed.develop.my.salesforce.com'
       E2E_LOGIN_USERNAME: 'integration@jetstream.app.e2e'
-      E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
       EXAMPLE_USER_OVERRIDE: true
       EXAMPLE_USER_PASSWORD: 'EXAMPLE_123!'
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       GOOGLE_APP_ID: ${{ secrets.GOOGLE_APP_ID }}
       GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
-      JETSTREAM_SESSION_SECRET: '8e52194ce3b6650b93e95a5c40a705b2'
-      JETSTREAM_AUTH_SECRET: 'l26oD1TYqkJP/AZccmFwX2gPO45rG1qQuSXjVxRj9U/3'
-      JETSTREAM_AUTH_OTP_SECRET: 'pD0AwvBhZU5COntz97OBDAtonoEe/Z0lz5ulNFl4K04='
+      JETSTREAM_AUTH_OTP_SECRET: ${{ secrets.JETSTREAM_AUTH_OTP_SECRET }}
+      JETSTREAM_AUTH_SECRET: ${{ secrets.JETSTREAM_AUTH_SECRET }}
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
+      JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
-      NEXT_PUBLIC_CLIENT_URL: 'http://localhost:4200/app'
-      NEXT_PUBLIC_SERVER_URL: 'http://localhost:3333'
-      NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
-      NX_CLOUD_DISTRIBUTED_EXECUTION: false
-      NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
+      JETSTREAM_SESSION_SECRET: ${{ secrets.JETSTREAM_SESSION_SECRET }}
+      SFDC_API_VERSION: '61.0'
       SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
       SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
       SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
-      AUTH_SFDC_CLIENT_ID: ${{ secrets.SFDC_CONSUMER_KEY }}
-      AUTH_SFDC_CLIENT_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
-      SFDC_API_VERSION: '61.0'
 
     services:
       postgres:
