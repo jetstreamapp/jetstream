@@ -53,7 +53,7 @@ test.describe('Login 1', () => {
     });
 
     await test.step('Login with remembered device', async () => {
-      await authenticationPage.loginAndVerifyEmail(email, password);
+      await authenticationPage.loginAndVerifyEmail(email, password, true);
       await expect(page.url()).toContain('/app');
       await playwrightPage.logout();
       await expect(page.getByTestId('home-hero-container')).toBeVisible();

@@ -7,7 +7,7 @@ import { ENV } from './env-config';
 export const logger = pino({
   level: ENV.LOG_LEVEL,
   transport:
-    ENV.ENVIRONMENT === 'development' && !ENV.IS_LOCAL_DOCKER
+    ENV.ENVIRONMENT === 'development' && !ENV.IS_LOCAL_DOCKER && !ENV.CI
       ? {
           target: 'pino-pretty',
         }

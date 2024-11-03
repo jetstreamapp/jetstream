@@ -37,6 +37,7 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
         setProviders(data);
       })
       .catch((error) => {
+        console.error('Error fetching providers', error);
         setError(error?.message ?? 'Unable to initialize the form');
       });
   }, []);
