@@ -76,7 +76,7 @@ export const routeDefinition = {
     validators: {
       params: z.object({ provider: OauthProviderTypeSchema }),
       query: z.object({ returnUrl: z.string().nullish(), isAccountLink: z.literal('true').nullish() }),
-      body: z.object({ captchaToken: z.string().nullish(), csrfToken: z.string(), callbackUrl: z.string().url() }),
+      body: z.object({ csrfToken: z.string(), callbackUrl: z.string().url() }),
       hasSourceOrg: false,
     },
   },

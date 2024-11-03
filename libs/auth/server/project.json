@@ -3,7 +3,6 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/auth/server/src",
   "projectType": "library",
-  "tags": ["server"],
   "targets": {
     "test": {
       "executor": "@nx/jest:jest",
@@ -12,5 +11,6 @@
         "jestConfig": "libs/auth/server/jest.config.ts"
       }
     }
-  }
+  },
+  "tags": ["scope:server"]
 }

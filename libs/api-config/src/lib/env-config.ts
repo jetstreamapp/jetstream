@@ -51,10 +51,10 @@ const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
   },
 };
 
-const booleanSchema = z.union([z.string(), z.boolean()]).nullish().transform(ensureBoolean);
+const booleanSchema = z.union([z.string(), z.boolean()]).optional().transform(ensureBoolean);
 const numberSchema = z
   .union([z.string(), z.number()])
-  .nullish()
+  .optional()
   .transform((val) => {
     if (isNumber(val) || !val) {
       return val ?? null;
@@ -65,11 +65,11 @@ const numberSchema = z
 const envSchema = z.object({
   LOG_LEVEL: z
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
-    .nullish()
+    .optional()
     .transform((value) => value ?? 'debug'),
   CI: booleanSchema,
   // LOCAL OVERRIDE
-  // EXAMPLE_USER: z.record(z.any()).nullish(),
+  // EXAMPLE_USER: z.record(z.any()).optional(),
   EXAMPLE_USER: z
     .object({
       id: z.string(),
@@ -91,40 +91,40 @@ const envSchema = z.object({
   // SYSTEM
   NODE_ENV: z
     .enum(['development', 'test', 'staging', 'production'])
-    .nullish()
+    .optional()
     .transform((value) => value ?? 'production'),
   ENVIRONMENT: z
     .enum(['development', 'test', 'staging', 'production'])
-    .nullish()
+    .optional()
     .transform((value) => value ?? 'production'),
   PORT: numberSchema.default(3333),
-  CAPTCHA_SECRET_KEY: z.string().nullish(),
+  CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
-  IP_API_KEY: z.string().nullish().describe('API Key used to get location information from IP address'),
-  GIT_VERSION: z.string().nullish(),
-  ROLLBAR_SERVER_TOKEN: z.string().nullish(),
+  IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
+  GIT_VERSION: z.string().optional(),
+  ROLLBAR_SERVER_TOKEN: z.string().optional(),
   // JETSTREAM
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
-  JETSTREAM_SERVER_DOMAIN: z.string(),
   JETSTREAM_SESSION_SECRET: z.string(),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()
-    .nullish()
+    .optional()
     .transform((val) => val || null),
-  JETSTREAM_SERVER_URL: z.string().url(),
   JETSTREAM_POSTGRES_DBURI: z.string(),
+  JETSTREAM_SERVER_DOMAIN: z.string(),
+  JETSTREAM_SERVER_URL: z.string().url(),
   JETSTREAM_CLIENT_URL: z.string(),
   PRISMA_DEBUG: booleanSchema,
-  COMETD_DEBUG: z.enum(['error', 'warn', 'info', 'debug']).nullish(),
+  COMETD_DEBUG: z.enum(['error', 'warn', 'info', 'debug']).optional(),
   // AUTH - OAuth2 credentials for logging in via OAuth2
   AUTH_SFDC_CLIENT_ID: z
     .string()
     .optional()
     .transform((val) => {
       if (!val) {
-        console.error('AUTH_SFDC_CLIENT_ID is not set - Logging in with Salesforce will not be available');
+        console.warn('AUTH_SFDC_CLIENT_ID is not set - Logging in with Salesforce will not be available');
       }
       return val || '';
     }),
@@ -133,7 +133,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.error('AUTH_SFDC_CLIENT_SECRET is not set - Logging in with Salesforce will not be available');
+        console.warn('AUTH_SFDC_CLIENT_SECRET is not set - Logging in with Salesforce will not be available');
       }
       return val || '';
     }),
@@ -142,7 +142,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.error('AUTH_GOOGLE_CLIENT_ID is not set - Logging in with Google will not be available');
+        console.warn('AUTH_GOOGLE_CLIENT_ID is not set - Logging in with Google will not be available');
       }
       return val || '';
     }),
@@ -151,7 +151,7 @@ const envSchema = z.object({
     .optional()
     .transform((val) => {
       if (!val) {
-        console.error('AUTH_GOOGLE_CLIENT_SECRET is not set - Logging in with Google will not be available');
+        console.warn('AUTH_GOOGLE_CLIENT_SECRET is not set - Logging in with Google will not be available');
       }
       return val || '';
     }),
@@ -162,8 +162,8 @@ const envSchema = z.object({
   JETSTREAM_EMAIL_DOMAIN: z.string().optional().default('mail@getjetstream.app'),
   JETSTREAM_EMAIL_FROM_NAME: z.string().optional().default('Jetstream Support <support@getjetstream.app>'),
   JETSTREAM_EMAIL_REPLY_TO: z.string().optional().default('support@getjetstream.app'),
-  MAILGUN_API_KEY: z.string().nullish(),
-  MAILGUN_WEBHOOK_KEY: z.string().nullish(),
+  MAILGUN_API_KEY: z.string().optional(),
+  MAILGUN_WEBHOOK_KEY: z.string().optional(),
   /**
    * Salesforce Org Connections
    * Connected App OAuth2 for connecting orgs
@@ -176,15 +176,15 @@ const envSchema = z.object({
    * Google OAuth2
    * Allows google drive configuration
    */
-  GOOGLE_APP_ID: z.string().nullish(),
-  GOOGLE_API_KEY: z.string().nullish(),
-  GOOGLE_CLIENT_ID: z.string().nullish(),
+  GOOGLE_APP_ID: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
   /**
    * HONEYCOMB
    * This is used for logging node application metrics
    */
   HONEYCOMB_ENABLED: booleanSchema,
-  HONEYCOMB_API_KEY: z.string().nullish(),
+  HONEYCOMB_API_KEY: z.string().optional(),
 });
 
 const parseResults = envSchema.safeParse({
