@@ -67,13 +67,13 @@ export class OrganizationsPage {
     await salesforcePage.getByLabel('Password').click();
     await salesforcePage.getByLabel('Password').fill(password);
 
-    const pageClosePromise = salesforcePage.waitForEvent('close');
+    const pageClosePromise = salesforcePage.waitForEvent('close', { timeout: 30000 });
 
     await salesforcePage.getByRole('button', { name: 'Log In' }).click();
 
     try {
-      const allowLocator = this.page.getByRole('button', { name: 'Allow' });
-      await expect(allowLocator).toBeVisible({ timeout: 5000 });
+      const allowLocator = salesforcePage.getByRole('button', { name: 'Allow' });
+      await expect(allowLocator).toBeVisible({ timeout: 1000 });
       await allowLocator.click();
     } catch {
       // ignore error - this is expected if the org is already authorized
