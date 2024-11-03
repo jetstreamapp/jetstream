@@ -42,7 +42,25 @@ if (ENV.NODE_ENV !== 'production' || cluster.isPrimary) {
   }, 1000 * 5); // Delay 5 seconds to allow for other services to start
 }
 
-if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
+if (cluster.isPrimary) {
+  console.log(`
+     ██╗███████╗████████╗███████╗████████╗██████╗ ███████╗ █████╗ ███╗   ███╗
+     ██║██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔══██╗██╔════╝██╔══██╗████╗ ████║
+     ██║█████╗     ██║   ███████╗   ██║   ██████╔╝█████╗  ███████║██╔████╔██║
+██   ██║██╔══╝     ██║   ╚════██║   ██║   ██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║
+╚█████╔╝███████╗   ██║   ███████║   ██║   ██║  ██║███████╗██║  ██║██║ ╚═╝ ██║
+ ╚════╝ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
+
+NODE_ENV=${ENV.NODE_ENV}
+ENVIRONMENT=${ENV.ENVIRONMENT}
+GIT_VERSION=${ENV.GIT_VERSION ?? '<unspecified>'}
+LOG_LEVEL=${ENV.LOG_LEVEL}
+JETSTREAM_SERVER_URL=${ENV.JETSTREAM_SERVER_URL}
+JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
+  `);
+}
+
+if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   logger.info(`Number of CPUs is ${CPU_COUNT}`);
   logger.info(`Master ${process.pid} is running`);
 
@@ -253,8 +271,7 @@ if (ENV.NODE_ENV === 'production' && cluster.isPrimary) {
   }
 
   const server = httpServer.listen(Number(ENV.PORT), () => {
-    logger.info('Listening at http://localhost:' + ENV.PORT);
-    logger.info('[ENVIRONMENT]: ' + ENV.ENVIRONMENT);
+    logger.info(`Listening at http://localhost:${ENV.PORT}`);
   });
 
   if (!environment.production) {

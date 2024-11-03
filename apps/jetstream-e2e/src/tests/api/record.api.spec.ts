@@ -4,7 +4,7 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Record Controller', () => {
-  test.beforeAll(async ({ apiRequestUtils }) => {
+  test.beforeEach(async ({ apiRequestUtils }) => {
     await apiRequestUtils.selectDefaultOrg();
   });
 

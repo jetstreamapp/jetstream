@@ -6,7 +6,7 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Metadata', () => {
-  test.beforeAll(async ({ apiRequestUtils }) => {
+  test.beforeEach(async ({ apiRequestUtils }) => {
     await apiRequestUtils.selectDefaultOrg();
   });
 

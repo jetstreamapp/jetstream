@@ -21,7 +21,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
       },
     },
   });
-  console.log(`Deleted ${results.count} passwordResetToken`);
+  console.log(`Deleted ${results.count} passwordResetToken records`);
 
   results = await prisma.loginActivity.deleteMany({
     where: {
@@ -31,7 +31,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
       },
     },
   });
-  console.log(`Deleted ${results.count} passwordResetToken`);
+  console.log(`Deleted ${results.count} loginActivity records`);
 
   results = await prisma.emailActivity.deleteMany({
     where: {
@@ -41,7 +41,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
       },
     },
   });
-  console.log(`Deleted ${results.count} passwordResetToken`);
+  console.log(`Deleted ${results.count} emailActivity records`);
 
   results = await prisma.sessions.deleteMany({
     where: {
@@ -52,5 +52,5 @@ teardown('login and ensure org exists', async ({ page, request }) => {
       },
     },
   });
-  console.log(`Deleted ${results.count} sessions`);
+  console.log(`Deleted ${results.count} session records`);
 });

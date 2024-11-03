@@ -5,7 +5,7 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Bulk', () => {
-  test.beforeAll(async ({ apiRequestUtils }) => {
+  test.beforeEach(async ({ apiRequestUtils, page }) => {
     await apiRequestUtils.selectDefaultOrg();
   });
 

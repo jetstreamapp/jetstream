@@ -206,20 +206,3 @@ ${chalk.yellow(JSON.stringify(parseResults.error.flatten().fieldErrors, null, 2)
 
 export type Env = z.infer<typeof envSchema>;
 export const ENV: Env = parseResults.data;
-
-// prettier-ignore
-console.log(`
-     ██╗███████╗████████╗███████╗████████╗██████╗ ███████╗ █████╗ ███╗   ███╗
-     ██║██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔══██╗██╔════╝██╔══██╗████╗ ████║
-     ██║█████╗     ██║   ███████╗   ██║   ██████╔╝█████╗  ███████║██╔████╔██║
-██   ██║██╔══╝     ██║   ╚════██║   ██║   ██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║
-╚█████╔╝███████╗   ██║   ███████║   ██║   ██║  ██║███████╗██║  ██║██║ ╚═╝ ██║
- ╚════╝ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
-
-NODE_ENV=${ENV.NODE_ENV}
-ENVIRONMENT=${ENV.ENVIRONMENT}
-GIT_VERSION=${ENV.GIT_VERSION ?? '<unspecified>'}
-LOG_LEVEL=${ENV.LOG_LEVEL}
-JETSTREAM_SERVER_URL=${ENV.JETSTREAM_SERVER_URL}
-JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
-`);
