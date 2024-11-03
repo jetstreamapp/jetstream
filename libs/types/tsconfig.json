@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "strictNullChecks": true,
-    "types": ["node", "jest", "google.accounts", "google.picker", "gapi.client.drive"]
+    "types": ["node", "jest", "google.accounts", "google.picker"]
   },
   "include": [],
   "files": [],

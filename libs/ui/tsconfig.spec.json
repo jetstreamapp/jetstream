@@ -4,7 +4,7 @@
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
     "strictNullChecks": false,
-    "types": ["jest", "node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"]
+    "types": ["jest", "node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "include": [
     "**/*.spec.ts",
