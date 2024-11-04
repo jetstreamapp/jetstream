@@ -21,6 +21,7 @@ export class AuthenticationPage {
 
   readonly signInFromHomePageButton: Locator;
   readonly signUpFromHomePageButton: Locator;
+  readonly signUpCtaFromHomePageButton: Locator;
 
   readonly signInFromFormLink: Locator;
   readonly signUpFromFormLink: Locator;
@@ -51,7 +52,8 @@ export class AuthenticationPage {
   constructor(page: Page) {
     this.page = page;
     this.signInFromHomePageButton = page.getByRole('link', { name: 'Log in' });
-    this.signUpFromHomePageButton = page.getByRole('link', { name: 'Sign up' });
+    this.signUpFromHomePageButton = page.getByRole('link', { name: 'Sign up', exact: true });
+    this.signUpCtaFromHomePageButton = page.getByRole('link', { name: 'Sign up for a free account' });
 
     this.signUpFromFormLink = page.getByText('Need to register? Sign up').getByRole('link', { name: 'Sign up' });
     this.signInFromFormLink = page.getByText('Already have an account? Login').getByRole('link', { name: 'Login' });
@@ -82,7 +84,7 @@ export class AuthenticationPage {
   async goToSignUp(viaHomePage = true) {
     if (viaHomePage) {
       await this.page.goto('/');
-      await this.signUpFromHomePageButton.first().click();
+      await this.signUpFromHomePageButton.click();
     } else {
       await this.page.goto(this.routes.signup());
     }
@@ -91,7 +93,7 @@ export class AuthenticationPage {
   async goToLogin(viaHomePage = true) {
     if (viaHomePage) {
       await this.page.goto('/');
-      await this.signInFromHomePageButton.first().click();
+      await this.signInFromHomePageButton.click();
     } else {
       await this.page.goto(this.routes.login());
     }
@@ -121,7 +123,7 @@ export class AuthenticationPage {
     return `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
   }
 
-  async signUpAndVerifyEmail() {
+  async signUpWithoutEmailVerification() {
     const email = this.generateTestEmail();
     const name = this.generateTestName();
     const password = this.generateTestPassword();
@@ -129,6 +131,19 @@ export class AuthenticationPage {
     await this.fillOutSignUpForm(email, name, password, password);
 
     await expect(this.page.getByText('Verify your email address')).toBeVisible();
+
+    // ensure email verification was sent
+    await verifyEmailLogEntryExists(email, 'Verify your email');
+
+    return {
+      email,
+      name,
+      password,
+    };
+  }
+
+  async signUpAndVerifyEmail() {
+    const { email, name, password } = await this.signUpWithoutEmailVerification();
 
     // ensure email verification was sent
     await verifyEmailLogEntryExists(email, 'Verify your email');
@@ -165,15 +180,28 @@ export class AuthenticationPage {
     // ensure email verification was sent
     await verifyEmailLogEntryExists(email, 'Verify your identity');
 
+    await this.verifyEmail(email, rememberMe);
+  }
+
+  async loginAndVerifyTotp(email: string, password: string, secret: string, rememberMe = false) {
+    await this.fillOutLoginForm(email, password);
+
+    await expect(this.page.getByText('Enter your verification code from your authenticator app')).toBeVisible();
+
+    await this.verifyTotp(email, password, secret, rememberMe);
+  }
+
+  async verifyEmail(email: string, rememberMe = false) {
     // Get token from session
     const { pendingVerification } = await getUserSessionByEmail(email);
 
     await expect(pendingVerification || []).toHaveLength(1);
 
-    if (pendingVerification[0].type !== '2fa-email') {
+    if (pendingVerification.some(({ type }) => type !== '2fa-email' && type !== 'email')) {
       throw new Error('Expected email verification');
     }
-    const { token } = pendingVerification[0];
+
+    const { token } = pendingVerification[0] as { token: string };
 
     await this.verificationCodeInput.fill(token);
     if (rememberMe) {
@@ -182,20 +210,11 @@ export class AuthenticationPage {
     await this.continueButton.click();
 
     await this.page.waitForURL(`**/app`);
-
-    return {
-      email,
-      password,
-    };
   }
 
-  async loginAndVerifyTotp(email: string, password: string, secret: string, rememberMe = false) {
+  async verifyTotp(email: string, password: string, secret: string, rememberMe = false) {
     const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
     const { generateTOTP } = await import('@oslojs/otp');
-
-    await this.fillOutLoginForm(email, password);
-
-    await expect(this.page.getByText('Enter your verification code from your authenticator app')).toBeVisible();
 
     const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
 
@@ -216,11 +235,6 @@ export class AuthenticationPage {
     await this.continueButton.click();
 
     await this.page.waitForURL(`**/app`);
-
-    return {
-      email,
-      password,
-    };
   }
 
   async resetPassword(email: string) {
@@ -271,7 +285,7 @@ export class AuthenticationPage {
     await this.goToSignUp();
 
     await this.page.goto('/');
-    await this.signUpFromHomePageButton.first().click();
+    await this.signUpFromHomePageButton.click();
 
     await expect(this.signInFromFormLink).toBeVisible();
     await expect(this.forgotPasswordLink).toBeVisible();
