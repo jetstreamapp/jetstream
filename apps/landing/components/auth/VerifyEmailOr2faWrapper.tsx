@@ -7,7 +7,7 @@ import { VerifyEmailOr2fa } from './VerifyEmailOr2fa';
 
 export function VerifyEmailOr2faWrapper() {
   const router = useRouter();
-  const { isLoading, isVerificationExpired, pendingVerifications, isLoggedIn } = useUserProfile();
+  const { isLoading, isVerificationExpired, email, pendingVerifications, isLoggedIn } = useUserProfile();
   const { csrfToken, csrfTokenError: error } = useCsrfToken();
 
   useEffect(() => {
@@ -36,5 +36,5 @@ export function VerifyEmailOr2faWrapper() {
     return null;
   }
 
-  return <VerifyEmailOr2fa csrfToken={csrfToken} pendingVerifications={pendingVerifications} />;
+  return <VerifyEmailOr2fa csrfToken={csrfToken} email={email} pendingVerifications={pendingVerifications} />;
 }

@@ -1,9 +1,15 @@
 import { TwoFactorType } from '@jetstream/auth/types';
+import { Maybe } from '@jetstream/types';
 import { useEffect, useState } from 'react';
 import { AUTH_PATHS } from '../utils/environment';
 
 interface AuthState {
   isLoggedIn: boolean;
+  /**
+   * Used to show user which email address the 2fa was sent to
+   * in case there was a typo, the user can identify it
+   */
+  email?: Maybe<string>;
   pendingVerifications: Array<TwoFactorType> | false;
   isVerificationExpired: boolean;
 }

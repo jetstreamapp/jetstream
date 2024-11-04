@@ -239,6 +239,10 @@ const getSession = createRoute(routeDefinition.getSession.validators, async (_, 
 
     sendJson(res, {
       isLoggedIn: !!req.session.user && !req.session.pendingVerification?.length,
+      email:
+        req.session.user?.email && req.session.pendingVerification?.some(({ type }) => type === 'email' || type === '2fa-email')
+          ? req.session.user.email
+          : null,
       pendingVerifications: req.session.pendingVerification?.map(({ type }) => type) || false,
       isVerificationExpired,
     });

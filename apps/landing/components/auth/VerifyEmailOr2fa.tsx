@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TwoFactorType } from '@jetstream/auth/types';
+import { Maybe } from '@jetstream/types';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FormEvent, Fragment, useState } from 'react';
@@ -18,20 +19,33 @@ const FormSchema = z.object({
   rememberDevice: z.boolean().optional().default(false),
 });
 
-const TITLE_TEXT = {
-  email: 'Verify your email address',
-  '2fa-email': 'Enter your verification code from your email',
-  '2fa-otp': 'Enter your verification code from your authenticator app',
-};
+function getTitleText(authFactor: TwoFactorType, email?: Maybe<string>) {
+  if (email) {
+    const TITLE_TEXT: Record<TwoFactorType, string> = {
+      email: `Verify your email address ${email}`,
+      '2fa-email': `Enter verification code sent to ${email}`,
+      '2fa-otp': 'Enter your verification code from your authenticator app',
+    };
+    return TITLE_TEXT[authFactor];
+  }
+
+  const TITLE_TEXT: Record<TwoFactorType, string> = {
+    email: 'Verify your email address',
+    '2fa-email': `Enter your verification sent to your email`,
+    '2fa-otp': 'Enter your verification code from your authenticator app',
+  };
+  return TITLE_TEXT[authFactor];
+}
 
 type Form = z.infer<typeof FormSchema>;
 
 interface VerifyEmailOr2faProps {
   csrfToken: string;
+  email?: Maybe<string>;
   pendingVerifications: TwoFactorType[];
 }
 
-export function VerifyEmailOr2fa({ csrfToken, pendingVerifications }: VerifyEmailOr2faProps) {
+export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: VerifyEmailOr2faProps) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const [hasResent, setHasResent] = useState(false);
@@ -125,7 +139,9 @@ export function VerifyEmailOr2fa({ csrfToken, pendingVerifications }: VerifyEmai
               className="mx-auto h-10 w-auto"
             />
           </Link>
-          <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">{TITLE_TEXT[activeFactor]}</h2>
+          <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+            {getTitleText(activeFactor, email)}
+          </h2>
         </div>
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
           <form onSubmit={handleSubmit(onSubmit)} method="POST" noValidate className="space-y-6">
