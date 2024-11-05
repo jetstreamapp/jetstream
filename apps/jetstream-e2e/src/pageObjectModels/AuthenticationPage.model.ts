@@ -175,7 +175,8 @@ export class AuthenticationPage {
   async loginAndVerifyEmail(email: string, password: string, rememberMe = false) {
     await this.fillOutLoginForm(email, password);
 
-    await expect(this.page.getByText('Enter your verification code from your email')).toBeVisible();
+    await expect(this.page.getByText('Enter verification code')).toBeVisible();
+    await expect(this.page.getByText(email)).toBeVisible();
 
     // ensure email verification was sent
     await verifyEmailLogEntryExists(email, 'Verify your identity');
