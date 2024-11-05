@@ -14,8 +14,9 @@ import { AppRoutes } from './AppRoutes';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import LogInitializer from './components/core/LogInitializer';
-import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 import './components/core/monaco-loader';
+import NotificationsRequestModal from './components/core/NotificationsRequestModal';
+import { UnverifiedEmailAlert } from './components/core/UnverifiedEmailAlert';
 
 /**
  * TODO: disabled socket from browser until we have a solid use-case for it
@@ -52,6 +53,7 @@ export const App = () => {
                     <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                    <UnverifiedEmailAlert userProfile={userProfile} />
                     <Suspense fallback={<AppLoading />}>
                       <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                         <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
