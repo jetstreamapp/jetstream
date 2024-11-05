@@ -240,13 +240,15 @@ async function updateUsersInJetstreamDatabase(users: Auth0User[]) {
     const jetstreamAuthFactors: Prisma.AuthFactorsCreateWithoutUserInput[] = [];
     const jetstreamAuthIdentity: Prisma.AuthIdentityCreateWithoutUserInput[] = [];
 
-    jetstreamAuthFactors.push({
-      enabled: true, // Users can choose "remember this device" or disable in settings
-      secret: null,
-      type: '2fa-email',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    if (jetstreamUser.password) {
+      jetstreamAuthFactors.push({
+        enabled: true, // Users can choose "remember this device" or disable in settings
+        secret: null,
+        type: '2fa-email',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
 
     let identities = user.identities;
     let isFirstItemPrimary = true;
