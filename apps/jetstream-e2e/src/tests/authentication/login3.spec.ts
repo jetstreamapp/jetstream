@@ -47,4 +47,17 @@ test.describe('Login 3', () => {
       await expect(response.status()).toBe(200);
     });
   });
+
+  test('Should not be able to register with an existing email address', async ({ page, authenticationPage, playwrightPage }) => {
+    const { email, password } = await test.step('Sign up, verify, logout', async () => {
+      const user = await authenticationPage.signUpAndVerifyEmail();
+      await playwrightPage.logout();
+      return user;
+    });
+
+    await test.step('Attempt to register with same email address', async () => {
+      await authenticationPage.fillOutSignUpForm(email, 'test person', password, password);
+      await expect(page.getByText('This email is already registered.')).toBeVisible();
+    });
+  });
 });
