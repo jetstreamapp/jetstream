@@ -1,0 +1,38 @@
+---
+id: troubleshooting
+title: Troubleshoot Connecting to Salesforce
+description: Tips on connecting your Salesforce orgs within Jetstream
+keywords: [salesforce, salesforce admin, salesforce developer, salesforce automation, salesforce workbench]
+sidebar_label: Troubleshoot Connecting to Salesforce
+slug: /troubleshooting
+---
+
+import OrgTroubleshootingTable from './_org-troubleshooting-table.mdx';
+
+If you are having problems connecting to Salesforce, here are some tips to help you resolve any issues.
+
+### Jetstream IP Addresses
+
+If you need to allow IP addresses for your org, Jetstream will use one of the following three ip addresses:
+
+- `3.134.238.10`
+- `3.129.111.220`
+- `52.15.118.168`
+
+### Installing Jetstream
+
+After you attempt to connect your Salesforce Org, you should be able to see the connection in Salesforce settings under the **Connected Apps OAuth Usage** option.
+
+From here you have the option to **install** the **Jetstream Connected App**, which will allow you to configure security policies for the connection.
+
+- **Permitted Users** - You can restrict the connection to Admin users.
+- **IP Relaxation** - You can configure unique IP address restrictions for this connection.
+- **Refresh Token Policy** - Jetstream uses OAuth2 which means there is a short-lived `accessToken` and a long lived `refreshToken` which is used for Jetstream to call Salesforce APIs without ever having direct access to your password.
+  - You can adjust the settings here based on your desired security preferences.
+- **Session Policies** - You can control how you want your session for your `accessToken` and `refreshToken` to behave
+
+Based on your Refresh Token and Session policies, this will control how often you need to re-authorize your org from within Jetstream. If your `refreshToken` expires, then you will need to re-authorize.
+
+### Troubleshooting Tips
+
+<OrgTroubleshootingTable />

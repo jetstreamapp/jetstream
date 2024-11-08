@@ -30,6 +30,7 @@ const config: Config = {
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
   trailingSlash: false,
+
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -60,6 +61,9 @@ const config: Config = {
   ],
   themeConfig:
     {
+      colorMode: {
+        defaultMode: 'dark',
+      },
       algolia: {
         appId: '21D7I5RB7N',
         apiKey: '16cff3d92b030f175ef9a30f606a221e',
