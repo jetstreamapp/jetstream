@@ -11,6 +11,7 @@ type ErrorType =
   | 'ExpiredVerificationToken'
   | 'InvalidVerificationToken'
   | 'InvalidOrExpiredResetToken'
+  | 'InvalidRegistration'
   | 'LoginWithExistingIdentity';
 
 type ErrorOptions = Error | Record<string, unknown>;
@@ -62,6 +63,10 @@ export class InvalidProvider extends AuthError {
 
 export class InvalidParameters extends AuthError {
   static type: ErrorType = 'InvalidParameters';
+}
+
+export class InvalidRegistration extends AuthError {
+  static type: ErrorType = 'InvalidRegistration';
 }
 
 export class LoginWithExistingIdentity extends AuthError {

@@ -17,7 +17,14 @@ import { Maybe } from '@jetstream/types';
 import { Prisma } from '@prisma/client';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
-import { InvalidAction, InvalidCredentials, InvalidOrExpiredResetToken, InvalidProvider, LoginWithExistingIdentity } from './auth.errors';
+import {
+  InvalidAction,
+  InvalidCredentials,
+  InvalidOrExpiredResetToken,
+  InvalidProvider,
+  InvalidRegistration,
+  LoginWithExistingIdentity,
+} from './auth.errors';
 import { ensureAuthError } from './auth.service';
 import { hashPassword, verifyPassword } from './auth.utils';
 
@@ -801,7 +808,7 @@ export async function handleSignInOrRegistration(
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
         if (usersWithEmail.length > 0) {
-          throw new InvalidCredentials();
+          throw new InvalidRegistration();
         }
         user = await createUserFromUserInfo(payload.email, payload.name, password);
         isNewUser = true;

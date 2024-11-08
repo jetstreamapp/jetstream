@@ -34,5 +34,6 @@ export const SIGN_IN_ERRORS = {
   ExpiredVerificationToken: 'Your verification token has expired, sign in again.',
   InvalidVerificationToken: 'Your verification token is invalid.',
   LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
+  InvalidRegistration: 'This email is already registered. If you already have an account, please log in or reset your password.',
   InvalidOrExpiredResetToken: 'Your reset token is invalid, please restart the reset process.',
 };
