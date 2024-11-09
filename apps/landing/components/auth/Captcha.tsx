@@ -1,14 +1,15 @@
+import { Turnstile } from '@marsidev/react-turnstile';
 import { useId } from 'react';
-import Turnstile from 'react-turnstile';
 import { ENVIRONMENT } from '../../utils/environment';
 
 interface CaptchaProps {
   action: string;
   formError?: string;
+  onLoad?: () => void;
   onChange: (token: string) => void;
 }
 
-export function Captcha({ action, formError, onChange }: CaptchaProps) {
+export function Captcha({ action, formError, onLoad, onChange }: CaptchaProps) {
   const id = useId();
 
   // Skip rendering the captcha if we're running in Playwright or if the key is not set
@@ -21,16 +22,16 @@ export function Captcha({ action, formError, onChange }: CaptchaProps) {
     <>
       <Turnstile
         id={id}
-        sitekey={ENVIRONMENT.CAPTCHA_KEY}
-        theme="light"
-        appearance="always"
-        size="flexible"
-        refreshExpired="auto"
-        fixedSize
-        action={action}
-        onVerify={(token) => onChange(token)}
-        // onError={}
-        onSuccess={(token, preClearanceObtained) => onChange(token)}
+        siteKey={ENVIRONMENT.CAPTCHA_KEY}
+        options={{
+          action,
+          theme: 'light',
+          appearance: 'always',
+          size: 'flexible',
+          refreshExpired: 'auto',
+        }}
+        onWidgetLoad={onLoad}
+        onSuccess={(token) => onChange(token)}
       />
       {formError && (
         <p id={`${id}-error`} role="alert" className="mt-2 text-sm text-red-600">

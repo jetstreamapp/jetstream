@@ -5556,6 +5556,11 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
+"@marsidev/react-turnstile@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@marsidev/react-turnstile/-/react-turnstile-1.0.2.tgz#d4ca03b6c31793bc73b3b99f5b991539a56f7f36"
+  integrity sha512-YkCtJVaCzZ1kcmhPsiFTmTXVughoNzEMRsNHcmTG0K5OdbCQfAG67Q6d5Ze+A72vrHbvVZkvcLgUbldeGcbRjQ==
+
 "@maxim_mazurok/gapi.client.discovery-v1@latest":
   version "0.1.20200806"
   resolved "https://registry.yarnpkg.com/@maxim_mazurok/gapi.client.discovery-v1/-/gapi.client.discovery-v1-0.1.20200806.tgz#1bdb82fadd659a159765178993dff6dbcb5968bc"
@@ -21728,11 +21733,6 @@ react-transition-group@^4.3.0:
     dom-helpers "^5.0.1"
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
-
-react-turnstile@^1.1.4:
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/react-turnstile/-/react-turnstile-1.1.4.tgz#0c23b2f4b55f83b929407ae9bfbd211fbe5df362"
-  integrity sha512-oluyRWADdsufCt5eMqacW4gfw8/csr6Tk+fmuaMx0PWMKP1SX1iCviLvD2D5w92eAzIYDHi/krUWGHhlfzxTpQ==
 
 react-use-clipboard@^1.0.9:
   version "1.0.9"
