@@ -39,8 +39,9 @@ export async function createUserActivityFromReq(
   data: LoginActivity
 ) {
   try {
-    const ipAddress = req.ip;
-    const userAgent = req.headers['user-agent'];
+    const ipAddress =
+      res.locals.ipAddress || req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const userAgent = req.get('user-agent');
     const userId = data.userId || (req as any).session?.user?.id;
     const email = data.email || (req as any).session?.user?.email;
     const requestId = data.requestId || res.locals?.['requestId'];

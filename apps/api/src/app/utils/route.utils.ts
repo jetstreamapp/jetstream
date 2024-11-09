@@ -1,4 +1,4 @@
-import { getExceptionLog, rollbarServer } from '@jetstream/api-config';
+import { getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
 import { CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { NextFunction } from 'express';
@@ -56,6 +56,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     try {
+      res.locals.ipAddress = getApiAddressFromReq(req);
       res.locals.cookies = res.locals.cookies || {};
       const data = {
         params: params ? params.parse(req.params) : undefined,
@@ -115,4 +116,17 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       next(new UserFacingError(ex));
     }
   };
+}
+
+export function getApiAddressFromReq(req: Request<unknown, unknown, unknown>) {
+  try {
+    const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    if (Array.isArray(ipAddress)) {
+      return ipAddress[ipAddress.length - 1];
+    }
+    return ipAddress;
+  } catch (ex) {
+    logger.error('Error fetching IP address', ex);
+    return `unknown-${new Date().getTime()}`;
+  }
 }

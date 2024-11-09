@@ -35,5 +35,6 @@ export type Response<ResBody = unknown> = ExpressResponse<
      * which simplifies having the same header specified twice
      */
     cookies?: ResponseLocalsCookies;
+    ipAddress: string;
   }
 > & { log: pino.Logger };

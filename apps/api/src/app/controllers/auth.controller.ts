@@ -43,7 +43,7 @@ import { addMinutes } from 'date-fns';
 import { z } from 'zod';
 import { Request } from '../types/types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
-import { createRoute } from '../utils/route.utils';
+import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
 
 export const routeDefinition = {
   logout: {
@@ -171,7 +171,7 @@ function initSession(
   if (userAgent) {
     req.session.userAgent = req.get('User-Agent');
   }
-  req.session.ipAddress = req.ip;
+  req.session.ipAddress = getApiAddressFromReq(req);
   req.session.loginTime = new Date().getTime();
   req.session.provider = provider;
   req.session.user = user as UserProfileSession;
@@ -434,7 +434,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       const isDeviceRemembered = await hasRememberDeviceRecord({
         userId: req.session.user.id,
         deviceId,
-        ipAddress: req.ip,
+        ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
         userAgent: req.get('User-Agent'),
       });
       if (isDeviceRemembered) {
@@ -548,7 +548,7 @@ const verification = createRoute(routeDefinition.verification.validators, async 
       await createRememberDevice({
         userId: user.id,
         deviceId: rememberDeviceId,
-        ipAddress: req.ip,
+        ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
         userAgent: req.get('User-Agent'),
       });
       setCookie(cookieConfig.rememberDevice.name, rememberDeviceId, cookieConfig.rememberDevice.options);

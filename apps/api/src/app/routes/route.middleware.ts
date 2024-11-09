@@ -11,6 +11,7 @@ import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+import { getApiAddressFromReq } from '../utils/route.utils';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || uuid();
@@ -59,7 +60,7 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
  * @returns
  */
 export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const userAgent = req.header('User-Agent');
+  const userAgent = req.get('User-Agent');
   if (userAgent?.toLocaleLowerCase().includes('python')) {
     logger.debug(
       {
@@ -67,7 +68,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
         method: req.method,
         url: req.originalUrl,
         requestId: res.locals.requestId,
-        agent: req.header('User-Agent'),
+        agent: req.get('User-Agent'),
         referrer: req.get('Referrer'),
         ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
         country: req.headers[HTTP.HEADERS.CF_IPCountry],
@@ -303,7 +304,8 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
     body: JSON.stringify({
       secret: ENV.CAPTCHA_SECRET_KEY,
       response: token,
-      remoteip: req.ip,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      remoteip: res.locals.ipAddress || getApiAddressFromReq(req as any),
     }),
     method: 'POST',
     headers: {
