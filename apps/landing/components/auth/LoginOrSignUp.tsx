@@ -52,12 +52,12 @@ interface LoginOrSignUpProps {
 export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpProps) {
   const router = useRouter();
   const [showPasswordActive, setShowPasswordActive] = useState(false);
+  const [finishedCaptcha, setFinishedCaptcha] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(FormSchema),
@@ -71,8 +71,6 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       captchaToken: '',
     },
   });
-
-  const captchaToken = watch('captchaToken');
 
   const onSubmit = async (payload: Form) => {
     if (!providers) {
@@ -259,12 +257,18 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               <ForgotPasswordLink />
             </div>
 
-            <Captcha action={action} onChange={(token) => setValue('captchaToken', token)} formError={errors?.captchaToken?.message} />
+            <Captcha
+              formError={errors?.captchaToken?.message}
+              action={action}
+              onChange={(token) => setValue('captchaToken', token)}
+              onFinished={() => setFinishedCaptcha(true)}
+            />
 
             <div>
               <button
                 type="submit"
-                className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                disabled={!finishedCaptcha}
               >
                 {action === 'login' ? 'Sign in' : 'Sign up'}
               </button>

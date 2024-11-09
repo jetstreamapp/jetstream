@@ -27,6 +27,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const [error, setError] = useState<string>();
 
   const {
@@ -126,16 +127,17 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
               />
 
               <Captcha
+                formError={errors?.captchaToken?.message}
                 action="password-reset-init"
                 onChange={(token) => setValue('captchaToken', token)}
-                formError={errors?.captchaToken?.message}
+                onFinished={() => setFinishedCaptcha(true)}
               />
 
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                  disabled={isSaving}
+                  className="flex w-full justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                  disabled={isSaving || !finishedCaptcha}
                 >
                   Submit
                 </button>

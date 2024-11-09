@@ -92,8 +92,7 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
       name: `${cookiePrefix}jetstream-auth.remember-device`,
       options: {
         httpOnly: true,
-        // Development is on a different port, using lax for sameSite ensures the cookie is sent
-        sameSite: useSecureCookies ? 'strict' : 'lax',
+        sameSite: 'lax',
         path: '/',
         secure: useSecureCookies,
         maxAge: TIME_30_DAYS,
