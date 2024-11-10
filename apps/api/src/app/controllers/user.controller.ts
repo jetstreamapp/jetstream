@@ -11,6 +11,7 @@ import {
   getAuthorizationUrl,
   getCookieConfig,
   getUserSessions,
+  PASSWORD_RESET_DURATION_MINUTES,
   removeIdentityFromUser,
   removePasswordFromUser,
   revokeAllUserSessions,
@@ -198,7 +199,7 @@ const initPassword = createRoute(routeDefinition.initPassword.validators, async 
 
 const initResetPassword = createRoute(routeDefinition.initResetPassword.validators, async ({ user }, req, res) => {
   const { email, token } = await generatePasswordResetToken(user.email);
-  await sendPasswordReset(email, token);
+  await sendPasswordReset(email, token, PASSWORD_RESET_DURATION_MINUTES);
   sendJson(res);
   createUserActivityFromReq(req, res, {
     action: 'PASSWORD_RESET_REQUEST',

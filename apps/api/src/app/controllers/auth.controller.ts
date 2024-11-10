@@ -23,8 +23,10 @@ import {
   InvalidVerificationType,
   linkIdentityToUser,
   getProviders as listProviders,
+  PASSWORD_RESET_DURATION_MINUTES,
   resetUserPassword,
   setUserEmailVerified,
+  TOKEN_DURATION_MINUTES,
   validateCallback,
   verify2faTotpOrThrow,
   verifyCSRFFromRequestOrThrow,
@@ -178,7 +180,7 @@ function initSession(
   req.session.pendingVerification = null;
 
   if (verificationRequired) {
-    const exp = addMinutes(new Date(), 10).getTime();
+    const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
     const token = generateRandomCode(6);
     if (isNewUser) {
       req.session.sendNewUserEmailAfterVerify = true;
@@ -449,9 +451,9 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       const initialVerification = req.session.pendingVerification[0];
 
       if (initialVerification.type === 'email') {
-        await sendEmailVerification(req.session.user.email, initialVerification.token);
+        await sendEmailVerification(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
       } else if (initialVerification.type === '2fa-email') {
-        await sendVerificationCode(req.session.user.email, initialVerification.token);
+        await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
       }
 
       await setCsrfCookie(res);
@@ -596,7 +598,7 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
     }
 
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
-    const exp = addMinutes(new Date(), 10).getTime();
+    const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
     const token = generateRandomCode(6);
 
     // Refresh all pending verifications
@@ -619,11 +621,11 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
 
     switch (type) {
       case 'email': {
-        await sendEmailVerification(req.session.user.email, token);
+        await sendEmailVerification(req.session.user.email, token, TOKEN_DURATION_MINUTES);
         break;
       }
       case '2fa-email': {
-        await sendVerificationCode(req.session.user.email, token);
+        await sendVerificationCode(req.session.user.email, token, TOKEN_DURATION_MINUTES);
         break;
       }
       default: {
@@ -654,13 +656,18 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
     const { csrfToken, email } = body;
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
+    let success = true;
+
     try {
       const { token } = await generatePasswordResetToken(email);
-      await sendPasswordReset(email, token);
+      await sendPasswordReset(email, token, PASSWORD_RESET_DURATION_MINUTES);
 
       sendJson(res, { error: false });
     } catch (ex) {
-      res.log.warn('[AUTH][PASSWORD_RESET] Attempt to reset a password for an email that does not exist %o', { email });
+      res.log.warn('[AUTH][PASSWORD_RESET] Attempt to reset a password for an email that does not exist or no password is set %o', {
+        email,
+      });
+      success = false;
       sendJson(res, { error: false });
     }
 
@@ -668,7 +675,7 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
       action: 'PASSWORD_RESET_REQUEST',
       method: 'UNAUTHENTICATED',
       email,
-      success: true,
+      success,
     });
   } catch (ex) {
     createUserActivityFromReqWithError(req, res, ex, {

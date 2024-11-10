@@ -17,6 +17,7 @@ import { Maybe } from '@jetstream/types';
 import { Prisma } from '@prisma/client';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
+import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
 import {
   InvalidAction,
   InvalidCredentials,
@@ -47,22 +48,22 @@ const userSelect = Prisma.validator<Prisma.UserSelect>()({
 export async function pruneExpiredRecords() {
   await prisma.loginActivity.deleteMany({
     where: {
-      createdAt: { lte: addDays(startOfDay(new Date()), -30) },
+      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_ACTIVITY_DAYS) },
     },
   });
   await prisma.emailActivity.deleteMany({
     where: {
-      createdAt: { lte: addDays(startOfDay(new Date()), -30) },
+      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_ACTIVITY_DAYS) },
     },
   });
   await prisma.passwordResetToken.deleteMany({
     where: {
-      expiresAt: { lte: addDays(startOfDay(new Date()), -3) },
+      expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_TOKEN_DAYS) },
     },
   });
   await prisma.rememberedDevice.deleteMany({
     where: {
-      expiresAt: { lte: addDays(startOfDay(new Date()), -3) },
+      expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_TOKEN_DAYS) },
     },
   });
 }
@@ -267,7 +268,7 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
     .then((sessions) =>
       sessions.map((session): UserSession => {
         const { sid, sess, expire } = session;
-        const { ipAddress, loginTime, provider, user, userAgent } = sess as unknown as SessionData;
+        const { ipAddress, loginTime, provider, userAgent } = sess as unknown as SessionData;
         return {
           sessionId: sid,
           expires: expire.toISOString(),
@@ -413,7 +414,7 @@ export const generatePasswordResetToken = async (email: string) => {
     data: {
       userId: user[0].id,
       email,
-      expiresAt: addMinutes(new Date(), 10),
+      expiresAt: addMinutes(new Date(), PASSWORD_RESET_DURATION_MINUTES),
     },
   });
 

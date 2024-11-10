@@ -101,8 +101,8 @@ export async function sendInternalAccountDeletionEmail(userId: string, reason?: 
   });
 }
 
-export async function sendEmailVerification(emailAddress: string, code: string) {
-  const component = <VerifyEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expMinutes={10} validationCode={code} />;
+export async function sendEmailVerification(emailAddress: string, code: string, expMinutes: number) {
+  const component = <VerifyEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expMinutes={expMinutes} validationCode={code} />;
   const [html, text] = await renderComponent(component);
 
   await sendEmail({
@@ -113,8 +113,8 @@ export async function sendEmailVerification(emailAddress: string, code: string) 
   });
 }
 
-export async function sendVerificationCode(emailAddress: string, code: string) {
-  const component = <TwoStepVerificationEmail expMinutes={10} validationCode={code} />;
+export async function sendVerificationCode(emailAddress: string, code: string, expMinutes: number) {
+  const component = <TwoStepVerificationEmail expMinutes={expMinutes} validationCode={code} />;
   const [html, text] = await renderComponent(component);
 
   await sendEmail({
@@ -125,9 +125,9 @@ export async function sendVerificationCode(emailAddress: string, code: string) {
   });
 }
 
-export async function sendPasswordReset(emailAddress: string, code: string) {
+export async function sendPasswordReset(emailAddress: string, code: string, expMinutes: number) {
   const component = (
-    <PasswordResetEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expMinutes={10} validationCode={code} emailAddress={emailAddress} />
+    <PasswordResetEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expMinutes={expMinutes} validationCode={code} emailAddress={emailAddress} />
   );
   const [html, text] = await renderComponent(component);
 
