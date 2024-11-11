@@ -176,5 +176,6 @@
       }
     }
   ],
-  "defaultBase": "main"
+  "defaultBase": "main",
+  "useLegacyCache": true
 }

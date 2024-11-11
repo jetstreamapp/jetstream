@@ -64,3 +64,5 @@ package-lock.json
 # Ignore data directory in scripts
 /scripts/**/data/**/*
 !/scripts/**/data/.gitkeep
+
+vite.config.*.timestamp*
