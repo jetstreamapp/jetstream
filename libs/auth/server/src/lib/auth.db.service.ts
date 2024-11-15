@@ -26,7 +26,7 @@ import {
   InvalidRegistration,
   LoginWithExistingIdentity,
 } from './auth.errors';
-import { ensureAuthError } from './auth.service';
+import { ensureAuthError, verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY } from './auth.service';
 import { hashPassword, verifyPassword } from './auth.utils';
 
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -482,8 +482,24 @@ async function getUserAndVerifyPassword(email: string, password: string) {
     select: { id: true, password: true },
     where: { email, password: { not: null } },
   });
+
+  // There is not a user with the email address that has a password set
   if (!UNSAFE_userWithPassword) {
-    return { error: new InvalidCredentials() };
+    // FIXME: TEMPORARY This is temporary just to handle the users that signed up after we exported data
+    try {
+      const updatedUser = await migratePasswordFromAuth0(email, password);
+      return {
+        error: null,
+        user: updatedUser,
+      };
+    } catch (ex) {
+      return { error: new InvalidCredentials() };
+    }
+
+    // Use this after code above is removed
+    // if (!UNSAFE_userWithPassword) {
+    //   return { error: new InvalidCredentials() };
+    // }
   }
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (await verifyPassword(password, UNSAFE_userWithPassword.password!)) {
@@ -496,6 +512,28 @@ async function getUserAndVerifyPassword(email: string, password: string) {
     };
   }
   return { error: new InvalidCredentials() };
+}
+
+async function migratePasswordFromAuth0(email: string, password: string) {
+  // If the user has a linked social identity, we have no way to confirm 100% that this is the correct account
+  // since we allowed same email on multiple accounts with Auth0
+  const userWithoutSocialIdentities = await prisma.user.findFirst({
+    select: { id: true, identities: true },
+    where: { email, password: null, identities: { none: {} } },
+  });
+
+  if (!userWithoutSocialIdentities || userWithoutSocialIdentities.identities.length > 0) {
+    logger.warn({ email }, 'Cannot migrate password on the fly from Auth0, user has linked social identity');
+    throw new InvalidCredentials();
+  }
+
+  await verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY({ email, password });
+
+  return await prisma.user.update({
+    select: userSelect,
+    data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
+    where: { id: userWithoutSocialIdentities.id },
+  });
 }
 
 async function addIdentityToUser(userId: string, providerUser: ProviderUser, provider: OauthProviderType) {

@@ -5,7 +5,7 @@ import * as crypto from 'crypto';
 import type { Response } from 'express';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
-import { AuthError, InvalidCsrfToken, InvalidVerificationToken } from './auth.errors';
+import { AuthError, InvalidCredentials, InvalidCsrfToken, InvalidVerificationToken } from './auth.errors';
 import { getCookieConfig, validateCSRFToken } from './auth.utils';
 
 const oauthPromise = import('oauth4webapi');
@@ -268,4 +268,43 @@ async function getUserInfo({ authorizationServer, client }: OauthClientProvider,
 
   const userInfo = await oauth.processUserInfoResponse(authorizationServer, client, sub, response);
   return userInfo;
+}
+
+/**
+ * Log user into Auth0 using Username+Password
+ *
+ * This is used to verify a user's password if we do not have the password hash stored in Jetstream database.
+ *
+ * Once the user migration is complete, this function should be removed.
+ */
+export async function verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY({ email, password }: { email: string; password: string }) {
+  if (!ENV.AUTH0_DOMAIN || !ENV.AUTH0_CLIENT_ID || !ENV.AUTH0_CLIENT_SECRET) {
+    logger.error('Auth0 credentials are not set, unable to check for password migration');
+    throw new InvalidCredentials();
+  }
+
+  const response = await fetch(`https://${ENV.AUTH0_DOMAIN}/oauth/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'password',
+      username: email,
+      password,
+      scope: 'email',
+      client_id: ENV.AUTH0_CLIENT_ID,
+      client_secret: ENV.AUTH0_CLIENT_SECRET,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new InvalidCredentials();
+  }
+
+  const data = (await response.json()) as { access_token: string; scope: string; expires_in: number; token_type: 'Bearer' };
+
+  if (!data.access_token) {
+    throw new InvalidCredentials();
+  }
 }
