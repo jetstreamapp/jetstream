@@ -5,6 +5,7 @@ import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } fr
 import { getChromeExtensionVersion, getOrgType, isChromeExtension, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
+  Announcement,
   ApplicationCookie,
   JetstreamOrganization,
   JetstreamOrganizationWithOrgs,
@@ -147,7 +148,7 @@ function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
 
 async function fetchAppVersion() {
   try {
-    return isChromeExtension() ? { version: getChromeExtensionVersion() } : await checkHeartbeat();
+    return isChromeExtension() ? { version: getChromeExtensionVersion(), announcements: [] } : await checkHeartbeat();
   } catch (ex) {
     return { version: 'unknown' };
   }
@@ -174,7 +175,7 @@ export const applicationCookieState = atom<ApplicationCookie>({
   default: getAppCookie(),
 });
 
-export const appVersionState = atom<{ version: string }>({
+export const appVersionState = atom<{ version: string; announcements?: Announcement[] }>({
   key: 'appVersionState',
   default: fetchAppVersion(),
 });

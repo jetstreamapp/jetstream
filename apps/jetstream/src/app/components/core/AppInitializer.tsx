@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
-import { ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { Announcement, ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { fromAppState, useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
@@ -30,13 +30,14 @@ localforage.config({
 });
 
 export interface AppInitializerProps {
+  onAnnouncements?: (announcements: Announcement[]) => void;
   onUserProfile: (userProfile: UserProfileUi) => void;
   children?: React.ReactNode;
 }
 
-export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
+export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, onUserProfile, children }) => {
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
-  const { version } = useRecoilValue(fromAppState.appVersionState);
+  const { version, announcements } = useRecoilValue(fromAppState.appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
@@ -44,6 +45,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   useEffect(() => {
     console.log('APP VERSION', version);
   }, [version]);
+
+  useEffect(() => {
+    announcements && onAnnouncements && onAnnouncements(announcements);
+  }, [announcements, onAnnouncements]);
 
   useRollbar({
     accessToken: environment.rollbarClientAccessToken,
@@ -81,20 +86,26 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
    * 1. ensure user is still authenticated
    * 2. make sure the app version has not changed, if it has then refresh the page
    */
-  const handleWindowFocus = useCallback(async (event: FocusEvent) => {
-    try {
-      if (document.visibilityState === 'visible') {
-        const { version: serverVersion } = await checkHeartbeat();
-        // TODO: inform user that there is a new version and that they should refresh their browser.
-        // We could force refresh, but don't want to get into some weird infinite refresh state
-        if (version !== serverVersion) {
-          console.log('VERSION MISMATCH', { serverVersion, version });
+  const handleWindowFocus = useCallback(
+    async (event: FocusEvent) => {
+      try {
+        if (document.visibilityState === 'visible') {
+          const { version: serverVersion, announcements } = await checkHeartbeat();
+          // TODO: inform user that there is a new version and that they should refresh their browser.
+          // We could force refresh, but don't want to get into some weird infinite refresh state
+          if (version !== serverVersion) {
+            console.log('VERSION MISMATCH', { serverVersion, version });
+          }
+          if (announcements && onAnnouncements) {
+            onAnnouncements(announcements);
+          }
         }
+      } catch (ex) {
+        // ignore error, but user should have been logged out if this failed
       }
-    } catch (ex) {
-      // ignore error, but user should have been logged out if this failed
-    }
-  }, []);
+    },
+    [onAnnouncements, version]
+  );
 
   useEffect(() => {
     document.addEventListener('visibilitychange', handleWindowFocus);

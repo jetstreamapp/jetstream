@@ -81,7 +81,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       ? [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />]
       : [
           <HeaderAnnouncementPopover>
-            <p className="">We are working on upgrades to our authentication and user management systems in the coming weeks.</p>
+            <p>We are working on upgrades to our authentication and user management systems.</p>
             <p className="slds-text-title_caps slds-m-top_x-small">Upcoming Features:</p>
             <ul className="slds-list_dotted slds-m-vertical_x-small">
               <li>Multi-factor authentication</li>
@@ -91,9 +91,13 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
             <ul className="slds-list_dotted slds-m-vertical_x-small">
               <li>All users will be signed out and need to sign back in</li>
               <li>Some users may require a password reset to log back in</li>
+              <li>Email verification will be required, and if you use a password to login, 2FA via email will be automatically enabled</li>
             </ul>
             <hr className="slds-m-vertical_small" />
-            Stay tuned for a timeline. If you have any questions <FeedbackLink type="EMAIL" label="Send us an email" />.
+            <p>Expected upgrade date is {new Date('2024-11-16T18:00:00.000Z').toLocaleString()}.</p>
+            <p>
+              If you have any questions <FeedbackLink type="EMAIL" label="Send us an email" />.
+            </p>
             {!!userProfile && !userProfile.email_verified && (
               <>
                 <hr className="slds-m-vertical_small" />
