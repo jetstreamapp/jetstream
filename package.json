@@ -6,7 +6,7 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream",
-  "version": "4.17.2",
+  "version": "4.18.0",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
     "node": ">=20 <22",
@@ -56,7 +56,7 @@
     "email:build": "email build --dir ./libs/email/src/lib/email-templates --packageManager yarn",
     "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",
     "scripts:generate-env": "node ./scripts/generate.env.mjs",
-    "release": "dotenv -- release-it -V ${0}",
+    "release": "dotenv -- release-it -V",
     "release:build": "zx ./scripts/build-release.mjs",
     "release:web-extension": "dotenv -- release-it --config .release-it-web-ext.json",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",

@@ -6,8 +6,10 @@ import type {
   UserProfileUiWithIdentities,
   UserSessionWithLocation,
 } from '@jetstream/auth/types';
+import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import {
+  Announcement,
   AnonymousApexResponse,
   ApexCompletionResponse,
   ApiResponse,
@@ -71,8 +73,20 @@ function convertDateToLocale(dateOrIsoDateString?: string | Date, options?: Intl
 
 //// APPLICATION ROUTES
 
-export async function checkHeartbeat(): Promise<{ version: string }> {
-  return handleRequest({ method: 'GET', url: '/api/heartbeat' }).then(unwrapResponseIgnoreCache);
+export async function checkHeartbeat(): Promise<{ version: string; announcements?: Announcement[] }> {
+  const heartbeat = await handleRequest<{ version: string; announcements?: Announcement[] }>({ method: 'GET', url: '/api/heartbeat' }).then(
+    unwrapResponseIgnoreCache
+  );
+  try {
+    heartbeat?.announcements?.forEach((item) => {
+      item?.replacementDates?.forEach(({ key, value }) => {
+        item.content = item.content.replaceAll(key, new Date(value).toLocaleString());
+      });
+    });
+  } catch (ex) {
+    logger.warn('Unable to parse announcements');
+  }
+  return heartbeat;
 }
 
 export async function emailSupport(emailBody: string, attachments: InputReadFileContent[]): Promise<void> {

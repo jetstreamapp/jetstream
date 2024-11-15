@@ -1,6 +1,7 @@
 import { ENV } from '@jetstream/api-config';
 import express from 'express';
 import Router from 'express-promise-router';
+import { getAnnouncements } from '../announcements';
 import { routeDefinition as imageController } from '../controllers/image.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -23,7 +24,7 @@ routes.use(addOrgsToLocal);
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sendJson(res as any, { version: ENV.GIT_VERSION || null });
+  sendJson(res as any, { version: ENV.GIT_VERSION || null, announcements: getAnnouncements() });
 });
 
 /**
