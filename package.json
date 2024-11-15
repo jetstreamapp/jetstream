@@ -53,7 +53,7 @@
     "build:web-extension:dev": "nx run jetstream-web-extension:build --configuration=development",
     "build:web-extension": "nx run jetstream-web-extension:build",
     "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",
-    "release": "dotenv -- release-it -V ${0}",
+    "release": "dotenv -- release-it -V",
     "release:build": "zx ./scripts/build-release.mjs",
     "release:web-extension": "dotenv -- release-it --config .release-it-web-ext.json",
     "bundle-analyzer:client": "npx webpack-bundle-analyzer dist/apps/jetstream/stats.json",

@@ -1,4 +1,4 @@
-import { Maybe, UserProfileUi } from '@jetstream/types';
+import { Announcement, Maybe, UserProfileUi } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 // import { initSocket } from '@jetstream/shared/data';
 import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
@@ -11,6 +11,7 @@ import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
 import { environment } from '../environments/environment';
 import { AppRoutes } from './AppRoutes';
+import { AnnouncementAlerts } from './components/core/AnnouncementAlerts';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
 import LogInitializer from './components/core/LogInitializer';
@@ -27,6 +28,7 @@ import { UnverifiedEmailAlert } from './components/core/UnverifiedEmailAlert';
 export const App = () => {
   const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();
   const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set());
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
     if (userProfile && userProfile[environment.authAudience || '']?.featureFlags) {
@@ -39,7 +41,7 @@ export const App = () => {
     <ConfirmationServiceProvider>
       <RecoilRoot>
         <Suspense fallback={<AppLoading />}>
-          <AppInitializer onUserProfile={setUserProfile}>
+          <AppInitializer onAnnouncements={setAnnouncements} onUserProfile={setUserProfile}>
             <OverlayProvider>
               <DndProvider backend={HTML5Backend}>
                 <ModalContainer />
@@ -54,6 +56,7 @@ export const App = () => {
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                     <UnverifiedEmailAlert userProfile={userProfile} />
+                    <AnnouncementAlerts announcements={announcements} />
                     <Suspense fallback={<AppLoading />}>
                       <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
                         <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />

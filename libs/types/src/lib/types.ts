@@ -3,6 +3,15 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  replacementDates: { key: string; value: string }[];
+  expiresAt: string;
+  createdAt: string;
+}
+
 export type CopyAsDataType = 'excel' | 'csv' | 'json';
 
 export interface RequestResult<T> {
