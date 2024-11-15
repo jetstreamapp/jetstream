@@ -149,7 +149,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
           <h5>Scan the QR code with your authenticator app</h5>
           <img src={otp2fa.imageUri} alt="qr code" className="slds-box slds-box_xx-small" />
           <p>
-            Or enter the following code in your authenticator app: <span data-testid="totp-secret">{otp2fa.secretToken}</span>
+            Or enter the following secret in your authenticator app: <span data-testid="totp-secret">{otp2fa.secretToken}</span>
           </p>
           <Input label="Enter code">
             <input

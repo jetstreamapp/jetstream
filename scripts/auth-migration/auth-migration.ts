@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { ManagementClient } from 'auth0';
-import { writeFileSync } from 'fs-extra';
+import { readFileSync, writeFileSync } from 'fs-extra';
 import { isString } from 'lodash';
 import path from 'path';
 import { pipeline, Readable, Writable } from 'stream';
@@ -31,8 +31,22 @@ const management = new ManagementClient({
   clientSecret: ENV.CLIENT_SECRET,
 });
 
+interface Auth0UserWithPassword {
+  _id: string;
+  email: string;
+  email_verified: boolean;
+  tenant: 'getjetstream';
+  connection: 'Username-Password-Authentication';
+  passwordHash: string;
+  _tmp_is_unique: true;
+  version: string;
+  identifiers: [{ type: 'email'; value: string; verified: boolean }];
+}
+
 interface Auth0User {
   user_id: string;
+  passwordHash?: string;
+  last_password_reset?: string;
   nickname: string;
   updated_at: string;
   user_metadata?: any;
@@ -104,6 +118,7 @@ interface SalesforceIdentity {
 const timestamp = formatTimestampForFilename();
 
 const DATA_DIR = path.join(__dirname, 'data');
+const inputPasswordHashData = path.join(DATA_DIR, `~export_getjetstream_layer0_2024-11-14_16_02_07_776Z.jsonline`);
 const outputAuth0PathJson = path.join(DATA_DIR, `jetstream-users-${timestamp}-PRE_AUTH0.json`);
 const outputPreUpdatePathJson = path.join(DATA_DIR, `jetstream-users-${timestamp}-PRE_UPDATE.json`);
 const outputPathSuccessJson = path.join(DATA_DIR, `jetstream-users-${timestamp}-OUT_SUCCESS.json`);
@@ -156,10 +171,30 @@ async function delay(milliseconds: number) {
 
 /**
  * **********************************************
+ * PARSE PASSWORD EXPORT DATA
+ * **********************************************
+ */
+function parsePasswordExportData(): Record<string, Auth0UserWithPassword> {
+  try {
+    return (convertJsonLinesToJson(readFileSync(inputPasswordHashData, 'utf8')) as Auth0UserWithPassword[]).reduce(
+      (acc: Record<string, Auth0UserWithPassword>, item) => {
+        acc[item._id] = item;
+        return acc;
+      },
+      {}
+    );
+  } catch (ex) {
+    console.error('Error parsing password export data', ex);
+    return {};
+  }
+}
+
+/**
+ * **********************************************
  * EXPORT USERS FUNCTION
  * **********************************************
  */
-async function exportUsers() {
+async function exportUsers(userByIdWithPasswordHash: Record<string, Auth0UserWithPassword>) {
   let response = await management.jobs.exportUsers({
     format: 'json',
     fields: [
@@ -207,6 +242,15 @@ async function exportUsers() {
       const jsonLines = results.toString('utf8');
       let users = convertJsonLinesToJson(jsonLines) as Auth0User[];
 
+      // add passwordHas to users
+      users.forEach((user) => {
+        user.identities.forEach((identity) => {
+          if (userByIdWithPasswordHash[identity.user_id]) {
+            user.passwordHash = userByIdWithPasswordHash[identity.user_id].passwordHash;
+          }
+        });
+      });
+
       console.log('Saving auth0 users to', outputAuth0PathJson);
       writeFileSync(outputAuth0PathJson, JSON.stringify(users, null, 2));
 
@@ -224,6 +268,11 @@ async function exportUsers() {
  * **********************************************
  */
 async function updateUsersInJetstreamDatabase(users: Auth0User[]) {
+  const output = {
+    total: users.length,
+    success: 0,
+    failed: 0,
+  };
   console.log('Preparing users for import');
   const userUpdateInput = users.map((user) => {
     const jetstreamUser: Prisma.UserUpdateInput = {
@@ -234,21 +283,19 @@ async function updateUsersInJetstreamDatabase(users: Auth0User[]) {
       nickname: (user.nickname || user.name || user.email).trim(),
       picture: user.picture || null,
       updatedAt: new Date(),
-      password: null, // TODO: if there is a password, set this
-      passwordUpdatedAt: null, // TODO: if there is a password, set this
+      password: user.passwordHash,
+      passwordUpdatedAt: user.passwordHash ? (user.last_password_reset ? new Date(user.last_password_reset) : new Date()) : null,
     };
     const jetstreamAuthFactors: Prisma.AuthFactorsCreateWithoutUserInput[] = [];
     const jetstreamAuthIdentity: Prisma.AuthIdentityCreateWithoutUserInput[] = [];
 
-    if (jetstreamUser.password) {
-      jetstreamAuthFactors.push({
-        enabled: true, // Users can choose "remember this device" or disable in settings
-        secret: null,
-        type: '2fa-email',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
+    jetstreamAuthFactors.push({
+      enabled: !!jetstreamUser.password || !jetstreamUser.emailVerified,
+      secret: null,
+      type: '2fa-email',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     let identities = user.identities;
     let isFirstItemPrimary = true;
@@ -335,8 +382,7 @@ async function updateUsersInJetstreamDatabase(users: Auth0User[]) {
         throw new Error(`User not found with id: ${userInput.userId}`);
       }
 
-      // TODO: I could calculate if we need to update the authFactors here?
-
+      output.success++;
       results.push({
         success: true,
         user: await prisma.user.update({
@@ -349,6 +395,7 @@ async function updateUsersInJetstreamDatabase(users: Auth0User[]) {
         }),
       });
     } catch (ex) {
+      output.failed++;
       console.error('Error updating user', ex);
       results.push({
         success: false,
@@ -377,13 +424,23 @@ async function updateUsersInJetstreamDatabase(users: Auth0User[]) {
     )
   );
   writeFileSync(outputPathAllJson, JSON.stringify(results, null, 2));
+  return output;
 }
 
 (async () => {
   console.log('Starting export process');
-  // TODO: ask user if they want to continue
-  const users = await exportUsers();
-  // TODO: ask user if they want to continue
-  await updateUsersInJetstreamDatabase(users);
+  const userByIdWithPasswordHash = parsePasswordExportData();
+  const users = await exportUsers(userByIdWithPasswordHash);
+
+  const results = await updateUsersInJetstreamDatabase(users);
+
+  console.log('Exported users: ', users.length);
+  console.log('Users with password: ', users.filter((user) => user.passwordHash).length);
+  console.log(
+    'Users without password that should have one: ',
+    users.filter((user) => !user.passwordHash && user.identities.some((user) => user.provider === 'auth0')).length
+  );
+  console.log('Successfully updated: ', results.success);
+  console.log('Failed updated: ', results.failed);
   console.log('Done');
 })();
