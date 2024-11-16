@@ -14,7 +14,7 @@ import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/er
 import { getApiAddressFromReq } from '../utils/route.utils';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  res.locals.requestId = res.locals.requestId || uuid();
+  res.locals.requestId = res.locals.requestId || req.get('rndr-id') || uuid();
   const clientReqId = req.header(HTTP.HEADERS.X_CLIENT_REQUEST_ID);
   if (clientReqId) {
     res.setHeader(HTTP.HEADERS.X_CLIENT_REQUEST_ID, clientReqId);

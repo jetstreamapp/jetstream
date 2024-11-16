@@ -21,7 +21,8 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   genReqId: (req, res) => res.locals.requestId || uuid(),
   autoLogging: {
     // ignore static files based on file extension
-    ignore: (req) => ignoreLogsFileExtensions.test(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat',
+    ignore: (req) =>
+      ignoreLogsFileExtensions.test(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
   },
   customLogLevel: function (req, res, error) {
     if (res.statusCode > 400) {
@@ -46,6 +47,8 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
           host: req.raw.headers.host,
           'user-agent': req.raw.headers['user-agent'],
           referer: req.raw.headers.referer,
+          'cf-ray': req.raw.headers['cf-ray'],
+          'rndr-id': req.raw.headers['rndr-id'],
           'x-sfdc-id': req.raw.headers['x-sfdc-id'],
           'x-client-request-id': req.raw.headers['x-client-request-id'],
           'x-retry': req.raw.headers['x-retry'],
