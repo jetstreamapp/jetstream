@@ -1,12 +1,12 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { PrismaPromise } from '@prisma/client';
 
 /**
  * This file manages db operations as transactions that span multiple tables
  */
 
-export async function deleteUserAndOrgs(user: UserProfileServer) {
+export async function deleteUserAndOrgs(user: UserProfileSession) {
   if (!user?.id) {
     throw new Error('A valid user must be provided');
   }
@@ -42,7 +42,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
     throw new Error('A valid userId must be provided');
   }
   try {
-    const dbTransactions: PrismaPromise<any>[] = [];
+    const dbTransactions: PrismaPromise<unknown>[] = [];
 
     if ((await prisma.salesforceOrg.count({ where: { jetstreamUserId: userId } })) > 0) {
       dbTransactions.push(

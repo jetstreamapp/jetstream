@@ -1,0 +1,17 @@
+process.env.CI = 'false';
+process.env.IS_LOCAL_DOCKER = 'false';
+process.env.NODE_ENV = 'development';
+process.env.ENVIRONMENT = 'development';
+process.env.PORT = '1234';
+process.env.GIT_VERSION = '299e9f089';
+process.env.JETSTREAM_AUTH_SECRET = 'test-secret';
+process.env.JETSTREAM_AUTH_OTP_SECRET = 'test-secret';
+process.env.JETSTREAM_SESSION_SECRET = 'test-secret';
+process.env.JETSTREAM_POSTGRES_DBURI = 'postgres://test@localhost:5432/postgres';
+process.env.JETSTREAM_SERVER_DOMAIN = 'localhost:3333';
+process.env.JETSTREAM_SERVER_URL = 'https://localhost:3333';
+process.env.JETSTREAM_CLIENT_URL = 'https://localhost:3333';
+process.env.SFDC_API_VERSION = '25.0';
+process.env.SFDC_CONSUMER_SECRET = 'test-secret';
+process.env.SFDC_CONSUMER_KEY = 'test-key';
+process.env.SFDC_CALLBACK_URL = 'https://localhost:3333/auth/sfdc/callback';

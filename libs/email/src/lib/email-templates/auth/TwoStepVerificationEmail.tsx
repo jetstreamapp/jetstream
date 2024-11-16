@@ -1,0 +1,46 @@
+import { Body, Container, Head, Heading, Html, Img, Preview, Section, Text } from '@react-email/components';
+import * as React from 'react';
+import { EmailFooter } from '../../components/EmailFooter';
+import { EMAIL_STYLES } from '../../shared-styles';
+
+interface TwoStepVerificationEmailProps {
+  validationCode: string;
+  expMinutes: number;
+}
+
+export const TwoStepVerificationEmail = ({ validationCode, expMinutes }: TwoStepVerificationEmailProps) => (
+  <Html>
+    <Head />
+    <Preview>Verify your identity with Jetstream - {validationCode}</Preview>
+    <Body style={EMAIL_STYLES.main}>
+      <Container style={EMAIL_STYLES.container}>
+        <Img
+          src="https://res.cloudinary.com/getjetstream/image/upload/v1634516631/public/jetstream-logo-200w.png"
+          width="200"
+          alt="Jetstream"
+          style={EMAIL_STYLES.logo}
+        />
+        <Heading style={EMAIL_STYLES.codeTitle}>Verification code</Heading>
+
+        <Text style={EMAIL_STYLES.codeDescription}>
+          Enter this code in your open browser window. This code will expire in {expMinutes} minutes.
+        </Text>
+
+        <Section style={EMAIL_STYLES.codeContainer}>
+          <Heading style={EMAIL_STYLES.codeStyle}>{validationCode}</Heading>
+        </Section>
+
+        <Text style={EMAIL_STYLES.paragraphHeading}>Didn't request this?</Text>
+        <Text style={EMAIL_STYLES.paragraph}>If you didn't make this request, you can safely ignore this email.</Text>
+      </Container>
+    </Body>
+    <EmailFooter />
+  </Html>
+);
+
+export default TwoStepVerificationEmail;
+
+TwoStepVerificationEmail.PreviewProps = {
+  validationCode: '123456',
+  expMinutes: 10,
+} as TwoStepVerificationEmailProps;

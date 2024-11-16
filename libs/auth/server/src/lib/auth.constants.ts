@@ -1,0 +1,5 @@
+export const PASSWORD_RESET_DURATION_MINUTES = 30;
+export const TOKEN_DURATION_MINUTES = 15;
+
+export const DELETE_ACTIVITY_DAYS = 30;
+export const DELETE_TOKEN_DAYS = 3;

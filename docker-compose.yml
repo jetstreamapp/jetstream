@@ -7,7 +7,7 @@ services:
       db:
         condition: service_healthy
     env_file:
-      - .env.example
+      - .env
     environment:
       NODE_ENV: development
       ENVIRONMENT: development
@@ -15,10 +15,13 @@ services:
       IS_LOCAL_DOCKER: true
       JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@postgres:5432/postgres
       EXAMPLE_USER_OVERRIDE: true
-      JETSTREAM_SESSION_SECRET: '123456'
+      EXAMPLE_USER_PASSWORD: 'EXAMPLE_123!'
       JETSTREAM_CLIENT_URL: http://localhost:3333/app
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
+      NEXT_PUBLIC_CLIENT_URL: 'http://localhost:3333/app'
+      NEXT_PUBLIC_SERVER_URL: 'http://localhost:3333'
+
     ports:
       - '3333:3333'
     links:

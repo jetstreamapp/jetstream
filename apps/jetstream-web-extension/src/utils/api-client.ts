@@ -9,7 +9,7 @@ export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiC
     userId: 'unknown',
     organizationId: 'unknown',
     accessToken,
-    apiVersion: '61.0',
+    apiVersion: '62.0',
     instanceUrl,
     // refreshToken: refresh_token,
     logging: true, // TODO: make dynamic from options

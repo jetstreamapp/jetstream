@@ -1,5 +1,5 @@
-import { ENV, getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
@@ -19,35 +19,84 @@ const userSelect: Prisma.UserSelect = {
   userId: true,
 };
 
+const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPasswordSet?: boolean }>()({
+  id: true,
+  userId: true,
+  name: true,
+  email: true,
+  emailVerified: true,
+  appMetadata: false,
+  picture: true,
+  preferences: true,
+  hasPasswordSet: true,
+  identities: {
+    select: {
+      type: true,
+      email: true,
+      emailVerified: true,
+      familyName: true,
+      givenName: true,
+      name: true,
+      picture: true,
+      provider: true,
+      providerAccountId: true,
+      isPrimary: true,
+      username: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  authFactors: {
+    select: {
+      type: true,
+      enabled: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  createdAt: true,
+  updatedAt: true,
+});
+
+const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
+  id: true,
+  userId: true,
+  name: true,
+  email: true,
+  emailVerified: true,
+  picture: true,
+  preferences: true,
+});
+
+export async function findUserWithIdentitiesById(id: string) {
+  return await prisma.user.findUniqueOrThrow({
+    select: FullUserFacingProfileSelect,
+    where: { id },
+  });
+}
+
 export const findIdByUserId = ({ userId }: { userId: string }) => {
   return prisma.user.findFirstOrThrow({ where: { userId }, select: { id: true } }).then(({ id }) => id);
 };
 
-/**
- * Find by Auth0 userId, not Jetstream Id
- */
-export async function findByUserId(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { userId },
-    select: userSelect,
-  });
-  return user;
-}
+export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then(({ id }) => id);
+};
 
 export async function updateUser(
-  user: UserProfileServer,
-  data: { name: string; preferences: { skipFrontdoorLogin: boolean } }
+  user: UserProfileSession,
+  data: { name?: string; preferences?: { skipFrontdoorLogin: boolean } }
 ): Promise<User> {
   try {
-    const existingUser = await prisma.user.findUnique({
-      where: { userId: user.id },
-      select: { id: true, preferences: { select: { skipFrontdoorLogin: true } } },
+    const existingUser = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { id: true, name: true, preferences: { select: { skipFrontdoorLogin: true } } },
     });
-    const skipFrontdoorLogin = data.preferences.skipFrontdoorLogin ?? (existingUser?.preferences?.skipFrontdoorLogin || false);
+    const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? (existingUser?.preferences?.skipFrontdoorLogin || false);
     const updatedUser = await prisma.user.update({
-      where: { userId: user.id },
+      where: { id: user.id },
       data: {
-        name: data.name,
+        name: data.name ?? existingUser.name,
         preferences: {
           upsert: {
             create: { skipFrontdoorLogin },
@@ -64,51 +113,19 @@ export async function updateUser(
   }
 }
 
-/**
- * This is called each time a user logs in (e.x. goes through OAuth2 flow with Auth Provider)
- */
-export async function createOrUpdateUser(user: UserProfileServer): Promise<{ created: boolean; user: User }> {
-  try {
-    const existingUser = await findByUserId(user.id);
-
-    if (existingUser) {
-      const updatedUser = await prisma.user.update({
-        where: { userId: user.id },
-        data: {
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
-          deletedAt: null,
-          lastLoggedIn: new Date(),
-          preferences: {
-            upsert: {
-              create: { skipFrontdoorLogin: false },
-              update: { skipFrontdoorLogin: false },
-            },
-          },
-        },
-        select: userSelect,
-      });
-      logger.debug({ userId: user.id, id: existingUser.id }, '[DB][USER][UPDATED] %s', user.id);
-      return { created: false, user: updatedUser };
-    } else {
-      const createdUser = await prisma.user.create({
-        data: {
-          userId: user.id,
-          email: user._json.email,
-          name: user._json.name,
-          nickname: user._json.nickname,
-          picture: user._json.picture,
-          appMetadata: JSON.stringify(user._json[ENV.AUTH_AUDIENCE!]),
-          deletedAt: null,
-          lastLoggedIn: new Date(),
-          preferences: { create: { skipFrontdoorLogin: false } },
-        },
-        select: userSelect,
-      });
-      logger.debug({ userId: user.id, id: createdUser.id }, '[DB][USER][CREATED] %s', user.id);
-      return { created: true, user: createdUser };
-    }
-  } catch (ex) {
-    logger.error({ user, ...getExceptionLog(ex) }, '[DB][USER][CREATE][ERROR] %o', ex);
-    throw ex;
+export async function deleteUserAndAllRelatedData(userId: string): Promise<void> {
+  const existingUser = await prisma.user.findFirstOrThrow({ where: { id: userId }, select: { id: true } });
+  if (!existingUser) {
+    throw new Error(`User with id ${userId} not found`);
   }
+  // This cascades to delete all related data
+  await prisma.user.delete({ where: { id: userId } });
+  await prisma.sessions.deleteMany({
+    where: {
+      sess: {
+        path: ['user', 'id'],
+        equals: userId,
+      },
+    },
+  });
 }

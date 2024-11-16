@@ -4,6 +4,10 @@ import { expect, test } from '../../fixtures/fixtures';
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('API - Apex', () => {
+  test.beforeEach(async ({ apiRequestUtils }) => {
+    await apiRequestUtils.selectDefaultOrg();
+  });
+
   test('anonymousApex', async ({ apiRequestUtils }) => {
     const [validWithLogLevel, validWithoutLogLevel, validApexWithXmlChars, invalidApex, runtimeError, missingApex, invalidLogLevel] =
       await Promise.all([

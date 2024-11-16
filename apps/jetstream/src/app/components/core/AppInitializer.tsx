@@ -43,7 +43,16 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   const invalidOrg = useObservable(orgConnectionError$);
 
   useEffect(() => {
-    console.log('APP VERSION', version);
+    console.log(`
+     ██╗███████╗████████╗███████╗████████╗██████╗ ███████╗ █████╗ ███╗   ███╗
+     ██║██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔══██╗██╔════╝██╔══██╗████╗ ████║
+     ██║█████╗     ██║   ███████╗   ██║   ██████╔╝█████╗  ███████║██╔████╔██║
+██   ██║██╔══╝     ██║   ╚════██║   ██║   ██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║
+╚█████╔╝███████╗   ██║   ███████║   ██║   ██║  ██║███████╗██║  ██║██║ ╚═╝ ██║
+ ╚════╝ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
+
+APP VERSION ${version}
+ `);
   }, [version]);
 
   useEffect(() => {

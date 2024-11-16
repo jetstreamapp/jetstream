@@ -3,7 +3,12 @@ const sidebar = {
     {
       type: 'category',
       label: 'Getting Started',
-      items: ['getting-started/overview', 'getting-started/organizations', 'getting-started/feedback'],
+      items: ['getting-started/overview', 'getting-started/troubleshooting', 'getting-started/organizations', 'getting-started/feedback'],
+    },
+    {
+      type: 'category',
+      label: 'User Profile and Settings',
+      items: ['user-profile-and-settings/user-profile', 'user-profile-and-settings/settings'],
     },
     {
       type: 'category',

@@ -45,7 +45,7 @@ export const routeDefinition = {
   },
 };
 
-const getOrganizations = createRoute(routeDefinition.getOrganizations.validators, async ({ user, query }, req, res, next) => {
+const getOrganizations = createRoute(routeDefinition.getOrganizations.validators, async ({ user }, req, res, next) => {
   try {
     const organizations = await jetstreamOrganizationsDb.findByUserId({ userId: user.id });
 
@@ -69,7 +69,7 @@ const updateOrganization = createRoute(routeDefinition.updateOrganization.valida
   try {
     const organization = await jetstreamOrganizationsDb.update(user.id, params.id, body);
 
-    sendJson(res, organization, 201);
+    sendJson(res, organization, 200);
   } catch (ex) {
     next(new UserFacingError(ex));
   }

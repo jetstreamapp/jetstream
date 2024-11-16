@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "module": "NodeNext",
-    "types": ["node", "jest", "google.accounts", "google.picker", "gapi.client.drive"]
+    "types": ["node", "jest", "google.accounts", "google.picker"]
   },
   "include": ["jest.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts", "src/**/*.d.ts"]
 }

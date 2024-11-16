@@ -15,6 +15,15 @@ if (ENV.PRISMA_DEBUG) {
 
 export const prisma = new PrismaClient({
   log,
+}).$extends({
+  result: {
+    user: {
+      hasPasswordSet: {
+        needs: { password: true },
+        compute: (user) => !!user.password,
+      },
+    },
+  },
 });
 
 export const pgPool = new Pool({
@@ -24,7 +33,6 @@ export const pgPool = new Pool({
 });
 
 pgPool.on('connect', (client) => {
-  // logger.info('[DB][POOL] Connected');
   client.on('error', (err) => {
     logger.error(getExceptionLog(err), '[DB][CLIENT][ERROR] Unexpected error on client.');
   });

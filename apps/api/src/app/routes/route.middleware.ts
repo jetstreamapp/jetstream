@@ -1,20 +1,20 @@
-import { ENV, getExceptionLog, logger, rollbarServer, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { AuthError, ExpiredVerificationToken, InvalidCaptcha, checkUserAgentSimilarity } from '@jetstream/auth/server';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
-import { ApplicationCookie, UserProfileServer } from '@jetstream/types';
-import { AxiosError } from 'axios';
-import { addDays, fromUnixTime, getUnixTime } from 'date-fns';
+import { ApplicationCookie } from '@jetstream/types';
+import { getUnixTime } from 'date-fns';
 import * as express from 'express';
-import { isNumber } from 'lodash';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { updateUserLastActivity } from '../services/auth0';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
+import { getApiAddressFromReq } from '../utils/route.utils';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  res.locals.requestId = res.locals.requestId || uuid();
+  res.locals.requestId = res.locals.requestId || req.get('rndr-id') || uuid();
   const clientReqId = req.header(HTTP.HEADERS.X_CLIENT_REQUEST_ID);
   if (clientReqId) {
     res.setHeader(HTTP.HEADERS.X_CLIENT_REQUEST_ID, clientReqId);
@@ -32,7 +32,8 @@ export function addContextMiddleware(req: express.Request, res: express.Response
 export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const appCookie: ApplicationCookie = {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    serverUrl: ENV.JETSTREAM_SERVER_URL!,
+    serverUrl: ENV.JETSTREAM_SERVER_URL,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     environment: ENV.ENVIRONMENT as any,
     defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -59,7 +60,7 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
  * @returns
  */
 export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const userAgent = req.header('User-Agent');
+  const userAgent = req.get('User-Agent');
   if (userAgent?.toLocaleLowerCase().includes('python')) {
     logger.debug(
       {
@@ -67,7 +68,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
         method: req.method,
         url: req.originalUrl,
         requestId: res.locals.requestId,
-        agent: req.header('User-Agent'),
+        agent: req.get('User-Agent'),
         referrer: req.get('Referrer'),
         ip: req.headers[HTTP.HEADERS.CF_Connecting_IP] || req.headers[HTTP.HEADERS.X_FORWARDED_FOR] || req.connection.remoteAddress,
         country: req.headers[HTTP.HEADERS.CF_IPCountry],
@@ -82,77 +83,69 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
   next();
 }
 
-function getActivityExp() {
-  return getUnixTime(addDays(new Date(), 1));
+export function destroySessionIfPendingVerificationIsExpired(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.session?.pendingVerification?.length) {
+    const { exp } = req.session.pendingVerification[0];
+    if (exp < new Date().getTime()) {
+      req.session.destroy(() => {
+        next(new ExpiredVerificationToken());
+      });
+      return;
+    }
+  }
+  next();
+}
+
+export async function redirectIfPendingVerificationMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.session?.pendingVerification?.length) {
+    const { exp } = req.session.pendingVerification[0];
+    if (exp < getUnixTime(new Date())) {
+      req.session.destroy(() => {
+        return next(new ExpiredVerificationToken());
+      });
+    }
+
+    const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
+
+    if (!isJson) {
+      res.redirect(302, `/auth/verify`);
+      return;
+    } else {
+      next(new AuthError('Pending verification token'));
+      return;
+    }
+  }
+  next();
 }
 
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (ENV.EXAMPLE_USER_OVERRIDE && ENV.EXAMPLE_USER && req.hostname === 'localhost') {
-    req.user = ENV.EXAMPLE_USER;
-    return next();
-  }
-  if (req.user) {
-    telemetryAddUserToAttributes(req.user as UserProfileServer);
-    try {
-      if (!isNumber(req.session.activityExp)) {
-        req.session.activityExp = getActivityExp();
-      } else if (req.session.activityExp < getUnixTime(new Date())) {
-        req.session.activityExp = getActivityExp();
-        // Update auth0 with expiration date
-        updateUserLastActivity(req.user as UserProfileServer, fromUnixTime(req.session.activityExp))
-          .then(() => {
-            req.log.debug(
-              {
-                userId: (req.user as any)?.user_id,
-                requestId: res.locals.requestId,
-              },
-              '[AUTH][LAST-ACTIVITY][UPDATED] %s',
-              req.session.activityExp
-            );
-          })
-          .catch((err) => {
-            // send error to rollbar
-            const error: AxiosError = err;
-            if (error.response) {
-              req.log.error(
-                {
-                  userId: (req.user as any)?.user_id,
-                  requestId: res.locals.requestId,
-                  ...getExceptionLog(err),
-                },
-                '[AUTH][LAST-ACTIVITY][ERROR] %o',
-                error.response.data
-              );
-            } else if (error.request) {
-              req.log.error(
-                {
-                  userId: (req.user as any)?.user_id,
-                  requestId: res.locals.requestId,
-                  ...getExceptionLog(err),
-                },
-                '[AUTH][LAST-ACTIVITY][ERROR] %s',
-                error.message || 'An unknown error has occurred.'
-              );
-            }
-            rollbarServer.error('Error updating Auth0 activityExp', req, {
-              context: `route#activityExp`,
-              custom: {
-                ...getExceptionLog(err),
-                url: req.url,
-                params: req.params,
-                query: req.query,
-                body: req.body,
-                userId: (req.user as UserProfileServer)?.id,
-                requestId: res.locals.requestId,
-              },
-            });
-          });
-      }
-    } catch (ex) {
-      req.log.warn(getExceptionLog(ex), '[AUTH][LAST-ACTIVITY][ERROR] Exception: %s', ex.message);
+  const userAgent = req.get('User-Agent');
+
+  const user = req.session.user;
+  const pendingVerification = req.session.pendingVerification;
+
+  if (req.session.userAgent && req.session.userAgent !== userAgent) {
+    if (!checkUserAgentSimilarity(req.session.userAgent, userAgent || '')) {
+      req.log.error(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error({ ...getExceptionLog(err) }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
+        }
+        // TODO: Send email to user about potential suspicious activity
+        next(new AuthenticationError('Unauthorized'));
+      });
+      return;
     }
+  }
+
+  // TODO: consider adding a check for IP address - but should allow some buffer in case people change networks
+  // especially if the ip addresses are very far away
+
+  if (user && !pendingVerification) {
+    telemetryAddUserToAttributes(user);
     return next();
   }
+
   req.log.error('[AUTH][UNAUTHORIZED]');
   next(new AuthenticationError('Unauthorized'));
 }
@@ -186,6 +179,9 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
     }
   } catch (ex) {
     req.log.warn(getExceptionLog(ex), '[INIT-ORG][ERROR]');
+    if (ex instanceof NotFoundError) {
+      return next(ex);
+    }
     return next(new UserFacingError('There was an error initializing the connection to Salesforce'));
   }
 
@@ -225,7 +221,8 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
   const includeCallOptions = ensureBoolean(
     req.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (req.query.includeCallOptions as string | undefined)
   );
-  const user = req.user as UserProfileServer;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const user = req.session.user!;
 
   if (!uniqueId) {
     return;
@@ -235,7 +232,7 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
 }
 
 export async function getOrgForRequest(
-  user: UserProfileServer,
+  user: UserProfileSession,
   uniqueId: string,
   logger: pino.Logger | typeof console = console,
   apiVersion?: string,
@@ -244,19 +241,19 @@ export async function getOrgForRequest(
 ) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org) {
-    throw new UserFacingError('An org was not found with the provided id');
+    throw new NotFoundError('An org with the provided id does not exist');
   }
 
   const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId, organizationId } = org;
   const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
 
   apiVersion = apiVersion || org.apiVersion || ENV.SFDC_API_VERSION;
-  let callOptions = {
+  let callOptions: Record<string, string> = {
     client: 'jetstream',
   };
 
   if (orgNamespacePrefix && includeCallOptions) {
-    callOptions = { ...callOptions, defaultNamespace: orgNamespacePrefix } as any;
+    callOptions = { ...callOptions, defaultNamespace: orgNamespacePrefix };
   }
 
   // Handle org refresh - then remove event listener if refreshed
@@ -292,4 +289,43 @@ export async function getOrgForRequest(
   );
 
   return { org, jetstreamConn };
+}
+
+export function verifyCaptcha(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (!ENV.CAPTCHA_SECRET_KEY || ENV.CI) {
+    return next();
+  }
+  const token = req.body?.[ENV.CAPTCHA_PROPERTY];
+  if (!token) {
+    return next(new InvalidCaptcha());
+  }
+
+  fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    body: JSON.stringify({
+      secret: ENV.CAPTCHA_SECRET_KEY,
+      response: token,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      remoteip: res.locals.ipAddress || getApiAddressFromReq(req as any),
+    }),
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+    .then((res) => {
+      if (res.ok) {
+        return res.json();
+      }
+      throw new InvalidCaptcha();
+    })
+    .then((res) => {
+      if (res.success) {
+        return next();
+      }
+      logger.warn({ token, res }, '[CAPTCHA][FAILED]');
+      throw new InvalidCaptcha();
+    })
+    .catch(() => {
+      next(new InvalidCaptcha());
+    });
 }

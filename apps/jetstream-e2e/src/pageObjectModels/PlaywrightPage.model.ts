@@ -1,15 +1,11 @@
-import { APIRequestContext, Page } from '@playwright/test';
-import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { Browser, expect, Page } from '@playwright/test';
 
 export class PlaywrightPage {
-  readonly apiRequestUtils: ApiRequestUtils;
+  readonly browser: Browser;
   readonly page: Page;
-  readonly request: APIRequestContext;
 
-  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils) {
-    this.apiRequestUtils = apiRequestUtils;
+  constructor(page: Page) {
     this.page = page;
-    this.request = request;
   }
 
   async selectDropdownItem(
@@ -27,5 +23,16 @@ export class PlaywrightPage {
     }
     await dropdown.getByRole('option', { name: value }).click();
     return dropdown;
+  }
+
+  async logout() {
+    await this.page.getByRole('button', { name: 'Avatar' }).click();
+    await this.page.getByRole('menuitem', { name: 'Logout' }).click();
+    await expect(this.page.getByTestId('home-hero-container')).toBeVisible();
+  }
+
+  async goToProfile() {
+    await this.page.getByRole('button', { name: 'Avatar' }).click();
+    await this.page.getByRole('menuitem', { name: 'Your Profile' }).click();
   }
 }

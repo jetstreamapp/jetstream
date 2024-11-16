@@ -152,7 +152,7 @@ export function orderObjectsBy<T>(items: T[], fields: keyof T | Array<keyof T>, 
  * Case-insensitive string sort in ascending or descending order
  */
 export function orderValues<T extends number | string | boolean>(items: T[], order: 'asc' | 'desc' = 'asc'): T[] {
-  const orderByItereeFn = (value) => (isString(value) ? value.toLowerCase() : value);
+  const orderByItereeFn = (value: any) => (isString(value) ? value.toLowerCase() : value);
   return orderBy(items, [orderByItereeFn], [order]);
 }
 
@@ -450,7 +450,7 @@ export function convertFieldWithPolymorphicToQueryFields(
   return outputFields;
 }
 
-export function ensureBoolean(value: Maybe<string | boolean>) {
+export function ensureBoolean(value: Maybe<string | boolean>): boolean {
   if (isBoolean(value)) {
     return value;
   } else if (isString(value)) {

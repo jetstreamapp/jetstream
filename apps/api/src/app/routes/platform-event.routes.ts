@@ -37,7 +37,7 @@ routes.use('/', async (req: express.Request, res: express.Response, next: expres
       Accept: req.headers.accept || '*/*',
       'Accept-Encoding': req.headers['accept-encoding'] || 'gzip, deflate, br, zstd',
       Cookie: req.headers.cookie,
-      'user-agent': req.headers['user-agent'],
+      'user-agent': req.get('user-agent'),
     };
 
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {

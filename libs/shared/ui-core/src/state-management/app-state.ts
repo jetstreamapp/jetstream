@@ -20,24 +20,12 @@ import isString from 'lodash/isString';
 import { atom, DefaultValue, selector, useRecoilValue, useSetRecoilState } from 'recoil';
 
 const DEFAULT_PROFILE = {
-  email: 'unknown',
-  email_verified: true,
-  name: 'unknown',
-  nickname: 'unknown',
-  picture: 'unknown',
-  sub: 'unknown',
-  updated_at: 'unknown',
   id: 'unknown',
   userId: 'unknown',
-  createdAt: 'unknown',
-  updatedAt: 'unknown',
-  'http://getjetstream.app/app_metadata': {
-    featureFlags: {
-      flagVersion: '',
-      flags: [],
-      isDefault: true,
-    },
-  },
+  email: 'unknown',
+  name: 'unknown',
+  emailVerified: true,
+  picture: null,
   preferences: {
     skipFrontdoorLogin: true,
   },

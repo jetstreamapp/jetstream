@@ -2,12 +2,12 @@
  * ENDED UP NOT USING THIS STUFF
  */
 import { ENV, logger } from '@jetstream/api-config';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
-import { UserProfileServer } from '@jetstream/types';
-import { CometD } from 'cometd';
+import { CometD, LogLevel } from 'cometd';
 import { CometdReplayExtension } from './cometd-replay-extension';
 
-export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamConn: ApiConnection) {
+export function initCometD(user: UserProfileSession, cometd: CometD, jetstreamConn: ApiConnection) {
   return new Promise<void>((resolve, reject) => {
     if (cometd.isDisconnected()) {
       // This appears to be unsupported
@@ -21,9 +21,10 @@ export function initCometD(user: UserProfileServer, cometd: CometD, jetstreamCon
       });
 
       if (ENV.COMETD_DEBUG) {
-        cometd.setLogLevel(ENV.COMETD_DEBUG as any);
+        cometd.setLogLevel(ENV.COMETD_DEBUG as LogLevel);
       }
 
+      /* eslint-disable @typescript-eslint/no-explicit-any */
       cometd.registerExtension(CometdReplayExtension.EXT_NAME, new CometdReplayExtension() as any);
 
       cometd.handshake((shake) => {

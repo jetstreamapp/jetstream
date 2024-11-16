@@ -100,119 +100,26 @@ export interface UserProfilePreferences {
   deniedNotifications?: boolean;
 }
 
-export type UserProfileUsernameStatus = 'ACTIVE' | 'PENDING' | 'REJECTED';
-
-export type Auth0ConnectionName = 'google-oauth2' | 'salesforce' | 'github';
-
+/**
+ * @deprecated
+ */
 export interface FeatureFlag {
   flagVersion: string; // V1.0
   flags: string[]; // all | query
   isDefault: boolean;
 }
 
-export type Auth0PaginatedResponse<PropertyName extends string, T> = {
-  start: number;
-  limit: number;
-  length: number;
-  total: number;
-} & { [P in PropertyName]: T[] };
-
-export interface UserProfileAuth0Identity {
-  profileData?: UserProfileAuth0IdentityProfileData;
-  provider: string;
-  access_token: string;
-  expires_in: 3599;
-  user_id: string;
-  connection: string;
-  isSocial: boolean;
-}
-
-export interface UserProfileAuth0IdentityProfileData {
-  email: string;
-  email_verified: boolean;
-  name: string;
-  given_name: string;
-  family_name: string;
-  picture: string;
-  locale: string;
-  username?: string;
-  nickname?: string;
-}
-
-export interface UserProfileAuth0 {
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  email: string;
-  email_verified: boolean;
-  identities: UserProfileAuth0Identity[];
-  name: string;
-  nickname: string;
-  picture: string;
-  user_metadata: any;
-  app_metadata: {
-    featureFlags: FeatureFlag;
-    accountDeletionDate?: string;
-  };
-  last_ip: string;
-  last_login: string;
-  logins_count: number;
-  username?: string;
-}
-
-export type UserProfileAuth0Ui = Pick<
-  UserProfileAuth0,
-  'user_id' | 'email' | 'email_verified' | 'identities' | 'name' | 'nickname' | 'picture' | 'app_metadata' | 'username'
->;
-
-export interface UserProfileUiWithIdentities {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  picture?: string;
-  username: string;
-  nickname: string;
-  preferences: {
-    skipFrontdoorLogin: boolean;
-  };
-  identities: UserProfileAuth0Identity[];
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface UserProfileUi {
-  email: string;
-  email_verified: boolean;
-  // Set from environment variable, could be different
-  'http://getjetstream.app/app_metadata': { featureFlags: FeatureFlag };
-  name: string;
-  nickname: string;
-  picture?: string | null;
-  sub: string; // userid
-  updated_at: string;
   id: string;
+  /** @deprecated */
   userId: string;
-  createdAt: string;
-  updatedAt: string;
+  email: string;
+  name: string;
+  emailVerified: boolean;
+  picture?: Maybe<string>;
   preferences: {
     skipFrontdoorLogin: boolean;
   };
-}
-
-// SERVER ONLY TYPE - BROWSER WILL GET UserProfileUi
-export interface UserProfileServer {
-  _json: Omit<UserProfileUi, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'preferences'>;
-  _raw: string | null;
-  id: string;
-  displayName: string;
-  emails: { value: string }[];
-  name: any;
-  nickname: string;
-  picture?: string | null;
-  provider: string;
-  user_id: string;
 }
 
 export interface SalesforceUserInfo {

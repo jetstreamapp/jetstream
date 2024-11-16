@@ -9,7 +9,14 @@ import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
 import { createRoute } from '../utils/route.utils';
-import { OauthLinkParams } from './auth.controller';
+
+export interface OauthLinkParams {
+  type: 'auth' | 'salesforce';
+  error?: string;
+  message?: string;
+  clientUrl: string;
+  data?: string;
+}
 
 export const routeDefinition = {
   salesforceOauthInitAuth: {
@@ -40,7 +47,7 @@ export const routeDefinition = {
  * @param req
  * @param res
  */
-const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res, next) => {
+const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res) => {
   const { loginUrl, addLoginParam, jetstreamOrganizationId } = query;
   const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam });
   req.session.orgAuth = { code_verifier, nonce, state, loginUrl, jetstreamOrganizationId };
@@ -52,9 +59,9 @@ const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitA
  * @param req
  * @param res
  */
-const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallback.validators, async ({ query, user }, req, res, next) => {
+const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallback.validators, async ({ query, user }, req, res) => {
   const queryParams = query as CallbackParamsType;
-  const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL!).origin;
+  const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL).origin;
   const returnParams: OauthLinkParams = {
     type: 'salesforce',
     clientUrl,
@@ -71,6 +78,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
       req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     } else if (!orgAuth) {
       returnParams.error = 'Authentication Error';
@@ -78,6 +86,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
       req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
@@ -108,6 +117,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
     });
 
     returnParams.data = JSON.stringify(salesforceOrg);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
   } catch (ex) {
     req.log.info({ ...getExceptionLog(ex) }, '[OAUTH][ERROR]');
@@ -115,6 +125,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
     returnParams.message = query.error_description
       ? (query.error_description as string)
       : 'There was an error authenticating with Salesforce.';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
   }
 });

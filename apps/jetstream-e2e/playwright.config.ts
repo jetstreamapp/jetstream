@@ -7,7 +7,8 @@ dotenv.config();
 const ONE_SECOND = 1000;
 const THIRTY_SECONDS = 30 * ONE_SECOND;
 
-const baseURL = process.env.CI ? 'http://localhost:3333/' : 'http://localhost:4200/';
+// const baseURL = process.env.CI ? 'http://localhost:3333/' : 'http://localhost:4200/';
+const baseURL = 'http://localhost:3333/';
 
 // Ensure tests run via VSCode debugger are run from the root of the repo
 if (process.cwd().endsWith('/apps/jetstream-e2e')) {
@@ -19,7 +20,7 @@ if (process.cwd().endsWith('/apps/jetstream-e2e')) {
  */
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
-  globalSetup: require.resolve('./src/setup/global-setup.ts'),
+  // globalSetup: require.resolve('./src/setup/global-setup.ts'),
   retries: 3,
   expect: {
     timeout: THIRTY_SECONDS,
@@ -39,8 +40,28 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
+      name: 'teardown',
+      testMatch: /.*\.teardown\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
+      name: 'chrome',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user.json',
+      },
+      testMatch: /.*\.spec\.ts/,
+      dependencies: ['setup'],
+      teardown: 'teardown',
     },
 
     // {

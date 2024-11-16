@@ -267,6 +267,9 @@ export const ANALYTICS_KEYS = {
   settings_resend_email_verification: 'settings_resend_email_verification',
   settings_delete_account: 'settings_delete_account',
 
+  settings_password_action: 'settings_password_action',
+  settings_revoke_session: 'settings_revoke_session',
+
   /** ORGANIZATIONS */
   organizations_create_modal_open: 'organizations_create_modal_open',
   organizations_created: 'organizations_created',

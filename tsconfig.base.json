@@ -18,7 +18,10 @@
     "paths": {
       "@jetstream/api-config": ["libs/api-config/src/index.ts"],
       "@jetstream/api-types": ["libs/api-types/src/index.ts"],
+      "@jetstream/auth/server": ["libs/auth/server/src/index.ts"],
+      "@jetstream/auth/types": ["libs/auth/types/src/index.ts"],
       "@jetstream/connected-ui": ["libs/connected/connected-ui/src/index.ts"],
+      "@jetstream/email": ["libs/email/src/index.ts"],
       "@jetstream/feature/anon-apex": ["libs/features/anon-apex/src/index.ts"],
       "@jetstream/feature/automation-control": ["libs/features/automation-control/src/index.ts"],
       "@jetstream/feature/create-object-and-fields": ["libs/features/create-object-and-fields/src/index.ts"],

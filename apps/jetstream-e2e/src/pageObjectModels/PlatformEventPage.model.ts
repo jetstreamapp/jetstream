@@ -1,4 +1,4 @@
-import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
+import { Locator, Page, expect } from '@playwright/test';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
@@ -6,16 +6,14 @@ export class PlatformEventPage {
   readonly apiRequestUtils: ApiRequestUtils;
   readonly playwrightPage: PlaywrightPage;
   readonly page: Page;
-  readonly request: APIRequestContext;
   readonly listenerCard: Locator;
   readonly publisherCard: Locator;
 
-  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
+  constructor(page: Page, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
     page.evaluate('__IS_CHROME_EXTENSION__ = false;');
     this.apiRequestUtils = apiRequestUtils;
     this.playwrightPage = playwrightPage;
     this.page = page;
-    this.request = request;
     this.listenerCard = page.getByTestId('platform-event-monitor-listener-card');
     this.publisherCard = page.getByTestId('platform-event-monitor-publisher-card');
   }

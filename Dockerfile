@@ -42,6 +42,10 @@ RUN yarn build:core && \
 RUN yarn install --production=true && \
     yarn add cross-env npm-run-all --save-dev
 
+# FIXME: figure out why this is not included
+# Add missing dependencies
+RUN yarn add @react-email/components
+
 # Final stage for app image
 FROM base
 

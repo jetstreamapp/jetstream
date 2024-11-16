@@ -48,7 +48,7 @@ export const AppToast: FunctionComponent = () => {
   }
 
   return (
-    <div className="slds-notify_container">
+    <div data-testid="toast-notify-container" className="slds-notify_container">
       {activeMessages
         .filter((_, i) => i < 3)
         .map(({ id, message, type }) => (

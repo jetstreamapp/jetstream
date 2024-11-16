@@ -1,5 +1,5 @@
 import { getExceptionLog, logger } from '@jetstream/api-config';
-import { UserProfileServer } from '@jetstream/types';
+import { UserProfileSession } from '@jetstream/auth/types';
 import * as cometdClient from 'cometd-nodejs-client';
 import * as express from 'express';
 import { IncomingMessage, createServer } from 'http';
@@ -19,10 +19,12 @@ const wrapMiddleware =
     middleware(socket.request, {}, next);
 
 function getUser(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>) {
-  const user = (socket.request as any).user as UserProfileServer;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = (socket.request as any)?.user as UserProfileSession;
   return user;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function isValidRequest(req: IncomingMessage) {
   // req.// TODO: make sure origin matches
   // const noOriginHeader = req.headers.origin === undefined;
@@ -40,6 +42,7 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
       httpOnly: false,
       secure: environment.production,
       sameSite: 'strict',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any,
     allowRequest: (req, callback) => {
       const isOriginValid = isValidRequest(req);
@@ -47,7 +50,8 @@ export function initSocketServer(app: express.Express, middlewareFns: express.Re
     },
   });
 
-  io.engine.generateId = (req) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  io.engine.generateId = (...args: unknown[]) => {
     return nanoid(); // must be unique across all Socket.IO servers
   };
 

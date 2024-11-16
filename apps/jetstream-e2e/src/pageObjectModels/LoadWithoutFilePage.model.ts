@@ -1,4 +1,4 @@
-import { APIRequestContext, Locator, Page } from '@playwright/test';
+import { Locator, Page } from '@playwright/test';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
@@ -6,14 +6,12 @@ export class LoadWithoutFilePage {
   readonly apiRequestUtils: ApiRequestUtils;
   readonly playwrightPage: PlaywrightPage;
   readonly page: Page;
-  readonly request: APIRequestContext;
   readonly sobjectList: Locator;
 
-  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
+  constructor(page: Page, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
     this.apiRequestUtils = apiRequestUtils;
     this.playwrightPage = playwrightPage;
     this.page = page;
-    this.request = request;
     this.sobjectList = page.getByTestId('sobject-list');
   }
 

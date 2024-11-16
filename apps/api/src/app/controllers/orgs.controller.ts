@@ -68,7 +68,7 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
     const data = { label: body.label, color: body.color };
     const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(user.id, params.uniqueId, data);
 
-    sendJson(res, salesforceOrg, 201);
+    sendJson(res, salesforceOrg, 200);
   } catch (ex) {
     next(new UserFacingError(ex));
   }
@@ -76,7 +76,7 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
 
 const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, req, res, next) => {
   try {
-    salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
+    await salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
 
     sendJson(res, undefined, 204);
   } catch (ex) {
@@ -139,7 +139,7 @@ const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, p
     const { uniqueId } = params;
     const salesforceOrg = await salesforceOrgsDb.moveSalesforceOrg(user.id, uniqueId, body);
 
-    sendJson(res, salesforceOrg, 201);
+    sendJson(res, salesforceOrg, 200);
   } catch (ex) {
     next(new UserFacingError(ex));
   }

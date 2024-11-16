@@ -3,6 +3,7 @@ import { APP_ROUTES, AppHome, OrgSelectionRequired } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import lazy from './components/core/LazyLoad';
+import Profile from './components/profile/Profile';
 
 const Organizations = lazy(() => import('@jetstream/feature/organizations').then((module) => ({ default: module.Organizations })));
 
@@ -247,7 +248,8 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         }
       />
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
-      <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings featureFlags={featureFlags} userProfile={userProfile} />} />
+      <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
+      <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );

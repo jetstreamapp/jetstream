@@ -2,7 +2,6 @@
 import { prisma } from '@jetstream/api-config';
 import { Maybe } from '@jetstream/types';
 import { Prisma } from '@prisma/client';
-import { findIdByUserId } from './user.db';
 
 const SELECT = Prisma.validator<Prisma.JetstreamOrganizationSelect>()({
   id: true,
@@ -16,11 +15,11 @@ const SELECT = Prisma.validator<Prisma.JetstreamOrganizationSelect>()({
 });
 
 export const findByUserId = async ({ userId }: { userId: string }) => {
-  return await prisma.jetstreamOrganization.findMany({ where: { user: { userId } }, select: SELECT });
+  return await prisma.jetstreamOrganization.findMany({ where: { userId }, select: SELECT });
 };
 
 export const findById = async ({ id, userId }: { id: string; userId: string }) => {
-  return await prisma.jetstreamOrganization.findFirstOrThrow({ where: { id, user: { userId } }, select: SELECT });
+  return await prisma.jetstreamOrganization.findFirstOrThrow({ where: { id, userId }, select: SELECT });
 };
 
 export const create = async (
@@ -30,11 +29,10 @@ export const create = async (
     description?: Maybe<string>;
   }
 ) => {
-  const userActualId = await findIdByUserId({ userId });
   return await prisma.jetstreamOrganization.create({
     select: SELECT,
     data: {
-      userId: userActualId,
+      userId,
       name: payload.name.trim(),
       description: payload.description?.trim(),
     },
@@ -51,7 +49,7 @@ export const update = async (
 ) => {
   return await prisma.jetstreamOrganization.update({
     select: SELECT,
-    where: { user: { userId }, id },
+    where: { userId, id },
     data: {
       name: payload.name.trim(),
       description: payload.description?.trim() ?? null,
@@ -62,6 +60,6 @@ export const update = async (
 export const deleteOrganization = async (userId, id) => {
   return await prisma.jetstreamOrganization.delete({
     select: SELECT,
-    where: { user: { userId }, id },
+    where: { userId, id },
   });
 };

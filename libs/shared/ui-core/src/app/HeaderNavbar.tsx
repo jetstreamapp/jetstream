@@ -1,7 +1,7 @@
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
-import { FeedbackLink, Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
@@ -22,7 +22,7 @@ export interface HeaderNavbarProps {
 }
 
 function logout(serverUrl: string) {
-  const logoutUrl = `${serverUrl}/oauth/logout`;
+  const logoutUrl = `${serverUrl}/api/auth/logout`;
   // eslint-disable-next-line no-restricted-globals
   location.href = logoutUrl;
 }
@@ -30,7 +30,8 @@ function logout(serverUrl: string) {
 function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean) {
   const menu: DropDownItem[] = [];
 
-  menu.push({ id: 'settings', value: 'Settings', subheader: userProfile?.email, icon: { type: 'utility', icon: 'settings' } });
+  menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile?.email, icon: { type: 'utility', icon: 'profile_alt' } });
+  menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
   menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
@@ -53,6 +54,9 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleUserMenuSelection(id: string) {
     switch (id) {
+      case 'profile':
+        navigate('/profile');
+        break;
       case 'settings':
         navigate('/settings');
         break;
@@ -81,32 +85,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
       ? [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />]
       : [
           <HeaderAnnouncementPopover>
-            <p>We are working on upgrades to our authentication and user management systems.</p>
-            <p className="slds-text-title_caps slds-m-top_x-small">Upcoming Features:</p>
+            <p className="">We have launched our new authentication experience</p>
+            <p className="slds-text-title_caps slds-m-top_x-small">New Features:</p>
             <ul className="slds-list_dotted slds-m-vertical_x-small">
-              <li>Multi-factor authentication</li>
-              <li>Visibility to all active sessions</li>
+              <li>Multi-factor authentication via email or authenticator app</li>
+              <li>Visibility to all active sessions, with option to revoke sessions</li>
             </ul>
-            <p className="slds-text-title_caps">Important information:</p>
-            <ul className="slds-list_dotted slds-m-vertical_x-small">
-              <li>All users will be signed out and need to sign back in</li>
-              <li>Some users may require a password reset to log back in</li>
-              <li>Email verification will be required, and if you use a password to login, 2FA via email will be automatically enabled</li>
-            </ul>
-            <hr className="slds-m-vertical_small" />
-            <p>Expected upgrade date is {new Date('2024-11-16T18:00:00.000Z').toLocaleString()}.</p>
-            <p>
-              If you have any questions <FeedbackLink type="EMAIL" label="Send us an email" />.
-            </p>
-            {!!userProfile && !userProfile.email_verified && (
-              <>
-                <hr className="slds-m-vertical_small" />
-                <p className="slds-text-color_error">
-                  Your email address is not verified, make sure <Link to="/settings">verify your email address</Link> or{' '}
-                  <Link to="/settings">link a social identity</Link> to make sure you can continue to login.
-                </p>
-              </>
-            )}
           </HeaderAnnouncementPopover>,
           <RecordSearchPopover />,
           <Jobs />,

@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../../dist/out-tsc",
-    "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive", "vite/client"]
+    "types": ["node", "google.accounts", "google.picker", "gapi.auth2", "vite/client"]
   },
   "exclude": [
     "jest.config.ts",

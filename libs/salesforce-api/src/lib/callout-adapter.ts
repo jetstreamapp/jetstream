@@ -1,7 +1,7 @@
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import isObject from 'lodash/isObject';
 import { convert as xmlConverter } from 'xmlbuilder2';
-import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchResponse, Logger, SoapErrorResponse, fetchFn } from './types';
+import { ApiRequestOptions, ApiRequestOutputType, BulkXmlErrorResponse, FetchFn, FetchResponse, Logger, SoapErrorResponse } from './types';
 
 const SOAP_API_AUTH_ERROR_REGEX = /<faultcode>[a-zA-Z]+:INVALID_SESSION_ID<\/faultcode>/;
 // Shows up for certain API requests, such as Identity
@@ -30,7 +30,7 @@ export class ApiRequestError extends Error {
  * Factory function to get api request
  * Requires a fetch compatible function to avoid relying any specific fetch implementation
  */
-export function getApiRequestFactoryFn(fetch: fetchFn) {
+export function getApiRequestFactoryFn(fetch: FetchFn) {
   return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean, logger: Logger = console) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
       let { url, body, outputType } = options;
@@ -165,7 +165,7 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
   return output;
 }
 
-function exchangeRefreshToken(fetch: fetchFn, sessionInfo: ApiRequestOptions['sessionInfo']): Promise<{ access_token: string }> {
+function exchangeRefreshToken(fetch: FetchFn, sessionInfo: ApiRequestOptions['sessionInfo']): Promise<{ access_token: string }> {
   return fetch(`${sessionInfo.instanceUrl}/services/oauth2/token`, {
     method: 'POST',
     body: new URLSearchParams({

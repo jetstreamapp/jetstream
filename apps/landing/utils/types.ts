@@ -1,5 +1,12 @@
 import { Document } from '@contentful/rich-text-types';
 import { Asset, EntryFields, Sys } from 'contentful';
+import { z } from 'zod';
+
+export const PasswordSchema = z
+  .string()
+  .min(1, { message: 'Password is required' })
+  .min(8, { message: 'Password must be at least 8 characters' })
+  .max(255, { message: 'Password must be at most 255 characters' });
 
 export interface AnalyticSummaryItem {
   type: 'LOAD_SUMMARY' | 'QUERY_SUMMARY';

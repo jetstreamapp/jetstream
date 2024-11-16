@@ -16,7 +16,7 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "target": "ESNext",
-    "types": ["vite/client", "google.accounts", "google.picker", "gapi.auth2", "gapi.client.drive"],
+    "types": ["vite/client", "google.accounts", "google.picker", "gapi.auth2"],
     "useDefineForClassFields": true
   },
   "files": [],

@@ -1,7 +1,8 @@
 import { IconType } from '@jetstream/icon-factory';
 import { action } from '@storybook/addon-actions';
 import { boolean, number, select, text } from '@storybook/addon-knobs';
-import React from 'react';
+import uniqueId from 'lodash/uniqueId';
+import Logo from '../../assets/jetstream-logo-v1-200w.png';
 import AutoFullHeightContainer from './AutoFullHeightContainer';
 import Header from './Header';
 import Page from './Page';
@@ -10,8 +11,6 @@ import PageHeaderActions from './page-header/PageHeaderActions';
 import PageHeaderRow from './page-header/PageHeaderRow';
 import PageHeaderTitle from './page-header/PageHeaderTitle';
 import Panel from './Panel';
-import uniqueId from 'lodash/uniqueId';
-import Logo from '../../assets/jetstream-logo-v1-200w.png';
 
 export default {
   title: 'Layout',
@@ -19,8 +18,8 @@ export default {
 
 export const autoFullHeightContainer = () => (
   <AutoFullHeightContainer
-    className={text('className', undefined)}
-    bottomBuffer={number('bottomBuffer', undefined)}
+    className={text('className', '')}
+    bottomBuffer={number('bottomBuffer', 0)}
     fillHeight={boolean('fillHeight', true)}
   >
     <div>
@@ -35,14 +34,15 @@ export const header = () => (
   <Header
     logo={Logo}
     userProfile={{
-      sub: 'auth0|5fa5e9b82156490068cdc895',
-      nickname: 'paustint',
+      id: '99c4e2fe-65e9-4255-a860-700426b4a5b2',
+      userId: 'jetstream|5fa5e9b82156490068cdc895',
       name: 'paustint@gmail.com',
-      picture: 'https://s.gravatar.com/avatar/12934373e0c15784753954301a361050?s=480&r=pg&d=https%3A%2F%2Fcdn.auth0.com%2Favatars%2Fpa.png',
-      updated_at: '2021-09-13T22:35:01.152Z',
+      picture: null,
       email: 'paustint@gmail.com',
-      email_verified: 'false',
-      'http://getjetstream.app/app_metadata': { featureFlags: { isDefault: false, flagVersion: 'V1.1', flags: ['all'] } },
+      emailVerified: false,
+      preferences: {
+        skipFrontdoorLogin: false,
+      },
     }}
     userMenuItems={[
       { id: uniqueId('icon'), value: 'item 1', icon: { type: 'utility', icon: 'help' } },

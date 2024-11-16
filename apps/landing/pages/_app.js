@@ -1,6 +1,9 @@
+import Layout from '../components/layouts/Layout';
 import './index.scss';
 
-// This default export is required in a new `pages/_app.js` file.
 export default function MyApp({ Component, pageProps }) {
-  return <Component {...pageProps} />;
+  // Use page layout or fallback to default inverse layout
+  const getLayout = Component.getLayout ?? ((page) => <Layout isInverse>{page}</Layout>);
+
+  return getLayout(<Component {...pageProps} />);
 }

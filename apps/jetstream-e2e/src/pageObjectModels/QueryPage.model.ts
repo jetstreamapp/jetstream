@@ -1,8 +1,8 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { isRecordWithId } from '@jetstream/shared/utils';
 import { QueryFilterOperator, QueryResults } from '@jetstream/types';
-import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
-import isNumber from 'lodash/isNumber';
+import { Locator, Page, expect } from '@playwright/test';
+import { isNumber } from 'lodash';
 import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
@@ -10,17 +10,15 @@ export class QueryPage {
   readonly apiRequestUtils: ApiRequestUtils;
   readonly playwrightPage: PlaywrightPage;
   readonly page: Page;
-  readonly request: APIRequestContext;
   readonly sobjectList: Locator;
   readonly fieldsList: Locator;
   readonly soqlQuery: Locator;
   readonly executeBtn: Locator;
 
-  constructor(page: Page, request: APIRequestContext, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
+  constructor(page: Page, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
     this.apiRequestUtils = apiRequestUtils;
     this.playwrightPage = playwrightPage;
     this.page = page;
-    this.request = request;
     this.sobjectList = page.getByTestId('sobject-list');
     this.fieldsList = page.getByTestId('sobject-fields');
     this.soqlQuery = page.getByText('Generated SOQL');
@@ -45,6 +43,7 @@ export class QueryPage {
 
     if (action === 'EXECUTE') {
       await Promise.all([
+        // eslint-disable-next-line playwright/no-networkidle
         this.page.waitForURL('**/query/results', { waitUntil: 'networkidle' }),
         manualQueryPopover.getByRole('link', { name: 'Execute' }).click(),
       ]);

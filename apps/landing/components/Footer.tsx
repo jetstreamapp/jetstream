@@ -19,7 +19,11 @@ const footerNavigation = {
   ],
 };
 
-export const Footer = ({ omitLinks = [] }: { omitLinks?: string[] }) => (
+export interface FooterProps {
+  omitLinks?: string[];
+}
+
+export const Footer = ({ omitLinks = [] }: FooterProps) => (
   <footer className="bg-gray-50" aria-labelledby="footer-heading">
     <h2 id="footer-heading" className="sr-only">
       Footer

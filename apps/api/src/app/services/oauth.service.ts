@@ -48,7 +48,7 @@ export function salesforceOauthInit(
     login_hint: loginHint,
     nonce,
     prompt: 'login',
-    scope: 'api web refresh_token',
+    scope: 'api refresh_token',
     state,
   };
 
@@ -77,6 +77,7 @@ export async function salesforceOauthCallback(
 
   const tokenSet = await authClient.oauthCallback(ENV.SFDC_CALLBACK_URL, callbackQueryParams, authData);
   const { access_token, refresh_token } = tokenSet;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const userInfo = await authClient.userinfo<SalesforceUserInfo>(access_token!);
 
   return {
@@ -97,6 +98,8 @@ export async function salesforceOauthRefresh(loginUrl: string, refreshToken: str
 
 /**
  * Login to Salesforce using username and password
+ *
+ * This is only used in tests to get an access_token to avoid having to go through OAuth+redirect flow
  */
 export async function salesforceLoginUsernamePassword_UNSAFE(
   loginUrl: string,

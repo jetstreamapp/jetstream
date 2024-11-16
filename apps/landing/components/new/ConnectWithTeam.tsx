@@ -41,7 +41,7 @@ export const ConnectWithTeam = () => (
       {items.map(({ image, footer, link, subtitle, title }) => (
         <div
           key={title}
-          className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
+          className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
         >
           <div className="flex-shrink-0">
             <img className="h-10 w-10" src={image} alt="" />

@@ -35,6 +35,7 @@
     <!-- prettier-ignore -->
     <script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}if(window.location.hostname!=='localhost'){gtag('js', new Date());gtag('config', 'G-GZJ9QQTK44');}</script>
     <!-- Monaco throws error when hovering on a completion  -->
+    <!-- any changes need to be adjusted in CSP hash -->
     <script>
       window.addEventListener('unhandledrejection', (event) => {
         if (event && event.reason && event.reason.stack && event.reason.stack.includes && event.reason.stack.includes('monaco')) {
@@ -42,6 +43,7 @@
         }
       });
     </script>
+    <!-- any changes need to be adjusted in CSP hash -->
     <script>
       __IS_CHROME_EXTENSION__ = false;
     </script>

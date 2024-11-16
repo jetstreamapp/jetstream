@@ -78,5 +78,3 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
     </div>
   );
 };
-
-export default SettingsDeleteAccount;

@@ -1,3 +1,4 @@
+/// <reference types="@maxim_mazurok/gapi.client.drive-v3" />
 import { logger } from '@jetstream/shared/client-logger';
 import { GoogleApiClientConfig, initXlsx, useDrivePicker } from '@jetstream/shared/ui-utils';
 import { InputReadGoogleSheet, Maybe } from '@jetstream/types';
