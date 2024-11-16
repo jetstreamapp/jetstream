@@ -63,7 +63,7 @@ export interface FetchResponse<T = unknown> {
   body?: ReadableStream<Uint8Array> | null;
 }
 
-export type fetchFn = (url: string, options: FetchOptions) => Promise<FetchResponse>;
+export type FetchFn = (url: string, options: FetchOptions) => Promise<FetchResponse>;
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';

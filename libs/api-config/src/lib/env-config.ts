@@ -98,6 +98,7 @@ const envSchema = z.object({
     .optional()
     .transform((value) => value ?? 'production'),
   PORT: numberSchema.default(3333),
+  // Set based on environment and server url protocol
   USE_SECURE_COOKIES: booleanSchema,
   CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
