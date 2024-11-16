@@ -31,7 +31,9 @@ function init(appCookie: ApplicationCookie, version: string) {
     forceHttps: false,
   };
   amplitude.getInstance().init(amplitudeToken, undefined, config);
-  amplitude.getInstance().setVersionName(version);
+  if (version) {
+    amplitude.getInstance().setVersionName(version);
+  }
 }
 
 export function useAmplitude(optOut?: boolean) {

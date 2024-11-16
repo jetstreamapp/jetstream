@@ -157,6 +157,8 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             "'self'",
             "'sha256-AS526U4qXJy7/SohgsysWUxi77DtcgSmP0hNfTo6/Hs='", // Google Analytics (Docs)
             "'sha256-pOkCIUf8FXwCoKWPXTEJAC2XGbyg3ftSrE+IES4aqEY='", // Google Analytics (Next/React)
+            "'sha256-7mNBpJaHD4L73RpSf1pEaFD17uW3H/9+P1AYhm+j/Dg='", // Monaco unhandledrejection script
+            "'sha256-djX4iruGclmwOFqyJyEvkkFU0dkSDNqkDpKOJMUO70E='", // __IS_CHROME_EXTENSION__ script
             'blob:',
             '*.google.com',
             '*.gstatic.com',
