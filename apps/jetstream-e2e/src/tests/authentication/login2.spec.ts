@@ -56,7 +56,7 @@ test.describe('Login 2', () => {
     await page.getByTestId('settings-page').getByRole('textbox').fill('123456');
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Failed to save 2fa settings')).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).click();
+    await page.getByTestId('toast-notify-container').getByRole('button', { name: 'Close' }).click();
 
     // save a valid token
     await page.getByTestId('settings-page').getByRole('textbox').click();
