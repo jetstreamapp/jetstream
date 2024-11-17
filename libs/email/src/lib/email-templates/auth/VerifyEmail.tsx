@@ -5,7 +5,7 @@ import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
 interface VerifyEmailProps {
-  baseUrl?: string;
+  baseUrl: string;
   validationCode: string;
   expHours: number;
 }

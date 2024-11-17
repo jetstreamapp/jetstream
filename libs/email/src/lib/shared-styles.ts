@@ -88,7 +88,7 @@ const paragraph: React.CSSProperties = {
 };
 
 const link: React.CSSProperties = {
-  color: '#444',
+  color: '#009aff',
   textDecoration: 'underline',
 };
 

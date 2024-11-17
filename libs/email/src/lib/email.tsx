@@ -114,7 +114,7 @@ export async function sendEmailVerification(emailAddress: string, code: string, 
 }
 
 export async function sendVerificationCode(emailAddress: string, code: string, expMinutes: number) {
-  const component = <TwoStepVerificationEmail expMinutes={expMinutes} validationCode={code} />;
+  const component = <TwoStepVerificationEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expMinutes={expMinutes} validationCode={code} />;
   const [html, text] = await renderComponent(component);
 
   await sendEmail({
