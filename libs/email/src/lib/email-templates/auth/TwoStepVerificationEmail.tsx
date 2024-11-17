@@ -1,6 +1,7 @@
-import { Body, Container, Head, Heading, Html, Img, Preview, Section, Text } from '@react-email/components';
+import { Body, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
+import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
 interface TwoStepVerificationEmailProps {
@@ -14,12 +15,7 @@ export const TwoStepVerificationEmail = ({ validationCode, expMinutes }: TwoStep
     <Preview>Verify your identity with Jetstream - {validationCode}</Preview>
     <Body style={EMAIL_STYLES.main}>
       <Container style={EMAIL_STYLES.container}>
-        <Img
-          src="https://res.cloudinary.com/getjetstream/image/upload/v1634516631/public/jetstream-logo-200w.png"
-          width="200"
-          alt="Jetstream"
-          style={EMAIL_STYLES.logo}
-        />
+        <EmailLogo />
         <Heading style={EMAIL_STYLES.codeTitle}>Verification code</Heading>
 
         <Text style={EMAIL_STYLES.codeDescription}>

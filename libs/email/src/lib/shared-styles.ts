@@ -1,6 +1,6 @@
 const main: React.CSSProperties = {
   backgroundColor: '#ffffff',
-  // fontFamily: 'HelveticaNeue,Helvetica,Arial,sans-serif',
+  color: '#111827',
   fontFamily:
     '-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji",Segoe UI Symbol',
   textAlign: 'center' as const,
@@ -21,12 +21,18 @@ const container: React.CSSProperties = {
   padding: '5% 3%',
 };
 
+const title: React.CSSProperties = {
+  textAlign: 'center' as const,
+};
+
 const codeTitle: React.CSSProperties = {
   textAlign: 'center' as const,
+  color: '#111827',
 };
 
 const codeDescription: React.CSSProperties = {
   textAlign: 'center' as const,
+  color: '#444',
 };
 
 const codeContainer: React.CSSProperties = {
@@ -90,6 +96,7 @@ export const EMAIL_STYLES = {
   main,
   logo,
   container,
+  title,
   codeTitle,
   codeDescription,
   codeContainer,

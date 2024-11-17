@@ -18,7 +18,6 @@ export const EmailFooter = () => {
                 fontSize: 14,
                 lineHeight: '18px',
                 fontWeight: 600,
-                color: 'rgb(17,24,39)',
                 textTransform: 'uppercase',
               }}
             >
@@ -49,7 +48,6 @@ export const EmailFooter = () => {
                 lineHeight: '18px',
                 fontWeight: 600,
                 color: 'rgb(107,114,128)',
-                textTransform: 'uppercase',
               }}
             >
               support@getjetstream.app

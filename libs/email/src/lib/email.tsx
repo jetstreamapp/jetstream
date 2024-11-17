@@ -101,8 +101,8 @@ export async function sendInternalAccountDeletionEmail(userId: string, reason?: 
   });
 }
 
-export async function sendEmailVerification(emailAddress: string, code: string, expMinutes: number) {
-  const component = <VerifyEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expMinutes={expMinutes} validationCode={code} />;
+export async function sendEmailVerification(emailAddress: string, code: string, expHours: number) {
+  const component = <VerifyEmail baseUrl={ENV.JETSTREAM_SERVER_URL} expHours={expHours} validationCode={code} />;
   const [html, text] = await renderComponent(component);
 
   await sendEmail({

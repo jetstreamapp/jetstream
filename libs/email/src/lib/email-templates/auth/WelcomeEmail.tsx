@@ -1,25 +1,21 @@
 import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Preview, Row, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
+import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
 export const WelcomeEmail = () => (
   <Html>
     <Head />
     <Preview>Welcome to Jetstream 🚀</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img
-          src="https://res.cloudinary.com/getjetstream/image/upload/v1634516631/public/jetstream-logo-200w.png"
-          width="200"
-          alt="Jetstream"
-          style={EMAIL_STYLES.logo}
-        />
-        <Heading style={title}>We’re excited to welcome you to Jetstream!</Heading>
+    <Body style={EMAIL_STYLES.main}>
+      <Container style={EMAIL_STYLES.container}>
+        <EmailLogo />
+        <Heading style={EMAIL_STYLES.title}>We’re excited to welcome you to Jetstream!</Heading>
 
         <Text style={description}>We’d love to hear from you! Share your thoughts on Jetstream.</Text>
 
-        <ul style={{ paddingLeft: '15px', fontSize: '14px' }}>
+        <ul style={{ paddingLeft: '15px', fontSize: '14px', listStyle: 'none' }}>
           <li>
             Send us an <Link href="mailto:support@getjetstream.app">email</Link>
           </li>
@@ -164,27 +160,6 @@ function getFeatures() {
     },
   ];
 }
-
-const main: React.CSSProperties = {
-  backgroundColor: '#ffffff',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji",Segoe UI Symbol',
-};
-
-const container: React.CSSProperties = {
-  backgroundColor: '#ffffff',
-  border: '1px solid #ddd',
-  borderRadius: '5px',
-  marginTop: '20px',
-  width: '710px',
-  maxWidth: '100%',
-  margin: '0 auto',
-  padding: '5% 3%',
-};
-
-const title: React.CSSProperties = {
-  textAlign: 'center' as const,
-};
 
 const description: React.CSSProperties = {
   textAlign: 'left' as const,
