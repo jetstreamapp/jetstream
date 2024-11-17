@@ -1,9 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Providers } from '@jetstream/auth/types';
+import { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { AUTH_PATHS, ENVIRONMENT } from '../../utils/environment';
@@ -53,6 +54,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const router = useRouter();
   const [showPasswordActive, setShowPasswordActive] = useState(false);
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
+  const captchaRef = useRef<TurnstileInstance>(null);
 
   const {
     register,
@@ -100,6 +102,11 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
 
     if (!response.ok || error) {
       router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'UNKNOWN_ERROR' })}`);
+      try {
+        captchaRef?.current?.reset();
+      } catch (ex) {
+        console.error('Error resetting captcha', ex);
+      }
       return;
     }
 
@@ -258,6 +265,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             </div>
 
             <Captcha
+              ref={captchaRef}
               formError={errors?.captchaToken?.message}
               action={action}
               onChange={(token) => setValue('captchaToken', token)}

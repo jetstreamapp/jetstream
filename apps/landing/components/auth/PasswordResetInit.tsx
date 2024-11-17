@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
+import { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { AUTH_PATHS } from '../../utils/environment';
@@ -29,6 +30,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const [error, setError] = useState<string>();
+  const captchaRef = useRef<TurnstileInstance>(null);
 
   const {
     register,
@@ -58,6 +60,11 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
       });
 
       if (!response.ok) {
+        try {
+          captchaRef?.current?.reset();
+        } catch (ex) {
+          console.error('Error resetting captcha', ex);
+        }
         throw new Error('Unable to initialize the reset process');
       }
 
@@ -127,6 +134,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
               />
 
               <Captcha
+                ref={captchaRef}
                 formError={errors?.captchaToken?.message}
                 action="password-reset-init"
                 onChange={(token) => setValue('captchaToken', token)}
