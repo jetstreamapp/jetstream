@@ -3,7 +3,8 @@ import Link from 'next/link';
 
 const footerNavigation = {
   support: [
-    { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
+    { name: 'Documentation', href: 'https://docs.getjetstream.app', target: '_blank' },
+    { name: 'Status', href: 'https://status.getjetstream.app', target: '_blank' },
     { name: 'Ask a question', href: 'https://discord.gg/sfxd', target: '_blank' },
     { name: 'File an issue', href: 'https://github.com/jetstreamapp/jetstream/issues', target: '_blank' },
     { name: 'Contact Us', href: 'mailto:support@getjetstream.app', target: '_blank' },

@@ -1,30 +1,26 @@
-import { Body, Button, Container, Head, Heading, Html, Img, Preview, Section, Text } from '@react-email/components';
+import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
+import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
 interface VerifyEmailProps {
-  baseUrl?: string;
+  baseUrl: string;
   validationCode: string;
-  expMinutes: number;
+  expHours: number;
 }
 
-export const VerifyEmail = ({ baseUrl = 'https://getjetstream.app', validationCode, expMinutes }: VerifyEmailProps) => (
+export const VerifyEmail = ({ baseUrl = 'https://getjetstream.app', validationCode, expHours }: VerifyEmailProps) => (
   <Html>
     <Head />
     <Preview>Verify your email address with Jetstream - {validationCode}</Preview>
     <Body style={EMAIL_STYLES.main}>
       <Container style={EMAIL_STYLES.container}>
-        <Img
-          src="https://res.cloudinary.com/getjetstream/image/upload/v1634516631/public/jetstream-logo-200w.png"
-          width="200"
-          alt="Jetstream"
-          style={EMAIL_STYLES.logo}
-        />
+        <EmailLogo />
         <Heading style={EMAIL_STYLES.codeTitle}>Verify your email address</Heading>
 
         <Text style={EMAIL_STYLES.codeDescription}>
-          Enter this code in your open browser window or press the button below. This code will expire in {expMinutes} minutes.
+          Enter this code in your open browser window or press the button below. This code will expire in {expHours} hours.
         </Text>
 
         <Section style={EMAIL_STYLES.codeContainer}>
@@ -49,5 +45,5 @@ export default VerifyEmail;
 
 VerifyEmail.PreviewProps = {
   validationCode: '123456',
-  expMinutes: 10,
+  expHours: 48,
 } as VerifyEmailProps;

@@ -54,12 +54,10 @@ export async function sendEmail({
     ...rest,
   });
 
-  if (results.id) {
-    prisma.emailActivity
-      .create({
-        data: { email: to, subject, status: `${results.status || ''}`, providerId: results.id },
-        select: { id: true },
-      })
-      .catch((err) => logger.error({ message: err?.message }, '[EMAIL][ERROR] Error logging email activity'));
-  }
+  prisma.emailActivity
+    .create({
+      data: { email: to, subject, status: `${results.status}` || null, providerId: results.id },
+      select: { id: true },
+    })
+    .catch((err) => logger.error({ message: err?.message }, '[EMAIL][ERROR] Error logging email activity'));
 }

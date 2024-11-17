@@ -1,4 +1,4 @@
-import { Section, Text } from '@react-email/components';
+import { Link, Section, Text } from '@react-email/components';
 import * as React from 'react';
 
 export const EmailFooter = () => {
@@ -18,7 +18,6 @@ export const EmailFooter = () => {
                 fontSize: 14,
                 lineHeight: '18px',
                 fontWeight: 600,
-                color: 'rgb(17,24,39)',
                 textTransform: 'uppercase',
               }}
             >
@@ -35,25 +34,25 @@ export const EmailFooter = () => {
                 fontSize: 12,
                 lineHeight: '18px',
                 fontWeight: 600,
-                color: 'rgb(107,114,128)',
+                color: '#6b7280',
                 textTransform: 'uppercase',
               }}
             >
               Whitefish, MT USA
             </Text>
-            <Text
+            <Link
+              href="mailto:support@getjetstream.app"
               style={{
                 marginTop: 0,
                 marginBottom: '0px',
                 fontSize: 12,
                 lineHeight: '18px',
                 fontWeight: 600,
-                color: 'rgb(107,114,128)',
-                textTransform: 'uppercase',
+                color: '#009aff',
               }}
             >
               support@getjetstream.app
-            </Text>
+            </Link>
           </td>
         </tr>
       </table>

@@ -1,5 +1,6 @@
-import { Turnstile } from '@marsidev/react-turnstile';
-import { useId } from 'react';
+import { Maybe } from '@jetstream/types';
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
+import { forwardRef, useId, useImperativeHandle, useRef } from 'react';
 import { ENVIRONMENT } from '../../utils/environment';
 
 interface CaptchaProps {
@@ -17,8 +18,12 @@ interface CaptchaProps {
   onFinished: () => void;
 }
 
-export function Captcha({ action, formError, onLoad, onChange, onFinished }: CaptchaProps) {
+// eslint-disable-next-line react/display-name
+export const Captcha = forwardRef<Maybe<TurnstileInstance>, CaptchaProps>(({ action, formError, onLoad, onChange, onFinished }, ref) => {
+  const turnstileRef = useRef<TurnstileInstance>(null);
   const id = useId();
+
+  useImperativeHandle<unknown, Maybe<TurnstileInstance>>(ref, () => turnstileRef.current, [turnstileRef]);
 
   // Skip rendering the captcha if we're running in Playwright or if the key is not set
   // In real environments the server will still validate and prevent access if there isn't a valid token
@@ -31,6 +36,7 @@ export function Captcha({ action, formError, onLoad, onChange, onFinished }: Cap
     <>
       <Turnstile
         id={id}
+        ref={turnstileRef}
         siteKey={ENVIRONMENT.CAPTCHA_KEY}
         options={{
           action,
@@ -38,6 +44,7 @@ export function Captcha({ action, formError, onLoad, onChange, onFinished }: Cap
           appearance: 'always',
           size: 'flexible',
           refreshExpired: 'auto',
+          feedbackEnabled: true,
         }}
         onWidgetLoad={onLoad}
         onSuccess={(token) => {
@@ -52,4 +59,4 @@ export function Captcha({ action, formError, onLoad, onChange, onFinished }: Cap
       )}
     </>
   );
-}
+});

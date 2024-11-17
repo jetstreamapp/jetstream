@@ -1,6 +1,7 @@
-import { Body, Button, Container, Head, Heading, Html, Img, Link, Preview, Section, Text } from '@react-email/components';
+import { Body, Button, Container, Head, Heading, Html, Link, Preview, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
+import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
 interface PasswordResetEmailProps {
@@ -24,12 +25,7 @@ export const PasswordResetEmail = ({
       <Preview>Reset your password with Jetstream</Preview>
       <Body style={EMAIL_STYLES.main}>
         <Container style={EMAIL_STYLES.container}>
-          <Img
-            src="https://res.cloudinary.com/getjetstream/image/upload/v1634516631/public/jetstream-logo-200w.png"
-            width="200"
-            alt="Jetstream"
-            style={EMAIL_STYLES.logo}
-          />
+          <EmailLogo />
           <Heading style={EMAIL_STYLES.codeTitle}>Reset your password</Heading>
 
           <Text style={EMAIL_STYLES.codeDescription}>

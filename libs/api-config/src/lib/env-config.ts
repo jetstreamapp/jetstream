@@ -7,16 +7,14 @@ import { readFileSync } from 'fs-extra';
 import { isNumber } from 'lodash';
 import { join } from 'path';
 import { z } from 'zod';
-import { getExceptionLog } from './api-logger';
 
 dotenv.config();
 
 let VERSION = 'unknown';
 try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
-  console.warn(`APP VERSION ${VERSION}`);
 } catch (ex) {
-  console.warn('COULD NOT READ VERSION FILE', getExceptionLog(ex));
+  // ignore errors
 }
 
 /**
@@ -103,7 +101,7 @@ const envSchema = z.object({
   CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
-  GIT_VERSION: z.string().optional(),
+  VERSION: z.string().optional(),
   ROLLBAR_SERVER_TOKEN: z.string().optional(),
 
   // Legacy Auth0 - Used to allow JIT password migration
@@ -202,6 +200,7 @@ const parseResults = envSchema.safeParse({
   EXAMPLE_USER_PASSWORD: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? process.env.EXAMPLE_USER_PASSWORD : null,
   EXAMPLE_USER_FULL_PROFILE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER_FULL_PROFILE : null,
   SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION,
+  VERSION,
 });
 
 if (!parseResults.success) {

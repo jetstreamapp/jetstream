@@ -5,6 +5,7 @@ import {
   createRememberDevice,
   createUserActivityFromReq,
   createUserActivityFromReqWithError,
+  EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
   ensureAuthError,
   ExpiredVerificationToken,
   generatePasswordResetToken,
@@ -41,7 +42,7 @@ import {
 } from '@jetstream/email';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { parse as parseCookie } from 'cookie';
-import { addMinutes } from 'date-fns';
+import { addHours, addMinutes } from 'date-fns';
 import { z } from 'zod';
 import { Request } from '../types/types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
@@ -180,15 +181,16 @@ function initSession(
   req.session.pendingVerification = null;
 
   if (verificationRequired) {
-    const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
     const token = generateRandomCode(6);
     if (isNewUser) {
       req.session.sendNewUserEmailAfterVerify = true;
     }
     if (verificationRequired.email) {
+      const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
       // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
       req.session.pendingVerification = [{ type: 'email', exp, token }];
     } else if (verificationRequired.twoFactor?.length > 0) {
+      const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
       req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
         switch (factor.type) {
           case '2fa-otp':
@@ -451,7 +453,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       const initialVerification = req.session.pendingVerification[0];
 
       if (initialVerification.type === 'email') {
-        await sendEmailVerification(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+        await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
       } else if (initialVerification.type === '2fa-email') {
         await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
       }
@@ -621,7 +623,7 @@ const resendVerification = createRoute(routeDefinition.resendVerification.valida
 
     switch (type) {
       case 'email': {
-        await sendEmailVerification(req.session.user.email, token, TOKEN_DURATION_MINUTES);
+        await sendEmailVerification(req.session.user.email, token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
         break;
       }
       case '2fa-email': {

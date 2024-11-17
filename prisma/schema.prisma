@@ -30,7 +30,6 @@ model User {
   rememberdDevices    RememberedDevice[]
   passwordResetTokens PasswordResetToken[]
   lastLoggedIn        DateTime?
-  deletedAt           DateTime?
   createdAt           DateTime                @default(now()) @db.Timestamp(6)
   updatedAt           DateTime                @updatedAt
 }

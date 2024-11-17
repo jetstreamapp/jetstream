@@ -24,7 +24,7 @@ routes.use(addOrgsToLocal);
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sendJson(res as any, { version: ENV.GIT_VERSION || null, announcements: getAnnouncements() });
+  sendJson(res as any, { version: ENV.VERSION || null, announcements: getAnnouncements() });
 });
 
 /**

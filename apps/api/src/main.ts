@@ -53,7 +53,7 @@ if (cluster.isPrimary) {
 
 NODE_ENV=${ENV.NODE_ENV}
 ENVIRONMENT=${ENV.ENVIRONMENT}
-GIT_VERSION=${ENV.GIT_VERSION ?? '<unspecified>'}
+VERSION=${ENV.VERSION ?? '<unspecified>'}
 LOG_LEVEL=${ENV.LOG_LEVEL}
 JETSTREAM_SERVER_URL=${ENV.JETSTREAM_SERVER_URL}
 JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
@@ -350,7 +350,6 @@ try {
           name: user.name,
           password: passwordHash,
           passwordUpdatedAt: new Date(),
-          deletedAt: null,
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },

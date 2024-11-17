@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { TwoFactorType } from '@jetstream/auth/types';
 import { Maybe } from '@jetstream/types';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import { FormEvent, Fragment, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -47,6 +48,7 @@ interface VerifyEmailOr2faProps {
 
 export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: VerifyEmailOr2faProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string>();
   const [hasResent, setHasResent] = useState(false);
 
@@ -61,7 +63,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
   } = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      code: '',
+      code: searchParams.get('code') || '',
       csrfToken,
       captchaToken: '',
       type: activeFactor,
