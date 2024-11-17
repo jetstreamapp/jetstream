@@ -350,7 +350,6 @@ try {
           name: user.name,
           password: passwordHash,
           passwordUpdatedAt: new Date(),
-          deletedAt: null,
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },

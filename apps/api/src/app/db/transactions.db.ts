@@ -1,33 +1,9 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { UserProfileSession } from '@jetstream/auth/types';
 import { PrismaPromise } from '@prisma/client';
 
 /**
  * This file manages db operations as transactions that span multiple tables
  */
-
-export async function deleteUserAndOrgs(user: UserProfileSession) {
-  if (!user?.id) {
-    throw new Error('A valid user must be provided');
-  }
-  try {
-    const deleteOrgs = prisma.salesforceOrg.deleteMany({
-      where: { jetstreamUserId: user.id },
-    });
-
-    const deleteUser = prisma.user.update({
-      where: { userId: user.id },
-      data: {
-        deletedAt: new Date(),
-      },
-    });
-
-    await prisma.$transaction([deleteOrgs, deleteUser]);
-  } catch (ex) {
-    logger.error({ userId: user?.id, ...getExceptionLog(ex) }, '[DB][TX][DEL_ORGS_AND_USER][ERROR] %o', ex);
-    throw ex;
-  }
-}
 
 /**
  * Hard delete all orgs and users for a given org.
