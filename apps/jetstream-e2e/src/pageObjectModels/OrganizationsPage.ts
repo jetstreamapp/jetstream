@@ -61,6 +61,10 @@ export class OrganizationsPage {
 
     const salesforcePage = await salesforcePagePromise;
 
+    // Sometimes SFDC clears the values from the form if they are typed in too quickly
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await salesforcePage.waitForTimeout(1000);
+
     await salesforcePage.getByLabel('Username').click();
     await salesforcePage.getByLabel('Username').fill(username);
 
