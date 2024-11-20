@@ -21,7 +21,8 @@ test.describe('Login 2', () => {
     await playwrightPage.logout();
 
     await authenticationPage.goToPasswordReset();
-    await authenticationPage.fillOutResetPasswordForm(email);
+    // Use uppercase email to ensure case insensitivity
+    await authenticationPage.fillOutResetPasswordForm(email.toUpperCase());
     await expect(
       page.getByText('You will receive an email with instructions if an account exists and is eligible for password reset.')
     ).toBeVisible();
@@ -34,7 +35,10 @@ test.describe('Login 2', () => {
 
     await authenticationPage.fillOutResetPasswordVerifyForm(password, password);
 
-    await authenticationPage.loginAndVerifyEmail(email, password);
+    await expect(page.getByText('Login with your new password')).toBeVisible();
+
+    // Use uppercase email to ensure case insensitivity
+    await authenticationPage.loginAndVerifyEmail(email.toUpperCase(), password);
 
     await authenticationPage.page.waitForURL(`**/app`);
   });

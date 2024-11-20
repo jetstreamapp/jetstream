@@ -94,14 +94,14 @@ export const routeDefinition = {
             action: z.literal('login'),
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
-            email: z.string().email().min(5).max(255),
+            email: z.string().email().min(5).max(255).toLowerCase(),
             password: z.string().min(8).max(255),
           }),
           z.object({
             action: z.literal('register'),
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
-            email: z.string().email().min(5).max(255),
+            email: z.string().email().min(5).max(255).toLowerCase(),
             name: z.string().min(1).max(255).trim(),
             password: z.string().min(8).max(255),
           }),
@@ -147,7 +147,7 @@ export const routeDefinition = {
   requestPasswordReset: {
     controllerFn: () => requestPasswordReset,
     validators: {
-      body: z.object({ captchaToken: z.string().nullish(), email: z.string(), csrfToken: z.string() }),
+      body: z.object({ captchaToken: z.string().nullish(), email: z.string().toLowerCase(), csrfToken: z.string() }),
       hasSourceOrg: false,
     },
   },
@@ -155,7 +155,7 @@ export const routeDefinition = {
     controllerFn: () => validatePasswordReset,
     validators: {
       body: z.object({
-        email: z.string().email(),
+        email: z.string().email().toLowerCase(),
         token: z.string(),
         password: z.string(),
         csrfToken: z.string(),

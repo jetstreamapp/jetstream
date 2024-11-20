@@ -78,6 +78,7 @@ async function findUserByProviderId(provider: OauthProviderType, providerAccount
 }
 
 async function findUsersByEmail(email: string) {
+  email = email.toLowerCase();
   return prisma.user.findMany({
     select: userSelect,
     where: { email },
@@ -384,6 +385,7 @@ export async function setPasswordForUser(id: string, password: string) {
 }
 
 export const generatePasswordResetToken = async (email: string) => {
+  email = email.toLowerCase();
   // NOTE: There could be duplicate users with the same email, but only one with a password set
   // These users were migrated from Auth0, but we do not support this as a standard path
   const user = await prisma.user.findMany({
@@ -422,6 +424,7 @@ export const generatePasswordResetToken = async (email: string) => {
 };
 
 export const resetUserPassword = async (email: string, token: string, password: string) => {
+  email = email.toLowerCase();
   // if there is an existing token, delete it
   const restToken = await prisma.passwordResetToken.findUnique({
     where: { email_token: { email, token } },
@@ -478,6 +481,7 @@ export const removePasswordFromUser = async (id: string) => {
 };
 
 async function getUserAndVerifyPassword(email: string, password: string) {
+  email = email.toLowerCase();
   const UNSAFE_userWithPassword = await prisma.user.findFirst({
     select: { id: true, password: true },
     where: { email, password: { not: null } },
@@ -515,6 +519,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
 }
 
 async function migratePasswordFromAuth0(email: string, password: string) {
+  email = email.toLowerCase();
   // If the user has a linked social identity, we have no way to confirm 100% that this is the correct account
   // since we allowed same email on multiple accounts with Auth0
   const userWithoutSocialIdentities = await prisma.user.findFirst({
@@ -590,10 +595,11 @@ export async function removeIdentityFromUser(userId: string, provider: OauthProv
 }
 
 async function createUserFromProvider(providerUser: ProviderUser, provider: OauthProviderType) {
+  const email = providerUser.email?.toLowerCase();
   return prisma.user.create({
     select: userSelect,
     data: {
-      email: providerUser.email,
+      email,
       // TODO: do we really get any benefit from storing this userId like this?
       // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
       // TODO: this is nice as we can identify which identity is primary without joining the identity table - but could solve in other ways
@@ -608,7 +614,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
           type: 'oauth',
           provider: provider,
           providerAccountId: providerUser.id,
-          email: providerUser.email,
+          email,
           name: providerUser.name,
           emailVerified: providerUser.emailVerified,
           username: providerUser.username,
@@ -630,6 +636,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
 
 async function updateIdentityAttributesFromProvider(userId: string, providerUser: ProviderUser, provider: OauthProviderType) {
   try {
+    const email = providerUser.email?.toLowerCase();
     const existingProfile = await prisma.authIdentity.findUniqueOrThrow({
       select: {
         isPrimary: true,
@@ -650,7 +657,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
     });
 
     const skipUpdate =
-      existingProfile.email === providerUser.email &&
+      existingProfile.email === email &&
       existingProfile.name === providerUser.name &&
       existingProfile.emailVerified === providerUser.emailVerified &&
       existingProfile.username === providerUser.username &&
@@ -672,7 +679,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
               data: {
                 provider: provider,
                 providerAccountId: providerUser.id,
-                email: providerUser.email,
+                email,
                 name: providerUser.name,
                 emailVerified: providerUser.emailVerified,
                 username: providerUser.username,
@@ -695,7 +702,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
         data: {
           provider: provider,
           providerAccountId: providerUser.id,
-          email: providerUser.email,
+          email,
           name: providerUser.name,
           emailVerified: providerUser.emailVerified,
           username: providerUser.username,
@@ -715,6 +722,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
 }
 
 async function createUserFromUserInfo(email: string, name: string, password: string) {
+  email = email.toLowerCase();
   const passwordHash = await hashPassword(password);
   return prisma.$transaction(async (tx) => {
     // Create initial user
@@ -831,7 +839,9 @@ export async function handleSignInOrRegistration(
         isNewUser = true;
       }
     } else if (providerType === 'credentials') {
-      const { action, email, password } = payload;
+      const { action, password } = payload;
+      const email = payload.email.toLowerCase();
+
       if (!password) {
         throw new InvalidCredentials();
       }
