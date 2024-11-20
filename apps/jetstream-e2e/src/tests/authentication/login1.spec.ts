@@ -63,6 +63,14 @@ test.describe('Login 1', () => {
       await authenticationPage.fillOutLoginForm(email, password);
       await page.waitForURL(`**/app`);
       await expect(page.url()).toContain('/app');
+      await playwrightPage.logout();
+      await expect(page.getByTestId('home-hero-container')).toBeVisible();
+    });
+
+    await test.step('Email address should be case-insensitive', async () => {
+      await authenticationPage.fillOutLoginForm(email.toUpperCase(), password);
+      await page.waitForURL(`**/app`);
+      await expect(page.url()).toContain('/app');
     });
   });
 });

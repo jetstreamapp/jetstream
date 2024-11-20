@@ -59,5 +59,10 @@ test.describe('Login 3', () => {
       await authenticationPage.fillOutSignUpForm(email, 'test person', password, password);
       await expect(page.getByText('This email is already registered.')).toBeVisible();
     });
+
+    await test.step('Attempt to register with same email address, using email with uppercase', async () => {
+      await authenticationPage.fillOutSignUpForm(email.toUpperCase(), 'test person', password, password);
+      await expect(page.getByText('This email is already registered.')).toBeVisible();
+    });
   });
 });
