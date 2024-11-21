@@ -169,6 +169,7 @@ export function Organizations() {
 
   const handleOrganizationChange = useCallback(
     (organization?: Maybe<JetstreamOrganizationWithOrgs>) => {
+      if(organization && organization.orgs && organization.orgs[0].uniqueId){
       setActiveOrganizationId(organization?.id);
       if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
         setSelectedOrgId(organization.orgs[0].uniqueId);
@@ -176,7 +177,8 @@ export function Organizations() {
         const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
         setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
       }
-    },
+    }
+  },
     [allOrgs, selectedOrg, setActiveOrganizationId, setSelectedOrgId]
   );
 
@@ -216,7 +218,7 @@ export function Organizations() {
       <AutoFullHeightContainer bottomBuffer={5} className="slds-p-around_medium">
         <p>Drag and drop to move salesforce orgs between organizations.</p>
         <Grid vertical>
-          {organizations.map((organization) => (
+          {organizations?.map((organization) => (
             <div key={organization.id} className="slds-m-top_x-small">
               <OrganizationCard
                 isActive={activeOrganizationId === organization.id}
