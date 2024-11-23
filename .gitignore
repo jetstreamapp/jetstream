@@ -46,6 +46,8 @@ Thumbs.db
 .docusaurus/
 .cache-loader/
 
+nx-cloud.env
+
 # Ensure we do not accidentally run npm install
 package-lock.json
 
