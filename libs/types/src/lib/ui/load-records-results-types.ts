@@ -1,3 +1,4 @@
+export type DownloadScope = 'all' | 'batch';
 export type DownloadAction = 'view' | 'download';
 export type DownloadType = 'results' | 'failures';
 

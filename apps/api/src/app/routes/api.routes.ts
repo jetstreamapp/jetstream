@@ -139,6 +139,7 @@ routes.get('/bulk/:jobId', bulkApiController.getJob.controllerFn());
 routes.delete('/bulk/:jobId/:action', bulkApiController.closeOrAbortJob.controllerFn());
 routes.post('/bulk/:jobId', bulkApiController.addBatchToJob.controllerFn());
 routes.post('/bulk/zip/:jobId', bulkApiController.addBatchToJobWithBinaryAttachment.controllerFn());
+routes.get('/bulk/download-all/:jobId', bulkApiController.downloadAllResults.controllerFn());
 routes.get('/bulk/:jobId/:batchId', bulkApiController.downloadResults.controllerFn());
 
 /**

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords } from '@jetstream/shared/data';
+import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
 import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import {
   decodeHtmlEntity,
@@ -9,6 +9,7 @@ import {
   getErrorMessageAndStackObj,
   getSuccessOrFailureChar,
   pluralizeFromNumber,
+  splitArrayToMaxSize,
 } from '@jetstream/shared/utils';
 import {
   ApiMode,
@@ -17,6 +18,7 @@ import {
   BulkJobWithBatches,
   DownloadAction,
   DownloadModalData,
+  DownloadScope,
   DownloadType,
   FieldMapping,
   InsertUpdateUpsertDelete,
@@ -28,7 +30,17 @@ import {
   SalesforceOrgUi,
   ViewModalData,
 } from '@jetstream/types';
-import { FileDownloadModal, Grid, ProgressRing, SalesforceLogin, Spinner, Tooltip, fireToast } from '@jetstream/ui';
+import {
+  ButtonGroupContainer,
+  FileDownloadModal,
+  Grid,
+  Icon,
+  ProgressRing,
+  SalesforceLogin,
+  Spinner,
+  Tooltip,
+  fireToast,
+} from '@jetstream/ui';
 import {
   LoadRecordsBulkApiResultsTable,
   LoadRecordsResultsModal,
@@ -122,6 +134,7 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     fileNameParts: [],
   });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
+  const [downloadState, setDownloadState] = useState<DownloadScope | null>(null);
   const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
@@ -363,12 +376,27 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
     return `Uploading batch ${batchSummary.batchSummary.filter((item) => item.completed).length + 1} of ${batchSummary.totalBatches}`;
   }
 
-  async function handleDownloadOrViewRecords(
-    action: DownloadAction,
-    type: DownloadType,
-    batch: BulkJobBatchInfo,
-    batchIndex: number
-  ): Promise<void> {
+  async function handleDownloadOrViewRecords({
+    scope,
+    action,
+    type,
+    batch,
+    batchIndex,
+  }:
+    | {
+        scope: 'all';
+        action: DownloadAction;
+        type: 'results';
+        batch?: never;
+        batchIndex?: never;
+      }
+    | {
+        scope: 'batch';
+        action: DownloadAction;
+        type: DownloadType;
+        batch: BulkJobBatchInfo;
+        batchIndex: number;
+      }): Promise<void> {
     try {
       if (!batchSummary || !jobInfo?.id || !preparedData) {
         return;
@@ -376,15 +404,43 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       if (downloadError) {
         setDownloadError(null);
       }
-      // download records, combine results from salesforce with actual records, open download modal
-      const results = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobInfo.id, batch.id, 'result');
-      // this should match, but will fallback to batchIndex if for some reason we cannot find the batch
-      const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id);
-      const startIdx = (batchSummaryItem?.batchNumber ?? batchIndex) * batchSize;
-      /** For delete, only records with a mapped Id will be included in response from SFDC */
-      const records: any[] = preparedData.data
-        .slice(startIdx, startIdx + batchSize)
-        .filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
+
+      setDownloadState(scope);
+
+      let results: BulkJobResultRecord[];
+      let records: any[] = preparedData.data;
+      let removedBatches = false;
+
+      if (scope === 'all') {
+        // Download results across all batches
+        const splitRecordsByBatchSize = splitArrayToMaxSize(records, batchSize);
+        jobInfo.batches.forEach((batch, i) => {
+          if (batch.state !== 'Completed') {
+            // remove batch from result records
+            splitRecordsByBatchSize.splice(i, 1);
+            removedBatches = true;
+          }
+        });
+        records = splitRecordsByBatchSize.flat();
+        const batchIds = jobInfo.batches.filter((batch) => batch.state === 'Completed').map((batch) => batch.id);
+        // download records, combine results from salesforce with actual records, open download modal
+        results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(selectedOrg, jobInfo.id, batchIds);
+        /** For delete, only records with a mapped Id will be included in response from SFDC */
+        records = preparedData.data.filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
+      } else {
+        // Download results for a single batch
+        // download records, combine results from salesforce with actual records, open download modal
+        results = await bulkApiGetRecords<BulkJobResultRecord>(selectedOrg, jobInfo.id, batch.id, 'result');
+        // this should match, but will fallback to batchIndex if for some reason we cannot find the batch
+        const batchSummaryItem = batchSummary.batchSummary.find((item) => item.id === batch.id);
+        const startIdx = (batchSummaryItem?.batchNumber ?? batchIndex) * batchSize;
+        /**
+         * Get records from this one batch
+         * For delete, only records with a mapped Id will be included in response from SFDC
+         */
+        records = preparedData.data.slice(startIdx, startIdx + batchSize).filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
+      }
+
       const combinedResults: BulkJobResultRecord[] = [];
 
       results.forEach((resultRecord, i) => {
@@ -398,11 +454,11 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           });
         }
       });
-      logger.log({ combinedResults });
+      logger.debug({ combinedResults, results });
       const header = ['_id', '_success', '_errors'].concat(getFieldHeaderFromMapping(fieldMapping));
       if (action === 'view') {
         setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
-        trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length });
+        trackEvent(ANALYTICS_KEYS.load_DownloadRecords, { loadType, type, numRows: combinedResults.length, scope });
       } else {
         setDownloadModalData({
           ...downloadModalData,
@@ -411,11 +467,20 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           header,
           data: combinedResults,
         });
-        trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length });
+        trackEvent(ANALYTICS_KEYS.load_ViewRecords, { loadType, type, numRows: combinedResults.length, scope });
+      }
+
+      if (removedBatches) {
+        fireToast({
+          message: 'One or more batches were not successful and will not be included in the results.',
+          type: 'warning',
+        });
       }
     } catch (ex) {
       logger.warn(ex);
       setDownloadError(getErrorMessage(ex));
+    } finally {
+      setDownloadState(null);
     }
   }
 
@@ -550,6 +615,41 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
           )}
         </div>
         <div>
+          {batchSummary && status === STATUSES.FINISHED && batchSummary.totalBatches > 1 && (
+            <div className="slds-is-relative">
+              {downloadState === 'all' && <Spinner size="small" />}
+              <ButtonGroupContainer>
+                <button
+                  className="slds-button slds-button_neutral"
+                  disabled={!!downloadState}
+                  onClick={() =>
+                    handleDownloadOrViewRecords({
+                      scope: 'all',
+                      action: 'download',
+                      type: 'results',
+                    })
+                  }
+                >
+                  <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Download All
+                </button>
+                <button
+                  className="slds-button slds-button_neutral slds-m-left_x-small"
+                  disabled={!!downloadState}
+                  onClick={() =>
+                    handleDownloadOrViewRecords({
+                      scope: 'all',
+                      action: 'view',
+                      type: 'results',
+                    })
+                  }
+                >
+                  <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  View All
+                </button>
+              </ButtonGroupContainer>
+            </div>
+          )}
           {ABORTABLE_STATUSES.has(status) && (
             <Tooltip content="Any batches in progress may not be able to be aborted.">
               <button

@@ -60,12 +60,17 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
     onModalOpenChange && onModalOpenChange(downloadModalData.open || resultsModalData.open);
   }, [downloadModalData.open, onModalOpenChange, resultsModalData.open]);
 
-  async function handleDownloadOrViewRecords(
-    action: DownloadAction,
-    type: DownloadType,
-    batch: BulkJobBatchInfo,
-    batchIndex: number
-  ): Promise<void> {
+  async function handleDownloadOrViewRecords({
+    action,
+    batch,
+    type,
+  }: {
+    scope: 'batch';
+    action: DownloadAction;
+    type: DownloadType;
+    batch: BulkJobBatchInfo;
+    batchIndex: number;
+  }): Promise<void> {
     try {
       if (!jobInfo?.id) {
         return;
