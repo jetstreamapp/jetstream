@@ -37,7 +37,7 @@ export interface PopoverProps {
   header?: JSX.Element;
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
-  buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string };
+  buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
   panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
   size?: SmallMediumLarge | sizeXLarge | FullWidth;
