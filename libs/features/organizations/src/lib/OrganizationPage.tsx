@@ -171,12 +171,15 @@ export function Organizations() {
     (organization?: Maybe<JetstreamOrganizationWithOrgs>) => {
       setActiveOrganizationId(organization?.id);
       if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
-        setSelectedOrgId(organization.orgs[0].uniqueId);
+        const firstOrgUniqueId = organization.orgs?.[0]?.uniqueId || null;
+        setSelectedOrgId(firstOrgUniqueId);
       } else if (!organization && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
         const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
-        setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
+        const firstUnassignedOrgId = orgsWithNoOrganization?.[0]?.uniqueId || null;
+        setSelectedOrgId(firstUnassignedOrgId);
       }
-    },
+    
+  },
     [allOrgs, selectedOrg, setActiveOrganizationId, setSelectedOrgId]
   );
 
