@@ -353,6 +353,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
       }
       buttonProps={{
         className: iconButtonClassName || 'slds-button slds-button_icon',
+        'data-testid': 'org-info-popover-button',
       }}
     >
       <Icon type="utility" icon="settings" className="slds-button__icon slds-current-color" omitContainer {...dropdownIconProps} />

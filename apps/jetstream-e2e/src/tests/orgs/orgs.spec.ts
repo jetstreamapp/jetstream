@@ -27,6 +27,15 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
       await expect(organizationsPage.orgDropdown).toHaveValue(environment.TEST_ORG_2);
     });
 
+    await test.step('Ensure frontdoor login works', async () => {
+      await page.getByPlaceholder('Select an Org').click();
+      await page.getByTestId('header').getByTestId('org-info-popover-button').click();
+      await page.getByRole('link', { name: 'Setup Menu' }).click();
+      const salesforcePage = await page.waitForEvent('popup');
+      await salesforcePage.getByRole('tab', { name: 'Object Manager' }).click();
+      await salesforcePage.close();
+    });
+
     await test.step('Add an org with a custom domain', async () => {
       await organizationsPage.addSalesforceOrg(environment.TEST_ORG_3, environment.E2E_LOGIN_PASSWORD, {
         type: 'custom',
