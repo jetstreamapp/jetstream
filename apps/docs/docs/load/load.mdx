@@ -111,11 +111,11 @@ There are some final options available before loading your data to Salesforce.
 ### API mode
 
 - **Bulk API** - Best for very large data loads
-  - This will use the Salesforce Bulk API 1.0 to load your data.
+  - This will use the [Salesforce Bulk API 1.0](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/api_asynch_introduction_how_bulk_api_works.htm) to load your data.
   - This will take longer and is optimized for high volume.
   - Some types of automation may not be triggered when using the Bulk API.
 - **Batch API** - Best for small to medium size loads
-  - This uses the Batch API and is generally much faster than the Bulk API.
+  - This uses the [sObject Collection API](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections.htm) and is generally much faster than the Bulk API.
 
 :::tip
 

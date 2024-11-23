@@ -1,12 +1,11 @@
-import { getExceptionLog, logger } from '@jetstream/api-config';
 import { BooleanQueryParamSchema, CreateJobRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureBoolean, toBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, getErrorMessageAndStackObj, toBoolean } from '@jetstream/shared/utils';
 import { NODE_STREAM_INPUT, parse as parseCsv } from 'papaparse';
-import { Readable } from 'stream';
+import { PassThrough, Readable, Transform } from 'stream';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
-import { sendJson } from '../utils/response.handlers';
+import { sendJson, streamParsedCsvAsJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 
 export const routeDefinition = {
@@ -38,6 +37,24 @@ export const routeDefinition = {
       query: z.object({
         type: z.enum(['request', 'result']),
         isQuery: BooleanQueryParamSchema,
+      }),
+    },
+  },
+  downloadAllResults: {
+    controllerFn: () => downloadAllResults,
+    validators: {
+      params: z.object({
+        jobId: z.string().min(1),
+      }),
+      query: z.object({
+        /**
+         * Optional batch ids, if not provided then all batches will be downloaded from job
+         * this is important because the returned batches array is not stable and the client relies on the order
+         */
+        batchIds: z
+          .string()
+          .nullish()
+          .transform((val) => new Set(val?.split(',') || [])),
       }),
     },
   },
@@ -188,7 +205,7 @@ const downloadResultsFile = createRoute(
  */
 const downloadResults = createRoute(
   routeDefinition.downloadResults.validators,
-  async ({ params, query, jetstreamConn, requestId }, req, res, next) => {
+  async ({ params, query, jetstreamConn }, req, res, next) => {
     try {
       const jobId = params.jobId;
       const batchId = params.batchId;
@@ -220,32 +237,118 @@ const downloadResults = createRoute(
         Readable.fromWeb(results as any).pipe(csvParseStream);
       }
 
-      let isFirstChunk = true;
-
-      csvParseStream.on('data', (data) => {
-        data = JSON.stringify(data);
-        if (isFirstChunk) {
-          isFirstChunk = false;
-          data = `{"data":[${data}`;
-        } else {
-          data = `,${data}`;
-        }
-        res.write(data);
-      });
-      csvParseStream.on('finish', () => {
-        res.write(']}');
-        res.end();
-        logger.info({ requestId }, 'Finished streaming download from Salesforce');
-      });
-      csvParseStream.on('error', (err) => {
-        logger.warn({ requestId, ...getExceptionLog(err) }, 'Error streaming files from Salesforce.');
-        if (!res.headersSent) {
-          res.status(400).json({ error: true, message: 'Error streaming files from Salesforce' });
-        } else {
-          res.status(400).end();
-        }
-      });
+      streamParsedCsvAsJson(res, csvParseStream);
     } catch (ex) {
+      next(new UserFacingError(ex));
+    }
+  }
+);
+
+/**
+ * Download all results from a batch job as JSON, streamed from Salesforce as CSVs, and transformed to JSON on the fly
+ */
+const downloadAllResults = createRoute(
+  routeDefinition.downloadAllResults.validators,
+  async ({ params, jetstreamConn, query, requestId }, req, res, next) => {
+    const combinedStream = new PassThrough();
+    try {
+      const jobId = params.jobId;
+      let { batchIds } = query;
+
+      const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
+        delimiter: ',',
+        header: true,
+        skipEmptyLines: true,
+        transform: (data, field) => {
+          if (field === 'Success' || field === 'Created') {
+            return toBoolean(data);
+          } else if (field === 'Id' || field === 'Error') {
+            return data || null;
+          }
+          return data;
+        },
+      });
+
+      // Fetch job to get all completed batches
+      const job = await jetstreamConn.bulk.getJob(jobId);
+      const batchIdsFromJob = new Set(job.batches.filter((batch) => batch.state === 'Completed').map((batch) => batch.id));
+
+      // If no batchIds provided, use all completed batches
+      if (batchIds.size === 0) {
+        batchIds = batchIdsFromJob;
+      }
+
+      // Remove any provided batchIds that are not in the job or are not Completed
+      batchIds.forEach((batchId) => {
+        if (!batchIdsFromJob.has(batchId)) {
+          batchIds.delete(batchId);
+        }
+      });
+
+      if (batchIds.size === 0) {
+        throw new UserFacingError('No completed batches found in the job');
+      }
+
+      // initiate stream response through passthrough stream
+      streamParsedCsvAsJson(res, csvParseStream);
+      combinedStream.pipe(csvParseStream);
+
+      let isFirstBatch = true;
+
+      for (const batchId of batchIds) {
+        try {
+          const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, 'result');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const readable = Readable.fromWeb(results as any);
+
+          let streamToPipe: Readable;
+
+          if (isFirstBatch) {
+            // First batch, include headers
+            streamToPipe = readable;
+            isFirstBatch = false;
+          } else {
+            let headerRemoved = false;
+            // Subsequent batches, remove headers
+            const removeHeaderTransform = new Transform({
+              transform(chunk, encoding, callback) {
+                // Convert chunk to string
+                const data = chunk.toString();
+                // If header has been removed, pass data through
+                if (headerRemoved) {
+                  callback(null, chunk);
+                } else {
+                  // Remove the first line (header)
+                  const index = data.indexOf('\n');
+                  if (index !== -1) {
+                    headerRemoved = true;
+                    const dataWithoutHeader = data.slice(index + 1);
+                    callback(null, Buffer.from(dataWithoutHeader));
+                  } else {
+                    // Header line not yet complete
+                    callback();
+                  }
+                }
+              },
+            });
+            streamToPipe = readable.pipe(removeHeaderTransform);
+          }
+
+          // pipe all data through passthrough stream
+          await new Promise((resolve, reject) => {
+            streamToPipe.pipe(combinedStream, { end: false });
+            streamToPipe.on('end', resolve);
+            streamToPipe.on('error', reject);
+          });
+        } catch (ex) {
+          res.log.error({ requestId, ...getErrorMessageAndStackObj(ex) }, 'Error downloading batch results');
+        }
+      }
+      // indicate end of stream - we are done pushing data
+      combinedStream.end();
+    } catch (ex) {
+      // combinedStream.destroy();
+      combinedStream.end();
       next(new UserFacingError(ex));
     }
   }

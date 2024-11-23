@@ -779,6 +779,12 @@ export async function bulkApiGetRecords<T = any>(
   );
 }
 
+export async function bulkApiGetRecordsFromAllBatches<T = any>(org: SalesforceOrgUi, jobId: string, batchIds: string[]): Promise<T[]> {
+  return handleRequest({ method: 'GET', url: `/api/bulk/download-all/${jobId}`, params: { batchIds: batchIds.join() } }, { org }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
 export async function anonymousApex(org: SalesforceOrgUi, apex: string, logLevel: string): Promise<AnonymousApexResponse> {
   return handleRequest({ method: 'POST', url: `/api/apex/anonymous`, data: { apex, logLevel } }, { org }).then(unwrapResponseIgnoreCache);
 }

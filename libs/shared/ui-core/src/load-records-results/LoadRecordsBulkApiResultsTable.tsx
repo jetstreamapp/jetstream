@@ -8,7 +8,13 @@ export interface LoadRecordsBulkApiResultsTableProps {
   processingErrors: PrepareDataResponseError[];
   processingStartTime: Maybe<string>;
   processingEndTime: Maybe<string>;
-  onDownloadOrView: (action: DownloadAction, type: DownloadType, batch: BulkJobBatchInfo, batchIndex: number) => Promise<void>;
+  onDownloadOrView: (options: {
+    scope: 'batch';
+    action: DownloadAction;
+    type: DownloadType;
+    batch: BulkJobBatchInfo;
+    batchIndex: number;
+  }) => Promise<void>;
   onDownloadProcessingErrors: () => void;
 }
 
@@ -80,8 +86,24 @@ export const LoadRecordsBulkApiResultsTable: FunctionComponent<LoadRecordsBulkAp
           <LoadRecordsBulkApiResultsTableRow
             key={batch.id || i}
             batch={batch}
-            onDownload={(type, batch) => onDownloadOrView('download', type, batch, i)}
-            onView={(type, batch) => onDownloadOrView('view', type, batch, i)}
+            onDownload={(type, batch) =>
+              onDownloadOrView({
+                scope: 'batch',
+                action: 'download',
+                type,
+                batch,
+                batchIndex: i,
+              })
+            }
+            onView={(type, batch) =>
+              onDownloadOrView({
+                scope: 'batch',
+                action: 'view',
+                type,
+                batch,
+                batchIndex: i,
+              })
+            }
           />
         ))}
       </tbody>

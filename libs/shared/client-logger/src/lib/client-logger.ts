@@ -4,6 +4,10 @@
 export const logBuffer: any[] = [];
 const LOG_BUFFER_SIZE = 5;
 
+function LOG_NOOP_NO_BUFFER(...logs: any[]) {
+  // no-op
+}
+
 function LOG_NOOP(...logs: any[]) {
   logBuffer.unshift(logs);
   logBuffer.splice(LOG_BUFFER_SIZE + 1);
@@ -72,8 +76,8 @@ function clearLoggingEnabledState() {
 
 export const logger: Logger = {
   isEnabled: false,
-  trace: LOG_NOOP,
-  debug: LOG_NOOP,
+  trace: LOG_NOOP_NO_BUFFER,
+  debug: LOG_NOOP_NO_BUFFER,
   log: LOG_NOOP,
   info: LOG_NOOP,
   warn: LOG_NOOP,
@@ -87,8 +91,8 @@ export const enableLogger = (enable: boolean, logLevel: LogLevel = 'debug') => {
   logger.isEnabled = enable;
   if (!enable) {
     clearLoggingEnabledState();
-    logger.trace = LOG_NOOP;
-    logger.debug = LOG_NOOP;
+    logger.trace = LOG_NOOP_NO_BUFFER;
+    logger.debug = LOG_NOOP_NO_BUFFER;
     logger.log = LOG_NOOP;
     logger.info = LOG_NOOP;
     logger.warn = LOG_NOOP;

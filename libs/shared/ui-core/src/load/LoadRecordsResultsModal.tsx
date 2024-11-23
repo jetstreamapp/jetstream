@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -7,6 +8,7 @@ import {
   CopyToClipboardWithToolTip,
   DataTable,
   getRowTypeFromValue,
+  Grid,
   Icon,
   Modal,
   setColumnFromType,
@@ -108,15 +110,24 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
         header="Load Results"
         closeOnBackdropClick
         footer={
-          <div>
-            <button className="slds-button slds-button_neutral" onClick={onClose}>
-              Close
-            </button>
-            <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={loading}>
-              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download
-            </button>
-          </div>
+          <Grid verticalAlign="center" align="spread">
+            <div>
+              {Array.isArray(rows) && (
+                <>
+                  {formatNumber(rows.length)} {pluralizeFromNumber('Record', rows.length)}
+                </>
+              )}
+            </div>
+            <div>
+              <button className="slds-button slds-button_neutral" onClick={onClose}>
+                Close
+              </button>
+              <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={loading}>
+                <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Download
+              </button>
+            </div>
+          </Grid>
         }
         onClose={onClose}
       >
