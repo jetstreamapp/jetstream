@@ -119,7 +119,6 @@ export async function handleRequest<T = any>(config: AxiosRequestConfig, options
  */
 function requestInterceptor<T>(options: RequestOptions) {
   return async (config: InternalAxiosRequestConfig) => {
-    logger.info(`[HTTP][REQ][${config.method?.toUpperCase()}]`, config.url, { request: config });
     const { org, targetOrg, useCache, skipRequestCache, skipCacheIfOlderThan, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     // add request headers
     config.headers = config.headers || ({} as any);
@@ -184,6 +183,14 @@ function requestInterceptor<T>(options: RequestOptions) {
       }
     }
 
+    logger.info(`[HTTP][REQ][${config.method?.toUpperCase()}]`, config.url, {
+      request: {
+        headers: config.headers.toJSON(),
+        params: config.params,
+        data: config.data,
+      },
+    });
+
     return config;
   };
 }
@@ -226,9 +233,9 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
     const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     const cachedResponse = getHeader(response.headers, HTTP.HEADERS.X_CACHE_RESPONSE) === '1';
     if (cachedResponse) {
-      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
+      logger.debug(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
     } else {
-      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+      logger.debug(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
         clientRequestId: response.headers['x-client-request-id'],
         requestId: response.headers['x-request-id'],
         response: response.data,
