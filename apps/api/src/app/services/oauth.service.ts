@@ -48,7 +48,7 @@ export function salesforceOauthInit(
     login_hint: loginHint,
     nonce,
     prompt: 'login',
-    scope: 'api refresh_token',
+    scope: 'api web refresh_token',
     state,
   };
 
