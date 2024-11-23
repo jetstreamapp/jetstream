@@ -242,7 +242,7 @@ export function getFlowsQuery(sobjects: string[]) {
         left: {
           field: 'ManageableState',
           operator: 'IN',
-          value: ['unmanaged', 'installed'],
+          value: ['unmanaged', 'installedEditable', 'installed'],
           literalType: 'STRING',
         },
         operator: 'AND',

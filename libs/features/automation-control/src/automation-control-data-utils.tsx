@@ -331,7 +331,7 @@ export async function getFlowsMetadata(selectedOrg: SalesforceOrgUi, sobjects: s
     )
   )
     .flatMap(({ queryResults }) => queryResults.records)
-    .filter((record) => record.ManageableState === 'unmanaged' || record.IsTemplate);
+    .filter((record) => record.ManageableState === 'unmanaged' || record.ManageableState === 'installedEditable' || record.IsTemplate);
   return flowMetadataRecords;
 }
 
