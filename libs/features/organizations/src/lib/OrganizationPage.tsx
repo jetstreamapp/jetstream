@@ -171,7 +171,7 @@ export function Organizations() {
     (organization?: Maybe<JetstreamOrganizationWithOrgs>) => {
       setActiveOrganizationId(organization?.id);
       if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
-        setSelectedOrgId(organization.orgs[0].uniqueId);
+        setSelectedOrgId(organization.orgs[0]?.uniqueId);
       } else if (!organization && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
         const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
         setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
