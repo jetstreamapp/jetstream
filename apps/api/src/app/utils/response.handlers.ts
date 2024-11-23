@@ -5,6 +5,7 @@ import { Maybe } from '@jetstream/types';
 import { SalesforceOrg } from '@prisma/client';
 import { serialize } from 'cookie';
 import * as express from 'express';
+import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { Response } from '../types/types';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
@@ -83,6 +84,39 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   setCookieHeaders(res);
   res.status(status);
   return res.json({ data: content || {} });
+}
+
+/**
+ * Given a CSV parse stream, stream as JSON to the client
+ */
+export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Duplex) {
+  let isFirstChunk = true;
+
+  csvParseStream.on('data', (data) => {
+    data = JSON.stringify(data);
+    if (isFirstChunk) {
+      isFirstChunk = false;
+      data = `{"data":[${data}`;
+    } else {
+      data = `,${data}`;
+    }
+    res.write(data);
+  });
+
+  csvParseStream.on('finish', () => {
+    res.write(']}');
+    res.end();
+    res.log.info({ requestId: res.locals.requestId }, 'Finished streaming CSV');
+  });
+
+  csvParseStream.on('error', (err) => {
+    res.log.warn({ requestId: res.locals.requestId, ...getExceptionLog(err) }, 'Error streaming CSV.');
+    if (!res.headersSent) {
+      res.status(400).json({ error: true, message: 'Error streaming CSV' });
+    } else {
+      res.status(400).end();
+    }
+  });
 }
 
 export function blockBotHandler(req: express.Request, res: express.Response) {
