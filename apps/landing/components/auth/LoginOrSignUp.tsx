@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import { Fragment, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { AUTH_PATHS, ENVIRONMENT } from '../../utils/environment';
+import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import { PasswordSchema } from '../../utils/types';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
@@ -110,7 +110,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       return;
     }
 
-    if (responseData.data.redirect?.startsWith(AUTH_PATHS._root_path)) {
+    if (responseData.data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
       router.push(responseData.data.redirect);
       return;
     }
@@ -123,7 +123,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       <ErrorQueryParamErrorBanner />
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <Link href="/">
+          <Link href={ROUTES.HOME}>
             <img
               alt="Jetstream"
               src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"

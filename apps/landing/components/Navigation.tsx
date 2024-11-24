@@ -5,11 +5,12 @@ import classNames from 'classnames';
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { useUserProfile } from '../hooks/auth.hooks';
-import { AUTH_PATHS, ENVIRONMENT } from '../utils/environment';
+import { ENVIRONMENT, ROUTES } from '../utils/environment';
 
 const navigation = [
   { name: 'Features', href: '/#features' },
   { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
+  { name: 'Pricing', href: '/pricing' },
   { name: 'Privacy & Security', href: '/privacy' },
   { name: 'Blog', href: '/blog' },
 ];
@@ -28,7 +29,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
         <nav className="relative max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6" aria-label="Global">
           <div className="flex items-center flex-1">
             <div className="flex items-center justify-between w-full md:w-auto">
-              <Link href="/">
+              <Link href={ROUTES.HOME}>
                 <span className="sr-only">Jetstream</span>
                 <img
                   className="h-8 w-auto sm:h-10"
@@ -106,7 +107,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
               <>
                 {' '}
                 <Link
-                  href={AUTH_PATHS.login}
+                  href={ROUTES.AUTH.login}
                   className={classNames('text-base font-medium', {
                     'text-white hover:text-gray-300': inverse,
                     'text-gray-500 hover:text-gray-900': !inverse,
@@ -115,7 +116,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                   Log in
                 </Link>
                 <Link
-                  href={AUTH_PATHS.signup}
+                  href={ROUTES.AUTH.signup}
                   className={classNames('inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md', {
                     'text-white bg-gray-600 hover:bg-gray-700': inverse,
                     'bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
@@ -187,7 +188,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
               </div>
               <div className="mt-6 px-5">
                 <Link
-                  href={AUTH_PATHS.signup}
+                  href={ROUTES.AUTH.signup}
                   className="block text-center w-full py-3 px-4 rounded-md shadow bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700"
                 >
                   Sign up for free
@@ -196,7 +197,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
               <div className="mt-6 px-5">
                 <p className="text-center text-base font-medium text-gray-500">
                   Existing customer?{' '}
-                  <Link href={AUTH_PATHS.login} className="text-gray-900 hover:underline">
+                  <Link href={ROUTES.AUTH.login} className="text-gray-900 hover:underline">
                     Login
                   </Link>
                 </p>

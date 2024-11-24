@@ -16,7 +16,15 @@ import helmet from 'helmet';
 import { cpus } from 'os';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, authRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
+import {
+  apiRoutes,
+  authRoutes,
+  oauthRoutes,
+  platformEventRoutes,
+  staticAuthenticatedRoutes,
+  testRoutes,
+  webhookRoutes,
+} from './app/routes';
 import {
   addContextMiddleware,
   blockBotByUserAgentMiddleware,
@@ -131,10 +139,17 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             'api.amplitude.com',
             'api.cloudinary.com',
             'https://challenges.cloudflare.com',
+            'https://maps.googleapis.com',
+            'https://checkout.stripe.com',
+            'https://connect-js.stripe.com',
+            'https://js.stripe.com',
+            'https://api.stripe.com',
+            'https://*.js.stripe.com',
+            'https://hooks.stripe.com',
           ],
           baseUri: ["'self'"],
           blockAllMixedContent: [],
-          fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:', '*.gstatic.com'],
+          fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:', '*.gstatic.com', 'https://checkout.stripe.com'],
           frameAncestors: ["'self'", '*.google.com'],
           imgSrc: [
             "'self'",
@@ -151,6 +166,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             '*.gstatic.com',
             '*.salesforce.com',
             '*.wp.com',
+            'https://*.stripe.com',
           ],
           objectSrc: ["'none'"],
           scriptSrc: [
@@ -164,11 +180,16 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             '*.gstatic.com',
             '*.google-analytics.com',
             '*.googletagmanager.com',
+            'https://maps.googleapis.com',
             'https://challenges.cloudflare.com',
+            'https://checkout.stripe.com',
+            'https://connect-js.stripe.com',
+            'https://*.js.stripe.com',
+            'https://js.stripe.com',
           ],
           scriptSrcAttr: ["'none'"],
-          styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
-          upgradeInsecureRequests: [],
+          styleSrc: ["'self'", 'https:', "'unsafe-inline'", "'sha256-0hAheEzaMe6uXIKV4EehS9pu1am1lj/KnnzrOYqckXk='"],
+          upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
         },
       },
     })
@@ -254,6 +275,8 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.use('/platform-event', platformEventRoutes);
   }
 
+  app.use('/webhook', webhookRoutes);
+
   app.use(raw({ limit: '30mb', type: ['text/csv'] }));
   app.use(raw({ limit: '30mb', type: ['application/zip'] }));
   app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
@@ -282,6 +305,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
     res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
   });
+  app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
   app.use(express.static(join(__dirname, '../landing')));

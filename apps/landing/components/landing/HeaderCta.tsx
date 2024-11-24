@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { HeartIcon } from '@heroicons/react/solid';
 import Link from 'next/link';
+import { ROUTES } from '../../utils/environment';
 
 export const HeaderCta = () => (
   <div className="pt-10 bg-gray-900 sm:pt-16 lg:pt-8 lg:pb-14 lg:overflow-hidden pb-8">
@@ -23,7 +24,7 @@ export const HeaderCta = () => (
             </p>
             <div className="mt-6">
               <Link
-                href="/auth/signup"
+                href={ROUTES.AUTH.signup}
                 className="py-3 px-4 rounded-md shadow bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
               >
                 Sign up for a free account
@@ -35,7 +36,7 @@ export const HeaderCta = () => (
               </p>
               <>
                 <a
-                  href="https://github.com/sponsors/jetstreamapp"
+                  href={ROUTES.EXTERNAL.GITHUB_SPONSOR}
                   className="mt-6 inline-flex items-center py-3 px-4 rounded-md shadow bg-cyan-600 text-white font-medium hover:from-teal-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
                   target="_blank"
                   rel="noreferrer"

@@ -1,6 +1,6 @@
 import { AnalyticStat } from '@jetstream/types';
 import { GetStaticProps, InferGetStaticPropsType } from 'next';
-import LandingPage from '../components/new/LandingPage';
+import LandingPage from '../components/landing/LandingPage';
 import { fetchBlogPosts, getAnalyticSummary } from '../utils/data';
 
 export default function Page({ stats, omitBlogPosts }: InferGetStaticPropsType<typeof getStaticProps>) {

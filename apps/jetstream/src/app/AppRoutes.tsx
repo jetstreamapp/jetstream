@@ -77,7 +77,7 @@ const PlatformEventMonitor = lazy(() =>
 );
 
 const Feedback = lazy(() => import('./components/feedback/Feedback'));
-
+const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 export interface AppRoutesProps {
@@ -250,6 +250,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
       <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
       <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
+      <Route path={APP_ROUTES.BILLING.ROUTE} element={<Billing />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );

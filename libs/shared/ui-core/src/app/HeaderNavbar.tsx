@@ -31,6 +31,7 @@ function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<strin
   const menu: DropDownItem[] = [];
 
   menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile?.email, icon: { type: 'utility', icon: 'profile_alt' } });
+  menu.push({ id: 'billing', value: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
   menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
@@ -55,10 +56,13 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
   function handleUserMenuSelection(id: string) {
     switch (id) {
       case 'profile':
-        navigate('/profile');
+        navigate(APP_ROUTES.PROFILE.ROUTE);
+        break;
+      case 'billing':
+        navigate(APP_ROUTES.BILLING.ROUTE);
         break;
       case 'settings':
-        navigate('/settings');
+        navigate(APP_ROUTES.SETTINGS.ROUTE);
         break;
       case 'nav-user-logout':
         logout(applicationState.serverUrl);

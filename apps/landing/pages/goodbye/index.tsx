@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Layout from '../../components/layouts/Layout';
+import { ROUTES } from '../../utils/environment';
 
 const email = 'support@getjetstream.app';
 
@@ -24,7 +25,7 @@ export default function Page() {
             if you have any questions or have feedback on what we can do better.
           </p>
           <div className="mt-6">
-            <Link href="/" className="text-base font-medium text-cyan-600 hover:text-cyan-500">
+            <Link href={ROUTES.HOME} className="text-base font-medium text-cyan-600 hover:text-cyan-500">
               Go back home<span aria-hidden="true"> &rarr;</span>
             </Link>
           </div>

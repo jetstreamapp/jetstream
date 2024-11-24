@@ -3,6 +3,17 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
+export interface Subscription {
+  type: string;
+  status: string;
+  id: string;
+  userId: string;
+  customerId: string;
+  providerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Announcement {
   id: string;
   title: string;

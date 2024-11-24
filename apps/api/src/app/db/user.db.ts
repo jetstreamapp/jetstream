@@ -15,6 +15,17 @@ const userSelect: Prisma.UserSelect = {
       skipFrontdoorLogin: true,
     },
   },
+  subscriptions: {
+    where: { status: 'ACTIVE' },
+    take: 1,
+    select: {
+      id: true,
+      providerId: true,
+      customerId: true,
+      planId: true,
+      status: true,
+    },
+  },
   updatedAt: true,
   userId: true,
 };
@@ -54,6 +65,17 @@ const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPa
       updatedAt: true,
     },
   },
+  subscriptions: {
+    where: { status: 'ACTIVE' },
+    take: 1,
+    select: {
+      id: true,
+      providerId: true,
+      customerId: true,
+      planId: true,
+      status: true,
+    },
+  },
   createdAt: true,
   updatedAt: true,
 });
@@ -75,12 +97,12 @@ export async function findUserWithIdentitiesById(id: string) {
   });
 }
 
-export const findIdByUserId = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { userId }, select: { id: true } }).then(({ id }) => id);
+export const findById = (id: string) => {
+  return prisma.user.findFirstOrThrow({ where: { id }, select: userSelect });
 };
 
 export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then(({ id }) => id);
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
 };
 
 export async function updateUser(

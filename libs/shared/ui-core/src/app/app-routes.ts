@@ -17,7 +17,8 @@ type RouteKey =
   | 'PLATFORM_EVENT_MONITOR'
   | 'FEEDBACK_SUPPORT'
   | 'PROFILE'
-  | 'SETTINGS';
+  | 'SETTINGS'
+  | 'BILLING';
 
 interface RouteItem {
   ROUTE: string;
@@ -141,5 +142,10 @@ export const APP_ROUTES: RouteMap = {
     ROUTE: '/settings',
     TITLE: 'User Settings',
     DESCRIPTION: 'Update your user settings',
+  },
+  BILLING: {
+    ROUTE: '/settings/billing',
+    TITLE: 'Billing',
+    DESCRIPTION: 'Manage your Jetstream subscription',
   },
 } as const;

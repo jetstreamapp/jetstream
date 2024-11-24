@@ -1,6 +1,5 @@
 import { format, parseISO } from 'date-fns';
 import Head from 'next/head';
-import React from 'react';
 import { renderBlogPostRichText } from '../../../components/blog-post-renderers';
 import Footer from '../../../components/Footer';
 import Navigation from '../../../components/Navigation';
@@ -11,7 +10,7 @@ interface PostProps {
   post: BlogPost;
 }
 
-function Post({ post }: PostProps) {
+function Page({ post }: PostProps) {
   // TODO: helmet etc..
   return (
     <div>
@@ -67,6 +66,14 @@ function Post({ post }: PostProps) {
   );
 }
 
+Page.getLayout = function getLayout(page) {
+  return (
+    // <Layout title="Blog | Jetstream" isInverse navigationProps={{ omitLinks: ['/blog'] }}>
+    page
+    // </Layout>
+  );
+};
+
 export const getStaticPaths = async () => {
   const blogPostsWithRelated = await fetchBlogPosts();
   return {
@@ -85,4 +92,4 @@ export async function getStaticProps({ params }: { params: { slug: string } }) {
   return { props: { post: blogPostsWithRelated[params.slug] } };
 }
 
-export default Post;
+export default Page;

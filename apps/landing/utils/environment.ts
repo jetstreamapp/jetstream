@@ -4,21 +4,37 @@ export const ENVIRONMENT = {
   CAPTCHA_KEY: process.env.NEXT_PUBLIC_CAPTCHA_KEY || null,
 };
 
-export const AUTH_PATHS = {
-  _root_path: '/auth/',
-  login: '/auth/login/',
-  signup: '/auth/signup/',
-  resetPassword: '/auth/password-reset',
-  resetPasswordVerify: '/auth/password-reset/verify',
-  verify: `/auth/verify`,
-  api_csrf: `/api/auth/csrf`,
-  api_logout: `/api/auth/logout`,
-  api_providers: `/api/auth/providers`,
-  api_session: `/api/auth/session`,
-  api_verify: `/api/auth/verify`,
-  api_verify_resend: `/api/auth/verify/resend`,
-  api_reset_password_init: `/api/auth/password/reset/init`,
-  api_reset_password_verify: `/api/auth/password/reset/verify`,
+export const ROUTES = {
+  HOME: '/',
+  ABOUT: '/about',
+  BLOG: '/blog',
+  PRIVACY: '/privacy',
+  TERMS_OF_SERVICE: '/terms-of-service',
+  SUB_PROCESSORS: '/subprocessors',
+  EXTERNAL: {
+    DOCS: 'https://docs.getjetstream.app',
+    STATUS: 'https://status.getjetstream.app',
+    SUPPORT_EMAIL: 'mailto:support@getjetstream.app',
+    DISCORD: 'https://discord.gg/sfxd',
+    GITHUB_ISSUE: 'https://github.com/jetstreamapp/jetstream/issues',
+    GITHUB_SPONSOR: 'https://github.com/sponsors/jetstreamapp',
+  },
+  AUTH: {
+    _root_path: '/auth/',
+    login: '/auth/login/',
+    signup: '/auth/signup/',
+    resetPassword: '/auth/password-reset',
+    resetPasswordVerify: '/auth/password-reset/verify',
+    verify: `/auth/verify`,
+    api_csrf: `/api/auth/csrf`,
+    api_logout: `/api/auth/logout`,
+    api_providers: `/api/auth/providers`,
+    api_session: `/api/auth/session`,
+    api_verify: `/api/auth/verify`,
+    api_verify_resend: `/api/auth/verify/resend`,
+    api_reset_password_init: `/api/auth/password/reset/init`,
+    api_reset_password_verify: `/api/auth/password/reset/verify`,
+  },
 };
 
 export const SIGN_IN_ERRORS = {

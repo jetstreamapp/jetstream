@@ -2,6 +2,7 @@ import { ENV } from '@jetstream/api-config';
 import express from 'express';
 import Router from 'express-promise-router';
 import { getAnnouncements } from '../announcements';
+import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as imageController } from '../controllers/image.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -54,6 +55,15 @@ routes.get('/me/profile/2fa-otp', userController.getOtpQrCode.controllerFn());
 routes.post('/me/profile/2fa-otp', userController.saveOtpAuthFactor.controllerFn());
 routes.post('/me/profile/2fa/:type/:action', userController.toggleEnableDisableAuthFactor.controllerFn());
 routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controllerFn());
+
+/**
+ * ************************************
+ * Billing Routes
+ * ************************************
+ */
+routes.post('/billing/checkout-session', billingController.createCheckoutSession.controllerFn());
+routes.get('/billing/checkout-session/complete', billingController.processCheckoutSuccess.controllerFn());
+routes.get('/billing/subscriptions', billingController.getSubscriptions.controllerFn());
 
 /**
  * ************************************
