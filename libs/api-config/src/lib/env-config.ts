@@ -110,6 +110,7 @@ const envSchema = z.object({
   AUTH0_DOMAIN: z.string().nullish(),
 
   // JETSTREAM
+  JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE: z.union([z.string(), z.boolean()]).optional().default(true).transform(ensureBoolean),
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
