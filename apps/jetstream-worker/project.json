@@ -50,5 +50,5 @@
       }
     }
   },
-  "tags": []
+  "tags": ["scope:server"]
 }

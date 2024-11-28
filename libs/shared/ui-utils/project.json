@@ -16,5 +16,5 @@
       "outputs": ["{workspaceRoot}/coverage/libs/shared/ui-utils"]
     }
   },
-  "tags": ["scope:shared", "scope:allow-worker-import"]
+  "tags": ["scope:shared", "scope:browser", "scope:allow-worker-import"]
 }

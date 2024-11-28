@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream-web-extension/src",
   "projectType": "application",
-  "tags": [],
+  "tags": ["scope:browser"],
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",

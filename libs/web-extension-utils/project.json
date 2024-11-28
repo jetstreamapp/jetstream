@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/web-extension-utils/src",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:browser"],
   "targets": {
     "test": {
       "executor": "@nx/jest:jest",
