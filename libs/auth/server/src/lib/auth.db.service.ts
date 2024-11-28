@@ -627,7 +627,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
       authFactors: {
         create: {
           type: '2fa-email',
-          enabled: true,
+          enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
         },
       },
     },
@@ -740,7 +740,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
         authFactors: {
           create: {
             type: '2fa-email',
-            enabled: true,
+            enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
           },
         },
       },
