@@ -18,7 +18,6 @@ import NotificationsRequestModal from './components/core/NotificationsRequestMod
 
 export const App = () => {
   const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();
-  const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set(['all']));
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   return (
@@ -32,17 +31,17 @@ export const App = () => {
                 <AppStateResetOnOrgChange />
                 <AppToast />
                 <LogInitializer />
-                <NotificationsRequestModal featureFlags={featureFlags} loadDelay={10000} />
+                <NotificationsRequestModal loadDelay={10000} />
                 <DownloadFileStream />
                 <div>
                   <div data-testid="header">
-                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                    <HeaderNavbar userProfile={userProfile} />
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                     <AnnouncementAlerts announcements={announcements} />
                     <Suspense fallback={<AppLoading />}>
                       <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                        <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
+                        <AppRoutes />
                       </ErrorBoundary>
                     </Suspense>
                   </div>

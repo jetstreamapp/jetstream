@@ -1,13 +1,10 @@
-import { ANALYTICS_KEYS, FEATURE_FLAGS } from '@jetstream/shared/constants';
-import { hasFeatureFlagAccess } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DockedComposer, DockedComposerRef } from '@jetstream/ui';
-import { useUserPreferenceState } from '@jetstream/ui-core';
+import { useAmplitude, useUserPreferenceState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAmplitude } from '@jetstream/ui-core';
 import NotificationExampleImage from './jetstream-sample-notification.png';
 
 export interface NotificationsRequestModalProps {
-  featureFlags: Set<string>;
   loadDelay?: number;
   /** Allow permission modal to be opened even if initially denied */
   userInitiated?: boolean;
@@ -20,7 +17,6 @@ export interface NotificationsRequestModalProps {
  * to choose the filename upfront, then we can use it later
  */
 export const NotificationsRequestModal: FunctionComponent<NotificationsRequestModalProps> = ({
-  featureFlags,
   loadDelay = 0,
   userInitiated = false,
   onClose,
@@ -34,14 +30,12 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   useEffect(() => {
     if (window.Notification) {
       if (userInitiated || (!userPreferences.deniedNotifications && window.Notification.permission === 'default')) {
-        if (hasFeatureFlagAccess(featureFlags, FEATURE_FLAGS.NOTIFICATIONS)) {
-          setTimeout(() => setIsDismissed(false), loadDelay);
-          trackEvent(ANALYTICS_KEYS.notifications_modal_opened, { userInitiated, currentPermission: window.Notification.permission });
-        }
+        setTimeout(() => setIsDismissed(false), loadDelay);
+        trackEvent(ANALYTICS_KEYS.notifications_modal_opened, { userInitiated, currentPermission: window.Notification.permission });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadDelay, featureFlags]);
+  }, [loadDelay]);
 
   async function handlePermissionRequest(permission: NotificationPermission) {
     if (composerRef.current) {

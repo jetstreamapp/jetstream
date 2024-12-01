@@ -1,4 +1,5 @@
 import type { Query } from '@jetstreamapp/soql-parser-js';
+import { z } from 'zod';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
@@ -109,18 +110,32 @@ export interface FeatureFlag {
   isDefault: boolean;
 }
 
-export interface UserProfileUi {
-  id: string;
-  /** @deprecated */
-  userId: string;
-  email: string;
-  name: string;
-  emailVerified: boolean;
-  picture?: Maybe<string>;
-  preferences: {
-    skipFrontdoorLogin: boolean;
-  };
-}
+// This is used for initializing new users, defaults here need to be the new user defaults
+export const FeatureFlagsSchema = z.object({
+  enableSync: z
+    .union([z.string(), z.boolean()])
+    .optional()
+    .default(false)
+    .transform((val) => val === 'true' || val === true),
+});
+export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
+
+export const UserProfileSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  email: z.string(),
+  name: z.string(),
+  emailVerified: z.boolean(),
+  picture: z.string().nullish(),
+  preferences: z
+    .object({
+      skipFrontdoorLogin: z.boolean(),
+      featureFlags: FeatureFlagsSchema.optional().default({ enableSync: false }),
+    })
+    .optional()
+    .default({ skipFrontdoorLogin: false }),
+});
+export type UserProfileUi = z.infer<typeof UserProfileSchema>;
 
 export interface SalesforceUserInfo {
   sub: string;

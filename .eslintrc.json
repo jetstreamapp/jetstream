@@ -14,7 +14,7 @@
         "depConstraints": [
           {
             "sourceTag": "scope:server",
-            "onlyDependOnLibsWithTags": ["scope:server", "scope:type-only", "scope:any"]
+            "onlyDependOnLibsWithTags": ["scope:server", "scope:type-only", "scope:shared", "scope:any"]
           },
           {
             "sourceTag": "scope:worker",
@@ -23,6 +23,10 @@
           {
             "sourceTag": "scope:allow-worker-import",
             "onlyDependOnLibsWithTags": ["scope:allow-worker-import", "scope:type-only", "scope:any"]
+          },
+          {
+            "sourceTag": "scope:browser",
+            "onlyDependOnLibsWithTags": ["scope:browser", "scope:type-only", "scope:shared", "scope:any"]
           },
           {
             "sourceTag": "*",

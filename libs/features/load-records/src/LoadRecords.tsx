@@ -28,7 +28,7 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import startCase from 'lodash/startCase';
-import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
@@ -52,11 +52,7 @@ const steps: Step[] = [
 const enabledSteps: Step[] = steps.filter((step) => step.enabled);
 const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 
-export interface LoadRecordsProps {
-  featureFlags: Set<string>;
-}
-
-export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags }) => {
+export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
@@ -456,7 +452,6 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
             {currentStep.name === 'sobjectAndFile' && (
               <LoadRecordsSelectObjectAndFile
                 googleApiConfig={googleApiConfig}
-                featureFlags={featureFlags}
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}

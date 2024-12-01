@@ -357,7 +357,6 @@ try {
         update: {},
         where: { id: user.id },
       });
-      logger.info('Example user created');
     }
   })();
 } catch (ex) {

@@ -7,29 +7,30 @@ import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
   Announcement,
   ApplicationCookie,
+  FeatureFlags,
   JetstreamOrganization,
   JetstreamOrganizationWithOrgs,
   Maybe,
   SalesforceOrgUi,
   SalesforceOrgUiType,
   UserProfilePreferences,
+  UserProfileSchema,
   UserProfileUi,
 } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, DefaultValue, selector, useRecoilValue, useSetRecoilState } from 'recoil';
+import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
-const DEFAULT_PROFILE = {
+const DEFAULT_PROFILE = UserProfileSchema.parse({
   id: 'unknown',
   userId: 'unknown',
   email: 'unknown',
   name: 'unknown',
   emailVerified: true,
   picture: null,
-  preferences: {
-    skipFrontdoorLogin: true,
-  },
-} as UserProfileUi;
+  preferences: { skipFrontdoorLogin: true },
+  featureFlags: { enableSync: true },
+});
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
@@ -42,6 +43,7 @@ export const STORAGE_KEYS = {
  */
 function getAppCookie(): ApplicationCookie {
   let appState = parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
+  // FIXME: replace with zod schema parsing
   appState = appState
     ? { ...appState }
     : {
@@ -52,7 +54,7 @@ function getAppCookie(): ApplicationCookie {
         google_apiKey: 'AIzaSyDaqv3SafGq6NmVVwUWqENrf2iEFiDSMoA',
         google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
       };
-  appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
+  appState.serverUrl = appState.serverUrl || 'https://getjetstream.app';
   appState.environment = appState.environment || 'production';
   appState.defaultApiVersion = appState.defaultApiVersion || 'v60.0';
   appState.google_appId = appState.google_appId || '1071580433137';
@@ -145,6 +147,7 @@ async function fetchAppVersion() {
 async function fetchUserProfile(): Promise<UserProfileUi> {
   // FIXME: this is a temporary fix to get the extension working, will want to fetch from server
   const userProfile = isChromeExtension() ? DEFAULT_PROFILE : await getUserProfile();
+  // validate flags
   return userProfile;
 }
 
@@ -171,6 +174,19 @@ export const appVersionState = atom<{ version: string; announcements?: Announcem
 export const userProfileState = atom<UserProfileUi>({
   key: 'userState',
   default: fetchUserProfile(),
+});
+
+export const featureFlagsSelector = selector<FeatureFlags>({
+  key: 'featureFlagsSelector',
+  get: ({ get }) => get(userProfileState)?.preferences?.featureFlags,
+});
+
+export const hasFeatureFlagAccess = selectorFamily<boolean, keyof FeatureFlags>({
+  key: 'hasFeatureFlagAccess',
+  get:
+    (key) =>
+    ({ get }) =>
+      !!get(featureFlagsSelector)?.[key],
 });
 
 export const jetstreamOrganizationsState = atom<JetstreamOrganization[]>({

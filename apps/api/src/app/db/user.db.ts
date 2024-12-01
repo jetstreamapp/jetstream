@@ -1,5 +1,6 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
+import { FeatureFlags, UserProfileSchema, UserProfileUi } from '@jetstream/types';
 import { Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
@@ -13,6 +14,7 @@ const userSelect: Prisma.UserSelect = {
   preferences: {
     select: {
       skipFrontdoorLogin: true,
+      featureFlags: true,
     },
   },
   updatedAt: true,
@@ -65,7 +67,12 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
   email: true,
   emailVerified: true,
   picture: true,
-  preferences: true,
+  preferences: {
+    select: {
+      skipFrontdoorLogin: true,
+      featureFlags: true,
+    },
+  },
 });
 
 export async function findUserWithIdentitiesById(id: string) {
@@ -79,8 +86,25 @@ export const findIdByUserId = ({ userId }: { userId: string }) => {
   return prisma.user.findFirstOrThrow({ where: { userId }, select: { id: true } }).then(({ id }) => id);
 };
 
-export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then(({ id }) => id);
+export const findIdByUserIdUserFacing = async ({ userId }: { userId: string }): Promise<UserProfileUi> => {
+  const user = await prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
+  return UserProfileSchema.parse(user);
+};
+
+export const hasFeatureFlagAccess = async ({ userId, flagName }: { userId: string; flagName: keyof FeatureFlags }): Promise<boolean> => {
+  return prisma.userPreference
+    .findUnique({
+      select: { id: true },
+      where: {
+        userId,
+        featureFlags: {
+          path: [flagName],
+          equals: true,
+        },
+      },
+    })
+    .then((result) => !!result?.id)
+    .catch(() => false);
 };
 
 export async function updateUser(
