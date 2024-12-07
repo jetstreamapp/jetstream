@@ -56,29 +56,9 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi, sk
 
 // HEADER RENDERERS
 
-/**
- * SELECT ALL CHECKBOX HEADER
- */
-export function SelectHeaderRenderer<T>(props: RenderHeaderCellProps<T>) {
-  const { column } = props;
-  const [isRowSelected, onRowSelectionChange] = useRowSelection();
-
-  return (
-    <Checkbox
-      id={`checkbox-${column.name}_header`} // TODO: need way to get row id
-      label="Select all"
-      hideLabel
-      checked={isRowSelected}
-      onChange={(checked) => onRowSelectionChange({ type: 'HEADER', checked })}
-      // WAITING ON: https://github.com/adazzle/react-data-grid/issues/3058
-      // indeterminate={props.row.getIsSomeSelected()}
-    />
-  );
-}
-
 export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
   const { column, groupKey, row, childRows } = props;
-  const [isRowSelected, onRowSelectionChange] = useRowSelection();
+  const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
 
   return (
     <DataTableSelectedContext.Consumer>
@@ -88,8 +68,9 @@ export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
           label="Select all"
           hideLabel
           checked={isRowSelected}
+          disabled={isRowSelectionDisabled}
           indeterminate={selectedRowIds.size > 0 && childRows.some((childRow) => selectedRowIds.has((getRowKey || getRowId)(childRow)))}
-          onChange={(checked) => onRowSelectionChange({ type: 'ROW', row: row, checked, isShiftClick: false })}
+          onChange={(checked) => onRowSelectionChange({ row: row, checked, isShiftClick: false })}
         />
       )}
     </DataTableSelectedContext.Consumer>
@@ -511,7 +492,7 @@ export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
 
 export function SelectFormatter<T>(props: RenderCellProps<T>) {
   const { column, row } = props;
-  const [isRowSelected, onRowSelectionChange] = useRowSelection();
+  const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
 
   return (
     <Checkbox
@@ -519,7 +500,8 @@ export function SelectFormatter<T>(props: RenderCellProps<T>) {
       label="Select row"
       hideLabel
       checked={isRowSelected}
-      onChange={(checked) => onRowSelectionChange({ type: 'ROW', row, checked, isShiftClick: false })}
+      disabled={isRowSelectionDisabled}
+      onChange={(checked) => onRowSelectionChange({ row, checked, isShiftClick: false })}
     />
   );
 }

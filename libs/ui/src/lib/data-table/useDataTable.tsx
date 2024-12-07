@@ -2,28 +2,26 @@ import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderValues } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isArray from 'lodash/isArray';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import uniqueId from 'lodash/uniqueId';
-import { useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import {
+  CellClickArgs,
   CellKeyDownArgs,
   CellKeyboardEvent,
-  Row as GridRow,
-  RenderRowProps,
+  CellMouseEvent,
   RenderSortStatusProps,
   Renderers,
   SortColumn,
 } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
-import ContextMenu, { ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
 import { configIdLinkRenderer } from './DataTableRenderers';
-import { DataTableGenericContext } from './data-table-context';
 import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, DataTableRef, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
@@ -72,33 +70,19 @@ export function useDataTable<T = RowWithKey>({
   const [columns, setColumns] = useState(_columns || []);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>(() => initialSortColumns || []);
   const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
-  const [renderers, setRenderers] = useState<Renderers<T, unknown>>({});
+  const [renderers] = useState<Renderers<T, unknown>>(() => ({ renderSortStatus }));
   const [columnsOrder, setColumnsOrder] = useState((): readonly number[] => columns.map((_, index) => index));
+  const [contextMenuProps, setContextMenuProps] = useState<{
+    rowIdx: number;
+    column: ColumnWithFilter<any, unknown>;
+    top: number;
+    left: number;
+    element: HTMLElement;
+  } | null>(null);
 
   const reorderedColumns = useMemo(() => {
     return columnsOrder.map((index) => columns[index]);
   }, [columns, columnsOrder]);
-
-  useEffect(() => {
-    if (contextMenuItems && contextMenuAction) {
-      setRenderers({
-        renderSortStatus,
-        renderRow: (key: React.Key, props: RenderRowProps<any>) => {
-          return (
-            <ContextMenuRenderer
-              key={key}
-              containerId={gridId}
-              props={props}
-              contextMenuItems={contextMenuItems}
-              contextMenuAction={contextMenuAction}
-            />
-          );
-        },
-      });
-    } else {
-      setRenderers({ renderSortStatus });
-    }
-  }, [contextMenuAction, contextMenuItems, gridId]);
 
   const [{ columnMap, filters, filterSetValues }, dispatch] = useReducer(reducer, {
     hasFilters: false,
@@ -242,6 +226,28 @@ export function useDataTable<T = RowWithKey>({
     }
   }
 
+  const handleCellContextMenu = useCallback(
+    ({ row, column }: CellClickArgs<T, unknown>, event: CellMouseEvent) => {
+      event.preventGridDefault();
+      // Do not show the default context menu
+      event.preventDefault();
+      setContextMenuProps(null);
+      // the second menu closes upon opening - ensure open happens in next render
+      setTimeout(() => {
+        setContextMenuProps({
+          rowIdx: filteredRows.indexOf(row as any),
+          column: column as any,
+          top: event.clientY,
+          left: event.clientX,
+          element: event.currentTarget,
+        });
+      });
+    },
+    [filteredRows]
+  );
+
+  const handleCloseContextMenu = useCallback(() => setContextMenuProps(null), []);
+
   // NOTE: this is not used anywhere, so we may consider removing it.
   useImperativeHandle<unknown, DataTableRef<any>>(
     ref,
@@ -275,10 +281,13 @@ export function useDataTable<T = RowWithKey>({
     reorderedColumns,
     filterSetValues,
     filteredRows,
+    contextMenuProps,
     setSortColumns,
     updateFilter,
     handleReorderColumns,
     handleCellKeydown,
+    handleCellContextMenu: contextMenuItems && contextMenuAction ? handleCellContextMenu : undefined,
+    handleCloseContextMenu: handleCloseContextMenu,
   };
 }
 
@@ -294,37 +303,6 @@ function renderSortStatus({ sortDirection, priority }: RenderSortStatusProps) {
       <span>{priority}</span>
     </>
   ) : null;
-}
-
-interface ContextMenuRendererProps {
-  containerId?: string;
-  props: RenderRowProps<any>;
-  contextMenuItems: ContextMenuItem[];
-  contextMenuAction: (item: ContextMenuItem, data: ContextMenuActionData<unknown>) => void;
-}
-
-function ContextMenuRenderer({ containerId, props, contextMenuItems, contextMenuAction }: ContextMenuRendererProps) {
-  const { columns, rows } = useContext(DataTableGenericContext);
-  return (
-    <ContextMenu
-      containerId={containerId}
-      menu={contextMenuItems}
-      onItemSelected={(item) => {
-        if (!props.selectedCellIdx) {
-          return;
-        }
-        contextMenuAction(item, {
-          row: props.row,
-          rowIdx: props.rowIdx,
-          rows,
-          column: columns[props.selectedCellIdx],
-          columns,
-        });
-      }}
-    >
-      <GridRow data-id={containerId} {...props} />
-    </ContextMenu>
-  );
 }
 
 interface State<T> {
