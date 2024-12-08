@@ -140,7 +140,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
                   row: filteredRows[contextMenuProps.rowIdx] as T,
                   rowIdx: contextMenuProps.rowIdx,
                   rows: filteredRows as T[],
-                  column: columns[contextMenuProps.rowIdx],
+                  column: contextMenuProps.column,
                   columns,
                 });
                 handleCloseContextMenu();
