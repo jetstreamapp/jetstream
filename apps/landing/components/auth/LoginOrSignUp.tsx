@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Providers } from '@jetstream/auth/types';
-import { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Fragment, useRef, useState } from 'react';
@@ -54,7 +53,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const router = useRouter();
   const [showPasswordActive, setShowPasswordActive] = useState(false);
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
-  const captchaRef = useRef<TurnstileInstance>(null);
+  const captchaRef = useRef<{ reset: () => void }>(null);
 
   const {
     register,
@@ -269,7 +268,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               formError={errors?.captchaToken?.message}
               action={action}
               onChange={(token) => setValue('captchaToken', token)}
-              onFinished={() => setFinishedCaptcha(true)}
+              onStateChange={setFinishedCaptcha}
             />
 
             <div>

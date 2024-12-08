@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
-import { TurnstileInstance } from '@marsidev/react-turnstile';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Fragment, useRef, useState } from 'react';
@@ -30,7 +29,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const [error, setError] = useState<string>();
-  const captchaRef = useRef<TurnstileInstance>(null);
+  const captchaRef = useRef<{ reset: () => void }>(null);
 
   const {
     register,
@@ -138,7 +137,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
                 formError={errors?.captchaToken?.message}
                 action="password-reset-init"
                 onChange={(token) => setValue('captchaToken', token)}
-                onFinished={() => setFinishedCaptcha(true)}
+                onStateChange={setFinishedCaptcha}
               />
 
               <div>
