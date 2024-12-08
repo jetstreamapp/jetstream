@@ -1,7 +1,7 @@
 {
   "root": true,
   "ignorePatterns": ["**/*"],
-  "plugins": ["@nx/eslint-plugin"],
+  "plugins": ["@nx/eslint-plugin", "eslint-plugin-react-compiler"],
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/eslint-recommended", "plugin:@typescript-eslint/recommended", "prettier"],
   "rules": {
     "@typescript-eslint/explicit-member-accessibility": "off",
@@ -43,6 +43,7 @@
     {
       "files": ["*.tsx"],
       "rules": {
+        "react-compiler/react-compiler": "warn",
         "@typescript-eslint/no-explicit-any": "warn",
         "@typescript-eslint/no-unused-vars": "warn"
       }

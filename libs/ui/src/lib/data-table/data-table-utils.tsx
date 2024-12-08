@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { ensureBoolean, getIdFromRecordUrl, pluralizeFromNumber } from '@jetstream/shared/utils';
-import { Field, Maybe, QueryResults, QueryResultsColumn } from '@jetstream/types';
+import { ContextMenuItem, Field, Maybe, QueryResults, QueryResultsColumn } from '@jetstream/types';
 import { FieldSubquery, getField, getFlattenedFields, isFieldSubquery } from '@jetstreamapp/soql-parser-js';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
@@ -18,7 +18,6 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
 import { SelectColumn, SELECT_COLUMN_KEY as _SELECT_COLUMN_KEY } from 'react-data-grid';
-import { ContextMenuItem } from '../popover/ContextMenu';
 import {
   DataTableEditorBoolean,
   DataTableEditorDate,
@@ -34,8 +33,6 @@ import {
   GenericRenderer,
   HeaderFilter,
   IdLinkRenderer,
-  SelectFormatter,
-  SelectHeaderRenderer,
   TextOrIdLinkRenderer,
 } from './DataTableRenderers';
 import { SubqueryRenderer } from './DataTableSubqueryRenderer';
@@ -186,8 +183,6 @@ export function getColumnDefinitions(
       ...SelectColumn,
       key: SELECT_COLUMN_KEY,
       resizable: false,
-      renderCell: SelectFormatter,
-      renderHeaderCell: SelectHeaderRenderer,
     });
     if (includeRecordActions) {
       parentColumns.unshift({
@@ -747,15 +742,12 @@ export function getSearchTextByRow<T>(rows: T[], columns: ColumnWithFilter<T>[],
 }
 
 export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
-  { label: 'Copy cell to clipboard', value: 'COPY_CELL', divider: true },
-
+  { label: 'Copy cell to clipboard', value: 'COPY_CELL', trailingDivider: true },
   { label: 'Copy row to clipboard (Excel)', value: 'COPY_ROW_EXCEL' },
-  { label: 'Copy row to clipboard (JSON)', value: 'COPY_ROW_JSON', divider: true },
-
+  { label: 'Copy row to clipboard (JSON)', value: 'COPY_ROW_JSON', trailingDivider: true },
   { label: 'Copy column to clipboard (Excel)', value: 'COPY_COL' },
   { label: 'Copy column to clipboard (JSON)', value: 'COPY_COL_JSON' },
-  { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', divider: true },
-
+  { label: 'Copy column to clipboard without header', value: 'COPY_COL_NO_HEADER', trailingDivider: true },
   { label: 'Copy table to clipboard (Excel)', value: 'COPY_TABLE' },
   { label: 'Copy table to clipboard (JSON)', value: 'COPY_TABLE_JSON' },
 ];

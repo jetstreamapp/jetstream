@@ -380,6 +380,21 @@ export interface DropDownItem<T = any> {
   metadata?: T;
 }
 
+export interface ContextMenuItem<T = any> {
+  subheader?: string;
+  label: string | ReactNode;
+  value: T;
+  icon?: {
+    type: string;
+    icon: string;
+    description?: string;
+  }; // FIXME: unable to import cross module boundaries
+  trailingDivider?: boolean;
+  disabled?: boolean;
+  title?: string;
+  metadata?: T;
+}
+
 export interface QueryFieldHeader {
   label: string;
   accessor: string;

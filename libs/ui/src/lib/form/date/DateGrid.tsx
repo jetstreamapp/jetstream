@@ -110,6 +110,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
   onPrevYear,
   onNextYear,
 }) => {
+  const lastFocusedElement = useRef<HTMLElement>();
   const [dateGrid, setDateGrid] = useState<DateGridDate[][]>([]);
   const elRefs = useRef<RefObject<HTMLTableDataCellElement>[][]>([]);
 
@@ -201,6 +202,14 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
     setDateGrid(grid);
   }, [selectedDate, currMonth, currYear, minAvailableDate, maxAvailableDate, minYear, maxYear]);
 
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    // When editing a table cell, something was hijacking the keydown event
+    if (isEnterOrSpace(event)) {
+      event.stopPropagation();
+    }
+    lastFocusedElement.current = document.activeElement as HTMLElement;
+  }
+
   /**
    * Handle keyboard navigation
    * Esc = close
@@ -214,6 +223,10 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
   function handleKeyUp(day: DateGridDate, weekIdx: number, dayIdx: number, event: KeyboardEvent<HTMLTableDataCellElement>) {
     event.preventDefault();
     event.stopPropagation();
+    // keydown happened elsewhere, so ignore keypress events since the user would not intend enter to submit prior to grid being visible
+    if (!lastFocusedElement.current) {
+      return;
+    }
     const currentRefs = elRefs.current;
     let targetWeekIdx;
     let targetDayIdx;
@@ -342,6 +355,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
                   aria-disabled={day.readOnly}
                   tabIndex={day.readOnly ? undefined : day.label === 1 && day.isCurrMonth ? 0 : -1}
                   onClick={() => !day.readOnly && onSelected(day.value)}
+                  onKeyDown={handleKeyDown}
                   onKeyUp={(event) => handleKeyUp(day, i, k, event)}
                 >
                   <span className="slds-day">{day.label}</span>
