@@ -134,7 +134,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
                   row: filteredRows[contextMenuProps.rowIdx] as T,
                   rowIdx: contextMenuProps.rowIdx,
                   rows: filteredRows as T[],
-                  column: columns[contextMenuProps.rowIdx],
+                  column: contextMenuProps.column,
                   columns,
                 });
                 handleCloseContextMenu();
