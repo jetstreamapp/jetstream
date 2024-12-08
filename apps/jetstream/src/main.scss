@@ -1,22 +1,13 @@
 @import '@salesforce-ux/design-system/scss/_design-tokens';
 
+// Make react data grid checkbox look sort of like SLDS checkbox
 @layer rdg.rdg-checkbox-input {
   .rdg-checkbox-input {
-    inline-size: 14px; /* Override the width */
-    block-size: 14px; /* Override the height */
-    // background-color: #0176d3; /* Example: add a custom background */
-    // accent-color: white;
+    inline-size: 14px;
+    block-size: 14px;
+    accent-color: #0176d3;
   }
 }
-
-// TODO: play around with this as we can potentially figure out how to style the checkbox
-
-// .rdg .rdg-checkbox-input {
-//   // inline-size: 25px !important;
-//   // block-size: 25px !important;
-//   background-color: white !important; /* Ensure it overrides */
-//   accent-color: #0176d3 !important; /* Ensure it overrides */
-// }
 
 html {
   background-color: rgb(17, 24, 39);
