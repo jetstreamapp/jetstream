@@ -8,6 +8,7 @@ import {
   isArrowUpKey,
   isEnterKey,
   isEscapeKey,
+  isSpaceKey,
   menuItemSelectScroll,
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
@@ -87,8 +88,11 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
   }, [focusedItem, items, selectedItem]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
-    event.preventDefault();
-    event.stopPropagation();
+    if (isEscapeKey(event) || isArrowUpKey(event) || isArrowDownKey(event) || isEnterKey(event) || isSpaceKey(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     let newFocusedItem;
 
     if (isEscapeKey(event)) {
@@ -108,7 +112,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
       } else {
         newFocusedItem = focusedItem + 1;
       }
-    } else if (isEnterKey(event) && isNumber(focusedItem)) {
+    } else if ((isEnterKey(event) || isSpaceKey(event)) && isNumber(focusedItem)) {
       const item = items[focusedItem];
       if (!item.disabled) {
         setSelectedItem(item);
