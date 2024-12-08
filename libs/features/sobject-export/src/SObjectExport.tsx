@@ -28,18 +28,25 @@ import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { ExportHeaderOption, ExportOptions, ExportWorksheetLayout, SavedExportOptions } from './sobject-export-types';
-import { getAttributes, getSobjectMetadata, prepareExport } from './sobject-export-utils';
+import {
+  ExportHeaderOption,
+  ExportOptions,
+  ExportWorksheetLayout,
+  SavedExportOptions,
+  SobjectExportFieldName,
+} from './sobject-export-types';
+import { getAttributes, getChildRelationshipNames, getSobjectMetadata, prepareExport } from './sobject-export-utils';
 
 const HEIGHT_BUFFER = 170;
-const FIELD_ATTRIBUTES: ListItem[] = getAttributes().map(({ label, name, description }) => ({
+const FIELD_ATTRIBUTES: ListItem<SobjectExportFieldName>[] = getAttributes().map(({ label, name, description, tertiaryLabel }) => ({
   id: name,
   label: `${label} (${name})`,
   value: name,
   secondaryLabel: description,
+  tertiaryLabel,
 }));
 
-const DEFAULT_SELECTION = [
+const DEFAULT_SELECTION: SobjectExportFieldName[] = [
   'calculatedFormula',
   'createable',
   'custom',
@@ -81,7 +88,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
 
   const [sobjects, setSobjects] = useState<Maybe<DescribeGlobalSObjectResult[]>>();
   const [selectedSObjects, setSelectedSObjects] = useState<string[]>([]);
-  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<SobjectExportFieldName[]>([]);
 
   const [exportDataModalOpen, setExportDataModalOpen] = useState<boolean>(false);
   const [exportDataModalData, setExportDataModalData] = useState<Record<string, any[]>>({});
@@ -108,7 +115,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
           }
         }
         if (results?.fields) {
-          setSelectedAttributes(results.fields);
+          setSelectedAttributes(results.fields as SobjectExportFieldName[]);
         } else {
           setSelectedAttributes([...DEFAULT_SELECTION]);
         }
@@ -149,7 +156,10 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       setLoading(true);
       setErrorMessage(null);
       const metadataResults = await getSobjectMetadata(selectedOrg, selectedSObjects);
-      const output = prepareExport(metadataResults, selectedAttributes, options);
+      const sobjectsWithChildRelationships = selectedAttributes.includes('childRelationshipName')
+        ? await getChildRelationshipNames(selectedOrg, metadataResults)
+        : {};
+      const output = prepareExport(metadataResults, sobjectsWithChildRelationships, selectedAttributes, options);
 
       if (options.saveAsDefaultSelection) {
         try {
@@ -248,12 +258,12 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                   descriptorSingular: 'field attribute',
                   descriptorPlural: 'field attributes',
                 }}
-                items={FIELD_ATTRIBUTES}
+                items={FIELD_ATTRIBUTES as ListItem[]}
                 selectedItems={selectedAttributes}
                 allowRefresh
                 lastRefreshed="Reset to default"
                 onRefresh={resetAttributesToDefault}
-                onSelected={setSelectedAttributes}
+                onSelected={(items) => setSelectedAttributes(items as SobjectExportFieldName[])}
               />
             </div>
             <div className="slds-p-horizontal_x-small">
