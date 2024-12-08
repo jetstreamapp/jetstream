@@ -360,7 +360,7 @@ export async function setPasswordForUser(id: string, password: string) {
   });
 
   if (!UNSAFE_userWithPassword) {
-    return { error: new InvalidCredentials() };
+    return { error: new InvalidCredentials(`User not found with id ${id}`) };
   }
 
   // FIXME: this is kinda dumb since the user can remove the password then re-add it
@@ -394,11 +394,11 @@ export const generatePasswordResetToken = async (email: string) => {
   });
 
   if (!user.length) {
-    throw new InvalidAction();
+    throw new InvalidAction('User does not exist or there is no password set');
   }
 
   if (user.length > 1) {
-    throw new InvalidAction();
+    throw new InvalidAction('Multiple users with the same email address and a password set');
   }
 
   // if there is an existing token, delete it
@@ -431,7 +431,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
   });
 
   if (!restToken) {
-    throw new InvalidOrExpiredResetToken();
+    throw new InvalidOrExpiredResetToken('Missing reset token');
   }
 
   // delete token - we don't need it anymore and if we fail later, the user will need to reset again
@@ -440,7 +440,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
   });
 
   if (restToken.expiresAt < new Date()) {
-    throw new InvalidOrExpiredResetToken();
+    throw new InvalidOrExpiredResetToken(`Expired at ${restToken.expiresAt.toISOString()}`);
   }
 
   const hashedPassword = await hashPassword(password);
@@ -497,7 +497,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
         user: updatedUser,
       };
     } catch (ex) {
-      return { error: new InvalidCredentials() };
+      return { error: new InvalidCredentials('Could not migrate from Auth0') };
     }
 
     // Use this after code above is removed
@@ -515,7 +515,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
       }),
     };
   }
-  return { error: new InvalidCredentials() };
+  return { error: new InvalidCredentials('Incorrect email or password') };
 }
 
 async function migratePasswordFromAuth0(email: string, password: string) {
@@ -529,7 +529,7 @@ async function migratePasswordFromAuth0(email: string, password: string) {
 
   if (!userWithoutSocialIdentities || userWithoutSocialIdentities.identities.length > 0) {
     logger.warn({ email }, 'Cannot migrate password on the fly from Auth0, user has linked social identity');
-    throw new InvalidCredentials();
+    throw new InvalidCredentials('Could not migrate from Auth0');
   }
 
   await verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY({ email, password });
@@ -843,7 +843,7 @@ export async function handleSignInOrRegistration(
       const email = payload.email.toLowerCase();
 
       if (!password) {
-        throw new InvalidCredentials();
+        throw new InvalidCredentials('Missing Password');
       }
 
       if (action === 'login') {
@@ -851,25 +851,25 @@ export async function handleSignInOrRegistration(
         if (userOrError.error) {
           throw userOrError.error;
         } else if (!userOrError.user) {
-          throw new InvalidCredentials();
+          throw new InvalidCredentials('User not found');
         }
         user = userOrError.user;
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
         if (usersWithEmail.length > 0) {
-          throw new InvalidRegistration();
+          throw new InvalidRegistration('Email address is in use');
         }
         user = await createUserFromUserInfo(payload.email, payload.name, password);
         isNewUser = true;
       } else {
-        throw new InvalidAction();
+        throw new InvalidAction(action);
       }
     } else {
-      throw new InvalidProvider();
+      throw new InvalidProvider(providerType);
     }
 
     if (!user) {
-      throw new InvalidCredentials();
+      throw new InvalidCredentials('User not initialized');
     }
 
     await setLastLoginDate(user.id);
@@ -894,7 +894,7 @@ export async function handleSignInOrRegistration(
       },
     };
   } catch (ex) {
-    throw ensureAuthError(ex, new InvalidCredentials());
+    throw ensureAuthError(ex, new InvalidCredentials('Unexpected error'));
   }
 }
 
@@ -924,7 +924,7 @@ export async function linkIdentityToUser({
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {
       // TODO: is this the correct error message? some other user already has this identity linked
-      throw new LoginWithExistingIdentity();
+      throw new LoginWithExistingIdentity('Provider identity already linked to another user');
     } else if (existingProviderUser) {
       // identity is already linked to this user - NO_OP
       return existingUser;

@@ -280,7 +280,7 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
 
       if (isAccountLink) {
         if (!req.session.user) {
-          throw new InvalidSession();
+          throw new InvalidSession('Cannot link account without an active session');
         }
         setCookie(cookieConfig.linkIdentity.name, 'true', cookieConfig.linkIdentity.options);
       }
@@ -305,7 +305,7 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
       return;
     }
 
-    throw new InvalidAction();
+    throw new InvalidAction(`Can only sign in with OAuth providers. isAccountLink=${isAccountLink}, provider:${JSON.stringify(provider)}`);
   } catch (ex) {
     createUserActivityFromReqWithError(req, res, ex, {
       action: query?.isAccountLink ? 'LINK_IDENTITY_INIT' : 'OAUTH_INIT',
@@ -327,7 +327,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
 
     provider = providers[params.provider];
     if (!provider) {
-      throw new InvalidParameters();
+      throw new InvalidParameters('Missing provider');
     }
 
     let isNewUser = false;
@@ -352,7 +352,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       );
 
       if (!userInfo.email) {
-        throw new InvalidParameters();
+        throw new InvalidParameters('Missing email from OAuth provider');
       }
 
       const providerUser = {
@@ -395,7 +395,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       initSession(req, sessionData);
     } else if (provider.type === 'credentials' && req.method === 'POST') {
       if (!body || !('action' in body)) {
-        throw new InvalidAction();
+        throw new InvalidAction('Missing action in body');
       }
       const { action, csrfToken, email, password } = body;
       await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
@@ -420,11 +420,11 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
 
       initSession(req, sessionData);
     } else {
-      throw new InvalidProvider();
+      throw new InvalidProvider(`Provider type ${provider.type} is not supported. Method=${req.method}`);
     }
 
     if (!req.session.user) {
-      throw new AuthError();
+      throw new AuthError('Session not initialized');
     }
 
     // check for remembered device - emailVerification cannot be bypassed
@@ -500,7 +500,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
 const verification = createRoute(routeDefinition.verification.validators, async ({ body, user, setCookie }, req, res, next) => {
   try {
     if (!req.session.user || !req.session.pendingVerification) {
-      throw new InvalidSession();
+      throw new InvalidSession('Missing user or pending verification');
     }
 
     const { csrfToken, code, type, rememberDevice } = body;
@@ -510,20 +510,20 @@ const verification = createRoute(routeDefinition.verification.validators, async 
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
     if (!pendingVerification) {
-      throw new InvalidSession();
+      throw new InvalidSession('Missing pending verification');
     }
 
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
     if (pendingVerification.exp <= new Date().getTime()) {
-      throw new ExpiredVerificationToken();
+      throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
     }
 
     switch (pendingVerification.type) {
       case 'email': {
         const { token } = pendingVerification;
         if (token !== code) {
-          throw new InvalidVerificationToken();
+          throw new InvalidVerificationToken('Provided code does not match');
         }
         req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
         break;
@@ -531,7 +531,7 @@ const verification = createRoute(routeDefinition.verification.validators, async 
       case '2fa-email': {
         const { token } = pendingVerification;
         if (token !== code) {
-          throw new InvalidVerificationToken();
+          throw new InvalidVerificationToken('Provided code does not match');
         }
         rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
         break;
@@ -544,7 +544,7 @@ const verification = createRoute(routeDefinition.verification.validators, async 
         break;
       }
       default: {
-        throw new InvalidVerificationToken();
+        throw new InvalidVerificationToken(`Invalid verification type`);
       }
     }
 
@@ -589,14 +589,14 @@ const verification = createRoute(routeDefinition.verification.validators, async 
 const resendVerification = createRoute(routeDefinition.resendVerification.validators, async ({ body }, req, res, next) => {
   try {
     if (!req.session.user || !req.session.pendingVerification) {
-      throw new InvalidSession();
+      throw new InvalidSession('Missing user or pending verification');
     }
 
     const { csrfToken, type } = body;
     const pendingVerification = req.session.pendingVerification.find((item) => item.type === type);
 
     if (!pendingVerification) {
-      throw new InvalidSession();
+      throw new InvalidSession('Missing pending verification');
     }
 
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
@@ -726,7 +726,7 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
 const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, async ({ query }, req, res, next) => {
   try {
     if (!req.session.user) {
-      throw new InvalidSession();
+      throw new InvalidSession('User not set on session');
     }
 
     if (!req.session.pendingVerification?.length) {
@@ -744,24 +744,24 @@ const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, 
     });
 
     if (!pendingVerification) {
-      throw new InvalidSession();
+      throw new InvalidSession('Missing pending verification');
     }
 
     if (pendingVerification.exp <= new Date().getTime()) {
-      throw new ExpiredVerificationToken();
+      throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
     }
 
     switch (pendingVerification.type) {
       case 'email': {
         const { token } = pendingVerification;
         if (token !== code) {
-          throw new InvalidVerificationToken();
+          throw new InvalidVerificationToken('Provided code does not match');
         }
         req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
         break;
       }
       default: {
-        throw new InvalidVerificationToken();
+        throw new InvalidVerificationToken('Invalid verification type');
       }
     }
 
