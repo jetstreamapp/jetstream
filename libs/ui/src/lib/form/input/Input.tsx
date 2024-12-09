@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent, MouseEvent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
+import Spinner from '../../widgets/Spinner';
 
 export interface InputProps {
   id?: string;
@@ -26,6 +27,7 @@ export interface InputProps {
   leftAddon?: React.ReactNode | string;
   rightAddon?: React.ReactNode | string;
   clearButton?: boolean;
+  loading?: boolean;
   onClear?: (ev?: MouseEvent<HTMLButtonElement>) => void;
   children?: React.ReactNode;
 }
@@ -48,6 +50,7 @@ export const Input: FunctionComponent<InputProps> = ({
   iconRight,
   iconRightType,
   clearButton = false,
+  loading,
   onClear,
   // Addons - these cannot be used with icon in same location
   leftAddon,
@@ -83,6 +86,7 @@ export const Input: FunctionComponent<InputProps> = ({
             'slds-input-has-icon_right': !leftAddon && !iconLeft && (iconRight || clearButton),
             'slds-input-has-icon_left-right': (!leftAddon && !rightAddon && iconLeft && iconRight) || (iconLeft && clearButton),
             'slds-input-has-fixed-addon': leftAddon || rightAddon,
+            'slds-input-has-icon_group-right': loading,
           },
           formControlClassName
         )}
@@ -106,8 +110,18 @@ export const Input: FunctionComponent<InputProps> = ({
         {leftAddon && <span className="slds-form-element__addon">{leftAddon}</span>}
         {/* Input field must be passed through */}
         {children}
+        {loading && (
+          <div className="slds-input__icon-group slds-input__icon-group_right">
+            <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
+            {clearButton && (
+              <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
+                <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
+              </button>
+            )}
+          </div>
+        )}
         {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
-        {!rightAddon && clearButton && (
+        {!rightAddon && clearButton && !loading && (
           <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
             <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
           </button>
