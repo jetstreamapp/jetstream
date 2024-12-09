@@ -7,8 +7,8 @@ import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
+import { UserSearchPopover } from '../record/UserSearchPopover';
 import { applicationCookieState, selectUserPreferenceState } from '../state-management/app-state';
-import { HeaderAnnouncementPopover } from './HeaderAnnouncementPopover';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import NotificationsRequestModal from './NotificationsRequestModal';
@@ -82,21 +82,8 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   const rightHandMenuItems = useMemo(() => {
     return isChromeExtension
-      ? [<RecordSearchPopover />, <Jobs />, <HeaderHelpPopover />]
-      : [
-          <HeaderAnnouncementPopover>
-            <p className="">We have launched our new authentication experience</p>
-            <p className="slds-text-title_caps slds-m-top_x-small">New Features:</p>
-            <ul className="slds-list_dotted slds-m-vertical_x-small">
-              <li>Multi-factor authentication via email or authenticator app</li>
-              <li>Visibility to all active sessions, with option to revoke sessions</li>
-            </ul>
-          </HeaderAnnouncementPopover>,
-          <RecordSearchPopover />,
-          <Jobs />,
-          <HeaderHelpPopover />,
-          <HeaderDonatePopover />,
-        ];
+      ? [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />]
+      : [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
   }, [isChromeExtension, userProfile]);
 
   return (

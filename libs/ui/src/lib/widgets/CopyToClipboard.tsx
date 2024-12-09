@@ -39,7 +39,8 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
   });
   const [currentIcon, setCurrentIcon] = useState(icon);
 
-  function handleCopy() {
+  function handleCopy(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
     setClipboard();
   }
 
@@ -63,7 +64,7 @@ export const CopyToClipboard: FunctionComponent<CopyToClipboardProps> = ({
         className
       )}
       disabled={disabled || (!skipTransitionIcon && isCopied)}
-      onClick={() => handleCopy()}
+      onClick={handleCopy}
     >
       <Icon
         className={classNames(

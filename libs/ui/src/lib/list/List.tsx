@@ -11,15 +11,17 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
+import classNames from 'classnames';
 import isNil from 'lodash/isNil';
 import isNumber from 'lodash/isNumber';
-import { Fragment, KeyboardEvent, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
+import { Fragment, KeyboardEvent, ReactNode, RefObject, createRef, forwardRef, useEffect, useRef, useState } from 'react';
 import ListItem from './ListItem';
 import ListItemCheckbox from './ListItemCheckbox';
 
 type RefObjType = RefObject<HTMLLIElement>[] | RefObject<HTMLInputElement>[];
 
 export interface ListProps {
+  className?: string;
   items: any[];
   isMultiSelect?: boolean;
   autoScrollToFocus?: boolean;
@@ -34,8 +36,9 @@ export interface ListProps {
     key: string;
     id?: string;
     testId?: string;
-    heading?: Maybe<string | JSX.Element>;
+    heading?: Maybe<string | ReactNode>;
     subheading?: Maybe<string>;
+    children?: ReactNode;
   };
   onSelected: (key: string) => void;
 }
@@ -43,6 +46,7 @@ export interface ListProps {
 export const List = forwardRef<HTMLUListElement, ListProps>(
   (
     {
+      className,
       items,
       autoScrollToFocus = false,
       useCheckbox = false,
@@ -172,12 +176,12 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
             ref={ref}
             role="listbox"
             aria-multiselectable={isMultiSelect}
-            className="slds-has-dividers_bottom-space"
+            className={classNames('slds-has-dividers_bottom-space', className)}
             tabIndex={0}
             onKeyDown={handleKeyDown}
           >
             {items.map((item, i) => {
-              const { key, id, testId, heading, subheading } = getContent(item);
+              const { key, id, testId, heading, subheading, children } = getContent(item);
               return useCheckbox ? (
                 <ListItemCheckbox
                   inputRef={elRefs.current[i] as RefObject<HTMLInputElement>}
@@ -192,7 +196,9 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   highlightText={highlightText}
                   disabled={disabled}
                   onSelected={() => handleSelect(key, i)}
-                />
+                >
+                  {children}
+                </ListItemCheckbox>
               ) : (
                 <ListItem
                   key={key}
@@ -206,7 +212,9 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
                   highlightText={highlightText}
                   disabled={disabled}
                   onSelected={() => handleSelect(key, i)}
-                />
+                >
+                  {children}
+                </ListItem>
               );
             })}
           </ul>

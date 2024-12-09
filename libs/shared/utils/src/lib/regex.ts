@@ -28,4 +28,5 @@ export const REGEX = {
   ENDS_WITH_NON_ALPHANUMERIC: /[^0-9a-zA-Z]+$/,
   CONSECUTIVE_UNDERSCORES: /_+/g,
   STARTS_WITH_NUMBER: /^[0-9]/,
+  SFDC_ID: /^([0-9a-zA-Z]{16}|[0-9a-zA-Z]{18})$/,
 };
