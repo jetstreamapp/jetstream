@@ -17,6 +17,7 @@ import {
   CellMouseEvent,
   RenderSortStatusProps,
   Renderers,
+  RowsChangeData,
   SortColumn,
 } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
@@ -246,6 +247,10 @@ export function useDataTable<T = RowWithKey>({
     [filteredRows]
   );
 
+  const handleRowChange = useCallback((rows: any[], data: RowsChangeData<any>) => {
+    dispatch({ type: 'ADD_MODIFIED_VALUE_TO_SET_FILTER', payload: { rows, data } });
+  }, []);
+
   const handleCloseContextMenu = useCallback(() => setContextMenuProps(null), []);
 
   // NOTE: this is not used anywhere, so we may consider removing it.
@@ -288,6 +293,7 @@ export function useDataTable<T = RowWithKey>({
     handleCellKeydown,
     handleCellContextMenu: contextMenuItems && contextMenuAction ? handleCellContextMenu : undefined,
     handleCloseContextMenu: handleCloseContextMenu,
+    handleRowChange,
   };
 }
 
@@ -314,6 +320,7 @@ interface State<T> {
 
 type Action =
   | { type: 'INIT'; payload: { columns: ColumnWithFilter<any>[]; data: any[]; ignoreRowInSetFilter?: (row: any) => boolean } }
+  | { type: 'ADD_MODIFIED_VALUE_TO_SET_FILTER'; payload: { rows: any[]; data: RowsChangeData<any> } }
   | { type: 'UPDATE_FILTER'; payload: { column: string; filter: DataTableFilter } };
 
 // Reducer is used to limit the number of re-renders because of dependent state
@@ -376,16 +383,83 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
         filterSetValues,
       };
     }
-    case 'UPDATE_FILTER': {
-      const { column, filter } = action.payload;
+    case 'ADD_MODIFIED_VALUE_TO_SET_FILTER': {
+      const {
+        data: { column, indexes },
+        rows,
+      } = action.payload;
+      if (!state.filters[column.key]) {
+        return state;
+      }
+      const newValues = indexes.map((index) => {
+        const value = rows[index][column.key];
+        if (value === '' || value === null) {
+          return EMPTY_FIELD;
+        }
+        return value;
+      });
+      // NOTE: we don't have access to every record here, so we just add the values and don't worry about removing on subsequent record change
+      // Calculate new list of available values
+      const filterSetValues = {
+        ...state.filterSetValues,
+        [column.key]: Array.from(new Set([...state.filterSetValues[column.key], ...newValues])),
+      };
+      // ensure that current values are included in the set filter so they are retained on the page while editing
+      const columnFilter = [...state.filters[column.key]].map((item) => {
+        if (item.type !== 'SET') {
+          return item;
+        }
+        return {
+          ...item,
+          value: Array.from(new Set(item.value.concat(newValues))),
+        };
+      });
       return {
         ...state,
-        hasFilters: true,
+        filterSetValues,
         filters: {
           ...state.filters,
-          [column]: state.filters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
+          [column.key]: columnFilter,
         },
       };
     }
+    case 'UPDATE_FILTER': {
+      const { column, filter } = action.payload;
+      const filters = {
+        ...state.filters,
+        [column]: state.filters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
+      };
+      const hasFilters = hasFilterApplied(filters, state.filterSetValues);
+      return {
+        ...state,
+        hasFilters,
+        filters,
+      };
+    }
   }
+}
+
+function hasFilterApplied(filters: Record<string, DataTableFilter[]>, filterSetValues: Record<string, string[]>) {
+  return Object.entries(filters).some(([key, columnFilters]) =>
+    columnFilters.some((filter) => {
+      let applied = false;
+      switch (filter.type) {
+        case 'SET':
+          applied = filter.value.length < (filterSetValues[key]?.length || 0);
+          break;
+        case 'BOOLEAN_SET':
+          applied = filter.value.length < 2; // true/false
+          break;
+        case 'DATE':
+        case 'NUMBER':
+        case 'TEXT':
+        case 'TIME':
+          applied = !!filter.value;
+          break;
+        default:
+          return false;
+      }
+      return applied;
+    })
+  );
 }
