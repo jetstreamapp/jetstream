@@ -23,7 +23,7 @@ export const QueryGroupByTitleSummary: FunctionComponent<QueryGroupByTitleSummar
             <Badge key={groupBy.field} className="slds-m-left_x-small slds-truncate" title={groupBy.fieldLabel || undefined}>
               {groupBy.function ? (
                 <>
-                  {groupBy.field}({groupBy.function})
+                  {groupBy.function}({groupBy.field})
                 </>
               ) : (
                 groupBy.field
