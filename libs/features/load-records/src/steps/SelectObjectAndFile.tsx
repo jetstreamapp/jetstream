@@ -29,7 +29,6 @@ import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons
 
 export interface LoadRecordsSelectObjectAndFileProps {
   googleApiConfig: GoogleApiClientConfig;
-  featureFlags: Set<string>;
   selectedOrg: SalesforceOrgUi;
   sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
@@ -58,7 +57,6 @@ const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> 
 
 export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelectObjectAndFileProps> = ({
   googleApiConfig,
-  featureFlags,
   selectedOrg,
   selectedSObject,
   isCustomMetadataObject,

@@ -1,8 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
-import { describeSObject } from '@jetstream/shared/data';
-import { groupByFlat, orderObjectsBy, REGEX } from '@jetstream/shared/utils';
-import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi } from '@jetstream/types';
+import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
+import { QueryHistoryItem, QueryHistorySelection } from '@jetstream/types';
 import { addDays } from 'date-fns/addDays';
 import { isBefore } from 'date-fns/isBefore';
 import { parseISO } from 'date-fns/parseISO';
@@ -76,49 +75,10 @@ export async function initQueryHistory(): Promise<Record<string, QueryHistoryIte
   }
 }
 
-// FIXME: there is some really poor naming conventions surrounding the entire query history
-
-/**
- * Get new history item to save
- * If we do not know the label of the object, then we go fetch it
- *
- * @returns an initialized query history item and a fresh copy of the history state from storage
- */
-export async function getQueryHistoryItem(
-  org: SalesforceOrgUi,
-  soql: string,
-  sObject: string,
-  sObjectLabel?: string,
-  isTooling = false
-): Promise<{ queryHistoryItem: QueryHistoryItem; refreshedQueryHistory: Record<string, QueryHistoryItem> }> {
-  if (!sObjectLabel) {
-    const resultsWithCache = await describeSObject(org, sObject, isTooling);
-    const results = resultsWithCache.data;
-    sObjectLabel = results.name;
-  }
-  const queryHistoryItem: QueryHistoryItem = {
-    key: `${org.uniqueId}:${sObject}${soql.replace(REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE, '')}`,
-    label: sObjectLabel,
-    soql,
-    org: org.uniqueId,
-    runCount: 1,
-    sObject,
-    lastRun: new Date(),
-    created: new Date(),
-    isTooling,
-    isFavorite: false,
-  };
-  // ensure we have the most up-to-date version of the query history to avoid overwriting changes made elsewhere
-  const refreshedQueryHistory = await initQueryHistory();
-  return { queryHistoryItem, refreshedQueryHistory };
-}
-
 export const selectedObjectState = atom<string>({
   key: 'queryHistory.queryHistorySelectedObject',
   default: 'all',
 });
-
-// selectedOrgState
 
 export const queryHistoryState = atom<Record<string, QueryHistoryItem>>({
   key: 'queryHistory.queryHistoryState',

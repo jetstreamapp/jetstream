@@ -46,6 +46,7 @@ import {
   fromQueryHistoryState,
   fromQueryState,
   isAsyncJob,
+  queryHistoryDb,
   selectSkipFrontdoorAuth,
   selectedOrgState,
   useAmplitude,
@@ -116,7 +117,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
-  const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistoryState.queryHistoryState);
+  // const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistoryState.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev) => isAsyncJob(ev) && ev.type === 'BulkDelete'))
   );
@@ -239,23 +240,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
     if (soql && sObject) {
       try {
-        // eslint-disable-next-line prefer-const
-        let { queryHistoryItem, refreshedQueryHistory } = await fromQueryHistoryState.getQueryHistoryItem(
-          selectedOrg,
-          soql,
-          sObject,
+        await queryHistoryDb.saveQueryHistoryItem(selectedOrg, soql, sObject, {
           sObjectLabel,
-          tooling
-        );
-        refreshedQueryHistory = refreshedQueryHistory || queryHistory;
-        // increment count and ensure certain properties are not overwritten
-        if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
-          queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
-          queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
-          queryHistoryItem.label = refreshedQueryHistory[queryHistoryItem.key].label;
-          queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
-        }
-        setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
+          isTooling: tooling,
+          incrementRunCount: true,
+        });
       } catch (ex) {
         logger.warn(ex);
       }

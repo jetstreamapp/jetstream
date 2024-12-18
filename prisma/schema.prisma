@@ -29,6 +29,7 @@ model User {
   loginActivity       LoginActivity[]
   rememberdDevices    RememberedDevice[]
   passwordResetTokens PasswordResetToken[]
+  syncData            UserSyncData[]
   lastLoggedIn        DateTime?
   createdAt           DateTime                @default(now()) @db.Timestamp(6)
   updatedAt           DateTime                @updatedAt
@@ -132,6 +133,7 @@ model UserPreference {
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String   @unique @db.Uuid
   skipFrontdoorLogin Boolean  @default(false)
+  featureFlags       Json     @default("{}")
   createdAt          DateTime @default(now()) @db.Timestamp(6)
   updatedAt          DateTime @updatedAt
 }
@@ -198,8 +200,9 @@ model SalesforceOrg {
   label                   String?                @db.VarChar(100)
   orgOrganizationType     String?                @db.VarChar
   color                   String?                @db.VarChar(10)
+  syncData                UserSyncData[]
 
-  @@unique([jetstreamUserId2, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
+  @@unique([jetstreamUserId2, uniqueId], name: "uniqueOrg", map: "unique_org_2")
   @@map("salesforce_org")
 }
 
@@ -219,4 +222,22 @@ model AnalyticsSummary {
   year      Int
   createdAt DateTime @default(now()) @db.Timestamp(6)
   updatedAt DateTime @updatedAt
+}
+
+model UserSyncData {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @db.Uuid
+  orgId     String
+  key       String
+  entity    String
+  data      Json
+  createdAt DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt DateTime  @updatedAt @db.Timestamp(6)
+  deletedAt DateTime? @db.Timestamp(6)
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  SalesforceOrg @relation(fields: [userId, orgId], references: [jetstreamUserId2, uniqueId], onDelete: Cascade)
+
+  @@unique([userId, key, orgId], name: "userKeyOrg", map: "user_key_org")
+  @@map("user_sync_data")
 }

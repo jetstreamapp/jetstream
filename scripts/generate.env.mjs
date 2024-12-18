@@ -18,7 +18,7 @@ function generateRandomBase64(size = 32) {
 const exampleEnvFile = fs.readFileSync(inputFilename, 'utf8');
 
 // check if .env file exists, if so ask the user if they want to overwrite it or abort
-if (fs.existsSync(inputFilename)) {
+if (fs.existsSync(outputFilename)) {
   console.log(chalk.yellow(`.env file already exists.`));
   const response = await question('Overwrite? (y/N)? ');
   if (!response || response.toLocaleLowerCase() !== 'y') {

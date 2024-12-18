@@ -8,6 +8,7 @@ import type {
 } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
+import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   Announcement,
   AnonymousApexResponse,
@@ -38,16 +39,22 @@ import {
   ManualRequestResponse,
   Maybe,
   OperationReturnType,
+  PullResponse,
+  PullResponseSchema,
   QueryResults,
   RetrieveResult,
   SalesforceApiRequest,
   SalesforceOrgUi,
   SobjectOperation,
+  SyncRecord,
+  SyncRecordOperation,
+  SyncType,
   UserProfileUi,
 } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
+import orderBy from 'lodash/orderBy';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 
 //// LANDING PAGE ROUTES
@@ -172,6 +179,165 @@ export async function unlinkIdentityFromProfile(identity: {
 
 export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<void> {
   return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
+}
+
+/**
+ * @deprecated
+ */
+export async function dataSyncPullByEntity({
+  entity,
+  updatedAt,
+  lastKey,
+}: {
+  entity: SyncType;
+  updatedAt?: Maybe<Date>;
+  lastKey?: Maybe<string>;
+}): Promise<PullResponse> {
+  // FIXME: should parse response via zod
+  return handleRequest({ method: 'GET', url: `/api/data-sync/${entity}/pull`, params: { updatedAt, lastKey } }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
+/**
+ * @deprecated
+ */
+export async function dataSyncPullAllByEntity({ entity, updatedAt }: { entity: SyncType; updatedAt?: Maybe<Date> }): Promise<PullResponse> {
+  let hasMore = false;
+  let lastKey = null as Maybe<string>;
+  let currentResponse: PullResponse;
+  let records: PullResponse['records'] = [];
+
+  do {
+    currentResponse = await dataSyncPullByEntity({ entity, updatedAt, lastKey });
+    hasMore = currentResponse.hasMore;
+    updatedAt = currentResponse.updatedAt;
+    lastKey = currentResponse.lastKey;
+    records = [...records, ...currentResponse.records];
+  } while (hasMore);
+
+  currentResponse.records = records;
+  return currentResponse;
+}
+
+/**
+ * @deprecated
+ */
+export async function dataSyncPushChangesByEntity({ entity, records }: { entity: SyncType; records: SyncRecord[] }): Promise<PullResponse> {
+  // FIXME: should parse response via zod
+  return handleRequest({ method: 'POST', url: `/api/data-sync/${entity}/push`, data: records }).then(unwrapResponseIgnoreCache);
+}
+
+/**
+ * @deprecated
+ */
+export async function dataSyncPushAllChangesByEntity({
+  entity,
+  records,
+  chunkSize,
+}: {
+  entity: SyncType;
+  records: SyncRecord[];
+  chunkSize: number;
+}): Promise<PullResponse> {
+  let currentResponse: PullResponse | null = null;
+  let responseRecords: PullResponse['records'] = [];
+
+  const chunks = splitArrayToMaxSize(orderBy(Object.values(records), 'lastRun', 'asc'), chunkSize);
+
+  for (const chunk of chunks) {
+    currentResponse = await dataSyncPushChangesByEntity({
+      entity: 'query_history',
+      records: chunk,
+    });
+    responseRecords = [...responseRecords, ...currentResponse.records];
+  }
+
+  if (!currentResponse) {
+    throw new Error('No response from server');
+  }
+
+  currentResponse.records = responseRecords;
+  return currentResponse;
+}
+
+// NEW WITHOUT ENTITY
+
+export async function dataSyncPull({ updatedAt, lastKey }: { updatedAt?: Maybe<Date>; lastKey?: Maybe<string> }): Promise<PullResponse> {
+  // FIXME: should parse response via zod
+  return handleRequest({ method: 'GET', url: `/api/data-sync/pull`, params: { updatedAt, lastKey, limit: 20 } })
+    .then(unwrapResponseIgnoreCache)
+    .then((data) => PullResponseSchema.parse(data));
+}
+
+export async function dataSyncPullAll({ updatedAt }: { updatedAt?: Maybe<Date> }): Promise<PullResponse> {
+  let hasMore = false;
+  let lastKey = null as Maybe<string>;
+  let currentResponse: PullResponse;
+  let records: PullResponse['records'] = [];
+
+  do {
+    currentResponse = await dataSyncPull({ updatedAt, lastKey });
+    hasMore = currentResponse.hasMore;
+    updatedAt = currentResponse.updatedAt;
+    lastKey = currentResponse.lastKey;
+    records = [...records, ...currentResponse.records];
+  } while (hasMore);
+
+  currentResponse.records = records;
+  return currentResponse;
+}
+
+export async function dataSyncPushChanges({
+  clientId,
+  records,
+  updatedAt,
+}: {
+  clientId: string;
+  records: SyncRecordOperation[];
+  updatedAt?: Maybe<Date>;
+}): Promise<PullResponse> {
+  // FIXME: should parse response via zod
+  return handleRequest({ method: 'POST', url: `/api/data-sync/push`, params: { clientId, updatedAt }, data: records })
+    .then(unwrapResponseIgnoreCache)
+    .then((data) => PullResponseSchema.parse(data));
+}
+
+export async function dataSyncPushAllChanges({
+  clientId,
+  records,
+  chunkSize,
+  updatedAt,
+}: {
+  clientId: string;
+  records: SyncRecordOperation[];
+  chunkSize: number;
+  updatedAt?: Maybe<Date>;
+}): Promise<PullResponse> {
+  let currentResponse: PullResponse | null = null;
+  let responseRecords: PullResponse['records'] = [];
+
+  const chunks = splitArrayToMaxSize(orderBy(Object.values(records), 'lastRun', 'asc'), chunkSize);
+
+  for (const chunk of chunks) {
+    currentResponse = await dataSyncPushChanges({
+      clientId,
+      records: chunk,
+      updatedAt,
+    });
+    responseRecords = [...responseRecords, ...currentResponse.records];
+  }
+
+  if (!currentResponse) {
+    throw new Error('No response from server');
+  }
+
+  currentResponse.records = responseRecords;
+  return currentResponse;
+}
+
+export function getDataSyncEventSource(clientId: string): EventSource {
+  return new EventSource(`/api/data-sync/subscribe?clientId=${clientId}`, { withCredentials: true });
 }
 
 export async function getOrgs(): Promise<SalesforceOrgUi[]> {

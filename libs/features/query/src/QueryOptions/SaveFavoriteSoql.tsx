@@ -2,10 +2,9 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Maybe, QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
-import { fromQueryHistoryState, useAmplitude } from '@jetstream/ui-core';
+import { fromQueryHistoryState, queryHistoryDb, useAmplitude } from '@jetstream/ui-core';
 import Editor from '@monaco-editor/react';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
 
 export interface SaveFavoriteSoqlProps {
   className?: string;
@@ -33,7 +32,6 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
   const { trackEvent } = useAmplitude();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistoryState.queryHistoryState);
   const [queryHistoryItem, setQueryHistoryItem] = useState<QueryHistoryItem | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -54,18 +52,11 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
     try {
       setLoading(true);
       if (isOpen && sObject && sObjectLabel) {
-        fromQueryHistoryState
-          .getQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, isTooling)
-          .then(({ queryHistoryItem, refreshedQueryHistory }) => {
-            refreshedQueryHistory = refreshedQueryHistory || queryHistory;
-            if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
-              queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
-              queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
-              queryHistoryItem.label = refreshedQueryHistory[queryHistoryItem.key].label;
-              queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
-            }
-            setQueryHistoryItem(queryHistoryItem);
-            setName(queryHistoryItem.label);
+        queryHistoryDb
+          .getOrInitQueryHistoryItem(selectedOrg, soql, sObject, sObjectLabel, isTooling)
+          .then((item) => {
+            setQueryHistoryItem(item);
+            setName(item.label);
           })
           .catch((ex) => logger.warn(ex));
       } else {
@@ -80,21 +71,31 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!queryHistoryItem) {
       return;
     }
     const newQueryHistoryItem: QueryHistoryItem = { ...queryHistoryItem, label: name.trim(), isFavorite: true };
-    setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: newQueryHistoryItem });
     setQueryHistoryItem(newQueryHistoryItem);
+    try {
+      await queryHistoryDb.setAsFavorite(newQueryHistoryItem.key, newQueryHistoryItem.isFavorite, newQueryHistoryItem.label);
+    } catch (ex) {
+      logger.warn('Unable to save favorite', ex);
+    }
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'popover', isFavorite: true });
   }
 
-  function handleRemove() {
+  async function handleRemove() {
     if (!queryHistoryItem) {
       return;
     }
-    setQueryHistory({ ...queryHistory, [queryHistoryItem.key]: { ...queryHistoryItem, isFavorite: false } });
+
+    try {
+      // FIXME: ideally we should set the label back to default? (we don't have customLabel though)
+      await queryHistoryDb.setAsFavorite(queryHistoryItem.key, false);
+    } catch (ex) {
+      logger.warn('Unable to save favorite', ex);
+    }
     popoverRef.current?.close();
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'popover', isFavorite: false });
   }

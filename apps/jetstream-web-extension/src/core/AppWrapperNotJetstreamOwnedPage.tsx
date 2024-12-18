@@ -7,6 +7,7 @@ import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-s
 import localforage from 'localforage';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
 import { RecoilRoot } from 'recoil';
+import RecoilNexus from 'recoil-nexus';
 import '../main.scss';
 
 enableLogger(true);
@@ -48,6 +49,7 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
   return (
     <ConfirmationServiceProvider>
       <RecoilRoot>
+        <RecoilNexus />
         <Suspense fallback={<AppLoading />}>
           {/* <AppInitializer
             onUserProfile={() => {

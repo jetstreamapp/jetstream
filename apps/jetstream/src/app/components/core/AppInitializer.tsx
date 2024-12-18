@@ -4,7 +4,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { Announcement, ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
-import { fromAppState, useAmplitude, usePageViews } from '@jetstream/ui-core';
+import { fromAppState, initDexieDb, useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
@@ -36,11 +36,12 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, onUserProfile, children }) => {
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const userProfile = useRecoilValue(fromAppState.userProfileState);
   const { version, announcements } = useRecoilValue(fromAppState.appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+  const featureFlagEnableSync = useRecoilValue(fromAppState.hasFeatureFlagAccess('enableSync'));
 
   useEffect(() => {
     console.log(
@@ -62,6 +63,12 @@ APP VERSION ${version}
       'background: #222; color: #FFFFFF'
     );
   }, [version]);
+
+  useEffect(() => {
+    initDexieDb({ featureFlagEnableSync }).catch((ex) => {
+      logger.error('[DB] Error initializing db', ex);
+    });
+  }, [featureFlagEnableSync]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

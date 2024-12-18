@@ -4,12 +4,13 @@ import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean } from '@jetstream/shared/utils';
-import { ApplicationCookie } from '@jetstream/types';
+import { ApplicationCookie, FeatureFlags } from '@jetstream/types';
 import { getUnixTime } from 'date-fns';
 import * as express from 'express';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { hasFeatureFlagAccess } from '../db/user.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { getApiAddressFromReq } from '../utils/route.utils';
 
@@ -187,6 +188,26 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
 
   next();
 }
+
+export const checkFeatureFlagAccess =
+  (flagName: keyof FeatureFlags) => async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+      if (!req.session.user) {
+        return next(new UserFacingError('User is required'));
+      }
+
+      const canAccess = await hasFeatureFlagAccess({ userId: req.session.user.id, flagName });
+      if (!canAccess) {
+        res.status(403);
+        return next(new UserFacingError('You do not have access to this feature'));
+      }
+
+      next();
+    } catch (ex) {
+      res.status(403);
+      next(new UserFacingError('You do not have access to this feature'));
+    }
+  };
 
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jetstreamConn) {

@@ -17,7 +17,6 @@ import Logo from './jetstream-logo-v1-200w.png';
 
 export interface HeaderNavbarProps {
   userProfile: Maybe<UserProfileUi>;
-  featureFlags: Set<string>;
   isChromeExtension?: boolean;
 }
 
@@ -27,7 +26,7 @@ function logout(serverUrl: string) {
   location.href = logoutUrl;
 }
 
-function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean) {
+function getMenuItems(userProfile: Maybe<UserProfileUi>, deniedNotifications?: boolean) {
   const menu: DropDownItem[] = [];
 
   menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile?.email, icon: { type: 'utility', icon: 'profile_alt' } });
@@ -45,7 +44,7 @@ function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<strin
   return menu;
 }
 
-export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags, isChromeExtension }) => {
+export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, isChromeExtension }) => {
   const navigate = useNavigate();
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
@@ -73,12 +72,12 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled));
+    userProfile && setUserMenuItems(getMenuItems(userProfile, !isEnabled));
   }
 
   useEffect(() => {
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
-  }, [userProfile, featureFlags, deniedNotifications]);
+    userProfile && setUserMenuItems(getMenuItems(userProfile, deniedNotifications));
+  }, [userProfile, deniedNotifications]);
 
   const rightHandMenuItems = useMemo(() => {
     return isChromeExtension
@@ -88,9 +87,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   return (
     <Fragment>
-      {enableNotifications && (
-        <NotificationsRequestModal featureFlags={featureFlags} userInitiated onClose={handleNotificationMenuClosed} />
-      )}
+      {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
         logo={Logo}

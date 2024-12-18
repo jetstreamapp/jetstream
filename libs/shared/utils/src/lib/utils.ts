@@ -102,7 +102,7 @@ export function multiWordObjectFilter<T>(
   props: Array<keyof T>,
   value: string,
   optionalExtraCondition?: (item: T) => boolean
-): (value: T, index: number, array: T[]) => boolean {
+): (value: T, index?: number, array?: T[]) => boolean {
   value = value || '';
   let search: string[];
   // If value is surrounded in quotes, treat as literal value
@@ -160,11 +160,11 @@ export function orderValues<T extends number | string | boolean>(items: T[], ord
  * Group objects by a field and return a map of key to array of objects
  * If there are multiple objects with the same key, the last item in list will win.
  */
-export function groupByFlat<T>(items: T[], prop: keyof T): Record<string, T> {
+export function groupByFlat<T>(items: T[], prop: keyof T, startingObj: Record<string, T> = {}): Record<string, T> {
   return items.reduce((output: Record<string, T>, item) => {
     output[item[prop] as any] = item;
     return output;
-  }, {});
+  }, startingObj);
 }
 
 export function getMapFromObj<T>(items: T[], prop: keyof T): Map<string, T> {

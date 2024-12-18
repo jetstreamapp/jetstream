@@ -13,7 +13,7 @@ import {
 } from '@jetstream/auth/types';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { Maybe } from '@jetstream/types';
+import { FeatureFlagsSchema, Maybe } from '@jetstream/types';
 import { Prisma } from '@prisma/client';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
@@ -608,7 +608,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
       emailVerified: providerUser.emailVerified,
       // picture: providerUser.picture,
       lastLoggedIn: new Date(),
-      preferences: { create: { skipFrontdoorLogin: false } },
+      preferences: { create: { skipFrontdoorLogin: false, featureFlags: FeatureFlagsSchema.parse({}) } },
       identities: {
         create: {
           type: 'oauth',
@@ -736,7 +736,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
         password: passwordHash,
         passwordUpdatedAt: new Date(),
         lastLoggedIn: new Date(),
-        preferences: { create: { skipFrontdoorLogin: false } },
+        preferences: { create: { skipFrontdoorLogin: false, featureFlags: FeatureFlagsSchema.parse({}) } },
         authFactors: {
           create: {
             type: '2fa-email',

@@ -6,13 +6,13 @@ import { SessionData as JetstreamSessionData } from '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
 import { json, raw, urlencoded } from 'body-parser';
-import cluster from 'cluster';
 import pgSimple from 'connect-pg-simple';
 import cors from 'cors';
 import express from 'express';
 import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
+import cluster from 'node:cluster';
 import { cpus } from 'os';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
@@ -357,7 +357,6 @@ try {
         update: {},
         where: { id: user.id },
       });
-      logger.info('Example user created');
     }
   })();
 } catch (ex) {

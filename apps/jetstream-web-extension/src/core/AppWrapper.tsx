@@ -10,6 +10,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import ModalContainer from 'react-modal-promise';
 import { MemoryRouter } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
+import RecoilNexus from 'recoil-nexus';
 import '../main.scss';
 import '../utils/monaco-loader';
 import AppInitializer from './AppInitializer';
@@ -20,6 +21,7 @@ export function AppWrapper({ children }: { children: ReactNode }) {
   return (
     <ConfirmationServiceProvider>
       <RecoilRoot>
+        <RecoilNexus />
         <Suspense fallback={<AppLoading />}>
           <MemoryRouter>
             <AppInitializer

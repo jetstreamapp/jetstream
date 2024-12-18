@@ -22,7 +22,7 @@ import {
   fireToast,
 } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState, selectedOrgType, useAmplitude } from '@jetstream/ui-core';
-import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
@@ -36,11 +36,7 @@ initXlsx(XLSX);
 const TEMPLATE_DOWNLOAD_LINK = '/assets/content/Jetstream%20-%20Load%20Records%20to%20Multiple%20Objects%20-%20Template.xlsx';
 const HEIGHT_BUFFER = 170;
 
-export interface LoadRecordsMultiObjectProps {
-  featureFlags: Set<string>;
-}
-
-export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectProps> = ({ featureFlags }) => {
+export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();

@@ -2,6 +2,7 @@ import { ENV } from '@jetstream/api-config';
 import express from 'express';
 import Router from 'express-promise-router';
 import { getAnnouncements } from '../announcements';
+import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import { routeDefinition as imageController } from '../controllers/image.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -14,7 +15,7 @@ import { routeDefinition as queryController } from '../controllers/sf-query.cont
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
-import { addOrgsToLocal, checkAuth, ensureTargetOrgExists } from './route.middleware';
+import { addOrgsToLocal, checkAuth, checkFeatureFlagAccess, ensureTargetOrgExists } from './route.middleware';
 
 const routes: express.Router = Router();
 
@@ -54,6 +55,13 @@ routes.get('/me/profile/2fa-otp', userController.getOtpQrCode.controllerFn());
 routes.post('/me/profile/2fa-otp', userController.saveOtpAuthFactor.controllerFn());
 routes.post('/me/profile/2fa/:type/:action', userController.toggleEnableDisableAuthFactor.controllerFn());
 routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controllerFn());
+
+/**
+ * Data History Sync Routes
+ */
+routes.get('/data-sync/pull', checkFeatureFlagAccess('enableSync'), dataSyncController.pull.controllerFn());
+routes.post('/data-sync/push', checkFeatureFlagAccess('enableSync'), dataSyncController.push.controllerFn());
+routes.get('/data-sync/subscribe', checkFeatureFlagAccess('enableSync'), dataSyncController.subscribe.controllerFn());
 
 /**
  * ************************************
