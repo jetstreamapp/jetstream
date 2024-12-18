@@ -83,6 +83,7 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
       handleCellKeydown,
       handleCellContextMenu,
       handleCloseContextMenu,
+      handleRowChange,
     } = useDataTable({
       data,
       columns: _columns,
@@ -130,6 +131,12 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
             onCellContextMenu={handleCellContextMenu}
             {...rest}
+            onRowsChange={(rows, data) => {
+              if (rest.onRowsChange) {
+                handleRowChange(rows, data);
+                rest.onRowsChange(rows as any, data as any);
+              }
+            }}
           />
           {contextMenuProps && contextMenuItems && contextMenuAction && (
             <ContextMenu
