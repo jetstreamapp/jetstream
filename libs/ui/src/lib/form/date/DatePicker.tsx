@@ -10,6 +10,7 @@ import { isSameDay } from 'date-fns/isSameDay';
 import { isValid as isValidDate } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
+import contains from 'document.contains';
 import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import PopoverContainer from '../../popover/PopoverContainer';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
@@ -40,6 +41,7 @@ export interface DatePickerProps {
   inputProps?: React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
   usePortal?: boolean;
   openOnInit?: boolean;
+  trigger?: 'onChange' | 'onBlur';
   onChange: (date: Date | null) => void;
 }
 
@@ -65,6 +67,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   inputProps,
   openOnInit = false,
   usePortal = false,
+  trigger = 'onChange',
   onChange,
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
@@ -115,13 +118,26 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     setValue(value);
     try {
       const currDate = parseISO(value);
-      if (isValidDate(currDate)) {
+      if (isValidDate(currDate) && trigger === 'onChange') {
         setSelectedDate(currDate);
       } // else invalid date
     } catch (ex) {
       // invalid date
     }
-    if (value === '') {
+    if (value === '' && trigger === 'onChange') {
+      onChange(null);
+    }
+  }
+
+  function handleBlur(event: ChangeEvent<HTMLInputElement>) {
+    if (trigger !== 'onBlur' || contains(popoverRef, event.target)) {
+      return;
+    }
+    const currDate = parseISO(value);
+    if (isValidDate(currDate) && selectedDate && !isSameDay(currDate, selectedDate)) {
+      setSelectedDate(currDate);
+    }
+    if (value === '' && selectedDate) {
       onChange(null);
     }
   }
@@ -183,6 +199,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             className="slds-input"
             value={value}
             onChange={onValueChange}
+            onBlur={handleBlur}
             readOnly={readOnly}
             onClick={() => {
               if (!isOpen) {
@@ -206,7 +223,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
           </button>
         </div>
-        <div className="slds-form-element__help">mm/dd/yyyy</div>
+        <div className="slds-assistive-text slds-form-element__help">yyyy-mm-dd</div>
         <PopoverContainer
           ref={setPopoverRef}
           isOpen={isOpen}
