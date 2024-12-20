@@ -253,6 +253,7 @@ export function DataTableEditorDate<TRow extends { _idx: number }, TSummaryRow>(
         initialSelectedDate={currDate}
         openOnInit
         inputProps={{ autoFocus: true }}
+        trigger="onBlur"
         onChange={(value) => {
           /** setTimeout is used to avoid a React error about flushSync being called during a render */
           setTimeout(() => {
