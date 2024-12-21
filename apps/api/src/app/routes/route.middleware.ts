@@ -62,7 +62,7 @@ export function notFoundMiddleware(req: express.Request, res: express.Response, 
 export function blockBotByUserAgentMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userAgent = req.get('User-Agent');
   if (userAgent?.toLocaleLowerCase().includes('python')) {
-    logger.debug(
+    (res.log || logger).debug(
       {
         blocked: true,
         method: req.method,
@@ -129,7 +129,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
       req.log.error(`[AUTH][UNAUTHORIZED] User-Agent mismatch: ${req.session.userAgent} !== ${userAgent}`);
       req.session.destroy((err) => {
         if (err) {
-          logger.error({ ...getExceptionLog(err) }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
+          (res.log || logger).error({ ...getExceptionLog(err) }, '[AUTH][UNAUTHORIZED][ERROR] Error destroying session');
         }
         // TODO: Send email to user about potential suspicious activity
         next(new AuthenticationError('Unauthorized'));
@@ -322,7 +322,7 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
       if (res.success) {
         return next();
       }
-      logger.warn({ token, res }, '[CAPTCHA][FAILED]');
+      (res.log || logger).warn({ token, res }, '[CAPTCHA][FAILED]');
       throw new InvalidCaptcha();
     })
     .catch(() => {

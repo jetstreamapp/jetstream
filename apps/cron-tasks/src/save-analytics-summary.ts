@@ -1,7 +1,7 @@
-import { getExceptionLog } from '@jetstream/api-config';
 import { prisma } from './config/db.config';
 import { logger } from './config/logger.config';
 import { getAmplitudeChart } from './utils/amplitude-dashboard-api';
+import { getExceptionLog } from './utils/utils';
 
 const CHART_IDS = {
   LOAD: {
