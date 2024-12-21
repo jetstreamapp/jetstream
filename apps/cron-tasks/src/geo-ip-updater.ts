@@ -92,7 +92,7 @@ async function importCSVToTable(csvPath: string, tableName: string, schema: stri
 
     logger.info(`Successfully imported ${csvPath} to ${fullTableName}`);
   } catch (error) {
-    logger.error(`Error importing ${csvPath}:`, error);
+    logger.error(getExceptionLog(error), `Error importing ${csvPath}: %s`, error.message);
     // Cleanup temp table if it exists
     await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "DROP TABLE IF EXISTS ${fullTempTableName}"`).catch(() => {
       // Ignore errors
