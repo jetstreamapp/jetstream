@@ -23,11 +23,11 @@ export const pgPool = new Pool({
 pgPool.on('connect', (client) => {
   // logger.info('[DB][POOL] Connected');
   client.on('error', (err) => {
-    logger.error(getExceptionLog, '[DB][CLIENT][ERROR] Unexpected error on client');
+    logger.error(getExceptionLog(err), '[DB][CLIENT][ERROR] Unexpected error on client');
   });
 });
 
 pgPool.on('error', (err, client) => {
-  logger.error(getExceptionLog, '[DB][POOL][ERROR] Unexpected error on idle client');
+  logger.error(getExceptionLog(err), '[DB][POOL][ERROR] Unexpected error on idle client');
   process.exit(-1);
 });
