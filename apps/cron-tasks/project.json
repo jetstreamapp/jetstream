@@ -14,6 +14,10 @@
           {
             "entryName": "save-analytics-summary",
             "entryPath": "apps/cron-tasks/src/save-analytics-summary.ts"
+          },
+          {
+            "entryName": "geo-ip-updater",
+            "entryPath": "apps/cron-tasks/src/geo-ip-updater.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
