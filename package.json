@@ -18,6 +18,7 @@
     "start": "nx serve",
     "start:api": "nx serve api",
     "start:geo-ip-api": "nx serve geo-ip-api",
+    "start:geo-ip-api:prod": "node dist/apps/geo-ip-api/main.js",
     "start:worker": "nx serve jetstream-worker",
     "start:landing": "nx dev landing",
     "start:docs": "cd apps/docs && yarn start",
