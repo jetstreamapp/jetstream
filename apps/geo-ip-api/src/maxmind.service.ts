@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/api-config';
 import fs from 'fs';
-import maxMind, { CityResponse, Reader } from 'maxmind';
+import maxMind, { AsnResponse, CityResponse, Reader } from 'maxmind';
 import path from 'path';
 import * as tar from 'tar';
 import { promisify } from 'util';
@@ -10,8 +10,9 @@ const writeFileAsync = promisify(fs.writeFile);
 const statAsync = promisify(fs.stat);
 const mkdirAsync = promisify(fs.mkdir);
 
-// const ASN_URL = 'https://download.maxmind.com/geoip/databases/GeoLite2-ASN/download?suffix=tar.gz';
-// const ASN_FILENAME = 'GeoLite2-ASN.tar.gz';
+const ASN_URL = 'https://download.maxmind.com/geoip/databases/GeoLite2-ASN/download?suffix=tar.gz';
+const ASN_FILENAME = 'GeoLite2-ASN.tar.gz';
+const ASN_DB_FILENAME = 'GeoLite2-ASN.mmdb';
 
 const FOLDER_NAME = 'downloads';
 const CITY_URL = 'https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz';
@@ -19,17 +20,23 @@ const CITY_ZIP_FILENAME = 'GeoLite2-City.tar.gz';
 const CITY_DB_FILENAME = 'GeoLite2-City.mmdb';
 
 const downloads = [
-  // { url: ASN_URL, filename: ASN_FILENAME },
-  { url: CITY_URL, archiveFilename: CITY_ZIP_FILENAME, dbFileName: CITY_DB_FILENAME, defaultLookup: true },
+  { url: ASN_URL, archiveFilename: ASN_FILENAME, dbFileName: ASN_DB_FILENAME },
+  { url: CITY_URL, archiveFilename: CITY_ZIP_FILENAME, dbFileName: CITY_DB_FILENAME },
 ];
 
-let lookup: Reader<CityResponse>;
+let lookupAsn: Reader<AsnResponse>;
+let lookupCity: Reader<CityResponse>;
 
 export async function initMaxMind(rootDir: string, force = false) {
-  if (force || !lookup) {
+  if (force || !lookupAsn) {
+    const filePath = path.join(rootDir, FOLDER_NAME, ASN_DB_FILENAME);
+    logger.info(`Initializing ASN database: ${filePath}`);
+    lookupAsn = await maxMind.open<AsnResponse>(filePath);
+  }
+  if (force || !lookupCity) {
     const filePath = path.join(rootDir, FOLDER_NAME, CITY_DB_FILENAME);
-    logger.info(`Initializing database: ${filePath}`);
-    lookup = await maxMind.open<CityResponse>(filePath);
+    logger.info(`Initializing CITY database: ${filePath}`);
+    lookupCity = await maxMind.open<CityResponse>(filePath);
   }
 }
 
@@ -42,7 +49,7 @@ export async function downloadMaxMindDb(rootDir: string): Promise<void> {
     await mkdirAsync(downloadFolderPath, { recursive: true });
   }
 
-  for (const { defaultLookup, archiveFilename, url } of downloads) {
+  for (const { archiveFilename, url } of downloads) {
     const archiveFilePath = path.join(downloadFolderPath, archiveFilename);
 
     // Check if file needs to be downloaded
@@ -84,43 +91,42 @@ export async function downloadMaxMindDb(rootDir: string): Promise<void> {
       filter: (path) => path.endsWith('.mmdb'),
       strip: 1, // Remove the first directory component from paths
     });
-
-    if (defaultLookup) {
-      initMaxMind(downloadFolderPath, true);
-    }
   }
+  await initMaxMind(rootDir, true);
 }
 
 export function lookupIpAddress(ipAddress: string) {
-  if (!lookup) {
+  if (!lookupAsn || !lookupCity) {
     throw new Error('MaxMind DB not initialized');
   }
 
-  const results = lookup.get(ipAddress);
-  if (!results) {
-    return null;
+  const asnResults = lookupAsn.get(ipAddress);
+  const cityResults = lookupCity.get(ipAddress);
+  if (!cityResults) {
+    return {
+      query: ipAddress,
+      status: 'fail',
+    };
   }
+
   return {
-    city: results.city?.names?.en ?? null,
-    country: results.country?.names?.en ?? null,
-    countryISO: results.country?.iso_code ?? null,
-    isEU: !!results.country?.is_in_european_union,
-    continent: results.continent?.names?.en ?? null,
-    location: results.location ?? null,
-    postalCode: results.postal?.code ?? null,
-    registeredCountry: results.registered_country
-      ? {
-          country: results.registered_country.names.en,
-          iso: results.registered_country.iso_code,
-          isEU: !!results.registered_country.is_in_european_union,
-        }
-      : null,
-    subdivisions:
-      results.subdivisions?.map((item) => ({
-        name: item.names.en,
-        iso: item.iso_code,
-      })) ?? [],
-    foo: results.traits,
+    query: ipAddress,
+    status: 'success',
+    continent: cityResults.continent?.names?.en ?? null,
+    continentCode: cityResults.continent?.code ?? null,
+    country: cityResults.country?.names?.en ?? null,
+    countryCode: cityResults.country?.iso_code ?? null,
+    region: cityResults.subdivisions?.[0]?.iso_code ?? null,
+    regionName: cityResults.subdivisions?.[0]?.names?.en ?? null,
+    city: cityResults.city?.names?.en ?? null,
+    zip: cityResults.postal?.code ?? null,
+    lat: cityResults.location?.latitude ?? null,
+    lon: cityResults.location?.longitude ?? null,
+    timezone: cityResults.location?.time_zone ?? null,
+    isEU: !!cityResults.country?.is_in_european_union,
+    isp: cityResults.traits?.isp ?? null,
+    org: cityResults.traits?.organization ?? asnResults?.autonomous_system_organization ?? null,
+    proxy: cityResults.traits?.is_anonymous_proxy ?? false,
   };
 }
 

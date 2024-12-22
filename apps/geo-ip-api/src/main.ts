@@ -107,7 +107,7 @@ app.post(
         return {
           ipAddress,
           isValid,
-          results: isValid ? lookupIpAddress(ipAddress) : null,
+          ...(isValid ? lookupIpAddress(ipAddress) : null),
         };
       });
 
