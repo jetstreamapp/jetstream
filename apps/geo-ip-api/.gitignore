@@ -1,0 +1,2 @@
+src/downloads/*
+!src/downloads/.gitkeep

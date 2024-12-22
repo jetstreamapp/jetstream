@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import type { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
@@ -15,6 +15,15 @@ try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
 } catch (ex) {
   // ignore errors
+}
+
+function ensureBoolean(value: Maybe<string | boolean>): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  } else if (typeof value === 'string') {
+    return value.toLowerCase().startsWith('t');
+  }
+  return false;
 }
 
 /**
@@ -192,6 +201,11 @@ const envSchema = z.object({
    */
   HONEYCOMB_ENABLED: booleanSchema,
   HONEYCOMB_API_KEY: z.string().optional(),
+  /**
+   * GEO-IP API (private service basic auth)
+   */
+  GEO_IP_API_USERNAME: z.string().nullish(),
+  GEO_IP_API_PASSWORD: z.string().nullish(),
 });
 
 const parseResults = envSchema.safeParse({

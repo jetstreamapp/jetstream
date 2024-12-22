@@ -1,0 +1,72 @@
+{
+  "name": "geo-ip-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/geo-ip-api/src",
+  "projectType": "application",
+  "tags": ["scope:server"],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "format": ["cjs"],
+        "bundle": true,
+        "outputPath": "dist/apps/geo-ip-api",
+        "main": "apps/geo-ip-api/src/main.ts",
+        "tsConfig": "apps/geo-ip-api/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/geo-ip-api/src/downloads",
+            "output": "downloads",
+            "ignore": [".gitkeep"]
+          }
+        ],
+        "generatePackageJson": true,
+        "sourcemap": true,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
+      },
+      "configurations": {
+        "development": {
+          "inspect": true
+        },
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "geo-ip-api:build",
+        "inspect": "inspect",
+        "port": 7778
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "geo-ip-api:build:development"
+        },
+        "production": {
+          "buildTarget": "geo-ip-api:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/geo-ip-api/jest.config.ts"
+      }
+    }
+  }
+}
