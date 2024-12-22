@@ -206,6 +206,7 @@ const envSchema = z.object({
    */
   GEO_IP_API_USERNAME: z.string().nullish(),
   GEO_IP_API_PASSWORD: z.string().nullish(),
+  GEO_IP_API_HOSTNAME: z.string().nullish(),
 });
 
 const parseResults = envSchema.safeParse({
