@@ -283,21 +283,31 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
     );
 
   // Fetch location data and add to each session
-  if (!omitLocationData && ENV.IP_API_KEY && sessions.length > 0) {
+  if (!omitLocationData && sessions.length > 0) {
     try {
+      let response: Awaited<ReturnType<typeof fetch>> | null = null;
       const ipAddresses = sessions.map((session) => session.ipAddress);
+      if (ENV.IP_API_SERVICE === 'LOCAL' && ENV.GEO_IP_API_USERNAME && ENV.GEO_IP_API_PASSWORD && ENV.GEO_IP_API_HOSTNAME) {
+        response = await fetch(`${ENV.GEO_IP_API_HOSTNAME}/api/lookup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${Buffer.from(`${ENV.GEO_IP_API_USERNAME}:${ENV.GEO_IP_API_PASSWORD}`, 'utf-8').toString('base64')}`,
+          },
+          body: JSON.stringify({ ips: ipAddresses }),
+        });
+      } else if (ENV.IP_API_KEY) {
+        const params = new URLSearchParams({
+          fields: 'status,country,countryCode,region,regionName,city,isp,query',
+          key: ENV.IP_API_KEY,
+        });
 
-      const params = new URLSearchParams({
-        fields: 'status,country,countryCode,region,regionName,city,isp,query',
-        key: ENV.IP_API_KEY,
-      });
-
-      const response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {
-        method: 'POST',
-        body: JSON.stringify(ipAddresses),
-      });
-
-      if (response.ok) {
+        response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {
+          method: 'POST',
+          body: JSON.stringify(ipAddresses),
+        });
+      }
+      if (response?.ok) {
         const locations = (await response.json()) as SessionIpData[];
         return sessions.map(
           (session, i): UserSessionWithLocation => ({

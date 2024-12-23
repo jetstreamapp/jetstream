@@ -8,6 +8,9 @@ import { logger } from './config/logger.config';
 import { getExceptionLog } from './utils/utils';
 
 /**
+
+NOTICE: this is no longer used in production as put too much strain on the database server
+
 CREATE TABLE IF NOT EXISTS geo_ip.network (
 	network cidr NOT NULL,
 	geoname_id int,

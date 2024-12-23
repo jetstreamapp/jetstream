@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import type { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
@@ -15,6 +15,15 @@ try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
 } catch (ex) {
   // ignore errors
+}
+
+function ensureBoolean(value: Maybe<string | boolean>): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  } else if (typeof value === 'string') {
+    return value.toLowerCase().startsWith('t');
+  }
+  return false;
 }
 
 /**
@@ -101,6 +110,7 @@ const envSchema = z.object({
   CAPTCHA_SECRET_KEY: z.string().optional(),
   CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
+  IP_API_SERVICE: z.enum(['IP-API', 'LOCAL']).optional().describe('API Key used to get location information from IP address'),
   VERSION: z.string().optional(),
   ROLLBAR_SERVER_TOKEN: z.string().optional(),
 
@@ -192,6 +202,12 @@ const envSchema = z.object({
    */
   HONEYCOMB_ENABLED: booleanSchema,
   HONEYCOMB_API_KEY: z.string().optional(),
+  /**
+   * GEO-IP API (private service basic auth)
+   */
+  GEO_IP_API_USERNAME: z.string().optional(),
+  GEO_IP_API_PASSWORD: z.string().optional(),
+  GEO_IP_API_HOSTNAME: z.string().optional(),
 });
 
 const parseResults = envSchema.safeParse({

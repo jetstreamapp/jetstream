@@ -106,13 +106,13 @@ export interface SessionData {
 
 export interface SessionIpSuccess {
   status: 'success';
-  country: string;
-  countryCode: string;
-  region: string;
-  regionName: string;
-  city: string;
-  isp: string;
-  query: string;
+  country: string | null;
+  countryCode: string | null;
+  region: string | null;
+  regionName: string | null;
+  city: string | null;
+  isp: string | null;
+  query: string | null;
 }
 
 export interface SessionIpFail {
