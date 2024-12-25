@@ -7961,10 +7961,10 @@
     argparse "~1.0.9"
     string-argv "~0.3.1"
 
-"@salesforce-ux/design-system@^2.25.1":
-  version "2.25.1"
-  resolved "https://registry.yarnpkg.com/@salesforce-ux/design-system/-/design-system-2.25.1.tgz#d3a0ff4d921e5797cec45acb1046a1693c300521"
-  integrity sha512-/JYek+By+FgX6vq7K1I7K1yIXxtMvsCcxa1lkxgYxCMXn0ax3EEgMQriIZCOR6zIY3wsiaBu88T4pXRzn6Eolw==
+"@salesforce-ux/design-system@^2.25.6":
+  version "2.25.6"
+  resolved "https://registry.yarnpkg.com/@salesforce-ux/design-system/-/design-system-2.25.6.tgz#6bae06098fb5ac448c14c408c4a1aa6a9e7fd822"
+  integrity sha512-RLuBzdiJEj2tALWPoSAhskf/P2l+UjMMHgxoG2qtuZ09pCNnGTiet+xaM8qIorZcEZ+UR8+uJt7LLYBWv7o1Zw==
 
 "@selderee/plugin-htmlparser2@^0.11.0":
   version "0.11.0"
