@@ -29,6 +29,8 @@ import {
 import { ensureAuthError, verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY } from './auth.service';
 import { hashPassword, verifyPassword } from './auth.utils';
 
+const REMEMBER_DEVICE_DAYS = 60;
+
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
   id: true,
   userId: true,
@@ -121,33 +123,39 @@ export async function createRememberDevice({
       deviceId,
       ipAddress,
       userAgent,
-      expiresAt: addDays(new Date(), 30),
+      expiresAt: addDays(new Date(), REMEMBER_DEVICE_DAYS),
     },
   });
 }
 
 export async function hasRememberDeviceRecord({
   deviceId,
-  ipAddress,
   userId,
   userAgent = null,
 }: {
   userId: string;
   deviceId: string;
-  ipAddress: string;
   userAgent?: Maybe<string>;
 }) {
   try {
-    const matchingRecords = await prisma.rememberedDevice.count({
+    const matchingRecords = await prisma.rememberedDevice.findFirst({
+      select: { id: true },
       where: {
         userId,
         deviceId,
-        ipAddress,
         userAgent,
         expiresAt: { gte: new Date() },
       },
     });
-    return matchingRecords > 0;
+    // update expiration date if record exists
+    if (matchingRecords) {
+      await prisma.rememberedDevice.update({
+        select: { id: true },
+        data: { expiresAt: addDays(new Date(), REMEMBER_DEVICE_DAYS) },
+        where: { id: matchingRecords.id },
+      });
+    }
+    return !!matchingRecords;
   } catch (ex) {
     logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error checking for remember device record');
     return false;

@@ -138,9 +138,6 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     }
   }
 
-  // TODO: consider adding a check for IP address - but should allow some buffer in case people change networks
-  // especially if the ip addresses are very far away
-
   if (user && !pendingVerification) {
     telemetryAddUserToAttributes(user);
     return next();
