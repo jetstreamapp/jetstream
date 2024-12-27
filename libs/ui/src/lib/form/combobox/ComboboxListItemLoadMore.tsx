@@ -1,7 +1,6 @@
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import Spinner from '../../widgets/Spinner';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ComboboxListItemLoadMoreProps {}
 
 export const ComboboxListItemLoadMore: FunctionComponent<ComboboxListItemLoadMoreProps> = () => {

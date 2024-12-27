@@ -3,11 +3,11 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/browser-worker-utils/src",
   "projectType": "library",
+  "tags": ["scope:worker"],
   "targets": {
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"]
     }
-  },
-  "tags": ["scope:worker"]
+  }
 }

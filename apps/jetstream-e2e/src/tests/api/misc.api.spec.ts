@@ -17,7 +17,6 @@ test.describe('API - Misc', () => {
     );
 
     expect(file).toBeTruthy();
-    file;
   });
 
   test('Request - POST', async ({ apiRequestUtils }) => {

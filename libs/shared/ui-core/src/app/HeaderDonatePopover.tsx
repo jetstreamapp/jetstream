@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { useEffect, useRef } from 'react';
-import { useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude } from '../analytics';
 
 export const HeaderDonatePopover = () => {
   const { trackEvent } = useAmplitude();

@@ -1,8 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { text } from '@storybook/addon-knobs';
-import Icon from 'libs/ui/src/lib/widgets/Icon';
 import { cloneDeep } from 'lodash';
-import React from 'react';
+import Icon from '../widgets/Icon';
 import Tree, { TreeItems } from './Tree';
 
 export default {

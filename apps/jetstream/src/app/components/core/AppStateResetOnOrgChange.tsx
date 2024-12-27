@@ -11,10 +11,7 @@ import {
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AppStateResetOnOrgChangeProps {}
-
-export const AppStateResetOnOrgChange: FunctionComponent<AppStateResetOnOrgChangeProps> = () => {
+export const AppStateResetOnOrgChange = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 

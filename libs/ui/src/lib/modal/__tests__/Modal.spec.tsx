@@ -16,7 +16,9 @@ describe(' Modal', () => {
             </Fragment>
           }
           directionalFooter={false}
-          onClose={() => {}}
+          onClose={() => {
+            // do nothing
+          }}
         >
           Test Content
         </Modal>

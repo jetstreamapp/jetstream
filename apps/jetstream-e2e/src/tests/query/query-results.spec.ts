@@ -6,7 +6,8 @@ test.beforeEach(async ({ page }) => {
 
 test.describe.configure({ mode: 'parallel' });
 
-test.describe('QUERY RESULTS', async () => {
+test.describe('QUERY RESULTS', () => {
+  // eslint-disable-next-line playwright/expect-expect
   test('should work', async ({ queryPage }) => {
     const query = `SELECT Id, BillingAddress, CreatedBy.Id, CreatedBy.Name, CreatedBy.IsActive, Type FROM Account`;
     await queryPage.gotoResults(query);
@@ -25,7 +26,7 @@ test.describe('QUERY RESULTS', async () => {
     await queryPage.waitForQueryResults(query1);
 
     await queryPage.performQueryHistoryAction(query1, 'EXECUTE');
-    await expect(page.url()).toContain('/query/results');
+    expect(page.url()).toContain('/query/results');
     await queryPage.waitForQueryResults(query1);
 
     const query2 = `SELECT Id, Name FROM Contact`;
@@ -33,7 +34,7 @@ test.describe('QUERY RESULTS', async () => {
     await queryPage.waitForQueryResults(query2);
 
     await queryPage.performQueryHistoryAction(query2, 'EXECUTE');
-    await expect(page.url()).toContain('/query/results');
+    expect(page.url()).toContain('/query/results');
     await queryPage.waitForQueryResults(query2);
 
     const query3 = `SELECT Id, Name, IsActive FROM Product2`;
@@ -41,7 +42,7 @@ test.describe('QUERY RESULTS', async () => {
     await queryPage.waitForQueryResults(query3);
 
     await queryPage.performQueryHistoryAction(query3, 'EXECUTE');
-    await expect(page.url()).toContain('/query/results');
+    expect(page.url()).toContain('/query/results');
     await queryPage.waitForQueryResults(query3);
   });
 
@@ -54,7 +55,7 @@ test.describe('QUERY RESULTS', async () => {
     // FIXME: this query intermittently does not show up in query history
     const query2 = `SELECT Id, Name, (SELECT Id, Name, AccountId, Email FROM Contacts) FROM Account`;
     await queryPage.gotoResults(query2);
-    await expect(page.url()).toContain('/query/results');
+    expect(page.url()).toContain('/query/results');
     await queryPage.waitForQueryResults(query2);
 
     // const query3 = `SELECT Id, Name, IsActive FROM Product2`;
@@ -63,7 +64,7 @@ test.describe('QUERY RESULTS', async () => {
     // await queryPage.waitForQueryResults(query3);
 
     await queryPage.performQueryHistoryAction(query2, 'RESTORE');
-    await page.getByTestId('query-builder-page').getByText('Query Records');
+    page.getByTestId('query-builder-page').getByText('Query Records');
 
     await queryPage.validateQueryByLine([
       'SELECT Id, Name',

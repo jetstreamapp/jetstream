@@ -1,6 +1,6 @@
-import { Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
+import Icon from '../widgets/Icon';
 
 const DOCS_BASE_PATH = 'https://docs.getjetstream.app';
 

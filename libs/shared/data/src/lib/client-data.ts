@@ -333,7 +333,9 @@ export async function describeSObject(
         if (!item.relationshipName || !acc.previouslySeenRelationships.has(item.relationshipName)) {
           acc.childRelationships.push(item);
         }
-        item.relationshipName && acc.previouslySeenRelationships.add(item.relationshipName);
+        if (item.relationshipName) {
+          acc.previouslySeenRelationships.add(item.relationshipName);
+        }
         return acc;
       },
       {

@@ -4,7 +4,6 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { Card, FeedbackLink, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useRef } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface FeedbackFormProps {}
 
 export const FeedbackForm: FunctionComponent<FeedbackFormProps> = () => {

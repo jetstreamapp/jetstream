@@ -87,7 +87,7 @@ export interface UiSection {
   title: string | ReactNode;
   titleSummaryIfCollapsed?: Maybe<string | ReactNode>; // extra title content to show if collapsed
   titleText?: Maybe<string>; // use if title is not a string
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   content: React.ReactNode | Function; // => React.ReactNode
   disabled?: Maybe<boolean>;
   className?: Maybe<string>;
