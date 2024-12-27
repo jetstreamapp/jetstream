@@ -3,6 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/ui-record-form/src",
   "projectType": "library",
+  "tags": ["scope:shared"],
   "generators": {},
   "targets": {
     "lint": {
@@ -40,6 +41,5 @@
       },
       "outputs": ["{options.outputDir}"]
     }
-  },
-  "tags": ["scope:shared"]
+  }
 }

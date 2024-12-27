@@ -3,6 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/node-utils/src",
   "projectType": "library",
+  "tags": ["scope:server"],
   "generators": {},
   "targets": {
     "lint": {
@@ -15,6 +16,5 @@
       },
       "outputs": ["{workspaceRoot}/coverage/libs/shared/node-utils"]
     }
-  },
-  "tags": ["scope:server"]
+  }
 }
