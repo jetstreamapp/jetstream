@@ -14,24 +14,24 @@ test.describe('Auth Page Navigation', () => {
     await authenticationPage.goToSignUp();
 
     await page.waitForURL(authenticationPage.routes.signup());
-    await expect(page.url()).toContain(authenticationPage.routes.signup());
+    expect(page.url()).toContain(authenticationPage.routes.signup());
     await authenticationPage.signInFromFormLink.click();
 
     await page.waitForURL(authenticationPage.routes.login());
-    await expect(page.url()).toContain(authenticationPage.routes.login());
+    expect(page.url()).toContain(authenticationPage.routes.login());
     await authenticationPage.signUpFromFormLink.click();
     await page.waitForURL(authenticationPage.routes.signup());
-    await expect(page.url()).toContain(authenticationPage.routes.signup());
+    expect(page.url()).toContain(authenticationPage.routes.signup());
     await authenticationPage.forgotPasswordLink.click();
     await page.waitForURL(authenticationPage.routes.passwordReset());
-    await expect(page.url()).toContain(authenticationPage.routes.passwordReset());
+    expect(page.url()).toContain(authenticationPage.routes.passwordReset());
     await authenticationPage.loginPageFromPasswordReset.click();
     await page.waitForURL(authenticationPage.routes.login());
-    await expect(page.url()).toContain(authenticationPage.routes.login());
+    expect(page.url()).toContain(authenticationPage.routes.login());
 
     await authenticationPage.goToLogin();
     await page.waitForURL(authenticationPage.routes.login());
-    await expect(page.url()).toContain(authenticationPage.routes.login());
+    expect(page.url()).toContain(authenticationPage.routes.login());
   });
 
   test('Should not be able to go to password reset form without proper URL parameters', async ({ page, authenticationPage }) => {
@@ -47,7 +47,7 @@ test.describe('Auth Page Navigation', () => {
   test('Should not be able to go to mfa page without verification session', async ({ page, authenticationPage }) => {
     await authenticationPage.goToMfaVerify();
     await page.waitForURL(authenticationPage.routes.login(true));
-    await expect(page.url()).toContain(authenticationPage.routes.login());
+    expect(page.url()).toContain(authenticationPage.routes.login());
   });
 });
 
@@ -145,22 +145,22 @@ test.describe('Auth Form Validation', () => {
     await expect(page.getByText('Passwords do not match')).toBeVisible();
   });
 
-  test('Test showing and hiding password', async ({ page, authenticationPage }) => {
+  test('showing and hiding password', async ({ page, authenticationPage }) => {
     const PASSWORD = 'pwd';
     await authenticationPage.fillOutLoginForm('email@test.com', PASSWORD);
 
-    let typeAttribute = await authenticationPage.passwordInput.getAttribute('type');
-    await expect(typeAttribute).toEqual('password');
+    let typeAttribute = authenticationPage.passwordInput;
+    await expect(typeAttribute).toHaveAttribute('type', 'password');
     await expect(authenticationPage.passwordInput).toHaveValue(PASSWORD);
 
     await authenticationPage.showHidePasswordButton.click();
-    typeAttribute = await authenticationPage.passwordInput.getAttribute('type');
-    await expect(typeAttribute).toEqual('text');
+    typeAttribute = authenticationPage.passwordInput;
+    await expect(typeAttribute).toHaveAttribute('type', 'text');
     await expect(authenticationPage.passwordInput).toHaveValue(PASSWORD);
 
     await authenticationPage.showHidePasswordButton.click();
-    typeAttribute = await authenticationPage.passwordInput.getAttribute('type');
-    await expect(typeAttribute).toEqual('password');
+    typeAttribute = authenticationPage.passwordInput;
+    await expect(typeAttribute).toHaveAttribute('type', 'password');
     await expect(authenticationPage.passwordInput).toHaveValue(PASSWORD);
   });
 });

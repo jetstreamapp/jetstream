@@ -1,9 +1,9 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { Maybe } from '@jetstream/types';
-import { useNonInitialEffect } from 'libs/shared/ui-utils/src/lib/hooks/useNonInitialEffect';
-import { useRollbar } from 'libs/shared/ui-utils/src/lib/hooks/useRollbar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getUseInjectScript } from './useInjectScript';
+import { useNonInitialEffect } from './useNonInitialEffect';
+import { useRollbar } from './useRollbar';
 
 const useInjectScript = getUseInjectScript('https://accounts.google.com/gsi/client');
 
@@ -38,7 +38,7 @@ export interface GoogleApiData {
   apiConfig: ApiConfig;
   authorized: boolean;
   authResponse: Maybe<gapi.auth2.AuthResponse>;
-  error?: string;
+  error?: Maybe<string>;
   gapiAuthInstance: gapi.auth2.GoogleAuth;
   hasApisLoaded: boolean;
   hasInitialized: boolean;

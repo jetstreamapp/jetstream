@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, isEnterKey } from '@jetstream/shared/ui-utils';
 import {

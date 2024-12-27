@@ -81,7 +81,7 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
           let content = item.content;
           if (isFunction(item.content)) {
             if (isOpen) {
-              // eslint-disable-next-line @typescript-eslint/ban-types
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
               content = (content as Function)();
             } else {
               content = '';

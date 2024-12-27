@@ -3,6 +3,6 @@ import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-s
 // this is to avoid circular dependency
 import './main.scss';
 
-let modalRoot = document.createElement('div');
+const modalRoot = document.createElement('div');
 modalRoot.setAttribute('id', 'modal-root');
-document.querySelector('body').appendChild(modalRoot);
+document.querySelector('body')?.appendChild(modalRoot);
