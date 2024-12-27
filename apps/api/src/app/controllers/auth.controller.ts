@@ -739,9 +739,7 @@ const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, 
 
     const { code } = query;
 
-    const pendingVerification = req.session.pendingVerification.find(({ type }) => {
-      type === 'email';
-    });
+    const pendingVerification = req.session.pendingVerification.find(({ type }) => type === 'email');
 
     if (!pendingVerification) {
       throw new InvalidSession('Missing pending verification');
