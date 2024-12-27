@@ -223,7 +223,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
             {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
           </button>
         </div>
-        <div className="slds-assistive-text slds-form-element__help">yyyy-mm-dd</div>
+        <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
         <PopoverContainer
           ref={setPopoverRef}
           isOpen={isOpen}
