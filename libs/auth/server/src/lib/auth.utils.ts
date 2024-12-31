@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import * as Bowser from 'bowser';
 
 const TIME_15_MIN = 60 * 15;
-const TIME_30_DAYS = 30 * 24 * 60 * 60;
+const TIME_90_DAYS = 90 * 24 * 60 * 60;
 
 export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
   const cookiePrefix = useSecureCookies ? '__Secure-' : '';
@@ -95,7 +95,8 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         sameSite: 'lax',
         path: '/',
         secure: useSecureCookies,
-        maxAge: TIME_30_DAYS,
+        // The time in the database is 60 days and refreshes every time the user logs in
+        maxAge: TIME_90_DAYS,
       },
     },
   } as const;
