@@ -52,17 +52,31 @@ export const AppHome = () => {
     <div
       className="slds-m-top_small"
       css={css`
+        min-width: 300px;
         max-width: calc(33em * 3);
+        overflow-x: auto;
         margin-left: auto;
         margin-right: auto;
+
+        @media (max-width: 768px) {
+          max-width: 100%;
+        }
       `}
     >
       <div
         css={css`
           display: grid;
           gap: 1em;
-          grid-template-columns: repeat(auto-fit, minmax(5em, 30em));
+          grid-template-columns: repeat(3, minmax(5em, 30em));
           justify-content: center;
+
+          @media (max-width: 1024px) {
+            grid-template-columns: repeat(2, minmax(5em, 30em));
+          }
+
+          @media (max-width: 768px) {
+            grid-template-columns: repeat(1, minmax(5em, 30em));
+          }
         `}
       >
         <div
@@ -70,6 +84,14 @@ export const AppHome = () => {
           css={css`
             background-color: white;
             grid-column: span 3;
+
+            @media (max-width: 1024px) {
+              grid-column: span 2;
+            }
+
+            @media (max-width: 768px) {
+              grid-column: span 1;
+            }
           `}
         >
           <article className="slds-tile slds-media">
