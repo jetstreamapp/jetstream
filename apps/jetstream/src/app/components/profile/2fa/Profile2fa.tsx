@@ -37,7 +37,7 @@ export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, on
       `}
     >
       {!has2faEnabled && (
-        <ScopedNotification theme="warning" className="slds-m-vertical_medium">
+        <ScopedNotification theme="warning" className="slds-m-around_medium">
           You don't have two-factor authentication enabled. Enable it to add an extra layer of security to your account.
         </ScopedNotification>
       )}

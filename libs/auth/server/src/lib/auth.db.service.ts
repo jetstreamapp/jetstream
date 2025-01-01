@@ -296,9 +296,23 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
           },
           body: JSON.stringify({ ips: ipAddresses }),
         });
+        if (response?.ok) {
+          const locations = (await response.json()) as
+            | { success: true; results: SessionIpData[] }
+            | { success: false; message: string; details?: string };
+
+          if (locations.success) {
+            return sessions.map(
+              (session, i): UserSessionWithLocation => ({
+                ...session,
+                location: locations.results[i],
+              })
+            );
+          }
+        }
       } else if (ENV.IP_API_KEY) {
         const params = new URLSearchParams({
-          fields: 'status,country,countryCode,region,regionName,city,isp,query',
+          fields: 'status,country,countryCode,region,regionName,city,isp,lat,lon,query',
           key: ENV.IP_API_KEY,
         });
 
@@ -306,15 +320,15 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
           method: 'POST',
           body: JSON.stringify(ipAddresses),
         });
-      }
-      if (response?.ok) {
-        const locations = (await response.json()) as SessionIpData[];
-        return sessions.map(
-          (session, i): UserSessionWithLocation => ({
-            ...session,
-            location: locations[i],
-          })
-        );
+        if (response?.ok) {
+          const locations = (await response.json()) as SessionIpData[];
+          return sessions.map(
+            (session, i): UserSessionWithLocation => ({
+              ...session,
+              location: locations[i],
+            })
+          );
+        }
       }
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');

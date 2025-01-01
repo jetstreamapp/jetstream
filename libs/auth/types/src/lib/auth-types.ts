@@ -112,6 +112,8 @@ export interface SessionIpSuccess {
   regionName: string | null;
   city: string | null;
   isp: string | null;
+  lat: number | null;
+  lon: number | null;
   query: string | null;
 }
 
