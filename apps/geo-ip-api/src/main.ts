@@ -127,19 +127,20 @@ app.use('*', (req, res, next) => {
 });
 
 app.use((err: Error | ZodError, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  res.log.error('Unhandled error:', err);
-
-  if (!res.statusCode) {
-    res.status(500);
-  }
+  res.log.error({ ...getExceptionLog(err) }, 'Unhandled error');
 
   if (err instanceof ZodError) {
+    res.status(400);
     res.json({
       success: false,
       message: 'Validation error',
       details: err.errors,
     });
     return;
+  }
+
+  if (!res.statusCode || res.statusCode < 400) {
+    res.status(500);
   }
 
   res.json({
@@ -153,6 +154,7 @@ const port = Number(process.env.PORT || 3334);
 const server = app.listen(port, () => {
   logger.info(`Listening at http://localhost:${port}/api`);
 });
+
 server.on('error', (error) => {
   logger.error(getExceptionLog(error, true), 'Server error: %s', error.message);
 });
