@@ -13,11 +13,11 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner, getModifierKey } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { applicationCookieState, selectedOrgState } from '../state-management/app-state';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 
 type RecentRecordMap = Record<string, RecentRecord[]>;

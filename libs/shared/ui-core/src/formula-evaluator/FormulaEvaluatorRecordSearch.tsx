@@ -3,10 +3,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, query } from '@jetstream/shared/data';
 import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { ViewEditCloneRecord } from '../record/ViewEditCloneRecord';
-import { applicationCookieState } from '../state-management/app-state';
 
 export interface FormulaEvaluatorRecordSearchProps {
   selectedOrg: SalesforceOrgUi;

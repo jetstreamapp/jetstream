@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect } from 'react';
@@ -41,7 +42,7 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
       <p>Oops. It appears that we ran into an unexpected error. The Jetstream team has been notified of the error.</p>
       <p>
         You can also{' '}
-        <Link to="/feedback" target="_blank">
+        <Link to={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE}>
           submit a bug report
           <Icon
             type="utility"

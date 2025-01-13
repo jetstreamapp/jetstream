@@ -42,6 +42,7 @@ import {
   transformEditForm,
   validateEditForm,
 } from '@jetstream/ui-core/shared';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import Editor from '@monaco-editor/react';
 import isNumber from 'lodash/isNumber';
@@ -50,7 +51,6 @@ import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState }
 import { useRecoilState } from 'recoil';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
-import { applicationCookieState } from '../state-management/app-state';
 import { ViewChildRecords } from './ViewChildRecords';
 
 const CHILD_RELATIONSHIP_BLOCK_LIST = new Set<string>([

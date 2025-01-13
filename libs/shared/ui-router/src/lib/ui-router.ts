@@ -21,6 +21,7 @@ type RouteKey =
 
 interface RouteItem {
   ROUTE: string;
+  SEARCH_PARAM: string | undefined;
   DOCS?: string;
   TITLE: string;
   DESCRIPTION: string;
@@ -29,116 +30,135 @@ interface RouteItem {
 
 type RouteMap = Record<RouteKey, RouteItem>;
 
+function getRoutePath(path: string): Pick<RouteItem, 'ROUTE' | 'SEARCH_PARAM'> {
+  /**
+   * In order for chrome extension pages to be able to be opened in a new tab
+   * we provide placeholder pages for all routes with extension so we can redirect back to app
+   */
+  if (globalThis.__IS_CHROME_EXTENSION__) {
+    const searchParams = new URLSearchParams(globalThis?.location?.search);
+    searchParams.set('url', path);
+    return {
+      ROUTE: `${path}.html`,
+      SEARCH_PARAM: searchParams.toString(),
+    };
+  }
+  return {
+    ROUTE: path,
+    SEARCH_PARAM: undefined,
+  };
+}
+
 export const APP_ROUTES: RouteMap = {
   HOME: {
-    ROUTE: '/home',
+    ...getRoutePath('/home'),
     TITLE: 'Home',
     DESCRIPTION: 'Welcome to Jetstream',
   },
   ORGANIZATIONS: {
-    ROUTE: '/organizations',
+    ...getRoutePath('/organizations'),
     DOCS: 'https://docs.getjetstream.app/organizations',
     TITLE: 'Organizations',
     DESCRIPTION: 'Setup organizations to group Salesforce Orgs',
     NEW_UNTIL: new Date(2024, 11, 31, 23, 59, 59).getTime(), // October 31, 2024
   },
   QUERY: {
-    ROUTE: '/query',
+    ...getRoutePath('/query'),
     DOCS: 'https://docs.getjetstream.app/query',
     TITLE: 'Query Records',
     DESCRIPTION: 'Explore your object and fields and work with records',
   },
   LOAD: {
-    ROUTE: '/load',
+    ...getRoutePath('/load'),
     DOCS: 'https://docs.getjetstream.app/load',
     TITLE: 'Load Records',
     DESCRIPTION: 'Load records from a file',
   },
   LOAD_MULTIPLE: {
-    ROUTE: '/load-multiple-objects',
+    ...getRoutePath('/load-multiple-objects'),
     DOCS: 'https://docs.getjetstream.app/load/with-related',
     TITLE: 'Load Records to Multiple Objects',
     DESCRIPTION: 'Load related records for one or more objects',
   },
   LOAD_MASS_UPDATE: {
-    ROUTE: '/update-records',
+    ...getRoutePath('/update-records'),
     DOCS: 'https://docs.getjetstream.app/load/update-records',
     TITLE: 'Update Records Without a File',
     DESCRIPTION: 'Update records based on specified criteria',
   },
   AUTOMATION_CONTROL: {
-    ROUTE: '/automation-control',
+    ...getRoutePath('/automation-control'),
     DOCS: 'https://docs.getjetstream.app/automation-control',
     TITLE: 'Automation Control',
     DESCRIPTION: 'Turn on/off Flows, Process Builders, Triggers, Validation Rules, Workflow Rules',
   },
   PERMISSION_MANAGER: {
-    ROUTE: '/permissions-manager',
+    ...getRoutePath('/permissions-manager'),
     DOCS: 'https://docs.getjetstream.app/permissions',
     TITLE: 'Manage Permissions',
     DESCRIPTION: 'View and update object and field permissions',
   },
   DEPLOY_METADATA: {
-    ROUTE: '/deploy-metadata',
+    ...getRoutePath('/deploy-metadata'),
     DOCS: 'https://docs.getjetstream.app/deploy-metadata',
     TITLE: 'Deploy and Compare Metadata',
     DESCRIPTION: 'Move metadata between orgs, compare metadata between orgs, import/export metadata',
   },
   CREATE_FIELDS: {
-    ROUTE: '/create-fields',
+    ...getRoutePath('/create-fields'),
     DOCS: 'https://docs.getjetstream.app/deploy-fields',
     TITLE: 'Create Object and Fields',
     DESCRIPTION: 'Create and update fields in bulk',
   },
   FORMULA_EVALUATOR: {
-    ROUTE: '/formula-evaluator',
+    ...getRoutePath('/formula-evaluator'),
     DOCS: 'https://docs.getjetstream.app/deploy/formula-evaluator',
     TITLE: 'Formula Evaluator',
     DESCRIPTION: 'Create and test formulas',
     NEW_UNTIL: new Date(2023, 3, 15, 23, 59, 59).getTime(), // April 15, 2023
   },
   ANON_APEX: {
-    ROUTE: '/apex',
+    ...getRoutePath('/apex'),
     DOCS: 'https://docs.getjetstream.app/developer/anonymous-apex',
     TITLE: 'Anonymous Apex',
     DESCRIPTION: 'Write and execute anonymous Apex',
   },
   DEBUG_LOG_VIEWER: {
-    ROUTE: '/debug-logs',
+    ...getRoutePath('/debug-logs'),
     DOCS: 'https://docs.getjetstream.app/developer/debug-logs',
     TITLE: 'View Debug Logs',
     DESCRIPTION: 'Subscribe to and view debug logs',
   },
   OBJECT_EXPORT: {
-    ROUTE: '/object-export',
+    ...getRoutePath('/object-export'),
     DOCS: 'https://docs.getjetstream.app/developer/export-object-metadata',
     TITLE: 'Export Object Metadata',
     DESCRIPTION: 'Export object and field metadata',
   },
   SALESFORCE_API: {
-    ROUTE: '/salesforce-api',
+    ...getRoutePath('/salesforce-api'),
     DOCS: 'https://docs.getjetstream.app/developer/salesforce-api',
     TITLE: 'Salesforce API',
     DESCRIPTION: 'Interact with the Salesforce API',
   },
   PLATFORM_EVENT_MONITOR: {
-    ROUTE: '/platform-event-monitor',
+    ...getRoutePath('/platform-event-monitor'),
     DOCS: 'https://docs.getjetstream.app/developer/platform-events',
     TITLE: 'Platform Events',
     DESCRIPTION: 'Subscribe to and publish Platform Events',
   },
   FEEDBACK_SUPPORT: {
-    ROUTE: '/feedback',
+    ...getRoutePath('/feedback'),
     TITLE: 'Feedback and Support',
     DESCRIPTION: 'Report bugs and request features',
   },
   PROFILE: {
-    ROUTE: '/profile',
+    ...getRoutePath('/profile'),
     TITLE: 'Profile',
     DESCRIPTION: 'Update your user profile',
   },
   SETTINGS: {
-    ROUTE: '/settings',
+    ...getRoutePath('/settings'),
     TITLE: 'User Settings',
     DESCRIPTION: 'Update your user settings',
   },

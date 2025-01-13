@@ -1,10 +1,10 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { useAmplitude } from '@jetstream/ui-core';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeleteMetadataConfigModal from './DeleteMetadataConfigModal';
 import DeleteMetadataStatusModal from './DeleteMetadataStatusModal';

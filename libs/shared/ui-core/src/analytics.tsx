@@ -1,12 +1,12 @@
 /// <reference types="vite/client" />
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
+import { fromAppState } from '@jetstream/ui/app-state';
 import amplitude, { Config } from 'amplitude-js';
 import isBoolean from 'lodash/isBoolean';
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
-import { fromAppState } from '.';
 
 let amplitudeToken = '';
 

@@ -30,7 +30,8 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import { applicationCookieState, fromQueryHistoryState, fromQueryState, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { fromQueryHistoryState, fromQueryState, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';

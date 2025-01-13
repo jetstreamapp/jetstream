@@ -1,6 +1,5 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
-  fromAppState,
   fromAutomationControlState,
   fromDeployMetadataState,
   fromFormulaState,
@@ -8,7 +7,8 @@ import {
   fromPermissionsState,
   fromQueryState,
 } from '@jetstream/ui-core';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { fromAppState } from '@jetstream/ui/app-state';
+import { useEffect, useState } from 'react';
 import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
 
 export const AppStateResetOnOrgChange = () => {

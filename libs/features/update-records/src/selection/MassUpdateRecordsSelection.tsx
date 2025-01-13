@@ -11,7 +11,8 @@ import {
   PageHeaderTitle,
   Tooltip,
 } from '@jetstream/ui';
-import { filterMassUpdateSobject, selectedOrgState } from '@jetstream/ui-core';
+import { filterMassUpdateSobject } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';

@@ -12,7 +12,8 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileFauxDownloadModal } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilState } from 'recoil';

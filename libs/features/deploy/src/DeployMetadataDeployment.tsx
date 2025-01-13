@@ -17,7 +17,8 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import { applicationCookieState, fromDeployMetadataState, fromJetstreamEvents, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';

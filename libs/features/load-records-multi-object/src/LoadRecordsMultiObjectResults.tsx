@@ -2,7 +2,8 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import LoadRecordsMultiObjectResultsTable from './LoadRecordsMultiObjectResultsTable';
@@ -26,7 +27,7 @@ export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiOb
   loadFinished,
   onLoadStarted,
 }) => {
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(fromAppState.applicationCookieState);
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
   const [numGroups, setNumGroups] = useState(0);
   const [totalRecordCount, setTotalRecordCount] = useState(0);

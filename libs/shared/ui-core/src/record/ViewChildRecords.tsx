@@ -19,12 +19,12 @@ import {
   Tooltip,
   setColumnFromType,
 } from '@jetstream/ui';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 
 function getRowId(row: SalesforceRecord<ChildRecordRow>): string {
   return `${row.Id}-${row._idx}`;

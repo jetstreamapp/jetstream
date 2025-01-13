@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, PopoverRef, SalesforceLogin, Spinner } from '@jetstream/ui';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { FunctionComponent, useRef } from 'react';
 import { useRecoilValue } from 'recoil';
 

@@ -6,7 +6,6 @@ import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs
 import {
   ConfirmPageChange,
   FieldValues,
-  applicationCookieState,
   fromJetstreamEvents,
   getInitialValues,
   getSecondaryTypeFromType,
@@ -14,6 +13,7 @@ import {
   useAmplitude,
   useCreateFields,
 } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import FormulaEvaluatorDeploySummary from './FormulaEvaluatorDeploySummary';

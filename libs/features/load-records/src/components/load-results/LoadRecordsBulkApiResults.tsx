@@ -44,12 +44,11 @@ import {
 import {
   LoadRecordsBulkApiResultsTable,
   LoadRecordsResultsModal,
-  applicationCookieState,
   fromJetstreamEvents,
   getFieldHeaderFromMapping,
-  selectSkipFrontdoorAuth,
   useAmplitude,
 } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { loadBulkApiData, prepareData } from '../../utils/load-records-process';

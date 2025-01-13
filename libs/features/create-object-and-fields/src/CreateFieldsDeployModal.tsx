@@ -6,12 +6,12 @@ import { Checkbox, ConfirmationModalPromise, FileDownloadModal, Grid, Icon, Moda
 import {
   ConfirmPageChange,
   FieldValues,
-  applicationCookieState,
   fromJetstreamEvents,
   prepareDownloadResultsFile,
   useAmplitude,
   useCreateFields,
 } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';

@@ -4,7 +4,7 @@ import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import { getChromeExtensionVersion, getOrgType, isChromeExtension, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
-import {
+import type {
   Announcement,
   ApplicationCookie,
   JetstreamOrganization,

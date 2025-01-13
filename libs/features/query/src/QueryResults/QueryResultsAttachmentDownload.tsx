@@ -150,9 +150,16 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>
                 Cancel
               </button>
-              <a href={downloadAttachmentUrl || ''} className="slds-button slds-button_brand" onClick={() => handleModalClose()}>
-                Download
-              </a>
+              {!downloadAttachmentUrl && (
+                <button className="slds-button slds-button_brand" disabled>
+                  Download
+                </button>
+              )}
+              {downloadAttachmentUrl && (
+                <a href={downloadAttachmentUrl || ''} className="slds-button slds-button_brand" onClick={() => handleModalClose()}>
+                  Download
+                </a>
+              )}
             </Fragment>
           }
         >

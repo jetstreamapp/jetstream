@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Badge, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { APP_ROUTES } from './app-routes';
 
 const HOME_ITEMS = [
   {
@@ -119,7 +119,10 @@ export const AppHome = () => {
                   </Badge>
                 )}
               </h3>
-              <Link to={APP_ROUTES.ORGANIZATIONS.ROUTE} className="slds-text-heading_x-small">
+              <Link
+                to={{ pathname: APP_ROUTES.ORGANIZATIONS.ROUTE, search: APP_ROUTES.ORGANIZATIONS.SEARCH_PARAM }}
+                className="slds-text-heading_x-small"
+              >
                 Manage Organizations
               </Link>
               <p>Group your Salesforce Orgs within an Organization so that you can isolate which orgs you are working with.</p>
@@ -171,7 +174,7 @@ export const AppHome = () => {
                 </h3>
                 <div className="slds-tile__detail slds-p-bottom_small">
                   <dl className="slds-list_vertical slds-wrap">
-                    {card.items.map(({ DESCRIPTION, ROUTE, TITLE, DOCS, NEW_UNTIL }) => (
+                    {card.items.map(({ DESCRIPTION, ROUTE, SEARCH_PARAM, TITLE, DOCS, NEW_UNTIL }) => (
                       <Fragment key={ROUTE}>
                         <dt
                           className="slds-item_label slds-text-color_weak slds-truncate slds-p-top_small"
@@ -179,7 +182,7 @@ export const AppHome = () => {
                             line-height: 1.2rem;
                           `}
                         >
-                          <Link to={ROUTE} className="slds-text-heading_small">
+                          <Link to={{ pathname: ROUTE, search: SEARCH_PARAM }} className="slds-text-heading_small">
                             {TITLE}
                           </Link>
                           {NEW_UNTIL && NEW_UNTIL >= CURRENT_TIME && (

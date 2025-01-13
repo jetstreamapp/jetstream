@@ -17,7 +17,8 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { ConfirmPageChange, fromAppState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
