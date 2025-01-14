@@ -47,6 +47,7 @@
       "@jetstream/shared/data": ["libs/shared/data/src/index.ts"],
       "@jetstream/shared/data-table": ["libs/shared/data/src/index.ts"],
       "@jetstream/shared/node-utils": ["libs/shared/node-utils/src/index.ts"],
+      "@jetstream/shared/ui-router": ["libs/shared/ui-router/src/index.ts"],
       "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
       "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
       "@jetstream/splitjs": ["libs/splitjs/src/index.ts"],
@@ -54,7 +55,7 @@
       "@jetstream/ui": ["libs/ui/src/index.ts"],
       "@jetstream/ui-core": ["libs/shared/ui-core/src/index.ts"],
       "@jetstream/ui-core/shared": ["libs/shared/ui-core-shared/src/index.ts"],
-      "@jetstream/web-extension-utils": ["libs/web-extension-utils/src/index.ts"],
+      "@jetstream/ui/app-state": ["libs/shared/ui-app-state/src/index.ts"],
       "@jetstream/workspace-plugin": ["tools/workspace-plugin/src/index.ts"]
     }
   },

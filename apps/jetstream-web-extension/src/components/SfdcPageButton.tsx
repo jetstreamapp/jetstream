@@ -1,53 +1,62 @@
 /* eslint-disable no-restricted-globals */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { isValidSalesforceRecordId, useInterval } from '@jetstream/shared/ui-utils';
-import { Maybe } from '@jetstream/types';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import type { Maybe } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler } from '@jetstream/ui';
-import { fromAppState, JetstreamIcon, JetstreamLogo } from '@jetstream/ui-core';
-import { sendMessage } from '@jetstream/web-extension-utils';
-import { useEffect, useState } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { fromAppState } from '@jetstream/ui/app-state';
+import { useEffect, useRef, useState } from 'react';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import '../sfdc-styles-shim.scss';
+import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
+import { getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
+import JetstreamIcon from './icons/JetstreamIcon';
+import JetstreamLogo from './icons/JetstreamLogo';
 
-function getRecordPageRecordId() {
-  const pathname = location.pathname;
-  let recordId: string | undefined;
-  if (/\/[a-z0-9_]+\/[a-z0-9]{18}\/view$/i.test(pathname)) {
-    // extract the record id by matching [a-zA-Z0-9]{18}
-    recordId = pathname.match(/[a-zA-Z0-9]{18}/i)?.[0];
-  } else if (/^\/[a-zA-Z0-9]{15}$/.test(pathname)) {
-    recordId = pathname.match(/\/[a-z0-9]{15}$/i)?.[0];
-  }
-  if (isValidSalesforceRecordId(recordId)) {
-    return recordId;
-  }
-  return recordId;
+function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = useRef<() => void>();
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    function tick() {
+      if (savedCallback.current) {
+        savedCallback.current();
+      }
+    }
+
+    if (delay !== null && delay !== undefined) {
+      const id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
 }
 
 const PAGE_LINKS = [
   {
-    link: '/query',
+    link: APP_ROUTES.QUERY.ROUTE,
     label: 'Query Records',
   },
   {
-    link: '/load',
+    link: APP_ROUTES.LOAD.ROUTE,
     label: 'Load Records',
   },
   {
-    link: '/automation-control',
+    link: APP_ROUTES.AUTOMATION_CONTROL.ROUTE,
     label: 'Automation Control',
   },
   {
-    link: '/permissions-manager',
+    link: APP_ROUTES.PERMISSION_MANAGER.ROUTE,
     label: 'Manage Permissions',
   },
   {
-    link: '/deploy-metadata',
-    label: 'Deploy and Compare Metadata',
+    link: APP_ROUTES.DEPLOY_METADATA.ROUTE,
+    label: 'Deploy and View Metadata',
   },
   {
-    link: '/apex',
+    link: APP_ROUTES.ANON_APEX.ROUTE,
     label: 'Anonymous Apex',
   },
 ];
@@ -115,23 +124,34 @@ const ButtonLinkCss = css`
   cursor: pointer;
 `;
 
-export function Button() {
+export function SfdcPageButton() {
+  const options = useRecoilValue(chromeStorageOptions);
+  const { authTokens } = useRecoilValue(chromeSyncStorage);
   const [isOnSalesforcePage] = useState(
     () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('visualforce.com')
   );
-  /**
-   * TODO: Should we make the user sign in instead of using cookies?
-   * increases friction, but more secure
-   */
+
   const [sfHost, setSfHost] = useState<Maybe<string>>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [recordId, setRecordId] = useState(() => getRecordPageRecordId());
+  const [recordId, setRecordId] = useState(() => getRecordPageRecordId(location.pathname));
+
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
 
+  useEffect(() => {
+    try {
+      sendMessage({ message: 'VERIFY_AUTH' }).catch((err) => {
+        logger.error('Error logging in', err);
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+  }, []);
+
   // check to see if the url changed and update the id
   // TODO: figure out if there is a better way to listen for url change events
-  useInterval(() => setRecordId(getRecordPageRecordId), 5000);
+
+  useInterval(() => setRecordId(() => getRecordPageRecordId(location.pathname)), 5000);
 
   useEffect(() => {
     if (isOnSalesforcePage) {
@@ -168,6 +188,10 @@ export function Button() {
         });
     }
   }, [isOnSalesforcePage, setSalesforceOrgs, setSelectedOrgId]);
+
+  if (!options.enabled || !authTokens?.loggedIn) {
+    return null;
+  }
 
   if (!isOnSalesforcePage || !sfHost) {
     return null;
@@ -315,6 +339,17 @@ export function Button() {
                       flex: 1 1 auto;
                     `}
                   >
+                    <p className="slds-text-heading_small slds-text-align_center slds-m-bottom_small">Record Actions</p>
+                  </GridCol>
+                  <GridCol
+                    className="slds-m-bottom_x-small"
+                    css={css`
+                      padding-right: var(--lwc-spacingSmall, 0.75rem);
+                      padding-left: var(--lwc-spacingSmall, 0.75rem);
+                      margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
+                      flex: 1 1 auto;
+                    `}
+                  >
                     <a
                       href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
                       className="slds-button slds-button_neutral slds-button_stretch"
@@ -353,5 +388,3 @@ export function Button() {
     </>
   );
 }
-
-export default Button;

@@ -3,7 +3,7 @@
  * MIT licensed
  */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { Maybe } from '@jetstream/types';
+import type { Maybe } from '@jetstream/types';
 
 // Implement the driver here.
 interface LocalForageDriver {

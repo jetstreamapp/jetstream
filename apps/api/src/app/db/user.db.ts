@@ -1,6 +1,6 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
-import { Prisma, User } from '@prisma/client';
+import { Entitlement, Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
   appMetadata: true,
@@ -13,6 +13,12 @@ const userSelect: Prisma.UserSelect = {
   preferences: {
     select: {
       skipFrontdoorLogin: true,
+    },
+  },
+  entitlements: {
+    select: {
+      recordSync: true,
+      chromeExtension: true,
     },
   },
   updatedAt: true,
@@ -81,6 +87,16 @@ export const findIdByUserId = ({ userId }: { userId: string }) => {
 
 export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
   return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then(({ id }) => id);
+};
+
+export const checkUserEntitlement = ({
+  userId,
+  entitlement,
+}: {
+  userId: string;
+  entitlement: keyof Omit<Entitlement, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
+}): Promise<boolean> => {
+  return prisma.entitlement.count({ where: { userId, [entitlement]: true } }).then((result) => result > 0);
 };
 
 export async function updateUser(

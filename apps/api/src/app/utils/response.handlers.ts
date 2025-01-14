@@ -66,6 +66,12 @@ export function redirect(res: Response, url, status = 302) {
   res.redirect(status, url);
 }
 
+export function sendHtml(res: Response, html: string, status = 200) {
+  setCookieHeaders(res);
+  res.status(status);
+  res.send(html);
+}
+
 export function sendJson<ResponseType = unknown>(res: Response, content?: ResponseType, status = 200) {
   if (res.headersSent) {
     res.log.warn('Response headers already sent');

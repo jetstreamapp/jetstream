@@ -1,6 +1,6 @@
 import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
 import { FetchResponse } from '@jetstream/salesforce-api';
-import { ManualRequestResponse } from '@jetstream/types';
+import type { ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
 import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
 

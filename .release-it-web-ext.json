@@ -16,7 +16,7 @@
   "github": {
     "release": true,
     "releaseName": "Jetstream Web Extension ${version}",
-    "assets": ["dist/jetstream-web-extension-${version}.zip"]
+    "assets": []
   },
   "hooks": {
     "after:bump": [

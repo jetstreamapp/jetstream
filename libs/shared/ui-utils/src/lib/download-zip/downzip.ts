@@ -42,7 +42,8 @@ const CMD_ACTIVE_DOWNLOADS = 'ACTIVE_DOWNLOADS';
 let downzip: DownZip;
 
 export async function getZipDownloadUrl(zipFileName: string, files: DownZipFile[]) {
-  if (!downzip) {
+  // for chrome extensions, we want to re-initialize the DownZip class to reconnect to the service worker since it gets shut down after the first download
+  if (!downzip || globalThis.__IS_CHROME_EXTENSION__) {
     downzip = new DownZip();
     await downzip.register();
   }
@@ -71,7 +72,7 @@ async function registerServiceWorker() {
  * A URL is generated and given to the service worker to listen to, and uses that to know what files to obtain
  */
 class DownZip {
-  private worker: ServiceWorker | null;
+  private worker: ServiceWorker | ReturnType<typeof chrome.runtime.connect> | null;
   private intervalTimers: any[] = [];
   private activeDownloads = new Set();
 
@@ -88,46 +89,77 @@ class DownZip {
       setInterval(async () => {
         // When the download finishes, remove the interval timer
         // since the port is transferred to the worker, it can only be used once unless the worker kept track of it
-        const messageChannel = new MessageChannel();
-        const eventHandler = (event: MessageEvent<any>) => {
-          logger.log('[SW CLIENT][EVENT]', event.data);
-          // when downloads finish, we remove our activeIds that we were tracking
-          if (event.data.command === CMD_ACTIVE_DOWNLOADS) {
-            const activeDownloadIds = new Set(event.data.activeIds);
-            Array.from(this.activeDownloads).forEach((id) => {
-              if (!activeDownloadIds.has(id)) {
-                this.activeDownloads.delete(id);
-              }
-            });
-            if (!this.activeDownloads.size) {
-              logger.log('NO ACTIVE DOWNLOADS');
-              this.intervalTimers.forEach((timer) => clearInterval(timer));
-            }
-            messageChannel.port1.removeEventListener('message', eventHandler);
-            messageChannel.port1.close();
-          }
-        };
-        messageChannel.port1.addEventListener('message', eventHandler);
-        messageChannel.port1.start();
 
-        this.sendMessage('TICK', null, messageChannel.port2);
+        if (globalThis.__IS_CHROME_EXTENSION__) {
+          const port = this.worker as ReturnType<typeof chrome.runtime.connect>;
+          const eventHandler = (event: MessageEvent<any>) => {
+            logger.log('[SW CLIENT][EVENT]', event.data);
+            // when downloads finish, we remove our activeIds that we were tracking
+            if (event.data.command === CMD_ACTIVE_DOWNLOADS) {
+              const activeDownloadIds = new Set(event.data.activeIds);
+              Array.from(this.activeDownloads).forEach((id) => {
+                if (!activeDownloadIds.has(id)) {
+                  this.activeDownloads.delete(id);
+                }
+              });
+              if (!this.activeDownloads.size) {
+                logger.log('NO ACTIVE DOWNLOADS');
+                this.intervalTimers.forEach((timer) => clearInterval(timer));
+              }
+              port.onMessage.removeListener(eventHandler);
+              port.disconnect();
+            }
+          };
+
+          port.onMessage.addListener(eventHandler);
+
+          this.sendMessage('TICK', null);
+        } else {
+          const messageChannel = new MessageChannel();
+          const eventHandler = (event: MessageEvent<any>) => {
+            logger.log('[SW CLIENT][EVENT]', event.data);
+            // when downloads finish, we remove our activeIds that we were tracking
+            if (event.data.command === CMD_ACTIVE_DOWNLOADS) {
+              const activeDownloadIds = new Set(event.data.activeIds);
+              Array.from(this.activeDownloads).forEach((id) => {
+                if (!activeDownloadIds.has(id)) {
+                  this.activeDownloads.delete(id);
+                }
+              });
+              if (!this.activeDownloads.size) {
+                logger.log('NO ACTIVE DOWNLOADS');
+                this.intervalTimers.forEach((timer) => clearInterval(timer));
+              }
+              messageChannel.port1.removeEventListener('message', eventHandler);
+              messageChannel.port1.close();
+            }
+          };
+          messageChannel.port1.addEventListener('message', eventHandler);
+          messageChannel.port1.start();
+
+          this.sendMessage('TICK', null, messageChannel.port2);
+        }
       }, KEEPALIVE_INTERVAL_MS)
     );
   }
 
   async register() {
-    // Register service worker and let it intercept our scope
-    const result = await registerServiceWorker();
-    logger.log('[DownZip] Service worker registered successfully:', result);
-    this.worker = result.installing || result.active;
-    if (this.worker) {
-      this.worker.onerror = (event) => {
-        logger.error('[DownZip][SW ERROR] There was an error with our service worker', {
-          message: event.message,
-          error: event.error,
-          filename: event.filename,
-        });
-      };
+    if (globalThis.__IS_CHROME_EXTENSION__) {
+      this.worker = chrome.runtime.connect();
+    } else {
+      // Register service worker and let it intercept our scope
+      const result = await registerServiceWorker();
+      logger.log('[DownZip] Service worker registered successfully:', result);
+      this.worker = result.installing || result.active;
+      if (this.worker) {
+        this.worker.onerror = (event) => {
+          logger.error('[DownZip][SW ERROR] There was an error with our service worker', {
+            message: event.message,
+            error: event.error,
+            filename: event.filename,
+          });
+        };
+      }
     }
   }
 
@@ -158,9 +190,36 @@ class DownZip {
     const id = uniqueId('download-zip');
 
     this.activeDownloads.add(id);
-    this.keepAlive();
 
     logger.log('Downloading as zip', { id, zipFileName, files });
+
+    if (globalThis.__IS_CHROME_EXTENSION__) {
+      return new Promise((resolve, reject) => {
+        const port = this.worker as ReturnType<typeof chrome.runtime.connect>;
+
+        this.sendMessage('INITIALIZE', { id, files, name: zipFileName });
+
+        port.onMessage.addListener((message) => {
+          if (message.command === CMD_ACKNOWLEDGE) {
+            resolve(`chrome-extension://${chrome.runtime.id}/download-zip/download-${id}`);
+            port.disconnect();
+          }
+        });
+
+        port.onDisconnect.addListener((event) => {
+          logger.error('Port disconnected', event);
+          reject(new Error('Port disconnected'));
+        });
+
+        // Start timeout timer
+        setTimeout(() => {
+          reject(new Error('Timeout'));
+          port.disconnect();
+        }, TIMEOUT_MS);
+      });
+    }
+
+    this.keepAlive();
 
     return new Promise((resolve, reject) => {
       // Return download URL on acknowledge via messageChannel
@@ -176,15 +235,7 @@ class DownZip {
       messageChannel.port1.start();
 
       // Init this task in our service worker
-      this.sendMessage(
-        'INITIALIZE',
-        {
-          id,
-          files,
-          name: zipFileName,
-        },
-        messageChannel.port2
-      );
+      this.sendMessage('INITIALIZE', { id, files, name: zipFileName }, messageChannel.port2);
 
       // Start timeout timer
       setTimeout(reject, TIMEOUT_MS);

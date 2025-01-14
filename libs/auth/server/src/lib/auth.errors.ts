@@ -1,18 +1,20 @@
 type ErrorType =
   | 'AuthError'
-  | 'InvalidCsrfToken'
-  | 'InvalidCredentials'
+  | 'ExpiredVerificationToken'
+  | 'InvalidAccessToken'
   | 'InvalidAction'
+  | 'InvalidCaptcha'
+  | 'InvalidCredentials'
+  | 'InvalidCsrfToken'
+  | 'InvalidOrExpiredResetToken'
   | 'InvalidParameters'
   | 'InvalidProvider'
-  | 'InvalidSession'
-  | 'InvalidCaptcha'
-  | 'InvalidVerificationType'
-  | 'ExpiredVerificationToken'
-  | 'InvalidVerificationToken'
-  | 'InvalidOrExpiredResetToken'
   | 'InvalidRegistration'
-  | 'LoginWithExistingIdentity';
+  | 'InvalidSession'
+  | 'InvalidVerificationToken'
+  | 'InvalidVerificationType'
+  | 'LoginWithExistingIdentity'
+  | 'MissingEntitlement';
 
 type ErrorOptions = Error | Record<string, unknown>;
 
@@ -95,4 +97,12 @@ export class InvalidVerificationToken extends AuthError {
 
 export class InvalidOrExpiredResetToken extends AuthError {
   static type: ErrorType = 'InvalidOrExpiredResetToken';
+}
+
+export class InvalidAccessToken extends AuthError {
+  static type: ErrorType = 'InvalidAccessToken';
+}
+
+export class MissingEntitlement extends AuthError {
+  static type: ErrorType = 'MissingEntitlement';
 }

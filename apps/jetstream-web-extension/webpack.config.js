@@ -20,6 +20,7 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   config.output = {
     filename: '[name].js',
     path: config.output?.path,
+    publicPath: `chrome-extension://${process.env.WEB_EXTENSION_ID}/`,
     clean: true,
   };
   config.resolve = {
@@ -39,15 +40,40 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
       NX_PUBLIC_ROLLBAR_KEY: '',
     }),
     new webpack.DefinePlugin({
-      __IS_CHROME_EXTENSION__: true,
+      'globalThis.__IS_CHROME_EXTENSION__': true,
     }),
     createHtmlPagePlugin('app'),
     createHtmlPagePlugin('popup'),
     createHtmlPagePlugin('options'),
+
+    createHtmlPlaceholderPagePlugin('home'),
+    createHtmlPlaceholderPagePlugin('organizations'),
+    createHtmlPlaceholderPagePlugin('query'),
+    createHtmlPlaceholderPagePlugin('load'),
+    createHtmlPlaceholderPagePlugin('load-multiple-objects'),
+    createHtmlPlaceholderPagePlugin('update-records'),
+    createHtmlPlaceholderPagePlugin('automation-control'),
+    createHtmlPlaceholderPagePlugin('permissions-manager'),
+    createHtmlPlaceholderPagePlugin('deploy-metadata'),
+    createHtmlPlaceholderPagePlugin('create-fields'),
+    createHtmlPlaceholderPagePlugin('formula-evaluator'),
+    createHtmlPlaceholderPagePlugin('apex'),
+    createHtmlPlaceholderPagePlugin('debug-logs'),
+    createHtmlPlaceholderPagePlugin('object-export'),
+    createHtmlPlaceholderPagePlugin('salesforce-api'),
+    createHtmlPlaceholderPagePlugin('platform-event-monitor'),
+    createHtmlPlaceholderPagePlugin('feedback'),
+    createHtmlPlaceholderPagePlugin('profile'),
+    createHtmlPlaceholderPagePlugin('settings'),
     new CopyWebpackPlugin({
       patterns: [
         {
           from: 'src/manifest.json',
+          to: config.output.path,
+          force: true,
+        },
+        {
+          from: 'src/redirect-utils/redirect.js',
           to: config.output.path,
           force: true,
         },
@@ -61,6 +87,16 @@ function createHtmlPagePlugin(moduleName) {
   const filename = `${moduleName.toLowerCase()}.html`;
   return new HtmlWebpackPlugin({
     template: path.join(__dirname, 'src', 'pages', moduleName, filename),
+    filename,
+    chunks: [moduleName.toLowerCase()],
+    cache: false,
+  });
+}
+
+function createHtmlPlaceholderPagePlugin(moduleName) {
+  const filename = `${moduleName.toLowerCase()}.html`;
+  return new HtmlWebpackPlugin({
+    template: path.join(__dirname, 'src/redirect-utils/placeholder-redirect.html'),
     filename,
     chunks: [moduleName.toLowerCase()],
     cache: false,

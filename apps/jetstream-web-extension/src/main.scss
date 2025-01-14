@@ -1,5 +1,14 @@
 @import '@salesforce-ux/design-system/scss/_design-tokens';
 
+// Make react data grid checkbox look sort of like SLDS checkbox
+@layer rdg.rdg-checkbox-input {
+  .rdg-checkbox-input {
+    inline-size: 14px;
+    block-size: 14px;
+    accent-color: #0176d3;
+  }
+}
+
 html {
   background: var(--lwc-brandBackgroundPrimary, rgba(176, 196, 223, 1));
 }
@@ -467,61 +476,27 @@ button.ql-active {
   margin-top: var(--app-top-offset);
 }
 
-.is-electron {
-  .app-container {
-    margin-top: unset;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: var(--app-top-offset);
-    // overflow-x: hidden;
+.spin {
+  -webkit-animation: rotation 1s infinite linear;
+  animation: rotation 1s infinite linear;
+}
+
+@keyframes rotation {
+  from {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
   }
-
-  .slds-modal {
-    top: var(--app-top-offset);
+  to {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
   }
+}
 
-  .global-titlebar {
-    position: absolute;
-    top: env(titlebar-area-y, 0);
-    // height: env(titlebar-area-height, var(--title-bar-height));
-    height: var(--title-bar-height);
-    // width: 100%;
-    width: env(titlebar-area-width, 100%);
-    background-color: var(--app-brand-color);
-
-    .draggable {
-      app-region: drag;
-      /* Pre-fix app-region during standardization process */
-      -webkit-app-region: drag;
-    }
-
-    .non-draggable {
-      app-region: no-drag;
-      /* Pre-fix app-region during standardization process */
-      -webkit-app-region: no-drag;
-    }
-
-    .titlebar {
-      position: absolute;
-      top: 0;
-      display: flex;
-      user-select: none;
-      height: 100%;
-      left: env(titlebar-area-x, 0);
-      width: calc(100vw - 5.5rem);
-    }
-
-    .slds-button.slds-button_icon {
-      color: white;
-      &.slds-button_icon-border-filled {
-        color: $brand-header-icon;
-      }
-    }
+@-webkit-keyframes rotation {
+  from {
+    -webkit-transform: rotate(0deg);
   }
-
-  .electron-navbar {
-    margin-top: var(--title-bar-height);
+  to {
+    -webkit-transform: rotate(359deg);
   }
 }
