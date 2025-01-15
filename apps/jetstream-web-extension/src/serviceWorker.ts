@@ -1,23 +1,210 @@
 /* eslint-disable no-restricted-globals */
 /**
- * This file is based on the Salesforce Inspector extension for Chrome. (MIT license)
+ * Some parts of this file are based on the Salesforce Inspector extension for Chrome. (MIT license)
  * Credit: https://github.com/sorenkrabbe/Chrome-Salesforce-inspector/blob/master/addon/background.js
  */
 /// <reference types="chrome" />
 /// <reference lib="WebWorker" />
-import { logger } from '@jetstream/shared/client-logger';
+import { enableLogger, logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { GetPageUrl, GetSession, GetSfHost, InitOrg, Message, MessageResponse, OrgAndSessionInfo } from '@jetstream/web-extension-utils';
+import { addMinutes } from 'date-fns/addMinutes';
+import { fromUnixTime } from 'date-fns/fromUnixTime';
+import { isAfter } from 'date-fns/isAfter';
+import { jwtDecode } from 'jwt-decode';
+import isNumber from 'lodash/isNumber';
 import { Method } from 'tiny-request-router';
 import { extensionRoutes } from './controllers/extension.routes';
-import { initializeStorageWithDefaults } from './storage';
+import { environment } from './environments/environment';
 import { initApiClient, initApiClientAndOrg } from './utils/api-client';
+import {
+  AUTH_CHECK_INTERVAL_MIN,
+  AuthTokensStorage,
+  eventPayload,
+  ExtIdentifierStorage,
+  GetPageUrl,
+  GetSession,
+  GetSfHost,
+  InitOrg,
+  JwtPayload,
+  Logout,
+  Message,
+  MessageResponse,
+  OrgAndSessionInfo,
+  StorageTypes,
+  storageTypes,
+  VerifyAuth,
+} from './utils/extension.types';
+import './utils/serviceWorker.zip-handler';
+import { handleDownloadZipFiles } from './utils/serviceWorker.zip-handler';
+import { getRecordPageRecordId } from './utils/web-extension.utils';
 
 const ctx: ServiceWorkerGlobalScope = self as any;
 
-console.log('Jetstream Service worker loaded.');
+if (!environment.production) {
+  enableLogger(true);
+}
+
+logger.log('Jetstream Service worker loaded.');
 
 let connections: Record<string, OrgAndSessionInfo> = {};
+
+const storageSyncCache: Partial<StorageTypes> = {};
+const initStorageSyncCache = chrome.storage.sync.get().then((data) => Object.assign(storageSyncCache, data));
+
+const storageSessionCache: Partial<{ connections: Record<string, OrgAndSessionInfo> }> = {};
+const initStorageSessionCache = chrome.storage.session.get().then((data) => {
+  if (data.connections) {
+    connections = data.connections;
+  }
+  Object.assign(storageSessionCache, data);
+});
+
+chrome.runtime.onInstalled.addListener(async () => {
+  logger.log('Jetstream Extension successfully installed!');
+});
+
+chrome.tabs.onActivated.addListener(async (info) => {
+  // ensure connections get initialized on activation
+  if (initStorageSessionCache) {
+    await initStorageSessionCache;
+  }
+});
+
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+    switch (namespace) {
+      case 'sync': {
+        if (storageTypes.authTokens.key === key) {
+          storageSyncCache.authTokens = newValue as AuthTokensStorage['authTokens'];
+        }
+        if (storageTypes.extIdentifier.key === key) {
+          storageSyncCache.extIdentifier = newValue as ExtIdentifierStorage['extIdentifier'];
+        }
+        break;
+      }
+      case 'session': {
+        if (key === 'connections') {
+          storageSessionCache.connections = newValue as Record<string, OrgAndSessionInfo>;
+        }
+        break;
+      }
+    }
+  }
+});
+
+const SALESFORCE_DOMAINS = [
+  'force.com',
+  'salesforce.com',
+  'salesforce-setup.com',
+  'salesforce-sites.com',
+  'lightning.com',
+  'visualforce.com',
+];
+
+/**
+ * Handle keyboard shortcuts
+ */
+chrome.commands.onCommand.addListener(async (command, tab) => {
+  const { url } = tab;
+  if (!url) {
+    return;
+  }
+
+  const pageUrl = new URL(url);
+  if (!SALESFORCE_DOMAINS.some((host) => pageUrl.hostname.endsWith(host))) {
+    return;
+  }
+
+  const recordId = getRecordPageRecordId(pageUrl.pathname);
+  if (command === 'open-view-record-modal' && !recordId) {
+    return;
+  }
+
+  const orgId = await chrome.cookies
+    .get({ url, name: 'sid', storeId: getCookieStoreId({ tab }) })
+    .then((cookie) => cookie?.value?.split('!')?.[0]);
+
+  if (!orgId) {
+    return;
+  }
+  const sfHost = await Promise.all([
+    chrome.cookies.getAll({ name: 'sid', domain: 'salesforce.com', secure: true, storeId: getCookieStoreId({ tab }) }),
+    chrome.cookies.getAll({ name: 'sid', domain: 'cloudforce.com', secure: true, storeId: getCookieStoreId({ tab }) }),
+  ]).then((results) => results.flat().find(({ value }) => value.startsWith(orgId + '!'))?.domain);
+
+  // make sure we have this connection saved
+  const connectionId = Object.keys(connections).find((key) => key.startsWith(orgId));
+  if (!connectionId || !connections[connectionId]) {
+    return;
+  }
+
+  switch (command) {
+    case 'open-jetstream-home-page': {
+      const jetstreamUrl = `${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent('/home.html')}`;
+      chrome.tabs.create({ url: jetstreamUrl });
+      break;
+    }
+    case 'open-view-record-modal': {
+      const jetstreamUrl = `${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`;
+      chrome.tabs.create({ url: jetstreamUrl });
+      break;
+    }
+    default: {
+      return;
+    }
+  }
+});
+
+/**
+ * Handle authentication events from Jetstream server
+ * User is redirected and authenticated on the Jetstream server
+ * and tokens are sent back to the extension and stored in chrome storage
+ */
+chrome.runtime.onMessageExternal.addListener(async (message, sender, sendResponse) => {
+  try {
+    logger.log('Received message from external extension', message);
+    const event = eventPayload.parse(message);
+    switch (event.type) {
+      case 'EXT_IDENTIFIER': {
+        let result = (await chrome.storage.sync.get(storageTypes.extIdentifier.key)) as Partial<ExtIdentifierStorage>;
+        if (!result.extIdentifier) {
+          result = { extIdentifier: { id: crypto.randomUUID() } };
+          await chrome.storage.sync.set(result);
+          storageSyncCache.extIdentifier = result.extIdentifier;
+        }
+        if (!result.extIdentifier?.id) {
+          throw new Error('Could not get or initialize extension identifier');
+        }
+        logger.info('Extension identifier', result.extIdentifier.id);
+        sendResponse({ success: true, data: result.extIdentifier.id });
+        break;
+      }
+      case 'TOKENS': {
+        const { exp, email, name, userId } = jwtDecode<JwtPayload>(event.data.accessToken);
+        const expiresAt = exp ? fromUnixTime(exp) : new Date();
+        const authState = {
+          accessToken: event.data.accessToken,
+          email,
+          name,
+          userId,
+          expiresAt: expiresAt.getTime(),
+          lastChecked: null,
+          loggedIn: true,
+        };
+        await chrome.storage.sync.set({ [storageTypes.authTokens.key]: authState });
+        storageSyncCache.authTokens = authState;
+        sendResponse({ success: true });
+        break;
+      }
+      default: {
+        sendResponse({ success: false, error: 'Unknown message type' });
+      }
+    }
+  } catch (ex) {
+    logger.error('Error handling message', ex);
+    sendResponse({ success: false, error: 'Error handling message' });
+  }
+});
 
 // connections seem to continually get reset
 // and we cannot make async calls in the fetch event listener to get from storage
@@ -27,7 +214,8 @@ setInterval(() => {
 }, 1000);
 
 async function getConnections(): Promise<Record<string, OrgAndSessionInfo>> {
-  const storage = await chrome.storage.local.get(['connections']);
+  // TODO: use zod for types here
+  const storage = await chrome.storage.session.get(['connections']);
   storage.connections = storage.connections || {};
   connections = storage.connections;
   return storage.connections;
@@ -37,19 +225,34 @@ async function setConnection(key: string, data: OrgAndSessionInfo) {
   const _connections = await getConnections();
   _connections[key] = data;
   connections = _connections;
-  await chrome.storage.local.set({ connections });
+  await chrome.storage.session.set({ connections });
 }
-
-chrome.runtime.onInstalled.addListener(async () => {
-  await initializeStorageWithDefaults({});
-  console.log('Jetstream Extension successfully installed!');
-});
 
 chrome.runtime.onMessage.addListener(
   (request: Message['request'], sender: chrome.runtime.MessageSender, sendResponse: (response: MessageResponse) => void) => {
-    console.log('[SW EVENT] onMessage', request);
-    getConnections(); // ensure connections get initialized
+    logger.log('[SW EVENT] onMessage', request);
     switch (request.message) {
+      case 'LOGOUT': {
+        handleLogout(sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
+      case 'VERIFY_AUTH': {
+        if (storageSyncCache.authTokens?.accessToken && !doesAuthNeedToBeChecked(storageSyncCache.authTokens)) {
+          handleResponse({ hasTokens: true, loggedIn: true }, sendResponse);
+          return false; // handle response synchronously
+        }
+        handleVerifyAuth(sender)
+          .then((data) => {
+            chrome.storage.session.set({ authState: data }).catch((err) => {
+              logger.error('Error setting session tokens', err);
+            });
+            handleResponse(data, sendResponse);
+          })
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
       case 'GET_SF_HOST': {
         handleGetSalesforceHostWithApiAccess(request.data, sender)
           .then((data) => handleResponse(data, sendResponse))
@@ -68,14 +271,12 @@ chrome.runtime.onMessage.addListener(
       }
       case 'INIT_ORG': {
         handleInitOrg(request.data, sender)
-          .then((data) => {
-            handleResponse({ org: data.org }, sendResponse);
-          })
+          .then((data) => handleResponse({ org: data.org }, sendResponse))
           .catch(handleError(sendResponse));
         return true; // indicate that sendResponse will be called asynchronously
       }
       default:
-        console.warn(`Unknown message`, request);
+        logger.warn(`Unknown message`, request);
         return false;
     }
   }
@@ -85,11 +286,17 @@ ctx.addEventListener('fetch', (event: FetchEvent) => {
   const url = new URL(event.request.url);
   const { method } = event.request;
   const pathname = url.pathname;
-  if (!url.origin.startsWith('chrome-extension') || !url.pathname.startsWith('/api')) {
+  if (!url.origin.startsWith('chrome-extension') || (!url.pathname.startsWith('/api') && !url.pathname.startsWith('/download-zip'))) {
     return;
   }
 
   logger.debug('[FETCH]', { event });
+
+  if (url.pathname.startsWith('/download-zip')) {
+    handleDownloadZipFiles(url, event, connections);
+    return;
+  }
+
   const route = extensionRoutes.match(method as Method, pathname);
 
   if (!route) {
@@ -139,17 +346,17 @@ ctx.addEventListener('fetch', (event: FetchEvent) => {
  * HELPER FUNCTIONS
  */
 
-function getCookieStoreId(sender: chrome.runtime.MessageSender) {
+function getCookieStoreId(sender?: { tab?: chrome.tabs.Tab }) {
   return (sender?.tab as any)?.cookieStoreId;
 }
 
 const handleResponse = (data: Message['response'], sendResponse: (response: MessageResponse) => void) => {
-  console.log('RESPONSE', data);
+  logger.log('RESPONSE', data);
   sendResponse({ data });
 };
 
 const handleError = (sendResponse: (response: MessageResponse) => void) => (err: unknown) => {
-  console.log('ERROR', err);
+  logger.log('ERROR', err);
   sendResponse({
     data: null,
     error: {
@@ -159,9 +366,110 @@ const handleError = (sendResponse: (response: MessageResponse) => void) => (err:
   });
 };
 
+const doesAuthNeedToBeChecked = (authTokens: AuthTokensStorage['authTokens']): boolean => {
+  if (!authTokens || !authTokens.accessToken || !isNumber(authTokens.lastChecked)) {
+    return true;
+  }
+  return isAfter(new Date(), addMinutes(new Date(authTokens.lastChecked), AUTH_CHECK_INTERVAL_MIN));
+};
+
 /**
  * HANDLERS
  */
+
+/**
+ * Verifies that user is logged in to Jetstream and has access to use the chrome extension
+ */
+async function handleLogout(sender: chrome.runtime.MessageSender): Promise<Logout['response']> {
+  try {
+    await initStorageSyncCache;
+    const { authTokens, extIdentifier } = storageSyncCache;
+
+    if (!authTokens || !extIdentifier) {
+      return { hasTokens: false, loggedIn: false };
+    }
+
+    const results: { success: true } | { success: false; error: string } = await fetch(`${environment.serverUrl}/web-extension/logout`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: authTokens.accessToken, deviceId: extIdentifier.id }),
+    }).then((res) =>
+      res
+        .json()
+        .then(({ data }) => data)
+        .catch(() => ({ success: false, error: 'Invalid response' }))
+    );
+
+    await chrome.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
+      logger.error('Error removing tokens', err);
+    });
+    storageSyncCache.authTokens = undefined;
+
+    if (!results.success) {
+      logger.info('Error logging out', results.error);
+      return { hasTokens: false, loggedIn: false, error: results.error };
+    }
+    return { hasTokens: true, loggedIn: true };
+  } catch (ex) {
+    logger.info('Fatal Error logging out', ex);
+    chrome.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
+      logger.error('Error removing tokens', err);
+    });
+    storageSyncCache.authTokens = undefined;
+    // TODO: should we use a specific error message
+    return { hasTokens: false, loggedIn: false, error: ex.message };
+  }
+}
+
+/**
+ * Verifies that user is logged in to Jetstream and has access to use the chrome extension
+ */
+async function handleVerifyAuth(sender: chrome.runtime.MessageSender): Promise<VerifyAuth['response']> {
+  try {
+    await initStorageSyncCache;
+    const { authTokens, extIdentifier } = storageSyncCache;
+
+    if (!authTokens || !extIdentifier) {
+      return { hasTokens: false, loggedIn: false };
+    }
+
+    // Don't check for auth if we've checked recently
+    if (!doesAuthNeedToBeChecked(authTokens)) {
+      return { hasTokens: true, loggedIn: true };
+    }
+
+    const results: { success: true } | { success: false; error: string } = await fetch(`${environment.serverUrl}/web-extension/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: authTokens.accessToken, deviceId: extIdentifier.id }),
+    }).then((res) =>
+      res
+        .json()
+        .then(({ data }) => data)
+        .catch(() => ({ success: false, error: 'Invalid response' }))
+    );
+
+    if (!results.success) {
+      logger.info('Error verifying tokens', results.error);
+      chrome.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
+        logger.error('Error removing tokens', err);
+      });
+      storageSyncCache.authTokens = undefined;
+      return { hasTokens: true, loggedIn: false, error: results.error };
+    }
+    const syncState = { ...authTokens, loggedIn: true, lastChecked: Date.now() };
+    await chrome.storage.sync.set({ [storageTypes.authTokens.key]: syncState });
+    storageSyncCache.authTokens = syncState;
+    return { hasTokens: true, loggedIn: true };
+  } catch (ex) {
+    logger.info('Fatal Error verifying tokens', ex);
+    chrome.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
+      logger.error('Error removing tokens', err);
+    });
+    storageSyncCache.authTokens = undefined;
+    return { hasTokens: false, loggedIn: false, error: ex.message };
+  }
+}
 
 async function handleGetSalesforceHostWithApiAccess(
   { url }: GetSfHost['request']['data'],

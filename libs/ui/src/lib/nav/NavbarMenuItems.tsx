@@ -16,6 +16,7 @@ interface NabarMenuItemBase {
 
 export interface NabarMenuItemLink extends NabarMenuItemBase {
   path: string;
+  search?: string;
   isExternal?: boolean;
 }
 
@@ -29,6 +30,7 @@ export interface NavbarMenuItemsProps {
   label: string;
   // Optional path for parent item
   path?: string;
+  search?: string;
   items: NabarMenuItem[];
 }
 
@@ -37,7 +39,7 @@ function isLink(item: any): item is NabarMenuItemLink {
   return !!item.path;
 }
 
-export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label, path, items }) => {
+export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label, path, search, items }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const location = useLocation();
   const [isParentActive, setIsParentActive] = useState(false);
@@ -64,7 +66,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
     >
       <OutsideClickHandler onOutsideClick={() => setIsOpen(false)} display="contents">
         {path && (
-          <Link className="slds-context-bar__label-action" title={label} to={{ pathname: path }}>
+          <Link className="slds-context-bar__label-action" title={label} to={{ pathname: path, search }}>
             <span className="slds-truncate" title={label}>
               {label}
             </span>
@@ -126,7 +128,7 @@ export const NavbarMenuItems: FunctionComponent<NavbarMenuItemsProps> = ({ label
                       <Link
                         tabIndex={i === 0 ? 0 : -1}
                         role="menuitemcheckbox"
-                        to={{ pathname: item.path }}
+                        to={{ pathname: item.path, search: item.search }}
                         onClick={() => setIsOpen(false)}
                       >
                         <span className="slds-truncate" title={item.title}>

@@ -1,5 +1,6 @@
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Maybe, UserProfileUi } from '@jetstream/types';
-import { APP_ROUTES, AppHome, OrgSelectionRequired } from '@jetstream/ui-core';
+import { AppHome, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import lazy from './components/core/LazyLoad';
@@ -75,8 +76,6 @@ const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').the
 const PlatformEventMonitor = lazy(() =>
   import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
 );
-
-const Feedback = lazy(() => import('./components/feedback/Feedback'));
 const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 

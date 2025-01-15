@@ -52,4 +52,6 @@ export const SIGN_IN_ERRORS = {
   LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
   InvalidRegistration: 'This email is already registered. If you already have an account, please log in or reset your password.',
   InvalidOrExpiredResetToken: 'Your reset token is invalid, please restart the reset process.',
+  InvalidAccessToken: 'Your session is invalid, please sign in again.',
+  MissingEntitlement: `You are not permitted to access this feature.`,
 };

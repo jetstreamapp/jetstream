@@ -3,10 +3,11 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { addOrg } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
+import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { fromAppState, useAmplitude } from '..';
+import { useAmplitude } from '..';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';
 

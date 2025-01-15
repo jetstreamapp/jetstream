@@ -18,13 +18,13 @@ import {
   WorkerMessage,
 } from '@jetstream/types';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useRef } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { fromJetstreamEvents } from '../jetstream-events';
-import { applicationCookieState } from '../state-management/app-state';
 import Job from './Job';
 import JobPlaceholder from './JobPlaceholder';
 import { jobsState, jobsUnreadState, selectActiveJobCount, selectJobs } from './jobs.state';

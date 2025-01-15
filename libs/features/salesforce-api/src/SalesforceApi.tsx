@@ -7,7 +7,8 @@ import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/u
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
-import { applicationCookieState, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import SalesforceApiRequest from './SalesforceApiRequest';

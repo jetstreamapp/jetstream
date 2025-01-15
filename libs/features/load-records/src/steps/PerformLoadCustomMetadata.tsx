@@ -17,14 +17,13 @@ import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, Salesforc
 import {
   ConfirmPageChange,
   LoadRecordsResultsModal,
-  applicationCookieState,
   convertCsvToCustomMetadata,
   fromJetstreamEvents,
   prepareCustomMetadata,
-  selectSkipFrontdoorAuth,
   useAmplitude,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';

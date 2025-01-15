@@ -33,6 +33,8 @@ model User {
   lastLoggedIn        DateTime?
   createdAt           DateTime                @default(now()) @db.Timestamp(6)
   updatedAt           DateTime                @updatedAt
+  webExtensionTokens  WebExtensionToken[]
+  entitlements        Entitlement?
 }
 
 model AuthFactors {
@@ -58,6 +60,39 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([email, token])
+}
+
+model Entitlement {
+  id              String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String  @unique @db.Uuid
+  recordSync      Boolean @default(false)
+  chromeExtension Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("entitlement")
+}
+
+model WebExtensionToken {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  token     String
+  deviceId  String   @unique
+  ipAddress String
+  userAgent String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, userId, deviceId])
+  @@unique([type, token, deviceId])
+  @@map("web_extension_token")
 }
 
 model RememberedDevice {

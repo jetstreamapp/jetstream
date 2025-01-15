@@ -25,13 +25,8 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
-import {
-  LoadRecordsResultsModal,
-  applicationCookieState,
-  fromJetstreamEvents,
-  getFieldHeaderFromMapping,
-  useAmplitude,
-} from '@jetstream/ui-core';
+import { LoadRecordsResultsModal, fromJetstreamEvents, getFieldHeaderFromMapping, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { loadBatchApiData, prepareData } from '../../utils/load-records-process';

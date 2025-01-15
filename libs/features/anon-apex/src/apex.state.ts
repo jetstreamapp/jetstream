@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, INDEXED_DB } from '@jetstream/shared/constants';
 import { groupByFlat, hashString, pluralizeFromNumber, truncate } from '@jetstream/shared/utils';
 import { ApexHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { selectedOrgState } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';

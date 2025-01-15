@@ -37,14 +37,8 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import {
-  ConfirmPageChange,
-  RequireMetadataApiBanner,
-  applicationCookieState,
-  fromJetstreamEvents,
-  fromPermissionsState,
-  selectedOrgState,
-} from '@jetstream/ui-core';
+import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';

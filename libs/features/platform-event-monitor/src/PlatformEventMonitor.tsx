@@ -4,7 +4,8 @@ import { isChromeExtension, useNonInitialEffect, useTitle } from '@jetstream/sha
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';

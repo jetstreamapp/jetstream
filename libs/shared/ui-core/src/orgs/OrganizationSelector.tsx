@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { JetstreamOrganization, Maybe } from '@jetstream/types';
@@ -90,7 +91,10 @@ const OrganizationPopover = ({
       }
       footer={
         <footer className="slds-popover__footer">
-          <Link to="/organizations" onClick={() => popoverRef?.current?.close()}>
+          <Link
+            to={{ pathname: APP_ROUTES.ORGANIZATIONS.ROUTE, search: APP_ROUTES.ORGANIZATIONS.SEARCH_PARAM }}
+            onClick={() => popoverRef?.current?.close()}
+          >
             Manage Organizations
           </Link>
         </footer>

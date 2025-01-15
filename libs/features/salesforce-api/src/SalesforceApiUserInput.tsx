@@ -1,7 +1,7 @@
 import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
 import { HttpMethod, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input } from '@jetstream/ui';
-import { applicationCookieState } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { FunctionComponent, KeyboardEvent } from 'react';
 import { useRecoilState } from 'recoil';
 

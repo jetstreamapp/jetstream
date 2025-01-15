@@ -5,7 +5,8 @@ import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/u
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
-import { OrgLabelBadge, OrgsCombobox, salesforceOrgsState } from '@jetstream/ui-core';
+import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
+import { salesforceOrgsState } from '@jetstream/ui/app-state';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';

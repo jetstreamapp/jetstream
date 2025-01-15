@@ -29,13 +29,12 @@ import {
   FormulaEvaluatorRecordSearch,
   FormulaEvaluatorResults,
   FormulaEvaluatorUserSearch,
-  applicationCookieState,
   fromFormulaState,
   getFormulaData,
   registerCompletions,
-  selectedOrgState,
   useAmplitude,
 } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
 import type { editor } from 'monaco-editor';

@@ -1,12 +1,15 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { UserProfileUi } from '@jetstream/types';
-import { AppLoading, fromAppState } from '@jetstream/ui-core';
-import { sendMessage } from '@jetstream/web-extension-utils';
+import { AppLoading } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
 
 const args = new URLSearchParams(location.search.slice(1));
@@ -23,6 +26,7 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
+  const location = useLocation();
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
 
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
@@ -30,6 +34,13 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
   const selectedOrg = useRecoilValue(fromAppState.selectedOrgState);
 
   const [fatalError, setFatalError] = useState<string>();
+
+  useNonInitialEffect(() => {
+    const pageUrl = new URL(window.location.href);
+    const searchParams = pageUrl.searchParams;
+    searchParams.set('url', location.pathname);
+    history.pushState(null, '', pageUrl);
+  }, [location.pathname]);
 
   useEffect(() => {
     (async () => {

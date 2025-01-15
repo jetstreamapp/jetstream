@@ -21,7 +21,8 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { applicationCookieState, selectedOrgState, selectedOrgType, useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';

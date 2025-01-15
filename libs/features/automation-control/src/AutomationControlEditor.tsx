@@ -26,15 +26,8 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import {
-  RequireMetadataApiBanner,
-  applicationCookieState,
-  fromAutomationControlState,
-  fromJetstreamEvents,
-  selectSkipFrontdoorAuth,
-  selectedOrgState,
-  useAmplitude,
-} from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';

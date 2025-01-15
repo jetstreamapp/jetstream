@@ -23,6 +23,7 @@ import {
   platformEventRoutes,
   staticAuthenticatedRoutes,
   testRoutes,
+  webExtensionRoutes,
   webhookRoutes,
 } from './app/routes';
 import {
@@ -214,6 +215,29 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   app.use(httpLogger);
 
+  // Handle CORS for web extension routes
+  if (ENV.WEB_EXTENSION_ID) {
+    app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+      }
+      next();
+    });
+
+    app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+        res.sendStatus(200);
+        return;
+      }
+      next();
+    });
+  }
+
   // proxy must be provided prior to body parser to ensure streaming response
   if (ENV.ENVIRONMENT === 'development') {
     app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -289,6 +313,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/api', apiRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
+  app.use('/web-extension', webExtensionRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);

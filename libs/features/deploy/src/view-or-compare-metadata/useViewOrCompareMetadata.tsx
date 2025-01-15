@@ -3,7 +3,7 @@ import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollb
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
-import { applicationCookieState } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
 import { useCallback, useEffect, useReducer, useRef } from 'react';

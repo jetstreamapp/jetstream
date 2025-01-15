@@ -1,8 +1,9 @@
 import { css } from '@emotion/react';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Grid } from '@jetstream/ui';
 import { FunctionComponent, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import * as fromApexState from './apex.state';
 
 const PREV_APEX_KEY = '_prev_';
@@ -50,7 +51,7 @@ export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> 
         `}
       >
         <Link
-          to="/debug-logs"
+          to={{ pathname: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE, search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM }}
           title="View debugs logs - If your anonymous apex initiated a background process, such as a batch job, you can view the logs on the debug log page."
         >
           View Debug Logs

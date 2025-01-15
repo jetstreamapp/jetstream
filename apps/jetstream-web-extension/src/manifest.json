@@ -3,14 +3,23 @@
   "description": "Jetstream is a set of tools that supercharge your administration of Salesforce.com.",
   "version": "0.0.1",
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmPjyzVG3Kpm0wyjDECyDLnwPlyEhlNmfzcPVybZz9gFKiHTm0qEuUYqGqOSAOWE6KnOR8RbiNkyrROGeEbGmhZIXxS02yKPTpJsA4qflKtTUGoeT7XcOm9cHWw3+BrVuqABCdXEwv/Do1/UX2vu9WeOMHQAr911nVl77JrhhaMQvpu0ruJjD+sZ9QbfjdLNeVeU1+hzgpuvpDnMihDIfZv47GaqvTTwxT67P09loBySjXMmx2mrtOpyLzsATLwQr6kmQQAX5X23ykw3PxY4NWBDldqXxKqTomMkwa3x6mh/4jmI5h6p6Wt6Gaf9FcG1pBOXTrUHNfdFzuK6ahYBsRQIDAQAB",
   "icons": {
     "16": "assets/icons/jetstream-icon-16.png",
     "32": "assets/icons/jetstream-icon-32.png",
     "48": "assets/icons/jetstream-icon-48.png",
     "128": "assets/icons/jetstream-icon-128.png"
   },
-  "permissions": ["storage", "cookies"],
+  "oauth2": {
+    "client_id": "1046118608516-p17mt3hd7ko18gd5mcdo8t3o7t6856hd.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/drive.file"]
+  },
+  "permissions": ["identity", "storage", "cookies"],
+  "externally_connectable": {
+    "matches": ["https://getjetstream.app/web-extension/*", "http://localhost:3333/web-extension/*"]
+  },
   "host_permissions": [
+    "https://getjetstream.app/web-extension/*",
     "https://*.cloudforce.com/*",
     "https://*.force.com/*",
     "https://*.lightning.force.com/*",
@@ -19,10 +28,32 @@
     "https://*.visualforce.com/*"
   ],
   "action": {
+    "default_icons": {
+      "16": "assets/icons/jetstream-icon-16.png",
+      "32": "assets/icons/jetstream-icon-32.png",
+      "48": "assets/icons/jetstream-icon-48.png",
+      "128": "assets/icons/jetstream-icon-128.png"
+    },
     "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "serviceWorker.js"
+  },
+  "commands": {
+    "open-jetstream-home-page": {
+      "suggested_key": {
+        "default": "Alt+J",
+        "mac": "Command+J"
+      },
+      "description": "Open Jetstream in a new tab for the current Salesforce page."
+    },
+    "open-view-record-modal": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      },
+      "description": "View the current Salesforce record in Jetstream."
+    }
   },
   "content_scripts": [
     {

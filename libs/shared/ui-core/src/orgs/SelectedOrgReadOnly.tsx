@@ -1,8 +1,9 @@
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment } from 'react';
 import { useRecoilValue } from 'recoil';
-import { fromAppState, useOrgPermissions } from '..';
+import { useOrgPermissions } from '..';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
 

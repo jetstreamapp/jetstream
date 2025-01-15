@@ -633,6 +633,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
       // picture: providerUser.picture,
       lastLoggedIn: new Date(),
       preferences: { create: { skipFrontdoorLogin: false } },
+      entitlements: { create: { chromeExtension: false, recordSync: false } },
       identities: {
         create: {
           type: 'oauth',

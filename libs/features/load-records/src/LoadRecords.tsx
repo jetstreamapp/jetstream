@@ -17,16 +17,14 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import {
-  applicationCookieState,
   autoMapFields,
   fromLoadRecordsState,
   getFieldMetadata,
   getMaxBatchSize,
   getRecommendedApiMode,
-  selectedOrgState,
-  selectedOrgType,
   useAmplitude,
 } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';

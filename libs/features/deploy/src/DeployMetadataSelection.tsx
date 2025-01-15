@@ -12,7 +12,8 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { fromDeployMetadataState, RequireMetadataApiBanner, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';

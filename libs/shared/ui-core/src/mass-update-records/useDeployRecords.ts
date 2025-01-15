@@ -4,11 +4,11 @@ import { bulkApiAddBatchToJob, bulkApiCreateJob, bulkApiGetJob } from '@jetstrea
 import { checkIfBulkApiJobIsDone, convertDateToLocale, generateCsv, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
 import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, SalesforceOrgUi } from '@jetstream/types';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { formatDate } from 'date-fns/format';
 import { useCallback, useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState } from '../state-management/app-state';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
 

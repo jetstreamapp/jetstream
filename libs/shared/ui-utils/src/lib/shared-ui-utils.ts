@@ -100,7 +100,7 @@ export function parseCookie<T>(cookieName: string): T | null {
       return null;
     }
   }
-  return null;
+  return cookieStr as T;
 }
 
 export function eraseCookies() {

@@ -24,7 +24,8 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';

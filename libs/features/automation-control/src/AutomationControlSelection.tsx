@@ -14,7 +14,8 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromAutomationControlState, selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';

@@ -1,5 +1,6 @@
 import { IconObj } from '@jetstream/icon-factory';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
 import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
@@ -110,7 +111,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
           <Link
             className="slds-button slds-button_neutral"
             onClick={() => onExecute(item)}
-            to="/query/results"
+            to={`${APP_ROUTES.QUERY.ROUTE}/results`}
             state={{
               soql,
               isTooling,

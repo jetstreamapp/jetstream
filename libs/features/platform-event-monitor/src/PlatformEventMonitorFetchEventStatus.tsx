@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Card, EmptyState, Icon, SalesforceLogin, ScopedNotification, SetupIllustration, Spinner } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
@@ -56,7 +57,7 @@ export const PlatformEventMonitorFetchEventStatus: FunctionComponent<PlatformEve
           There was a problem getting the list of platform events from Salesforce. {platformEventFetchError}.
           <p>
             If the problem persists,
-            <Link to="/feedback" target="_blank">
+            <Link to={{ pathname: APP_ROUTES.FEEDBACK_SUPPORT.ROUTE, search: APP_ROUTES.FEEDBACK_SUPPORT.SEARCH_PARAM }}>
               file a bug report
             </Link>{' '}
             or email{' '}

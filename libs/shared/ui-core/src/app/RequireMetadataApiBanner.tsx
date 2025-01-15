@@ -1,8 +1,8 @@
 import { Alert } from '@jetstream/ui';
+import * as fromAppState from '@jetstream/ui/app-state';
 import { useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useOrgPermissions } from '../orgs/useOrgPermissions';
-import * as fromAppState from '../state-management/app-state';
 
 interface RequireMetadataApiBannerProps {
   /**

@@ -124,6 +124,7 @@ const envSchema = z.object({
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
+  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
   JETSTREAM_SESSION_SECRET: z.string(),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()
@@ -208,6 +209,8 @@ const envSchema = z.object({
   GEO_IP_API_USERNAME: z.string().optional(),
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
+
+  WEB_EXTENSION_ID: z.string().optional().default(''),
   /**
    * STRIPE
    */

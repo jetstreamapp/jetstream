@@ -14,7 +14,8 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { useAmplitude, userProfileState } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
+import { userProfileState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetRecoilState } from 'recoil';

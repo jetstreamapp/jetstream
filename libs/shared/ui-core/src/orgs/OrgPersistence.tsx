@@ -1,6 +1,6 @@
+import { selectedOrgIdState, STORAGE_KEYS } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
-import { selectedOrgIdState, STORAGE_KEYS } from '../state-management/app-state';
 
 export const OrgPersistence: FunctionComponent = () => {
   const [selectedOrgId] = useRecoilState(selectedOrgIdState);

@@ -16,14 +16,8 @@ import {
   ViewDocsLink,
   dataTableFileSizeFormatter,
 } from '@jetstream/ui';
-import {
-  RequireMetadataApiBanner,
-  applicationCookieState,
-  fromJetstreamEvents,
-  isAsyncJob,
-  selectSkipFrontdoorAuth,
-  selectedOrgState,
-} from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromJetstreamEvents, isAsyncJob } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
 import { formatDate } from 'date-fns/format';

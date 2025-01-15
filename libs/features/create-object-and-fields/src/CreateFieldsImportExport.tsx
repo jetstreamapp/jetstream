@@ -16,7 +16,6 @@ import {
 import {
   FieldValues,
   allFields,
-  applicationCookieState,
   ensureValidSecondaryType,
   ensureValidType,
   fieldDefinitions,
@@ -24,6 +23,7 @@ import {
   getRowsForExport,
   useAmplitude,
 } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';

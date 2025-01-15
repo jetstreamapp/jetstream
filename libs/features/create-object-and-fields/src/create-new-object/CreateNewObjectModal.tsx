@@ -16,14 +16,8 @@ import {
   TabsRef,
   Tooltip,
 } from '@jetstream/ui';
-import {
-  ConfirmPageChange,
-  DeployMetadataProgressSummary,
-  DeployMetadataResultsTables,
-  applicationCookieState,
-  selectSkipFrontdoorAuth,
-  useAmplitude,
-} from '@jetstream/ui-core';
+import { ConfirmPageChange, DeployMetadataProgressSummary, DeployMetadataResultsTables, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { FunctionComponent, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { CreateNewObjectForm } from './CreateNewObjectForm';
