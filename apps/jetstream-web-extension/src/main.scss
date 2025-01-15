@@ -1,7 +1,7 @@
 @import '@salesforce-ux/design-system/scss/_design-tokens';
 
 html {
-  background-color: rgb(17, 24, 39);
+  background: var(--lwc-brandBackgroundPrimary, rgba(176, 196, 223, 1));
 }
 
 .app {

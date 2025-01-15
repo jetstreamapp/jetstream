@@ -283,28 +283,52 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
     );
 
   // Fetch location data and add to each session
-  if (!omitLocationData && ENV.IP_API_KEY && sessions.length > 0) {
+  if (!omitLocationData && sessions.length > 0) {
     try {
+      let response: Awaited<ReturnType<typeof fetch>> | null = null;
       const ipAddresses = sessions.map((session) => session.ipAddress);
+      if (ENV.IP_API_SERVICE === 'LOCAL' && ENV.GEO_IP_API_USERNAME && ENV.GEO_IP_API_PASSWORD && ENV.GEO_IP_API_HOSTNAME) {
+        response = await fetch(`${ENV.GEO_IP_API_HOSTNAME}/api/lookup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${Buffer.from(`${ENV.GEO_IP_API_USERNAME}:${ENV.GEO_IP_API_PASSWORD}`, 'utf-8').toString('base64')}`,
+          },
+          body: JSON.stringify({ ips: ipAddresses }),
+        });
+        if (response?.ok) {
+          const locations = (await response.json()) as
+            | { success: true; results: SessionIpData[] }
+            | { success: false; message: string; details?: string };
 
-      const params = new URLSearchParams({
-        fields: 'status,country,countryCode,region,regionName,city,isp,query',
-        key: ENV.IP_API_KEY,
-      });
+          if (locations.success) {
+            return sessions.map(
+              (session, i): UserSessionWithLocation => ({
+                ...session,
+                location: locations.results[i],
+              })
+            );
+          }
+        }
+      } else if (ENV.IP_API_KEY) {
+        const params = new URLSearchParams({
+          fields: 'status,country,countryCode,region,regionName,city,isp,lat,lon,query',
+          key: ENV.IP_API_KEY,
+        });
 
-      const response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {
-        method: 'POST',
-        body: JSON.stringify(ipAddresses),
-      });
-
-      if (response.ok) {
-        const locations = (await response.json()) as SessionIpData[];
-        return sessions.map(
-          (session, i): UserSessionWithLocation => ({
-            ...session,
-            location: locations[i],
-          })
-        );
+        response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {
+          method: 'POST',
+          body: JSON.stringify(ipAddresses),
+        });
+        if (response?.ok) {
+          const locations = (await response.json()) as SessionIpData[];
+          return sessions.map(
+            (session, i): UserSessionWithLocation => ({
+              ...session,
+              location: locations[i],
+            })
+          );
+        }
       }
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
@@ -360,7 +384,7 @@ export async function setPasswordForUser(id: string, password: string) {
   });
 
   if (!UNSAFE_userWithPassword) {
-    return { error: new InvalidCredentials() };
+    return { error: new InvalidCredentials(`User not found with id ${id}`) };
   }
 
   // FIXME: this is kinda dumb since the user can remove the password then re-add it
@@ -394,11 +418,11 @@ export const generatePasswordResetToken = async (email: string) => {
   });
 
   if (!user.length) {
-    throw new InvalidAction();
+    throw new InvalidAction('User does not exist or there is no password set');
   }
 
   if (user.length > 1) {
-    throw new InvalidAction();
+    throw new InvalidAction('Multiple users with the same email address and a password set');
   }
 
   // if there is an existing token, delete it
@@ -431,7 +455,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
   });
 
   if (!restToken) {
-    throw new InvalidOrExpiredResetToken();
+    throw new InvalidOrExpiredResetToken('Missing reset token');
   }
 
   // delete token - we don't need it anymore and if we fail later, the user will need to reset again
@@ -440,7 +464,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
   });
 
   if (restToken.expiresAt < new Date()) {
-    throw new InvalidOrExpiredResetToken();
+    throw new InvalidOrExpiredResetToken(`Expired at ${restToken.expiresAt.toISOString()}`);
   }
 
   const hashedPassword = await hashPassword(password);
@@ -497,7 +521,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
         user: updatedUser,
       };
     } catch (ex) {
-      return { error: new InvalidCredentials() };
+      return { error: new InvalidCredentials('Could not migrate from Auth0') };
     }
 
     // Use this after code above is removed
@@ -515,7 +539,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
       }),
     };
   }
-  return { error: new InvalidCredentials() };
+  return { error: new InvalidCredentials('Incorrect email or password') };
 }
 
 async function migratePasswordFromAuth0(email: string, password: string) {
@@ -529,7 +553,7 @@ async function migratePasswordFromAuth0(email: string, password: string) {
 
   if (!userWithoutSocialIdentities || userWithoutSocialIdentities.identities.length > 0) {
     logger.warn({ email }, 'Cannot migrate password on the fly from Auth0, user has linked social identity');
-    throw new InvalidCredentials();
+    throw new InvalidCredentials('Could not migrate from Auth0');
   }
 
   await verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY({ email, password });
@@ -627,7 +651,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
       authFactors: {
         create: {
           type: '2fa-email',
-          enabled: true,
+          enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
         },
       },
     },
@@ -740,7 +764,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
         authFactors: {
           create: {
             type: '2fa-email',
-            enabled: true,
+            enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
           },
         },
       },
@@ -843,7 +867,7 @@ export async function handleSignInOrRegistration(
       const email = payload.email.toLowerCase();
 
       if (!password) {
-        throw new InvalidCredentials();
+        throw new InvalidCredentials('Missing Password');
       }
 
       if (action === 'login') {
@@ -851,25 +875,25 @@ export async function handleSignInOrRegistration(
         if (userOrError.error) {
           throw userOrError.error;
         } else if (!userOrError.user) {
-          throw new InvalidCredentials();
+          throw new InvalidCredentials('User not found');
         }
         user = userOrError.user;
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
         if (usersWithEmail.length > 0) {
-          throw new InvalidRegistration();
+          throw new InvalidRegistration('Email address is in use');
         }
         user = await createUserFromUserInfo(payload.email, payload.name, password);
         isNewUser = true;
       } else {
-        throw new InvalidAction();
+        throw new InvalidAction(action);
       }
     } else {
-      throw new InvalidProvider();
+      throw new InvalidProvider(providerType);
     }
 
     if (!user) {
-      throw new InvalidCredentials();
+      throw new InvalidCredentials('User not initialized');
     }
 
     await setLastLoginDate(user.id);
@@ -894,7 +918,7 @@ export async function handleSignInOrRegistration(
       },
     };
   } catch (ex) {
-    throw ensureAuthError(ex, new InvalidCredentials());
+    throw ensureAuthError(ex, new InvalidCredentials('Unexpected error'));
   }
 }
 
@@ -924,7 +948,7 @@ export async function linkIdentityToUser({
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {
       // TODO: is this the correct error message? some other user already has this identity linked
-      throw new LoginWithExistingIdentity();
+      throw new LoginWithExistingIdentity('Provider identity already linked to another user');
     } else if (existingProviderUser) {
       // identity is already linked to this user - NO_OP
       return existingUser;

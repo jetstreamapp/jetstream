@@ -2,28 +2,27 @@ import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderValues } from '@jetstream/shared/utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import escapeRegExp from 'lodash/escapeRegExp';
 import isArray from 'lodash/isArray';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import uniqueId from 'lodash/uniqueId';
-import { useCallback, useContext, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import {
+  CellClickArgs,
   CellKeyDownArgs,
   CellKeyboardEvent,
-  Row as GridRow,
-  RenderRowProps,
+  CellMouseEvent,
   RenderSortStatusProps,
   Renderers,
+  RowsChangeData,
   SortColumn,
 } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
-import ContextMenu, { ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
 import { configIdLinkRenderer } from './DataTableRenderers';
-import { DataTableGenericContext } from './data-table-context';
 import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, DataTableRef, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
@@ -72,33 +71,19 @@ export function useDataTable<T = RowWithKey>({
   const [columns, setColumns] = useState(_columns || []);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>(() => initialSortColumns || []);
   const [rowFilterText, setRowFilterText] = useState<Record<string, string>>({});
-  const [renderers, setRenderers] = useState<Renderers<T, unknown>>({});
+  const [renderers] = useState<Renderers<T, unknown>>(() => ({ renderSortStatus }));
   const [columnsOrder, setColumnsOrder] = useState((): readonly number[] => columns.map((_, index) => index));
+  const [contextMenuProps, setContextMenuProps] = useState<{
+    rowIdx: number;
+    column: ColumnWithFilter<any, unknown>;
+    top: number;
+    left: number;
+    element: HTMLElement;
+  } | null>(null);
 
   const reorderedColumns = useMemo(() => {
     return columnsOrder.map((index) => columns[index]);
   }, [columns, columnsOrder]);
-
-  useEffect(() => {
-    if (contextMenuItems && contextMenuAction) {
-      setRenderers({
-        renderSortStatus,
-        renderRow: (key: React.Key, props: RenderRowProps<any>) => {
-          return (
-            <ContextMenuRenderer
-              key={key}
-              containerId={gridId}
-              props={props}
-              contextMenuItems={contextMenuItems}
-              contextMenuAction={contextMenuAction}
-            />
-          );
-        },
-      });
-    } else {
-      setRenderers({ renderSortStatus });
-    }
-  }, [contextMenuAction, contextMenuItems, gridId]);
 
   const [{ columnMap, filters, filterSetValues }, dispatch] = useReducer(reducer, {
     hasFilters: false,
@@ -242,6 +227,32 @@ export function useDataTable<T = RowWithKey>({
     }
   }
 
+  const handleCellContextMenu = useCallback(
+    ({ row, column }: CellClickArgs<T, unknown>, event: CellMouseEvent) => {
+      event.preventGridDefault();
+      // Do not show the default context menu
+      event.preventDefault();
+      setContextMenuProps(null);
+      // the second menu closes upon opening - ensure open happens in next render
+      setTimeout(() => {
+        setContextMenuProps({
+          rowIdx: filteredRows.indexOf(row as any),
+          column: column as any,
+          top: event.clientY,
+          left: event.clientX,
+          element: event.currentTarget,
+        });
+      });
+    },
+    [filteredRows]
+  );
+
+  const handleRowChange = useCallback((rows: any[], data: RowsChangeData<any>) => {
+    dispatch({ type: 'ADD_MODIFIED_VALUE_TO_SET_FILTER', payload: { rows, data } });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => setContextMenuProps(null), []);
+
   // NOTE: this is not used anywhere, so we may consider removing it.
   useImperativeHandle<unknown, DataTableRef<any>>(
     ref,
@@ -275,10 +286,14 @@ export function useDataTable<T = RowWithKey>({
     reorderedColumns,
     filterSetValues,
     filteredRows,
+    contextMenuProps,
     setSortColumns,
     updateFilter,
     handleReorderColumns,
     handleCellKeydown,
+    handleCellContextMenu: contextMenuItems && contextMenuAction ? handleCellContextMenu : undefined,
+    handleCloseContextMenu: handleCloseContextMenu,
+    handleRowChange,
   };
 }
 
@@ -296,37 +311,6 @@ function renderSortStatus({ sortDirection, priority }: RenderSortStatusProps) {
   ) : null;
 }
 
-interface ContextMenuRendererProps {
-  containerId?: string;
-  props: RenderRowProps<any>;
-  contextMenuItems: ContextMenuItem[];
-  contextMenuAction: (item: ContextMenuItem, data: ContextMenuActionData<unknown>) => void;
-}
-
-function ContextMenuRenderer({ containerId, props, contextMenuItems, contextMenuAction }: ContextMenuRendererProps) {
-  const { columns, rows } = useContext(DataTableGenericContext);
-  return (
-    <ContextMenu
-      containerId={containerId}
-      menu={contextMenuItems}
-      onItemSelected={(item) => {
-        if (!props.selectedCellIdx) {
-          return;
-        }
-        contextMenuAction(item, {
-          row: props.row,
-          rowIdx: props.rowIdx,
-          rows,
-          column: columns[props.selectedCellIdx],
-          columns,
-        });
-      }}
-    >
-      <GridRow data-id={containerId} {...props} />
-    </ContextMenu>
-  );
-}
-
 interface State<T> {
   hasFilters: boolean;
   columnMap: Map<string, ColumnWithFilter<T>>;
@@ -336,6 +320,7 @@ interface State<T> {
 
 type Action =
   | { type: 'INIT'; payload: { columns: ColumnWithFilter<any>[]; data: any[]; ignoreRowInSetFilter?: (row: any) => boolean } }
+  | { type: 'ADD_MODIFIED_VALUE_TO_SET_FILTER'; payload: { rows: any[]; data: RowsChangeData<any> } }
   | { type: 'UPDATE_FILTER'; payload: { column: string; filter: DataTableFilter } };
 
 // Reducer is used to limit the number of re-renders because of dependent state
@@ -398,16 +383,83 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
         filterSetValues,
       };
     }
-    case 'UPDATE_FILTER': {
-      const { column, filter } = action.payload;
+    case 'ADD_MODIFIED_VALUE_TO_SET_FILTER': {
+      const {
+        data: { column, indexes },
+        rows,
+      } = action.payload;
+      if (!state.filters[column.key]) {
+        return state;
+      }
+      const newValues = indexes.map((index) => {
+        const value = rows[index][column.key];
+        if (value === '' || value === null) {
+          return EMPTY_FIELD;
+        }
+        return value;
+      });
+      // NOTE: we don't have access to every record here, so we just add the values and don't worry about removing on subsequent record change
+      // Calculate new list of available values
+      const filterSetValues = {
+        ...state.filterSetValues,
+        [column.key]: Array.from(new Set([...state.filterSetValues[column.key], ...newValues])),
+      };
+      // ensure that current values are included in the set filter so they are retained on the page while editing
+      const columnFilter = [...state.filters[column.key]].map((item) => {
+        if (item.type !== 'SET') {
+          return item;
+        }
+        return {
+          ...item,
+          value: Array.from(new Set(item.value.concat(newValues))),
+        };
+      });
       return {
         ...state,
-        hasFilters: true,
+        filterSetValues,
         filters: {
           ...state.filters,
-          [column]: state.filters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
+          [column.key]: columnFilter,
         },
       };
     }
+    case 'UPDATE_FILTER': {
+      const { column, filter } = action.payload;
+      const filters = {
+        ...state.filters,
+        [column]: state.filters[column].map((currFilter) => (currFilter.type === filter.type ? filter : currFilter)),
+      };
+      const hasFilters = hasFilterApplied(filters, state.filterSetValues);
+      return {
+        ...state,
+        hasFilters,
+        filters,
+      };
+    }
   }
+}
+
+function hasFilterApplied(filters: Record<string, DataTableFilter[]>, filterSetValues: Record<string, string[]>) {
+  return Object.entries(filters).some(([key, columnFilters]) =>
+    columnFilters.some((filter) => {
+      let applied = false;
+      switch (filter.type) {
+        case 'SET':
+          applied = filter.value.length < (filterSetValues[key]?.length || 0);
+          break;
+        case 'BOOLEAN_SET':
+          applied = filter.value.length < 2; // true/false
+          break;
+        case 'DATE':
+        case 'NUMBER':
+        case 'TEXT':
+        case 'TIME':
+          applied = !!filter.value;
+          break;
+        default:
+          return false;
+      }
+      return applied;
+    })
+  );
 }

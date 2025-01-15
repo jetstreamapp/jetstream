@@ -1,6 +1,6 @@
-import { getExceptionLog } from '@jetstream/api-config';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
+import { getExceptionLog } from '../utils/utils';
 import { ENV } from './env-config';
 import { logger } from './logger.config';
 

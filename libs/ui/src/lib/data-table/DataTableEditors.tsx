@@ -1,3 +1,4 @@
+import { FocusTrap } from '@headlessui/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
@@ -59,7 +60,7 @@ function DataTableEditorPopover({
         ref={popoverRef}
         isOpen
         referenceElement={referenceElement as any}
-        className={`slds-popover slds-popover slds-popover_edit`}
+        className="slds-popover slds-popover slds-popover_edit"
         role="dialog"
         offset={[0, -28.5]}
         usePortal
@@ -69,7 +70,11 @@ function DataTableEditorPopover({
           }
         }}
       >
-        {referenceElement && <div className="slds-p-around_x-small">{children}</div>}
+        {referenceElement && (
+          <FocusTrap>
+            <div className="slds-p-around_x-small">{children}</div>
+          </FocusTrap>
+        )}
       </PopoverContainer>
     </OutsideClickHandler>
   );
@@ -247,6 +252,8 @@ export function DataTableEditorDate<TRow extends { _idx: number }, TSummaryRow>(
         className="d-block"
         initialSelectedDate={currDate}
         openOnInit
+        inputProps={{ autoFocus: true }}
+        trigger="onBlur"
         onChange={(value) => {
           /** setTimeout is used to avoid a React error about flushSync being called during a render */
           setTimeout(() => {
@@ -328,7 +335,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
     );
 
     if (!org || !sobject) {
-      return <DataTableEditorText column={column} onClose={onClose} onRowChange={onRowChange} row={row} />;
+      return <DataTableEditorText rowIdx={row._idx} column={column} onClose={onClose} onRowChange={onRowChange} row={row} />;
     }
 
     return (

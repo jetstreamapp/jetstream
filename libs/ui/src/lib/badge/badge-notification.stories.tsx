@@ -1,6 +1,5 @@
-import { Icon } from '@jetstream/ui';
-import { Meta, Story } from '@storybook/react';
-import React from 'react';
+import { Meta, StoryFn } from '@storybook/react';
+import Icon from '../widgets/Icon';
 import BadgeNotificationComponent, { BadgeNotificationProps } from './BadgeNotification';
 
 export default {
@@ -12,7 +11,7 @@ export default {
   },
 } as Meta;
 
-const Template: Story<BadgeNotificationProps> = ({ children, ...args }) => (
+const Template: StoryFn<BadgeNotificationProps> = ({ children, ...args }) => (
   <button className="slds-button slds-button_icon">
     <BadgeNotificationComponent {...args}>{children}</BadgeNotificationComponent>
     <Icon type="utility" icon="notification" className="slds-button__icon slds-button__icon_large" omitContainer />

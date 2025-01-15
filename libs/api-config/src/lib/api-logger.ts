@@ -14,7 +14,7 @@ export const logger = pino({
       : undefined,
 });
 
-const ignoreLogsFileExtensions = /.*\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|otf|json)$/;
+const ignoreLogsFileExtensions = /.*\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|otf|json|xml|txt)$/;
 
 export const httpLogger = pinoHttp<express.Request, express.Response>({
   logger,

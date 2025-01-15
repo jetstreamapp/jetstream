@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import { memo, MouseEvent, RefObject } from 'react';
+import { memo, MouseEvent, ReactNode, RefObject } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import { useHighlightedText } from '../hooks/useHighlightedText';
 
@@ -10,7 +10,7 @@ export interface ListItemCheckboxProps {
   id: string;
   testId?: string;
   inputRef?: RefObject<HTMLInputElement>;
-  heading?: Maybe<string | JSX.Element>;
+  heading?: Maybe<string | ReactNode>;
   subheading?: Maybe<string>;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;
@@ -18,10 +18,24 @@ export interface ListItemCheckboxProps {
   highlightText?: boolean;
   disabled?: boolean;
   onSelected: () => void;
+  children?: ReactNode;
 }
 
 export const ListItemCheckbox = memo<ListItemCheckboxProps>(
-  ({ id, testId, inputRef, heading, subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, disabled, onSelected }) => {
+  ({
+    id,
+    testId,
+    inputRef,
+    heading,
+    subheading,
+    isActive,
+    subheadingPlaceholder,
+    searchTerm,
+    highlightText,
+    disabled,
+    onSelected,
+    children,
+  }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { className: 'slds-truncate', ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
@@ -63,6 +77,7 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
             )}
           </div>
         </div>
+        {children}
       </li>
     );
   }

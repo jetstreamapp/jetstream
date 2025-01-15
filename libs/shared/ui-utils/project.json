@@ -3,6 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/ui-utils/src",
   "projectType": "library",
+  "tags": ["scope:shared", "scope:browser", "scope:allow-worker-import"],
   "generators": {},
   "targets": {
     "lint": {
@@ -15,6 +16,5 @@
       },
       "outputs": ["{workspaceRoot}/coverage/libs/shared/ui-utils"]
     }
-  },
-  "tags": ["scope:shared", "scope:allow-worker-import"]
+  }
 }

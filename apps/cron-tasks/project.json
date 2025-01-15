@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/cron-tasks/src",
   "projectType": "application",
+  "tags": ["scope:server"],
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
@@ -14,6 +15,14 @@
           {
             "entryName": "save-analytics-summary",
             "entryPath": "apps/cron-tasks/src/save-analytics-summary.ts"
+          },
+          {
+            "entryName": "geo-ip-api-updater",
+            "entryPath": "apps/cron-tasks/src/geo-ip-api-updater.ts"
+          },
+          {
+            "entryName": "geo-ip-db-updater",
+            "entryPath": "apps/cron-tasks/src/geo-ip-db-updater.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",
@@ -54,6 +63,5 @@
         "jestConfig": "apps/cron-tasks/jest.config.ts"
       }
     }
-  },
-  "tags": []
+  }
 }

@@ -6,7 +6,6 @@ import {
   getFlattenedListItemsById,
   getPicklistListItems,
 } from '@jetstream/shared/ui-utils';
-import { REGEX } from '@jetstream/shared/utils';
 import {
   ExpressionConditionHelpText,
   ExpressionConditionRowSelectedItems,
@@ -18,6 +17,8 @@ import {
   Maybe,
   QueryFilterOperator,
 } from '@jetstream/types';
+import { isValid } from 'date-fns/isValid';
+import { parseISO } from 'date-fns/parseISO';
 
 // Used for GROUP BY and HAVING clause
 export const QUERY_FIELD_DATE_FUNCTIONS: ListItem<string, QueryFilterOperator>[] = [
@@ -217,7 +218,8 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
       // default to SELECT if value is a date literal (query restore would have a value)
       if (Array.isArray(value) || DATE_LITERALS_SET.has(value || '')) {
         return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
-      } else if (value && REGEX.NUMERIC.test(value)) {
+        // Set to manual value if text is not a valid date
+      } else if (value && !isValid(parseISO(value))) {
         return 'TEXT';
       }
       return 'DATE';
@@ -226,7 +228,8 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
       // default to SELECT (Relative Value) if no value or value is a date literal (query restore would have a value)
       if (!value || Array.isArray(value) || DATE_LITERALS_SET.has(value)) {
         return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
-      } else if (value && REGEX.NUMERIC.test(value)) {
+        // Set to manual value if text is not a valid date
+      } else if (value && !isValid(parseISO(value))) {
         return 'TEXT';
       }
       return 'DATETIME';

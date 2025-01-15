@@ -3,6 +3,8 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/types/src",
   "projectType": "library",
+  "tags": ["scope:shared", "scope:allow-worker-import", "scope:type-only"],
+  "implicitDependencies": [],
   "generators": {},
   "targets": {
     "lint": {
@@ -15,7 +17,5 @@
       },
       "outputs": ["{workspaceRoot}/coverage/libs/types"]
     }
-  },
-  "implicitDependencies": [],
-  "tags": ["scope:shared", "scope:allow-worker-import", "scope:type-only"]
+  }
 }

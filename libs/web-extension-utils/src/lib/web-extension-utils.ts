@@ -35,7 +35,9 @@ export function initAndRenderReact(
   }
 ) {
   // Logging
-  enableLogging && enableLogger(true);
+  if (enableLogging) {
+    enableLogger(true);
+  }
   // Render
   const container = document.getElementById(elementId);
   const root = createRoot(container!);

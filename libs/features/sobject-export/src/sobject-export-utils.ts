@@ -1,6 +1,8 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
-import { splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ApiResponse, DescribeSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+import { getErrorMessageAndStackObj, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { ApiResponse, ChildRelationship, DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
 import { ExportOptions, SobjectExportField, SobjectFetchResult } from './sobject-export-types';
@@ -39,8 +41,46 @@ export async function getSobjectMetadata(org: SalesforceOrgUi, selectedSobjects:
   });
 }
 
+export async function getChildRelationshipNames(
+  selectedOrg: SalesforceOrgUi,
+  metadataResults: SobjectFetchResult[]
+): Promise<Record<string, Record<string, ChildRelationship>>> {
+  try {
+    // Get Parent SObject names from all relationship fields and remove duplicates
+    const relatedSobjects = Array.from(
+      new Set(
+        metadataResults.flatMap(
+          (item) =>
+            item.metadata?.fields
+              .filter((field) => field.type === 'reference' && field.referenceTo?.length === 1)
+              .flatMap((field) => field.referenceTo || []) || []
+        )
+      )
+    );
+    // Fetch all parent sobject metadata (hopefully from cache for many of them) and reduce into map for easy lookup
+    const sobjectsWithChildRelationships = await getSobjectMetadata(selectedOrg, relatedSobjects).then((results) =>
+      results.reduce((sobjectsWithChildRelationships: Record<string, Record<string, ChildRelationship>>, { metadata, sobject }) => {
+        sobjectsWithChildRelationships[sobject] = (metadata?.childRelationships || []).reduce(
+          (acc: Record<string, ChildRelationship>, childRelationship) => {
+            acc[childRelationship.field] = childRelationship;
+            return acc;
+          },
+          {}
+        );
+        return sobjectsWithChildRelationships;
+      }, {})
+    );
+    return sobjectsWithChildRelationships;
+  } catch (ex) {
+    logger.warn('Error getting child relationship names for sobject export', ex);
+    logErrorToRollbar('Error getting child relationship names for sobject export', getErrorMessageAndStackObj(ex));
+    return {};
+  }
+}
+
 export function prepareExport(
   sobjectMetadata: SobjectFetchResult[],
+  sobjectsWithChildRelationships: Record<string, Record<string, ChildRelationship>>,
   selectedAttributes: string[],
   options: ExportOptions
 ): Record<string, any[]> {
@@ -62,16 +102,18 @@ export function prepareExport(
       rowsBySobject[sobject] =
         metadata?.fields
           .filter((field) => (options.includesStandardFields ? true : field.custom))
-          .flatMap((field: any) => {
+          .flatMap((field: Field) => {
             const obj = { 'Object Name': sobject } as any;
-            selectedAttributeFields.forEach(({ name, label, getterFn }) => {
+            selectedAttributeFields.forEach(({ name, label, getterFn, childRelationshipGetterFn: relationshipGetterFn }) => {
               const _label = options.headerOption === 'label' ? label : name;
-              // TODO: transform as required
+              const value = field[name as keyof Field];
 
               if (isFunction(getterFn)) {
-                obj[_label] = getterFn(field[name]);
+                obj[_label] = getterFn(value);
+              } else if (isFunction(relationshipGetterFn)) {
+                obj[_label] = relationshipGetterFn(field, sobjectsWithChildRelationships);
               } else {
-                obj[_label] = field[name];
+                obj[_label] = value;
               }
             });
             return obj;
@@ -191,6 +233,27 @@ export function getAttributes(): SobjectExportField[] {
       name: 'calculatedFormula',
       label: 'Calculated Formula',
       description: 'Formula definition. Only populated if field type is Formula.',
+    },
+    {
+      name: 'childRelationshipName',
+      label: 'Child Relationship Name',
+      description: 'Child relationship name(s) for lookup field.',
+      childRelationshipGetterFn: (field: Field, sobjectsWithChildRelationships: Record<string, Record<string, ChildRelationship>>) => {
+        const relatedSObjects = field.referenceTo || [];
+        if (relatedSObjects.length === 0) {
+          return '';
+        }
+        return relatedSObjects
+          .map((relatedSObject) => {
+            const childRelationship = sobjectsWithChildRelationships[relatedSObject]?.[field.name]?.relationshipName;
+            if (childRelationship) {
+              return childRelationship;
+            }
+            return null;
+          })
+          .filter(Boolean)
+          .join(', ');
+      },
     },
     {
       name: 'controllerName',

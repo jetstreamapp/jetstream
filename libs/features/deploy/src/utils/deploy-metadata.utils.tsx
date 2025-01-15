@@ -20,16 +20,7 @@ import {
   SalesforceDeployHistoryType,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import {
-  ColumnWithFilter,
-  Grid,
-  Icon,
-  SelectFormatter,
-  SelectHeaderGroupRenderer,
-  SelectHeaderRenderer,
-  setColumnFromType,
-  Spinner,
-} from '@jetstream/ui';
+import { ColumnWithFilter, Grid, Icon, SelectFormatter, SelectHeaderGroupRenderer, setColumnFromType, Spinner } from '@jetstream/ui';
 import { composeQuery, getField, Query } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
@@ -232,16 +223,15 @@ export function getColumnDefinitions(): ColumnWithFilter<DeployMetadataTableRow>
             </Grid>
           );
         }
-        return <SelectFormatter {...args} />;
+        return SelectColumn.renderCell?.(args) || <SelectFormatter {...args} />;
       },
-      renderHeaderCell: SelectHeaderRenderer,
       renderGroupCell: (args) => {
         const { childRows } = args;
         // Don't allow selection if child rows are loading
         if (childRows.length === 0 || (childRows.length === 1 && (childRows[0].loading || !childRows[0].metadata))) {
           return null;
         }
-        return <SelectHeaderGroupRenderer {...args} />;
+        return SelectColumn.renderGroupCell?.(args) || <SelectHeaderGroupRenderer {...args} />;
       },
       colSpan: (args) => {
         if (args.type === 'ROW') {

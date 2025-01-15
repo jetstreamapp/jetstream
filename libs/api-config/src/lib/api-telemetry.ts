@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { credentials, Metadata } from '@grpc/grpc-js';
-import { UserProfileSession } from '@jetstream/auth/types';
+import type { UserProfileSession } from '@jetstream/auth/types';
 import telemetryApi from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';

@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/monaco-configuration/src",
   "projectType": "library",
+  "tags": ["scope:shared", "scope:allow-worker-import"],
   "targets": {
     "lint": {
       "executor": "@nx/eslint:lint"
@@ -14,6 +15,5 @@
         "jestConfig": "libs/monaco-configuration/jest.config.ts"
       }
     }
-  },
-  "tags": ["scope:shared", "scope:allow-worker-import"]
+  }
 }

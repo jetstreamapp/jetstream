@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // CREDIT: https://dev.to/dglsparsons/3-amazing-react-hooks-to-keep-your-code-organized-neatly-ghe
 
@@ -16,7 +16,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
  * @param asyncFunction
  * @param immediate
  */
-// eslint-disable-next-line @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export const useAsync = (asyncFunction: Function, immediate = true) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);

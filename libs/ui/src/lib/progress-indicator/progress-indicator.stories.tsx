@@ -1,6 +1,3 @@
-import { action } from '@storybook/addon-actions';
-import { boolean, number } from '@storybook/addon-knobs';
-import React from 'react';
 import ProgressIndicator from './ProgressIndicator';
 import ProgressIndicatorListItem from './ProgressIndicatorListItem';
 
@@ -9,6 +6,7 @@ export default {
   title: 'progress/ProgressIndicator',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const currentStep: number = 2;
 
 export const base = () => (

@@ -172,6 +172,11 @@ export const ANALYTICS_KEYS = {
   record_modal_json: 'record_modal_json',
   record_modal_save: 'record_modal_save',
   record_modal_clipboard: 'record_modal_clipboard',
+  /** USER SEARCH MODAL */
+  user_search_opened: 'user_search_opened',
+  user_search_view_user: 'user_search_view_user',
+  user_search_copy_item: 'user_search_copy_item',
+  user_search_did_search: 'user_search_did_search',
   /** AUTOMATION CONTROL */
   automation_selection: 'automation_selection',
   automation_review: 'automation_review',

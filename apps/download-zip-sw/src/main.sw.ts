@@ -44,7 +44,7 @@ const zipMap: Map<
     files: DownZipFile[];
     name: string;
     zip: Zip;
-    sizeBig: BigInt;
+    sizeBig: bigint;
   }
 > = new Map();
 

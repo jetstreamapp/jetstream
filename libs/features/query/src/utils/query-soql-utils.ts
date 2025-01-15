@@ -9,6 +9,7 @@ import {
   WhereClause,
   isOrderByField,
   isValueCondition,
+  isValueFunctionCondition,
   isWhereOrHavingClauseWithRightCondition,
 } from '@jetstreamapp/soql-parser-js';
 import isString from 'lodash/isString';
@@ -205,6 +206,9 @@ function getParsableFieldsFromFilter(where: Maybe<WhereClause>, fields: string[]
   }
   if (isValueCondition(where.left)) {
     fields.push(where.left.field?.toLowerCase());
+  }
+  if (isValueFunctionCondition(where.left) && Array.isArray(where.left.fn.parameters) && isString(where.left.fn.parameters[0])) {
+    fields.push(where.left.fn.parameters[0].toLowerCase());
   }
   if (isWhereOrHavingClauseWithRightCondition(where)) {
     getParsableFieldsFromFilter(where.right, fields);

@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { orderValues } from '@jetstream/shared/utils';
-import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, ContextMenuItem, DataTree } from '@jetstream/ui';
+import { ContextMenuItem } from '@jetstream/types';
+import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';

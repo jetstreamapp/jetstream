@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/jetstream-worker/src",
   "projectType": "application",
+  "tags": ["scope:server"],
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
@@ -49,6 +50,5 @@
         "jestConfig": "apps/jetstream-worker/jest.config.ts"
       }
     }
-  },
-  "tags": []
+  }
 }

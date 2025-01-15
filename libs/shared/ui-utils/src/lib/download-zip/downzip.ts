@@ -133,7 +133,11 @@ class DownZip {
 
   sendMessage(command: string, data?: any, port?: Transferable) {
     if (this.worker) {
-      port ? this.worker.postMessage({ command, data }, [port]) : this.worker.postMessage({ command, data });
+      if (port) {
+        this.worker.postMessage({ command, data }, [port]);
+      } else {
+        this.worker.postMessage({ command, data });
+      }
     }
   }
 

@@ -1,14 +1,13 @@
 import { queryMore } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
-import { Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
+import { ContextMenuItem, Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RenderCellProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import Modal from '../modal/Modal';
-import { ContextMenuItem } from '../popover/ContextMenu';
 import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
 import { DataTable } from './DataTable';

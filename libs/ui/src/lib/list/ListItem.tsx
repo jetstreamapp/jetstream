@@ -2,13 +2,13 @@ import { css } from '@emotion/react';
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import { memo, RefObject } from 'react';
+import { memo, ReactNode, RefObject } from 'react';
 import { useHighlightedText } from '../hooks/useHighlightedText';
 
 export interface ListItemProps {
   liRef?: RefObject<HTMLLIElement>;
   testId?: Maybe<string>;
-  heading?: Maybe<string | JSX.Element>;
+  heading?: Maybe<string | ReactNode>;
   subheading?: Maybe<string>;
   isActive?: boolean;
   subheadingPlaceholder?: boolean;
@@ -16,10 +16,23 @@ export interface ListItemProps {
   highlightText?: boolean;
   disabled?: boolean;
   onSelected: () => void;
+  children?: ReactNode;
 }
 
 export const ListItem = memo<ListItemProps>(
-  ({ liRef, testId, heading = '', subheading, isActive, subheadingPlaceholder, searchTerm, highlightText, disabled, onSelected }) => {
+  ({
+    liRef,
+    testId,
+    heading = '',
+    subheading,
+    isActive,
+    subheadingPlaceholder,
+    searchTerm,
+    highlightText,
+    disabled,
+    onSelected,
+    children,
+  }) => {
     const highlightedHeading = useHighlightedText(heading, searchTerm, { ignoreHighlight: !highlightText });
     const highlightedSubHeading = useHighlightedText(subheading, searchTerm, {
       ignoreHighlight: !highlightText,
@@ -57,6 +70,7 @@ export const ListItem = memo<ListItemProps>(
             `}
           ></div>
         )}
+        {children}
       </li>
     );
   }

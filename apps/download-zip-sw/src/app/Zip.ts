@@ -48,11 +48,19 @@ class Zip {
 
   // To also work with the node version of readable stream (for testing)
   enqueue = (data) => {
-    this.outputController ? this.outputController.enqueue(data) : this.outputStream.push(data);
+    if (this.outputController) {
+      this.outputController.enqueue(data);
+    } else {
+      this.outputStream.push(data);
+    }
   };
 
   close = () => {
-    this.outputController ? this.outputController.close() : this.outputStream.destroy();
+    if (this.outputController) {
+      this.outputController.close();
+    } else {
+      this.outputStream.destroy();
+    }
   };
 
   // Generators

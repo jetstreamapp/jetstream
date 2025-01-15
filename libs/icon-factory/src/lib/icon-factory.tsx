@@ -107,6 +107,7 @@ import UtilityIcon_OpenFolder from './icons/utility/OpenFolder';
 import UtilityIcon_Page from './icons/utility/Page';
 import UtilityIcon_Paste from './icons/utility/Paste';
 import UtilityIcon_Pause from './icons/utility/Pause';
+import UtilityIcon_People from './icons/utility/People';
 import UtilityIcon_Play from './icons/utility/Play';
 import UtilityIcon_Preview from './icons/utility/Preview';
 import UtilityIcon_ProfileAlt from './icons/utility/ProfileAlt';
@@ -287,6 +288,7 @@ const utilityIcons = {
   page: UtilityIcon_Page,
   paste: UtilityIcon_Paste,
   pause: UtilityIcon_Pause,
+  people: UtilityIcon_People,
   play: UtilityIcon_Play,
   preview: UtilityIcon_Preview,
   profile_alt: UtilityIcon_ProfileAlt,

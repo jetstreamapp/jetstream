@@ -16,6 +16,7 @@ export interface SearchInputProps {
    */
   value?: string;
   disabled?: boolean;
+  loading?: boolean;
   onChange: (value: string) => void;
   onArrowKeyUpDown?: (direction: UpDown) => void;
   children?: React.ReactNode;
@@ -28,6 +29,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
   autoFocus,
   value: incomingValue = '',
   disabled,
+  loading,
   onChange,
   onArrowKeyUpDown,
   children,
@@ -68,7 +70,14 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
   }
 
   return (
-    <Input className={className} iconLeft="search" iconLeftType="utility" clearButton={!!value} onClear={() => setValue('')}>
+    <Input
+      className={className}
+      iconLeft="search"
+      iconLeftType="utility"
+      loading={loading}
+      clearButton={!!value}
+      onClear={() => setValue('')}
+    >
       <input
         ref={inputEl}
         className="slds-input"

@@ -27,6 +27,7 @@ setup('login and ensure org exists', async ({ page, request }) => {
 
   await page.waitForURL(`${baseApiURL}/app`);
 
+  // eslint-disable-next-line playwright/no-standalone-expect
   await expect(page.getByRole('button', { name: 'Avatar' })).toBeVisible();
 
   await page.evaluate(async () => {

@@ -1,7 +1,8 @@
-import { DescribeSObjectResult, Field, Maybe } from '@jetstream/types';
+import { ChildRelationship, DescribeSObjectResult, Field, Maybe } from '@jetstream/types';
 
 export type SobjectExportFieldName =
   | keyof Field
+  | 'childRelationshipName'
   | 'dataTranslationEnabled'
   | 'autoNumber'
   | 'aiPredictionField'
@@ -13,7 +14,9 @@ export interface SobjectExportField {
   name: SobjectExportFieldName;
   label: string;
   description?: string;
+  tertiaryLabel?: string;
   getterFn?: (value: any) => string;
+  childRelationshipGetterFn?: (field: Field, sobjectsWithChildRelationships: Record<string, Record<string, ChildRelationship>>) => string;
 }
 
 export interface SavedExportOptions {

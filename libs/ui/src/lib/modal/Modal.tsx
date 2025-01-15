@@ -128,7 +128,7 @@ export const Modal = forwardRef<any, ModalProps>(
             <div className={classNames('slds-modal__container', containerClassName)}>
               <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
                 <button
-                  className="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                  className="slds-button slds-button_icon slds-modal__close"
                   title="Close"
                   disabled={closeDisabled}
                   onClick={() => onClose()}

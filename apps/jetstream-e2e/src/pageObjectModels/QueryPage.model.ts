@@ -126,9 +126,11 @@ export class QueryPage {
     await condition.locator(`#${operator}`).click();
 
     await condition.getByLabel('Value').click();
-    (await value.type) === 'text'
-      ? condition.getByLabel('Value').fill(value.value)
-      : condition.getByRole('option', { name: value.value }).click();
+    if (value.type === 'text') {
+      await condition.getByLabel('Value').fill(value.value);
+    } else {
+      await condition.getByRole('option', { name: value.value }).click();
+    }
   }
 
   async addCondition() {
@@ -180,8 +182,8 @@ export class QueryPage {
 
   async waitForQueryResults(query: string) {
     const { queryResults } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query });
-    await expect(queryResults.records.length).toBeGreaterThan(0);
-    await this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
+    expect(queryResults.records.length).toBeGreaterThan(0);
+    this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
     return queryResults;
   }
 
@@ -190,8 +192,10 @@ export class QueryPage {
 
     // validate first 15 records - check that id is present
     for (const record of queryResults.records.slice(0, 15)) {
-      await expect(isRecordWithId(record)).toBeTruthy();
-      isRecordWithId(record) && (await expect(this.page.getByRole('gridcell', { name: record.Id })).toBeVisible());
+      expect(isRecordWithId(record)).toBeTruthy();
+      if (isRecordWithId(record)) {
+        await expect(this.page.getByRole('gridcell', { name: record.Id })).toBeVisible();
+      }
     }
 
     // FIXME: this was causing the browser to crash - could not reproduce or identify cause

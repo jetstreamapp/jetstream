@@ -1,5 +1,3 @@
-import { getExceptionLog } from '@jetstream/api-config';
-import { ensureBoolean } from '@jetstream/shared/utils';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
 import { join } from 'path';
@@ -10,7 +8,7 @@ try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
   console.info(`APP VERSION ${VERSION}`);
 } catch (ex) {
-  console.warn('COULD NOT READ VERSION FILE', getExceptionLog(ex));
+  console.warn('COULD NOT READ VERSION FILE', ex);
 }
 
 export const ENV = {
@@ -21,7 +19,7 @@ export const ENV = {
   ROLLBAR_SERVER_TOKEN: process.env.ROLLBAR_SERVER_TOKEN,
   // FIXME: there was a typo in env variables, using both temporarily as a safe fallback
   JETSTREAM_POSTGRES_DBURI: process.env.JETSTREAM_POSTGRES_DBURI || process.env.JESTREAM_POSTGRES_DBURI,
-  PRISMA_DEBUG: ensureBoolean(process.env.PRISMA_DEBUG),
+  PRISMA_DEBUG: process.env.PRISMA_DEBUG && process.env.PRISMA_DEBUG.toLocaleLowerCase().startsWith('t'),
 
   // MAILGUN
   MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,
@@ -30,4 +28,11 @@ export const ENV = {
 
   AMPLITUDE_API_KEY: process.env.AMPLITUDE_API_KEY,
   AMPLITUDE_SECRET_KEY: process.env.AMPLITUDE_SECRET_KEY,
+
+  MAX_MIND_ACCOUNT_ID: process.env.MAX_MIND_ACCOUNT_ID,
+  MAX_MIND_LICENSE_KEY: process.env.MAX_MIND_LICENSE_KEY,
+
+  GEO_IP_API_HOSTNAME: process.env.GEO_IP_API_HOSTNAME,
+  GEO_IP_API_USERNAME: process.env.MAX_MIND_ACCOUNT_ID,
+  GEO_IP_API_PASSWORD: process.env.MAX_MIND_LICENSE_KEY,
 };

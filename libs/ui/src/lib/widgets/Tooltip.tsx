@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { Maybe } from '@jetstream/types';
 import Tippy, { TippyProps } from '@tippyjs/react';
-import { FunctionComponent, MouseEvent, useState } from 'react';
+import { FunctionComponent, MouseEvent, useRef, useState } from 'react';
 
 export interface TooltipProps {
   /** @deprecated This is not used in the component */
@@ -43,6 +43,7 @@ const LazyTippy = (props: LazyTippyProps) => {
 };
 
 export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, delay, onClick, children }) => {
+  const containerRef = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(false);
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
@@ -146,7 +147,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, d
         );
       }}
     >
-      <span className={className} tabIndex={0} onClick={onClick}>
+      <span ref={containerRef} className={className} onClick={onClick}>
         {children}
       </span>
     </LazyTippy>

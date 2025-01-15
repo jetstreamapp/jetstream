@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
 import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
-import { flattenRecord, getIdFromRecordUrl, nullifyEmptyStrings } from '@jetstream/shared/utils';
-import { CloneEditView, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
+import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
+import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, RowsChangeData } from 'react-data-grid';
@@ -11,7 +11,6 @@ import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import { ConfirmationModalPromise } from '../modal/ConfirmationModalPromise';
-import { ContextMenuItem } from '../popover/ContextMenu';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import { fireToast } from '../toast/AppToast';
 import Spinner from '../widgets/Spinner';
@@ -295,12 +294,23 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleRowsChange = useCallback((rows: RowSalesforceRecordWithKey[], data: RowsChangeData<RowSalesforceRecordWithKey[]>) => {
-      setRows(rows);
-      setDirtyRows(
-        rows.filter((row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col) => row[col] !== row._record[col]))
-      );
-    }, []);
+    const handleRowsChange = useCallback(
+      (
+        allRows: RowSalesforceRecordWithKey[],
+        filteredRows: RowSalesforceRecordWithKey[],
+        data: RowsChangeData<RowSalesforceRecordWithKey>
+      ) => {
+        const rowsByKey = groupByFlat(filteredRows, '_key');
+        const newRows = allRows.map((row) => rowsByKey[row._key] || row);
+        setRows(newRows);
+        setDirtyRows(
+          newRows.filter(
+            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col) => row[col] !== row._record[col])
+          )
+        );
+      },
+      []
+    );
 
     const handleCancelEditMode = () => {
       setRecords((records) => (records ? [...records] : records));
@@ -436,8 +446,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onClick={handleSaveRecords}
               disabled={isSavingRecords}
             >
-              Save
-              {isSavingRecords && <Spinner size="small" />}
+              Save ({formatNumber(dirtyRows.length)}){isSavingRecords && <Spinner size="small" />}
             </button>
           </Grid>
         )}
@@ -470,7 +479,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               onReorderColumns={handleColumnReorder}
               onSelectedRowsChange={handleSelectedRowsChange}
               onSortedAndFilteredRowsChange={handleSortedAndFilteredRowsChange}
-              onRowsChange={handleRowsChange}
+              onRowsChange={(changedRows, data) => handleRowsChange(rows || [], changedRows, data)}
               context={{
                 org,
                 defaultApiVersion,

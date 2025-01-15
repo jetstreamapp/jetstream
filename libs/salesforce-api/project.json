@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/salesforce-api/src",
   "projectType": "library",
+  "tags": ["scope:shared"],
   "targets": {
     "build": {
       "executor": "@nx/esbuild:esbuild",
@@ -27,6 +28,5 @@
         "jestConfig": "libs/salesforce-api/jest.config.ts"
       }
     }
-  },
-  "tags": []
+  }
 }
