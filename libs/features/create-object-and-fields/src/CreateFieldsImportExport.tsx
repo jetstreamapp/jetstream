@@ -23,9 +23,9 @@ import {
   getRowsForExport,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { Fragment, useRef, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 
 export interface CreateFieldsImportExportProps {
@@ -34,9 +34,10 @@ export interface CreateFieldsImportExportProps {
   onImportRows: (rows: FieldValues[]) => void;
 }
 
-export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExportProps> = ({ selectedOrg, rows, onImportRows }) => {
+export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: CreateFieldsImportExportProps) => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const popoverRef = useRef<PopoverRef>(null);
   const [exportData, setExportData] = useState<any[]>(rows);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -119,6 +120,8 @@ export const CreateFieldsImportExport: FunctionComponent<CreateFieldsImportExpor
       {exportModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

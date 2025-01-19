@@ -2,9 +2,9 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeleteMetadataConfigModal from './DeleteMetadataConfigModal';
 import DeleteMetadataStatusModal from './DeleteMetadataStatusModal';
@@ -17,7 +17,8 @@ export interface DeleteMetadataModalProps {
 
 export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = ({ selectedOrg, selectedMetadata, onClose }) => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId, defaultApiVersion } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(true);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -71,6 +72,8 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

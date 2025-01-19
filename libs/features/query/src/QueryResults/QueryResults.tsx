@@ -49,7 +49,7 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
@@ -116,6 +116,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(
     fromAppState.applicationCookieState
   );
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontdoorLogin = useRecoilValue(fromAppState.selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistoryState.queryHistoryState);
@@ -726,6 +727,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           {!!(records && !!records.length) && (
             <SalesforceRecordDataTable
               org={selectedOrg}
+              hasGoogleDriveAccess={hasGoogleDriveAccess}
+              googleShowUpgradeToPro={googleShowUpgradeToPro}
               defaultApiVersion={defaultApiVersion}
               google_apiKey={google_apiKey}
               google_appId={google_appId}

@@ -11,9 +11,9 @@ import {
   useAmplitude,
   useCreateFields,
 } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { Fragment, useEffect, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
 
 export interface CreateFieldsDeployModalProps {
@@ -26,7 +26,7 @@ export interface CreateFieldsDeployModalProps {
   onClose: () => void;
 }
 
-export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalProps> = ({
+export const CreateFieldsDeployModal = ({
   selectedOrg,
   profiles,
   permissionSets,
@@ -34,9 +34,10 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
   sObjects,
   rows,
   onClose,
-}) => {
+}: CreateFieldsDeployModalProps) => {
   const { trackEvent } = useAmplitude();
-  const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const {
     loading: loadingLayouts,
     error: loadingLayoutsError,
@@ -110,6 +111,8 @@ export const CreateFieldsDeployModal: FunctionComponent<CreateFieldsDeployModalP
       {exportModalOpen && exportData && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

@@ -19,6 +19,7 @@ import {
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import FileDownloadGoogle from '../file-download-modal/options/FileDownloadGoogle';
 import Checkbox from '../form/checkbox/Checkbox';
+import { GoogleSelectedProUpgradeButton } from '../form/file-selector/GoogleSelectedProUpgradeButton';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
@@ -59,6 +60,8 @@ export interface DownloadFromServerOpts {
 
 export interface RecordDownloadModalProps {
   org: SalesforceOrgUi;
+  googleIntegrationEnabled: boolean;
+  googleShowUpgradeToPro: boolean;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;
@@ -83,6 +86,8 @@ const REQUIRE_BULK_API_COUNT = 500_000;
 
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
+  googleIntegrationEnabled,
+  googleShowUpgradeToPro,
   google_apiKey,
   google_appId,
   google_clientId,
@@ -101,7 +106,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   children,
 }) => {
   const rollbar = useRollbar();
-  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId && !!onDownloadFromServer;
+  const hasGoogleInputConfigured =
+    googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
@@ -424,6 +430,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   disabled={isBulkApi}
                 />
               )}
+              {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
               {fileFormat === 'gdrive' && (
                 <FileDownloadGoogle
                   google_apiKey={google_apiKey}

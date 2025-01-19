@@ -26,9 +26,9 @@ import {
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { LoadRecordsResultsModal, fromJetstreamEvents, getFieldHeaderFromMapping, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import { loadBatchApiData, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 
@@ -67,7 +67,7 @@ export interface LoadRecordsBatchApiResultsProps {
   onFinish: (results: { success: number; failure: number }) => void;
 }
 
-export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiResultsProps> = ({
+export const LoadRecordsBatchApiResults = ({
   selectedOrg,
   selectedSObject,
   fieldMapping,
@@ -82,7 +82,7 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   serialMode,
   dateFormat,
   onFinish,
-}) => {
+}: LoadRecordsBatchApiResultsProps) => {
   const isMounted = useRef(true);
   const isAborted = useRef(false);
   const { trackEvent } = useAmplitude();
@@ -104,7 +104,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
   });
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
-  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
 
   useEffect(() => {
@@ -376,6 +377,8 @@ export const LoadRecordsBatchApiResults: FunctionComponent<LoadRecordsBatchApiRe
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

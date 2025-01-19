@@ -1,7 +1,8 @@
-import { Fragment, FunctionComponent, lazy } from 'react';
+import { lazy } from 'react';
 import Tabs from '../../tabs/Tabs';
 import FileSelector, { FileSelectorProps } from './FileSelector';
 import type { GoogleFileSelectorProps } from './GoogleFileSelector';
+import { GoogleSelectedProUpgradeButton } from './GoogleSelectedProUpgradeButton';
 
 const GoogleFileSelector = lazy(() => import('./GoogleFileSelector'));
 
@@ -9,38 +10,57 @@ export interface FileOrGoogleSelectorProps {
   fileSelectorProps: FileSelectorProps;
   googleSelectorProps: GoogleFileSelectorProps;
   omitGoogle?: boolean;
+  googleShowUpgradeToPro: boolean;
   initialSelectedTab?: 'local' | 'google';
 }
 
-export const FileOrGoogleSelector: FunctionComponent<FileOrGoogleSelectorProps> = ({
+export const FileOrGoogleSelector = ({
   fileSelectorProps,
   googleSelectorProps,
   omitGoogle,
+  googleShowUpgradeToPro,
   initialSelectedTab = 'local',
-}) => {
+}: FileOrGoogleSelectorProps) => {
+  if (omitGoogle && !googleShowUpgradeToPro) {
+    return <FileSelector {...fileSelectorProps}></FileSelector>;
+  }
+
+  if (googleShowUpgradeToPro) {
+    return (
+      <Tabs
+        initialActiveId={initialSelectedTab}
+        tabs={[
+          {
+            id: 'local',
+            title: 'File from computer',
+            content: <FileSelector {...fileSelectorProps}></FileSelector>,
+          },
+          {
+            id: 'google',
+            title: 'Google Drive',
+            content: <GoogleSelectedProUpgradeButton />,
+          },
+        ]}
+      />
+    );
+  }
+
   return (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
-    <Fragment>
-      {omitGoogle ? (
-        <FileSelector {...fileSelectorProps}></FileSelector>
-      ) : (
-        <Tabs
-          initialActiveId={initialSelectedTab}
-          tabs={[
-            {
-              id: 'local',
-              title: 'File from computer',
-              content: <FileSelector {...fileSelectorProps}></FileSelector>,
-            },
-            {
-              id: 'google',
-              title: 'Google Drive',
-              content: <GoogleFileSelector {...googleSelectorProps} />,
-            },
-          ]}
-        />
-      )}
-    </Fragment>
+    <Tabs
+      initialActiveId={initialSelectedTab}
+      tabs={[
+        {
+          id: 'local',
+          title: 'File from computer',
+          content: <FileSelector {...fileSelectorProps}></FileSelector>,
+        },
+        {
+          id: 'google',
+          title: 'Google Drive',
+          content: <GoogleFileSelector {...googleSelectorProps} />,
+        },
+      ]}
+    />
   );
 };
 

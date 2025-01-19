@@ -6,11 +6,11 @@ import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';
 import ViewOrCompareMetadataSidebar from './ViewOrCompareMetadataSidebar';
@@ -24,13 +24,10 @@ export interface ViewOrCompareMetadataModalProps {
   onClose: () => void;
 }
 
-export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadataModalProps> = ({
-  sourceOrg,
-  selectedMetadata,
-  onClose,
-}) => {
+export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClose }: ViewOrCompareMetadataModalProps) => {
   const [chromeExtension] = useState(() => isChromeExtension());
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const editorRef = useRef<editor.IStandaloneCodeEditor>();
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor>();
   const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi | null>(null);
@@ -216,6 +213,8 @@ export const ViewOrCompareMetadataModal: FunctionComponent<ViewOrCompareMetadata
       {downloadFileModalConfig.open && downloadFileModalConfig.org && (
         <FileDownloadModal
           org={downloadFileModalConfig.org}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

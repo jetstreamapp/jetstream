@@ -2,7 +2,7 @@
 
 export const isChromeExtension = () => {
   try {
-    return !!window?.chrome?.runtime?.id;
+    return !!window?.__IS_CHROME_EXTENSION__ || !!window?.chrome?.runtime?.id;
   } catch (ex) {
     return false;
   }

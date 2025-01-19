@@ -42,13 +42,13 @@ import {
   transformEditForm,
   validateEditForm,
 } from '@jetstream/ui-core/shared';
-import { applicationCookieState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import Editor from '@monaco-editor/react';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
@@ -113,8 +113,8 @@ function getTagline(
 }
 
 export interface ViewEditCloneRecordProps {
-  apiVersion: string;
   selectedOrg: SalesforceOrgUi;
+  apiVersion: string;
   action: CloneEditView;
   sobjectName: string;
   recordId: string | null;
@@ -125,8 +125,8 @@ export interface ViewEditCloneRecordProps {
 }
 
 export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = ({
-  apiVersion,
   selectedOrg,
+  apiVersion,
   action,
   sobjectName: initialSobjectName,
   recordId: initialRecordId,
@@ -144,7 +144,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
   const hasEverBeenInViewMode = useRef(false);
   hasEverBeenInViewMode.current = action === 'view' || hasEverBeenInViewMode.current;
 
-  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
 
   // User can drill in to related records, this allows us to go back up the chain via Breadcrumbs
   const [recordId, setRecordId] = useState(initialRecordId);
@@ -541,6 +542,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       {downloadModalData.open && (
         <RecordDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

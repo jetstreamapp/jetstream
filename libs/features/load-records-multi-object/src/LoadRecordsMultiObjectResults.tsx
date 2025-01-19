@@ -3,9 +3,9 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
-import { fromAppState } from '@jetstream/ui/app-state';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useEffect, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import LoadRecordsMultiObjectResultsTable from './LoadRecordsMultiObjectResultsTable';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useDownloadResults from './useDownloadResults';
@@ -19,15 +19,16 @@ export interface LoadRecordsMultiObjectResultsProps {
   onLoadStarted: () => void;
 }
 
-export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiObjectResultsProps> = ({
+export const LoadRecordsMultiObjectResults = ({
   selectedOrg,
   orgType,
   data,
   loading,
   loadFinished,
   onLoadStarted,
-}) => {
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(fromAppState.applicationCookieState);
+}: LoadRecordsMultiObjectResultsProps) => {
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
   const [numGroups, setNumGroups] = useState(0);
   const [totalRecordCount, setTotalRecordCount] = useState(0);
@@ -42,6 +43,8 @@ export const LoadRecordsMultiObjectResults: FunctionComponent<LoadRecordsMultiOb
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

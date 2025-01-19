@@ -17,7 +17,7 @@ import type {
 } from '@jetstream/types';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, DefaultValue, selector, useRecoilValue, useSetRecoilState } from 'recoil';
+import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
 const DEFAULT_PROFILE = {
   id: 'unknown',
@@ -168,9 +168,38 @@ export const appVersionState = atom<{ version: string; announcements?: Announcem
   default: fetchAppVersion(),
 });
 
+export const isChromeExtensionState = selector<boolean>({
+  key: 'isChromeExtensionState',
+  get: () => isChromeExtension(),
+});
+
 export const userProfileState = atom<UserProfileUi>({
-  key: 'userState',
+  key: 'userProfileState',
   default: fetchUserProfile(),
+});
+
+export const userProfileEntitlementState = selectorFamily({
+  key: 'userProfileEntitlementState',
+  get:
+    (entitlement: keyof UserProfileUi['entitlements']) =>
+    ({ get }) => {
+      const userProfile = get(userProfileState);
+      return userProfile?.entitlements?.[entitlement] ?? false;
+    },
+});
+
+export const googleDriveAccessState = selector({
+  key: 'googleDriveAccessState',
+  get: ({ get }) => {
+    const isChromeExtension = get(isChromeExtensionState);
+    // FIXME: override this until we enable billing
+    const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
+
+    return {
+      hasGoogleDriveAccess: !isChromeExtension && hasGoogleDriveAccess,
+      googleShowUpgradeToPro: !isChromeExtension && !hasGoogleDriveAccess,
+    };
+  },
 });
 
 export const jetstreamOrganizationsState = atom<JetstreamOrganization[]>({

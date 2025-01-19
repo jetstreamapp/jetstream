@@ -1,7 +1,9 @@
 import { css } from '@emotion/react';
 import { copyRecordsToClipboard, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { Fragment, FunctionComponent, useState } from 'react';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { Fragment, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import FileDownloadModal from '../file-download-modal/FileDownloadModal';
 import EmptyState from '../illustrations/EmptyState';
 import ReadonlyList from '../list/ReadonlyList';
@@ -19,12 +21,14 @@ interface QueryWhereIsThisUsedProps {
 
 const CUSTOM_FIELD_SUFFIX = /__c/;
 
-export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> = ({ org, sobject, field }) => {
+export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUsedProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [fieldName] = useState(() => field.replace(CUSTOM_FIELD_SUFFIX, ''));
   const [isFieldEligible] = useState(() => CUSTOM_FIELD_SUFFIX.test(field));
   const [exportData, setExportData] = useState<{ 'Reference Type': string; 'Reference Label': string; Namespace: string }[]>([]);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
 
   const { loadDependencies, loading, items, hasLoaded, hasError, errorMessage } = useWhereIsThisUsed(org, sobject, fieldName);
 
@@ -69,6 +73,11 @@ export const QueryWhereIsThisUsed: FunctionComponent<QueryWhereIsThisUsedProps> 
         <FileDownloadModal
           org={org}
           modalHeader="Download Field Dependencies"
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
           data={exportData}
           header={['Reference Type', 'Reference Label', 'Namespace']}
           fileNameParts={['dependencies', `${sobject}.${fieldName}`]}

@@ -24,9 +24,9 @@ import {
   getRecommendedApiMode,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { applicationCookieState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import startCase from 'lodash/startCase';
-import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
@@ -54,11 +54,12 @@ export interface LoadRecordsProps {
   featureFlags: Set<string>;
 }
 
-export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags }) => {
+export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
     [google_apiKey, google_appId, google_clientId]
@@ -453,6 +454,8 @@ export const LoadRecords: FunctionComponent<LoadRecordsProps> = ({ featureFlags 
           <GridCol>
             {currentStep.name === 'sobjectAndFile' && (
               <LoadRecordsSelectObjectAndFile
+                hasGoogleDriveAccess={hasGoogleDriveAccess}
+                googleShowUpgradeToPro={googleShowUpgradeToPro}
                 googleApiConfig={googleApiConfig}
                 featureFlags={featureFlags}
                 selectedOrg={selectedOrg}

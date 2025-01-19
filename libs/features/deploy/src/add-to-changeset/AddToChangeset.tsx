@@ -2,10 +2,10 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { ChangeSet, DeployMetadataTableRow, DeployResult, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { Fragment, useState } from 'react';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import AddToChangesetConfigModal from './AddToChangesetConfigModal';
 import AddToChangesetStatusModal from './AddToChangesetStatusModal';
@@ -17,9 +17,10 @@ export interface AddToChangesetProps {
   selectedRows: Set<DeployMetadataTableRow>;
 }
 
-export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ className, selectedOrg, loading, selectedRows }) => {
+export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }: AddToChangesetProps) => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -103,6 +104,8 @@ export const AddToChangeset: FunctionComponent<AddToChangesetProps> = ({ classNa
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

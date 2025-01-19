@@ -24,10 +24,11 @@ import {
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
-import { FunctionComponent } from 'react';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 
 export interface LoadRecordsSelectObjectAndFileProps {
+  hasGoogleDriveAccess: boolean;
+  googleShowUpgradeToPro: boolean;
   googleApiConfig: GoogleApiClientConfig;
   featureFlags: Set<string>;
   selectedOrg: SalesforceOrgUi;
@@ -56,7 +57,9 @@ const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> 
   return await XlsxSheetSelectionModalPromise({ worksheets });
 };
 
-export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelectObjectAndFileProps> = ({
+export const LoadRecordsSelectObjectAndFile = ({
+  hasGoogleDriveAccess,
+  googleShowUpgradeToPro,
   googleApiConfig,
   featureFlags,
   selectedOrg,
@@ -79,9 +82,9 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
   onLoadTypeChange,
   onExternalIdChange,
   children,
-}) => {
+}: LoadRecordsSelectObjectAndFileProps) => {
   const hasGoogleInputConfigured =
-    !globalThis.__IS_CHROME_EXTENSION__ && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
+    hasGoogleDriveAccess && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
       const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
@@ -172,6 +175,7 @@ export const LoadRecordsSelectObjectAndFile: FunctionComponent<LoadRecordsSelect
               <GridCol>
                 <FileOrGoogleSelector
                   omitGoogle={!hasGoogleInputConfigured}
+                  googleShowUpgradeToPro={googleShowUpgradeToPro}
                   initialSelectedTab={hasGoogleInputConfigured && inputFileType === 'google' && inputFilename ? 'google' : 'local'}
                   fileSelectorProps={{
                     id: 'load-record-file',
