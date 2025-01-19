@@ -54,6 +54,7 @@
     "build:storybook": "storybook build -c libs/ui/.storybook -o dist/storybook -s node_modules/@salesforce-ux/design-system/assets/styles",
     "build:web-extension:dev": "nx run jetstream-web-extension:build --configuration=development",
     "build:web-extension": "nx run jetstream-web-extension:build",
+    "build:web-extension:zip": "rm -f dist/apps/jetstream-web-extension-${version}.zip && cd dist/apps/jetstream-web-extension && zip -q -o -r -9 ../../jetstream-web-extension-${version}.zip *",
     "email:dev": "email dev --dir ./libs/email/src/lib/email-templates --port 3003",
     "email:build": "email build --dir ./libs/email/src/lib/email-templates --packageManager yarn",
     "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",

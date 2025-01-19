@@ -22,8 +22,7 @@
     "after:bump": [
       "npx prettier --write apps/jetstream-web-extension/src/manifest.json",
       "yarn build:web-extension",
-      "rm -f dist/apps/jetstream-web-extension-${version}.zip *",
-      "cd dist/apps/jetstream-web-extension && zip -r -9 ../../jetstream-web-extension-${version}.zip *"
+      "version=v${version} yarn build:web-extension:zip"
     ],
     "after:release": "echo Successfully released ${name} v${version}."
   }
