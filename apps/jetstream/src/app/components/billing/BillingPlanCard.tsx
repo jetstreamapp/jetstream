@@ -2,21 +2,39 @@ import { Icon } from '@jetstream/ui';
 import { useId } from 'react';
 
 interface BillingPlanCardProps {
-  // description: string;
-  // descriptionTitle: string;
+  description?: string;
+  descriptionTitle?: string;
   price: string;
   priceDescription: string;
   value: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: (value: string) => void;
 }
 
-export const BillingPlanCard = ({ price, priceDescription, value, checked, onChange }: BillingPlanCardProps) => {
+export const BillingPlanCard = ({
+  description,
+  descriptionTitle,
+  price,
+  priceDescription,
+  value,
+  checked,
+  disabled,
+  onChange,
+}: BillingPlanCardProps) => {
   const id = useId();
 
   return (
     <div className="slds-visual-picker slds-visual-picker_medium">
-      <input type="radio" id={id} value={value} checked={checked} name="priceId" onChange={(ev) => onChange(ev.target.value)} />
+      <input
+        type="radio"
+        id={id}
+        value={value}
+        checked={checked}
+        name="priceId"
+        disabled={disabled}
+        onChange={(ev) => onChange(ev.target.value)}
+      />
       <label htmlFor={id}>
         <span className="slds-visual-picker__figure slds-visual-picker__text slds-align_absolute-center">
           <span>
@@ -24,11 +42,12 @@ export const BillingPlanCard = ({ price, priceDescription, value, checked, onCha
             <span className="slds-text-title">{priceDescription}</span>
           </span>
         </span>
-        {/* TODO: we can add this in later if we want to */}
-        {/* <span className="slds-visual-picker__body">
-          <span className="slds-text-heading_small">{descriptionTitle}</span>
-          <span className="slds-text-title">{description}</span>
-        </span> */}
+        {(descriptionTitle || description) && (
+          <span className="slds-visual-picker__body">
+            {descriptionTitle && <span className="slds-text-heading_small">{descriptionTitle}</span>}
+            {description && <span className="slds-text-title">{description}</span>}
+          </span>
+        )}
         <Icon
           type="utility"
           icon="check"

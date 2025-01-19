@@ -58,8 +58,8 @@ export function App() {
   return (
     <div>
       <HeaderNavbar
-        userProfile={undefined}
         featureFlags={featureFlags}
+        isBillingEnabled={false}
         isChromeExtension
         // unavailableRoutes={unavailableRoutesDefault}
         // orgsDropdown={<OrgPreview selectedOrg={selectedOrg} />}
@@ -70,7 +70,7 @@ export function App() {
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
             <Routes>
-              <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome />} />
+              <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={false} />} />
               <Route path={APP_ROUTES.QUERY.ROUTE} element={<Query />}>
                 <Route index element={<QueryBuilder />} />
                 <Route path="results" element={<QueryResults />} />

@@ -10,7 +10,7 @@ import { ENVIRONMENT, ROUTES } from '../utils/environment';
 const navigation = [
   { name: 'Features', href: '/#features' },
   { name: 'Documentation', href: 'https://docs.getjetstream.app/', target: '_blank' },
-  { name: 'Pricing', href: '/pricing' },
+  { name: 'Pricing', href: '/pricing', disabled: !ENVIRONMENT.BILLING_ENABLED },
   { name: 'Privacy & Security', href: '/privacy' },
   { name: 'Blog', href: '/blog' },
 ];
@@ -58,7 +58,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
             </div>
             <div className="hidden space-x-8 md:flex md:ml-10">
               {navigation
-                .filter((item) => !omitLinks.includes(item.href))
+                .filter((item) => !omitLinks.includes(item.href) && !item.disabled)
                 .map((item) => (
                   <a
                     key={item.name}

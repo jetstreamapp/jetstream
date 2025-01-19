@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
 import { applicationCookieState, selectUserPreferenceState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Jobs from '../jobs/Jobs';
@@ -16,8 +16,10 @@ import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
 
 export interface HeaderNavbarProps {
-  userProfile: Maybe<UserProfileUi>;
+  // FIXME: web extension will have a user profile if they have gotten this far
+  userProfile?: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
+  isBillingEnabled: boolean;
   isChromeExtension?: boolean;
 }
 
@@ -27,11 +29,23 @@ function logout(serverUrl: string) {
   location.href = logoutUrl;
 }
 
-function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean) {
+function getMenuItems({
+  userProfile,
+  featureFlags,
+  isBillingEnabled,
+  deniedNotifications,
+}: {
+  userProfile: Maybe<UserProfileUi>;
+  featureFlags: Set<string>;
+  isBillingEnabled: boolean;
+  deniedNotifications?: boolean;
+}) {
   const menu: DropDownItem[] = [];
 
   menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile?.email, icon: { type: 'utility', icon: 'profile_alt' } });
-  menu.push({ id: 'billing', value: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
+  if (isBillingEnabled) {
+    menu.push({ id: 'billing', value: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
+  }
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
   menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
@@ -46,7 +60,7 @@ function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<strin
   return menu;
 }
 
-export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags, isChromeExtension }) => {
+export const HeaderNavbar = ({ userProfile, featureFlags, isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
@@ -77,18 +91,19 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled));
+    userProfile && setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications: !isEnabled }));
   }
 
   useEffect(() => {
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
-  }, [userProfile, featureFlags, deniedNotifications]);
+    userProfile && setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications }));
+  }, [userProfile, featureFlags, deniedNotifications, isBillingEnabled]);
 
   const rightHandMenuItems = useMemo(() => {
     return isChromeExtension
       ? [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />]
-      : [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
-  }, [isChromeExtension, userProfile]);
+      : // FIXME: replace Donate with "Sign up for PRO"
+        [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
+  }, [isChromeExtension]);
 
   return (
     <Fragment>

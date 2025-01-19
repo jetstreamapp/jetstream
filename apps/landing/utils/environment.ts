@@ -1,7 +1,8 @@
 export const ENVIRONMENT = {
-  CLIENT_URL: process.env.NEXT_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
-  SERVER_URL: process.env.NEXT_PUBLIC_SERVER_URL || 'https://getjetstream.app',
-  CAPTCHA_KEY: process.env.NEXT_PUBLIC_CAPTCHA_KEY || null,
+  BILLING_ENABLED: process.env.NX_PUBLIC_BILLING_ENABLED === 'true',
+  CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
+  SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app',
+  CAPTCHA_KEY: process.env.NX_PUBLIC_CAPTCHA_KEY || null,
 };
 
 export const ROUTES = {

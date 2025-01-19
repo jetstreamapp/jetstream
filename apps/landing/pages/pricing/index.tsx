@@ -39,7 +39,7 @@ const tiers = [
     name: 'Professional',
     id: 'tier-professional',
     href: '#',
-    price: { monthly: { price: '$29', suffix: 'month' }, annually: { price: '$299', suffix: 'year' } },
+    price: { monthly: { price: '$25', suffix: 'month' }, annually: { price: '$250', suffix: 'year' } },
     description: 'Get the most out of Jetstream.',
     features: [
       'Everything in Free plan',

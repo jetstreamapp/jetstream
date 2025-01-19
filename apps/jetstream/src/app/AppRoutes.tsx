@@ -3,6 +3,7 @@ import { Maybe, UserProfileUi } from '@jetstream/types';
 import { AppHome, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import Profile from './components/profile/Profile';
 
@@ -108,7 +109,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
     <Routes>
       {/* This is just here to allow testing the error page without having a real error - can uncomment for testing */}
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
-      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome />} />
+      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={environment.BILLING_ENABLED} />} />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}
         element={

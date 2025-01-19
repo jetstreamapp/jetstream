@@ -1,5 +1,6 @@
 type RouteKey =
   | 'HOME'
+  | 'CHROME_EXTENSION'
   | 'ORGANIZATIONS'
   | 'QUERY'
   | 'LOAD'
@@ -55,6 +56,14 @@ export const APP_ROUTES: RouteMap = {
     ...getRoutePath('/home'),
     TITLE: 'Home',
     DESCRIPTION: 'Welcome to Jetstream',
+  },
+  CHROME_EXTENSION: {
+    ROUTE: 'https://chromewebstore.google.com/detail/jetstream/nhahnhcpbhlkmpkdgbbadffnhblhlomm',
+    SEARCH_PARAM: undefined,
+    DOCS: 'https://docs.getjetstream.app/chrome-extension',
+    TITLE: 'Chrome Extension',
+    DESCRIPTION: 'Use Jetstream on any Salesforce page with the Chrome Extension',
+    NEW_UNTIL: new Date(2025, 7, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   ORGANIZATIONS: {
     ...getRoutePath('/organizations'),

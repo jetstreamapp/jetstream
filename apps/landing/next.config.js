@@ -4,6 +4,12 @@ const { composePlugins, withNx } = require('@nx/next');
  * @type {import('@nx/next/plugins/with-nx').WithNxOptions}
  **/
 const nextConfig = {
+  env: {
+    NX_PUBLIC_BILLING_ENABLED: process.env.NX_PUBLIC_BILLING_ENABLED,
+    NX_PUBLIC_CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL,
+    NX_PUBLIC_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL,
+    NX_PUBLIC_CAPTCHA_KEY: process.env.NX_PUBLIC_CAPTCHA_KEY,
+  },
   rewrites: async () => {
     if (process.env.NODE_ENV !== 'development') {
       return [];
