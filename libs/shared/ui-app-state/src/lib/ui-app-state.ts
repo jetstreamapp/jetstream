@@ -19,7 +19,7 @@ import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
-const DEFAULT_PROFILE = {
+const DEFAULT_PROFILE: UserProfileUi = {
   id: 'unknown',
   userId: 'unknown',
   email: 'unknown',
@@ -29,6 +29,12 @@ const DEFAULT_PROFILE = {
   preferences: {
     skipFrontdoorLogin: true,
   },
+  entitlements: {
+    googleDrive: false,
+    chromeExtension: false,
+    recordSync: false,
+  },
+  subscriptions: [],
 } as UserProfileUi;
 
 export const STORAGE_KEYS = {
@@ -192,8 +198,9 @@ export const googleDriveAccessState = selector({
   key: 'googleDriveAccessState',
   get: ({ get }) => {
     const isChromeExtension = get(isChromeExtensionState);
-    // FIXME: override this until we enable billing
-    const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
+    // TODO: This is temporary until we get entitlements working
+    // const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
+    const hasGoogleDriveAccess = true;
 
     return {
       hasGoogleDriveAccess: !isChromeExtension && hasGoogleDriveAccess,

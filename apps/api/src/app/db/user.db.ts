@@ -21,15 +21,9 @@ const userSelect: Prisma.UserSelect = {
       chromeExtension: true,
     },
   },
-  subscriptions: {
-    where: { status: 'ACTIVE' },
-    take: 1,
+  billingAccount: {
     select: {
-      id: true,
-      providerId: true,
       customerId: true,
-      planId: true,
-      status: true,
     },
   },
   updatedAt: true,
@@ -71,15 +65,9 @@ const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPa
       updatedAt: true,
     },
   },
-  subscriptions: {
-    where: { status: 'ACTIVE' },
-    take: 1,
+  billingAccount: {
     select: {
-      id: true,
-      providerId: true,
       customerId: true,
-      planId: true,
-      status: true,
     },
   },
   createdAt: true,
@@ -94,14 +82,23 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
   emailVerified: true,
   picture: true,
   preferences: true,
+  billingAccount: {
+    select: {
+      customerId: true,
+    },
+  },
+  entitlements: {
+    select: {
+      chromeExtension: true,
+      recordSync: true,
+    },
+  },
   subscriptions: {
-    where: { status: 'ACTIVE' },
-    take: 1,
     select: {
       id: true,
-      providerId: true,
-      customerId: true,
-      planId: true,
+      productId: true,
+      subscriptionId: true,
+      priceId: true,
       status: true,
     },
   },
@@ -118,8 +115,28 @@ export const findById = (id: string) => {
   return prisma.user.findFirstOrThrow({ where: { id }, select: UserFacingProfileSelect });
 };
 
+export const findByIdWithSubscriptions = (id: string) => {
+  return prisma.user.findFirstOrThrow({
+    where: { id },
+    select: {
+      ...userSelect,
+      subscriptions: {
+        where: { status: 'ACTIVE' },
+        select: {
+          id: true,
+          customerId: true,
+          productId: true,
+          subscriptionId: true,
+          priceId: true,
+          status: true,
+        },
+      },
+    },
+  });
+};
+
 export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then(({ id }) => id);
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
 };
 
 export const checkUserEntitlement = ({
@@ -129,7 +146,7 @@ export const checkUserEntitlement = ({
   userId: string;
   entitlement: keyof Omit<Entitlement, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 }): Promise<boolean> => {
-  return prisma.entitlement.count({ where: { userId, [entitlement]: true } }).then((result) => result > 0);
+  return prisma.entitlement.count({ where: { id: userId, [entitlement]: true } }).then((result) => result > 0);
 };
 
 export async function updateUser(
@@ -176,5 +193,20 @@ export async function deleteUserAndAllRelatedData(userId: string): Promise<void>
         equals: userId,
       },
     },
+  });
+}
+
+export async function findByBillingAccountByCustomerId({ customerId }: { customerId: string }) {
+  const billingAccount = await prisma.billingAccount.findFirst({ where: { customerId } });
+  return billingAccount;
+}
+
+export async function createBillingAccountIfNotExists({ userId, customerId }: { userId: string; customerId: string }) {
+  const existingCustomer = await prisma.billingAccount.findUnique({ where: { uniqueCustomer: { customerId, userId } } });
+  if (existingCustomer) {
+    return existingCustomer;
+  }
+  return await prisma.billingAccount.create({
+    data: { customerId, userId },
   });
 }

@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { prisma } from '@jetstream/api-config';
+import { EntitlementsAccess, EntitlementsAccessSchema } from '@jetstream/types';
 import { Prisma } from '@prisma/client';
+import Stripe from 'stripe';
 
 const SELECT = Prisma.validator<Prisma.SubscriptionSelect>()({
   id: true,
   customerId: true,
-  providerId: true,
+  subscriptionId: true,
   status: true,
-  planId: true,
+  priceId: true,
   userId: true,
   createdAt: true,
   updatedAt: true,
@@ -21,63 +23,75 @@ export const findById = async ({ id, userId }: { id: string; userId: string }) =
   return await prisma.subscription.findUniqueOrThrow({ where: { id, userId }, select: SELECT });
 };
 
-export const upsertSubscription = async ({
-  userId,
+export const findSubscriptionsByCustomerId = async ({
   customerId,
-  providerId,
-  planId,
+  status,
 }: {
-  userId: string;
   customerId: string;
-  providerId: string;
-  planId: string;
+  status?: 'ACTIVE' | 'CANCELLED' | 'PAST_DUE' | 'PAUSED';
 }) => {
-  return await prisma.subscription.upsert({
-    create: { userId, status: 'ACTIVE', customerId, providerId, planId },
-    update: { userId, status: 'ACTIVE', customerId, providerId, planId },
-    where: { uniqueSubscription: { userId, providerId, planId } },
-    select: SELECT,
+  return await prisma.subscription.findMany({ where: { customerId, status }, select: SELECT });
+};
+
+export const updateUserEntitlements = async (customerId: string, entitlementAccessUntrusted: EntitlementsAccess) => {
+  const entitlementAccess = EntitlementsAccessSchema.parse(entitlementAccessUntrusted);
+  const user = await prisma.user.findFirstOrThrow({
+    where: { billingAccount: { customerId } },
+    select: { id: true },
+  });
+
+  await prisma.entitlement.upsert({
+    create: {
+      userId: user.id,
+      ...entitlementAccess,
+    },
+    update: entitlementAccess,
+    where: { userId: user.id },
   });
 };
 
-// export const create = async (
-//   userId: string,
-//   payload: {
-//     name: string;
-//     description?: Maybe<string>;
-//   }
-// ) => {
-//   return await prisma.subscription.create({
-//     select: SELECT,
-//     data: {
-//       userId,
-//       name: payload.name.trim(),
-//       description: payload.description?.trim(),
-//     },
-//   });
-// };
+/**
+ * Given a customer's current subscriptions, cancel all other subscriptions, create any needed subscriptions, and update the subscription state
+ * In addition, entitlements are also updated to reflect the user's current subscription state
+ */
+export const updateSubscriptionStateForCustomer = async ({
+  userId,
+  customerId,
+  subscriptions,
+}: {
+  userId: string;
+  customerId: string;
+  subscriptions: Stripe.Subscription[];
+}) => {
+  const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
 
-// export const update = async (
-//   userId,
-//   id,
-//   payload: {
-//     name: string;
-//     description?: Maybe<string>;
-//   }
-// ) => {
-//   return await prisma.subscription.update({
-//     select: SELECT,
-//     where: { userId, id },
-//     data: {
-//       name: payload.name.trim(),
-//       description: payload.description?.trim() ?? null,
-//     },
-//   });
-// };
+  await prisma.$transaction([
+    // Delete all subscriptions that are no longer active in Stripe
+    prisma.subscription.deleteMany({
+      where: { userId, customerId, priceId: { notIn: priceIds } },
+    }),
+    // Create/Update all current subscriptions from Stripe
+    ...subscriptions.flatMap((subscription) =>
+      subscription.items.data.map((item) =>
+        prisma.subscription.upsert({
+          create: {
+            userId,
+            subscriptionId: subscription.id,
+            status: subscription.status.toUpperCase(),
+            customerId,
+            priceId: item.price.id,
+          },
+          update: { status: subscription.status.toUpperCase() },
+          where: { uniqueSubscription: { userId, subscriptionId: subscription.id, priceId: item.price.id } },
+        })
+      )
+    ),
+  ]);
+};
 
-// export const deleteOrganization = async (userId, id) => {
-//   return await prisma.subscription.delete({
-//     select: SELECT,
-//     where: { userId, id },
-//   });
-// };
+export const cancelAllSubscriptionsForUser = async ({ customerId }: { customerId: string }) => {
+  await prisma.subscription.updateMany({
+    where: { customerId },
+    data: { status: 'CANCELED' },
+  });
+};

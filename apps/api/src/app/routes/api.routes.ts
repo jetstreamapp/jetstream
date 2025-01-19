@@ -64,6 +64,7 @@ routes.delete('/me/profile/2fa/:type', userController.deleteAuthFactor.controlle
 routes.post('/billing/checkout-session', billingController.createCheckoutSession.controllerFn());
 routes.get('/billing/checkout-session/complete', billingController.processCheckoutSuccess.controllerFn());
 routes.get('/billing/subscriptions', billingController.getSubscriptions.controllerFn());
+routes.post('/billing/portal', billingController.createBillingPortalSession.controllerFn());
 
 /**
  * ************************************

@@ -1,7 +1,6 @@
 import { ENV } from '@jetstream/api-config';
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import * as subscriptionDbService from '../db/subscription.db';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
 import { redirect, sendJson } from '../utils/response.handlers';
@@ -42,6 +41,12 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
+  createBillingPortalSession: {
+    controllerFn: () => createBillingPortalSession,
+    validators: {
+      hasSourceOrg: false,
+    },
+  },
 };
 
 const stripeWebhookHandler = async (req: Request, res: Response) => {
@@ -60,12 +65,12 @@ const createCheckoutSessionHandler = createRoute(
   async ({ user: sessionUser, body }, req, res) => {
     const { priceId } = body;
 
-    const user = await userDbService.findById(sessionUser.id);
+    const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
 
     const sessions = await stripeService.createCheckoutSession({
       mode: 'subscription',
       priceId,
-      customerId: user.subscriptions?.[0]?.customerId,
+      customerId: user.billingAccount?.customerId,
       user,
     });
 
@@ -82,22 +87,42 @@ const processCheckoutSuccessHandler = createRoute(
       return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
     }
 
-    const user = await userDbService.findById(sessionUser.id);
+    const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
     if (!user.subscriptions?.[0]?.customerId) {
       return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
     }
 
-    await stripeService.saveSubscriptionFromCompletedSession({
-      sessionId,
-      userId: user.id,
-    });
+    await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
 
     redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
   }
 );
 
 const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, req, res) => {
-  const subscriptions = await subscriptionDbService.findByUserId(user.id);
+  const userProfile = await userDbService.findById(user.id);
+  // No billing account, so there are no subscriptions
+  if (!userProfile.billingAccount?.customerId) {
+    sendJson(res, { customer: null });
+    return;
+  }
 
-  sendJson(res, subscriptions);
+  const customer = await stripeService.getUserFacingStripeCustomer({ customerId: userProfile.billingAccount.customerId });
+  sendJson(res, { customer });
 });
+
+const createBillingPortalSession = createRoute(
+  routeDefinition.createBillingPortalSession.validators,
+  async ({ user: sessionUser }, req, res) => {
+    const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
+
+    if (!user.billingAccount) {
+      throw new Error('User does not have a billing account');
+    }
+
+    const sessions = await stripeService.createBillingPortalSession({
+      customerId: user.billingAccount?.customerId,
+    });
+
+    redirect(res, sessions.url);
+  }
+);

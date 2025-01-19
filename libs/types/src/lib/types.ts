@@ -3,17 +3,6 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
-export interface Subscription {
-  type: string;
-  status: string;
-  id: string;
-  userId: string;
-  customerId: string;
-  providerId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface Announcement {
   id: string;
   title: string;
@@ -131,6 +120,21 @@ export interface UserProfileUi {
   preferences: {
     skipFrontdoorLogin: boolean;
   };
+  billingAccount?: {
+    customerId: string;
+  };
+  entitlements: {
+    googleDrive: boolean;
+    chromeExtension: boolean;
+    recordSync: boolean;
+  };
+  subscriptions: {
+    id: string;
+    productId: string;
+    subscriptionId: string;
+    priceId: string;
+    status: true;
+  }[];
 }
 
 export interface SalesforceUserInfo {
