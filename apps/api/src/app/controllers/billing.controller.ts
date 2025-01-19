@@ -49,8 +49,15 @@ export const routeDefinition = {
   },
 };
 
+const ensureStripeIsInitialized = () => {
+  if (!ENV.STRIPE_API_KEY) {
+    throw new Error('Stripe API Key is not set');
+  }
+};
+
 const stripeWebhookHandler = async (req: Request, res: Response) => {
   try {
+    ensureStripeIsInitialized();
     const payload = req.body;
     const signature = req.get('stripe-signature');
     await stripeService.handleStripeWebhook({ payload, signature });
@@ -63,6 +70,7 @@ const stripeWebhookHandler = async (req: Request, res: Response) => {
 const createCheckoutSessionHandler = createRoute(
   routeDefinition.createCheckoutSession.validators,
   async ({ user: sessionUser, body }, req, res) => {
+    ensureStripeIsInitialized();
     const { priceId } = body;
 
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
@@ -81,6 +89,7 @@ const createCheckoutSessionHandler = createRoute(
 const processCheckoutSuccessHandler = createRoute(
   routeDefinition.processCheckoutSuccess.validators,
   async ({ user: sessionUser, query }, req, res) => {
+    ensureStripeIsInitialized();
     const { subscribeAction, sessionId } = query;
 
     if (!subscribeAction || !sessionId) {
@@ -99,6 +108,7 @@ const processCheckoutSuccessHandler = createRoute(
 );
 
 const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, req, res) => {
+  ensureStripeIsInitialized();
   const userProfile = await userDbService.findById(user.id);
   // No billing account, so there are no subscriptions
   if (!userProfile.billingAccount?.customerId) {
@@ -113,6 +123,7 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
 const createBillingPortalSession = createRoute(
   routeDefinition.createBillingPortalSession.validators,
   async ({ user: sessionUser }, req, res) => {
+    ensureStripeIsInitialized();
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
 
     if (!user.billingAccount) {

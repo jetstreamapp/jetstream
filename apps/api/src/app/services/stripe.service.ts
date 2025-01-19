@@ -8,9 +8,13 @@ import Stripe from 'stripe';
 import * as subscriptionDbService from '../db/subscription.db';
 import * as userDbService from '../db/user.db';
 
-const stripe = new Stripe(ENV.STRIPE_API_KEY || '');
+const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY) : ({} as Stripe);
 
 export async function handleStripeWebhook({ signature, payload }: { signature?: string; payload: string | Buffer }) {
+  if (!ENV.STRIPE_API_KEY) {
+    throw new Error('Stripe API key not set');
+  }
+
   if (!ENV.STRIPE_WEBHOOK_SECRET) {
     throw new Error('Stripe Webhook secret not set');
   }
