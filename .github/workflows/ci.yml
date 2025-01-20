@@ -13,8 +13,8 @@ env:
   NX_CLOUD_DISTRIBUTED_EXECUTION: false
   NX_PUBLIC_AMPLITUDE_KEY: ${{ secrets.NX_PUBLIC_AMPLITUDE_KEY }}
   NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
-  NEXT_PUBLIC_CLIENT_URL: 'http://localhost:3333/app'
-  NEXT_PUBLIC_SERVER_URL: 'http://localhost:3333'
+  NX_PUBLIC_CLIENT_URL: 'http://localhost:3333/app'
+  NX_PUBLIC_SERVER_URL: 'http://localhost:3333'
 
 jobs:
   # Build application
