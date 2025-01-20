@@ -189,7 +189,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             'https://js.stripe.com',
           ],
           scriptSrcAttr: ["'none'"],
-          styleSrc: ["'self'", 'https:', "'unsafe-inline'", "'sha256-0hAheEzaMe6uXIKV4EehS9pu1am1lj/KnnzrOYqckXk='"],
+          styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
           upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
         },
       },
