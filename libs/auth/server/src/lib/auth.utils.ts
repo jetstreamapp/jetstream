@@ -98,6 +98,16 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         maxAge: TIME_30_DAYS,
       },
     },
+    redirectUrl: {
+      name: `jetstream-auth.redirect-url`,
+      options: {
+        httpOnly: false,
+        sameSite: 'lax',
+        path: '/',
+        secure: useSecureCookies,
+        maxAge: TIME_15_MIN,
+      },
+    },
   } as const;
 }
 

@@ -1,5 +1,4 @@
-/* eslint-disable no-restricted-globals */
-import { initAndRenderReact } from '@jetstream/web-extension-utils';
+import { initAndRenderReact } from '../../utils/web-extension.utils';
 
 initAndRenderReact(<Component />);
 

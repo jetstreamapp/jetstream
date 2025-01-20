@@ -130,6 +130,8 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
           columnDefinitions,
           onSubqueryFieldReorder,
           isTooling,
+          hasGoogleDriveAccess,
+          googleShowUpgradeToPro,
           google_apiKey,
           google_appId,
           google_clientId,
@@ -156,6 +158,8 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
                 downloadModalIsActive={downloadModalIsActive}
                 serverUrl={serverUrl}
                 skipFrontdoorLogin={skipFrontdoorLogin}
+                hasGoogleDriveAccess={hasGoogleDriveAccess}
+                googleShowUpgradeToPro={googleShowUpgradeToPro}
                 google_apiKey={google_apiKey}
                 google_appId={google_appId}
                 google_clientId={google_clientId}
@@ -211,6 +215,8 @@ function ModalDataTable({
   downloadModalIsActive,
   serverUrl,
   skipFrontdoorLogin,
+  hasGoogleDriveAccess,
+  googleShowUpgradeToPro,
   google_apiKey,
   google_appId,
   google_clientId,
@@ -344,6 +350,8 @@ function ModalDataTable({
       {downloadModalIsActive && (
         <RecordDownloadModal
           org={org}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

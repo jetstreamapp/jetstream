@@ -1,19 +1,7 @@
-/* eslint-disable no-restricted-globals */
 /// <reference types="chrome"/>
-import { initAndRenderReact } from '@jetstream/web-extension-utils';
-import Button from './components/Button';
+import { SfdcPageButton } from './components/SfdcPageButton';
 import { AppWrapperNotJetstreamOwnedPage } from './core/AppWrapperNotJetstreamOwnedPage';
-
-/**
- * This will change `publicPath` to `chrome-extension://<extension_id>/`.
- * It for runtime to get script chunks from the output folder
- * and for asset modules like file-loader to work.
- */
-// @ts-expect-error - see above comment
-__webpack_public_path__ = chrome.runtime.getURL('');
-
-// @ts-expect-error - see above comment
-console.log('Content script loaded.', __webpack_public_path__);
+import { initAndRenderReact } from './utils/web-extension.utils';
 
 const elementId = 'jetstream-app-container';
 
@@ -25,7 +13,7 @@ function renderApp() {
     document.body.appendChild(app);
     initAndRenderReact(
       <AppWrapperNotJetstreamOwnedPage>
-        <Button />
+        <SfdcPageButton />
       </AppWrapperNotJetstreamOwnedPage>,
       { elementId }
     );
@@ -39,7 +27,11 @@ function destroyApp() {
   }
 }
 
-renderApp();
+chrome.storage.local.get('options', (storage: { options?: { enabled: boolean } }) => {
+  if (!storage.options || storage.options.enabled) {
+    renderApp();
+  }
+});
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.options?.newValue) {

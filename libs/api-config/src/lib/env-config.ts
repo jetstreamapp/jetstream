@@ -124,6 +124,7 @@ const envSchema = z.object({
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
+  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
   JETSTREAM_SESSION_SECRET: z.string(),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()
@@ -208,6 +209,15 @@ const envSchema = z.object({
   GEO_IP_API_USERNAME: z.string().optional(),
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
+
+  WEB_EXTENSION_ID: z.string().optional().default(''),
+  /**
+   * STRIPE
+   */
+  STRIPE_API_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRO_ANNUAL_PRICE_ID: z.string().optional(),
+  STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
 });
 
 const parseResults = envSchema.safeParse({
@@ -217,6 +227,8 @@ const parseResults = envSchema.safeParse({
   EXAMPLE_USER_PASSWORD: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? process.env.EXAMPLE_USER_PASSWORD : null,
   EXAMPLE_USER_FULL_PROFILE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER_FULL_PROFILE : null,
   SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION,
+  STRIPE_PRO_ANNUAL_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID,
+  STRIPE_PRO_MONTHLY_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
   VERSION,
 });
 

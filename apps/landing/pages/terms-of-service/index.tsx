@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Layout from '../../components/layouts/Layout';
+import { ROUTES } from '../../utils/environment';
 
 const email = 'support@getjetstream.app';
 
@@ -120,7 +121,7 @@ export default function Page() {
       </p>
       <h2>SECTION 10 - PERSONAL INFORMATION</h2>
       <p className="mb-2 pl-2">
-        Your submission of personal information through the store is governed by our <Link href="/privacy">Privacy Policy</Link>.
+        Your submission of personal information through the store is governed by our <Link href={ROUTES.PRIVACY}>Privacy Policy</Link>.
       </p>
       <h2>SECTION 11 - ERRORS, INACCURACIES AND OMISSIONS</h2>
       <p className="mb-2 pl-2">

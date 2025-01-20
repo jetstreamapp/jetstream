@@ -2,7 +2,7 @@ import { Providers } from '@jetstream/auth/types';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useCsrfToken, useUserProfile } from '../../hooks/auth.hooks';
-import { AUTH_PATHS, ENVIRONMENT, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ENVIRONMENT, ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
 import Alert from '../Alert';
 import { LoginOrSignUp } from './LoginOrSignUp';
 
@@ -21,12 +21,12 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
     if (isLoggedIn && (!pendingVerifications || !pendingVerifications.length)) {
       window.location.href = ENVIRONMENT.CLIENT_URL;
     } else if (pendingVerifications) {
-      router.push(`${AUTH_PATHS.verify}`);
+      router.push(`${ROUTES.AUTH.verify}`);
     }
   }, [isLoggedIn, pendingVerifications, router]);
 
   useEffect(() => {
-    fetch(AUTH_PATHS.api_providers)
+    fetch(ROUTES.AUTH.api_providers)
       .then((response) => {
         if (response.ok) {
           return response.json();

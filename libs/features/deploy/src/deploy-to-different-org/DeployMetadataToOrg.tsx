@@ -1,9 +1,10 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { DeployMetadataTableRow, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
-import { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { Fragment, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeployMetadataToOrgConfigModal from './DeployMetadataToOrgConfigModal';
 import DeployMetadataToOrgStatusModal from './DeployMetadataToOrgStatusModal';
@@ -14,9 +15,10 @@ export interface DeployMetadataToOrgProps {
   selectedRows: Set<DeployMetadataTableRow>;
 }
 
-export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = ({ selectedOrg, loading, selectedRows }) => {
+export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: DeployMetadataToOrgProps) => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -93,6 +95,8 @@ export const DeployMetadataToOrg: FunctionComponent<DeployMetadataToOrgProps> = 
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

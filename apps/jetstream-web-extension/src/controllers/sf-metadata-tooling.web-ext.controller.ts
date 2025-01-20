@@ -11,9 +11,9 @@ import {
   RetrievePackageFromLisMetadataResultsRequestSchema,
 } from '@jetstream/api-types';
 import { buildPackageXml, getRetrieveRequestFromListMetadata, getRetrieveRequestFromManifest } from '@jetstream/salesforce-api';
-import { RetrieveRequest } from '@jetstream/types';
+import type { RetrieveRequest } from '@jetstream/types';
 import JSZip from 'jszip';
-import { isString } from 'lodash';
+import isString from 'lodash/isString';
 import { z } from 'zod';
 import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
 

@@ -1,10 +1,11 @@
 import { css } from '@emotion/react';
 import { JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
+import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { fromAppState, OrgsCombobox, useOrgPermissions } from '..';
+import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import AddOrg from './AddOrg';
 import { OrganizationSelector } from './OrganizationSelector';

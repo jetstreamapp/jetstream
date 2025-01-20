@@ -20,6 +20,7 @@ import {
 } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { GoogleSelectedProUpgradeButton } from '../form/file-selector/GoogleSelectedProUpgradeButton';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
@@ -48,6 +49,8 @@ interface TransformDataJson {
 }
 
 export interface FileDownloadModalProps {
+  googleIntegrationEnabled: boolean;
+  googleShowUpgradeToPro: boolean;
   google_apiKey?: string;
   google_appId?: string;
   google_clientId?: string;
@@ -88,6 +91,8 @@ export interface FileDownloadModalProps {
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
 
 export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
+  googleIntegrationEnabled,
+  googleShowUpgradeToPro,
   google_apiKey,
   google_appId,
   google_clientId,
@@ -105,7 +110,8 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   onError,
   transformData,
 }) => {
-  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
+  const hasGoogleInputConfigured =
+    googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
   const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(allowedTypes[0]);
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
@@ -348,8 +354,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               onChange={(value: FileExtGDrive) => setFileFormat(value)}
             />
           )}
+          {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
         </RadioGroup>
-        {fileFormat === 'gdrive' && google_apiKey && google_appId && google_clientId && (
+        {fileFormat === 'gdrive' && googleIntegrationEnabled && google_apiKey && google_appId && google_clientId && (
           <FileDownloadGoogle
             google_apiKey={google_apiKey}
             google_appId={google_appId}

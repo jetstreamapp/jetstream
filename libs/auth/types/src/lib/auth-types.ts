@@ -194,6 +194,7 @@ type StateCookie = 'state';
 type NonceCookie = 'nonce';
 type WebauthnChallengeCookie = 'webauthnChallenge';
 type RememberDeviceCookie = 'rememberDevice';
+type RedirectUrl = 'redirectUrl';
 
 type CookieConfigKey =
   | CallbackUrlCookie
@@ -204,7 +205,8 @@ type CookieConfigKey =
   | StateCookie
   | NonceCookie
   | WebauthnChallengeCookie
-  | RememberDeviceCookie;
+  | RememberDeviceCookie
+  | RedirectUrl;
 
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
 

@@ -22,7 +22,8 @@ import {
   ViewDocsLink,
   getModifierKey,
 } from '@jetstream/ui';
-import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
+import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';

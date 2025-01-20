@@ -37,14 +37,8 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import {
-  ConfirmPageChange,
-  RequireMetadataApiBanner,
-  applicationCookieState,
-  fromJetstreamEvents,
-  fromPermissionsState,
-  selectedOrgState,
-} from '@jetstream/ui-core';
+import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -107,7 +101,8 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const isMounted = useRef(true);
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -509,6 +504,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       {fileDownloadData && fileDownloadModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

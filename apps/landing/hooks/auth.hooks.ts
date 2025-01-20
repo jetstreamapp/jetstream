@@ -1,7 +1,7 @@
 import { TwoFactorType } from '@jetstream/auth/types';
 import { Maybe } from '@jetstream/types';
 import { useEffect, useState } from 'react';
-import { AUTH_PATHS } from '../utils/environment';
+import { ROUTES } from '../utils/environment';
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -23,7 +23,7 @@ export function useUserProfile() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch(AUTH_PATHS.api_session, {
+    fetch(ROUTES.AUTH.api_session, {
       headers: {
         Accept: 'application/json',
       },
@@ -66,7 +66,7 @@ export function useCsrfToken() {
 
   useEffect(() => {
     setIsLoadingCsrfToken(true);
-    fetch(AUTH_PATHS.api_csrf)
+    fetch(ROUTES.AUTH.api_csrf)
       .then((response) => {
         if (response.ok) {
           return response.json();

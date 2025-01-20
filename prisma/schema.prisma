@@ -27,11 +27,15 @@ model User {
   identities          AuthIdentity[]
   authFactors         AuthFactors[]
   loginActivity       LoginActivity[]
-  rememberdDevices    RememberedDevice[]
+  rememberedDevices   RememberedDevice[]
   passwordResetTokens PasswordResetToken[]
+  subscriptions       Subscription[]
   lastLoggedIn        DateTime?
   createdAt           DateTime                @default(now()) @db.Timestamp(6)
   updatedAt           DateTime                @updatedAt
+  webExtensionTokens  WebExtensionToken[]
+  entitlements        Entitlement?
+  billingAccount      BillingAccount?
 }
 
 model AuthFactors {
@@ -57,6 +61,40 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([email, token])
+}
+
+model Entitlement {
+  id              String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String  @unique @db.Uuid
+  chromeExtension Boolean @default(false)
+  googleDrive     Boolean @default(false)
+  recordSync      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("entitlement")
+}
+
+model WebExtensionToken {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  token     String
+  deviceId  String   @unique
+  ipAddress String
+  userAgent String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, userId, deviceId])
+  @@unique([type, token, deviceId])
+  @@map("web_extension_token")
 }
 
 model RememberedDevice {
@@ -163,6 +201,37 @@ model SalesforceApi {
   updatedAt        DateTime @updatedAt
 
   @@map("salesforce_api")
+}
+
+model BillingAccount {
+  userId     String   @unique @db.Uuid
+  customerId String   @unique
+  createdAt  DateTime @default(now()) @db.Timestamp(6)
+  updatedAt  DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  @@unique([userId, customerId], name: "uniqueCustomer", map: "unique_customer")
+  @@map("billing_account")
+}
+
+model Subscription {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId         String   @db.Uuid
+  customerId     String
+  productId      String?  @db.Uuid
+  subscriptionId String
+  priceId        String
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billingAccount BillingAccount @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+
+  @@unique([userId, subscriptionId, priceId], name: "uniqueSubscription", map: "unique_subscription")
+  @@map("subscription")
 }
 
 model SalesforceOrg {

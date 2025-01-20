@@ -4,6 +4,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { query, sobjectOperation } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   formatNumber,
   hasModifierKey,
@@ -41,18 +42,17 @@ import {
 } from '@jetstream/ui';
 import {
   ViewEditCloneRecord,
-  applicationCookieState,
   fromJetstreamEvents,
   fromQueryHistoryState,
   fromQueryState,
   isAsyncJob,
-  selectSkipFrontdoorAuth,
-  selectedOrgState,
   useAmplitude,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
+import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
+import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -112,9 +112,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(
+    fromAppState.applicationCookieState
+  );
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const skipFrontdoorLogin = useRecoilValue(fromAppState.selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistoryState.queryHistoryState);
   const bulkDeleteJob = useObservable(
@@ -145,8 +148,22 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
 
   // ensure that on a page refresh, the query is restored from browser state if it exists
   useEffect(() => {
-    if (!locationState && window.history?.state?.state?.soql) {
+    const soql = window.history?.state?.state?.soql;
+    if (locationState) {
+      return;
+    }
+    if (isString(window.history?.state?.state?.soql)) {
       navigate('', { replace: true, state: window.history.state.state });
+      return;
+    }
+    // Fallback to session state if browser history is not available (e.g. chrome extension)
+    try {
+      const potentialState = JSON.parse(sessionStorage.getItem('query') || '');
+      if (isString(potentialState.soql)) {
+        navigate('', { replace: true, state: potentialState });
+      }
+    } catch (ex) {
+      // could not parse session, ignore
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -295,6 +312,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
       // Matching ReactRouter state format
       window.history.replaceState({ state: { soql: soqlQuery, isTooling: tooling } }, '');
+      sessionStorage.setItem('query', JSON.stringify({ soql: soqlQuery, isTooling: tooling }));
 
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);
@@ -466,7 +484,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   }
 
   function handleRestoreFromHistory(soql: string, isTooling = false) {
-    navigate(`/query`, { state: { soql, isTooling, fromHistory: true } });
+    navigate(APP_ROUTES.QUERY.ROUTE, { state: { soql, isTooling, fromHistory: true } });
   }
 
   function handleCreateNewRecord() {
@@ -553,7 +571,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       )}
       <Toolbar>
         <ToolbarItemGroup>
-          <Link className="slds-button slds-button_brand" to="/query" state={{ soql }}>
+          <Link
+            className="slds-button slds-button_brand"
+            to={{ pathname: APP_ROUTES.QUERY.ROUTE, search: APP_ROUTES.QUERY.SEARCH_PARAM }}
+            state={{ soql }}
+          >
             <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
             Back
           </Link>
@@ -685,7 +707,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
                 subHeading="Go back and adjust your query or create a new record."
                 illustration={<CampingRainIllustration />}
               >
-                <Link className="slds-button slds-button_brand" to="/query" state={{ soql }}>
+                <Link className="slds-button slds-button_brand" to=".." state={{ soql }}>
                   <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Go Back
                 </Link>
@@ -705,6 +727,8 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
           {!!(records && !!records.length) && (
             <SalesforceRecordDataTable
               org={selectedOrg}
+              hasGoogleDriveAccess={hasGoogleDriveAccess}
+              googleShowUpgradeToPro={googleShowUpgradeToPro}
               defaultApiVersion={defaultApiVersion}
               google_apiKey={google_apiKey}
               google_appId={google_appId}

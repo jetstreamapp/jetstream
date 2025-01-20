@@ -6,7 +6,6 @@ import { FileDownloadModal, Grid, Icon, Modal, ScopedNotification, Spinner, Tabs
 import {
   ConfirmPageChange,
   FieldValues,
-  applicationCookieState,
   fromJetstreamEvents,
   getInitialValues,
   getSecondaryTypeFromType,
@@ -14,8 +13,9 @@ import {
   useAmplitude,
   useCreateFields,
 } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import FormulaEvaluatorDeploySummary from './FormulaEvaluatorDeploySummary';
 import FormulaEvaluatorFields from './FormulaEvaluatorFields';
 import FormulaEvaluatorPageLayouts from './FormulaEvaluatorPageLayouts';
@@ -41,7 +41,8 @@ export const FormulaEvaluatorDeployModal = ({
   onClose,
 }: FormulaEvaluatorDeployModalProps) => {
   const { trackEvent } = useAmplitude();
-  const [{ defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [fieldValid, setIsFieldValid] = useState(!!selectedField);
   const [sObjects] = useState([sobject]);
 
@@ -161,6 +162,8 @@ export const FormulaEvaluatorDeployModal = ({
       {exportModalOpen && exportData && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

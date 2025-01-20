@@ -21,9 +21,10 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { applicationCookieState, selectedOrgState, selectedOrgType, useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
@@ -50,7 +51,8 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
   const [inputFilename, setInputFilename] = useState<string | null>(null);
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
-  const [{ serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
     [google_apiKey, google_appId, google_clientId]
@@ -238,7 +240,8 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
               </select>
             </Select>
             <FileOrGoogleSelector
-              omitGoogle={globalThis.__IS_CHROME_EXTENSION__}
+              omitGoogle={!hasGoogleDriveAccess}
+              googleShowUpgradeToPro={googleShowUpgradeToPro}
               fileSelectorProps={{
                 id: 'upload-load-template',
                 label: 'Data File (Excel File)',

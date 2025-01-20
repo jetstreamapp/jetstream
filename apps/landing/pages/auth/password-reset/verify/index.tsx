@@ -5,7 +5,7 @@ import Alert from '../../../../components/Alert';
 import { PasswordResetVerify } from '../../../../components/auth/PasswordResetVerify';
 import Layout from '../../../../components/layouts/Layout';
 import { useCsrfToken } from '../../../../hooks/auth.hooks';
-import { AUTH_PATHS, SIGN_IN_ERRORS } from '../../../../utils/environment';
+import { ROUTES, SIGN_IN_ERRORS } from '../../../../utils/environment';
 
 export default function Page() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function Page() {
       return;
     }
     if (!email || !token) {
-      router.push(`${AUTH_PATHS.login}?error=InvalidOrExpiredResetToken`);
+      router.push(`${ROUTES.AUTH.login}?error=InvalidOrExpiredResetToken`);
     }
   }, [token, email, isLoading, router]);
 

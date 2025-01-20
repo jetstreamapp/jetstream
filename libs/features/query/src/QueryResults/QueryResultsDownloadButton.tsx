@@ -2,10 +2,11 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { AsyncJobNew, BulkDownloadJob, FileExtCsvXLSXJsonGSheet, Maybe, QueryResultsColumn, SalesforceOrgUi } from '@jetstream/types';
 import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
-import { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { Fragment, useState } from 'react';
+import { useRecoilValue } from 'recoil';
 
 export interface QueryResultsDownloadButtonProps {
   selectedOrg: SalesforceOrgUi;
@@ -23,7 +24,7 @@ export interface QueryResultsDownloadButtonProps {
   totalRecordCount: number;
 }
 
-export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadButtonProps> = ({
+export const QueryResultsDownloadButton = ({
   selectedOrg,
   sObject,
   soql,
@@ -37,9 +38,10 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
   filteredRows,
   selectedRows,
   totalRecordCount,
-}) => {
+}: QueryResultsDownloadButtonProps) => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId, serverUrl }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId, serverUrl } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
 
@@ -134,6 +136,8 @@ export const QueryResultsDownloadButton: FunctionComponent<QueryResultsDownloadB
       {isDownloadModalOpen && (
         <RecordDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

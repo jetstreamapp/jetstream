@@ -5,7 +5,7 @@ import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
 import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
-import { Fragment, FunctionComponent, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, ReactNode, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Column, RowsChangeData } from 'react-data-grid';
 import SearchInput from '../form/search-input/SearchInput';
 import Grid from '../grid/Grid';
@@ -48,6 +48,8 @@ function getRowClass(row: RowSalesforceRecordWithKey): string | undefined {
 export interface SalesforceRecordDataTableProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
+  hasGoogleDriveAccess: boolean;
+  googleShowUpgradeToPro: boolean;
   serverUrl: string;
   skipFrontdoorLogin: boolean;
   defaultApiVersion: string;
@@ -74,10 +76,12 @@ export interface SalesforceRecordDataTableProps {
   onReloadQuery: () => void;
 }
 
-export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTableProps> = memo<SalesforceRecordDataTableProps>(
+export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
   ({
     org,
     defaultApiVersion,
+    hasGoogleDriveAccess,
+    googleShowUpgradeToPro,
     google_apiKey,
     google_appId,
     google_clientId,
@@ -101,7 +105,7 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
     onGetAsApex,
     onSavedRecords,
     onReloadQuery,
-  }) => {
+  }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
     const rollbar = useRollbar();
     const [columns, setColumns] = useState<Column<RowSalesforceRecordWithKey>[]>();
@@ -459,6 +463,8 @@ export const SalesforceRecordDataTable: FunctionComponent<SalesforceRecordDataTa
               isTooling,
               columnDefinitions: subqueryColumnsMap,
               onSubqueryFieldReorder: handleSubqueryFieldsChanged,
+              hasGoogleDriveAccess,
+              googleShowUpgradeToPro,
               google_apiKey,
               google_appId,
               google_clientId,

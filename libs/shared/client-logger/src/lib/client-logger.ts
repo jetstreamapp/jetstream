@@ -29,9 +29,6 @@ interface Logger {
 type LogLevel = 'trace' | 'debug' | 'log' | 'info' | 'warn' | 'error';
 
 function isLogEnabled(type: LogLevel, level: LogLevel) {
-  if (level === 'trace') {
-    return true;
-  }
   const levels = ['trace', 'debug', 'log', 'info', 'warn', 'error'];
   return levels.indexOf(type) >= levels.indexOf(level);
 }

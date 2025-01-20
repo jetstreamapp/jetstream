@@ -16,7 +16,16 @@ import helmet from 'helmet';
 import { cpus } from 'os';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
-import { apiRoutes, authRoutes, oauthRoutes, platformEventRoutes, staticAuthenticatedRoutes, testRoutes } from './app/routes';
+import {
+  apiRoutes,
+  authRoutes,
+  oauthRoutes,
+  platformEventRoutes,
+  staticAuthenticatedRoutes,
+  testRoutes,
+  webExtensionRoutes,
+  webhookRoutes,
+} from './app/routes';
 import {
   addContextMiddleware,
   blockBotByUserAgentMiddleware,
@@ -131,10 +140,17 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             'api.amplitude.com',
             'api.cloudinary.com',
             'https://challenges.cloudflare.com',
+            'https://maps.googleapis.com',
+            'https://checkout.stripe.com',
+            'https://connect-js.stripe.com',
+            'https://js.stripe.com',
+            'https://api.stripe.com',
+            'https://*.js.stripe.com',
+            'https://hooks.stripe.com',
           ],
           baseUri: ["'self'"],
           blockAllMixedContent: [],
-          fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:', '*.gstatic.com'],
+          fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:', '*.gstatic.com', 'https://checkout.stripe.com'],
           frameAncestors: ["'self'", '*.google.com'],
           imgSrc: [
             "'self'",
@@ -151,6 +167,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             '*.gstatic.com',
             '*.salesforce.com',
             '*.wp.com',
+            'https://*.stripe.com',
           ],
           objectSrc: ["'none'"],
           scriptSrc: [
@@ -164,11 +181,16 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             '*.gstatic.com',
             '*.google-analytics.com',
             '*.googletagmanager.com',
+            'https://maps.googleapis.com',
             'https://challenges.cloudflare.com',
+            'https://checkout.stripe.com',
+            'https://connect-js.stripe.com',
+            'https://*.js.stripe.com',
+            'https://js.stripe.com',
           ],
           scriptSrcAttr: ["'none'"],
           styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
-          upgradeInsecureRequests: [],
+          upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
         },
       },
     })
@@ -192,6 +214,29 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(setApplicationCookieMiddleware);
 
   app.use(httpLogger);
+
+  // Handle CORS for web extension routes
+  if (ENV.WEB_EXTENSION_ID) {
+    app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+      }
+      next();
+    });
+
+    app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+        res.sendStatus(200);
+        return;
+      }
+      next();
+    });
+  }
 
   // proxy must be provided prior to body parser to ensure streaming response
   if (ENV.ENVIRONMENT === 'development') {
@@ -254,6 +299,8 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.use('/platform-event', platformEventRoutes);
   }
 
+  app.use('/webhook', webhookRoutes);
+
   app.use(raw({ limit: '30mb', type: ['text/csv'] }));
   app.use(raw({ limit: '30mb', type: ['application/zip'] }));
   app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
@@ -266,6 +313,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/api', apiRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
+  app.use('/web-extension', webExtensionRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);
@@ -282,6 +330,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
     res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
   });
+  app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
   app.use(express.static(join(__dirname, '../landing')));

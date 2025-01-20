@@ -22,7 +22,8 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { AddOrg, fromAppState, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
+import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import { useCallback, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import OrganizationCard from './OrganizationCard';
@@ -178,8 +179,7 @@ export function Organizations() {
         const firstUnassignedOrgId = orgsWithNoOrganization?.[0]?.uniqueId || null;
         setSelectedOrgId(firstUnassignedOrgId);
       }
-    
-  },
+    },
     [allOrgs, selectedOrg, setActiveOrganizationId, setSelectedOrgId]
   );
 

@@ -1,22 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
+import { ROUTES } from '../utils/environment';
 
 const footerNavigation = {
   support: [
-    { name: 'Documentation', href: 'https://docs.getjetstream.app', target: '_blank' },
-    { name: 'Status', href: 'https://status.getjetstream.app', target: '_blank' },
-    { name: 'Ask a question', href: 'https://discord.gg/sfxd', target: '_blank' },
-    { name: 'File an issue', href: 'https://github.com/jetstreamapp/jetstream/issues', target: '_blank' },
-    { name: 'Contact Us', href: 'mailto:support@getjetstream.app', target: '_blank' },
+    { name: 'Documentation', href: ROUTES.EXTERNAL.DOCS, target: '_blank' },
+    { name: 'Status', href: ROUTES.EXTERNAL.STATUS, target: '_blank' },
+    { name: 'Ask a question', href: ROUTES.EXTERNAL.DISCORD, target: '_blank' },
+    { name: 'File an issue', href: ROUTES.EXTERNAL.GITHUB_ISSUE, target: '_blank' },
+    { name: 'Contact Us', href: ROUTES.EXTERNAL.SUPPORT_EMAIL, target: '_blank' },
   ],
   company: [
-    { name: 'About', href: '/about' },
-    { name: 'Blog', href: '/blog' },
+    { name: 'About', href: ROUTES.ABOUT },
+    { name: 'Blog', href: ROUTES.BLOG },
   ],
   legal: [
-    { name: 'Privacy & Security', href: '/privacy' },
-    { name: 'Terms of Service', href: '/terms-of-service' },
-    { name: 'Data Sub-Processors', href: '/subprocessors' },
+    { name: 'Privacy & Security', href: ROUTES.PRIVACY },
+    { name: 'Terms of Service', href: ROUTES.TERMS_OF_SERVICE },
+    { name: 'Data Sub-Processors', href: ROUTES.SUB_PROCESSORS },
   ],
 };
 
@@ -32,7 +33,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
     <div className="max-w-md mx-auto pt-12 px-4 sm:max-w-7xl sm:px-6 lg:pt-16 lg:px-8">
       <div className="xl:grid xl:grid-cols-3 xl:gap-8">
         <div className="space-y-8 xl:col-span-1">
-          <Link href="/">
+          <Link href={ROUTES.HOME}>
             <img
               className="h-12"
               src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"

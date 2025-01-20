@@ -3,7 +3,7 @@ import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DeployMetadataStatus, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
-import { applicationCookieState } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilState } from 'recoil';
 import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';

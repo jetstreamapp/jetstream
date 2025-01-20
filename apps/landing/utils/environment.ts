@@ -1,24 +1,41 @@
 export const ENVIRONMENT = {
-  CLIENT_URL: process.env.NEXT_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
-  SERVER_URL: process.env.NEXT_PUBLIC_SERVER_URL || 'https://getjetstream.app',
-  CAPTCHA_KEY: process.env.NEXT_PUBLIC_CAPTCHA_KEY || null,
+  BILLING_ENABLED: process.env.NX_PUBLIC_BILLING_ENABLED === 'true',
+  CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL || 'https://getjetstream.app/app',
+  SERVER_URL: process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app',
+  CAPTCHA_KEY: process.env.NX_PUBLIC_CAPTCHA_KEY || null,
 };
 
-export const AUTH_PATHS = {
-  _root_path: '/auth/',
-  login: '/auth/login/',
-  signup: '/auth/signup/',
-  resetPassword: '/auth/password-reset',
-  resetPasswordVerify: '/auth/password-reset/verify',
-  verify: `/auth/verify`,
-  api_csrf: `/api/auth/csrf`,
-  api_logout: `/api/auth/logout`,
-  api_providers: `/api/auth/providers`,
-  api_session: `/api/auth/session`,
-  api_verify: `/api/auth/verify`,
-  api_verify_resend: `/api/auth/verify/resend`,
-  api_reset_password_init: `/api/auth/password/reset/init`,
-  api_reset_password_verify: `/api/auth/password/reset/verify`,
+export const ROUTES = {
+  HOME: '/',
+  ABOUT: '/about',
+  BLOG: '/blog',
+  PRIVACY: '/privacy',
+  TERMS_OF_SERVICE: '/terms-of-service',
+  SUB_PROCESSORS: '/subprocessors',
+  EXTERNAL: {
+    DOCS: 'https://docs.getjetstream.app',
+    STATUS: 'https://status.getjetstream.app',
+    SUPPORT_EMAIL: 'mailto:support@getjetstream.app',
+    DISCORD: 'https://discord.gg/sfxd',
+    GITHUB_ISSUE: 'https://github.com/jetstreamapp/jetstream/issues',
+    GITHUB_SPONSOR: 'https://github.com/sponsors/jetstreamapp',
+  },
+  AUTH: {
+    _root_path: '/auth/',
+    login: '/auth/login/',
+    signup: '/auth/signup/',
+    resetPassword: '/auth/password-reset',
+    resetPasswordVerify: '/auth/password-reset/verify',
+    verify: `/auth/verify`,
+    api_csrf: `/api/auth/csrf`,
+    api_logout: `/api/auth/logout`,
+    api_providers: `/api/auth/providers`,
+    api_session: `/api/auth/session`,
+    api_verify: `/api/auth/verify`,
+    api_verify_resend: `/api/auth/verify/resend`,
+    api_reset_password_init: `/api/auth/password/reset/init`,
+    api_reset_password_verify: `/api/auth/password/reset/verify`,
+  },
 };
 
 export const SIGN_IN_ERRORS = {
@@ -36,4 +53,6 @@ export const SIGN_IN_ERRORS = {
   LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
   InvalidRegistration: 'This email is already registered. If you already have an account, please log in or reset your password.',
   InvalidOrExpiredResetToken: 'Your reset token is invalid, please restart the reset process.',
+  InvalidAccessToken: 'Your session is invalid, please sign in again.',
+  MissingEntitlement: `You are not permitted to access this feature.`,
 };

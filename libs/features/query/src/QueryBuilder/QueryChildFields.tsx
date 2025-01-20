@@ -3,7 +3,8 @@ import { fetchFields, getFieldKey, sortQueryFieldsStr } from '@jetstream/shared/
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { FieldWrapper, QueryFieldWithPolymorphic, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
-import { fromQueryState, selectedOrgState } from '@jetstream/ui-core';
+import { fromQueryState } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';

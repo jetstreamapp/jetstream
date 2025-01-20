@@ -1,6 +1,6 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
-import { Prisma, User } from '@prisma/client';
+import { Entitlement, Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
   appMetadata: true,
@@ -13,6 +13,17 @@ const userSelect: Prisma.UserSelect = {
   preferences: {
     select: {
       skipFrontdoorLogin: true,
+    },
+  },
+  entitlements: {
+    select: {
+      recordSync: true,
+      chromeExtension: true,
+    },
+  },
+  billingAccount: {
+    select: {
+      customerId: true,
     },
   },
   updatedAt: true,
@@ -54,6 +65,11 @@ const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPa
       updatedAt: true,
     },
   },
+  billingAccount: {
+    select: {
+      customerId: true,
+    },
+  },
   createdAt: true,
   updatedAt: true,
 });
@@ -66,6 +82,26 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
   emailVerified: true,
   picture: true,
   preferences: true,
+  billingAccount: {
+    select: {
+      customerId: true,
+    },
+  },
+  entitlements: {
+    select: {
+      chromeExtension: true,
+      recordSync: true,
+    },
+  },
+  subscriptions: {
+    select: {
+      id: true,
+      productId: true,
+      subscriptionId: true,
+      priceId: true,
+      status: true,
+    },
+  },
 });
 
 export async function findUserWithIdentitiesById(id: string) {
@@ -75,12 +111,42 @@ export async function findUserWithIdentitiesById(id: string) {
   });
 }
 
-export const findIdByUserId = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { userId }, select: { id: true } }).then(({ id }) => id);
+export const findById = (id: string) => {
+  return prisma.user.findFirstOrThrow({ where: { id }, select: UserFacingProfileSelect });
+};
+
+export const findByIdWithSubscriptions = (id: string) => {
+  return prisma.user.findFirstOrThrow({
+    where: { id },
+    select: {
+      ...userSelect,
+      subscriptions: {
+        where: { status: 'ACTIVE' },
+        select: {
+          id: true,
+          customerId: true,
+          productId: true,
+          subscriptionId: true,
+          priceId: true,
+          status: true,
+        },
+      },
+    },
+  });
 };
 
 export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then(({ id }) => id);
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
+};
+
+export const checkUserEntitlement = ({
+  userId,
+  entitlement,
+}: {
+  userId: string;
+  entitlement: keyof Omit<Entitlement, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
+}): Promise<boolean> => {
+  return prisma.entitlement.count({ where: { id: userId, [entitlement]: true } }).then((result) => result > 0);
 };
 
 export async function updateUser(
@@ -127,5 +193,20 @@ export async function deleteUserAndAllRelatedData(userId: string): Promise<void>
         equals: userId,
       },
     },
+  });
+}
+
+export async function findByBillingAccountByCustomerId({ customerId }: { customerId: string }) {
+  const billingAccount = await prisma.billingAccount.findFirst({ where: { customerId } });
+  return billingAccount;
+}
+
+export async function createBillingAccountIfNotExists({ userId, customerId }: { userId: string; customerId: string }) {
+  const existingCustomer = await prisma.billingAccount.findUnique({ where: { uniqueCustomer: { customerId, userId } } });
+  if (existingCustomer) {
+    return existingCustomer;
+  }
+  return await prisma.billingAccount.create({
+    data: { customerId, userId },
   });
 }

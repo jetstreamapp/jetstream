@@ -39,7 +39,7 @@ const enableExampleUser = await question('Would you like to enable the example u
 
 const replacements = [
   ['JETSTREAM_CLIENT_URL=', `JETSTREAM_CLIENT_URL='${clientUrl}'`],
-  ['NEXT_PUBLIC_CLIENT_URL=', `NEXT_PUBLIC_CLIENT_URL='${clientUrl}'`],
+  ['NX_PUBLIC_CLIENT_URL=', `NX_PUBLIC_CLIENT_URL='${clientUrl}'`],
   ['JETSTREAM_SESSION_SECRET=', `JETSTREAM_SESSION_SECRET='${generateRandomBase64(32)}'`],
   ['JETSTREAM_AUTH_SECRET=', `JETSTREAM_AUTH_SECRET='${generateRandomBase64(32)}'`],
   ['JETSTREAM_AUTH_OTP_SECRET=', `JETSTREAM_AUTH_OTP_SECRET='${generateRandomBase64(32)}'`],

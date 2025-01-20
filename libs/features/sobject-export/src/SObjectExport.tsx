@@ -24,10 +24,11 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import {
   ExportHeaderOption,
   ExportOptions,
@@ -78,7 +79,8 @@ export interface SObjectExportProps {}
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rollbar = useRollbar();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
 
   const picklistWorksheetLayoutRef = useRef<PicklistRef>();
   const picklistHeaderOptionRef = useRef<PicklistRef>();
@@ -188,6 +190,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       {exportDataModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

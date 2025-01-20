@@ -13,14 +13,15 @@ import { Query, QueryBuilder, QueryResults } from '@jetstream/feature/query';
 import { SalesforceApi } from '@jetstream/feature/salesforce-api';
 import { SObjectExport } from '@jetstream/feature/sobject-export';
 import { MassUpdateRecords, MassUpdateRecordsDeployment, MassUpdateRecordsSelection } from '@jetstream/feature/update-records';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { appActionObservable, AppActionTypes } from '@jetstream/shared/ui-utils';
-import { APP_ROUTES, AppHome, AppLoading, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
-import { initAndRenderReact } from '@jetstream/web-extension-utils';
+import { AppHome, AppLoading, ErrorBoundaryFallback, Feedback, HeaderNavbar } from '@jetstream/ui-core';
 import { Suspense, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AppWrapper } from '../../core/AppWrapper';
 import '../../utils/monaco-loader';
+import { initAndRenderReact } from '../../utils/web-extension.utils';
 
 initAndRenderReact(
   <AppWrapper>
@@ -35,7 +36,6 @@ const url = searchParams.get('url');
 const action = searchParams.get('action') as AppActionTypes | undefined;
 const actionValue = searchParams.get('actionValue');
 
-searchParams.delete('url');
 searchParams.delete('action');
 searchParams.delete('actionValue');
 
@@ -58,8 +58,8 @@ export function App() {
   return (
     <div>
       <HeaderNavbar
-        userProfile={undefined}
         featureFlags={featureFlags}
+        isBillingEnabled={false}
         isChromeExtension
         // unavailableRoutes={unavailableRoutesDefault}
         // orgsDropdown={<OrgPreview selectedOrg={selectedOrg} />}
@@ -70,7 +70,7 @@ export function App() {
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
             <Routes>
-              <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome />} />
+              <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={false} />} />
               <Route path={APP_ROUTES.QUERY.ROUTE} element={<Query />}>
                 <Route index element={<QueryBuilder />} />
                 <Route path="results" element={<QueryResults />} />
@@ -111,8 +111,9 @@ export function App() {
               <Route path={APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE} element={<DebugLogViewer />} />
               <Route path={APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE} element={<PlatformEventMonitor />} />
               <Route path={APP_ROUTES.OBJECT_EXPORT.ROUTE} element={<SObjectExport />} />
+              <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
+              {/* <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} /> */}
             </Routes>
-            {/* <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings featureFlags={featureFlags} userProfile={userProfile} />} /> */}
           </ErrorBoundary>
         </Suspense>
       </div>

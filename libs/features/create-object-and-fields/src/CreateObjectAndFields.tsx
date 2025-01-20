@@ -1,7 +1,8 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { StateDebugObserver, selectedOrgState } from '@jetstream/ui-core';
+import { StateDebugObserver } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';

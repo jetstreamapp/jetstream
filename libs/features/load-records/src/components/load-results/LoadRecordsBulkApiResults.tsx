@@ -44,13 +44,12 @@ import {
 import {
   LoadRecordsBulkApiResultsTable,
   LoadRecordsResultsModal,
-  applicationCookieState,
   fromJetstreamEvents,
   getFieldHeaderFromMapping,
-  selectSkipFrontdoorAuth,
   useAmplitude,
 } from '@jetstream/ui-core';
-import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { loadBulkApiData, prepareData } from '../../utils/load-records-process';
 
@@ -93,7 +92,7 @@ export interface LoadRecordsBulkApiResultsProps {
   onFinish: (results: { success: number; failure: number }) => void;
 }
 
-export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResultsProps> = ({
+export const LoadRecordsBulkApiResults = ({
   selectedOrg,
   selectedSObject,
   fieldMapping,
@@ -108,12 +107,13 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
   serialMode,
   dateFormat,
   onFinish,
-}) => {
+}: LoadRecordsBulkApiResultsProps) => {
   const isMounted = useRef(true);
   const isAborted = useRef(false);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
@@ -543,6 +543,8 @@ export const LoadRecordsBulkApiResults: FunctionComponent<LoadRecordsBulkApiResu
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

@@ -17,7 +17,8 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import { applicationCookieState, fromDeployMetadataState, fromJetstreamEvents, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { addMinutes } from 'date-fns/addMinutes';
 import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
@@ -25,7 +26,7 @@ import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
@@ -51,7 +52,8 @@ export interface DeployMetadataDeploymentProps {}
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
   const { trackEvent } = useAmplitude();
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const {
     loadListMetadata,
@@ -252,6 +254,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {exportData && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

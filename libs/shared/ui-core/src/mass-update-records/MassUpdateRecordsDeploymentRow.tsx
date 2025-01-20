@@ -5,14 +5,14 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { decodeHtmlEntity, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, DownloadAction, DownloadType, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { Fragment, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
 import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
 import LoadRecordsBulkApiResultsTable from '../load-records-results/LoadRecordsBulkApiResultsTable';
 import LoadRecordsResultsModal from '../load/LoadRecordsResultsModal';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 import MassUpdateRecordTransformationText from './MassUpdateRecordTransformationText';
 import { MetadataRow } from './mass-update-records.types';
 import { getFieldsToQuery } from './mass-update-records.utils';
@@ -29,15 +29,15 @@ export interface ViewModalData extends Omit<DownloadModalData, 'fileNameParts'> 
 }
 
 export type MassUpdateRecordsDeploymentRowProps = {
+  selectedOrg: SalesforceOrgUi;
   hasExternalWhereClause?: boolean;
   validationResults?: MetadataRow['validationResults'];
-  selectedOrg: SalesforceOrgUi;
   batchSize: number;
   omitTransformationText?: boolean;
   onModalOpenChange?: (isOpen: boolean) => void;
 } & Pick<MetadataRow, 'sobject' | 'deployResults' | 'configuration'>;
 
-export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecordsDeploymentRowProps> = ({
+export const MassUpdateRecordsDeploymentRow = ({
   selectedOrg,
   sobject,
   deployResults,
@@ -47,11 +47,12 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
   batchSize,
   omitTransformationText,
   onModalOpenChange,
-}) => {
+}: MassUpdateRecordsDeploymentRowProps) => {
   const { trackEvent } = useAmplitude();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
 
   const { done, processingErrors, status, jobInfo, processingEndTime, processingStartTime } = deployResults;
@@ -170,6 +171,8 @@ export const MassUpdateRecordsDeploymentRow: FunctionComponent<MassUpdateRecords
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

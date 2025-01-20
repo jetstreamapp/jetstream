@@ -17,10 +17,10 @@ import {
   ScopedNotification,
   SearchInput,
 } from '@jetstream/ui';
+import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
-import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 import { getSearchUserSoql } from './record-utils';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 

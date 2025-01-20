@@ -1,6 +1,7 @@
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
-import { SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
-import { OrgAndApiConnection, SessionInfo } from '@jetstream/web-extension-utils';
+import { logger } from '@jetstream/shared/client-logger';
+import type { SalesforceOrgUi, SObjectOrganization } from '@jetstream/types';
+import { OrgAndApiConnection, SessionInfo } from './extension.types';
 
 export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiConnection {
   const instanceUrl = `https://${hostname}`;
@@ -12,7 +13,8 @@ export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiC
     apiVersion: '62.0',
     instanceUrl,
     // refreshToken: refresh_token,
-    logging: true, // TODO: make dynamic from options
+    logger,
+    logging: false,
   });
 }
 

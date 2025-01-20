@@ -1,5 +1,6 @@
 import { Alert } from '@jetstream/ui';
-import { fromAppState, useOrgPermissions } from '@jetstream/ui-core';
+import { useOrgPermissions } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import { useState } from 'react';
 import { useRecoilValue } from 'recoil';
 

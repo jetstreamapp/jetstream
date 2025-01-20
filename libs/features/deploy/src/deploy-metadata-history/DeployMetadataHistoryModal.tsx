@@ -17,10 +17,11 @@ import {
   fireToast,
   getModifierKey,
 } from '@jetstream/ui';
-import { ConfirmPageChange, fromAppState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';
@@ -33,7 +34,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const modalRef = useRef(null);
-  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(fromAppState.applicationCookieState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);
   const [downloadPackageModalState, setDownloadPackageModalState] = useState<{
     open: boolean;
@@ -205,6 +207,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       {downloadPackageModalState.open && downloadPackageModalState.org && downloadPackageModalState.data && (
         <FileDownloadModal
           org={downloadPackageModalState.org}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}
@@ -219,6 +223,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       {downloadItemModalState.open && downloadItemModalState.org && downloadItemModalState.data && (
         <FileDownloadModal
           org={downloadItemModalState.org}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           modalHeader="Download Deploy Results"
           google_apiKey={google_apiKey}
           google_appId={google_appId}

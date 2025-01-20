@@ -1,7 +1,9 @@
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Maybe, UserProfileUi } from '@jetstream/types';
-import { APP_ROUTES, AppHome, OrgSelectionRequired } from '@jetstream/ui-core';
+import { AppHome, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import Profile from './components/profile/Profile';
 
@@ -75,9 +77,7 @@ const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').the
 const PlatformEventMonitor = lazy(() =>
   import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
 );
-
-const Feedback = lazy(() => import('./components/feedback/Feedback'));
-
+const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 export interface AppRoutesProps {
@@ -109,7 +109,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
     <Routes>
       {/* This is just here to allow testing the error page without having a real error - can uncomment for testing */}
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
-      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome />} />
+      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={environment.BILLING_ENABLED} />} />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}
         element={
@@ -250,6 +250,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
       <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
       <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
+      <Route path={APP_ROUTES.BILLING.ROUTE} element={<Billing />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );

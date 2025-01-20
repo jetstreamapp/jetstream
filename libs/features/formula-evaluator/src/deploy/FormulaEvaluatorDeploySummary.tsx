@@ -1,16 +1,9 @@
-/* eslint-disable react/jsx-no-useless-fragment */
 import { css } from '@emotion/react';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
-import {
-  CreateFieldsResults,
-  FieldPermissionRecord,
-  FieldValues,
-  LayoutResult,
-  applicationCookieState,
-  selectSkipFrontdoorAuth,
-} from '@jetstream/ui-core';
+import { CreateFieldsResults, FieldPermissionRecord, FieldValues, LayoutResult } from '@jetstream/ui-core';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
 import { useRecoilValue } from 'recoil';

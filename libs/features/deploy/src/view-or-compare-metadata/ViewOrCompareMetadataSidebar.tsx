@@ -1,6 +1,7 @@
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems } from '@jetstream/ui';
-import { OrgsCombobox, salesforceOrgsOmitSelectedState } from '@jetstream/ui-core';
+import { OrgsCombobox } from '@jetstream/ui-core';
+import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { FunctionComponent } from 'react';
 import { useRecoilValue } from 'recoil';
 import { FileItemMetadata } from './viewOrCompareMetadataTypes';

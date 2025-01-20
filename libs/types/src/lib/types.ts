@@ -120,6 +120,21 @@ export interface UserProfileUi {
   preferences: {
     skipFrontdoorLogin: boolean;
   };
+  billingAccount?: {
+    customerId: string;
+  };
+  entitlements: {
+    googleDrive: boolean;
+    chromeExtension: boolean;
+    recordSync: boolean;
+  };
+  subscriptions: {
+    id: string;
+    productId: string;
+    subscriptionId: string;
+    priceId: string;
+    status: true;
+  }[];
 }
 
 export interface SalesforceUserInfo {

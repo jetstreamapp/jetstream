@@ -14,7 +14,8 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, selectedOrgState, useAmplitude } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';

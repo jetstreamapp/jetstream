@@ -4,9 +4,10 @@ import { isChromeExtension, useNonInitialEffect, useTitle } from '@jetstream/sha
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents, selectedOrgState } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
 import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';
 import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
 import PlatformEventMonitorPublisherCard from './PlatformEventMonitorPublisherCard';
@@ -20,7 +21,8 @@ export interface PlatformEventMonitorProps {}
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const [chromeExtension] = useState(() => isChromeExtension());
-  const [{ serverUrl, google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const isMounted = useRef(true);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const {
@@ -199,6 +201,8 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
         <FileDownloadModal
           modalHeader="Download Deploy Results"
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

@@ -43,6 +43,7 @@ import {
   SalesforceApiRequest,
   SalesforceOrgUi,
   SobjectOperation,
+  StripeUserFacingCustomer,
   UserProfileUi,
 } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
@@ -172,6 +173,10 @@ export async function unlinkIdentityFromProfile(identity: {
 
 export async function resendVerificationEmail(identity: { provider: string; userId: string }): Promise<void> {
   return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getSubscriptions(): Promise<{ customer: StripeUserFacingCustomer | null }> {
+  return handleRequest({ method: 'GET', url: '/api/billing/subscriptions' }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getOrgs(): Promise<SalesforceOrgUi[]> {

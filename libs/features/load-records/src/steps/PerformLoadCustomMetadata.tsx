@@ -17,15 +17,14 @@ import { Badge, Checkbox, ConfirmationModalPromise, FileDownloadModal, Salesforc
 import {
   ConfirmPageChange,
   LoadRecordsResultsModal,
-  applicationCookieState,
   convertCsvToCustomMetadata,
   fromJetstreamEvents,
   prepareCustomMetadata,
-  selectSkipFrontdoorAuth,
   useAmplitude,
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
-import { ChangeEvent, Fragment, FunctionComponent, useCallback, useState } from 'react';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { ChangeEvent, Fragment, useCallback, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
@@ -38,9 +37,9 @@ export function getDeploymentStatusUrl(id: string) {
 }
 
 export interface PerformLoadCustomMetadataProps {
+  selectedOrg: SalesforceOrgUi;
   apiVersion: string;
   serverUrl: string;
-  selectedOrg: SalesforceOrgUi;
   orgType: Maybe<SalesforceOrgUiType>;
   selectedSObject: string;
   inputFileHeader: string[] | null;
@@ -50,7 +49,7 @@ export interface PerformLoadCustomMetadataProps {
   onIsLoading: (isLoading: boolean) => void;
 }
 
-export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetadataProps> = ({
+export const PerformLoadCustomMetadata = ({
   selectedOrg,
   orgType,
   selectedSObject,
@@ -59,10 +58,11 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
   fields,
   inputFileData,
   onIsLoading,
-}) => {
+}: PerformLoadCustomMetadataProps) => {
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
@@ -211,6 +211,8 @@ export const PerformLoadCustomMetadata: FunctionComponent<PerformLoadCustomMetad
       {downloadModalData.open && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

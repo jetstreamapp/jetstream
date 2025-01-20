@@ -14,9 +14,9 @@ import {
   setColumnFromType,
   Spinner,
 } from '@jetstream/ui';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 
 const COL_WIDTH_MAP = {
   _id: 195,

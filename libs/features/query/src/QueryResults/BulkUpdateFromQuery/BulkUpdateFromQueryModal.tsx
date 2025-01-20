@@ -24,10 +24,10 @@ import {
   MassUpdateRecordsDeploymentRow,
   MassUpdateRecordsObjectRow,
   MetadataRowConfiguration,
-  applicationCookieState,
   fetchRecordsWithRequiredFields,
   useDeployRecords,
 } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';

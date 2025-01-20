@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { Fragment } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { AUTH_PATHS } from '../../utils/environment';
+import { ROUTES } from '../../utils/environment';
 import { PasswordSchema } from '../../utils/types';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
@@ -58,7 +58,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
   });
 
   const onSubmit = async (payload: Form) => {
-    const response = await fetch(AUTH_PATHS.api_reset_password_verify, {
+    const response = await fetch(ROUTES.AUTH.api_reset_password_verify, {
       method: 'POST',
       credentials: 'include',
       body: new URLSearchParams(payload).toString(),
@@ -83,7 +83,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
       return;
     }
 
-    router.push(`${AUTH_PATHS.login}?${new URLSearchParams({ success: 'Login with your new password to continue' })}`);
+    router.push(`${ROUTES.AUTH.login}?${new URLSearchParams({ success: 'Login with your new password to continue' })}`);
   };
 
   // TODO: should user be required to confirm 2fa at this point, or just on the next login?
@@ -93,7 +93,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
       <ErrorQueryParamErrorBanner />
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <Link href="/">
+          <Link href={ROUTES.HOME}>
             <img
               alt="Jetstream"
               src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
@@ -146,7 +146,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
             </div>
           </form>
           <p className="mt-10 text-center text-sm text-gray-500">
-            <Link href={AUTH_PATHS.login} className="font-semibold leading-6 text-blue-600 hover:text-blue-700">
+            <Link href={ROUTES.AUTH.login} className="font-semibold leading-6 text-blue-600 hover:text-blue-700">
               Go to Login Page
             </Link>
           </p>

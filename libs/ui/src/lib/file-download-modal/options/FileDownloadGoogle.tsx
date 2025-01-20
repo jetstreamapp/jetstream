@@ -65,7 +65,7 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
           <GoogleFolderSelector
             apiConfig={apiConfig}
             id={'load-google-drive-file'}
-            label={'Google Drive'}
+            label="Google Drive"
             folderName={googleFolder?.name}
             disabled={disabled}
             onSelected={handleGoogleFolderSelected}

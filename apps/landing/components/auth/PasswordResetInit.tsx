@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import { Fragment, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { AUTH_PATHS } from '../../utils/environment';
+import { ROUTES } from '../../utils/environment';
 import Alert from '../Alert';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
@@ -48,7 +48,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const onSubmit = async (payload: Form) => {
     try {
       setIsSaving(true);
-      const response = await fetch(AUTH_PATHS.api_reset_password_init, {
+      const response = await fetch(ROUTES.AUTH.api_reset_password_init, {
         method: 'POST',
         credentials: 'include',
         body: new URLSearchParams(payload).toString(),
@@ -96,7 +96,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
       <ErrorQueryParamErrorBanner error={error} />
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <Link href="/">
+          <Link href={ROUTES.HOME}>
             <img
               alt="Jetstream"
               src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
@@ -152,7 +152,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
             </form>
           )}
           <p className="mt-10 text-center text-sm text-gray-500">
-            <Link href={AUTH_PATHS.login} className="font-semibold leading-6 text-blue-600 hover:text-blue-700">
+            <Link href={ROUTES.AUTH.login} className="font-semibold leading-6 text-blue-600 hover:text-blue-700">
               Go to Login Page
             </Link>
           </p>

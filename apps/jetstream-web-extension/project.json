@@ -30,7 +30,12 @@
           "vendorChunk": false
         },
         "production": {
-          "fileReplacements": [],
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
+              "with": "apps/jetstream-web-extension/src/environments/environment.prod.ts"
+            }
+          ],
           "optimization": true,
           "outputHashing": "none",
           "sourceMap": true,

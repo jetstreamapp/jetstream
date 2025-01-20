@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import { FormEvent, Fragment, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { AUTH_PATHS, ENVIRONMENT } from '../../utils/environment';
+import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Checkbox } from '../form/Checkbox';
 import { Input } from '../form/Input';
@@ -74,7 +74,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
   const captchaToken = watch('captchaToken');
 
   const onSubmit = async (payload: Form) => {
-    const response = await fetch(AUTH_PATHS.api_verify, {
+    const response = await fetch(ROUTES.AUTH.api_verify, {
       method: 'POST',
       credentials: 'include',
       body: new URLSearchParams({
@@ -98,7 +98,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       return;
     }
 
-    if (data.redirect?.startsWith(AUTH_PATHS._root_path)) {
+    if (data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
       router.push(data.redirect);
       return;
     }
@@ -110,7 +110,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
     try {
       event.preventDefault();
       const formData = new FormData(event.target as HTMLFormElement);
-      const response = await fetch(AUTH_PATHS.api_verify_resend, {
+      const response = await fetch(ROUTES.AUTH.api_verify_resend, {
         method: 'POST',
         credentials: 'include',
         body: new URLSearchParams(formData as any).toString(),
@@ -134,7 +134,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       <ErrorQueryParamErrorBanner error={error} />
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-          <Link href="/">
+          <Link href={ROUTES.HOME}>
             <img
               alt="Jetstream"
               src="https://res.cloudinary.com/getjetstream/image/upload/v1634516624/public/jetstream-logo.svg"
@@ -206,7 +206,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
 
             <p className="text-center text-sm text-gray-500">
               Need to start over?{' '}
-              <a href={AUTH_PATHS.api_logout} className="font-semibold leading-6 text-blue-600 hover:text-blue-700">
+              <a href={ROUTES.AUTH.api_logout} className="font-semibold leading-6 text-blue-600 hover:text-blue-700">
                 Logout
               </a>
             </p>

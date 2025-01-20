@@ -337,6 +337,7 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       linkIdentity: linkIdentityCookie,
       returnUrl,
       rememberDevice,
+      redirectUrl: redirectUrlCookie,
     } = getCookieConfig(ENV.USE_SECURE_COOKIES);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const cookies = parseCookie(req.headers.cookie!);
@@ -469,15 +470,21 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
       if (isNewUser) {
         await sendWelcomeEmail(req.session.user.email);
       }
+
+      let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+
+      if (cookies[redirectUrlCookie.name]) {
+        const redirectValue = cookies[redirectUrlCookie.name];
+        redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+        clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
+      }
+
       // No verification required
       if (provider.type === 'oauth') {
-        redirect(res, ENV.JETSTREAM_CLIENT_URL);
+        redirect(res, redirectUrl);
       } else {
         // this was an API call, client will handle redirect
-        sendJson(res, {
-          error: false,
-          redirect: ENV.JETSTREAM_CLIENT_URL,
-        });
+        sendJson(res, { error: false, redirect: redirectUrl });
       }
     }
 
@@ -497,94 +504,105 @@ const callback = createRoute(routeDefinition.callback.validators, async ({ body,
   }
 });
 
-const verification = createRoute(routeDefinition.verification.validators, async ({ body, user, setCookie }, req, res, next) => {
-  try {
-    if (!req.session.user || !req.session.pendingVerification) {
-      throw new InvalidSession('Missing user or pending verification');
-    }
+const verification = createRoute(
+  routeDefinition.verification.validators,
+  async ({ body, user, setCookie, clearCookie }, req, res, next) => {
+    try {
+      if (!req.session.user || !req.session.pendingVerification) {
+        throw new InvalidSession('Missing user or pending verification');
+      }
 
-    const { csrfToken, code, type, rememberDevice } = body;
-    const pendingVerification = req.session.pendingVerification.find((item) => item.type === type);
-    let rememberDeviceId: string | undefined;
+      const { csrfToken, code, type, rememberDevice } = body;
+      const pendingVerification = req.session.pendingVerification.find((item) => item.type === type);
+      let rememberDeviceId: string | undefined;
 
-    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+      const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
-    if (!pendingVerification) {
-      throw new InvalidSession('Missing pending verification');
-    }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const cookies = parseCookie(req.headers.cookie!);
 
-    await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+      if (!pendingVerification) {
+        throw new InvalidSession('Missing pending verification');
+      }
 
-    if (pendingVerification.exp <= new Date().getTime()) {
-      throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
-    }
+      await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
-    switch (pendingVerification.type) {
-      case 'email': {
-        const { token } = pendingVerification;
-        if (token !== code) {
-          throw new InvalidVerificationToken('Provided code does not match');
+      if (pendingVerification.exp <= new Date().getTime()) {
+        throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
+      }
+
+      switch (pendingVerification.type) {
+        case 'email': {
+          const { token } = pendingVerification;
+          if (token !== code) {
+            throw new InvalidVerificationToken('Provided code does not match');
+          }
+          req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
+          break;
         }
-        req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
-        break;
-      }
-      case '2fa-email': {
-        const { token } = pendingVerification;
-        if (token !== code) {
-          throw new InvalidVerificationToken('Provided code does not match');
+        case '2fa-email': {
+          const { token } = pendingVerification;
+          if (token !== code) {
+            throw new InvalidVerificationToken('Provided code does not match');
+          }
+          rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
+          break;
         }
-        rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
-        break;
+        case '2fa-otp': {
+          const { secret } = await getTotpAuthenticationFactor(req.session.user.id);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          await verify2faTotpOrThrow(secret!, code);
+          rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
+          break;
+        }
+        default: {
+          throw new InvalidVerificationToken(`Invalid verification type`);
+        }
       }
-      case '2fa-otp': {
-        const { secret } = await getTotpAuthenticationFactor(req.session.user.id);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        await verify2faTotpOrThrow(secret!, code);
-        rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
-        break;
-      }
-      default: {
-        throw new InvalidVerificationToken(`Invalid verification type`);
-      }
-    }
 
-    if (rememberDeviceId) {
-      await createRememberDevice({
-        userId: user.id,
-        deviceId: rememberDeviceId,
-        ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
-        userAgent: req.get('User-Agent'),
+      if (rememberDeviceId) {
+        await createRememberDevice({
+          userId: user.id,
+          deviceId: rememberDeviceId,
+          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          userAgent: req.get('User-Agent'),
+        });
+        setCookie(cookieConfig.rememberDevice.name, rememberDeviceId, cookieConfig.rememberDevice.options);
+      }
+
+      req.session.pendingVerification = null;
+
+      if (req.session.sendNewUserEmailAfterVerify && req.session.user) {
+        req.session.sendNewUserEmailAfterVerify = undefined;
+        await sendWelcomeEmail(req.session.user.email);
+      }
+
+      let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+
+      if (cookies[cookieConfig.redirectUrl.name]) {
+        const redirectValue = cookies[cookieConfig.redirectUrl.name];
+        redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+        clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
+      }
+
+      createUserActivityFromReq(req, res, {
+        action: '2FA_VERIFICATION',
+        method: type.toUpperCase(),
+        success: true,
       });
-      setCookie(cookieConfig.rememberDevice.name, rememberDeviceId, cookieConfig.rememberDevice.options);
+
+      sendJson(res, { error: false, redirect: redirectUrl });
+    } catch (ex) {
+      createUserActivityFromReqWithError(req, res, ex, {
+        action: '2FA_VERIFICATION',
+        method: body?.type?.toUpperCase(),
+        success: false,
+      });
+
+      next(ensureAuthError(ex));
     }
-
-    req.session.pendingVerification = null;
-
-    if (req.session.sendNewUserEmailAfterVerify && req.session.user) {
-      req.session.sendNewUserEmailAfterVerify = undefined;
-      await sendWelcomeEmail(req.session.user.email);
-    }
-
-    createUserActivityFromReq(req, res, {
-      action: '2FA_VERIFICATION',
-      method: type.toUpperCase(),
-      success: true,
-    });
-
-    sendJson(res, {
-      error: false,
-      redirect: ENV.JETSTREAM_CLIENT_URL,
-    });
-  } catch (ex) {
-    createUserActivityFromReqWithError(req, res, ex, {
-      action: '2FA_VERIFICATION',
-      method: body?.type?.toUpperCase(),
-      success: false,
-    });
-
-    next(ensureAuthError(ex));
   }
-});
+);
 
 const resendVerification = createRoute(routeDefinition.resendVerification.validators, async ({ body }, req, res, next) => {
   try {
@@ -723,17 +741,27 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
   }
 });
 
-const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, async ({ query }, req, res, next) => {
+const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, async ({ query, clearCookie }, req, res, next) => {
   try {
     if (!req.session.user) {
       throw new InvalidSession('User not set on session');
     }
 
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const cookies = parseCookie(req.headers.cookie!);
+
+    let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+
+    if (cookies[cookieConfig.redirectUrl.name]) {
+      const redirectValue = cookies[cookieConfig.redirectUrl.name];
+      redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+      clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
+    }
+
     if (!req.session.pendingVerification?.length) {
-      sendJson(res, {
-        error: false,
-        redirect: ENV.JETSTREAM_CLIENT_URL,
-      });
+      sendJson(res, { error: false, redirect: redirectUrl });
       return;
     }
 
@@ -769,7 +797,7 @@ const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, 
     });
 
     req.session.pendingVerification = null;
-    redirect(res, ENV.JETSTREAM_CLIENT_URL);
+    redirect(res, redirectUrl);
   } catch (ex) {
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'EMAIL_VERIFICATION',

@@ -13,6 +13,7 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { Fragment, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { GoogleSelectedProUpgradeButton } from '../form/file-selector/GoogleSelectedProUpgradeButton';
 import Input from '../form/input/Input';
 import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
@@ -28,6 +29,8 @@ import {
 import FileDownloadGoogle from './options/FileDownloadGoogle';
 
 export interface FileFauxDownloadModalProps {
+  googleIntegrationEnabled: boolean;
+  googleShowUpgradeToPro: boolean;
   google_apiKey?: string;
   google_appId?: string;
   google_clientId?: string;
@@ -56,6 +59,8 @@ const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_J
  * to choose the filename upfront, then we can use it later
  */
 export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps> = ({
+  googleIntegrationEnabled,
+  googleShowUpgradeToPro,
   google_apiKey,
   google_appId,
   google_clientId,
@@ -68,7 +73,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   onCancel,
   onDownload,
 }) => {
-  const hasGoogleInputConfigured = !!google_apiKey && !!google_appId && !!google_clientId;
+  const hasGoogleInputConfigured = googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
   const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(allowedTypes[0]);
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
@@ -231,6 +236,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               onChange={(value: FileExtZip) => setFileFormat(value)}
             />
           )}
+          {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
           {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
             <Radio
               name="radio-download-file-format"

@@ -1,6 +1,8 @@
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
-import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { applicationCookieState, selectUserPreferenceState } from '@jetstream/ui/app-state';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import Jobs from '../jobs/Jobs';
@@ -8,16 +10,16 @@ import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
-import { applicationCookieState, selectUserPreferenceState } from '../state-management/app-state';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
-import NotificationsRequestModal from './NotificationsRequestModal';
-import { APP_ROUTES } from './app-routes';
 import Logo from './jetstream-logo-v1-200w.png';
+import NotificationsRequestModal from './NotificationsRequestModal';
 
 export interface HeaderNavbarProps {
-  userProfile: Maybe<UserProfileUi>;
+  // FIXME: web extension will have a user profile if they have gotten this far
+  userProfile?: Maybe<UserProfileUi>;
   featureFlags: Set<string>;
+  isBillingEnabled: boolean;
   isChromeExtension?: boolean;
 }
 
@@ -27,10 +29,23 @@ function logout(serverUrl: string) {
   location.href = logoutUrl;
 }
 
-function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<string>, deniedNotifications?: boolean) {
+function getMenuItems({
+  userProfile,
+  featureFlags,
+  isBillingEnabled,
+  deniedNotifications,
+}: {
+  userProfile: Maybe<UserProfileUi>;
+  featureFlags: Set<string>;
+  isBillingEnabled: boolean;
+  deniedNotifications?: boolean;
+}) {
   const menu: DropDownItem[] = [];
 
   menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile?.email, icon: { type: 'utility', icon: 'profile_alt' } });
+  if (isBillingEnabled) {
+    menu.push({ id: 'billing', value: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
+  }
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
   menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
@@ -45,7 +60,7 @@ function getMenuItems(userProfile: Maybe<UserProfileUi>, featureFlags: Set<strin
   return menu;
 }
 
-export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile, featureFlags, isChromeExtension }) => {
+export const HeaderNavbar = ({ userProfile, featureFlags, isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const [applicationState] = useRecoilState(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
@@ -55,10 +70,13 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
   function handleUserMenuSelection(id: string) {
     switch (id) {
       case 'profile':
-        navigate('/profile');
+        navigate(APP_ROUTES.PROFILE.ROUTE);
+        break;
+      case 'billing':
+        navigate(APP_ROUTES.BILLING.ROUTE);
         break;
       case 'settings':
-        navigate('/settings');
+        navigate(APP_ROUTES.SETTINGS.ROUTE);
         break;
       case 'nav-user-logout':
         logout(applicationState.serverUrl);
@@ -73,18 +91,19 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, !isEnabled));
+    userProfile && setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications: !isEnabled }));
   }
 
   useEffect(() => {
-    userProfile && setUserMenuItems(getMenuItems(userProfile, featureFlags, deniedNotifications));
-  }, [userProfile, featureFlags, deniedNotifications]);
+    userProfile && setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications }));
+  }, [userProfile, featureFlags, deniedNotifications, isBillingEnabled]);
 
   const rightHandMenuItems = useMemo(() => {
     return isChromeExtension
       ? [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />]
-      : [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
-  }, [isChromeExtension, userProfile]);
+      : // FIXME: replace Donate with "Sign up for PRO"
+        [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
+  }, [isChromeExtension]);
 
   return (
     <Fragment>
@@ -103,6 +122,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
         <Navbar>
           <NavbarItem
             path={APP_ROUTES.HOME.ROUTE}
+            search={APP_ROUTES.HOME.SEARCH_PARAM}
             title="Home"
             label={
               <button className="slds-button slds-icon-waffle_container">
@@ -121,21 +141,34 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
               </button>
             }
           />
-          <NavbarItem path={APP_ROUTES.QUERY.ROUTE} title={APP_ROUTES.QUERY.DESCRIPTION} label={APP_ROUTES.QUERY.TITLE} />
+          <NavbarItem
+            path={APP_ROUTES.QUERY.ROUTE}
+            search={APP_ROUTES.QUERY.SEARCH_PARAM}
+            title={APP_ROUTES.QUERY.DESCRIPTION}
+            label={APP_ROUTES.QUERY.TITLE}
+          />
 
           <NavbarMenuItems
             label="Load Records"
             items={[
-              { id: 'load', path: APP_ROUTES.LOAD.ROUTE, title: APP_ROUTES.LOAD.DESCRIPTION, label: APP_ROUTES.LOAD.TITLE },
+              {
+                id: 'load',
+                path: APP_ROUTES.LOAD.ROUTE,
+                search: APP_ROUTES.LOAD.SEARCH_PARAM,
+                title: APP_ROUTES.LOAD.DESCRIPTION,
+                label: APP_ROUTES.LOAD.TITLE,
+              },
               {
                 id: 'load-with-relationships',
                 path: APP_ROUTES.LOAD_MULTIPLE.ROUTE,
+                search: APP_ROUTES.LOAD_MULTIPLE.SEARCH_PARAM,
                 title: APP_ROUTES.LOAD_MULTIPLE.DESCRIPTION,
                 label: APP_ROUTES.LOAD_MULTIPLE.TITLE,
               },
               {
                 id: 'update-records',
                 path: APP_ROUTES.LOAD_MASS_UPDATE.ROUTE,
+                search: APP_ROUTES.LOAD_MASS_UPDATE.SEARCH_PARAM,
                 title: APP_ROUTES.LOAD_MASS_UPDATE.DESCRIPTION,
                 label: APP_ROUTES.LOAD_MASS_UPDATE.TITLE,
               },
@@ -144,11 +177,13 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
 
           <NavbarItem
             path={APP_ROUTES.AUTOMATION_CONTROL.ROUTE}
+            search={APP_ROUTES.AUTOMATION_CONTROL.SEARCH_PARAM}
             title={APP_ROUTES.AUTOMATION_CONTROL.DESCRIPTION}
             label={APP_ROUTES.AUTOMATION_CONTROL.TITLE}
           />
           <NavbarItem
             path={APP_ROUTES.PERMISSION_MANAGER.ROUTE}
+            search={APP_ROUTES.PERMISSION_MANAGER.SEARCH_PARAM}
             title={APP_ROUTES.PERMISSION_MANAGER.DESCRIPTION}
             label={APP_ROUTES.PERMISSION_MANAGER.TITLE}
           />
@@ -159,18 +194,21 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
               {
                 id: 'deploy-metadata',
                 path: APP_ROUTES.DEPLOY_METADATA.ROUTE,
+                search: APP_ROUTES.DEPLOY_METADATA.SEARCH_PARAM,
                 title: APP_ROUTES.DEPLOY_METADATA.DESCRIPTION,
                 label: APP_ROUTES.DEPLOY_METADATA.TITLE,
               },
               {
                 id: 'deploy-sobject-metadata',
                 path: APP_ROUTES.CREATE_FIELDS.ROUTE,
+                search: APP_ROUTES.CREATE_FIELDS.SEARCH_PARAM,
                 title: APP_ROUTES.CREATE_FIELDS.DESCRIPTION,
                 label: APP_ROUTES.CREATE_FIELDS.TITLE,
               },
               {
                 id: 'formula-evaluator',
                 path: APP_ROUTES.FORMULA_EVALUATOR.ROUTE,
+                search: APP_ROUTES.FORMULA_EVALUATOR.SEARCH_PARAM,
                 title: APP_ROUTES.FORMULA_EVALUATOR.DESCRIPTION,
                 label: APP_ROUTES.FORMULA_EVALUATOR.TITLE,
               },
@@ -180,28 +218,38 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
           <NavbarMenuItems
             label="Developer Tools"
             items={[
-              { id: 'apex', path: APP_ROUTES.ANON_APEX.ROUTE, title: APP_ROUTES.ANON_APEX.DESCRIPTION, label: APP_ROUTES.ANON_APEX.TITLE },
+              {
+                id: 'apex',
+                path: APP_ROUTES.ANON_APEX.ROUTE,
+                search: APP_ROUTES.ANON_APEX.SEARCH_PARAM,
+                title: APP_ROUTES.ANON_APEX.DESCRIPTION,
+                label: APP_ROUTES.ANON_APEX.TITLE,
+              },
               {
                 id: 'debug-logs',
                 path: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE,
+                search: APP_ROUTES.DEBUG_LOG_VIEWER.SEARCH_PARAM,
                 title: APP_ROUTES.DEBUG_LOG_VIEWER.DESCRIPTION,
                 label: APP_ROUTES.DEBUG_LOG_VIEWER.TITLE,
               },
               {
                 id: 'sobject-export',
                 path: APP_ROUTES.OBJECT_EXPORT.ROUTE,
+                search: APP_ROUTES.OBJECT_EXPORT.SEARCH_PARAM,
                 title: APP_ROUTES.OBJECT_EXPORT.DESCRIPTION,
                 label: APP_ROUTES.OBJECT_EXPORT.TITLE,
               },
               {
                 id: 'salesforce-api',
                 path: APP_ROUTES.SALESFORCE_API.ROUTE,
+                search: APP_ROUTES.SALESFORCE_API.SEARCH_PARAM,
                 title: APP_ROUTES.SALESFORCE_API.DESCRIPTION,
                 label: APP_ROUTES.SALESFORCE_API.TITLE,
               },
               {
                 id: 'platform-event-monitor',
                 path: APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE,
+                search: APP_ROUTES.PLATFORM_EVENT_MONITOR.SEARCH_PARAM,
                 title: APP_ROUTES.PLATFORM_EVENT_MONITOR.DESCRIPTION,
                 label: APP_ROUTES.PLATFORM_EVENT_MONITOR.TITLE,
               },
@@ -213,6 +261,7 @@ export const HeaderNavbar: FunctionComponent<HeaderNavbarProps> = ({ userProfile
               {
                 id: 'feedback',
                 path: APP_ROUTES.FEEDBACK_SUPPORT.ROUTE,
+                search: APP_ROUTES.FEEDBACK_SUPPORT.SEARCH_PARAM,
                 title: APP_ROUTES.FEEDBACK_SUPPORT.DESCRIPTION,
                 label: APP_ROUTES.FEEDBACK_SUPPORT.TITLE,
               },

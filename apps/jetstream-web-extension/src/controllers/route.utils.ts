@@ -13,14 +13,12 @@ export interface RequestOptions {
   targetJetstreamConn?: Maybe<ApiConnection>;
   org?: SalesforceOrgUi;
   targetOrg?: SalesforceOrgUi;
+  /**
+   * Override the URL for the request
+   * This is used for streaming file downloads
+   */
+  urlOverride?: URL;
 }
-// FIXME: when these were used, createRoute did not properly infer types
-// export type RouteValidator = Parameters<typeof createRoute>[0];
-// export type RouteDefinition = {
-//   controllerFn: () => ReturnType<typeof createRoute>;
-//   validators: RouteValidator;
-// };
-// export type RouteDefinitions = Record<string, RouteDefinition>;
 
 export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny> = (
   data: {
@@ -58,7 +56,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
   controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>
 ) {
   return async (req: RequestOptions) => {
-    const url = new URL(req.event.request.url);
+    const url = req.urlOverride || new URL(req.event.request.url);
     const queryParams = Object.fromEntries(url.searchParams.entries());
     // FIXME: this does not work when the body is not JSON
     const parsedBody = req.event.request.body ? await req.event.request.json() : undefined;

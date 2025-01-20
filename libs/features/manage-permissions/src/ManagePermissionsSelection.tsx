@@ -13,7 +13,8 @@ import {
   PageHeaderRow,
   PageHeaderTitle,
 } from '@jetstream/ui';
-import { RequireMetadataApiBanner, fromPermissionsState, selectedOrgState } from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';

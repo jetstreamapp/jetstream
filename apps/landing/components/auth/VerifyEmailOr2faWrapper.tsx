@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { useCsrfToken, useUserProfile } from '../../hooks/auth.hooks';
-import { AUTH_PATHS, ENVIRONMENT, SIGN_IN_ERRORS } from '../../utils/environment';
+import { ENVIRONMENT, ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
 import Alert from '../Alert';
 import { VerifyEmailOr2fa } from './VerifyEmailOr2fa';
 
@@ -19,7 +19,7 @@ export function VerifyEmailOr2faWrapper() {
       window.location.href = ENVIRONMENT.CLIENT_URL;
     } else if (!pendingVerifications || !pendingVerifications?.length || isVerificationExpired) {
       // user is not logged in and has no pending verification
-      router.push(`${AUTH_PATHS.login}`);
+      router.push(`${ROUTES.AUTH.login}`);
     }
   }, [isLoading, isLoggedIn, isVerificationExpired, pendingVerifications, router]);
 

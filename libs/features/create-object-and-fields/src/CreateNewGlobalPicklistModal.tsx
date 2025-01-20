@@ -4,7 +4,8 @@ import { useRollbar } from '@jetstream/shared/ui-utils';
 import { REGEX, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { GlobalValueSetRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
-import { applicationCookieState, createGlobalPicklist, generateApiNameFromLabel, useAmplitude } from '@jetstream/ui-core';
+import { createGlobalPicklist, generateApiNameFromLabel, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 

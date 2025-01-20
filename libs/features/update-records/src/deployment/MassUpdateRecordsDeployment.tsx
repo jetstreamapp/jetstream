@@ -11,7 +11,8 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
 } from '@jetstream/ui';
-import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, selectedOrgState, useDeployRecords } from '@jetstream/ui-core';
+import { DeployResults, MassUpdateRecordsDeploymentRow, MetadataRow, useDeployRecords } from '@jetstream/ui-core';
+import { selectedOrgState } from '@jetstream/ui/app-state';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';

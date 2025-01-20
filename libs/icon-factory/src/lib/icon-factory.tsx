@@ -22,6 +22,7 @@ import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_Apex from './icons/standard/Apex';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
+import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
 import StandardIcon_EmployeeOrganization from './icons/standard/EmployeeOrganization';
 import StandardIcon_Entity from './icons/standard/Entity';
@@ -45,6 +46,7 @@ import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import StandardIcon_Screen from './icons/standard/Screen';
 import StandardIcon_Settings from './icons/standard/Settings';
 import StandardIcon_User from './icons/standard/User';
+import StandardIcon_YourAccount from './icons/standard/YourAccount';
 import UtilityIcon_Add from './icons/utility/Add';
 import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
@@ -147,6 +149,7 @@ import UtilityIcon_Undo from './icons/utility/Undo';
 import UtilityIcon_Up from './icons/utility/Up';
 import UtilityIcon_Upload from './icons/utility/Upload';
 import UtilityIcon_Warning from './icons/utility/Warning';
+import UtilityIcon_YourAccount from './icons/utility/YourAccount';
 
 export type IconType = 'action' | 'custom' | 'doctype' | 'standard' | 'utility' | 'brand';
 
@@ -183,7 +186,8 @@ const standardIcons = {
   apex: StandardIcon_Apex,
   asset_relationship: StandardIcon_AssetRelationship,
   bundle_config: StandardIcon_BundleConfig,
-  data_streams: StandardIcon_DataStreams,
+  data_streams: StandardIcon_ConnectedApps,
+  connected_apps: StandardIcon_DataStreams,
   employee_organization: StandardIcon_EmployeeOrganization,
   entity: StandardIcon_Entity,
   events: StandardIcon_Events,
@@ -206,6 +210,7 @@ const standardIcons = {
   screen: StandardIcon_Screen,
   settings: StandardIcon_Settings,
   user: StandardIcon_User,
+  your_account: StandardIcon_YourAccount,
 } as const;
 
 const customIcons = {
@@ -326,6 +331,7 @@ const utilityIcons = {
   up: UtilityIcon_Up,
   upload: UtilityIcon_Upload,
   warning: UtilityIcon_Warning,
+  your_account: UtilityIcon_YourAccount,
 } as const;
 
 const brandIcons = {

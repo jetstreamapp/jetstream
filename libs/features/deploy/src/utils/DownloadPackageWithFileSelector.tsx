@@ -12,10 +12,11 @@ import {
   SalesforceOrgUi,
 } from '@jetstream/types';
 import { FileFauxDownloadModal } from '@jetstream/ui';
-import { applicationCookieState, fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue } from 'recoil';
 
 export interface DownloadPackageWithFileSelectorProps {
   type: 'manifest' | 'package';
@@ -44,7 +45,8 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
   packageNames,
   onClose,
 }) => {
-  const [{ google_apiKey, google_appId, google_clientId }] = useRecoilState(applicationCookieState);
+  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
 
   async function handleManifestDownload(data: { fileName: string; fileFormat: FileExtAllTypes; mimeType: MimeType }) {
     onClose && onClose();
@@ -121,6 +123,8 @@ export const DownloadPackageWithFileSelector: FunctionComponent<DownloadPackageW
           modalHeader={modalHeader}
           modalTagline={modalTagline}
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}

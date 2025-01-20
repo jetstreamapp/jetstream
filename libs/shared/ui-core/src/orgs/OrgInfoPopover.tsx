@@ -15,11 +15,11 @@ import {
   SalesforceLogin,
   Spinner,
 } from '@jetstream/ui';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { applicationCookieState, selectSkipFrontdoorAuth } from '../state-management/app-state';
 
 const EMPTY_COLOR = '_none_';
 

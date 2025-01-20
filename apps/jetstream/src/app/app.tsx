@@ -8,6 +8,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
+import { environment } from '../environments/environment';
 import { AppRoutes } from './AppRoutes';
 import { AnnouncementAlerts } from './components/core/AnnouncementAlerts';
 import AppInitializer from './components/core/AppInitializer';
@@ -36,7 +37,7 @@ export const App = () => {
                 <DownloadFileStream />
                 <div>
                   <div data-testid="header">
-                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} />
+                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} isBillingEnabled={environment.BILLING_ENABLED} />
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                     <AnnouncementAlerts announcements={announcements} />

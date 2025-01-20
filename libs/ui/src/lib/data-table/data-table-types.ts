@@ -101,6 +101,8 @@ export interface SubqueryContext<TRow = any> {
   isTooling: boolean;
   columnDefinitions?: Record<string, ColumnWithFilter<TRow, unknown>[]>;
   onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
+  hasGoogleDriveAccess: boolean;
+  googleShowUpgradeToPro: boolean;
   google_apiKey: string;
   google_appId: string;
   google_clientId: string;

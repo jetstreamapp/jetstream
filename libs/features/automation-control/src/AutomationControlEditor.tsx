@@ -26,15 +26,8 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import {
-  RequireMetadataApiBanner,
-  applicationCookieState,
-  fromAutomationControlState,
-  fromJetstreamEvents,
-  selectSkipFrontdoorAuth,
-  selectedOrgState,
-  useAmplitude,
-} from '@jetstream/ui-core';
+import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
+import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { FunctionComponent, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -66,6 +59,7 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
 
   const selectedSObjects = useRecoilValue(fromAutomationControlState.selectedSObjectsState);
@@ -250,6 +244,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
       {exportDataModalOpen && (
         <FileDownloadModal
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}
@@ -267,6 +263,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           modalHeader="Export Automation Package"
           modalTagline="You can deploy the downloaded package on the Deploy Metadata page"
           org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}
