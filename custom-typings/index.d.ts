@@ -12,8 +12,6 @@ declare module 'worker-loader!*' {
 
 declare global {
   var __IS_CHROME_EXTENSION__: boolean | undefined;
-  var __ROUTE_SUFFIX__: string | undefined;
-
   interface Window {
     // placeholder for any global properties
   }

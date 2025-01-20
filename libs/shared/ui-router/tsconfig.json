@@ -1,18 +1,11 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "strict": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true
+    "types": ["node", "jest"],
+    "strictNullChecks": true
   },
-  "files": [],
   "include": [],
+  "files": [],
   "references": [
     {
       "path": "./tsconfig.lib.json"

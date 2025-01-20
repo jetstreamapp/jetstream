@@ -1,15 +1,15 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "esModuleInterop": true,
+    "allowJs": false,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strictNullChecks": true
   },
   "files": [],
   "include": [],

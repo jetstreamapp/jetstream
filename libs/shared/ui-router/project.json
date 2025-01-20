@@ -3,7 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/ui-router/src",
   "projectType": "library",
-  "tags": ["scope:shared"],
+  "tags": ["scope:shared", "scope:allow-worker-import"],
   "targets": {
     "test": {
       "executor": "@nx/jest:jest",
