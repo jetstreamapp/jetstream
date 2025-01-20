@@ -66,3 +66,5 @@ package-lock.json
 !/scripts/**/data/.gitkeep
 
 vite.config.*.timestamp*
+
+vitest.config.*.timestamp*

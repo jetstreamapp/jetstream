@@ -183,5 +183,5 @@
     }
   ],
   "defaultBase": "main",
-  "useLegacyCache": true
+  "useLegacyCache": false
 }
