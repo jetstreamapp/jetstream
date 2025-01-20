@@ -14,7 +14,7 @@
     "client_id": "1046118608516-p17mt3hd7ko18gd5mcdo8t3o7t6856hd.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/drive.file"]
   },
-  "permissions": ["identity", "storage", "cookies"],
+  "permissions": ["storage", "cookies"],
   "externally_connectable": {
     "matches": ["https://getjetstream.app/web-extension/*", "http://localhost:3333/web-extension/*"]
   },
