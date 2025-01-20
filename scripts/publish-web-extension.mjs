@@ -3,7 +3,7 @@ import 'dotenv/config';
 import minimist from 'minimist';
 import { join } from 'path';
 import { z } from 'zod';
-import { chalk, fs } from 'zx'; // https://github.com/google/zx
+import { chalk, fs, question } from 'zx'; // https://github.com/google/zx
 
 const ENV = z
   .object({
@@ -20,7 +20,7 @@ const ENV = z
   });
 
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['upload', 'publish', 'publish-public', 'check-status', 'help'],
+  boolean: ['upload', 'publish', 'publish-public', 'check-status', 'accept-all', 'help'],
   string: ['filepath', 'publish-target'],
   default: {
     upload: false,
@@ -58,8 +58,8 @@ if (argv.help) {
       -u, --upload            Upload extension to the web store (default=true)
       -p, --publish           Publish extension to the web store (default=false)
       -f, --filepath <path>    Path to the extension zip file (required if --upload is set, otherwise not allowed)
-          --publish-public    Set to publish the extension to the public (default=false)
       -s, --check-status      Get the status of the extension, if set no other operation will be performed
+          --accept-all        Say yes to all prompts (default=false)
       -h, --help              display help for command
 
     Required Environment variables:
@@ -70,6 +70,8 @@ if (argv.help) {
   `);
   process.exit(0);
 }
+
+const acceptAll = argv['accept-all'];
 
 if (!argv.upload && !argv.publish && !argv['check-status']) {
   console.error(chalk.red('At least one of --check-status, --upload or --publish must be set'));
@@ -146,6 +148,7 @@ class GoogleClient {
 
     console.log('Checking status...');
 
+    // https://developer.chrome.com/docs/webstore/api#get
     const response = await fetch(`https://www.googleapis.com/chromewebstore/v1.1/items/${ENV.EXTENSION_ID}?projection=DRAFT`, {
       method: 'GET',
       headers: {
@@ -170,6 +173,7 @@ class GoogleClient {
 
     console.log('Uploading...');
 
+    // https://developer.chrome.com/docs/webstore/api#update
     const response = await fetch(`https://www.googleapis.com/upload/chromewebstore/v1.1/items/${ENV.EXTENSION_ID}`, {
       method: 'PUT',
       headers: {
@@ -195,18 +199,18 @@ class GoogleClient {
 
     console.log('Publishing...');
 
-    const response = await fetch(`https://www.googleapis.com/chromewebstore/v1.1/items/${ENV.EXTENSION_ID}`, {
-      method: 'PUT',
-      //   headers: {
-      //     Authorization: `Bearer ${this.accessToken}`,
-      //     'x-goog-api-version': '2',
-      //   },
-      //   body: fs.readFileSync('dist.zip'),
+    // https://developer.chrome.com/docs/webstore/api#publish
+    const response = await fetch(`https://www.googleapis.com/chromewebstore/v1.1/items/${ENV.EXTENSION_ID}/publish`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'x-goog-api-version': '2',
+      },
     });
 
     if (!response.ok) {
       console.error(await response.text());
-      throw new Error('Failed to publish extension');
+      throw new Error('Failed to get extension status');
     }
 
     const body = await response.json();
@@ -232,12 +236,36 @@ async function main() {
       process.exit(1);
     }
 
+    console.log('Extension path:', zipFilePath);
+    const shouldContinue = acceptAll
+      ? true
+      : await question('Are you sure you want to upload the extension? (y/n) ').then((response) =>
+          response.trim().toLowerCase().startsWith('y')
+        );
+
+    if (!shouldContinue) {
+      console.log('Aborting');
+      process.exit(0);
+    }
+
     await client.uploadExtension(filepath);
   }
 
   if (publish) {
     console.log(chalk.green(`Publishing extension...`));
-    // await client.publishExtension();
+
+    const shouldContinue = acceptAll
+      ? true
+      : await question('Are you sure you want to publish the extension? (y/n) ').then((response) =>
+          response.trim().toLowerCase().startsWith('y')
+        );
+
+    if (!shouldContinue) {
+      console.log('Aborting');
+      process.exit(0);
+    }
+
+    await client.publishExtension();
   }
 }
 

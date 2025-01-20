@@ -38,10 +38,10 @@ export interface Headers {
   has(name: string): boolean;
   set(name: string, value: string): void;
   forEach(callbackfn: (value: string, key: string, parent: Headers) => void, thisArg?: any): void;
-  entries(): IterableIterator<[string, string]>;
-  keys(): IterableIterator<string>;
-  values(): IterableIterator<string>;
-  [Symbol.iterator](): IterableIterator<[string, string]>;
+  entries(): HeadersIterator<[string, string]>;
+  keys(): HeadersIterator<string>;
+  values(): HeadersIterator<string>;
+  [Symbol.iterator](): HeadersIterator<[string, string]>;
 }
 
 export interface FetchOptions {
