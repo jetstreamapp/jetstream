@@ -1,3 +1,4 @@
+/* eslint-disable playwright/no-standalone-expect */
 import { ENV } from '@jetstream/api-config';
 import { expect, test as setup } from '@playwright/test';
 import { join } from 'path';
@@ -27,7 +28,6 @@ setup('login and ensure org exists', async ({ page, request }) => {
 
   await page.waitForURL(`${baseApiURL}/app`);
 
-  // eslint-disable-next-line playwright/no-standalone-expect
   await expect(page.getByRole('button', { name: 'Avatar' })).toBeVisible();
 
   await page.evaluate(async () => {

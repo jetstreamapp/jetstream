@@ -420,8 +420,16 @@ try {
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },
+          entitlements: { create: { chromeExtension: true, recordSync: true, googleDrive: true } },
         },
-        update: {},
+        update: {
+          entitlements: {
+            upsert: {
+              create: { chromeExtension: true, recordSync: true, googleDrive: true },
+              update: { chromeExtension: true, recordSync: true, googleDrive: true },
+            },
+          },
+        },
         where: { id: user.id },
       });
       logger.info('Example user created');

@@ -4,6 +4,7 @@
     "allowJs": true,
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
+    "allowSyntheticDefaultImports": true,
     "sourceMap": false
   },
   "include": [

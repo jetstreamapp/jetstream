@@ -6,7 +6,7 @@ import {
   getUserSessionByEmail,
   hasPasswordResetToken,
   verifyEmailLogEntryExists,
-} from '../utils/database-validation.utils';
+} from '../e2e-database-validation.utils';
 
 export class AuthenticationPage {
   readonly page: Page;
@@ -339,5 +339,15 @@ export class AuthenticationPage {
     await this.confirmPasswordInput.fill(confirmPassword);
 
     await this.submitButton.click();
+  }
+
+  async loginOrGoToAppIfLoggedIn(email: string, password: string) {
+    const alreadyLoggedInBtn = this.page.getByRole('link', { name: 'Go to Jetstream' });
+
+    if (await alreadyLoggedInBtn.isVisible()) {
+      await alreadyLoggedInBtn.click();
+    } else {
+      await this.fillOutLoginForm(email, password);
+    }
   }
 }

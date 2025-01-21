@@ -1,5 +1,5 @@
 import { expect, Locator, Page } from '@playwright/test';
-import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { ApiRequestUtils } from '../ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
 export class LoadSingleObjectPage {

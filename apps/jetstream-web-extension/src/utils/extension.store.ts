@@ -14,9 +14,16 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
           ...prevValue.sync,
         },
       };
+
       for (const [key, { newValue }] of Object.entries(changes)) {
         newState[namespace][key] = newValue;
       }
+
+      newState.local.options = newState.local.options ?? { enabled: true };
+
+      newState.sync.authTokens = newState.sync.authTokens ?? null;
+      newState.sync.extIdentifier = newState.sync.extIdentifier ?? null;
+
       return newState;
     });
   }

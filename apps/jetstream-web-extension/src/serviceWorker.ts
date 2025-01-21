@@ -409,7 +409,7 @@ async function handleLogout(sender: chrome.runtime.MessageSender): Promise<Logou
       logger.info('Error logging out', results.error);
       return { hasTokens: false, loggedIn: false, error: results.error };
     }
-    return { hasTokens: true, loggedIn: true };
+    return { hasTokens: false, loggedIn: false };
   } catch (ex) {
     logger.info('Fatal Error logging out', ex);
     chrome.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {

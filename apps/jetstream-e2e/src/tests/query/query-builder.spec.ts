@@ -8,6 +8,7 @@ test.describe.configure({ mode: 'parallel' });
 
 test.describe('QUERY BUILDER', () => {
   // TODO: add test for drilling in to related query filters
+  // eslint-disable-next-line playwright/expect-expect
   test('should work with filters', async ({ queryPage }) => {
     await queryPage.goto();
     await queryPage.selectObject('Account');

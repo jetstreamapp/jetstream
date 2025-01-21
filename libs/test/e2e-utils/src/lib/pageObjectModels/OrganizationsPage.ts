@@ -1,5 +1,5 @@
 import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
-import { ApiRequestUtils } from '../fixtures/ApiRequestUtils';
+import { ApiRequestUtils } from '../ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
 export class OrganizationsPage {
@@ -62,7 +62,6 @@ export class OrganizationsPage {
     const salesforcePage = await salesforcePagePromise;
 
     // Sometimes SFDC clears the values from the form if they are typed in too quickly
-    // eslint-disable-next-line playwright/no-wait-for-timeout
     await salesforcePage.waitForTimeout(1000);
 
     await salesforcePage.getByLabel('Username').click();

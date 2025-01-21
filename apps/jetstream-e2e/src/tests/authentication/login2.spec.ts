@@ -1,6 +1,6 @@
 import { prisma } from '@jetstream/api-config';
+import { getPasswordResetToken } from '@jetstream/test/e2e-utils';
 import { expect, test } from '../../fixtures/fixtures';
-import { getPasswordResetToken } from '../../utils/database-validation.utils';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -74,7 +74,7 @@ test.describe('Login 2', () => {
     await playwrightPage.logout();
 
     await authenticationPage.loginAndVerifyTotp(email, password, secret);
-    await expect(page.url()).toContain('/app');
+    expect(page.url()).toContain('/app');
 
     await playwrightPage.goToProfile();
 
@@ -95,7 +95,7 @@ test.describe('Login 2', () => {
     // Should not need 2fa since device is remembered
     await authenticationPage.fillOutLoginForm(email, password);
     await page.waitForURL(`**/app`);
-    await expect(page.url()).toContain('/app');
+    expect(page.url()).toContain('/app');
 
     // re-enable TOTP to make sure that works
     await playwrightPage.goToProfile();
@@ -107,7 +107,7 @@ test.describe('Login 2', () => {
 
     // Ensure 2fa is reactivated on logout and login
     await authenticationPage.loginAndVerifyTotp(email, password, secret);
-    await expect(page.url()).toContain('/app');
+    expect(page.url()).toContain('/app');
 
     // Delete TOTP and ensure that logout/login works successfully
     await playwrightPage.goToProfile();
@@ -121,6 +121,6 @@ test.describe('Login 2', () => {
 
     await authenticationPage.fillOutLoginForm(email, password);
     await page.waitForURL(`**/app`);
-    await expect(page.url()).toContain('/app');
+    expect(page.url()).toContain('/app');
   });
 });
