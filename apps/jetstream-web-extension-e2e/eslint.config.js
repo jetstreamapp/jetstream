@@ -12,8 +12,9 @@ module.exports = [
   ...compat.extends('plugin:playwright/recommended'),
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
-    // Override or add rules here
-    rules: {},
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

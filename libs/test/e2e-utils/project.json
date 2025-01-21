@@ -1,0 +1,9 @@
+{
+  "name": "e2e-utils",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/test/e2e-utils/src",
+  "projectType": "library",
+  "tags": ["scope:e2e"],
+  "// targets": "to see all targets run: nx show project e2e-utils --web",
+  "targets": {}
+}

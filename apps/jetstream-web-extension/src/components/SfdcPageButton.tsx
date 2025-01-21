@@ -200,6 +200,7 @@ export function SfdcPageButton() {
   return (
     <>
       <button
+        data-testid="jetstream-ext-page-button"
         css={css`
         z-index: 1000;
         display: block;
@@ -250,6 +251,7 @@ export function SfdcPageButton() {
           onOutsideClick={() => setIsOpen(false)}
         >
           <header
+            data-testid="jetstream-ext-popup-header"
             className="slds-p-left_medium slds-p-around_small slds-grid"
             css={css`
               padding: var(--lwc-spacingSmall, 0.75rem);
@@ -274,6 +276,7 @@ export function SfdcPageButton() {
             </a>
           </header>
           <div
+            data-testid="jetstream-ext-popup-body"
             className="slds-popover__body slds-p-around_small slds-is-relative"
             css={css`
               position: relative;

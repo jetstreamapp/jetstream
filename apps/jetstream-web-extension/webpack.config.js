@@ -13,7 +13,6 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   config.entry = {
     app: './src/pages/app/App.tsx',
     popup: './src/pages/popup/Popup.tsx',
-    options: './src/pages/options/Options.tsx',
     serviceWorker: './src/serviceWorker.ts',
     contentScript: './src/contentScript.tsx',
   };
@@ -44,7 +43,6 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
     }),
     createHtmlPagePlugin('app'),
     createHtmlPagePlugin('popup'),
-    createHtmlPagePlugin('options'),
 
     createHtmlPlaceholderPagePlugin('home'),
     createHtmlPlaceholderPagePlugin('organizations'),

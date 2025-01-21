@@ -21,6 +21,10 @@ module.exports = [
               onlyDependOnLibsWithTags: ['scope:server', 'scope:type-only', 'scope:shared', 'scope:any'],
             },
             {
+              sourceTag: 'scope:e2e',
+              onlyDependOnLibsWithTags: ['scope:server', 'scope:type-only', 'scope:shared', 'scope:e2e', 'scope:any'],
+            },
+            {
               sourceTag: 'scope:worker',
               onlyDependOnLibsWithTags: ['scope:allow-worker-import', 'scope:type-only', 'scope:shared', 'scope:any'],
             },

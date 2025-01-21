@@ -146,7 +146,7 @@ export const checkUserEntitlement = ({
   userId: string;
   entitlement: keyof Omit<Entitlement, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 }): Promise<boolean> => {
-  return prisma.entitlement.count({ where: { id: userId, [entitlement]: true } }).then((result) => result > 0);
+  return prisma.entitlement.count({ where: { userId, [entitlement]: true } }).then((result) => result > 0);
 };
 
 export async function updateUser(

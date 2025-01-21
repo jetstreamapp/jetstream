@@ -38,13 +38,13 @@ test.describe('Login 3', () => {
 
     await test.step('Ensure authenticated API fails prior to email verification', async () => {
       const response = await apiRequestUtils.makeRequestRaw('GET', '/api/me', { Accept: 'application/json' });
-      await expect(response.status()).toBe(401);
+      expect(response.status()).toBe(401);
     });
 
     await test.step('Verify email and ensure we can make an authenticated API request', async () => {
       await authenticationPage.verifyEmail(email);
       const response = await apiRequestUtils.makeRequestRaw('GET', '/api/me', { Accept: 'application/json' });
-      await expect(response.status()).toBe(200);
+      expect(response.status()).toBe(200);
     });
   });
 

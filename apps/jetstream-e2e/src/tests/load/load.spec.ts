@@ -9,6 +9,7 @@ test.beforeEach(async ({ page }) => {
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('LOAD RECORDS', () => {
+  // eslint-disable-next-line playwright/expect-expect
   test('Should upload file', async ({ loadSingleObjectPage, page }) => {
     const csvFile = join(__dirname, `../../assets/records-Product2.csv`);
 

@@ -4,6 +4,7 @@
   "sourceRoot": "apps/jetstream-e2e/src",
   "projectType": "application",
   "implicitDependencies": ["jetstream"],
+  "tags": ["scope:e2e"],
   "targets": {
     "e2e": {
       "executor": "@nx/playwright:playwright",

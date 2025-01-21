@@ -1,15 +1,17 @@
 import * as dotenv from 'dotenv';
 
+import {
+  ApiRequestUtils,
+  AuthenticationPage,
+  LoadSingleObjectPage,
+  LoadWithoutFilePage,
+  OrganizationsPage,
+  PlatformEventPage,
+  PlaywrightPage,
+  QueryPage,
+} from '@jetstream/test/e2e-utils';
 import { test as base } from '@playwright/test';
 import { z } from 'zod';
-import { AuthenticationPage } from '../pageObjectModels/AuthenticationPage.model';
-import { LoadSingleObjectPage } from '../pageObjectModels/LoadSingleObjectPage.model';
-import { LoadWithoutFilePage } from '../pageObjectModels/LoadWithoutFilePage.model';
-import { OrganizationsPage } from '../pageObjectModels/OrganizationsPage';
-import { PlatformEventPage } from '../pageObjectModels/PlatformEventPage.model';
-import { PlaywrightPage } from '../pageObjectModels/PlaywrightPage.model';
-import { QueryPage } from '../pageObjectModels/QueryPage.model';
-import { ApiRequestUtils } from './ApiRequestUtils';
 
 globalThis.__IS_CHROME_EXTENSION__ = false;
 

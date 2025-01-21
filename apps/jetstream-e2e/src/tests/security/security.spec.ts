@@ -73,7 +73,7 @@ test.describe('Security Checks', () => {
 
     await test.step('Try to update or delete org from different user', async () => {
       const orgsResponse = await apiRequestUtils.makeRequestRaw('GET', `/api/orgs`);
-      await expect(orgsResponse.ok()).toEqual(true);
+      expect(orgsResponse.ok()).toEqual(true);
 
       const updateSalesforceOrgResponse = await apiRequestUtils.makeRequestRaw('PATCH', `/api/orgs/${salesforceOrg.uniqueId}`, {
         jetstreamOrganizationId: salesforceOrg.jetstreamOrganizationId,
@@ -102,12 +102,12 @@ test.describe('Security Checks', () => {
         createdAt: salesforceOrg.createdAt,
         updatedAt: salesforceOrg.updatedAt,
       });
-      await expect(updateSalesforceOrgResponse.ok()).toBeFalsy();
-      await expect(updateSalesforceOrgResponse.status()).toBe(404);
+      expect(updateSalesforceOrgResponse.ok()).toBeFalsy();
+      expect(updateSalesforceOrgResponse.status()).toBe(404);
 
       const deleteSalesforceOrgResponse = await apiRequestUtils.makeRequestRaw('DELETE', `/api/orgs/${salesforceOrg.uniqueId}`);
-      await expect(deleteSalesforceOrgResponse.ok()).toBeFalsy();
-      await expect(deleteSalesforceOrgResponse.status()).toBe(404);
+      expect(deleteSalesforceOrgResponse.ok()).toBeFalsy();
+      expect(deleteSalesforceOrgResponse.status()).toBe(404);
     });
 
     await test.step('Try to use an org from a different user for a query API request', async () => {
@@ -119,8 +119,8 @@ test.describe('Security Checks', () => {
           'X-SFDC-ID': salesforceOrg.uniqueId,
         }
       );
-      await expect(useOrgFromDifferentUserResponse.ok()).toBeFalsy();
-      await expect(useOrgFromDifferentUserResponse.status()).toBe(404);
+      expect(useOrgFromDifferentUserResponse.ok()).toBeFalsy();
+      expect(useOrgFromDifferentUserResponse.status()).toBe(404);
     });
 
     await test.step('Try to update and delete a Jetstream organization from a different user', async () => {
@@ -132,12 +132,12 @@ test.describe('Security Checks', () => {
         createdAt: jetstreamOrg.createdAt,
         updatedAt: jetstreamOrg.updatedAt,
       });
-      await expect(updateJetstreamResponse.ok()).toBeFalsy();
-      await expect(updateJetstreamResponse.status()).toBe(404);
+      expect(updateJetstreamResponse.ok()).toBeFalsy();
+      expect(updateJetstreamResponse.status()).toBe(404);
 
       const deleteJetstreamResponse = await apiRequestUtils.makeRequestRaw('DELETE', `/api/orgs/${jetstreamOrg.id}`);
-      await expect(deleteJetstreamResponse.ok()).toBeFalsy();
-      await expect(deleteJetstreamResponse.status()).toBe(404);
+      expect(deleteJetstreamResponse.ok()).toBeFalsy();
+      expect(deleteJetstreamResponse.status()).toBe(404);
     });
   });
 });

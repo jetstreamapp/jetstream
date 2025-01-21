@@ -20,7 +20,7 @@ test.describe('Login 1', () => {
 
     await test.step('Login and verify email and logout', async () => {
       await authenticationPage.loginAndVerifyEmail(email, password);
-      await expect(page.url()).toContain('/app');
+      expect(page.url()).toContain('/app');
       await playwrightPage.goToProfile();
       await expect(page.getByText(name)).toBeVisible();
       await expect(page.getByText(email)).toBeVisible();
@@ -40,7 +40,7 @@ test.describe('Login 1', () => {
     await test.step('Login without MFA', async () => {
       await authenticationPage.fillOutLoginForm(email, password);
       await page.waitForURL(`**/app`);
-      await expect(page.url()).toContain('/app');
+      expect(page.url()).toContain('/app');
     });
   });
 
@@ -54,7 +54,7 @@ test.describe('Login 1', () => {
 
     await test.step('Login with remembered device', async () => {
       await authenticationPage.loginAndVerifyEmail(email, password, true);
-      await expect(page.url()).toContain('/app');
+      expect(page.url()).toContain('/app');
       await playwrightPage.logout();
       await expect(page.getByTestId('home-hero-container')).toBeVisible();
     });
@@ -62,7 +62,7 @@ test.describe('Login 1', () => {
     await test.step('Should not need 2fa since device is remembered', async () => {
       await authenticationPage.fillOutLoginForm(email, password);
       await page.waitForURL(`**/app`);
-      await expect(page.url()).toContain('/app');
+      expect(page.url()).toContain('/app');
       await playwrightPage.logout();
       await expect(page.getByTestId('home-hero-container')).toBeVisible();
     });
@@ -70,7 +70,7 @@ test.describe('Login 1', () => {
     await test.step('Email address should be case-insensitive', async () => {
       await authenticationPage.fillOutLoginForm(email.toUpperCase(), password);
       await page.waitForURL(`**/app`);
-      await expect(page.url()).toContain('/app');
+      expect(page.url()).toContain('/app');
     });
   });
 });
