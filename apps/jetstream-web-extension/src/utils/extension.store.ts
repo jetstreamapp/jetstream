@@ -1,6 +1,6 @@
 import { atom, selector } from 'recoil';
 import { setRecoil } from 'recoil-nexus';
-import { ChromeStorageState } from './extension.types';
+import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' || namespace === 'sync') {
@@ -23,6 +23,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
       newState.sync.authTokens = newState.sync.authTokens ?? null;
       newState.sync.extIdentifier = newState.sync.extIdentifier ?? null;
+      newState.sync.buttonPosition = newState.sync.buttonPosition ?? DEFAULT_BUTTON_POSITION;
 
       return newState;
     });
@@ -32,7 +33,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 async function initAuthState(): Promise<ChromeStorageState> {
   const [local, sync] = await Promise.all([
     chrome.storage.local.get(['options', 'connections']),
-    chrome.storage.sync.get(['extIdentifier', 'authTokens']),
+    chrome.storage.sync.get(['extIdentifier', 'authTokens', 'buttonPosition']),
   ]);
   return {
     local: {
@@ -46,6 +47,10 @@ async function initAuthState(): Promise<ChromeStorageState> {
       ...(sync as ChromeStorageState['sync']),
       authTokens: (sync as ChromeStorageState['sync'])?.authTokens ?? null,
       extIdentifier: (sync as ChromeStorageState['sync'])?.extIdentifier ?? null,
+      buttonPosition: {
+        ...DEFAULT_BUTTON_POSITION,
+        ...(sync as ChromeStorageState['sync'])?.buttonPosition,
+      },
     },
   };
 }

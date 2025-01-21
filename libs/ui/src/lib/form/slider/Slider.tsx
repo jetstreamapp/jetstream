@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { SizeXSmallSmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import React, { FunctionComponent, RefObject } from 'react';
@@ -11,8 +12,9 @@ export interface SliderProps {
   size?: SizeXSmallSmallMediumLarge;
   value: string;
   label: string;
-  rangeLabel: string;
+  rangeLabel?: string;
   hideLabel?: boolean;
+  hideRangLabel?: boolean;
   labelHelp?: string | JSX.Element | null;
   helpText?: React.ReactNode | string;
   disabled?: boolean;
@@ -37,6 +39,7 @@ export const Slider: FunctionComponent<SliderProps> = ({
   label,
   rangeLabel,
   hideLabel,
+  hideRangLabel,
   labelHelp,
   helpText,
   hasError = false,
@@ -52,11 +55,14 @@ export const Slider: FunctionComponent<SliderProps> = ({
 }) => {
   // TODO: value state
   const sizeClass = size ? `slds-size_${size}` : undefined;
+  rangeLabel = rangeLabel ?? `${min} - ${max}`;
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       <label className="slds-form-element__label" htmlFor={id}>
         <span className={classNames('slds-slider-label__label', { 'sr-only': hideLabel || !label })}>{label}</span>
-        <span className={classNames('slds-slider-label__range', { 'sr-only': hideLabel || !rangeLabel })}>{rangeLabel}</span>
+        <span className={classNames('slds-slider-label__range', { 'sr-only': hideLabel || hideRangLabel || !rangeLabel })}>
+          {rangeLabel}
+        </span>
       </label>
       {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
       <div className="slds-form-element__control">
@@ -84,7 +90,13 @@ export const Slider: FunctionComponent<SliderProps> = ({
             step={step}
             onChange={(event) => onChange && onChange(event.target.value)}
           />
-          <span className="slds-slider__value" aria-hidden="true">
+          <span
+            css={css`
+              min-width: 20px;
+            `}
+            className="slds-slider__value"
+            aria-hidden="true"
+          >
             {value}
           </span>
         </div>

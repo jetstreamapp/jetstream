@@ -63,6 +63,7 @@ export * from './lib/form/radio/RadioGroup';
 export * from './lib/form/readonly-form-element/ReadOnlyFormElement';
 export * from './lib/form/search-input/SearchInput';
 export * from './lib/form/select/Select';
+export * from './lib/form/slider/Slider';
 export * from './lib/form/textarea/Textarea';
 export * from './lib/form/time-picker/TimePicker';
 export * from './lib/google/GoogleSignIn';
