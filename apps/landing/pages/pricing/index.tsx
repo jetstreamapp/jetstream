@@ -56,7 +56,7 @@ const tiers = [
     id: 'tier-team',
     href: '#',
     price: { monthly: { price: 'Coming Soon', suffix: null }, annually: { price: 'Coming Soon', suffix: null } },
-    description: `Mange your team's access for your enterprise.`,
+    description: `Manage your team's access for your enterprise.`,
     features: [
       'Everything in Professional plan',
       'Team management',
