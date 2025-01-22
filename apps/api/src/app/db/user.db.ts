@@ -19,6 +19,7 @@ const userSelect: Prisma.UserSelect = {
     select: {
       recordSync: true,
       chromeExtension: true,
+      googleDrive: true,
     },
   },
   billingAccount: {
@@ -91,6 +92,7 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
     select: {
       chromeExtension: true,
       recordSync: true,
+      googleDrive: true,
     },
   },
   subscriptions: {
