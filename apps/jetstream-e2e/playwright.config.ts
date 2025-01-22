@@ -63,15 +63,5 @@ export default defineConfig({
       dependencies: ['setup'],
       // teardown: 'teardown',
     },
-
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
   ],
 });

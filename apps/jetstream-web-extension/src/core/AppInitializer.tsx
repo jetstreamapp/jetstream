@@ -9,8 +9,10 @@ import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { chromeSyncStorage } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
+import { GlobalExtensionLoggedOut } from './GlobalExtensionLoggedOut';
 
 const args = new URLSearchParams(location.search.slice(1));
 const salesforceHost = args.get('host');
@@ -28,6 +30,8 @@ export interface AppInitializerProps {
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
   const location = useLocation();
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+
+  const { authTokens } = useRecoilValue(chromeSyncStorage);
 
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
@@ -75,6 +79,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
 
   if (fatalError) {
     return <GlobalExtensionError message={fatalError} />;
+  }
+
+  if (!authTokens?.loggedIn) {
+    return <GlobalExtensionLoggedOut />;
   }
 
   if (!salesforceHost || !selectedOrg?.uniqueId) {

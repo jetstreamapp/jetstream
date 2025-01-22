@@ -126,7 +126,7 @@ const ButtonLinkCss = css`
 
 export function SfdcPageButton() {
   const options = useRecoilValue(chromeStorageOptions);
-  const { authTokens } = useRecoilValue(chromeSyncStorage);
+  const { authTokens, buttonPosition } = useRecoilValue(chromeSyncStorage);
   const [isOnSalesforcePage] = useState(
     () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('visualforce.com')
   );
@@ -202,33 +202,33 @@ export function SfdcPageButton() {
       <button
         data-testid="jetstream-ext-page-button"
         css={css`
-        z-index: 1000;
-        display: block;
-        position: fixed;
-        vertical-align: middle;
-        pointer: cursor;
-        top: 210px;
-        right: ${isOpen ? '0px;' : '-5px;'};
-        opacity: ${isOpen ? '1;' : '0.25;'};
-        width: 25px;
-        transition: transform 0.3s ease;
-        transform: ${isOpen ? 'scale(1.5);' : 'scale(1);'}
-        transform-origin: top right;
+          z-index: 1000;
+          display: ${isOpen ? 'none' : 'block'};
+          position: fixed;
+          vertical-align: middle;
+          pointer: cursor;
+          top: clamp(1px, ${buttonPosition.position}px, 100vh);
+          ${buttonPosition.location}: ${isOpen ? '0px' : '-5px'};
+          opacity: ${isOpen ? '1' : `${buttonPosition.opacity}`};
+          width: ${buttonPosition.inactiveSize}px;
+          transition: transform 0.3s ease;
+          transform: ${isOpen ? `scale(${buttonPosition.activeScale})` : 'scale(1)'};
+          transform-origin: top ${buttonPosition.location};
 
-        background: none;
-        border: none;
-        padding: 0;
-        margin: 0;
-        cursor: pointer;
-        outline: none;
-        text-align: center;
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          cursor: pointer;
+          outline: none;
+          text-align: center;
 
-        &:hover {
-          opacity: 1;
-          right: 0px;
-          transform: scale(1.5);
-        }
-      `}
+          &:hover {
+            opacity: 1;
+            ${buttonPosition.location}: 0px;
+            transform: scale(${buttonPosition.activeScale});
+          }
+        `}
         onClick={() => setIsOpen(true)}
       >
         <JetstreamIcon />
@@ -239,8 +239,8 @@ export function SfdcPageButton() {
             z-index: 1000;
             display: block;
             position: fixed;
-            top: 160px;
-            right: 0;
+            top: clamp(1px, ${buttonPosition.position - 50}px, calc(100vh - 500px));
+            ${buttonPosition.location}: 0;
             width: 250px;
             border-radius: var(--lwc-borderRadiusMedium, 0.25rem);
             min-height: 2rem;

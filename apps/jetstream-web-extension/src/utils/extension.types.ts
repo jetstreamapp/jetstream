@@ -4,6 +4,22 @@ import { z } from 'zod';
 
 export const AUTH_CHECK_INTERVAL_MIN = 5;
 
+export const DEFAULT_BUTTON_POSITION: ButtonPosition = {
+  location: 'right',
+  position: 210,
+  opacity: 0.25,
+  inactiveSize: 25,
+  activeScale: 1.5,
+};
+
+export interface ButtonPosition {
+  location: 'left' | 'right';
+  position: number;
+  opacity: number;
+  inactiveSize: number;
+  activeScale: number;
+}
+
 export interface JwtPayload {
   userId: string;
   name: string;
@@ -19,6 +35,7 @@ export interface ChromeStorageState {
   sync: {
     extIdentifier: z.infer<typeof ExtensionIdentifier> | null;
     authTokens: z.infer<typeof AuthTokens> | null;
+    buttonPosition: ButtonPosition;
   };
   local: {
     options: {
