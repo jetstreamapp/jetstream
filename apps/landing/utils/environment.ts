@@ -9,6 +9,7 @@ export const ROUTES = {
   HOME: '/',
   ABOUT: '/about',
   BLOG: '/blog',
+  blogPost: (slug: string) => `/blog/post/${slug}`,
   PRIVACY: '/privacy',
   TERMS_OF_SERVICE: '/terms-of-service',
   SUB_PROCESSORS: '/subprocessors',

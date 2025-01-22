@@ -1,5 +1,5 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { XIcon } from '@heroicons/react/outline';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Fragment } from 'react';
 
 export interface ModalProps {
@@ -54,7 +54,7 @@ export const Modal = ({
                   onClick={() => onClose()}
                 >
                   <span className="sr-only">Close</span>
-                  <XIcon className="h-6 w-6" aria-hidden="true" />
+                  <Bars3Icon className="h-6 w-6" aria-hidden="true" />
                 </button>
               </div>
               {children}
