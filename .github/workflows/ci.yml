@@ -77,7 +77,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: generate .env file
-        run: yarn scripts:generate-env
+        run: yarn scripts:generate-env --silent
 
       - name: Build Docker image
         run: docker build -t jetstream-app .
