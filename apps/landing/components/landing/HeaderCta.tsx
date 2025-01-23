@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ROUTES } from '../../utils/environment';
 
 export const HeaderCta = () => (
-  <div className="relative isolate overflow-hidden  bg-gray-900 pb-16 pt-14 sm:pb-20">
+  <div data-testid="home-hero-container" className="relative isolate overflow-hidden  bg-gray-900 pb-16 pt-14 sm:pb-20">
     <svg
       aria-hidden="true"
       className="absolute inset-0 -z-10 size-full stroke-white/10 [mask-image:radial-gradient(100%_100%_at_top_right,white,transparent)]"
@@ -49,7 +49,7 @@ export const HeaderCta = () => (
             href={ROUTES.AUTH.signup}
             className="py-3 px-4 rounded-md shadow bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-400 focus:ring-offset-gray-900"
           >
-            Get started for Free
+            Get started for free
           </Link>
         </div>
       </div>

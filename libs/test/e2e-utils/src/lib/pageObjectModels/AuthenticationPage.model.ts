@@ -53,7 +53,7 @@ export class AuthenticationPage {
     this.page = page;
     this.signInFromHomePageButton = page.getByRole('link', { name: 'Log in' });
     this.signUpFromHomePageButton = page.getByRole('link', { name: 'Sign up', exact: true });
-    this.signUpCtaFromHomePageButton = page.getByRole('link', { name: 'Sign up for a free account' });
+    this.signUpCtaFromHomePageButton = page.getByRole('link', { name: 'Get started for free' });
 
     this.signUpFromFormLink = page.getByText('Need to register? Sign up').getByRole('link', { name: 'Sign up' });
     this.signInFromFormLink = page.getByText('Already have an account? Login').getByRole('link', { name: 'Login' });
