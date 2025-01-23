@@ -43,7 +43,7 @@ export async function initApiClientAndOrg(sessionInfo: SessionInfo): Promise<Org
       companyInfoRecord = queryResults.records[0];
     }
   } catch (ex) {
-    console.warn('Error getting org info %o', ex);
+    logger.warn('Error getting org info %o', ex);
   }
 
   const org: SalesforceOrgUi = {

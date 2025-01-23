@@ -1,4 +1,4 @@
-import { Announcement, Maybe, UserProfileUi } from '@jetstream/types';
+import { Announcement } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
@@ -18,7 +18,6 @@ import './components/core/monaco-loader';
 import NotificationsRequestModal from './components/core/NotificationsRequestModal';
 
 export const App = () => {
-  const [userProfile, setUserProfile] = useState<Maybe<UserProfileUi>>();
   const [featureFlags, setFeatureFlags] = useState<Set<string>>(new Set(['all']));
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
@@ -26,7 +25,7 @@ export const App = () => {
     <ConfirmationServiceProvider>
       <RecoilRoot>
         <Suspense fallback={<AppLoading />}>
-          <AppInitializer onAnnouncements={setAnnouncements} onUserProfile={setUserProfile}>
+          <AppInitializer onAnnouncements={setAnnouncements}>
             <OverlayProvider>
               <DndProvider backend={HTML5Backend}>
                 <ModalContainer />
@@ -37,13 +36,13 @@ export const App = () => {
                 <DownloadFileStream />
                 <div>
                   <div data-testid="header">
-                    <HeaderNavbar userProfile={userProfile} featureFlags={featureFlags} isBillingEnabled={environment.BILLING_ENABLED} />
+                    <HeaderNavbar featureFlags={featureFlags} isBillingEnabled={environment.BILLING_ENABLED} />
                   </div>
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                     <AnnouncementAlerts announcements={announcements} />
                     <Suspense fallback={<AppLoading />}>
                       <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                        <AppRoutes featureFlags={featureFlags} userProfile={userProfile} />
+                        <AppRoutes featureFlags={featureFlags} />
                       </ErrorBoundary>
                     </Suspense>
                   </div>

@@ -168,7 +168,7 @@ export function SfdcPageButton() {
                   message: 'GET_SESSION',
                   data: { salesforceHost },
                 });
-                console.log('sessionInfo', sessionInfo);
+                logger.log('sessionInfo', sessionInfo);
                 if (sessionInfo) {
                   const { org } = await sendMessage({
                     message: 'INIT_ORG',
@@ -184,7 +184,7 @@ export function SfdcPageButton() {
           })();
         })
         .catch((err) => {
-          console.log(err);
+          logger.log(err);
         });
     }
   }, [isOnSalesforcePage, setSalesforceOrgs, setSelectedOrgId]);

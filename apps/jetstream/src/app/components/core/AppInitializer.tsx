@@ -32,11 +32,10 @@ localforage.config({
 
 export interface AppInitializerProps {
   onAnnouncements?: (announcements: Announcement[]) => void;
-  onUserProfile: (userProfile: UserProfileUi) => void;
   children?: React.ReactNode;
 }
 
-export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, onUserProfile, children }) => {
+export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
   const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
   const { version, announcements } = useRecoilValue(fromAppState.appVersionState);
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
@@ -92,12 +91,6 @@ APP VERSION ${version}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invalidOrg]);
-
-  useEffect(() => {
-    if (userProfile) {
-      onUserProfile(userProfile);
-    }
-  }, [onUserProfile, userProfile]);
 
   /**
    * When a tab/browser window becomes visible check with the server

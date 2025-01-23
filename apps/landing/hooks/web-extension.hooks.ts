@@ -42,7 +42,6 @@ async function fetchTokens(deviceId: string, webExtensionId: string) {
   }
 
   if (chrome && chrome.runtime) {
-    console.log('Sending tokens to Chrome extension');
     chrome.runtime.sendMessage(webExtensionId, { type: 'TOKENS', data: tokens }, (response) => {
       if (!response.success) {
         console.error('Token delivery failed');

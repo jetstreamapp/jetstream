@@ -35,7 +35,7 @@ export async function sendMessage<T extends MessageRequest>(message: T): Promise
   try {
     return await chrome.runtime.sendMessage<T, MessageResponse<ResponseForRequest<T>>>(message).then(handleResponse);
   } catch (error) {
-    console.error('Error sending message', error);
+    logger.error('Error sending message', error);
     throw error;
   }
 }

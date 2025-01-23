@@ -1,5 +1,5 @@
 import { ApiConnection } from '@jetstream/salesforce-api';
-import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import type { Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 export const AUTH_CHECK_INTERVAL_MIN = 5;
@@ -21,9 +21,7 @@ export interface ButtonPosition {
 }
 
 export interface JwtPayload {
-  userId: string;
-  name: string;
-  email: string;
+  userProfile: UserProfileUi;
   aud: string;
   iss: string;
   sub: string;
@@ -140,9 +138,8 @@ export const ExtensionIdentifier = z.object({
 
 export const AuthTokens = z.object({
   accessToken: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  email: z.string(),
+  // TODO: UserProfileUi - but we don't have zod types for that, so just casting
+  userProfile: z.any().nullish(),
   expiresAt: z.number(),
   lastChecked: z.number().nullable(),
   loggedIn: z.boolean(),
