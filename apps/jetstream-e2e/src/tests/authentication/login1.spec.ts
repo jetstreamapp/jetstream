@@ -22,7 +22,7 @@ test.describe('Login 1', () => {
       expect(userProfile.id).toBeTruthy();
       expect(userProfile.name).toContain('Test User');
       expect(userProfile.email).toContain('test-');
-      expect(userProfile.emailVerified).toContain(true);
+      expect(userProfile.emailVerified).toEqual(true);
       expect(userProfile).toHaveProperty('picture');
       expect(userProfile.preferences).toBeTruthy();
       expect(userProfile.preferences.skipFrontdoorLogin).toEqual(false);
