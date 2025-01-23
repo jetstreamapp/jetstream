@@ -74,7 +74,7 @@ jobs:
       - name: install global dependencies
         run: |
           yarn global add dotenv@^16.4.5
-          yarn global add zx@^^7.2.3
+          yarn global add zx@^7.2.3
 
       - name: generate .env file
         run: yarn scripts:generate-env
