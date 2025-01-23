@@ -71,6 +71,11 @@ jobs:
           node-version: '20'
           cache: 'yarn'
 
+      - name: install global dependencies
+        run: |
+          yarn add -g dotenv@^16.4.5
+          yarn add -g zx@^^7.2.3
+
       - name: generate .env file
         run: yarn scripts:generate-env
 
