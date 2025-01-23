@@ -71,10 +71,10 @@ jobs:
           node-version: '20'
           cache: 'yarn'
 
-      - name: install global dependencies
-        run: |
-          yarn global add dotenv@^16.4.5
-          yarn global add zx@^7.2.3
+      # This is annoying since we have to run it here and in docker container
+      # it is used for the .env config - maybe there is a better way to do this?
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
 
       - name: generate .env file
         run: yarn scripts:generate-env
