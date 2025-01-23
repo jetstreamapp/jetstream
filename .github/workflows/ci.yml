@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-        name: Checkout [master]
+        name: Checkout [main]
         with:
           fetch-depth: 0
 
@@ -57,6 +57,50 @@ jobs:
         with:
           name: dist-artifacts
           path: dist
+
+  test-docker-image:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout [main]
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: generate .env file
+        run: yarn scripts:generate-env
+
+      - name: Build Docker image
+        run: docker build -t jetstream-app .
+
+      - name: Start containers
+        run: docker compose -f docker-compose.ci.yml up -d
+
+      - name: Wait for containers
+        run: |
+          echo "Waiting for containers to be healthy..."
+          timeout 30 bash -c 'until docker compose ps | grep -q "healthy"; do sleep 1; done'
+
+      - name: Check containers
+        run: docker compose ps
+
+      - name: Test API endpoints
+        run: |
+          echo "Testing API endpoints..."
+          curl --fail --retry 5 --retry-delay 2 http://localhost:3333/healthz
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
 
   # e2e tests only runs if build passes, since it uses production build to run tests
   e2e:
@@ -104,7 +148,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        name: Checkout [master]
+        name: Checkout [main]
         with:
           fetch-depth: 0
 
