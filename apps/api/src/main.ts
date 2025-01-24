@@ -220,7 +220,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
         res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
       }
       next();
@@ -229,7 +229,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
         res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
         res.sendStatus(200);
         return;
