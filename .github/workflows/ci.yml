@@ -83,7 +83,7 @@ jobs:
         run: docker build -t jetstream-app .
 
       - name: Start containers
-        run: docker compose -f docker-compose.ci.yml up -d
+        run: docker compose -f docker-compose.yml up -d
 
       - name: Wait for containers
         run: |
