@@ -2,7 +2,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { UserProfileUi } from '@jetstream/types';
 import { AppLoading } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
@@ -23,11 +22,10 @@ localforage.config({
 });
 
 export interface AppInitializerProps {
-  onUserProfile: (userProfile: UserProfileUi) => void;
   children?: React.ReactNode;
 }
 
-export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
+export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ children }) => {
   const location = useLocation();
 
   const { authTokens } = useRecoilValue(chromeSyncStorage);
@@ -88,12 +86,6 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
       }
     })();
   }, [setSalesforceOrgs, setSelectedOrgId]);
-
-  useEffect(() => {
-    if (userProfile) {
-      onUserProfile(userProfile);
-    }
-  }, [onUserProfile, userProfile]);
 
   if (fatalError) {
     return <GlobalExtensionError message={fatalError} />;

@@ -30,7 +30,6 @@ export interface LoadRecordsSelectObjectAndFileProps {
   hasGoogleDriveAccess: boolean;
   googleShowUpgradeToPro: boolean;
   googleApiConfig: GoogleApiClientConfig;
-  featureFlags: Set<string>;
   selectedOrg: SalesforceOrgUi;
   sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
@@ -61,7 +60,6 @@ export const LoadRecordsSelectObjectAndFile = ({
   hasGoogleDriveAccess,
   googleShowUpgradeToPro,
   googleApiConfig,
-  featureFlags,
   selectedOrg,
   selectedSObject,
   isCustomMetadataObject,

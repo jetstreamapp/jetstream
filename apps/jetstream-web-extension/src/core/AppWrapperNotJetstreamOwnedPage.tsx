@@ -51,6 +51,7 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
   return (
     <RecoilRoot>
       <RecoilNexus />
+      <RecoilNexus />
       <Suspense fallback={'Loading...'}>{children}</Suspense>
     </RecoilRoot>
   );

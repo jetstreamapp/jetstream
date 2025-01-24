@@ -25,21 +25,14 @@ export function AppWrapper({ children }: { children: ReactNode }) {
     <ConfirmationServiceProvider>
       <RecoilRoot>
         <RecoilNexus />
+        <RecoilNexus />
         <Suspense fallback={<AppLoading />}>
           <MemoryRouter>
-            <AppInitializer
-              onUserProfile={() => {
-                // TODO:
-              }}
-            >
+            <AppInitializer>
               <OverlayProvider>
                 <DndProvider backend={HTML5Backend}>
                   <ModalContainer />
-                  {/* <AppStateResetOnOrgChange /> */}
                   <AppToast />
-                  {/* <LogInitializer /> */}
-                  {/* <NotificationsRequestModal loadDelay={10000} featureFlags={featureFlags} /> */}
-                  {/* <DownloadFileStream /> */}
                   {children}
                 </DndProvider>
               </OverlayProvider>
