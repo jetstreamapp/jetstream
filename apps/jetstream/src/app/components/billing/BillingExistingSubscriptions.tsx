@@ -20,7 +20,7 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
         <div className="slds-form-element__control">
           <BillingPlanCard
             descriptionTitle="Professional - Monthly"
-            description="Get access to the Google Drive, Chrome Extension, Query History Sync, and more coming soon!"
+            description="Get started with Jetstream Professional."
             checked={selectedPlan === environment.STRIPE_PRO_MONTHLY_PRICE_ID}
             disabled={selectedPlan !== environment.STRIPE_PRO_MONTHLY_PRICE_ID}
             value={environment.STRIPE_PRO_MONTHLY_PRICE_ID}
@@ -38,6 +38,8 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
             priceDescription="Billed Annually"
             onChange={setSelectedPlan}
           />
+
+          {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
         </div>
         <p className="slds-text-body_small slds-m-bottom_x-small">To change plans, visit the billing portal.</p>
         <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">

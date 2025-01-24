@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { TITLES } from '@jetstream/shared/constants';
 import { getSubscriptions } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { StripeUserFacingCustomer } from '@jetstream/types';
 import {
@@ -113,13 +114,25 @@ export const Billing = () => {
             <BillingExistingSubscriptions customerWithSubscriptions={customerWithSubscriptions} />
           ) : (
             <form method="POST" action="/api/billing/checkout-session">
-              <p className="slds-text-heading_small">Subscribe to Jetstream</p>
+              <p className="slds-text-title_bold">Professional plan includes</p>
+              <ul className="slds-list_dotted slds-m-bottom_small">
+                <li>
+                  Access to the{' '}
+                  <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
+                    Chrome Extension
+                  </a>
+                </li>
+                <li>Save query history across devices</li>
+                <li>Save downloads to Google Drive</li>
+                <li>Load data from Google Drive</li>
+              </ul>
+
               <fieldset className="slds-form-element" role="radiogroup">
                 <legend className="slds-form-element__legend slds-form-element__label">Select a plan</legend>
                 <div className="slds-form-element__control">
                   <BillingPlanCard
                     descriptionTitle="Professional - Monthly"
-                    description="Get access to the Google Drive, Chrome Extension, Query History Sync, and more coming soon!"
+                    description="Get started with Professional."
                     checked={selectedPlan === environment.STRIPE_PRO_MONTHLY_PRICE_ID}
                     value={environment.STRIPE_PRO_MONTHLY_PRICE_ID}
                     price="$25"
@@ -128,15 +141,14 @@ export const Billing = () => {
                   />
                   <BillingPlanCard
                     descriptionTitle="Professional - Annual"
-                    description="Get two months for free from the monthly plan."
+                    description="Get two months free."
                     checked={selectedPlan === environment.STRIPE_PRO_ANNUAL_PRICE_ID}
                     value={environment.STRIPE_PRO_ANNUAL_PRICE_ID}
                     price="$250"
                     priceDescription="Billed Annually"
                     onChange={setSelectedPlan}
                   />
-                  {/* Coming soon team plan or something? */}
-                  {/* <BillingPlanCard /> */}
+                  {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
                 </div>
               </fieldset>
               <button type="submit" className="slds-button slds-button_brand slds-m-top_medium">

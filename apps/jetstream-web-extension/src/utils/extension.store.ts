@@ -1,3 +1,4 @@
+import { UserProfileUi } from '@jetstream/types';
 import { atom, selector } from 'recoil';
 import { setRecoil } from 'recoil-nexus';
 import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
@@ -73,4 +74,9 @@ export const chromeLocalStorage = selector({
 export const chromeStorageOptions = selector({
   key: 'chromeStorageOptions',
   get: ({ get }) => get(chromeStorageState).local.options,
+});
+
+export const UserProfileState = selector({
+  key: 'UserProfileState',
+  get: ({ get }) => get(chromeStorageState).sync?.authTokens?.userProfile as UserProfileUi | undefined,
 });

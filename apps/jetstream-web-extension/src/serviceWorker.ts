@@ -180,13 +180,11 @@ chrome.runtime.onMessageExternal.addListener(async (message, sender, sendRespons
         break;
       }
       case 'TOKENS': {
-        const { exp, email, name, userId } = jwtDecode<JwtPayload>(event.data.accessToken);
+        const { exp, userProfile } = jwtDecode<JwtPayload>(event.data.accessToken);
         const expiresAt = exp ? fromUnixTime(exp) : new Date();
         const authState = {
           accessToken: event.data.accessToken,
-          email,
-          name,
-          userId,
+          userProfile,
           expiresAt: expiresAt.getTime(),
           lastChecked: null,
           loggedIn: true,

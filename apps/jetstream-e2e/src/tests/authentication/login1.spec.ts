@@ -10,9 +10,29 @@ test.describe.configure({ mode: 'parallel' });
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Login 1', () => {
-  test('Sign up, login, disable 2fa, login again', async ({ page, authenticationPage, playwrightPage }) => {
+  test('Sign up, login, disable 2fa, login again', async ({ page, authenticationPage, request, playwrightPage }) => {
     const { email, password, name } = await test.step('Sign up and verify email', async () => {
       const { email, password, name } = await authenticationPage.signUpAndVerifyEmail();
+
+      // Verify user profile
+      const profileResponse = await page.request.get('/api/me', { headers: { Accept: 'application/json' }, failOnStatusCode: true });
+      expect(profileResponse.ok()).toBeTruthy();
+      const userProfile = await profileResponse.json().then(({ data }) => data);
+      expect(userProfile).toBeTruthy();
+      expect(userProfile.id).toBeTruthy();
+      expect(userProfile.name).toContain('Test User');
+      expect(userProfile.email).toContain('test-');
+      expect(userProfile.emailVerified).toEqual(true);
+      expect(userProfile).toHaveProperty('picture');
+      expect(userProfile.preferences).toBeTruthy();
+      expect(userProfile.preferences.skipFrontdoorLogin).toEqual(false);
+      expect(userProfile.entitlements).toBeTruthy();
+      expect(userProfile.entitlements.chromeExtension).toEqual(false);
+      expect(userProfile.entitlements.googleDrive).toEqual(false);
+      expect(userProfile.entitlements.recordSync).toEqual(false);
+      expect(userProfile.subscriptions).toBeTruthy();
+      expect(userProfile.subscriptions).toHaveLength(0);
+
       await playwrightPage.logout();
       await expect(page.getByTestId('home-hero-container')).toBeVisible();
       return { email, password, name };

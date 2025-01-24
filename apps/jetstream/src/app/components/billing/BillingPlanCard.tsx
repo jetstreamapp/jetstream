@@ -1,15 +1,15 @@
 import { Icon } from '@jetstream/ui';
-import { useId } from 'react';
+import { ReactNode, useId } from 'react';
 
 interface BillingPlanCardProps {
-  description?: string;
+  description?: ReactNode;
   descriptionTitle?: string;
   price: string;
   priceDescription: string;
-  value: string;
-  checked: boolean;
   disabled?: boolean;
-  onChange: (value: string) => void;
+  value?: string;
+  checked?: boolean;
+  onChange?: (value: string) => void;
 }
 
 export const BillingPlanCard = ({
@@ -33,7 +33,7 @@ export const BillingPlanCard = ({
         checked={checked}
         name="priceId"
         disabled={disabled}
-        onChange={(ev) => onChange(ev.target.value)}
+        onChange={(ev) => onChange?.(ev.target.value)}
       />
       <label htmlFor={id}>
         <span className="slds-visual-picker__figure slds-visual-picker__text slds-align_absolute-center">

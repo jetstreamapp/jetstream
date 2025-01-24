@@ -1,9 +1,11 @@
 import { ENV } from '@jetstream/api-config';
 import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { UserProfileUi } from '@jetstream/types';
 import { serialize } from 'cookie';
 import { addDays, fromUnixTime, isAfter } from 'date-fns';
 import { z } from 'zod';
+import * as userDbService from '../db/user.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import * as webExtensionService from '../services/auth-web-extension.service';
@@ -87,11 +89,29 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
 
   let accessToken = '';
 
+  const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id }).then(
+    (user): UserProfileUi => ({
+      id: user.id,
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      emailVerified: user.emailVerified,
+      picture: user.picture,
+      preferences: { skipFrontdoorLogin: false },
+      billingAccount: user.billingAccount,
+      entitlements: {
+        chromeExtension: true,
+        recordSync: user.entitlements?.recordSync ?? false,
+        googleDrive: user.entitlements?.googleDrive ?? false,
+      },
+      subscriptions: [],
+    })
+  );
   let storedRefreshToken = await webExtDb.findByUserIdAndDeviceId({ userId: user.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
 
   // if token is expiring within 7 days, issue a new token
   if (!storedRefreshToken || isAfter(storedRefreshToken.expiresAt, addDays(new Date(), -webExtensionService.TOKEN_AUTO_REFRESH_DAYS))) {
-    accessToken = await webExtensionService.issueAccessToken({ userId: user.id, email: user.email, name: user.name });
+    accessToken = await webExtensionService.issueAccessToken(userProfile);
     storedRefreshToken = await webExtDb.create(user.id, {
       type: 'AUTH_TOKEN',
       token: accessToken,
@@ -101,7 +121,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       expiresAt: fromUnixTime(webExtensionService.decodeToken(accessToken).exp),
     });
   } else {
-    accessToken = await webExtensionService.issueAccessToken({ userId: user.id, email: user.email, name: user.name });
+    accessToken = await webExtensionService.issueAccessToken(userProfile);
   }
 
   sendJson(res, { accessToken });
@@ -125,9 +145,9 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ body }, r
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { userId } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
-    webExtDb.deleteByUserIdAndDeviceId({ userId, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
-    res.log.info({ userId, deviceId }, 'User logged out of chrome extension');
+    const { id } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
+    webExtDb.deleteByUserIdAndDeviceId({ userId: id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+    res.log.info({ userId: id, deviceId }, 'User logged out of chrome extension');
 
     sendJson(res, { success: true });
   } catch (ex) {

@@ -55,7 +55,7 @@ export const routeDefinition = {
     controllerFn: () => addBatchToJob,
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-      body: z.any(),
+      body: z.string(),
       query: z.object({
         closeJob: BooleanQueryParamSchema,
       }),

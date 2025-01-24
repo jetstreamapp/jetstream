@@ -8,8 +8,8 @@ import { fromAppState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { chromeSyncStorage } from '../utils/extension.store';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
 import { GlobalExtensionLoggedOut } from './GlobalExtensionLoggedOut';
@@ -29,15 +29,34 @@ export interface AppInitializerProps {
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserProfile, children }) => {
   const location = useLocation();
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
 
   const { authTokens } = useRecoilValue(chromeSyncStorage);
+  const chromeUserProfile = useRecoilValue(UserProfileState);
+  const [userProfile, setUserProfile] = useRecoilState(fromAppState.userProfileState);
 
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
   const selectedOrg = useRecoilValue(fromAppState.selectedOrgState);
 
   const [fatalError, setFatalError] = useState<string>();
+
+  // Ensure user access token is valid
+  useEffect(() => {
+    try {
+      sendMessage({ message: 'VERIFY_AUTH' }).catch((err) => {
+        logger.error('Error logging in', err);
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+  }, []);
+
+  // set userProfile from chromeUserProfile
+  useEffect(() => {
+    if (chromeUserProfile) {
+      setUserProfile(chromeUserProfile);
+    }
+  }, [chromeUserProfile, setUserProfile]);
 
   useNonInitialEffect(() => {
     const pageUrl = new URL(window.location.href);
@@ -54,7 +73,6 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
             message: 'GET_SESSION',
             data: { salesforceHost },
           });
-          console.log('sessionInfo', sessionInfo);
           if (sessionInfo) {
             const { org } = await sendMessage({
               message: 'INIT_ORG',
@@ -81,7 +99,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onUserP
     return <GlobalExtensionError message={fatalError} />;
   }
 
-  if (!authTokens?.loggedIn) {
+  if (!authTokens?.loggedIn || !chromeUserProfile) {
     return <GlobalExtensionLoggedOut />;
   }
 

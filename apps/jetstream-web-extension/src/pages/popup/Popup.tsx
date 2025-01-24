@@ -96,7 +96,7 @@ export function Component() {
         )}
         {loggedIn && authTokens && (
           <>
-            <p>Logged in as {authTokens.name}</p>
+            <p>Logged in as {authTokens.userProfile?.name}</p>
             <button className="slds-button slds-m-top_x-small" onClick={() => handleLogout()}>
               Log Out
             </button>

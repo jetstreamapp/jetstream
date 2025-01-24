@@ -112,7 +112,7 @@ export interface FeatureFlag {
 export interface UserProfileUi {
   id: string;
   /** @deprecated */
-  userId: string;
+  userId?: string;
   email: string;
   name: string;
   emailVerified: boolean;
@@ -120,9 +120,9 @@ export interface UserProfileUi {
   preferences: {
     skipFrontdoorLogin: boolean;
   };
-  billingAccount?: {
+  billingAccount?: Maybe<{
     customerId: string;
-  };
+  }>;
   entitlements: {
     googleDrive: boolean;
     chromeExtension: boolean;

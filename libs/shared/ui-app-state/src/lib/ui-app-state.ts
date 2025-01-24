@@ -19,6 +19,7 @@ import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
+// FIXME: chrome extension should be able to obtain all of this information after logging in
 const DEFAULT_PROFILE: UserProfileUi = {
   id: 'unknown',
   userId: 'unknown',
@@ -29,6 +30,7 @@ const DEFAULT_PROFILE: UserProfileUi = {
   preferences: {
     skipFrontdoorLogin: true,
   },
+  // FIXME: we want these true for the chrome extension
   entitlements: {
     googleDrive: false,
     chromeExtension: false,
