@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 /**
  * This file is based on the Salesforce Inspector extension for Chrome. (MIT license)
  * Credit: https://github.com/sorenkrabbe/Chrome-Salesforce-inspector/blob/master/addon/background.js

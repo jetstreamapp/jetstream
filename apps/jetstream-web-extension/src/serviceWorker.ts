@@ -71,7 +71,7 @@ chrome.tabs.onActivated.addListener(async (info) => {
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
+  for (const [key, { newValue }] of Object.entries(changes)) {
     switch (namespace) {
       case 'sync': {
         if (storageTypes.authTokens.key === key) {
