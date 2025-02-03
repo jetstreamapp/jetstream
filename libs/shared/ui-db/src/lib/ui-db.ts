@@ -9,12 +9,6 @@ import 'dexie-syncable';
  * This library is intentionally kept very small to allow importing in chrome extension without importing the entire ui-core
  */
 
-declare module 'Dexie' {
-  interface Transaction {
-    _sourceFromSync?: boolean;
-  }
-}
-
 interface Migration {
   entity: string;
   completedAt: Date;

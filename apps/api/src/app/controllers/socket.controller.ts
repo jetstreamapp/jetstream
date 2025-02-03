@@ -2,7 +2,6 @@ import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { convertUserProfileToSession } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
-import { isChromeExtension } from '@jetstream/shared/ui-utils';
 import { SocketEvent } from '@jetstream/types';
 import { createAdapter } from '@socket.io/cluster-adapter';
 import * as express from 'express';
@@ -11,7 +10,6 @@ import { nanoid } from 'nanoid';
 import cluster from 'node:cluster';
 import { Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import { environment } from '../../environments/environment';
 import * as webExtensionService from '../services/auth-web-extension.service';
 import { Request, Response } from '../types/types';
 
@@ -80,14 +78,15 @@ export function initSocketServer(
       allowedHeaders: [HTTP.HEADERS.AUTHORIZATION, HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID],
       credentials: true,
     },
-    cookie: isChromeExtension()
-      ? undefined
-      : {
-          name: 'socketSid',
-          httpOnly: false,
-          secure: environment.production,
-          sameSite: 'strict',
-        },
+    // FIXME: ideally we would have a way to make this dynamic
+    // cookie: isChromeExtension()
+    //   ? undefined
+    //   : {
+    //       name: 'socketSid',
+    //       httpOnly: false,
+    //       secure: environment.production,
+    //       sameSite: 'strict',
+    //     },
     allowRequest: async (req, callback) => {
       try {
         // normal session
