@@ -21,6 +21,24 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      PRISMA_TEST_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v4
         name: Checkout [master]
@@ -41,6 +59,13 @@ jobs:
 
       - name: install dependencies
         run: yarn install --frozen-lockfile
+
+      # Run database migrations
+      - name: Generate database
+        run: yarn db:generate
+
+      - name: Run database migration
+        run: yarn db:migrate
 
       - name: Test all affected projects
         env:
