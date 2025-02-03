@@ -13,7 +13,7 @@ const SyncEventSchema = z.object({
 });
 export type SyncEvent = z.infer<typeof SyncEventSchema>;
 
-export const emitEventsToOtherClients = async (sessionOrDeviceId: string, event: unknown) => {
+export const emitRecordSyncEventsToOtherClients = async (sessionOrDeviceId: string, event: unknown) => {
   try {
     const { data, userId } = SyncEventSchema.parse(event);
 

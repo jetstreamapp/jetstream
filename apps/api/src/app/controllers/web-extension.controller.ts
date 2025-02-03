@@ -12,7 +12,7 @@ import * as userDbService from '../db/user.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import * as webExtensionService from '../services/auth-web-extension.service';
-import { emitEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
+import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
 
@@ -201,7 +201,7 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
   };
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  emitEventsToOtherClients(req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID)!, syncEvent);
+  emitRecordSyncEventsToOtherClients(req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID)!, syncEvent);
 
   sendJson(res, response);
 });

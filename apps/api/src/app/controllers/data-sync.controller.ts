@@ -4,7 +4,7 @@ import { parseISO } from 'date-fns';
 import { clamp } from 'lodash';
 import { z } from 'zod';
 import * as userSyncDbService from '../db/data-sync.db';
-import { emitEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
+import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 
@@ -85,7 +85,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ user, body: r
     userId: user.id,
   };
 
-  emitEventsToOtherClients(req.session.id, syncEvent);
+  emitRecordSyncEventsToOtherClients(req.session.id, syncEvent);
 
   sendJson(res, response);
 });
