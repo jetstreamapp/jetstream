@@ -100,15 +100,6 @@ export interface UserProfilePreferences {
   deniedNotifications?: boolean;
 }
 
-/**
- * @deprecated
- */
-export interface FeatureFlag {
-  flagVersion: string; // V1.0
-  flags: string[]; // all | query
-  isDefault: boolean;
-}
-
 export interface UserProfileUi {
   id: string;
   /** @deprecated */

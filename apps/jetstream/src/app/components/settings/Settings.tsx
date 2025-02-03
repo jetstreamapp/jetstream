@@ -15,10 +15,11 @@ import {
   fireToast,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
-import { userProfileState } from '@jetstream/ui/app-state';
+import { fromAppState, userProfileState } from '@jetstream/ui/app-state';
+import { dexieDataSync } from '@jetstream/ui/db';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import LoggerConfig from './LoggerConfig';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
 
@@ -34,6 +35,11 @@ export const Settings = () => {
   const setUserProfile = useSetRecoilState(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
+
+  const [resetSyncLoading, setResetSyncLoading] = useState(false);
+
+  // TODO: Give option to disable
+  const recordSyncEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
 
   useEffect(() => {
     isMounted.current = true;
@@ -121,6 +127,21 @@ export const Settings = () => {
     window.location.href = '/goodbye/';
   }
 
+  async function resetSync() {
+    try {
+      setResetSyncLoading(true);
+      await dexieDataSync.reset(recordSyncEnabled);
+    } catch (ex) {
+      logger.error('[DB] Error resetting sync', ex);
+    } finally {
+      setResetSyncLoading(false);
+      fireToast({
+        message: 'Sync reset successfully!',
+        type: 'success',
+      });
+    }
+  }
+
   return (
     <Page testId="settings-page">
       <PageHeader>
@@ -139,6 +160,7 @@ export const Settings = () => {
         )}
         {fullUserProfile && (
           <div className="slds-m-top_medium">
+            <h2 className="slds-text-heading_medium slds-m-vertical_small">General Settings</h2>
             <CheckboxToggle
               id="frontdoor-toggle"
               checked={modifiedUser?.preferences?.skipFrontdoorLogin || false}
@@ -147,7 +169,30 @@ export const Settings = () => {
               onChange={handleFrontdoorLoginChange}
             />
 
+            {recordSyncEnabled && (
+              <div className="slds-m-top_large">
+                <h2 className="slds-text-heading_medium slds-m-vertical_small">Data Sync</h2>
+                {/* FIXME: add option for user to opt-out of this behavior (e.g. user preference?) */}
+                {/* <CheckboxToggle
+                  id="enable-record-sync-button"
+                  checked={recordSyncEnabled}
+                  label="Data Sync"
+                  labelHelp="Enable to sync Query History with the Jetstream server."
+                  onChange={(value) => setRecordSyncEnabled(value)}
+                /> */}
+                <button className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative" onClick={resetSync}>
+                  {resetSyncLoading && <Spinner className="slds-spinner slds-spinner_small" />}
+                  Reset Sync
+                </button>
+                <p className=" slds-m-top_small">
+                  If you have having an issue with your data syncing from Jetstream to the Extension, you can reset your extension data to
+                  pull in all your Jetstream data.
+                </p>
+              </div>
+            )}
+
             <div className="slds-m-top_large">
+              <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>
               <LoggerConfig />
             </div>
 

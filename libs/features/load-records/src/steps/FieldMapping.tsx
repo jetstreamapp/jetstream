@@ -10,6 +10,7 @@ import {
   FieldMappingItemStatic,
   FieldWithRelatedEntities,
   InsertUpdateUpsertDelete,
+  LoadSavedMappingItem,
   Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
@@ -18,7 +19,6 @@ import {
   autoMapFields,
   checkFieldsForMappingError,
   checkForDuplicateFieldMappings,
-  fromLoadRecordsState,
   initStaticFieldMappingItem,
   loadFieldMappingFromSavedMapping,
   resetFieldMapping,
@@ -191,7 +191,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       setKeyPrefix(new Date().getTime());
     }
 
-    function handleLoadMapping(savedMapping: fromLoadRecordsState.LoadSavedMappingItem) {
+    function handleLoadMapping(savedMapping: LoadSavedMappingItem) {
       const newMapping = loadFieldMappingFromSavedMapping(savedMapping, inputHeader, fields, binaryAttachmentBodyField);
       setFieldMapping(newMapping);
       setStaticRowHeaders(

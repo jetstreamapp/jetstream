@@ -17,7 +17,6 @@ import NotificationsRequestModal from './NotificationsRequestModal';
 import { UpgradeToProButton } from './UpgradeToProButton';
 
 export interface HeaderNavbarProps {
-  featureFlags: Set<string>;
   isBillingEnabled: boolean;
   isChromeExtension?: boolean;
 }
@@ -30,12 +29,10 @@ function logout(serverUrl: string) {
 
 function getMenuItems({
   userProfile,
-  featureFlags,
   isBillingEnabled,
   deniedNotifications,
 }: {
   userProfile: UserProfileUi;
-  featureFlags: Set<string>;
   isBillingEnabled: boolean;
   deniedNotifications?: boolean;
 }) {
@@ -59,7 +56,7 @@ function getMenuItems({
   return menu;
 }
 
-export const HeaderNavbar = ({ featureFlags, isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
+export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const userProfile = useRecoilValue(userProfileState);
   const applicationState = useRecoilValue(applicationCookieState);
@@ -91,12 +88,12 @@ export const HeaderNavbar = ({ featureFlags, isBillingEnabled, isChromeExtension
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications: !isEnabled }));
+    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications: !isEnabled }));
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications }));
-  }, [userProfile, featureFlags, deniedNotifications, isBillingEnabled]);
+    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications }));
+  }, [userProfile, deniedNotifications, isBillingEnabled]);
 
   const rightHandMenuItems = useMemo(() => {
     if (isChromeExtension) {
@@ -116,9 +113,7 @@ export const HeaderNavbar = ({ featureFlags, isBillingEnabled, isChromeExtension
 
   return (
     <Fragment>
-      {enableNotifications && (
-        <NotificationsRequestModal featureFlags={featureFlags} userInitiated onClose={handleNotificationMenuClosed} />
-      )}
+      {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
         logo={Logo}

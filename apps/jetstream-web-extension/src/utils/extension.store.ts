@@ -42,6 +42,7 @@ async function initAuthState(): Promise<ChromeStorageState> {
       options: {
         ...(local as ChromeStorageState['local'])?.options,
         enabled: (local as ChromeStorageState['local'])?.options?.enabled ?? true,
+        recordSyncEnabled: (local as ChromeStorageState['local'])?.options?.recordSyncEnabled ?? false,
       },
     },
     sync: {

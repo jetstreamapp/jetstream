@@ -13,6 +13,10 @@
         "main": "apps/cron-tasks/main.ts",
         "additionalEntryPoints": [
           {
+            "entryName": "clean-up-user-sync-history",
+            "entryPath": "apps/cron-tasks/src/clean-up-user-sync-history.ts"
+          },
+          {
             "entryName": "save-analytics-summary",
             "entryPath": "apps/cron-tasks/src/save-analytics-summary.ts"
           },

@@ -33,7 +33,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   startRestore,
   endRestore,
 }) => {
-  const { sObject, label, soql, isTooling, runCount, lastRun } = item;
+  const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = item;
   const isMounted = useRef(true);
   const timerRef = useRef<any>();
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
@@ -78,7 +78,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
       title={
         <Grid wrap>
           <GridCol size={12}>
-            <span>{label}</span>
+            <span>{customLabel ?? label}</span>
           </GridCol>
           <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
         </Grid>

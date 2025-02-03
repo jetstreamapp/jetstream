@@ -41,7 +41,6 @@ const findUniqueOrg = ({ userId, uniqueId }: { userId: string; uniqueId: string 
   return Prisma.validator<Prisma.SalesforceOrgWhereUniqueInput>()({
     uniqueOrg: {
       jetstreamUserId2: userId,
-      jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
       uniqueId: uniqueId,
     },
   });

@@ -1,14 +1,18 @@
 import { ENV } from '@jetstream/api-config';
 import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
+import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { UserProfileUi } from '@jetstream/types';
 import { serialize } from 'cookie';
 import { addDays, fromUnixTime, isAfter } from 'date-fns';
 import { z } from 'zod';
+import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
+import * as userSyncDbService from '../db/data-sync.db';
 import * as userDbService from '../db/user.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import * as webExtensionService from '../services/auth-web-extension.service';
+import { emitEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
 
@@ -42,6 +46,18 @@ export const routeDefinition = {
         accessToken: z.string(),
       }),
       hasSourceOrg: false,
+    },
+  },
+  dataSyncPull: {
+    controllerFn: () => dataSyncPull,
+    validators: {
+      ...dataSyncController.pull.validators,
+    },
+  },
+  dataSyncPush: {
+    controllerFn: () => dataSyncPush,
+    validators: {
+      ...dataSyncController.push.validators,
     },
   },
 };
@@ -131,8 +147,8 @@ const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async 
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { userId } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
-    res.log.info({ userId, deviceId }, 'Web extension token verified');
+    const { userProfile } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
+    res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
 
     sendJson(res, { success: true });
   } catch (ex) {
@@ -145,13 +161,47 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ body }, r
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { id } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
-    webExtDb.deleteByUserIdAndDeviceId({ userId: id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
-    res.log.info({ userId: id, deviceId }, 'User logged out of chrome extension');
+    const { userProfile } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
+    webExtDb.deleteByUserIdAndDeviceId({ userId: userProfile.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+    res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of chrome extension');
 
     sendJson(res, { success: true });
   } catch (ex) {
     res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of chrome extension');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
+});
+
+const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async ({ user, query }, req, res) => {
+  const { lastKey, updatedAt, limit } = query;
+  const response = await userSyncDbService.findByUpdatedAt({
+    userId: user.id,
+    lastKey,
+    updatedAt,
+    limit,
+  });
+  sendJson(res, response);
+});
+
+/**
+ * Push changes to server and emit to any other clients the user has active
+ */
+const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async ({ user, body: records, query }, req, res) => {
+  const response = await userSyncDbService.syncRecordChanges({
+    updatedAt: query.updatedAt,
+    userId: user.id,
+    records,
+    includeAllIfUpdatedAtNull: query.includeAllIfUpdatedAtNull,
+  });
+
+  const syncEvent: SyncEvent = {
+    clientId: query.clientId,
+    data: { keys: response.records.map(({ key }) => key) },
+    userId: user.id,
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  emitEventsToOtherClients(req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID)!, syncEvent);
+
+  sendJson(res, response);
 });

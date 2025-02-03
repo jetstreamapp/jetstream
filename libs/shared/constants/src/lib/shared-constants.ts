@@ -13,20 +13,6 @@ export const SESSION_EXP_DAYS = 2;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
 
-export const FEATURE_FLAGS = Object.freeze({
-  ALL: 'all',
-  AUTOMATION_CONTROL: 'automation-control',
-  AUTOMATION_CONTROL_NEW: 'automation-control-new',
-  QUERY: 'query',
-  LOAD: 'load',
-  LOAD_MULTI_OBJ: 'load-multi-object',
-  PERMISSION_MANAGER: 'permission-manager',
-  DEPLOYMENT: 'deployment',
-  NOTIFICATIONS: 'notifications',
-  ALLOW_GOOGLE_UPLOAD: 'allow-google-upload',
-  UPDATE_RECORDS: 'update-records',
-});
-
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
   CSV: InputAcceptTypeCsv;
@@ -47,6 +33,7 @@ export const HTTP = {
   },
   HEADERS: {
     ACCEPT: 'Accept',
+    AUTHORIZATION: 'Authorization',
     X_CLIENT_REQUEST_ID: 'X-Client-Request-Id',
     X_REQUEST_ID: 'X-Request-Id',
     X_RETRY: 'X-RETRY',
@@ -63,6 +50,7 @@ export const HTTP = {
     X_CACHE_KEY: 'X-CACHE-KEY',
     X_CACHE_AGE: 'X-CACHE-AGE',
     X_CACHE_EXP: 'X-CACHE-ECP',
+    X_WEB_EXTENSION_DEVICE_ID: 'X-Web-Extension-Device-Identifier',
     CONTENT_TYPE: 'Content-Type',
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',
@@ -128,13 +116,11 @@ export const fileExtToGoogleDriveMimeType = {
 
 export const INDEXED_DB = {
   KEYS: {
-    automationControlHistory: 'AUTOMATION:QUERY',
     queryHistory: 'HISTORY:QUERY',
     loadSavedMapping: 'LOAD:SAVED_MAPPING',
     apexHistory: 'HISTORY:APEX',
     deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
-    recordHistory: 'HISTORY:RECORDS',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
     sobjectExportSelection: 'USER:SOBJECT_EXPORT_OPTIONS',

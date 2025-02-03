@@ -50,11 +50,7 @@ const steps: Step[] = [
 const enabledSteps: Step[] = steps.filter((step) => step.enabled);
 const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 
-export interface LoadRecordsProps {
-  featureFlags: Set<string>;
-}
-
-export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
+export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
@@ -457,7 +453,6 @@ export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
                 hasGoogleDriveAccess={hasGoogleDriveAccess}
                 googleShowUpgradeToPro={googleShowUpgradeToPro}
                 googleApiConfig={googleApiConfig}
-                featureFlags={featureFlags}
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}

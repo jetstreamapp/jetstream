@@ -79,11 +79,7 @@ const PlatformEventMonitor = lazy(() =>
 const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
-export interface AppRoutesProps {
-  featureFlags: Set<string>;
-}
-
-export const AppRoutes = ({ featureFlags }: AppRoutesProps) => {
+export const AppRoutes = () => {
   const location = useLocation();
 
   // Preload sub-pages if user is on parent page
@@ -125,7 +121,7 @@ export const AppRoutes = ({ featureFlags }: AppRoutesProps) => {
         path={APP_ROUTES.LOAD.ROUTE}
         element={
           <OrgSelectionRequired>
-            <LoadRecords featureFlags={featureFlags} />
+            <LoadRecords />
           </OrgSelectionRequired>
         }
       />
@@ -133,7 +129,7 @@ export const AppRoutes = ({ featureFlags }: AppRoutesProps) => {
         path={APP_ROUTES.LOAD_MULTIPLE.ROUTE}
         element={
           <OrgSelectionRequired>
-            <LoadRecordsMultiObject featureFlags={featureFlags} />
+            <LoadRecordsMultiObject />
           </OrgSelectionRequired>
         }
       />

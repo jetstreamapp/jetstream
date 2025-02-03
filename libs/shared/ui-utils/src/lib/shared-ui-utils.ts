@@ -953,13 +953,6 @@ export function addOrg(
 }
 /// END ADD ORG ////
 
-export function hasFeatureFlagAccess(featureFlags: Set<string>, flag: string) {
-  if (featureFlags.has('all')) {
-    return true;
-  }
-  return featureFlags.has(flag);
-}
-
 const DEFAULT_INTERVAL_5_SEC = 5000;
 const DEFAULT_MAX_ATTEMPTS = 500;
 // number of attempts before checking less often

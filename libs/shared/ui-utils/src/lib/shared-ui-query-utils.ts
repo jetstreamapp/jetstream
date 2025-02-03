@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { FetchDebugLogOptions } from '@jetstream/types';
+import type { FetchDebugLogOptions } from '@jetstream/types';
 import { composeQuery, ConditionWithValueQuery, getField, Query, WhereClauseWithoutOperator } from '@jetstreamapp/soql-parser-js';
 import isNumber from 'lodash/isNumber';
 

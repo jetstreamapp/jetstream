@@ -31,14 +31,14 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
       .then(() => {
         localforage.setDriver(LOCAL_DRIVER_NAME);
         localforage.config({
-          name: 'jetstream-web-extension',
+          name: 'jetstream-web-ext-no-sync',
           driver: LOCAL_DRIVER_NAME,
         });
         setHasInit(true);
       })
       .catch((err) => {
         localforage.config({
-          name: 'jetstream-web-extension',
+          name: 'jetstream-web-ext-no-sync',
         });
         setHasInit(true);
       });

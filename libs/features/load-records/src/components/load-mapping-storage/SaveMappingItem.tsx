@@ -1,17 +1,17 @@
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { FieldMappingItem } from '@jetstream/types';
+import { FieldMappingItem, LoadSavedMappingItem } from '@jetstream/types';
 import { ButtonGroupContainer, DropDown, Grid, Tooltip } from '@jetstream/ui';
-import { SELF_LOOKUP_KEY, fromLoadRecordsState } from '@jetstream/ui-core';
+import { SELF_LOOKUP_KEY } from '@jetstream/ui-core';
 import { formatDate } from 'date-fns/format';
 import isDate from 'lodash/isDate';
 import { FunctionComponent } from 'react';
 
 export interface SaveMappingItemProps {
-  mapping: fromLoadRecordsState.LoadSavedMappingItem;
-  onButtonAction: (id: string, metadata: fromLoadRecordsState.LoadSavedMappingItem) => void;
-  onUseFieldMapping: (mapping: fromLoadRecordsState.LoadSavedMappingItem) => void;
+  mapping: LoadSavedMappingItem;
+  onButtonAction: (id: string, metadata: LoadSavedMappingItem) => void;
+  onUseFieldMapping: (mapping: LoadSavedMappingItem) => void;
 }
 
 export const SaveMappingItem: FunctionComponent<SaveMappingItemProps> = ({ mapping, onButtonAction, onUseFieldMapping }) => {
@@ -31,7 +31,7 @@ export const SaveMappingItem: FunctionComponent<SaveMappingItemProps> = ({ mappi
             </li>
             <li>
               <span className="slds-truncate">
-                {isDate(mapping.createdDate) ? formatDate(mapping.createdDate, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a) : ''}
+                {isDate(mapping.createdAt) ? formatDate(mapping.createdAt, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a) : ''}
               </span>
             </li>
           </ul>
@@ -66,7 +66,7 @@ function getTargetField(item: Omit<FieldMappingItem, 'fieldMetadata'>): string {
   }
 }
 
-const TooltipContent = ({ mapping }: { mapping: fromLoadRecordsState.LoadSavedMappingItem }) => {
+const TooltipContent = ({ mapping }: { mapping: LoadSavedMappingItem }) => {
   const items: Omit<FieldMappingItem, 'fieldMetadata'>[] = Object.values(mapping.mapping);
   const visibleItems = items.slice(0, 25);
   const remainingItems = items.length - visibleItems.length;

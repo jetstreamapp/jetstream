@@ -37,7 +37,7 @@ services:
       - jetstream
     ipc: host
   db:
-    image: postgres:14.1-alpine
+    image: postgres:16.1-alpine
     restart: always
     hostname: postgres
     environment:

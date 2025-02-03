@@ -97,6 +97,7 @@ import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
 import UtilityIcon_Link from './icons/utility/Link';
 import UtilityIcon_Logout from './icons/utility/Logout';
+import UtilityIcon_Magicwand from './icons/utility/Magicwand';
 import UtilityIcon_MergeField from './icons/utility/MergeField';
 import UtilityIcon_MinimizeWindow from './icons/utility/MinimizeWindow';
 import UtilityIcon_Moneybag from './icons/utility/Moneybag';
@@ -131,6 +132,7 @@ import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
 import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
+import UtilityIcon_SetupAssistantGuide from './icons/utility/SetupAssistantGuide';
 import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Shortcuts from './icons/utility/Shortcuts';
 import UtilityIcon_Steps from './icons/utility/Steps';
@@ -279,6 +281,7 @@ const utilityIcons = {
   left: UtilityIcon_Left,
   link: UtilityIcon_Link,
   logout: UtilityIcon_Logout,
+  magicwand: UtilityIcon_Magicwand,
   merge_field: UtilityIcon_MergeField,
   minimize_window: UtilityIcon_MinimizeWindow,
   moneybag: UtilityIcon_Moneybag,
@@ -313,6 +316,7 @@ const utilityIcons = {
   search: UtilityIcon_Search,
   settings: UtilityIcon_Settings,
   setup: UtilityIcon_Setup,
+  setup_assistant_guide: UtilityIcon_SetupAssistantGuide,
   share: UtilityIcon_Share,
   shortcuts: UtilityIcon_Shortcuts,
   steps: UtilityIcon_Steps,

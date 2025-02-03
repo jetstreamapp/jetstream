@@ -38,8 +38,8 @@ export interface ChromeStorageState {
   local: {
     options: {
       enabled: boolean;
+      recordSyncEnabled: boolean;
     };
-    // connections: Record<string, OrgAndSessionInfo>;
   };
 }
 
