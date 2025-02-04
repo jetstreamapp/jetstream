@@ -74,7 +74,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     <Page testId="mass-update-records-selection-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'bundle_config' }} label="Update Records" docsPath="/load/update-records" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Update Records" docsPath="/load/update-records" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {rows.length > 1 && (
               <button className="slds-button slds-button_neutral" disabled={!allRowsValid} onClick={validateAllRowRecords}>

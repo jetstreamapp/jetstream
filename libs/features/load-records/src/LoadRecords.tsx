@@ -402,7 +402,7 @@ export const LoadRecords = () => {
     <Page testId="load-records-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" docsPath="/load" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Load Records" docsPath="/load" />
           <PageHeaderActions colType="actions" buttonType="separate">
             <button
               data-testid="start-over-button"

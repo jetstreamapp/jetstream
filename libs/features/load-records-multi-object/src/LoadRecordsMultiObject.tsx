@@ -176,7 +176,7 @@ export const LoadRecordsMultiObject = () => {
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
-            icon={{ type: 'standard', icon: 'data_streams' }}
+            icon={{ type: 'standard', icon: 'record_update' }}
             label="Load Records to Multiple Objects"
             docsPath="/load/with-related"
           />
