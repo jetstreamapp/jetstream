@@ -153,22 +153,25 @@ export const checkUserEntitlement = ({
 
 export async function updateUser(
   user: UserProfileSession,
-  data: { name?: string; preferences?: { skipFrontdoorLogin: boolean } }
+  data: { name?: string; preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean } }
 ): Promise<User> {
   try {
     const existingUser = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { id: true, name: true, preferences: { select: { skipFrontdoorLogin: true } } },
+      select: { id: true, name: true, preferences: { select: { skipFrontdoorLogin: true, recordSyncEnabled: true } } },
     });
-    const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? (existingUser?.preferences?.skipFrontdoorLogin || false);
+    // PATCH update
+    const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? existingUser?.preferences?.skipFrontdoorLogin ?? false;
+    const recordSyncEnabled = data.preferences?.recordSyncEnabled ?? existingUser?.preferences?.recordSyncEnabled ?? true;
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         name: data.name ?? existingUser.name,
         preferences: {
           upsert: {
-            create: { skipFrontdoorLogin },
-            update: { skipFrontdoorLogin },
+            create: { skipFrontdoorLogin, recordSyncEnabled },
+            update: { skipFrontdoorLogin, recordSyncEnabled },
           },
         },
       },

@@ -38,21 +38,23 @@ function getMenuItems({
 }) {
   const menu: DropDownItem[] = [];
 
-  menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
-  if (isBillingEnabled) {
-    menu.push({ id: 'billing', value: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
-  }
+  menu.push({ id: 'profile', value: 'Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
-  menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
+  if (isBillingEnabled) {
+    menu.push({ id: 'billing', value: 'Billing & Subscription', subheader: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
+  }
+
   if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
-    menu.unshift({
+    menu.push({
       id: 'enable-notifications',
       value: 'Enable Notifications',
       subheader: 'Notifications',
       icon: { type: 'utility', icon: 'notification' },
     });
   }
+
+  menu.push({ id: 'nav-user-logout', subheader: 'Logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   return menu;
 }
 

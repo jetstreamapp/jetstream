@@ -171,6 +171,7 @@ model UserPreference {
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String   @unique @db.Uuid
   skipFrontdoorLogin Boolean  @default(false)
+  recordSyncEnabled  Boolean  @default(true)
   createdAt          DateTime @default(now()) @db.Timestamp(6)
   updatedAt          DateTime @updatedAt
 }

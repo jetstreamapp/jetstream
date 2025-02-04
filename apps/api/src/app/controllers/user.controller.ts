@@ -102,7 +102,8 @@ export const routeDefinition = {
         name: z.string().min(1).max(255).trim().optional(),
         preferences: z
           .object({
-            skipFrontdoorLogin: z.boolean(),
+            skipFrontdoorLogin: z.boolean().optional(),
+            recordSyncEnabled: z.boolean().optional(),
           })
           .optional(),
       }),

@@ -27,6 +27,7 @@ export interface UserProfileUiWithIdentities extends UserProfile {
     createdAt: Date;
     updatedAt: Date;
     skipFrontdoorLogin: boolean;
+    recordSyncEnabled: boolean;
   } | null;
   identities: UserProfileIdentity[];
   authFactors: UserProfileAuthFactor[];

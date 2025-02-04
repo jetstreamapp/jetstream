@@ -114,7 +114,7 @@ export const Billing = () => {
             <BillingExistingSubscriptions customerWithSubscriptions={customerWithSubscriptions} />
           ) : (
             <form method="POST" action="/api/billing/checkout-session">
-              <p className="slds-text-title_bold">Professional plan includes</p>
+              <p className="slds-text-title_bold">Upgrading to a Jetstream Professional plan includes</p>
               <ul className="slds-list_dotted slds-m-bottom_small">
                 <li>
                   Access to the{' '}
