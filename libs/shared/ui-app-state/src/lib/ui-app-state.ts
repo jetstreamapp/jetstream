@@ -29,6 +29,7 @@ const DEFAULT_PROFILE: UserProfileUi = {
   picture: null,
   preferences: {
     skipFrontdoorLogin: true,
+    recordSyncEnabled: true,
   },
   // FIXME: we want these true for the chrome extension
   entitlements: {

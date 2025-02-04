@@ -51,6 +51,7 @@ const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
   updatedAt: new Date(),
   preferences: {
     skipFrontdoorLogin: false,
+    recordSyncEnabled: false,
     id: 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
     userId: 'test|TEST_USER_ID',
     createdAt: new Date(),

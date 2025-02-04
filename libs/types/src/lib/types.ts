@@ -110,6 +110,7 @@ export interface UserProfileUi {
   picture?: Maybe<string>;
   preferences: {
     skipFrontdoorLogin: boolean;
+    recordSyncEnabled: boolean;
   };
   billingAccount?: Maybe<{
     customerId: string;

@@ -113,7 +113,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       name: user.name,
       emailVerified: user.emailVerified,
       picture: user.picture,
-      preferences: { skipFrontdoorLogin: false },
+      preferences: { skipFrontdoorLogin: false, recordSyncEnabled: true },
       billingAccount: user.billingAccount,
       entitlements: {
         chromeExtension: true,

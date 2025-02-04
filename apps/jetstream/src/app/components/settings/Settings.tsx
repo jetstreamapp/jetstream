@@ -102,6 +102,12 @@ export const Settings = () => {
     handleSave(_modifiedUser);
   }
 
+  function handleRecordSyncChange(recordSyncEnabled: boolean) {
+    const _modifiedUser = { ...modifiedUser, preferences: { recordSyncEnabled } } as UserProfileUiWithIdentities;
+    setModifiedUser(_modifiedUser);
+    handleSave(_modifiedUser);
+  }
+
   async function handleDelete(reason: string) {
     /**
      * FUTURE:
@@ -163,7 +169,7 @@ export const Settings = () => {
             <h2 className="slds-text-heading_medium slds-m-vertical_small">General Settings</h2>
             <CheckboxToggle
               id="frontdoor-toggle"
-              checked={modifiedUser?.preferences?.skipFrontdoorLogin || false}
+              checked={modifiedUser?.preferences?.skipFrontdoorLogin ?? false}
               label="Don't Auto-Login on Link Clicks"
               labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
               onChange={handleFrontdoorLoginChange}
@@ -172,14 +178,13 @@ export const Settings = () => {
             {recordSyncEnabled && (
               <div className="slds-m-top_large">
                 <h2 className="slds-text-heading_medium slds-m-vertical_small">Data Sync</h2>
-                {/* FIXME: add option for user to opt-out of this behavior (e.g. user preference?) */}
-                {/* <CheckboxToggle
+                <CheckboxToggle
                   id="enable-record-sync-button"
-                  checked={recordSyncEnabled}
+                  checked={modifiedUser?.preferences?.recordSyncEnabled ?? true}
                   label="Data Sync"
                   labelHelp="Enable to sync Query History with the Jetstream server."
-                  onChange={(value) => setRecordSyncEnabled(value)}
-                /> */}
+                  onChange={handleRecordSyncChange}
+                />
                 <button className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative" onClick={resetSync}>
                   {resetSyncLoading && <Spinner className="slds-spinner slds-spinner_small" />}
                   Reset Sync
