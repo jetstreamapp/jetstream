@@ -33,6 +33,6 @@ export class PlaywrightPage {
 
   async goToProfile() {
     await this.page.getByRole('button', { name: 'Avatar' }).click();
-    await this.page.getByRole('menuitem', { name: 'Your Profile' }).click();
+    await this.page.getByRole('menuitem', { name: 'Profile' }).click();
   }
 }
