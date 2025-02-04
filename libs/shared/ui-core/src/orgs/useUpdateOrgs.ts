@@ -15,7 +15,7 @@ import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { Observable } from 'rxjs';
-import { fromJetstreamEvents } from '..';
+import { fromJetstreamEvents, queryHistoryDb, queryHistoryObjectDb } from '..';
 
 export function useUpdateOrgs() {
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
@@ -71,6 +71,8 @@ export function useUpdateOrgs() {
       handleRefetchOrgs();
       handleRefetchOrganizations();
       setSelectedOrgId(null);
+      queryHistoryDb.deleteAllQueryHistoryForOrg(org);
+      queryHistoryObjectDb.deleteAllQueryHistoryObjectForOrg(org);
       // async, but results are ignored as this will not throw
       clearCacheForOrg(org);
       clearQueryHistoryForOrg(org);

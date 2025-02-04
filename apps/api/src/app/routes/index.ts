@@ -4,7 +4,7 @@ import oauthRoutes from './oauth.routes';
 import platformEventRoutes from './platform-event.routes';
 import staticAuthenticatedRoutes from './static-authenticated.routes';
 import testRoutes from './test.routes';
-import webExtensionRoutes from './web-extension-auth.routes';
+import webExtensionRoutes from './web-extension-server.routes';
 import webhookRoutes from './webhook.routes';
 
 export {

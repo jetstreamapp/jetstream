@@ -3,7 +3,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/shared/client-logger/src",
   "projectType": "library",
-  "tags": ["scope:shared", "scope:allow-worker-import"],
+  "tags": ["scope:browser", "scope:allow-worker-import"],
   "generators": {},
   "targets": {
     "lint": {

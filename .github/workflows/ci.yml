@@ -6,6 +6,7 @@ on:
   pull_request:
 
 env:
+  NODE_OPTIONS: '--max_old_space_size=4096'
   LOG_LEVEL: warn
   CONTENTFUL_HOST: cdn.contentful.com
   CONTENTFUL_SPACE: wuv9tl5d77ll
@@ -21,6 +22,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v4
         name: Checkout [master]
@@ -42,14 +44,10 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Test all affected projects
-        env:
-          NODE_OPTIONS: '--max_old_space_size=4096'
+      - name: Test all projects
         run: yarn test:all
 
       - name: Build
-        env:
-          NODE_OPTIONS: '--max_old_space_size=4096'
         run: yarn build:ci
 
       - name: Uploading artifacts
@@ -58,9 +56,53 @@ jobs:
           name: dist-artifacts
           path: dist
 
-  # e2e tests only runs if build passes, since it uses production build to run tests
+  test-cron:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PRISMA_TEST_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
+      JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout [master]
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Run database migrations
+      - name: Generate database
+        run: yarn db:generate
+
+      - name: Run database migration
+        run: yarn db:migrate
+
+      - name: Test cron-tasks
+        run: yarn test:cron
+
   e2e:
-    needs: build-and-test
     runs-on: ubuntu-latest
     env:
       NX_CLOUD_DISTRIBUTED_EXECUTION: false
@@ -116,11 +158,8 @@ jobs:
       - name: install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Download artifacts from build
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-artifacts
-          path: dist
+      - name: Build
+        run: yarn build:ci
 
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps

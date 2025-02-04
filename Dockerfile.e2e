@@ -19,7 +19,9 @@ COPY ./prisma ./prisma/
 RUN yarn
 
 # Install other dependencies that were not calculated by nx, but are required
-RUN yarn add dotenv prisma@^3.13.0
+# Install matching version of prisma by extracting @prisma/client version from package.json,
+# and stripping the caret ("^") if present.
+RUN yarn add prisma@$(node -p "require('./package.json')['dependencies']['@prisma/client'].replace('^','')")
 
 # Generate prisma client - ensure that there are no OS differences
 RUN npx prisma generate

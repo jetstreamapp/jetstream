@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'jetstream-web-extension',
   preset: '../../jest.preset.js',

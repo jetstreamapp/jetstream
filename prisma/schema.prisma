@@ -21,6 +21,9 @@ model User {
   nickname            String?                 @db.VarChar
   picture             String?                 @db.VarChar
   appMetadata         Json?                   @db.Json
+  lastLoggedIn        DateTime?
+  createdAt           DateTime                @default(now()) @db.Timestamp(6)
+  updatedAt           DateTime                @updatedAt
   preferences         UserPreference?
   salesforceOrgs      SalesforceOrg[]
   organizations       JetstreamOrganization[]
@@ -30,9 +33,7 @@ model User {
   rememberedDevices   RememberedDevice[]
   passwordResetTokens PasswordResetToken[]
   subscriptions       Subscription[]
-  lastLoggedIn        DateTime?
-  createdAt           DateTime                @default(now()) @db.Timestamp(6)
-  updatedAt           DateTime                @updatedAt
+  syncData            UserSyncData[]
   webExtensionTokens  WebExtensionToken[]
   entitlements        Entitlement?
   billingAccount      BillingAccount?
@@ -268,7 +269,7 @@ model SalesforceOrg {
   orgOrganizationType     String?                @db.VarChar
   color                   String?                @db.VarChar(10)
 
-  @@unique([jetstreamUserId2, jetstreamUrl, uniqueId], name: "uniqueOrg", map: "uniqueOrg")
+  @@unique([jetstreamUserId2, uniqueId], name: "uniqueOrg", map: "unique_org")
   @@map("salesforce_org")
 }
 
@@ -288,4 +289,23 @@ model AnalyticsSummary {
   year      Int
   createdAt DateTime @default(now()) @db.Timestamp(6)
   updatedAt DateTime @updatedAt
+}
+
+model UserSyncData {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @db.Uuid
+  orgId     String?
+  key       String
+  entity    String
+  data      Json
+  createdAt DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt DateTime  @updatedAt @db.Timestamp(6)
+  deletedAt DateTime? @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key, orgId], name: "userKeyOrg", map: "user_key_org")
+  @@index([userId, entity, updatedAt])
+  @@index([deletedAt])
+  @@map("user_sync_data")
 }

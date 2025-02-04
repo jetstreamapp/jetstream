@@ -23,7 +23,7 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
     <div
       css={css`
         max-width: 33rem;
-        margin-top: 5rem;
+        margin-top: 3rem;
         padding: 1rem;
         border-radius: 0.25rem;
         border: 1px solid #ea001e;

@@ -10,7 +10,7 @@ const ISSUER = 'https://getjetstream.app';
 export const TOKEN_AUTO_REFRESH_DAYS = 7;
 const TOKEN_EXPIRATION = 60 * 60 * 24 * 90 * 1000; // 90 days
 
-interface JwtDecodedPayload {
+export interface JwtDecodedPayload {
   userProfile: UserProfileUi;
   aud: typeof AUDIENCE;
   iss: typeof ISSUER;
@@ -56,7 +56,7 @@ export function decodeToken(token: string): JwtDecodedPayload {
   return decoder(token) as JwtDecodedPayload;
 }
 
-export async function verifyToken({ token, deviceId }: { token: string; deviceId: string }): Promise<UserProfileUi> {
+export async function verifyToken({ token, deviceId }: { token: string; deviceId: string }): Promise<JwtDecodedPayload> {
   const decoder = jwt.createDecoder();
   const decodedPayload = decoder(token) as JwtDecodedPayload;
 
@@ -70,5 +70,5 @@ export async function verifyToken({ token, deviceId }: { token: string; deviceId
   }
 
   const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION);
-  return (await jwtVerifier(token)) as UserProfileUi;
+  return (await jwtVerifier(token)) as JwtDecodedPayload;
 }

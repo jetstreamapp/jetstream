@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import { enableLogger } from '@jetstream/shared/client-logger';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import { AppLoading } from '@jetstream/ui-core';
@@ -20,26 +19,18 @@ if (!environment.production) {
   enableLogger(true);
 }
 
-export function AppWrapper({ children }: { children: ReactNode }) {
+export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWithoutSalesforceOrg?: boolean; children: ReactNode }) {
   return (
     <ConfirmationServiceProvider>
       <RecoilRoot>
         <RecoilNexus />
         <Suspense fallback={<AppLoading />}>
           <MemoryRouter>
-            <AppInitializer
-              onUserProfile={() => {
-                // TODO:
-              }}
-            >
+            <AppInitializer allowWithoutSalesforceOrg={allowWithoutSalesforceOrg}>
               <OverlayProvider>
                 <DndProvider backend={HTML5Backend}>
                   <ModalContainer />
-                  {/* <AppStateResetOnOrgChange /> */}
                   <AppToast />
-                  {/* <LogInitializer /> */}
-                  {/* <NotificationsRequestModal loadDelay={10000} featureFlags={featureFlags} /> */}
-                  {/* <DownloadFileStream /> */}
                   {children}
                 </DndProvider>
               </OverlayProvider>

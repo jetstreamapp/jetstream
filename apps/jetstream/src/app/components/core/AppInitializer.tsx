@@ -1,10 +1,10 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
+import { checkHeartbeat, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { Announcement, ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
-import { useAmplitude, usePageViews } from '@jetstream/ui-core';
+import { initDexieDb, useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
@@ -41,6 +41,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+  const recordSyncEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
 
   useEffect(() => {
     console.log(
@@ -62,6 +63,15 @@ APP VERSION ${version}
       'background: #222; color: #FFFFFF'
     );
   }, [version]);
+
+  useEffect(() => {
+    if (recordSyncEnabled) {
+      initSocket();
+    }
+    initDexieDb({ recordSyncEnabled }).catch((ex) => {
+      logger.error('[DB] Error initializing db', ex);
+    });
+  }, [recordSyncEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);

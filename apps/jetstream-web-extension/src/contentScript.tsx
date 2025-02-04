@@ -27,7 +27,7 @@ function destroyApp() {
   }
 }
 
-chrome.storage.local.get('options', (storage: { options?: { enabled: boolean } }) => {
+chrome.storage.local.get('options', (storage: { options?: { enabled: boolean; recordSyncEnabled: boolean } }) => {
   if (!storage.options || storage.options.enabled) {
     renderApp();
   }

@@ -13,6 +13,7 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   config.entry = {
     app: './src/pages/app/App.tsx',
     popup: './src/pages/popup/Popup.tsx',
+    additionalSettings: './src/pages/additional-settings/AdditionalSettings.tsx',
     serviceWorker: './src/serviceWorker.ts',
     contentScript: './src/contentScript.tsx',
   };
@@ -41,8 +42,9 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
     new webpack.DefinePlugin({
       'globalThis.__IS_CHROME_EXTENSION__': true,
     }),
-    createHtmlPagePlugin('app'),
-    createHtmlPagePlugin('popup'),
+    createHtmlPagePlugin('app', 'app'),
+    createHtmlPagePlugin('popup', 'popup'),
+    createHtmlPagePlugin('additional-settings', 'additionalSettings'),
 
     createHtmlPlaceholderPagePlugin('home'),
     createHtmlPlaceholderPagePlugin('organizations'),
@@ -81,12 +83,18 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   return config;
 });
 
-function createHtmlPagePlugin(moduleName) {
+/**
+ *
+ * @param {string} moduleName Name of the folder and HTML file (without extension)
+ * @param {string} chunkName Name of the property in "config.entry"
+ * @returns
+ */
+function createHtmlPagePlugin(moduleName, chunkName) {
   const filename = `${moduleName.toLowerCase()}.html`;
   return new HtmlWebpackPlugin({
     template: path.join(__dirname, 'src', 'pages', moduleName, filename),
     filename,
-    chunks: [moduleName.toLowerCase()],
+    chunks: [chunkName],
     cache: false,
   });
 }

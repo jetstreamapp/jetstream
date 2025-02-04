@@ -2,17 +2,18 @@ import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-st
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, getExceptionLog, httpLogger, logger, pgPool, prisma } from '@jetstream/api-config';
 import { hashPassword, pruneExpiredRecords } from '@jetstream/auth/server';
-import { SessionData as JetstreamSessionData } from '@jetstream/auth/types';
+import { SessionData as JetstreamSessionData, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
+import { setupPrimary } from '@socket.io/cluster-adapter';
 import { json, raw, urlencoded } from 'body-parser';
-import cluster from 'cluster';
 import pgSimple from 'connect-pg-simple';
 import cors from 'cors';
 import express from 'express';
 import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
+import cluster from 'node:cluster';
 import { cpus } from 'os';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
@@ -36,6 +37,15 @@ import {
 } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
+
+declare module 'express' {
+  interface Request {
+    chromeExtension?: {
+      user: UserProfileSession;
+      deviceId?: string;
+    };
+  }
+}
 
 declare module 'express-session' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -72,6 +82,8 @@ JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
 if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   logger.info(`Number of CPUs is ${CPU_COUNT}`);
   logger.info(`Master ${process.pid} is running`);
+
+  setupPrimary();
 
   const rateLimiterStore = new ClusterMemoryStorePrimary();
   rateLimiterStore.init();
@@ -114,7 +126,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   });
 
   const app = express();
-  const httpServer = initSocketServer(app, [sessionMiddleware]);
+  const httpServer = initSocketServer(app, { sessionMiddleware });
 
   if (environment.production) {
     app.set('trust proxy', 1); // required for environments such as heroku / {render?}
@@ -217,11 +229,17 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   // Handle CORS for web extension routes
   if (ENV.WEB_EXTENSION_ID) {
+    const allowedHeaders = [
+      HTTP.HEADERS.ACCEPT,
+      HTTP.HEADERS.CONTENT_TYPE,
+      HTTP.HEADERS.AUTHORIZATION,
+      HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
+    ].join(', ');
     app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
         res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
       }
       next();
     });
@@ -230,7 +248,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
         res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
         res.sendStatus(200);
         return;
       }
@@ -432,7 +450,6 @@ try {
         },
         where: { id: user.id },
       });
-      logger.info('Example user created');
     }
   })();
 } catch (ex) {

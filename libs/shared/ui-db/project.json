@@ -1,0 +1,16 @@
+{
+  "name": "ui-db",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/ui-db/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/shared/ui-db/jest.config.ts"
+      }
+    }
+  }
+}

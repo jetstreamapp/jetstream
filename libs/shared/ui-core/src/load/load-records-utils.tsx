@@ -11,6 +11,7 @@ import type {
   FieldMappingItemStatic,
   FieldRelatedEntity,
   FieldWithRelatedEntities,
+  LoadSavedMappingItem,
   MapOfCustomMetadataRecord,
   NonExtIdLookupOption,
   PrepareDataPayload,
@@ -27,16 +28,6 @@ import uniqueId from 'lodash/uniqueId';
 // Duplicated here to avoid circular dependency
 export interface SavedFieldMapping {
   [field: string]: Omit<FieldMappingItem, 'fieldMetadata'>;
-}
-// Duplicated here to avoid circular dependency
-export interface LoadSavedMappingItem {
-  key: string; // object:createdDate
-  name: string;
-  sobject: string;
-  csvFields: string[];
-  sobjectFields: string[];
-  mapping: SavedFieldMapping;
-  createdDate: Date;
 }
 
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';

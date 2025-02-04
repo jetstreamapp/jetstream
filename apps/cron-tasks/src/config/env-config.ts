@@ -8,7 +8,7 @@ try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
   console.info(`APP VERSION ${VERSION}`);
 } catch (ex) {
-  console.warn('COULD NOT READ VERSION FILE', ex);
+  // could not read environment version
 }
 
 export const ENV = {

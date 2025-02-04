@@ -47,7 +47,7 @@ export async function initApiClientAndOrg(sessionInfo: SessionInfo): Promise<Org
   }
 
   const org: SalesforceOrgUi = {
-    uniqueId: identity.organization_id,
+    uniqueId: `${identity.organization_id}-${identity.user_id}`,
     label: identity.username,
     filterText: identity.username,
     accessToken: sessionInfo.key,

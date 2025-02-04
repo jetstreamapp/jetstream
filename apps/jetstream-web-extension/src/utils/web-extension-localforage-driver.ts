@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 /**
  * All code was copied from https://github.com/eliihen/localforage-webExtensionStorage-driver?tab=readme-ov-file
  * MIT licensed
