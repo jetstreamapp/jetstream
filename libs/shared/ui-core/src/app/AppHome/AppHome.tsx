@@ -16,7 +16,7 @@ const HOME_ITEMS = [
   },
   {
     title: 'Load',
-    icon: { type: 'standard', icon: 'data_streams' },
+    icon: { type: 'standard', icon: 'record_update' },
     items: [APP_ROUTES.LOAD, APP_ROUTES.LOAD_MULTIPLE, APP_ROUTES.LOAD_MASS_UPDATE],
   },
   {
