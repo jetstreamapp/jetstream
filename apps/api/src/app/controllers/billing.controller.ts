@@ -86,26 +86,18 @@ const createCheckoutSessionHandler = createRoute(
   }
 );
 
-const processCheckoutSuccessHandler = createRoute(
-  routeDefinition.processCheckoutSuccess.validators,
-  async ({ user: sessionUser, query }, req, res) => {
-    ensureStripeIsInitialized();
-    const { subscribeAction, sessionId } = query;
+const processCheckoutSuccessHandler = createRoute(routeDefinition.processCheckoutSuccess.validators, async ({ user, query }, req, res) => {
+  ensureStripeIsInitialized();
+  const { subscribeAction, sessionId } = query;
 
-    if (!subscribeAction || !sessionId) {
-      return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
-    }
-
-    const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
-    if (!user.subscriptions?.[0]?.customerId) {
-      return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
-    }
-
-    await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
-
-    redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
+  if (!subscribeAction || !sessionId) {
+    return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
   }
-);
+
+  await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
+
+  redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
+});
 
 const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, req, res) => {
   ensureStripeIsInitialized();

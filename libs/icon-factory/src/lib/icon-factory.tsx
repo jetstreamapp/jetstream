@@ -21,6 +21,7 @@ import StandardIcon_ActionsAndButtons from './icons/standard/ActionsAndButtons';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_Apex from './icons/standard/Apex';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
+import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
@@ -55,6 +56,7 @@ import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
 import UtilityIcon_Ban from './icons/utility/Ban';
+import UtilityIcon_Billing from './icons/utility/Billing';
 import UtilityIcon_Bold from './icons/utility/Bold';
 import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
@@ -187,6 +189,7 @@ const standardIcons = {
   activations: StandardIcon_Activations,
   apex: StandardIcon_Apex,
   asset_relationship: StandardIcon_AssetRelationship,
+  billing: StandardIcon_Billing,
   bundle_config: StandardIcon_BundleConfig,
   connected_apps: StandardIcon_ConnectedApps,
   data_streams: StandardIcon_DataStreams,
@@ -239,6 +242,7 @@ const utilityIcons = {
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
   ban: UtilityIcon_Ban,
+  billing: UtilityIcon_Billing,
   bold: UtilityIcon_Bold,
   change_record_type: UtilityIcon_ChangeRecordType,
   chart: UtilityIcon_Chart,

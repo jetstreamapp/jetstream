@@ -1,5 +1,5 @@
-import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { StripeUserFacingCustomer } from '@jetstream/types';
+import { FeedbackLink } from '@jetstream/ui';
 import { useState } from 'react';
 import { environment } from '../../../environments/environment';
 import BillingPlanCard from './BillingPlanCard';
@@ -38,13 +38,15 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
             priceDescription="Billed Annually"
             onChange={setSelectedPlan}
           />
-
           {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
         </div>
-        <p className="slds-text-body_small slds-m-bottom_x-small">To change plans, visit the billing portal.</p>
-        <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
-          Visit the Chrome Store to install the Chrome Extension
-        </a>
+        <form method="POST" action="/api/billing/portal" target="_blank" className="slds-m-bottom_x-small">
+          <p className="slds-text-body_small">
+            To change plans, visit the
+            <button className="slds-button slds-m-left_xx-small">billing portal</button>.
+          </p>
+        </form>
+        <FeedbackLink type="EMAIL" omitInNewWindowIcon label="Have questions or need help? Send us an email." />
       </fieldset>
     </div>
   );
