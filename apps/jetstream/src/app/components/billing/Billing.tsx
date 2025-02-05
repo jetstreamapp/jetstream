@@ -14,7 +14,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { JetstreamLogoPro, useAmplitude } from '@jetstream/ui-core';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { environment } from '../../../environments/environment';
@@ -72,7 +72,7 @@ export const Billing = () => {
     <Page testId="billing-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'your_account' }} label="Billing" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'billing' }} label="Billing" />
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
@@ -109,24 +109,29 @@ export const Billing = () => {
           </div>
         )}
 
+        <div className="slds-box slds-box_small slds-m-bottom_small">
+          {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
+            <JetstreamLogoPro width="250px" className="slds-m-bottom_x-small" />
+          )}
+          <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
+          <ul className="slds-list_dotted slds-m-bottom_small">
+            <li>
+              Access to the{' '}
+              <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
+                Chrome Extension
+              </a>
+            </li>
+            <li>Save query history across devices</li>
+            <li>Save downloads to Google Drive</li>
+            <li>Load data from Google Drive</li>
+          </ul>
+        </div>
+
         <div className="slds-box slds-box_small">
           {customerWithSubscriptions && subscriptionStatus.hasActiveSubscriptions ? (
             <BillingExistingSubscriptions customerWithSubscriptions={customerWithSubscriptions} />
           ) : (
             <form method="POST" action="/api/billing/checkout-session">
-              <p className="slds-text-title_bold">Upgrading to a Jetstream Professional plan includes</p>
-              <ul className="slds-list_dotted slds-m-bottom_small">
-                <li>
-                  Access to the{' '}
-                  <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
-                    Chrome Extension
-                  </a>
-                </li>
-                <li>Save query history across devices</li>
-                <li>Save downloads to Google Drive</li>
-                <li>Load data from Google Drive</li>
-              </ul>
-
               <fieldset className="slds-form-element" role="radiogroup">
                 <legend className="slds-form-element__legend slds-form-element__label">Select a plan</legend>
                 <div className="slds-form-element__control">

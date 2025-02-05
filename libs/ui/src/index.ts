@@ -27,6 +27,7 @@ export * from './lib/form/button/ButtonGroupContainer';
 export * from './lib/form/button/ButtonRowContainer';
 export * from './lib/form/button/ButtonRowItem';
 export * from './lib/form/button/FormRowButton';
+export * from './lib/form/button/UpgradeToProButton';
 export * from './lib/form/checkbox-button/CheckboxButton';
 export * from './lib/form/checkbox-toggle/CheckboxToggle';
 export * from './lib/form/checkbox/Checkbox';

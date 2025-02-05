@@ -1,14 +1,21 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { Tooltip } from '@jetstream/ui';
 import { Link } from 'react-router-dom';
+import Icon from '../../widgets/Icon';
+import Tooltip from '../../widgets/Tooltip';
 
-export const UpgradeToProButton = () => {
+interface UpgradeToProButtonProps {
+  showOpenInNewTabIcon?: boolean;
+}
+
+export const UpgradeToProButton = ({ showOpenInNewTabIcon }: UpgradeToProButtonProps) => {
   return (
     <Tooltip
       delay={[1000, null]}
       content={
-        <div className="slds-p-bottom_small">Upgrade to get access to the Chrome Extension, Google Drive integration, and Record Sync</div>
+        <div className="slds-p-bottom_small">
+          Upgrade to get access to the Chrome Extension, Google Drive integration, and Query History Sync
+        </div>
       }
     >
       <Link
@@ -24,6 +31,9 @@ export const UpgradeToProButton = () => {
         `}
         className="slds-button slds-button_brand"
       >
+        {showOpenInNewTabIcon && (
+          <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
+        )}
         Upgrade to Pro
       </Link>
     </Tooltip>

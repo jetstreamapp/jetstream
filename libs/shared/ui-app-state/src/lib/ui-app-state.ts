@@ -201,10 +201,7 @@ export const googleDriveAccessState = selector({
   key: 'googleDriveAccessState',
   get: ({ get }) => {
     const isChromeExtension = get(isChromeExtensionState);
-    // TODO: This is temporary until we get entitlements working
-    // const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
-    const hasGoogleDriveAccess = true;
-
+    const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
     return {
       hasGoogleDriveAccess: !isChromeExtension && hasGoogleDriveAccess,
       googleShowUpgradeToPro: !isChromeExtension && !hasGoogleDriveAccess,

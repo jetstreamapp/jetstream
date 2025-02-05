@@ -29,11 +29,10 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
     logger.info({ eventId: event.id, eventType: event.type }, '[STRIPE]: Handling event %s', event.type);
 
     switch (event.type) {
-      case 'entitlements.active_entitlement_summary.updated':
-        {
-          await updateEntitlements(event.data.object);
-        }
+      case 'entitlements.active_entitlement_summary.updated': {
+        await updateEntitlementsFromWebhook(event.data.object);
         break;
+      }
       case 'customer.subscription.created':
       case 'customer.subscription.deleted':
       case 'customer.subscription.paused':
@@ -58,6 +57,10 @@ export async function fetchCustomerWithSubscriptionsById({ customerId }: { custo
   return await stripe.customers.retrieve(customerId, {
     expand: ['subscriptions'],
   });
+}
+
+export async function fetchCustomerEntitlements({ customerId }: { customerId: string }) {
+  return await stripe.entitlements.activeEntitlements.list({ customer: customerId });
 }
 
 export async function fetchCustomerWithSubscriptionsByJetstreamId({ userId }: { userId: string }) {
@@ -134,9 +137,13 @@ export async function createCustomer(user: UserProfile) {
   });
 }
 
-export async function updateEntitlements(eventData: Stripe.Entitlements.ActiveEntitlementSummary) {
+export async function updateEntitlementsFromWebhook(eventData: Stripe.Entitlements.ActiveEntitlementSummary) {
   const { customer, entitlements } = eventData;
-  const entitlementAccess = entitlements.data.reduce(
+  await updateEntitlements(customer, entitlements.data);
+}
+
+export async function updateEntitlements(customerId: string, entitlements: Stripe.Entitlements.ActiveEntitlement[]) {
+  const entitlementAccess = entitlements.reduce(
     (entitlementAccess: EntitlementsAccess, { lookup_key }) => {
       if (lookup_key in entitlementAccess) {
         entitlementAccess[lookup_key] = true;
@@ -150,7 +157,7 @@ export async function updateEntitlements(eventData: Stripe.Entitlements.ActiveEn
     }
   );
 
-  await subscriptionDbService.updateUserEntitlements(customer, entitlementAccess);
+  await subscriptionDbService.updateUserEntitlements(customerId, entitlementAccess);
 }
 
 export async function saveSubscriptionFromCompletedSession({ sessionId }: { sessionId: string }) {
@@ -160,9 +167,14 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
     throw new Error('Invalid checkout session - a customer is required to be associated with the session');
   }
 
+  // Update customer subscriptions - will also be updated via webhook
   const customerOrId = session.customer;
   const customer = await fetchCustomerWithSubscriptionsById({ customerId: isString(customerOrId) ? customerOrId : customerOrId.id });
   await saveOrUpdateSubscription({ customer });
+
+  // Update customer entitlements - will also be updated via webhook
+  const entitlements = await fetchCustomerEntitlements({ customerId: customer.id });
+  await updateEntitlements(customer.id, entitlements.data);
 }
 
 /**

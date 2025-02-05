@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { DropDownItem, UserProfileUi } from '@jetstream/types';
-import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
+import { Header, Navbar, NavbarItem, NavbarMenuItems, UpgradeToProButton } from '@jetstream/ui';
 import { applicationCookieState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,9 +12,9 @@ import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
+import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
-import { UpgradeToProButton } from './UpgradeToProButton';
 
 export interface HeaderNavbarProps {
   isBillingEnabled: boolean;
@@ -42,7 +42,7 @@ function getMenuItems({
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
   if (isBillingEnabled) {
-    menu.push({ id: 'billing', value: 'Billing & Subscription', subheader: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
+    menu.push({ id: 'billing', value: 'Billing & Subscription', subheader: 'Billing', icon: { type: 'utility', icon: 'billing' } });
   }
 
   if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
@@ -118,7 +118,7 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
       {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
-        logo={Logo}
+        logo={isChromeExtension || userProfile.subscriptions?.length > 0 ? LogoPro : Logo}
         orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}
