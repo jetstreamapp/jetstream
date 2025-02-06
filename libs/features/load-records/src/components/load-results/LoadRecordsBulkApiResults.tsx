@@ -553,6 +553,8 @@ export const LoadRecordsBulkApiResults = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="load_records_results"
+          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

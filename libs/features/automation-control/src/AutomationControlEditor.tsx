@@ -256,6 +256,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           fileNameParts={['automation']}
           onModalClose={() => setExportDataModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="automation_control"
+          trackEvent={trackEvent}
         />
       )}
       {exportMetadataModalOpen && (
@@ -272,6 +274,8 @@ export const AutomationControlEditor: FunctionComponent<AutomationControlEditorP
           allowedTypes={['zip']}
           onCancel={() => setExportMetadataModalOpen(false)}
           onDownload={handlePackageDownload}
+          source="automation_control"
+          trackEvent={trackEvent}
         />
       )}
       <RequireMetadataApiBanner />

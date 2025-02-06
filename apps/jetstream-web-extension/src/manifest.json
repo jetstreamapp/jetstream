@@ -16,7 +16,11 @@
   },
   "permissions": ["storage", "cookies"],
   "externally_connectable": {
-    "matches": ["https://getjetstream.app/web-extension/*", "http://localhost:3333/web-extension/*"]
+    "matches": [
+      "https://getjetstream.app/web-extension/*",
+      "https://staging.jetstream-app.com/web-extension/*",
+      "http://localhost:3333/web-extension/*"
+    ]
   },
   "host_permissions": [
     "https://getjetstream.app/web-extension/*",

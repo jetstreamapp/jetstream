@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Grid from '../../grid/Grid';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
-import { UpgradeToProButton } from '../button/UpgradeToProButton';
+import { UpgradeToProButton, UpgradeToProButtonProps } from '../button/UpgradeToProButton';
 
 export interface GoogleSelectedProUpgradeButtonProps {
   id?: string;
@@ -13,6 +13,8 @@ export interface GoogleSelectedProUpgradeButtonProps {
   helpText?: string;
   labelHelp?: string | null;
   hideLabel?: boolean;
+  source: UpgradeToProButtonProps['source'];
+  trackEvent: UpgradeToProButtonProps['trackEvent'];
 }
 
 export const GoogleSelectedProUpgradeButton = ({
@@ -21,6 +23,8 @@ export const GoogleSelectedProUpgradeButton = ({
   label = 'Google Drive',
   hideLabel,
   labelHelp,
+  source,
+  trackEvent,
 }: GoogleSelectedProUpgradeButtonProps) => {
   const [labelId] = useState(() => `${id}-label`);
 
@@ -46,7 +50,7 @@ export const GoogleSelectedProUpgradeButton = ({
                 </button>
               </span>
               <div className=" slds-m-left_xx-small">
-                <UpgradeToProButton showOpenInNewTabIcon />
+                <UpgradeToProButton showOpenInNewTabIcon trackEvent={trackEvent} source={source} />
               </div>
             </Grid>
           </label>

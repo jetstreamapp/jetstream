@@ -174,6 +174,8 @@ export const FormulaEvaluatorDeployModal = ({
           allowedTypes={['xlsx']}
           onModalClose={handleDownloadResultsModalClosed}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="formula_evaluator"
+          trackEvent={trackEvent}
         />
       )}
       {!exportModalOpen && (

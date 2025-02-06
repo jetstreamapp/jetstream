@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { TITLES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { getSubscriptions } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
@@ -15,8 +15,10 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { JetstreamLogoPro, useAmplitude } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useSetRecoilState } from 'recoil';
 import { environment } from '../../../environments/environment';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
 import BillingPlanCard from './BillingPlanCard';
@@ -27,6 +29,7 @@ export const Billing = () => {
   useTitle(TITLES.SETTINGS);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
+  const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(environment.STRIPE_PRO_MONTHLY_PRICE_ID);
@@ -48,12 +51,16 @@ export const Billing = () => {
         // TODO: should we do something on the server - like ensure server has the subscription?
         // depending on webhook timing, we may want to do this here
       }
-      const subscriptions = await getSubscriptions().then(({ customer }) => customer);
-      const hasCancelledSubscriptions = subscriptions?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
-      const hasFutureDatedCancellation = subscriptions?.subscriptions.some((item) => item.cancelAtPeriodEnd) ?? false;
-      const hasActiveSubscriptions = subscriptions?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
+      const { customer, didUpdate, userProfile } = await getSubscriptions();
+      if (userProfile) {
+        // this ensures that all entitlements are updated across the application to match what is on the server
+        setUserProfile(userProfile);
+      }
+      const hasCancelledSubscriptions = customer?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
+      const hasFutureDatedCancellation = customer?.subscriptions.some((item) => item.cancelAtPeriodEnd) ?? false;
+      const hasActiveSubscriptions = customer?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
       setSubscriptionStatus({ hasCancelledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
-      setCustomerWithSubscriptions(subscriptions);
+      setCustomerWithSubscriptions(customer);
     } catch (ex) {
       logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
       rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
@@ -91,7 +98,12 @@ export const Billing = () => {
 
         {customerWithSubscriptions && (
           <div className="slds-box slds-box_small slds-m-bottom_small">
-            <form method="POST" action="/api/billing/portal" target="_blank">
+            <form
+              method="POST"
+              action="/api/billing/portal"
+              target="_blank"
+              onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal, { action: 'click', location: 'cta_button' })}
+            >
               <p className="slds-text-heading_small">Visit the Billing Portal to manage your billing information</p>
               <ul className="slds-list_dotted slds-m-bottom_small">
                 <li>Change plans</li>
@@ -117,7 +129,13 @@ export const Billing = () => {
           <ul className="slds-list_dotted slds-m-bottom_small">
             <li>
               Access to the{' '}
-              <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
+              <a
+                href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
+                target="_blank"
+                className="slds-text-heading_x-small"
+                rel="noreferrer"
+                onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'billing_page' })}
+              >
                 Chrome Extension
               </a>
             </li>
@@ -131,7 +149,11 @@ export const Billing = () => {
           {customerWithSubscriptions && subscriptionStatus.hasActiveSubscriptions ? (
             <BillingExistingSubscriptions customerWithSubscriptions={customerWithSubscriptions} />
           ) : (
-            <form method="POST" action="/api/billing/checkout-session">
+            <form
+              method="POST"
+              action="/api/billing/checkout-session"
+              onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan })}
+            >
               <fieldset className="slds-form-element" role="radiogroup">
                 <legend className="slds-form-element__legend slds-form-element__label">Select a plan</legend>
                 <div className="slds-form-element__control">

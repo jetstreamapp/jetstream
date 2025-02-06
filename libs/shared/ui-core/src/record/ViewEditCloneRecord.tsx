@@ -555,6 +555,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           onModalClose={handleDownloadModalClose}
           onDownload={handleDidDownload}
           onDownloadFromServer={handleDownloadFromServer}
+          source="view_edit_clone_record"
+          trackEvent={trackEvent}
         />
       )}
 

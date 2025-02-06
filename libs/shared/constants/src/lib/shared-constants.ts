@@ -150,6 +150,9 @@ export const ANALYTICS_KEYS = {
   /** Browser Notifications */
   notifications_modal_opened: 'notifications_modal_opened',
   notifications_permission_requested: 'notifications_permission_requested',
+  /** Misc */
+  file_download: 'file_download',
+  chrome_extension_link: 'chrome_extension_link',
   /** Record Modal */
   record_modal_action_change: 'record_modal_action_change',
   record_modal_view_related: 'record_modal_view_related',
@@ -274,6 +277,11 @@ export const ANALYTICS_KEYS = {
   /** FEEDBACK */
   donate_popover_open: 'donate_popover_open',
   donate_popover_cta_click: 'donate_popover_cta_click',
+
+  /** BILLING */
+  billing_page_accessed: 'billing_page_accessed',
+  billing_portal: 'billing_portal',
+  billing_session: 'billing_session',
 } as const;
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];

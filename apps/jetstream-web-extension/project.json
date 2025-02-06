@@ -29,6 +29,20 @@
           "extractLicenses": false,
           "vendorChunk": false
         },
+        "staging": {
+          "fileReplacements": [
+            {
+              "replace": "apps/jetstream-web-extension/src/environments/environment.ts",
+              "with": "apps/jetstream-web-extension/src/environments/environment.staging.ts"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "none",
+          "sourceMap": true,
+          "namedChunks": false,
+          "extractLicenses": false,
+          "vendorChunk": false
+        },
         "production": {
           "fileReplacements": [
             {
@@ -58,6 +72,10 @@
         },
         "production": {
           "buildTarget": "jetstream-web-extension:build:production",
+          "hmr": false
+        },
+        "staging": {
+          "buildTarget": "jetstream-web-extension:build:staging",
           "hmr": false
         }
       }

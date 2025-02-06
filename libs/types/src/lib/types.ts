@@ -122,10 +122,10 @@ export interface UserProfileUi {
   };
   subscriptions: {
     id: string;
-    productId: string;
+    productId?: Maybe<string>;
     subscriptionId: string;
     priceId: string;
-    status: true;
+    status: 'ACTIVE' | 'CANCELED' | 'INCOMPLETE' | 'INCOMPLETE_EXPIRED' | 'PAST_DUE' | 'PAUSED' | 'TRIALING' | 'UNPAID';
   }[];
 }
 

@@ -387,6 +387,8 @@ export const LoadRecordsBatchApiResults = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleDownloadModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="load_records_results"
+          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

@@ -181,7 +181,11 @@ export async function resendVerificationEmail(identity: { provider: string; user
   return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getSubscriptions(): Promise<{ customer: StripeUserFacingCustomer | null }> {
+export async function getSubscriptions(): Promise<{
+  customer: StripeUserFacingCustomer | null;
+  didUpdate: boolean;
+  userProfile?: Maybe<UserProfileUi>;
+}> {
   return handleRequest({ method: 'GET', url: '/api/billing/subscriptions' }).then(unwrapResponseIgnoreCache);
 }
 

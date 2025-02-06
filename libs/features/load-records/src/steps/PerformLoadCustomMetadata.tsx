@@ -221,6 +221,8 @@ export const PerformLoadCustomMetadata = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="load_records_custom_metadata"
+          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

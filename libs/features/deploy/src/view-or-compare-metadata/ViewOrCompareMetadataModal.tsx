@@ -5,7 +5,7 @@ import { unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
-import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
@@ -25,6 +25,7 @@ export interface ViewOrCompareMetadataModalProps {
 }
 
 export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClose }: ViewOrCompareMetadataModalProps) => {
+  const { trackEvent } = useAmplitude();
   const [chromeExtension] = useState(() => isChromeExtension());
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
@@ -225,6 +226,8 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
           allowedTypes={downloadFileModalConfig.allowedTypes}
           onModalClose={handleFileDownloadModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="compare_metadata_modal"
+          trackEvent={trackEvent}
         />
       )}
       {!downloadFileModalConfig.open && (

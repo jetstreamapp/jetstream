@@ -123,6 +123,8 @@ export const CreateFieldsDeployModal = ({
           allowedTypes={['xlsx']}
           onModalClose={handleDownloadResultsModalClosed}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="create_fields_deploy_modal"
+          trackEvent={trackEvent}
         />
       )}
       {!confirmModalOpen && !exportModalOpen && (

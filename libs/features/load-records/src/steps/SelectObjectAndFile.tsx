@@ -24,6 +24,7 @@ import {
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
+import { useAmplitude } from '@jetstream/ui-core';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 
 export interface LoadRecordsSelectObjectAndFileProps {
@@ -81,6 +82,7 @@ export const LoadRecordsSelectObjectAndFile = ({
   onExternalIdChange,
   children,
 }: LoadRecordsSelectObjectAndFileProps) => {
+  const { trackEvent } = useAmplitude();
   const hasGoogleInputConfigured =
     hasGoogleDriveAccess && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
@@ -193,6 +195,8 @@ export const LoadRecordsSelectObjectAndFile = ({
                     filename: inputFileType === 'google' ? inputFilename : undefined,
                     onReadFile: handleGoogleFile,
                   }}
+                  source="load_records_single_object"
+                  trackEvent={trackEvent}
                 />
               </GridCol>
             </Grid>

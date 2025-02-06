@@ -254,6 +254,8 @@ export const LoadRecordsMultiObject = () => {
                 disabled: fileProcessingLoading || dataLoadLoading,
                 onReadFile: handleGoogleFile,
               }}
+              source="load_records_multi_object"
+              trackEvent={trackEvent}
             />
             <div className="slds-form-element__help slds-truncate">
               Choose an Excel file that is in the correct format from the provided template.

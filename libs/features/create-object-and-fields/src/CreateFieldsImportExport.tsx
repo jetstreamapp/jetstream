@@ -132,6 +132,8 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
           allowedTypes={['xlsx', 'csv']}
           onModalClose={() => handleCloseModal()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="create_fields_import_export_modal"
+          trackEvent={trackEvent}
         />
       )}
       <ButtonGroupContainer>

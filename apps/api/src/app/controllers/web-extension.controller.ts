@@ -2,7 +2,6 @@ import { ENV } from '@jetstream/api-config';
 import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { UserProfileUi } from '@jetstream/types';
 import { serialize } from 'cookie';
 import { addDays, fromUnixTime, isAfter } from 'date-fns';
 import { z } from 'zod';
@@ -105,24 +104,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
 
   let accessToken = '';
 
-  const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id }).then(
-    (user): UserProfileUi => ({
-      id: user.id,
-      userId: user.userId,
-      email: user.email,
-      name: user.name,
-      emailVerified: user.emailVerified,
-      picture: user.picture,
-      preferences: { skipFrontdoorLogin: false, recordSyncEnabled: true },
-      billingAccount: user.billingAccount,
-      entitlements: {
-        chromeExtension: true,
-        recordSync: user.entitlements?.recordSync ?? false,
-        googleDrive: user.entitlements?.googleDrive ?? false,
-      },
-      subscriptions: [],
-    })
-  );
+  const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
   let storedRefreshToken = await webExtDb.findByUserIdAndDeviceId({ userId: user.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
 
   // if token is expiring within 7 days, issue a new token
