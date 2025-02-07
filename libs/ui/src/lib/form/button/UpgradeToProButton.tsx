@@ -1,14 +1,17 @@
 import { css } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Link } from 'react-router-dom';
 import Icon from '../../widgets/Icon';
 import Tooltip from '../../widgets/Tooltip';
 
-interface UpgradeToProButtonProps {
+export interface UpgradeToProButtonProps {
   showOpenInNewTabIcon?: boolean;
+  source: 'navbar' | string;
+  trackEvent: (key: string, value?: unknown) => void;
 }
 
-export const UpgradeToProButton = ({ showOpenInNewTabIcon }: UpgradeToProButtonProps) => {
+export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }: UpgradeToProButtonProps) => {
   return (
     <Tooltip
       delay={[1000, null]}
@@ -30,6 +33,7 @@ export const UpgradeToProButton = ({ showOpenInNewTabIcon }: UpgradeToProButtonP
           }
         `}
         className="slds-button slds-button_brand"
+        onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source })}
       >
         {showOpenInNewTabIcon && (
           <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />

@@ -37,7 +37,7 @@ import {
   ToolbarItemGroup,
   Tooltip,
 } from '@jetstream/ui';
-import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState } from '@jetstream/ui-core';
+import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -100,6 +100,7 @@ export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }
 export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
+  const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
@@ -514,6 +515,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
           allowedTypes={['xlsx']}
           onModalClose={() => setFileDownloadModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="manage_permissions"
+          trackEvent={trackEvent}
         />
       )}
       <RequireMetadataApiBanner />

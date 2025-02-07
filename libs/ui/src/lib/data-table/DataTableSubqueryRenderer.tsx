@@ -229,7 +229,6 @@ function ModalDataTable({
   setSelectedRows,
 }: ModalDataTableProps) {
   const modalRef = useRef();
-
   const { records, done, totalSize } = queryResults;
 
   const { fields: _fields, rows } = useMemo(() => {
@@ -359,6 +358,10 @@ function ModalDataTable({
           fields={fields}
           records={records}
           onModalClose={handleCloseModal}
+          source="data_table_subquery"
+          // This one is too much trouble to pass down amplitude dependency
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+          trackEvent={() => {}}
         />
       )}
     </>

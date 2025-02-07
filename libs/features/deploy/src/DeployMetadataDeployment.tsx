@@ -265,6 +265,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           allowedTypes={['xlsx', 'csv', 'json']}
           onModalClose={() => setExportData(null)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata"
+          trackEvent={trackEvent}
         />
       )}
 

@@ -5,6 +5,7 @@ import { applicationCookieState, selectUserPreferenceState, userProfileState } f
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
+import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
@@ -60,6 +61,7 @@ function getMenuItems({
 
 export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
   const navigate = useNavigate();
+  const { trackEvent } = useAmplitude();
   const userProfile = useRecoilValue(userProfileState);
   const applicationState = useRecoilValue(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
@@ -107,11 +109,17 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
     }
 
     if (userProfile.subscriptions.length === 0) {
-      return [<UpgradeToProButton />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+      return [
+        <UpgradeToProButton trackEvent={trackEvent} source="navbar" />,
+        <RecordSearchPopover />,
+        <UserSearchPopover />,
+        <Jobs />,
+        <HeaderHelpPopover />,
+      ];
     }
 
     return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isChromeExtension, isBillingEnabled, userProfile.subscriptions.length]);
+  }, [isChromeExtension, isBillingEnabled, userProfile.subscriptions.length, trackEvent]);
 
   return (
     <Fragment>

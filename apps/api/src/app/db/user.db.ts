@@ -1,5 +1,6 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
+import { UserProfileUi } from '@jetstream/types';
 import { Entitlement, Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
@@ -137,8 +138,37 @@ export const findByIdWithSubscriptions = (id: string) => {
   });
 };
 
-export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
+export const findIdByUserIdUserFacing = ({
+  userId,
+  omitSubscriptions = false,
+}: {
+  userId: string;
+  omitSubscriptions?: boolean;
+}): Promise<UserProfileUi> => {
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => ({
+    id: user.id,
+    userId: user.userId,
+    email: user.email,
+    name: user.name,
+    emailVerified: user.emailVerified,
+    picture: user.picture,
+    preferences: { skipFrontdoorLogin: false, recordSyncEnabled: true },
+    billingAccount: user.billingAccount,
+    entitlements: {
+      chromeExtension: user.entitlements?.chromeExtension ?? true,
+      recordSync: user.entitlements?.recordSync ?? false,
+      googleDrive: user.entitlements?.googleDrive ?? false,
+    },
+    subscriptions: omitSubscriptions
+      ? []
+      : user.subscriptions.map((subscription) => ({
+          id: subscription.id,
+          productId: subscription.productId,
+          subscriptionId: subscription.subscriptionId,
+          priceId: subscription.priceId,
+          status: subscription.status as UserProfileUi['subscriptions'][number]['status'],
+        })),
+  }));
 };
 
 export const checkUserEntitlement = ({

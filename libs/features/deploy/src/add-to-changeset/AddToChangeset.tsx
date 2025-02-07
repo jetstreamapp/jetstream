@@ -114,6 +114,8 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_add_to_changeset_modal"
+          trackEvent={trackEvent}
         />
       )}
     </Fragment>

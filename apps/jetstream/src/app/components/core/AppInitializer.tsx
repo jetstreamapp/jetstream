@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
-import { Announcement, ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { Announcement, SalesforceOrgUi } from '@jetstream/types';
 import { initDexieDb, useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { AxiosResponse } from 'axios';
@@ -36,9 +36,9 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+  const userProfile = useRecoilValue(fromAppState.userProfileState);
   const { version, announcements } = useRecoilValue(fromAppState.appVersionState);
-  const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
+  const appCookie = useRecoilValue(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
 

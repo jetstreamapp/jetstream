@@ -1,5 +1,7 @@
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { StripeUserFacingCustomer } from '@jetstream/types';
 import { FeedbackLink } from '@jetstream/ui';
+import { useAmplitude } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { environment } from '../../../environments/environment';
 import BillingPlanCard from './BillingPlanCard';
@@ -9,6 +11,7 @@ interface BillingExistingSubscriptionsProps {
 }
 
 export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: BillingExistingSubscriptionsProps) => {
+  const { trackEvent } = useAmplitude();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(
     () => customerWithSubscriptions.subscriptions.find((sub) => sub.status === 'ACTIVE')?.items[0].priceId || null
   );
@@ -46,7 +49,17 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
             <button className="slds-button slds-m-left_xx-small">billing portal</button>.
           </p>
         </form>
-        <FeedbackLink type="EMAIL" omitInNewWindowIcon label="Have questions or need help? Send us an email." />
+        <FeedbackLink
+          onClick={() => trackEvent(ANALYTICS_KEYS.billing_portal, { action: 'click', location: 'cta_button' })}
+          type="EMAIL"
+          omitInNewWindowIcon
+          label="Have questions or need help? Send us an email."
+        />
+        <p className="slds-text-heading_small slds-m-top_x-small">Are you a current sponsor through GitHub?</p>
+        <p>
+          If you would like to continue your sponsorship through GitHub, send us an email with your GitHub username to get access to the pro
+          plan.
+        </p>
       </fieldset>
     </div>
   );

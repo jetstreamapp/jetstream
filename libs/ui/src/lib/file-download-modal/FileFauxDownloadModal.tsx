@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, isEnterKey } from '@jetstream/shared/ui-utils';
 import {
   FileExtAllTypes,
@@ -41,6 +41,8 @@ export interface FileFauxDownloadModalProps {
   header?: string[] | Record<string, any[]>; // can be omitted if every field should be included in download, otherwise pass in a list of fields to include in file
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
+  source: string;
+  trackEvent: (key: string, value?: unknown) => void;
   onCancel: () => void;
   onDownload: (data: {
     fileName: string;
@@ -70,6 +72,8 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
   org,
   fileNameParts = ['items'],
   alternateDownloadButton,
+  source,
+  trackEvent,
   onCancel,
   onDownload,
 }) => {
@@ -152,6 +156,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
       }
 
       onDownload({ fileName, fileFormat: _fileFormat, mimeType, uploadToGoogle, googleFolder });
+      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
     } catch (ex) {
       // TODO: show error message somewhere
     }
@@ -236,7 +241,9 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
               onChange={(value: FileExtZip) => setFileFormat(value)}
             />
           )}
-          {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
+          {!googleIntegrationEnabled && googleShowUpgradeToPro && (
+            <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
+          )}
           {hasGoogleInputConfigured && (allowedTypesSet.has('csv') || allowedTypesSet.has('xlsx') || allowedTypesSet.has('zip')) && (
             <Radio
               name="radio-download-file-format"

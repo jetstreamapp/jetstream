@@ -2,7 +2,7 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
-import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -27,6 +27,7 @@ export const LoadRecordsMultiObjectResults = ({
   loadFinished,
   onLoadStarted,
 }: LoadRecordsMultiObjectResultsProps) => {
+  const { trackEvent } = useAmplitude();
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
@@ -54,6 +55,8 @@ export const LoadRecordsMultiObjectResults = ({
           allowedTypes={downloadModalData.allowedTypes as FileExtAllTypes[]}
           onModalClose={handleCloseDownloadModal}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="load_records_multi_object"
+          trackEvent={trackEvent}
         />
       )}
       {/* Summary and load button */}

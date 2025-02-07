@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
@@ -74,6 +74,8 @@ export interface RecordDownloadModalProps {
   selectedRecords?: SalesforceRecord[];
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
+  source: string;
+  trackEvent: (key: string, value?: unknown) => void;
   onModalClose: (cancelled?: boolean) => void;
   onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
@@ -100,6 +102,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   selectedRecords,
   totalRecordCount,
   includeDeletedRecords = false,
+  source,
+  trackEvent,
   onModalClose,
   onDownload,
   onDownloadFromServer,
@@ -292,6 +296,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         }
         handleModalClose();
       }
+      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
       // TODO: show error message somewhere
       logger.error('Error downloading file', ex);
@@ -430,7 +435,9 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   disabled={isBulkApi}
                 />
               )}
-              {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
+              {!googleIntegrationEnabled && googleShowUpgradeToPro && (
+                <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
+              )}
               {fileFormat === 'gdrive' && (
                 <FileDownloadGoogle
                   google_apiKey={google_apiKey}

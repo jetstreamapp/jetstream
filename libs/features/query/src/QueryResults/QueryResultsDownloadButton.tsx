@@ -153,6 +153,8 @@ export const QueryResultsDownloadButton = ({
           onDownload={handleDidDownload}
           includeDeletedRecords={includeDeletedRecords}
           onDownloadFromServer={handleDownloadFromServer}
+          source="query_results"
+          trackEvent={trackEvent}
         />
       )}
     </Fragment>

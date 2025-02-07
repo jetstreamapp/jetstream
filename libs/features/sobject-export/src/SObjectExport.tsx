@@ -24,7 +24,7 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
@@ -77,6 +77,7 @@ const DEFAULT_OPTIONS: ExportOptions = {
 export interface SObjectExportProps {}
 
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
+  const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rollbar = useRollbar();
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
@@ -201,6 +202,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
           allowedTypes={['xlsx']}
           onModalClose={() => setExportDataModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="sobject_export"
+          trackEvent={trackEvent}
         />
       )}
       <Page testId="sobject-export-page">

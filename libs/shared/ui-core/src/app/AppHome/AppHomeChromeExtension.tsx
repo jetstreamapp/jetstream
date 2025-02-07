@@ -1,14 +1,17 @@
 import { css } from '@emotion/react';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Badge, Icon } from '@jetstream/ui';
 import { userProfileEntitlementState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
+import { useAmplitude } from '../../analytics';
 
 const CURRENT_TIME = new Date().getTime();
 
 export const AppHomeChromeExtension = () => {
+  const { trackEvent } = useAmplitude();
   const hasExtensionAccess = useRecoilValue(userProfileEntitlementState('chromeExtension'));
 
   return (
@@ -52,14 +55,25 @@ export const AppHomeChromeExtension = () => {
               </Badge>
             )}
           </h3>
-          <a href={APP_ROUTES.CHROME_EXTENSION.ROUTE} target="_blank" className="slds-text-heading_x-small" rel="noreferrer">
+          <a
+            href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
+            target="_blank"
+            className="slds-text-heading_x-small"
+            rel="noreferrer"
+            onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'app_home' })}
+          >
             Visit the Chrome Store to install the Chrome Extension
           </a>
           {!hasExtensionAccess && (
             <>
               <p>
                 The Chrome extension <strong>requires a Pro</strong> subscription.{' '}
-                <Link to="/settings/billing">Subscribe to Jetstream on our billing page</Link>
+                <Link
+                  to="/settings/billing"
+                  onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source: 'app_home' })}
+                >
+                  Subscribe to Jetstream on our billing page
+                </Link>
               </p>
               <p className="slds-m-top_xx-small">Use your Favorite Jetstream features in any Salesforce Org with the Chrome Extension!</p>
               <ul className="slds-list_dotted slds-m-bottom_small">

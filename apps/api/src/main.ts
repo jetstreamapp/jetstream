@@ -438,13 +438,13 @@ try {
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },
-          entitlements: { create: { chromeExtension: true, recordSync: true, googleDrive: true } },
+          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
         },
         update: {
           entitlements: {
             upsert: {
-              create: { chromeExtension: true, recordSync: true, googleDrive: true },
-              update: { chromeExtension: true, recordSync: true, googleDrive: true },
+              create: { chromeExtension: false, recordSync: false, googleDrive: false },
+              update: { chromeExtension: false, recordSync: false, googleDrive: false },
             },
           },
         },
