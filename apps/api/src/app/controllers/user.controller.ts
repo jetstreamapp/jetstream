@@ -381,11 +381,13 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
   try {
     const reason = body.reason;
     let billingResultsJson = '';
+    let billingPortalLinkText = '';
 
     const userWithSubscriptions = await userDbService.findByIdWithSubscriptions(user.id);
     if (userWithSubscriptions.billingAccount?.customerId) {
       const results = await stripeService.cancelAllSubscriptions({ customerId: userWithSubscriptions.billingAccount.customerId });
       billingResultsJson = JSON.stringify(results);
+      billingPortalLinkText = `If you need to access any of your billing information or history, you can continue to do so here: ${ENV.STRIPE_BILLING_PORTAL_LINK}`;
       logger.info({ requestId, results }, '[ACCOUNT DELETE][CANCEL SUBSCRIPTIONS]');
     }
 
@@ -398,7 +400,7 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     });
 
     try {
-      await sendGoodbyeEmail(user.email);
+      await sendGoodbyeEmail(user.email, billingPortalLinkText);
       await sendInternalAccountDeletionEmail(user.id, reason, billingResultsJson);
     } catch (ex) {
       req.log.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message);

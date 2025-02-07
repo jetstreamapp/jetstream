@@ -62,7 +62,7 @@ export async function sendWelcomeEmail(emailAddress: string) {
   }
 }
 
-export async function sendGoodbyeEmail(emailAddress: string) {
+export async function sendGoodbyeEmail(emailAddress: string, billingPortalLinkText?: Maybe<string>) {
   const component = (
     <GenericEmail
       heading="We're sorry to see you go!"
@@ -70,6 +70,7 @@ export async function sendGoodbyeEmail(emailAddress: string) {
       segments={[
         `We hope that you will give us a try in the future.`,
         `If you have any feedback on how we can improve or why Jetstream wasn't the right tool for you, please let us know by replying to this email.`,
+        billingPortalLinkText || '',
       ]}
     />
   );
