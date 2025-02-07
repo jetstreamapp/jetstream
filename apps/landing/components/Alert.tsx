@@ -1,4 +1,4 @@
-import { XCircleIcon, XIcon } from '@heroicons/react/solid';
+import { XCircleIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import classNames from 'classnames';
 import { useEffect, useState } from 'react';
 
@@ -62,7 +62,7 @@ export default function Alert({ message, type = 'error', dismissable }: AlertPro
                 onClick={() => setDismissed(true)}
               >
                 <span className="sr-only">Dismiss</span>
-                <XIcon aria-hidden="true" className="h-5 w-5" />
+                <XMarkIcon aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
           </div>

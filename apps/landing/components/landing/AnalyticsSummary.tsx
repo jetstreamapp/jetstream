@@ -2,7 +2,7 @@ import { AnalyticStat } from '@jetstream/types';
 
 export default function AnalyticsSummary({ stats }: { stats: AnalyticStat[] }) {
   return (
-    <div className="bg-gray-900 pt-4 pb-24 sm:pt-36 sm:pb-32 lg:pt-4">
+    <div className="bg-gray-900 mt-32 pt-4 pb-24 sm:pt-36 sm:pb-32 lg:pt-4">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-none">
           <div className="text-center">

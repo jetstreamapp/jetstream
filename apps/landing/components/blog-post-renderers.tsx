@@ -1,11 +1,9 @@
-/* eslint-disable react/display-name */
 import { documentToReactComponents, NodeRenderer, Options } from '@contentful/rich-text-react-renderer';
 import { BLOCKS, Document, MARKS } from '@contentful/rich-text-types';
+import { LinkIcon } from '@heroicons/react/24/outline';
 import { Asset } from 'contentful';
 import isString from 'lodash/isString';
 import { Fragment, ReactNode } from 'react';
-// import FigureImg from './FigureImg';
-import { LinkIcon } from '@heroicons/react/outline';
 import FigureImgWithViewFullScreen from './FigureImgWithViewFullScreen';
 const NON_URL_CHARACTERS = /[^a-zA-Z0-9-]/g;
 

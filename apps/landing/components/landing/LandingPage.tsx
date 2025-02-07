@@ -3,22 +3,26 @@ import AnalyticsSummary from './AnalyticsSummary';
 import ConnectWithTeam from './ConnectWithTeam';
 import FeatureGrid from './FeatureGrid';
 import FeatureScreenshot from './FeatureScreenshot';
-import HeaderCta from './HeaderCta';
+import FooterCta from './FooterCta';
+import { HeaderCta } from './HeaderCta';
 import Learn from './Learn';
-import SupportCta from './SupportCta';
+import PersonaFeatures from './PersonaFeatures';
 import Testimonial from './Testimonial';
 
 export const LandingPage = ({ stats }: { stats: AnalyticStat[] }) => (
-  <main>
-    <HeaderCta />
-    <AnalyticsSummary stats={stats} />
-    <ConnectWithTeam />
-    <FeatureScreenshot />
-    <FeatureGrid />
-    <Testimonial />
-    <Learn />
-    <SupportCta />
-  </main>
+  <div className="bg-gray-900">
+    <main>
+      <HeaderCta />
+      <PersonaFeatures />
+      <AnalyticsSummary stats={stats} />
+      <ConnectWithTeam />
+      <FeatureScreenshot />
+      <FeatureGrid />
+      <Testimonial />
+      <Learn />
+      <FooterCta />
+    </main>
+  </div>
 );
 
 export default LandingPage;
