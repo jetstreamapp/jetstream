@@ -14,6 +14,7 @@ import { PasswordResetEmail } from './email-templates/auth/PasswordResetEmail';
 import { TwoStepVerificationEmail } from './email-templates/auth/TwoStepVerificationEmail';
 import { VerifyEmail } from './email-templates/auth/VerifyEmail';
 import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
+import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
 /**
  *
  * TODO:
@@ -59,6 +60,22 @@ export async function sendWelcomeEmail(emailAddress: string) {
     });
   } catch (error) {
     logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending welcome email');
+  }
+}
+
+export async function sendWelcomeToProEmail(emailAddress: string) {
+  try {
+    const component = <WelcomeToProEmail />;
+    const [html, text] = await renderComponent(component);
+
+    await sendEmail({
+      to: emailAddress,
+      subject: 'Welcome to Jetstream Pro!',
+      text,
+      html,
+    });
+  } catch (error) {
+    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending welcome to pro email');
   }
 }
 

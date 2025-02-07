@@ -231,7 +231,7 @@ export async function deleteUserAndAllRelatedData(userId: string): Promise<void>
   });
 }
 
-export async function findByBillingAccountByCustomerId({ customerId }: { customerId: string }) {
+export async function findBillingAccountByCustomerId({ customerId }: { customerId: string }) {
   const billingAccount = await prisma.billingAccount.findFirst({ where: { customerId } });
   return billingAccount;
 }
