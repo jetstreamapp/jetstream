@@ -83,12 +83,16 @@ export async function sendGoodbyeEmail(emailAddress: string) {
   });
 }
 
-export async function sendInternalAccountDeletionEmail(userId: string, reason?: Maybe<string>) {
+export async function sendInternalAccountDeletionEmail(userId: string, reason?: Maybe<string>, billingResults?: Maybe<string>) {
   const component = (
     <GenericEmail
       heading="Account deleted"
       preview="Account deleted"
-      segments={[`The user ${userId} was deleted.`, reason || 'No reason was provided.']}
+      segments={[
+        `The user ${userId} was deleted.`,
+        reason || 'No reason was provided.',
+        billingResults || 'No billing results were provided.',
+      ]}
     />
   );
   const [html, text] = await renderComponent(component);

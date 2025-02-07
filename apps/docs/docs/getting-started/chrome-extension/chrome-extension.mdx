@@ -7,6 +7,7 @@ sidebar_label: Chrome Extension
 slug: /chrome-extension
 ---
 
+import RequiresProPlan from '@site/src/shared-components/RequiresProPlan';
 import styles from './chrome-extension.module.css';
 
 export function PopupLogin() {
@@ -31,15 +32,19 @@ export function PagePopupDisplay() {
 export function PopupOptions() {
   return (
     <div className={styles.container}>
-      <img src={require('./chrome-extension-popup-options-1.png').default} alt="Chrome Extension options first" />
+      <img src={require('./chrome-extension-logged-in.png').default} alt="Chrome Extension options first" />
       <img src={require('./chrome-extension-popup-options-2.png').default} alt="Chrome Extension options second" />
     </div>
   );
 }
 
+export function PopupAdditionalOptions() {
+  return <img src={require('./chrome-extension-additional-options.png').default} alt="Chrome Extension additional options" />;
+}
+
 :::note
 
-The Chrome Extension requires a Professional plan or higher.
+<RequiresProPlan />
 
 :::
 
@@ -85,6 +90,12 @@ Visit any Salesforce page and you will see a Jetstream Icon conveniently located
 
 You can temporarily disable the Salesforce page floating button by clicking on the Jetstream icon in the browser toolbar and toggling the "Jetstream Page Button" to the disabled position.
 
-You can also adust the floating button position, size, and opacity byt choosing the "Show Configuration Options button".
+You can also adust the floating button position, size, and opacity byt choosing the **Show Configuration Options button**.
 
 <PopupOptions />
+
+### Additional Option
+
+From the Additional Options menu, you can also reset your history sync to push and pull all records from the Jetstream Server.
+
+<PopupAdditionalOptions />
