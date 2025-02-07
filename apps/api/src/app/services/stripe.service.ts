@@ -1,6 +1,6 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfile } from '@jetstream/auth/types';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { EntitlementsAccess, StripeUserFacingCustomer, StripeUserFacingSubscriptionItem } from '@jetstream/types';
 import { formatISO, fromUnixTime } from 'date-fns';
 import { isString } from 'lodash';
@@ -300,6 +300,56 @@ export async function saveOrUpdateSubscription({ customer }: { customer: Stripe.
     customerId: customer.id,
     subscriptions: filterInactiveSubscriptions(subscriptions),
   });
+}
+
+/**
+ * Cancel All Subscriptions
+ */
+export async function cancelAllSubscriptions({ customerId }: { customerId: string }) {
+  const results = {
+    customerId,
+    success: true,
+    reason: 'All subscriptions cancelled',
+    canceledSubscriptions: [] as string[],
+    errors: [] as { subscriptionId: string; error: string }[],
+  };
+
+  try {
+    const customer = await fetchCustomerWithSubscriptionsById({ customerId });
+    if (customer.deleted) {
+      results.reason = 'Customer is deleted, no action required';
+      return results;
+    }
+
+    const activeSubscriptions =
+      customer.subscriptions?.data.filter((subscription) => subscription.canceled_at === null && subscription.cancel_at === null) || [];
+    if (activeSubscriptions.length === 0) {
+      results.reason = 'No active subscriptions found';
+      return results;
+    }
+
+    for (const activeSubscription of activeSubscriptions) {
+      try {
+        await stripe.subscriptions.cancel(activeSubscription.id, {
+          cancellation_details: { comment: 'Account Deletion' },
+          prorate: false,
+          invoice_now: false,
+        });
+        results.canceledSubscriptions.push(activeSubscription.id);
+      } catch (ex) {
+        logger.error({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Error cancelling subscription');
+        results.success = false;
+        results.reason = 'One or more subscriptions could not be cancelled';
+        results.errors.push({ subscriptionId: activeSubscription.id, error: getErrorMessage(ex) });
+      }
+    }
+  } catch (ex) {
+    logger.error({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Error cancelling subscriptions');
+    results.success = false;
+    results.reason = `Fatal exception: ${getErrorMessage(ex)}`;
+  }
+
+  return results;
 }
 
 /**
