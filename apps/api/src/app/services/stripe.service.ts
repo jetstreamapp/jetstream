@@ -330,6 +330,7 @@ export async function createCheckoutSession({
         quantity: 1,
       },
     ],
+    allow_promotion_codes: true,
     mode,
     success_url: `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`,
     cancel_url: `${ENV.JETSTREAM_CLIENT_URL}/settings/billing?subscribeAction=canceled`,
