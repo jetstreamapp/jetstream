@@ -14,7 +14,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { JetstreamLogoPro, useAmplitude } from '@jetstream/ui-core';
+import { JetstreamProLogo, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -123,7 +123,7 @@ export const Billing = () => {
 
         <div className="slds-box slds-box_small slds-m-bottom_small">
           {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
-            <JetstreamLogoPro width="250px" className="slds-m-bottom_x-small" />
+            <JetstreamProLogo width="250px" className="slds-m-bottom_x-small" />
           )}
           <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
           <ul className="slds-list_dotted slds-m-bottom_small">
