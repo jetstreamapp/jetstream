@@ -11,34 +11,34 @@ const personas = [
   {
     name: 'Administrators',
     description:
-      'Manage records, create fields, update permissions, and easily manage automation. Jetstream is the perfect tool for Salesforce Admins.',
+      'Simplify record management, field creation, permission updates, and automation. Jetstream streamlines Salesforce administration.',
     icon: ShieldCheckIcon,
   },
   {
-    name: 'Developers',
+    name: 'Developers & Architects',
     description:
-      'Build SOQL queries, explore your data model, run Apex, subscribe and publish to Platform Events, and work with the Salesforce API.',
+      'Build SOQL queries, explore data models, run Apex, and integrate with the Salesforce API. Jetstream empowers developers and architects.',
     icon: CommandLineIcon,
   },
   {
     name: 'QA Engineers',
-    description: 'Quickly view, edit, and load records to test system functionality.',
+    description: 'Accelerate testing with quick access to view, edit, and load records. Jetstream enhances QA efficiency.',
     icon: BugAntIcon,
   },
   {
-    name: 'Architects',
-    description: 'Jetstream simplifies data-model exploration. Design solutions faster than ever.',
+    name: 'ISVs',
+    description: `Leverage the Jetstream Chrome Extension to use the full power of Jetstream in your customer orgs to troubleshoot issues effortlessly. Jetstream simplifies ISV support.`,
     icon: BuildingOfficeIcon,
   },
   {
     name: 'Deployment Managers',
-    description: 'Compare metadata, deploy changes, and manage your Salesforce orgs without hassle.',
+    description: `Compare metadata, deploy changes, and manage org metadata with ease, surpassing Workbench capabilities. Jetstream revolutionizes deployments.`,
     icon: ArchiveBoxIcon,
   },
   {
-    name: 'Revenue Operations',
+    name: 'Sales Operations & Revenue Operations',
     description:
-      'If you handle both rev-ops and admin tasks, Jetstream provides quick access to data—no tedious Salesforce reports required.',
+      'Access and modify record data directly, eliminating the need for reports or temporary layouts. Jetstream optimizes operations workflows.',
     icon: ArrowTrendingUpIcon,
   },
 ];
