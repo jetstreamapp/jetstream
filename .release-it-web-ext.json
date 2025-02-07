@@ -15,14 +15,14 @@
   "npm": false,
   "github": {
     "release": true,
-    "releaseName": "Jetstream Web Extension ${version}",
-    "assets": []
+    "releaseName": "Jetstream Web Extension ${version}"
   },
   "hooks": {
     "after:bump": [
       "npx prettier --write apps/jetstream-web-extension/src/manifest.json",
       "yarn build:web-extension",
-      "version=v${version} yarn build:web-extension:zip"
+      "version=v${version} yarn build:web-extension:zip",
+      "version=v${version} yarn build:web-extension:upload"
     ],
     "after:release": "echo Successfully released ${name} v${version}."
   }
