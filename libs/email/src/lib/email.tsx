@@ -112,7 +112,7 @@ export async function sendEmailVerification(emailAddress: string, code: string, 
 
   await sendEmail({
     to: emailAddress,
-    subject: 'Verify your email on Jetstream',
+    subject: `Verify your email on Jetstream - ${code}`,
     text,
     html,
   });
@@ -124,7 +124,7 @@ export async function sendVerificationCode(emailAddress: string, code: string, e
 
   await sendEmail({
     to: emailAddress,
-    subject: 'Verify your identity on Jetstream',
+    subject: `Verify your identity on Jetstream - ${code}`,
     text,
     html,
   });
