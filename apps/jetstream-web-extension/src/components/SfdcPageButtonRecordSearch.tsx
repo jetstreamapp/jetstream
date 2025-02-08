@@ -16,7 +16,13 @@ export function SfdcPageButtonRecordSearch({ sfHost }: SfdcPageButtonRecordSearc
     if (!isValidRecordId) {
       return;
     }
+    window.open(`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`, '_blank');
+  }
 
+  function handleEditRecord() {
+    if (!isValidRecordId) {
+      return;
+    }
     window.open(`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`, '_blank');
   }
 
@@ -37,7 +43,12 @@ export function SfdcPageButtonRecordSearch({ sfHost }: SfdcPageButtonRecordSearc
         <button className="slds-button slds-button_stretch slds-button_brand" type="submit" disabled={!isValidRecordId}>
           View Record
         </button>
-        <button className="slds-button slds-button_stretch slds-button_neutral" type="submit" disabled={!isValidRecordId}>
+        <button
+          className="slds-button slds-button_stretch slds-button_neutral"
+          type="button"
+          disabled={!isValidRecordId}
+          onClick={() => handleEditRecord()}
+        >
           Edit Record
         </button>
       </Grid>

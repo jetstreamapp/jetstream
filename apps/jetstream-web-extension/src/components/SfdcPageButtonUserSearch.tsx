@@ -57,7 +57,6 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [usersResults, setUsersResults] = useState<QueryResults<User>>();
 
   const [org, setOrg] = useState<OrgAndSessionInfo | null>(null);
@@ -93,7 +92,7 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
       })
         .then(({ data }) => {
           if (currentSearchRef.current === currentSearchValue) {
-            setUsersResults(data as any);
+            setUsersResults(data as QueryResults<User>);
             setLoading(false);
           }
         })
@@ -124,6 +123,9 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
           {errorMessage}
         </ScopedNotification>
       )}
+      {!!usersResults && !usersResults.queryResults.totalSize && (
+        <p className="slds-text-align_center slds-m-vertical_x-small slds-text-heading_small">No Results</p>
+      )}
       {!!usersResults?.queryResults?.totalSize && (
         <List
           css={css`
@@ -132,12 +134,8 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
           `}
           items={usersResults.queryResults.records}
           isActive={(item: User) => item.Id === searchTerm}
-          onSelected={(key: string) => {
-            const user = usersResults?.queryResults.records.find(({ Id }) => Id === key);
-            if (user) {
-              setSelectedUser(user);
-            }
-          }}
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+          onSelected={(key: string) => {}}
           getContent={(user: User) => ({
             key: user.Id,
             id: user.Id,

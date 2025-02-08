@@ -550,7 +550,7 @@ async function handleInitOrg(
 }
 
 /**
- * Used to make API requests outside of the extension context (e.x. on a Salesforce page)
+ * Used to make API requests outside of the extension context (e.g. on a Salesforce page)
  */
 async function handleApiRequestEvent(
   { method, sfHost, pathname, body, queryParams }: ApiAction['request']['data'],
