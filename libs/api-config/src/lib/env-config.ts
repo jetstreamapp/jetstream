@@ -75,6 +75,7 @@ const envSchema = z.object({
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
     .optional()
     .transform((value) => value ?? 'debug'),
+  PRETTY_LOGS: booleanSchema,
   CI: booleanSchema,
   // LOCAL OVERRIDE
   // EXAMPLE_USER: z.record(z.any()).optional(),
