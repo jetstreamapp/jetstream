@@ -17,6 +17,7 @@ import { extensionRoutes } from './controllers/extension.routes';
 import { environment } from './environments/environment';
 import { initApiClient, initApiClientAndOrg } from './utils/api-client';
 import {
+  ApiAction,
   AUTH_CHECK_INTERVAL_MIN,
   AuthTokensStorage,
   eventPayload,
@@ -273,6 +274,19 @@ chrome.runtime.onMessage.addListener(
           .catch(handleError(sendResponse));
         return true; // indicate that sendResponse will be called asynchronously
       }
+      case 'API_ACTION': {
+        // Used to call API from the Salesforce page button popover (e.g. user search)
+        handleApiRequestEvent(request.data, sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
+      case 'GET_CURRENT_ORG': {
+        getCurrentOrg(request.data.sfHost, sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
+      }
       default:
         logger.warn(`Unknown message`, request);
         return false;
@@ -370,6 +384,29 @@ const doesAuthNeedToBeChecked = (authTokens: AuthTokensStorage['authTokens']): b
   }
   return isAfter(new Date(), addMinutes(new Date(authTokens.lastChecked), AUTH_CHECK_INTERVAL_MIN));
 };
+
+async function getCurrentOrg(sfHost: string, sender: chrome.runtime.MessageSender) {
+  // Because we offer loginAs, we need to find the connection based on the session id
+  // we cannot rely just on the host as the session id changes when using loginAs and we don't know the user id
+  // so we don't have a way to associate the session to a specific user unless we were to make API calls to see what user a session belongs to
+  const sessionCookie = await chrome.cookies.get({
+    url: `https://${sfHost}`,
+    name: 'sid',
+    storeId: getCookieStoreId(sender),
+  });
+
+  if (!sessionCookie?.value) {
+    throw new Error(`Session cookie not found for host ${sfHost}`);
+  }
+
+  const connection = Object.values(connections).find(({ sessionInfo }) => sessionInfo.key === sessionCookie.value);
+
+  if (!connection) {
+    throw new Error(`Connection not found for host ${sfHost}`);
+  }
+
+  return connection;
+}
 
 /**
  * HANDLERS
@@ -509,5 +546,51 @@ async function handleInitOrg(
 ): Promise<InitOrg['response']> {
   const response = await initApiClientAndOrg(sessionInfo);
   await setConnection(response.org.uniqueId, { sessionInfo, org: response.org });
+  return response;
+}
+
+/**
+ * Used to make API requests outside of the extension context (e.x. on a Salesforce page)
+ */
+async function handleApiRequestEvent(
+  { method, sfHost, pathname, body, queryParams }: ApiAction['request']['data'],
+  sender: chrome.runtime.MessageSender
+) {
+  const route = extensionRoutes.match(method as Method, pathname);
+  if (!route) {
+    throw new Error('Route not found');
+  }
+  const connection = await getCurrentOrg(sfHost, sender);
+
+  queryParams = queryParams || new URLSearchParams();
+  const { sessionInfo, org } = connection;
+  const apiConnection = initApiClient(sessionInfo);
+
+  const response = await route
+    .handler({
+      event: {
+        request: {
+          url: `https://${sfHost}${pathname}?${queryParams.toString()}`,
+          headers: new Headers({
+            'content-type': 'application/json',
+          }),
+          json: async () => body,
+          text: async () => body,
+          body,
+        },
+      } as FetchEvent,
+      params: route.params,
+      jetstreamConn: apiConnection,
+      org,
+    })
+    .then((response) => {
+      if (!response.ok) {
+        return response.text().then((message) => {
+          throw new Error(message);
+        });
+      }
+      return response.json();
+    });
+
   return response;
 }

@@ -22,9 +22,9 @@ export function PopupLogin() {
 export function PagePopupDisplay() {
   return (
     <div className={styles.container}>
-      <img src={require('./chrome-extension-page-button.png').default} alt="Chrome Extension page button" />
       <img src={require('./chrome-extension-page-menu-no-record.png').default} alt="Chrome Extension page popup" />
       <img src={require('./chrome-extension-page-menu-record.png').default} alt="Chrome Extension page record page popup" />
+      <img src={require('./chrome-extension-page-menu-user-search.png').default} alt="Chrome Extension user search" />
     </div>
   );
 }
@@ -83,6 +83,18 @@ Once you are logged in, the chrome extension will indicate that you are logged i
 ### Usage
 
 Visit any Salesforce page and you will see a Jetstream Icon conveniently located in the right side of the page. Click on the icon to open the Jetstream Chrome Extension.
+
+<img src={require('./chrome-extension-page-button.png').default} alt="Chrome Extension page button" />
+
+### Using the Page Popup
+
+Open the Jetstream Chrome Extension on any Salesforce page to quickly access the following features:
+
+- Quick access to common features, such as: Query, Load, Automation Control, and Permission Manager
+- View or edit the currently open record _(appears when you visit a record page)_
+- Paste in a record id to view or edit any record in Jetstream
+- Search for any user in your org with the option to open in Salesforce or Jetstream directly
+  - You can also login as the user if you have permission to do so
 
 <PagePopupDisplay />
 

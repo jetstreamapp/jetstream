@@ -43,7 +43,7 @@ export interface ChromeStorageState {
   };
 }
 
-export type Message = Logout | VerifyAuth | ToggleExtension | GetSfHost | GetSession | GetPageUrl | InitOrg;
+export type Message = Logout | VerifyAuth | ToggleExtension | GetSfHost | GetSession | GetPageUrl | InitOrg | ApiAction | GetCurrentOrg;
 export type MessageRequest = Message['request'];
 
 export interface ResponseError {
@@ -122,6 +122,24 @@ export interface InitOrg {
   };
   response: { org: SalesforceOrgUi };
 }
+
+// Allows calling API routes from Salesforce pages
+export interface ApiAction {
+  request: {
+    message: 'API_ACTION';
+    data: { sfHost: string; method: string; pathname: string; queryParams?: URLSearchParams; body?: any };
+  };
+  response: { data: unknown };
+}
+
+export interface GetCurrentOrg {
+  request: {
+    message: 'GET_CURRENT_ORG';
+    data: { sfHost: string };
+  };
+  response: OrgAndSessionInfo;
+}
+
 export interface OrgAndSessionInfo {
   org: SalesforceOrgUi;
   sessionInfo: SessionInfo;

@@ -2,37 +2,19 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { useInterval } from '@jetstream/shared/ui-utils';
 import type { Maybe } from '@jetstream/types';
-import { Grid, GridCol, OutsideClickHandler } from '@jetstream/ui';
+import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import '../sfdc-styles-shim.scss';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
 import JetstreamIcon from './icons/JetstreamIcon';
 import JetstreamLogo from './icons/JetstreamLogo';
-
-function useInterval(callback: () => void, delay: number | null) {
-  const savedCallback = useRef<() => void>();
-
-  useEffect(() => {
-    savedCallback.current = callback;
-  }, [callback]);
-
-  useEffect(() => {
-    function tick() {
-      if (savedCallback.current) {
-        savedCallback.current();
-      }
-    }
-
-    if (delay !== null && delay !== undefined) {
-      const id = setInterval(tick, delay);
-      return () => clearInterval(id);
-    }
-  }, [delay]);
-}
+import { SfdcPageButtonRecordSearch } from './SfdcPageButtonRecordSearch';
+import { SfdcPageButtonUserSearch } from './SfdcPageButtonUserSearch';
 
 const PAGE_LINKS = [
   {
@@ -123,6 +105,33 @@ const ButtonLinkCss = css`
   user-select: none;
   cursor: pointer;
 `;
+
+const ItemColStyles = css`
+  padding-right: var(--lwc-spacingSmall, 0.75rem);
+  padding-left: var(--lwc-spacingSmall, 0.75rem);
+  margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
+  flex: 1 1 auto;
+`;
+
+const HorizontalRule = () => {
+  return (
+    <hr
+      className="slds-m-vertical_medium"
+      css={css`
+        margin-top: 0.5rem;
+        margin-bottom: 1rem;
+        display: block;
+        border: 0;
+        border-top: 1px solid rgb(229, 229, 229);
+        height: 1px;
+        clear: both;
+        padding: 0;
+        box-sizing: content-box;
+        width: 100%;
+      `}
+    />
+  );
+};
 
 export function SfdcPageButton() {
   const options = useRecoilValue(chromeStorageOptions);
@@ -241,7 +250,7 @@ export function SfdcPageButton() {
             position: fixed;
             top: clamp(1px, ${buttonPosition.position - 50}px, calc(100vh - 500px));
             ${buttonPosition.location}: 0;
-            width: 250px;
+            width: 300px;
             border-radius: var(--lwc-borderRadiusMedium, 0.25rem);
             min-height: 2rem;
             background-color: var(--slds-g-color-neutral-base-100, var(--lwc-colorBackgroundAlt, rgb(255, 255, 255)));
@@ -277,114 +286,83 @@ export function SfdcPageButton() {
           </header>
           <div
             data-testid="jetstream-ext-popup-body"
-            className="slds-popover__body slds-p-around_small slds-is-relative"
+            className="slds-popover__body slds-is-relative"
             css={css`
               position: relative;
-              padding: var(--lwc-spacingSmall, 0.75rem);
               word-wrap: break-word;
             `}
           >
-            <Grid
-              vertical
-              gutters
-              css={css`
-                margin-right: calc(-1 * var(--lwc-spacingSmall, 0.75rem));
-                margin-left: calc(-1 * var(--lwc-spacingSmall, 0.75rem));
-                flex-direction: column;
-                display: flex;
-              `}
-            >
-              {PAGE_LINKS.map((item) => (
-                <GridCol
-                  key={item.link}
-                  className="slds-m-bottom_x-small"
-                  css={css`
-                    padding-right: var(--lwc-spacingSmall, 0.75rem);
-                    padding-left: var(--lwc-spacingSmall, 0.75rem);
-                    margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
-                    flex: 1 1 auto;
-                  `}
-                >
-                  <a
-                    href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent(item.link)}`}
-                    className="slds-button slds-button_neutral slds-button_stretch"
-                    target="_blank"
-                    rel="noreferrer"
-                    css={ButtonLinkCss}
-                  >
-                    {item.label}
-                  </a>
-                </GridCol>
-              ))}
-              {recordId && (
-                <>
-                  <hr
-                    className="slds-m-vertical_medium"
-                    css={css`
-                      margin-top: 0.5rem;
-                      margin-bottom: 1rem;
-                      display: block;
-                      border: 0;
-                      border-top: 1px solid rgb(229, 229, 229);
-                      height: 1px;
-                      clear: both;
-                      padding: 0;
-                      box-sizing: content-box;
-                      width: 100%;
-                    `}
-                  />
-                  <GridCol
-                    className="slds-m-bottom_x-small"
-                    css={css`
-                      padding-right: var(--lwc-spacingSmall, 0.75rem);
-                      padding-left: var(--lwc-spacingSmall, 0.75rem);
-                      margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
-                      flex: 1 1 auto;
-                    `}
-                  >
-                    <p className="slds-text-heading_small slds-text-align_center slds-m-bottom_small">Record Actions</p>
-                  </GridCol>
-                  <GridCol
-                    className="slds-m-bottom_x-small"
-                    css={css`
-                      padding-right: var(--lwc-spacingSmall, 0.75rem);
-                      padding-left: var(--lwc-spacingSmall, 0.75rem);
-                      margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
-                      flex: 1 1 auto;
-                    `}
-                  >
-                    <a
-                      href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
-                      className="slds-button slds-button_neutral slds-button_stretch"
-                      target="_blank"
-                      rel="noreferrer"
-                      css={ButtonLinkCss}
+            <Tabs
+              tabs={[
+                {
+                  id: 'actions',
+                  title: 'Actions',
+                  content: (
+                    <Grid
+                      vertical
+                      gutters
+                      css={css`
+                        margin-right: calc(-1 * var(--lwc-spacingSmall, 0.75rem));
+                        margin-left: calc(-1 * var(--lwc-spacingSmall, 0.75rem));
+                        flex-direction: column;
+                        display: flex;
+                      `}
                     >
-                      View Current Record
-                    </a>
-                  </GridCol>
-                  <GridCol
-                    className="slds-m-bottom_x-small"
-                    css={css`
-                      padding-right: var(--lwc-spacingSmall, 0.75rem);
-                      padding-left: var(--lwc-spacingSmall, 0.75rem);
-                      margin-bottom: var(--lwc-spacingXSmall, 0.5rem);
-                      flex: 1 1 auto;
-                    `}
-                  >
-                    <a
-                      href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`}
-                      className="slds-button slds-button_neutral slds-button_stretch"
-                      target="_blank"
-                      rel="noreferrer"
-                      css={ButtonLinkCss}
-                    >
-                      Edit Current Record
-                    </a>
-                  </GridCol>
-                </>
-              )}
-            </Grid>
+                      {PAGE_LINKS.map((item) => (
+                        <GridCol key={item.link} className="slds-m-bottom_x-small" css={ItemColStyles}>
+                          <a
+                            href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent(item.link)}`}
+                            className="slds-button slds-button_neutral slds-button_stretch"
+                            target="_blank"
+                            rel="noreferrer"
+                            css={ButtonLinkCss}
+                          >
+                            {item.label}
+                          </a>
+                        </GridCol>
+                      ))}
+
+                      <HorizontalRule />
+
+                      {recordId && (
+                        <>
+                          <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                            <a
+                              href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
+                              className="slds-button slds-button_neutral slds-button_stretch"
+                              target="_blank"
+                              rel="noreferrer"
+                              css={ButtonLinkCss}
+                            >
+                              View Current Record
+                            </a>
+                          </GridCol>
+                          <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                            <a
+                              href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`}
+                              className="slds-button slds-button_neutral slds-button_stretch"
+                              target="_blank"
+                              rel="noreferrer"
+                              css={ButtonLinkCss}
+                            >
+                              Edit Current Record
+                            </a>
+                          </GridCol>
+                        </>
+                      )}
+                      <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                        <SfdcPageButtonRecordSearch sfHost={sfHost} />
+                      </GridCol>
+                    </Grid>
+                  ),
+                },
+                {
+                  id: 'user-search',
+                  title: 'User Search',
+                  content: <SfdcPageButtonUserSearch sfHost={sfHost} />,
+                },
+              ]}
+            />
           </div>
         </OutsideClickHandler>
       )}
