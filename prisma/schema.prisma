@@ -297,6 +297,7 @@ model UserSyncData {
   userId    String    @db.Uuid
   orgId     String?
   key       String
+  hashedKey String    @db.Char(40)
   entity    String
   data      Json
   createdAt DateTime  @default(now()) @db.Timestamp(6)
@@ -305,7 +306,7 @@ model UserSyncData {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, key, orgId], name: "userKeyOrg", map: "user_key_org")
+  @@unique([userId, hashedKey, orgId], name: "userHashedKeyOrg", map: "user_hashed_key_org")
   @@index([userId, entity, updatedAt])
   @@index([deletedAt])
   @@map("user_sync_data")

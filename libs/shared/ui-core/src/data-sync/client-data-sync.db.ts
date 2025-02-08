@@ -11,7 +11,7 @@ import {
   SyncRecordOperation,
   SyncType,
 } from '@jetstream/types';
-import { dexieDb, SyncableEntities, SyncableTables } from '@jetstream/ui/db';
+import { dexieDb, hashRecordKey, SyncableEntities, SyncableTables } from '@jetstream/ui/db';
 import { parseISO } from 'date-fns';
 import Dexie from 'dexie';
 import type { ICreateChange, IDatabaseChange, IDeleteChange, IUpdateChange } from 'dexie-observable/api';
@@ -39,13 +39,16 @@ interface DeleteEvent {
   type: 'delete';
   entity: SyncType;
   key: string;
+  hashedKey: string;
   deletedAt: Date;
 }
 
 const CLIENT_ID = uuid();
 
 const MAX_PUSH_SIZE = 50;
-const POLL_INTERVAL_MS = 10_000; // Poll every 10 seconds
+const BACKOFF_DELAY_INCREMENT_MS = 10_000; // 10 seconds
+const MAX_BACKOFF_DELAY_MS = 60 * 60 * 1_000; // 1 hour
+let retryCount = 0;
 
 function getKeyPrefix(key: string): typeof SyncableTables[keyof typeof SyncableTables]['keyPrefix'] {
   return key.split('_')[0] as typeof SyncableTables[keyof typeof SyncableTables]['keyPrefix'];
@@ -68,14 +71,15 @@ function filterInvalidKeyPrefixes(key: string): boolean {
 
 function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): SyncRecordOperation {
   if (data.type === 'delete') {
-    const { type, entity, key, deletedAt } = data;
-    return { key, type, entity, deletedAt };
+    const { type, entity, key, hashedKey, deletedAt } = data;
+    return { key, hashedKey, type, entity, deletedAt };
   }
   const { type, keyPrefix, fullRecord } = data;
   switch (keyPrefix) {
     case 'qh': {
       return {
         key: fullRecord.key,
+        hashedKey: fullRecord.hashedKey,
         type,
         entity: 'query_history',
         orgId: fullRecord.org,
@@ -87,6 +91,7 @@ function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): S
     case 'lsm': {
       return {
         key: fullRecord.key,
+        hashedKey: fullRecord.hashedKey,
         type,
         entity: 'load_saved_mapping',
         data: fullRecord as any,
@@ -165,15 +170,19 @@ export function initializeDexieSync(name: string) {
         onSuccess({
           react: async function (changes, baseRevision, partial, onChangesAccepted) {
             await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
+            retryCount = 0; // Reset retry count on success
           },
           disconnect: function () {
+            retryCount = 0; // Reset retry count on disconnect
             socketClient.unsubscribe('RECORD_SYNC');
           },
         });
       } catch (ex) {
         logger.warn('[SYNC][ERROR] Failed to sync records', ex);
-        // TODO: Should we prevent retry in some cases? Should there be a limit to retries? Should we back off?
-        onError(ex, POLL_INTERVAL_MS);
+        retryCount++; // Increment retry counter on error
+        const backoffDelay = Math.min(BACKOFF_DELAY_INCREMENT_MS * (retryCount + 1), MAX_BACKOFF_DELAY_MS);
+        logger.warn(`[SYNC][RETRY] Retrying in ${backoffDelay}ms (retryCount: ${retryCount})`);
+        onError(ex, backoffDelay);
       }
     },
   });
@@ -214,6 +223,14 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
     changes.filter(({ table, type }) => SyncableEntities.has(table as keyof typeof SyncableTables)).map((change) => change.key)
   );
 
+  // FIXME: this is temporary just to smooth out the data sync - remove after backfill is complete
+  // Backfill hashed key as needed
+  for (const obj of Object.values(existingRecordsById)) {
+    if (obj.key && !obj.hashedKey) {
+      obj.hashedKey = await hashRecordKey(obj.key);
+    }
+  }
+
   const changesByType = changes
     .filter((record) => SyncableEntities.has(record.table as keyof typeof SyncableTables))
     .reduce(
@@ -246,7 +263,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
         .filter((obj) => filterInvalidKeyPrefixes(obj.key))
         .map(({ obj }) => transformEntityToSyncRecord({ keyPrefix: getKeyPrefix(obj.key), type: 'create', fullRecord: obj })),
       ...changesByType.updates
-        .filter((obj) => filterInvalidKeyPrefixes(obj.key))
+        .filter((obj) => filterInvalidKeyPrefixes(obj.key) && existingRecordsById[obj.key])
         .map(({ mods, key }) =>
           transformEntityToSyncRecord({
             keyPrefix: getKeyPrefix(key),
@@ -254,11 +271,12 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
             fullRecord: existingRecordsById[key],
           })
         ),
-      ...changesByType.deletes.map(({ key }) =>
+      ...changesByType.deletes.map(({ key, oldObj }) =>
         transformEntityToSyncRecord({
           entity: 'query_history',
           type: 'delete',
           key,
+          hashedKey: existingRecordsById[key].hashedKey ?? oldObj.hashedKey,
           deletedAt,
         })
       ),
@@ -274,7 +292,8 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
 async function handleServerSyncResponse({ records, updatedAt }: PullResponse, applyRemoteChanges: ApplyRemoteChangesFunction) {
   try {
     const existingRecordsById = await getAllSyncableRecordsById(records.map(({ key }) => key));
-    const serverChanges = records.map(({ entity, data, key, deletedAt }) => {
+    const serverChanges = records.map(({ entity, data, key, hashedKey, deletedAt }) => {
+      data.hashedKey = data.hashedKey ?? hashedKey;
       enrichDataTypes(entity, data);
 
       if (deletedAt) {
@@ -283,6 +302,11 @@ async function handleServerSyncResponse({ records, updatedAt }: PullResponse, ap
       } else if (existingRecordsById[key]) {
         // UPDATE
         const mods = getObjectDiffForDexie(data, existingRecordsById[key]);
+        // FIXME: this is temporary - if the server modified the data, keep the server version
+        // (NOTE: this likely is not needed anymore since we are backfilling the hashed key in the browser, but could happen before that migration happens)
+        if ('hashedKey' in mods.hashedKey && !mods.hashedKey) {
+          mods.hashedKey = data.hashedKey;
+        }
         return { type: 2, table: entity, key, obj: data, mods, oldObj: existingRecordsById[key] } as IUpdateChange;
       } else {
         // CREATE

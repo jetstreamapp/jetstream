@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
-import { DEXIE_DB_SYNC_NAME, dexieDataSync, dexieDb, SyncableTables } from '@jetstream/ui/db';
+import { DEXIE_DB_SYNC_NAME, dexieDataSync, dexieDb, hashRecordKey, SyncableTables } from '@jetstream/ui/db';
 import 'dexie-observable';
 import 'dexie-syncable';
 import localforage from 'localforage';
@@ -13,8 +13,6 @@ class DexieInitializer {
   private initPromise: Promise<void> | null = null;
 
   private hasInitializedSync = false;
-
-  private _enableSync = false;
 
   static getInstance(): DexieInitializer {
     if (!this.instance) {
@@ -66,6 +64,7 @@ class DexieInitializer {
   private async _init() {
     await migrateQueryHistory();
     await migrateLoadSavedMapping();
+    await addHashedKeyToRecord();
     this.hasInitialized = true;
   }
 }
@@ -92,15 +91,16 @@ async function migrateQueryHistory() {
     }
     const queryHistory = await localforage.getItem<Record<string, QueryHistoryItem>>(INDEXED_DB.KEYS.queryHistory);
     if (queryHistory) {
-      Object.values(queryHistory).forEach((item) => {
+      for (const item of Object.values(queryHistory)) {
         const createdAt = new Date((item as any).created || item.createdAt || new Date());
         delete item['created'];
         item.key = `${SyncableTables.query_history.keyPrefix}_${item.key}`.toLowerCase() as QueryHistoryItem['key'];
+        item.hashedKey = await hashRecordKey(item.key);
         item.updatedAt = new Date(item.updatedAt || item.lastRun);
         item.lastRun = new Date(item.lastRun);
         item.isFavoriteIdx = item.isFavorite ? 'true' : 'false';
         item.createdAt = createdAt;
-      });
+      }
       await dexieDb.query_history.bulkPut(Object.values(queryHistory)).catch((ex) => {
         if (ex.name === 'BulkError') {
           logger.warn('[DB] Error migrating query history', ex.failures);
@@ -123,19 +123,19 @@ async function migrateLoadSavedMapping() {
       INDEXED_DB.KEYS.loadSavedMapping
     );
     if (loadSavedMapping) {
-      const records = Object.values(loadSavedMapping).flatMap((sobject) =>
-        Object.entries(sobject).map(([key, item]) => {
+      const records: LoadSavedMappingItem[] = [];
+      for (const sobject of Object.values(loadSavedMapping)) {
+        for (let item of Object.values(sobject)) {
           item = { ...item };
           const createdAt = new Date((item as any).createdDate || item.createdAt || new Date());
           delete item['createdDate'];
-          return {
-            ...item,
-            key: `${SyncableTables.load_saved_mapping.keyPrefix}_${item.key}.toLowerCase();` as LoadSavedMappingItem['key'],
-            createdAt,
-            updatedAt: createdAt,
-          };
-        })
-      );
+          item.key = `${SyncableTables.load_saved_mapping.keyPrefix}_${item.key}`.toLowerCase() as LoadSavedMappingItem['key'];
+          item.hashedKey = await hashRecordKey(item.key);
+          item.createdAt = createdAt;
+          item.updatedAt = createdAt;
+          records.push(item);
+        }
+      }
 
       await dexieDb.load_saved_mapping.bulkPut(records).catch((ex) => {
         if (ex.name === 'BulkError') {
@@ -146,5 +146,50 @@ async function migrateLoadSavedMapping() {
     await dexieDb._migration.put({ entity: 'load_saved_mapping', completedAt: new Date() });
   } catch (ex) {
     logger.warn('[DB] Error migrating load_saved_mapping', ex);
+  }
+}
+
+async function addHashedKeyToRecord() {
+  try {
+    const migrationRecord = await dexieDb._migration.get('hashed_key');
+    if (migrationRecord?.completedAt) {
+      return;
+    }
+
+    const queryHistory = await dexieDb.query_history.toArray();
+    let didUpdate = false;
+    for (const record of queryHistory) {
+      if (!record.hashedKey) {
+        record.hashedKey = await hashRecordKey(record.key);
+        didUpdate = true;
+      }
+    }
+    if (didUpdate) {
+      await dexieDb.query_history.bulkPut(queryHistory).catch((ex) => {
+        if (ex.name === 'BulkError') {
+          logger.warn('[DB] Error migrating query_history>hashed_key', ex.failures);
+        }
+      });
+    }
+
+    const loadSavedMapping = await dexieDb.load_saved_mapping.toArray();
+    didUpdate = false;
+    for (const record of loadSavedMapping) {
+      if (!record.hashedKey) {
+        record.hashedKey = await hashRecordKey(record.key);
+        didUpdate = true;
+      }
+    }
+    if (didUpdate) {
+      await dexieDb.load_saved_mapping.bulkPut(loadSavedMapping).catch((ex) => {
+        if (ex.name === 'BulkError') {
+          logger.warn('[DB] Error migrating load_saved_mapping>hashed_key', ex.failures);
+        }
+      });
+    }
+
+    await dexieDb._migration.put({ entity: 'hashed_key', completedAt: new Date() });
+  } catch (ex) {
+    logger.warn('[DB] Error migrating hashed_key', ex);
   }
 }

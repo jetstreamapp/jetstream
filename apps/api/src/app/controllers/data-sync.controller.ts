@@ -8,6 +8,31 @@ import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-
 import { sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 
+// FIXME: TEMPORARY UNTIL ALL CLIENTS HAVE BEEN BACKFILLED
+export const SyncRecordOperationSchemaFillHashedKey = z
+  .object({
+    key: z.string(),
+    hashedKey: z.string().optional(),
+    data: z.record(z.unknown()),
+  })
+  .passthrough()
+  .array()
+  .transform((records) => {
+    return SyncRecordOperationSchema.array()
+      .max(userSyncDbService.MAX_SYNC)
+      .parse(
+        records.map((record) => {
+          if (!record.hashedKey) {
+            record.hashedKey = userSyncDbService.hashRecordSyncKey(record.key);
+          }
+          if (!(record as any).data?.hashedKey) {
+            (record as any).data.hashedKey = record.hashedKey;
+          }
+          return record;
+        })
+      );
+  });
+
 export const routeDefinition = {
   pull: {
     controllerFn: () => pull,
@@ -48,7 +73,9 @@ export const routeDefinition = {
           .default(false)
           .transform(ensureBoolean),
       }),
-      body: SyncRecordOperationSchema.array().max(userSyncDbService.MAX_SYNC),
+      body: SyncRecordOperationSchemaFillHashedKey,
+      // Original code:
+      // body: SyncRecordOperationSchema.array().max(userSyncDbService.MAX_SYNC),
       hasSourceOrg: false,
     },
   },
@@ -81,7 +108,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ user, body: r
 
   const syncEvent: SyncEvent = {
     clientId: query.clientId,
-    data: { keys: response.records.map(({ key }) => key) },
+    data: { hashedKeys: response.records.map(({ hashedKey }) => hashedKey) },
     userId: user.id,
   };
 

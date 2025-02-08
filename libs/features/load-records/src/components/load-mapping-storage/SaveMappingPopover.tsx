@@ -3,13 +3,14 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FieldMapping, LoadSavedMappingItem } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification, Tooltip } from '@jetstream/ui';
-import { dexieDb } from '@jetstream/ui/db';
+import { dexieDb, hashRecordKey } from '@jetstream/ui/db';
 import { formatISO } from 'date-fns/formatISO';
 import omit from 'lodash/omit';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 
 const getDefaultItem = (sobject: string): LoadSavedMappingItem => ({
   key: 'lsm_',
+  hashedKey: '',
   name: '',
   sobject,
   csvFields: [],
@@ -53,10 +54,11 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
     );
   }, [fieldMapping, sobject]);
 
-  function handleSave() {
+  async function handleSave() {
     const newMapping: LoadSavedMappingItem = { ...currentSavedMapping, name: mappingName };
     newMapping.createdAt = new Date();
     newMapping.key = `lsm_${sobject}:${newMapping.csvFields.length}:${formatISO(newMapping.createdAt).toLowerCase()}`;
+    newMapping.hashedKey = await hashRecordKey(newMapping.key);
     dexieDb.load_saved_mapping.put(newMapping);
     saveSetMappingName('');
     setCurrentSavedMapping(getDefaultItem(sobject));

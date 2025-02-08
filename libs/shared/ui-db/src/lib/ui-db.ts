@@ -36,6 +36,15 @@ const isChromeExtension = () => {
   }
 };
 
+export async function hashRecordKey(key: string) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(key);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
 export const DEXIE_DB_NAME = isChromeExtension() ? 'jetstream-web-extension' : 'jetstream';
 export const DEXIE_DB_SYNC_NAME = isChromeExtension() ? 'jetstream-web-extension' : 'jetstream';
 export const DEXIE_DB_SYNC_PATH = '/';

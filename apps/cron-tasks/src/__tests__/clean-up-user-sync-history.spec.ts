@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { addDays } from 'date-fns';
 import * as dotenv from 'dotenv';
+import { createHash } from 'node:crypto';
 import { v4 as uuid } from 'uuid';
 import {
   cleanUpUserSyncHistory,
@@ -12,6 +13,9 @@ import {
 
 dotenv.config();
 
+const hashRecordSyncKey = (key: string): string => {
+  return createHash('SHA1').update(key).digest('hex');
+};
 // Ensure this runs against a test database
 export const prisma = new PrismaClient({
   datasourceUrl: process.env.PRISMA_TEST_DB_URI || 'postgres://postgres:postgres@postgres:5432/testdb',
@@ -37,14 +41,16 @@ export function generateSyncRecords({
   const createdAt = addDays(new Date(), -30);
   return new Array(count).fill(0).map(() => {
     const key = `qh_${orgId}:SELECTIdFROMAccount${uuid()}`;
+    const hashedKey = hashRecordSyncKey(key);
     return {
       id: uuid(),
       userId: userId,
       orgId: orgId,
-      key: key,
+      key,
+      hashedKey,
       entity: entity,
       data: {
-        key: key,
+        key,
         isFavorite: isFavorite,
       },
       createdAt: createdAt,

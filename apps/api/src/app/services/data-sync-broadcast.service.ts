@@ -8,7 +8,7 @@ const SyncEventSchema = z.object({
   userId: z.string(),
   clientId: z.string(),
   data: z.object({
-    keys: z.array(z.string()),
+    hashedKeys: z.array(z.string()),
   }),
 });
 export type SyncEvent = z.infer<typeof SyncEventSchema>;
@@ -17,7 +17,7 @@ export const emitRecordSyncEventsToOtherClients = async (sessionOrDeviceId: stri
   try {
     const { data, userId } = SyncEventSchema.parse(event);
 
-    const eventResponse = await userSyncDbService.findByKeys({ userId, keys: data.keys });
+    const eventResponse = await userSyncDbService.findByKeys({ userId, hashedKeys: data.hashedKeys });
 
     emitSocketEvent({
       event: 'RECORD_SYNC',

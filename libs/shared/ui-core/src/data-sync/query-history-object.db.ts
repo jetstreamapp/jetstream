@@ -22,15 +22,6 @@ dexieDb.query_history.hook('creating', function (primaryKey, obj, transaction) {
   };
 });
 
-/**
- * Boolean fields cannot be indexes, so we store a string version of the same field
- */
-dexieDb.query_history.hook('updating', function (mods, primaryKey, obj, transaction) {
-  if ('isFavorite' in mods) {
-    return { ...mods, isFavoriteIdx: mods.isFavorite ? 'true' : 'false' };
-  }
-});
-
 function generateKey(orgUniqueId: string, sObject: string, isTooling: boolean): string {
   return `qho_${orgUniqueId}:${sObject}:${isTooling}`.toLowerCase();
 }
