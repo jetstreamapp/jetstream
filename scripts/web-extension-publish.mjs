@@ -40,19 +40,19 @@ const argv = minimist(process.argv.slice(2), {
 
 if (argv.help) {
   console.log(`
-    Usage: publish-web-extension [options]
+    Usage: web-extension-publish [options]
 
     To check extension status:
-    node scripts/publish-web-extension.mjs --status
+    node scripts/web-extension-publish.mjs --status
 
     To upload an extension:
-    node scripts/publish-web-extension.mjs --upload -f dist/jetstream-web-extension-v.0.0.1.zip
+    node scripts/web-extension-publish.mjs --upload -f dist/jetstream-web-extension-v.0.0.1.zip
 
     To upload and publish an extension:
-    node scripts/publish-web-extension.mjs --upload --publish -f dist/jetstream-web-extension-v.0.0.1.zip
+    node scripts/web-extension-publish.mjs --upload --publish -f dist/jetstream-web-extension-v.0.0.1.zip
 
     To publish a previously uploaded extension:
-    node scripts/publish-web-extension.mjs --publish
+    node scripts/web-extension-publish.mjs --publish
 
     Options:
       -u, --upload            Upload extension to the web store (default=true)
