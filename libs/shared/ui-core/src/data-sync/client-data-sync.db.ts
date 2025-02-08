@@ -276,7 +276,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
           entity: 'query_history',
           type: 'delete',
           key,
-          hashedKey: oldObj.hashedKey,
+          hashedKey: existingRecordsById[key].hashedKey ?? oldObj.hashedKey,
           deletedAt,
         })
       ),
@@ -301,7 +301,12 @@ async function handleServerSyncResponse({ records, updatedAt }: PullResponse, ap
         return { type: 3, table: entity, key, oldObj: null } as IDeleteChange;
       } else if (existingRecordsById[key]) {
         // UPDATE
-        const mods = getObjectDiffForDexie(existingRecordsById[key], data);
+        const mods = getObjectDiffForDexie(data, existingRecordsById[key]);
+        // FIXME: this is temporary - if the server modified the data, keep the server version
+        // (NOTE: this likely is not needed anymore since we are backfilling the hashed key in the browser, but could happen before that migration happens)
+        if ('hashedKey' in mods.hashedKey && !mods.hashedKey) {
+          mods.hashedKey = data.hashedKey;
+        }
         return { type: 2, table: entity, key, obj: data, mods, oldObj: existingRecordsById[key] } as IUpdateChange;
       } else {
         // CREATE

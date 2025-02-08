@@ -24,7 +24,6 @@ export const SyncRecordOperationSchemaFillHashedKey = z
         records.map((record) => {
           if (!record.hashedKey) {
             record.hashedKey = userSyncDbService.hashRecordSyncKey(record.key);
-            (record as any).data = record.hashedKey;
           }
           if (!(record as any).data?.hashedKey) {
             (record as any).data.hashedKey = record.hashedKey;
