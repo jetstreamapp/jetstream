@@ -459,7 +459,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       })
       .catch((ex) => {
         logger.info(ex);
-        // user cancelled
+        // user canceled
       });
   }
 

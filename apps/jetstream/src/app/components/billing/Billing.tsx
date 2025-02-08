@@ -35,7 +35,7 @@ export const Billing = () => {
   const [selectedPlan, setSelectedPlan] = useState(environment.STRIPE_PRO_MONTHLY_PRICE_ID);
   const [customerWithSubscriptions, setCustomerWithSubscriptions] = useState<StripeUserFacingCustomer | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState({
-    hasCancelledSubscriptions: false,
+    hasCanceledSubscriptions: false,
     hasFutureDatedCancellation: false,
     hasActiveSubscriptions: false,
   });
@@ -56,10 +56,10 @@ export const Billing = () => {
         // this ensures that all entitlements are updated across the application to match what is on the server
         setUserProfile(userProfile);
       }
-      const hasCancelledSubscriptions = customer?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
+      const hasCanceledSubscriptions = customer?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
       const hasFutureDatedCancellation = customer?.subscriptions.some((item) => item.cancelAtPeriodEnd) ?? false;
       const hasActiveSubscriptions = customer?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
-      setSubscriptionStatus({ hasCancelledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
+      setSubscriptionStatus({ hasCanceledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
       setCustomerWithSubscriptions(customer);
     } catch (ex) {
       logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
@@ -92,7 +92,7 @@ export const Billing = () => {
 
         {subscriptionStatus.hasFutureDatedCancellation && (
           <ScopedNotification theme="info" className="slds-m-around_medium">
-            Your plan is scheduled to be cancelled, visit the Billing Portal view more information or to resume service.
+            Your plan is scheduled to be canceled, visit the Billing Portal view more information or to resume service.
           </ScopedNotification>
         )}
 

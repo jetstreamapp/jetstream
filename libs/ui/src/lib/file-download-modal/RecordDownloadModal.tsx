@@ -76,7 +76,7 @@ export interface RecordDownloadModalProps {
   includeDeletedRecords?: boolean;
   source: string;
   trackEvent: (key: string, value?: unknown) => void;
-  onModalClose: (cancelled?: boolean) => void;
+  onModalClose: (canceled?: boolean) => void;
   onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
   children?: React.ReactNode;
@@ -203,8 +203,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   }, [totalRecordCount, records]);
 
-  function handleModalClose(cancelled?: boolean) {
-    onModalClose(cancelled);
+  function handleModalClose(canceled?: boolean) {
+    onModalClose(canceled);
     if (whichFields !== 'specified') {
       setWhichFields('specified');
     }

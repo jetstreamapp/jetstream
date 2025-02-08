@@ -123,7 +123,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
           })
           .catch((ex) => {
             logger.info(ex);
-            // user cancelled
+            // user canceled
           });
         break;
       }

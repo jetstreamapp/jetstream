@@ -198,7 +198,7 @@ export const ANALYTICS_KEYS = {
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
   attachment_ModalOpened: 'attachment_ModalOpened',
-  attachment_Cancelled: 'attachment_Cancelled',
+  attachment_Canceled: 'attachment_Canceled',
   attachment_Downloaded: 'attachment_Downloaded',
   attachment_Error: 'attachment_Error',
   /** LOAD */
