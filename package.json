@@ -278,6 +278,7 @@
     "@react-email/components": "^0.0.25",
     "@react-email/render": "1.0.1",
     "@socket.io/cluster-adapter": "^0.2.2",
+    "@socket.io/sticky": "^1.0.4",
     "@storybook/addon-interactions": "8.5.0",
     "@swc/helpers": "0.5.11",
     "@tanstack/react-virtual": "^3.4.0",

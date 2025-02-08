@@ -8006,6 +8006,11 @@
   resolved "https://registry.npmjs.org/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
+"@socket.io/sticky@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@socket.io/sticky/-/sticky-1.0.4.tgz#5f6d3ae62881b17e0fb756c6074f18ddb7b2014f"
+  integrity sha512-VuauT5CJLvzYtKIgouFSQ8rUaygseR+zRutnwh6ZA2QYcXx+8g52EoJ8V2SLxfo+Tfs3ELUDy08oEXxlWNrxaw==
+
 "@storybook/addon-actions@8.5.0":
   version "8.5.0"
   resolved "https://registry.yarnpkg.com/@storybook/addon-actions/-/addon-actions-8.5.0.tgz#b2dfb6430637762de302174e650c8cec4109a232"

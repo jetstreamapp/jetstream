@@ -4,6 +4,7 @@ import { UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { SocketEvent } from '@jetstream/types';
 import { createAdapter } from '@socket.io/cluster-adapter';
+import { setupWorker } from '@socket.io/sticky';
 import * as express from 'express';
 import { IncomingMessage, createServer } from 'http';
 import { nanoid } from 'nanoid';
@@ -119,6 +120,7 @@ export function initSocketServer(
 
   if (cluster.isWorker) {
     io.adapter(createAdapter());
+    setupWorker(io);
   }
 
   io.engine.use((req: Request, res: Response, next: express.NextFunction) => {

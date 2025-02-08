@@ -5,6 +5,11 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket<DefaultEventsMap, DefaultEventsMap> | null = null;
 
+// websocket could introduce a 10 second delay in the connection if it fails, but that is fine for our use-case
+// websocket first does not rely on sticky sessions - so this is more reliable for most users
+// but some corporate users may not have the ability to perform websocket connections
+const transports = ['websocket', 'polling'];
+
 export function initSocket(serverUrl?: string, additionalHeaders?: Record<string, string>) {
   if (socket) {
     return;
@@ -14,11 +19,13 @@ export function initSocket(serverUrl?: string, additionalHeaders?: Record<string
       rememberUpgrade: true,
       withCredentials: true,
       extraHeaders: additionalHeaders,
+      transports,
     });
   } else {
     socket = io({
       rememberUpgrade: true,
       withCredentials: true,
+      transports,
     });
   }
 
