@@ -37,14 +37,16 @@ export function generateSyncRecords({
   const createdAt = addDays(new Date(), -30);
   return new Array(count).fill(0).map(() => {
     const key = `qh_${orgId}:SELECTIdFROMAccount${uuid()}`;
+    const hashedKey = `${entity}_${key}`;
     return {
       id: uuid(),
       userId: userId,
       orgId: orgId,
-      key: key,
+      key,
+      hashedKey,
       entity: entity,
       data: {
-        key: key,
+        key,
         isFavorite: isFavorite,
       },
       createdAt: createdAt,
