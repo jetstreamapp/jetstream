@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
+import { delay } from '@jetstream/shared/utils';
 import { LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
 import { DEXIE_DB_SYNC_NAME, dexieDataSync, dexieDb, hashRecordKey, SyncableTables } from '@jetstream/ui/db';
 import 'dexie-observable';
@@ -57,7 +58,8 @@ class DexieInitializer {
       initializeDexieSync(DEXIE_DB_SYNC_NAME);
       this.hasInitializedSync = true;
     }
-    // Connect to sync
+    // sometimes the connection does not initialize properly, delaying to ensure it does
+    await delay(1000);
     await dexieDataSync.connect();
   }
 
