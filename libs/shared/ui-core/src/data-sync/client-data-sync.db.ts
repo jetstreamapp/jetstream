@@ -46,7 +46,9 @@ interface DeleteEvent {
 const CLIENT_ID = uuid();
 
 const MAX_PUSH_SIZE = 50;
-const POLL_INTERVAL_MS = 10_000; // Poll every 10 seconds
+const BACKOFF_DELAY_INCREMENT_MS = 10_000; // 10 seconds
+const MAX_BACKOFF_DELAY_MS = 60 * 60 * 1_000; // 1 hour
+let retryCount = 0;
 
 function getKeyPrefix(key: string): typeof SyncableTables[keyof typeof SyncableTables]['keyPrefix'] {
   return key.split('_')[0] as typeof SyncableTables[keyof typeof SyncableTables]['keyPrefix'];
@@ -168,15 +170,19 @@ export function initializeDexieSync(name: string) {
         onSuccess({
           react: async function (changes, baseRevision, partial, onChangesAccepted) {
             await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
+            retryCount = 0; // Reset retry count on success
           },
           disconnect: function () {
+            retryCount = 0; // Reset retry count on disconnect
             socketClient.unsubscribe('RECORD_SYNC');
           },
         });
       } catch (ex) {
         logger.warn('[SYNC][ERROR] Failed to sync records', ex);
-        // TODO: Should we prevent retry in some cases? Should there be a limit to retries? Should we back off?
-        onError(ex, POLL_INTERVAL_MS);
+        retryCount++; // Increment retry counter on error
+        const backoffDelay = Math.min(BACKOFF_DELAY_INCREMENT_MS * (retryCount + 1), MAX_BACKOFF_DELAY_MS);
+        logger.warn(`[SYNC][RETRY] Retrying in ${backoffDelay}ms (retryCount: ${retryCount})`);
+        onError(ex, backoffDelay);
       }
     },
   });
