@@ -73,8 +73,8 @@ export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unk
     }
   }
 
-  function handleCloseModal(cancelled?: boolean) {
-    if (typeof cancelled === 'boolean' && cancelled) {
+  function handleCloseModal(canceled?: boolean) {
+    if (typeof canceled === 'boolean' && canceled) {
       setIsActive(true);
       setDownloadModalIsActive(false);
     } else {
@@ -195,7 +195,7 @@ interface ModalDataTableProps extends SubqueryContext {
   onSubqueryFieldReorder?: (columnKey: string, fields: string[], columnOrder: number[]) => void;
   loadMore: (org: SalesforceOrgUi, isTooling: boolean) => void;
   openDownloadModal: () => void;
-  handleCloseModal: (cancelled?: boolean) => void;
+  handleCloseModal: (canceled?: boolean) => void;
   handleCopyToClipboard: (fields: string[]) => void;
   handleRowAction: (row: any, action: 'view' | 'edit' | 'clone' | 'apex') => void;
   setSelectedRows: (rows: ReadonlySet<string>) => void;

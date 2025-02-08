@@ -28,7 +28,7 @@ export const findSubscriptionsByCustomerId = async ({
   status,
 }: {
   customerId: string;
-  status?: 'ACTIVE' | 'CANCELLED' | 'PAST_DUE' | 'PAUSED';
+  status?: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'PAUSED';
 }) => {
   return await prisma.subscription.findMany({ where: { customerId, status }, select: SELECT });
 };

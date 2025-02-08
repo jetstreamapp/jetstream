@@ -118,7 +118,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   function handleModalClose(cancel?: boolean) {
     setModalOpen(false);
     if (cancel) {
-      trackEvent(ANALYTICS_KEYS.attachment_Cancelled, { selectedRecords: selectedRecords.length, sobjectName });
+      trackEvent(ANALYTICS_KEYS.attachment_Canceled, { selectedRecords: selectedRecords.length, sobjectName });
       downloadAttachmentUrl && cancelZipDownload(downloadAttachmentUrl);
     } else {
       trackEvent(ANALYTICS_KEYS.attachment_Downloaded, { selectedRecords: selectedRecords.length, sobjectName });

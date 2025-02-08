@@ -531,8 +531,8 @@ export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, 
     }
   }
 
-  function handleCloseModal(cancelled?: boolean) {
-    if (typeof cancelled === 'boolean' && cancelled) {
+  function handleCloseModal(canceled?: boolean) {
+    if (typeof canceled === 'boolean' && canceled) {
       setIsActive(true);
     } else {
       setIsActive(false);

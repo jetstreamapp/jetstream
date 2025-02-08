@@ -61,8 +61,8 @@ export class WorkerAdapter {
 }
 
 export class JobWorker {
-  // Updated if a job is attempted to be cancelled, the job will check this on each iteration and cancel if possible
-  cancelledJobIds = new Set<string>();
+  // Updated if a job is attempted to be canceled, the job will check this on each iteration and cancel if possible
+  canceledJobIds = new Set<string>();
 
   private replyToMessage: (name: string, data: any, error?: any, transferrable?: any) => void;
 
@@ -75,7 +75,7 @@ export class JobWorker {
     switch (name) {
       case 'CancelJob': {
         const { job } = payloadData as AsyncJobWorkerMessagePayload<CancelJob>;
-        this.cancelledJobIds.add(job.id);
+        this.canceledJobIds.add(job.id);
         break;
       }
       case 'BulkDelete': {
@@ -153,8 +153,8 @@ export class JobWorker {
               done = queryResults.done;
               nextRecordsUrl = queryResults.nextRecordsUrl;
               downloadedRecords = downloadedRecords.concat(queryResults.records);
-              if (this.cancelledJobIds.has(job.id)) {
-                throw new Error('Job cancelled');
+              if (this.canceledJobIds.has(job.id)) {
+                throw new Error('Job canceled');
               }
             }
           } else {
@@ -280,13 +280,13 @@ export class JobWorker {
             }
           }
 
-          if (this.cancelledJobIds.has(job.id)) {
-            throw new Error('Job cancelled');
+          if (this.canceledJobIds.has(job.id)) {
+            throw new Error('Job canceled');
           }
 
           const results = await pollRetrieveMetadataResultsUntilDone(org, id, {
-            isCancelled: () => {
-              return this.cancelledJobIds.has(job.id);
+            isCanceled: () => {
+              return this.canceledJobIds.has(job.id);
             },
             onChecked: () => {
               const response: AsyncJobWorkerMessageResponse = { job, lastActivityUpdate: true };
@@ -308,8 +308,8 @@ export class JobWorker {
         } catch (ex) {
           const response: AsyncJobWorkerMessageResponse = { job };
           this.replyToMessage(name, response, getErrorMessage(ex));
-          if (this.cancelledJobIds.has(job.id)) {
-            this.cancelledJobIds.delete(job.id);
+          if (this.canceledJobIds.has(job.id)) {
+            this.canceledJobIds.delete(job.id);
           }
         }
         break;
