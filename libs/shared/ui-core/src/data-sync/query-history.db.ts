@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb, SyncableTables } from '@jetstream/ui/db';
+import { dexieDb, hashRecordKey, SyncableTables } from '@jetstream/ui/db';
 
 export const queryHistoryDb = {
   getAllQueryHistory,
@@ -12,6 +12,15 @@ export const queryHistoryDb = {
   deleteAllQueryHistoryForOrg,
   TEMP_deleteItem,
 };
+
+/**
+ * Boolean fields cannot be indexes, so we store a string version of the same field
+ */
+dexieDb.query_history.hook('updating', function (mods, primaryKey, obj, transaction) {
+  if ('isFavorite' in mods) {
+    return { ...mods, isFavoriteIdx: mods.isFavorite ? 'true' : 'false' };
+  }
+});
 
 function generateKey(orgUniqueId: string, sObject: string, soql: string): QueryHistoryItem['key'] {
   return `${SyncableTables.query_history.keyPrefix}_${orgUniqueId}:${sObject}${soql.replace(
@@ -60,6 +69,7 @@ async function getOrInitQueryHistoryItem(
 
   const queryHistoryItem: QueryHistoryItem = {
     key,
+    hashedKey: existingItem?.hashedKey ?? (await hashRecordKey(key)),
     label: sObjectLabel,
     customLabel: existingItem?.customLabel ?? customLabel,
     soql,

@@ -11,7 +11,7 @@ import {
   SyncRecordOperation,
   SyncType,
 } from '@jetstream/types';
-import { dexieDb, SyncableEntities, SyncableTables } from '@jetstream/ui/db';
+import { dexieDb, hashRecordKey, SyncableEntities, SyncableTables } from '@jetstream/ui/db';
 import { parseISO } from 'date-fns';
 import Dexie from 'dexie';
 import type { ICreateChange, IDatabaseChange, IDeleteChange, IUpdateChange } from 'dexie-observable/api';
@@ -39,6 +39,7 @@ interface DeleteEvent {
   type: 'delete';
   entity: SyncType;
   key: string;
+  hashedKey: string;
   deletedAt: Date;
 }
 
@@ -68,14 +69,15 @@ function filterInvalidKeyPrefixes(key: string): boolean {
 
 function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): SyncRecordOperation {
   if (data.type === 'delete') {
-    const { type, entity, key, deletedAt } = data;
-    return { key, type, entity, deletedAt };
+    const { type, entity, key, hashedKey, deletedAt } = data;
+    return { key, hashedKey, type, entity, deletedAt };
   }
   const { type, keyPrefix, fullRecord } = data;
   switch (keyPrefix) {
     case 'qh': {
       return {
         key: fullRecord.key,
+        hashedKey: fullRecord.hashedKey,
         type,
         entity: 'query_history',
         orgId: fullRecord.org,
@@ -87,6 +89,7 @@ function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): S
     case 'lsm': {
       return {
         key: fullRecord.key,
+        hashedKey: fullRecord.hashedKey,
         type,
         entity: 'load_saved_mapping',
         data: fullRecord as any,
@@ -214,6 +217,14 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
     changes.filter(({ table, type }) => SyncableEntities.has(table as keyof typeof SyncableTables)).map((change) => change.key)
   );
 
+  // FIXME: this is temporary just to smooth out the data sync - remove after backfill is complete
+  // Backfill hashed key as needed
+  for (const obj of Object.values(existingRecordsById)) {
+    if (obj.key && !obj.hashedKey) {
+      obj.hashedKey = await hashRecordKey(obj.key);
+    }
+  }
+
   const changesByType = changes
     .filter((record) => SyncableEntities.has(record.table as keyof typeof SyncableTables))
     .reduce(
@@ -246,7 +257,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
         .filter((obj) => filterInvalidKeyPrefixes(obj.key))
         .map(({ obj }) => transformEntityToSyncRecord({ keyPrefix: getKeyPrefix(obj.key), type: 'create', fullRecord: obj })),
       ...changesByType.updates
-        .filter((obj) => filterInvalidKeyPrefixes(obj.key))
+        .filter((obj) => filterInvalidKeyPrefixes(obj.key) && existingRecordsById[obj.key])
         .map(({ mods, key }) =>
           transformEntityToSyncRecord({
             keyPrefix: getKeyPrefix(key),
@@ -254,11 +265,12 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
             fullRecord: existingRecordsById[key],
           })
         ),
-      ...changesByType.deletes.map(({ key }) =>
+      ...changesByType.deletes.map(({ key, oldObj }) =>
         transformEntityToSyncRecord({
           entity: 'query_history',
           type: 'delete',
           key,
+          hashedKey: oldObj.hashedKey,
           deletedAt,
         })
       ),
@@ -274,7 +286,8 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
 async function handleServerSyncResponse({ records, updatedAt }: PullResponse, applyRemoteChanges: ApplyRemoteChangesFunction) {
   try {
     const existingRecordsById = await getAllSyncableRecordsById(records.map(({ key }) => key));
-    const serverChanges = records.map(({ entity, data, key, deletedAt }) => {
+    const serverChanges = records.map(({ entity, data, key, hashedKey, deletedAt }) => {
+      data.hashedKey = data.hashedKey ?? hashedKey;
       enrichDataTypes(entity, data);
 
       if (deletedAt) {
@@ -282,7 +295,7 @@ async function handleServerSyncResponse({ records, updatedAt }: PullResponse, ap
         return { type: 3, table: entity, key, oldObj: null } as IDeleteChange;
       } else if (existingRecordsById[key]) {
         // UPDATE
-        const mods = getObjectDiffForDexie(data, existingRecordsById[key]);
+        const mods = getObjectDiffForDexie(existingRecordsById[key], data);
         return { type: 2, table: entity, key, obj: data, mods, oldObj: existingRecordsById[key] } as IUpdateChange;
       } else {
         // CREATE

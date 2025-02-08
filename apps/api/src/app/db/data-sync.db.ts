@@ -5,14 +5,23 @@ import { Prisma } from '@prisma/client';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 import { isAfter } from 'date-fns';
 import clamp from 'lodash/clamp';
+import crypto from 'node:crypto';
 
 export const MIN_PULL = 25;
 export const MAX_PULL = 100;
 
 export const MAX_SYNC = 50;
 
+/**
+ * FIXME: After browser and chrome extension get updated, remove server-side hashing
+ */
+export const hashRecordSyncKey = (key: string): string => {
+  return crypto.createHash('SHA1').update(key).digest('hex');
+};
+
 const SELECT = Prisma.validator<Prisma.UserSyncDataSelect>()({
   key: true,
+  hashedKey: true,
   entity: true,
   orgId: true,
   data: true,
@@ -21,11 +30,11 @@ const SELECT = Prisma.validator<Prisma.UserSyncDataSelect>()({
   deletedAt: true,
 });
 
-export const findByKeys = async ({ keys, userId }: { userId: string; keys: string[] }) => {
+export const findByKeys = async ({ hashedKeys, userId }: { userId: string; hashedKeys: string[] }) => {
   return await prisma.userSyncData
     .findMany({
       select: SELECT,
-      where: { key: { in: keys }, userId },
+      where: { hashedKey: { in: hashedKeys }, userId },
       orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
     })
     .then((records): PullResponse => {
@@ -160,14 +169,14 @@ export const syncRecordChanges = async ({
     throw new Error(`Cannot sync more than ${MAX_SYNC} records at a time`);
   }
 
-  const recordsByKey = groupByFlat(records, 'key');
+  const recordsByHashedKey = Object.keys(groupByFlat(records, 'hashedKey'));
 
   const existingRecordsById = groupByFlat(
     await prisma.userSyncData.findMany({
       select: { id: true, key: true, updatedAt: true, deletedAt: true },
       where: {
         userId,
-        key: { in: Object.keys(recordsByKey) },
+        hashedKey: { in: recordsByHashedKey },
       },
     }),
     'key'
@@ -225,8 +234,7 @@ export const syncRecordChanges = async ({
         }
         case 'delete': {
           if (!existingRecord) {
-            // server does not know about record, ignore
-            acc.ignoredRecordIds.push({ id: record.key });
+            // server does not know about record, ignore - we cannot put in ignored list since we don't have an id
             break;
           }
           if (existingRecord.deletedAt && isAfter(existingRecord.deletedAt, record.deletedAt)) {
@@ -262,6 +270,7 @@ export const syncRecordChanges = async ({
           userId,
           orgId: record.orgId || null,
           key: record.key,
+          hashedKey: record.hashedKey,
           data: record.data as InputJsonValue,
           createdAt: now,
           updatedAt: now,

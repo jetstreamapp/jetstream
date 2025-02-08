@@ -178,7 +178,7 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
 
   const syncEvent: SyncEvent = {
     clientId: query.clientId,
-    data: { keys: response.records.map(({ key }) => key) },
+    data: { hashedKeys: response.records.map(({ hashedKey }) => hashedKey) },
     userId: user.id,
   };
 

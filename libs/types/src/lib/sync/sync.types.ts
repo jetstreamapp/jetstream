@@ -18,6 +18,7 @@ export type EntitySyncStatus = z.infer<typeof EntitySyncStatusSchema>;
 
 export const SyncRecordOperationBaseSchema = z.object({
   key: z.string(),
+  hashedKey: z.string(),
   entity: SyncTypeSchema,
 });
 
@@ -46,6 +47,7 @@ export type SyncRecordOperation = z.infer<typeof SyncRecordOperationSchema>;
 // TODO: have a browser and server version - createdAt is a server managed prop
 export const SyncRecordSchema = z.object({
   key: z.string(),
+  hashedKey: z.string(),
   entity: SyncTypeSchema,
   orgId: z.string().nullish(),
   data: z.record(z.unknown()),
@@ -54,16 +56,6 @@ export const SyncRecordSchema = z.object({
   deletedAt: DateTimeSchema.nullish(),
 });
 export type SyncRecord = z.infer<typeof SyncRecordSchema>;
-
-export const SyncRecordRequestSchema = z.object({
-  key: z.string(),
-  entity: SyncTypeSchema,
-  data: z.record(z.unknown()),
-  createdAt: DateTimeSchema,
-  updatedAt: DateTimeSchema,
-  deletedAt: DateTimeSchema.nullish(),
-});
-export type SyncRecordRequest = z.infer<typeof SyncRecordRequestSchema>;
 
 export const PullResponseSchema = z.object({
   records: SyncRecordSchema.array(),
@@ -75,6 +67,7 @@ export type PullResponse = z.infer<typeof PullResponseSchema>;
 
 export interface QueryHistoryItem {
   key: `qh_${string}`; // org:object:(lowercase/removespaces(soql))
+  hashedKey: string;
   org: string;
   sObject: string;
   label: string;
@@ -100,6 +93,7 @@ export interface QueryHistoryObject {
 
 export interface LoadSavedMappingItem {
   key: `lsm_${string}`; // object:csvFieldLength:createdAt
+  hashedKey: string;
   name: string;
   sobject: string;
   csvFields: string[];
