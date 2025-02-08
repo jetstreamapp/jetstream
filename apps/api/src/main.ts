@@ -6,6 +6,7 @@ import { SessionData as JetstreamSessionData, UserProfileSession } from '@jetstr
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
 import { setupPrimary } from '@socket.io/cluster-adapter';
+import { setupMaster } from '@socket.io/sticky';
 import { json, raw, urlencoded } from 'body-parser';
 import pgSimple from 'connect-pg-simple';
 import cors from 'cors';
@@ -14,6 +15,7 @@ import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
 import cluster from 'node:cluster';
+import http from 'node:http';
 import { cpus } from 'os';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
@@ -82,6 +84,12 @@ JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
 if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   logger.info(`Number of CPUs is ${CPU_COUNT}`);
   logger.info(`Master ${process.pid} is running`);
+
+  // Setup socket.io sticky session for cluster, uses sid parameter to route to the same worker on each request
+  const socketIoClusterRouterServer = http.createServer();
+  setupMaster(socketIoClusterRouterServer, {
+    loadBalancingMethod: 'least-connection', // either "random", "round-robin" or "least-connection"
+  });
 
   setupPrimary();
 

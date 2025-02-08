@@ -31,6 +31,7 @@ const SELECT = Prisma.validator<Prisma.UserSyncDataSelect>()({
 });
 
 export const findByKeys = async ({ hashedKeys, userId }: { userId: string; hashedKeys: string[] }) => {
+  hashedKeys = hashedKeys.filter(Boolean);
   return await prisma.userSyncData
     .findMany({
       select: SELECT,
@@ -169,7 +170,7 @@ export const syncRecordChanges = async ({
     throw new Error(`Cannot sync more than ${MAX_SYNC} records at a time`);
   }
 
-  const recordsByHashedKey = Object.keys(groupByFlat(records, 'hashedKey'));
+  const recordsByHashedKey = Object.keys(groupByFlat(records, 'hashedKey')).filter(Boolean);
 
   const existingRecordsById = groupByFlat(
     await prisma.userSyncData.findMany({
