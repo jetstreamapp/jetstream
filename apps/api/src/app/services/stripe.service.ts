@@ -1,6 +1,7 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { UserProfile } from '@jetstream/auth/types';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { sendWelcomeToProEmail } from '@jetstream/email';
+import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { EntitlementsAccess, StripeUserFacingCustomer, StripeUserFacingSubscriptionItem } from '@jetstream/types';
 import { formatISO, fromUnixTime } from 'date-fns';
 import { isString } from 'lodash';
@@ -42,7 +43,7 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
       case 'customer.subscription.updated': {
         const { customer: customerOrId } = event.data.object;
         const customer = await fetchCustomerWithSubscriptionsById({ customerId: isString(customerOrId) ? customerOrId : customerOrId.id });
-        await saveOrUpdateSubscription({ customer });
+        await saveOrUpdateSubscription({ customer, sendWelcomeEmail: false });
         break;
       }
       default:
@@ -185,7 +186,7 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   // Update customer subscriptions - will also be updated via webhook
   const customerOrId = session.customer;
   const customer = await fetchCustomerWithSubscriptionsById({ customerId: isString(customerOrId) ? customerOrId : customerOrId.id });
-  await saveOrUpdateSubscription({ customer });
+  await saveOrUpdateSubscription({ customer, sendWelcomeEmail: true });
 
   // Update customer entitlements - will also be updated via webhook
   await fetchAndUpdateEntitlements(customer.id);
@@ -265,7 +266,13 @@ export async function synchronizeStripeWithJetstreamIfRequired({
 /**
  * Synchronize subscription state from Stripe to Jetstream
  */
-export async function saveOrUpdateSubscription({ customer }: { customer: Stripe.Customer | Stripe.DeletedCustomer }) {
+export async function saveOrUpdateSubscription({
+  customer,
+  sendWelcomeEmail,
+}: {
+  customer: Stripe.Customer | Stripe.DeletedCustomer;
+  sendWelcomeEmail: boolean;
+}) {
   if (customer.deleted) {
     logger.info({ customerId: customer.id }, '[Stripe] Customer deleted: %s', customer.id);
     await subscriptionDbService.cancelAllSubscriptionsForUser({ customerId: customer.id });
@@ -277,7 +284,7 @@ export async function saveOrUpdateSubscription({ customer }: { customer: Stripe.
 
   // customer does not have Jetstream id attached - update Stripe to ensure data integrity (if possible)
   if (!userId) {
-    const billingAccount = await userDbService.findByBillingAccountByCustomerId({ customerId: customer.id });
+    const billingAccount = await userDbService.findBillingAccountByCustomerId({ customerId: customer.id });
     if (!billingAccount) {
       logger.error(
         {
@@ -300,6 +307,64 @@ export async function saveOrUpdateSubscription({ customer }: { customer: Stripe.
     customerId: customer.id,
     subscriptions: filterInactiveSubscriptions(subscriptions),
   });
+
+  if (sendWelcomeEmail) {
+    userDbService.findById(userId).then((user) => {
+      sendWelcomeToProEmail(user.email).catch((error) => {
+        logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending welcome to pro email');
+      });
+    });
+  }
+}
+
+/**
+ * Cancel All Subscriptions
+ */
+export async function cancelAllSubscriptions({ customerId }: { customerId: string }) {
+  const results = {
+    customerId,
+    success: true,
+    reason: 'All subscriptions cancelled',
+    canceledSubscriptions: [] as string[],
+    errors: [] as { subscriptionId: string; error: string }[],
+  };
+
+  try {
+    const customer = await fetchCustomerWithSubscriptionsById({ customerId });
+    if (customer.deleted) {
+      results.reason = 'Customer is deleted, no action required';
+      return results;
+    }
+
+    const activeSubscriptions =
+      customer.subscriptions?.data.filter((subscription) => subscription.canceled_at === null && subscription.cancel_at === null) || [];
+    if (activeSubscriptions.length === 0) {
+      results.reason = 'One or more subscriptions could not be canceled';
+      return results;
+    }
+
+    for (const activeSubscription of activeSubscriptions) {
+      try {
+        await stripe.subscriptions.cancel(activeSubscription.id, {
+          cancellation_details: { comment: 'Account Deletion' },
+          prorate: false,
+          invoice_now: false,
+        });
+        results.canceledSubscriptions.push(activeSubscription.id);
+      } catch (ex) {
+        logger.error({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Error cancelling subscription');
+        results.success = false;
+        results.reason = 'One or more subscriptions could not be cancelled';
+        results.errors.push({ subscriptionId: activeSubscription.id, error: getErrorMessage(ex) });
+      }
+    }
+  } catch (ex) {
+    logger.error({ customerId, ...getErrorMessageAndStackObj(ex) }, 'Error cancelling subscriptions');
+    results.success = false;
+    results.reason = `Fatal exception: ${getErrorMessage(ex)}`;
+  }
+
+  return results;
 }
 
 /**
@@ -330,6 +395,7 @@ export async function createCheckoutSession({
         quantity: 1,
       },
     ],
+    allow_promotion_codes: true,
     mode,
     success_url: `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`,
     cancel_url: `${ENV.JETSTREAM_CLIENT_URL}/settings/billing?subscribeAction=canceled`,

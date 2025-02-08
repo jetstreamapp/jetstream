@@ -8,7 +8,8 @@ const sidebar = {
         'getting-started/troubleshooting',
         'getting-started/organizations',
         'getting-started/feedback',
-        'chrome-extension/chrome-extension',
+        'getting-started/chrome-extension/chrome-extension',
+        'getting-started/history-data-sync/history-data-sync',
       ],
     },
     {

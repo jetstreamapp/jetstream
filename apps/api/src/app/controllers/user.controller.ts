@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import {
   clearOauthCookies,
   convertBase32ToHex,
@@ -30,6 +30,7 @@ import {
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import * as userDbService from '../db/user.db';
+import * as stripeService from '../services/stripe.service';
 import { UserFacingError } from '../utils/error-handler';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
@@ -379,6 +380,16 @@ const linkIdentity = createRoute(routeDefinition.linkIdentity.validators, async 
 const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, async ({ body, user, requestId }, req, res) => {
   try {
     const reason = body.reason;
+    let billingResultsJson = '';
+    let billingPortalLinkText = '';
+
+    const userWithSubscriptions = await userDbService.findByIdWithSubscriptions(user.id);
+    if (userWithSubscriptions.billingAccount?.customerId) {
+      const results = await stripeService.cancelAllSubscriptions({ customerId: userWithSubscriptions.billingAccount.customerId });
+      billingResultsJson = JSON.stringify(results);
+      billingPortalLinkText = `If you need to access any of your billing information or history, you can continue to do so here: ${ENV.STRIPE_BILLING_PORTAL_LINK}`;
+      logger.info({ requestId, results }, '[ACCOUNT DELETE][CANCEL SUBSCRIPTIONS]');
+    }
 
     await userDbService.deleteUserAndAllRelatedData(user.id);
     // Destroy session - don't wait for response
@@ -389,8 +400,8 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     });
 
     try {
-      await sendGoodbyeEmail(user.email);
-      await sendInternalAccountDeletionEmail(user.id, reason);
+      await sendGoodbyeEmail(user.email, billingPortalLinkText);
+      await sendInternalAccountDeletionEmail(user.id, reason, billingResultsJson);
     } catch (ex) {
       req.log.error('[ACCOUNT DELETE][ERROR SENDING EMAIL SUMMARY] %s', ex.message);
     }

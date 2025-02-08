@@ -177,7 +177,7 @@ export const Settings = () => {
 
             {recordSyncEnabled && (
               <div className="slds-m-top_large">
-                <h2 className="slds-text-heading_medium slds-m-vertical_small">Data Sync</h2>
+                <h2 className="slds-text-heading_medium slds-m-vertical_small">History Data Sync</h2>
                 <CheckboxToggle
                   id="enable-record-sync-button"
                   checked={modifiedUser?.preferences?.recordSyncEnabled ?? true}
@@ -190,8 +190,8 @@ export const Settings = () => {
                   Reset Sync
                 </button>
                 <p className=" slds-m-top_small">
-                  If you have having an issue with your data syncing from Jetstream to the Extension, you can reset your extension data to
-                  pull in all your Jetstream data.
+                  You can reset your sync history, this will push and pull Query History data from the Jetstream server to make sure both
+                  are in sync.
                 </p>
               </div>
             )}
