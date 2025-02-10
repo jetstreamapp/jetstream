@@ -22,7 +22,7 @@
       "configurations": {
         "development": {
           "fileReplacements": [],
-          "optimization": false,
+          "optimization": true,
           "outputHashing": "none",
           "sourceMap": true,
           "namedChunks": false,
