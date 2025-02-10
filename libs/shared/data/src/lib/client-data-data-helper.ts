@@ -56,6 +56,10 @@ const RETRY_CONFIG = {
   statusCodes: new Set([429, 500, 502, 503, 504]),
 } as const;
 
+export const AxiosAdapterConfig: { adapter?: (config: InternalAxiosRequestConfig) => Promise<AxiosResponse> } = {
+  adapter: undefined,
+};
+
 function getHeader(headers: RawAxiosResponseHeaders | AxiosResponseHeaders, header: string) {
   if (!headers || !header) {
     return null;
@@ -104,7 +108,7 @@ export async function handleRequest<T = any>(config: AxiosRequestConfig, options
     config.headers[HTTP.HEADERS.X_MOCK_KEY] = options.mockHeaderKey;
   }
   options.retryCount = options.retryCount || 0;
-  const axiosInstance = axios.create({ ...baseConfig, ...config });
+  const axiosInstance = axios.create({ ...baseConfig, ...config, adapter: AxiosAdapterConfig.adapter });
   axiosInstance.interceptors.request.use(requestInterceptor(options));
   axiosInstance.interceptors.response.use(null, retryInterceptor(config, options));
   axiosInstance.interceptors.response.use(responseInterceptor(options), responseErrorInterceptor(options));

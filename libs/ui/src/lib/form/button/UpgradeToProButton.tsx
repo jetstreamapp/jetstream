@@ -17,7 +17,7 @@ export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }:
       delay={[1000, null]}
       content={
         <div className="slds-p-bottom_small">
-          Upgrade to get access to the Chrome Extension, Google Drive integration, and Query History Sync
+          Upgrade to get access to the Browser Extensions, Google Drive integration, and Query History Sync
         </div>
       }
     >

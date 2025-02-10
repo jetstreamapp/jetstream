@@ -75,10 +75,12 @@ export const AppHomeChromeExtension = () => {
                   Subscribe to Jetstream on our billing page
                 </Link>
               </p>
-              <p className="slds-m-top_xx-small">Use your Favorite Jetstream features in any Salesforce Org with the Chrome Extension!</p>
+              <p className="slds-m-top_xx-small">
+                Use your Favorite Jetstream features in any Salesforce Org with the The browser extensions!
+              </p>
               <ul className="slds-list_dotted slds-m-bottom_small">
                 <li>Access Jetstream on any Salesforce Org without having to connect it to your Jetstream account</li>
-                <li>The Chrome extension works 100% in your browser without sending any Salesforce data to the Jetstream Server</li>
+                <li>The browser works 100% in your browser without sending any Salesforce data to the Jetstream Server</li>
                 <li>Quickly view all fields from a Salesforce record</li>
                 <li>Access nearly every Jetstream feature, all without relying on a 3rd party server</li>
               </ul>

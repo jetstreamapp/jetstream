@@ -66,7 +66,7 @@ export async function verifyToken({ token, deviceId }: { token: string; deviceId
   } else if (decodedPayload?.userProfile?.id !== userAccessToken.userId) {
     throw new InvalidAccessToken('Access token is invalid for user');
   } else if (!userAccessToken.user.entitlements?.chromeExtension) {
-    throw new InvalidAccessToken('Chrome extension is not enabled');
+    throw new InvalidAccessToken('Browser extension is not enabled');
   }
 
   const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION);

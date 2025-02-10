@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { isChromeExtension, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
@@ -21,7 +21,7 @@ export interface PlatformEventMonitorProps {}
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const { trackEvent } = useAmplitude();
-  const [chromeExtension] = useState(() => isChromeExtension());
+  const [chromeExtension] = useState(() => isBrowserExtension());
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const isMounted = useRef(true);

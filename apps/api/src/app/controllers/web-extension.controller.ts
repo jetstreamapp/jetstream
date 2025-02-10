@@ -2,7 +2,6 @@ import { ENV } from '@jetstream/api-config';
 import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { serialize } from 'cookie';
 import { addDays, fromUnixTime, isAfter } from 'date-fns';
 import { z } from 'zod';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
@@ -73,19 +72,6 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
     redirect(res as any, '/auth/login/');
     return;
   }
-
-  // Allow browser to access id from cookie
-  res.appendHeader(
-    'Set-Cookie',
-    serialize('WEB_EXTENSION_ID', ENV.WEB_EXTENSION_ID, {
-      expires: addDays(new Date(), 365),
-      path: '/web-extension',
-      httpOnly: false,
-      sameSite: 'strict',
-      secure: false,
-    })
-  );
-
   next();
 });
 
@@ -145,11 +131,11 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ body }, r
     // This validates the token against the database record
     const { userProfile } = await webExtensionService.verifyToken({ token: accessToken, deviceId });
     webExtDb.deleteByUserIdAndDeviceId({ userId: userProfile.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
-    res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of chrome extension');
+    res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of browser extension');
 
     sendJson(res, { success: true });
   } catch (ex) {
-    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of chrome extension');
+    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of browser extension');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });

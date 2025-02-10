@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { copyRecordsToClipboard, formatNumber, isChromeExtension } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, formatNumber, isBrowserExtension } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { DeployMetadataTableRow, ListMetadataResult, SalesforceOrgUi, SidePanelType } from '@jetstream/types';
 import {
@@ -90,7 +90,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
   const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
 
-  const [chromeExtension] = useState(() => isChromeExtension());
+  const [chromeExtension] = useState(() => isBrowserExtension());
 
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {

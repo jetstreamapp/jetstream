@@ -16,7 +16,7 @@ const ENV = z
     CLIENT_ID: process.env.GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID,
     CLIENT_SECRET: process.env.GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET,
     REFRESH_TOKEN: process.env.GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN,
-    EXTENSION_ID: process.env.WEB_EXTENSION_ID,
+    EXTENSION_ID: process.env.WEB_EXTENSION_ID_CHROME,
   });
 
 const argv = minimist(process.argv.slice(2), {
@@ -66,7 +66,8 @@ if (argv.help) {
       GOOGLE_WEB_EXT_PUBLISH_CLIENT_ID
       GOOGLE_WEB_EXT_PUBLISH_CLIENT_SECRET
       GOOGLE_WEB_EXT_PUBLISH_REFRESH_TOKEN
-      WEB_EXTENSION_ID
+      WEB_EXTENSION_ID_CHROME
+      (TODO: Mozilla support)
   `);
   process.exit(0);
 }

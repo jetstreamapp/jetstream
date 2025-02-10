@@ -2,10 +2,10 @@
  * This file is based on the Salesforce Inspector extension for Chrome. (MIT license)
  * Credit: https://github.com/sorenkrabbe/Chrome-Salesforce-inspector/blob/master/addon/background.js
  */
-/// <reference types="chrome" />
 /// <reference lib="WebWorker" />
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
+import browser from 'webextension-polyfill';
 import { extensionRoutes } from '../controllers/extension.routes';
 import { initApiClient } from './api-client';
 import { OrgAndSessionInfo } from './extension.types';
@@ -32,7 +32,7 @@ const zipMap: Map<
   }
 > = new Map();
 
-const initialize = (data: any, ports: chrome.runtime.Port) => {
+const initialize = (data: any, ports: browser.Runtime.Port) => {
   logger.log('[SW]', `Initialize`, { data });
   const { id, files, name } = data;
 
@@ -51,7 +51,7 @@ const initialize = (data: any, ports: chrome.runtime.Port) => {
 };
 
 // This message is here to keep the service worker from getting killed while downloading.
-const tick = (data: any, port: chrome.runtime.Port) => {
+const tick = (data: any, port: browser.Runtime.Port) => {
   logger.log('[SW]', `Tock`);
   if (port) {
     port.postMessage({ command: ACTIVE_DOWNLOADS, activeIds: Array.from(zipMap.keys()) });
@@ -63,7 +63,7 @@ const messageHandlers = {
   TICK: tick,
 };
 
-chrome.runtime.onConnect.addListener((port) => {
+browser.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(onMessage);
   port.onDisconnect.addListener(deleteTimer);
   // port._timer = setTimeout(forceReconnect, 250e3, port);
@@ -81,7 +81,7 @@ async function onMessage(
       files: { downloadUrl: string; name: string; size: number }[];
     } | null;
   },
-  port: chrome.runtime.Port
+  port: browser.Runtime.Port
 ) {
   const handler = messageHandlers[command];
   if (handler) {
@@ -159,7 +159,7 @@ async function downloadAllZipFiles(id: string, event: FetchEvent, connections: R
       await new Promise<void>((resolve, reject) => {
         route
           .handler({
-            event,
+            request: event.request,
             params: route.params,
             jetstreamConn: apiConnection,
             org,

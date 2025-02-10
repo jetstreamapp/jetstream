@@ -10,18 +10,17 @@
     "48": "assets/icons/jetstream-icon-48.png",
     "128": "assets/icons/jetstream-icon-128.png"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "support@getjetstream.app",
+      "strict_min_version": "120.0"
+    }
+  },
   "oauth2": {
     "client_id": "1046118608516-p17mt3hd7ko18gd5mcdo8t3o7t6856hd.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/drive.file"]
   },
   "permissions": ["storage", "cookies"],
-  "externally_connectable": {
-    "matches": [
-      "https://getjetstream.app/web-extension/*",
-      "https://staging.jetstream-app.com/web-extension/*",
-      "http://localhost:3333/web-extension/*"
-    ]
-  },
   "host_permissions": [
     "https://getjetstream.app/web-extension/*",
     "https://*.cloudforce.com/*",
@@ -45,6 +44,7 @@
     "open_in_tab": false
   },
   "background": {
+    "scripts": ["serviceWorker.js"],
     "service_worker": "serviceWorker.js"
   },
   "commands": {
@@ -75,6 +75,11 @@
       ],
       "all_frames": true,
       "js": ["contentScript.js"]
+    },
+    {
+      "matches": ["https://getjetstream.app/web-extension/*"],
+      "js": ["contentAuthScript.js"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [

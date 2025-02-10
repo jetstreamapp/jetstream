@@ -23,7 +23,7 @@ function getUser(request: IncomingMessage) {
 }
 
 async function getWebExtensionUser(request: IncomingMessage) {
-  if (request.headers.origin !== `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
+  if (request.headers.origin?.startsWith(`chrome-extension://`) || request.headers.origin?.startsWith(`moz-extension://`)) {
     return;
   }
   const authorizationHeader = request.headers[HTTP.HEADERS.AUTHORIZATION.toLowerCase()] as string;
@@ -74,7 +74,7 @@ export function initSocketServer(
   io = new Server(httpServer, {
     serveClient: false,
     cors: {
-      origin: [`chrome-extension://${ENV.WEB_EXTENSION_ID}`],
+      origin: [`chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`, `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`],
       methods: ['GET', 'POST'],
       allowedHeaders: [HTTP.HEADERS.AUTHORIZATION, HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID],
       credentials: true,
@@ -124,8 +124,11 @@ export function initSocketServer(
   }
 
   io.engine.use((req: Request, res: Response, next: express.NextFunction) => {
-    // the chrome extension does not include cookies and hangs on this middleware
-    if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
+    // the browser extension does not include cookies and hangs on this middleware
+    if (
+      req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
+      req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
+    ) {
       next();
     } else {
       middlewareFns.sessionMiddleware(req, res, next);

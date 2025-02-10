@@ -1,4 +1,5 @@
 import { enableLogger } from '@jetstream/shared/client-logger';
+import { AxiosAdapterConfig } from '@jetstream/shared/data';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import { AppLoading } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
@@ -12,12 +13,15 @@ import { RecoilRoot } from 'recoil';
 import RecoilNexus from 'recoil-nexus';
 import { environment } from '../environments/environment';
 import '../main.scss';
+import { browserExtensionAxiosAdapter } from '../utils/extension-axios-adapter';
 import '../utils/monaco-loader';
 import AppInitializer from './AppInitializer';
 
 if (!environment.production) {
   enableLogger(true);
 }
+
+AxiosAdapterConfig.adapter = browserExtensionAxiosAdapter;
 
 export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWithoutSalesforceOrg?: boolean; children: ReactNode }) {
   return (

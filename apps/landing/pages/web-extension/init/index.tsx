@@ -11,7 +11,7 @@ const STATE_DISPLAY = {
 };
 
 export default function Page() {
-  const { state, errorMessage } = useWebExtensionState();
+  const { status, errorMessage } = useWebExtensionState();
 
   return (
     <main className="flex-grow flex flex-col justify-center max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 sm:my-12 md:my-24">
@@ -19,7 +19,7 @@ export default function Page() {
         <div className="text-center">
           <p className="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Authentication</p>
           {!!errorMessage && <p className="mt-2 text-xl">Error</p>}
-          <p className="mt-2 text-base">{STATE_DISPLAY[state] ?? errorMessage}</p>
+          <p className="mt-2 text-base">{STATE_DISPLAY[status] ?? errorMessage}</p>
           {!!errorMessage && (
             <p className="mt-8 text-base text-gray-500">
               If you need more assistance, you can file a support ticket or email{' '}

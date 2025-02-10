@@ -1,21 +1,43 @@
-import { parseCookie } from '@jetstream/shared/ui-utils';
-import { useEffect, useState } from 'react';
+import type { Maybe } from '@jetstream/types';
+import { useEffect, useReducer, useRef } from 'react';
+import { ENVIRONMENT } from '../utils/environment';
+
+/**
+ * DATA FLOW:
+ * Page --> Content Script: ACKNOWLEDGE (every 500ms until ACKNOWLEDGE_RESPONSE or timeout - used to know for sure that we have communication with the content script)
+ * Page <-- Content Script: ACKNOWLEDGE_RESPONSE
+ * Page --> Content Script: EXT_IDENTIFIER (Get a deviceId to limit authentication to this one user device)
+ *    Content Script <--> service worker: EXT_IDENTIFIER (Get or generate a deviceId and store in browser extension storage)
+ * Page --> Content Script: EXT_IDENTIFIER_RESPONSE
+ * Page --> Content Script: TOKEN_EXCHANGE (Call server API to issue an access token for the user (JWT))
+ *    Content Script <--> service worker: TOKEN_EXCHANGE (Save tokens in browser extension storage)
+ * Page --> Content Script: TOKEN_EXCHANGE_RESPONSE (save access token in local storage)
+ */
 
 const ERROR_MESSAGES = {
-  INVALID_SESSION: 'Sign in to Jetstream to use the Chrome extension',
+  INVALID_SESSION: 'Sign in to Jetstream to use the browser extension',
   EXT_COMM_ERROR: 'Error communicating with web extension',
   RUNTIME_ERROR: 'Error communicating with web extension, do you have the extension installed?',
   UNKNOWN_ERROR: 'There was an unexpected error authenticating your account',
   INVALID_SUBSCRIPTION:
-    'You do not have a valid subscription to use the Chrome extension, sign up for a plan that includes the Chrome extension.',
+    'You do not have a valid subscription to use the browser extension, sign up for a plan that includes the browser extension.',
 };
 
-const errorMap = {
+const ERROR_MAP = {
   MissingEntitlement: ERROR_MESSAGES.INVALID_SUBSCRIPTION,
 };
 
-async function fetchTokens(deviceId: string, webExtensionId: string) {
-  const response = await fetch(`/web-extension/session?deviceId=${deviceId}`, {
+const EVENT_MAP = {
+  ACKNOWLEDGE_RESPONSE: 'ACKNOWLEDGE_RESPONSE',
+  ACKNOWLEDGE: 'ACKNOWLEDGE',
+  EXT_IDENTIFIER_RESPONSE: 'EXT_IDENTIFIER_RESPONSE',
+  EXT_IDENTIFIER: 'EXT_IDENTIFIER',
+  TOKEN_EXCHANGE_RESPONSE: 'TOKEN_EXCHANGE_RESPONSE',
+  TOKEN_EXCHANGE: 'TOKEN_EXCHANGE',
+} as const;
+
+async function fetchTokens(deviceId: string) {
+  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/web-extension/session?deviceId=${deviceId}`, {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
@@ -30,62 +52,146 @@ async function fetchTokens(deviceId: string, webExtensionId: string) {
       .json()
       .then(({ data }) => data?.errorType)
       .catch((err) => null);
-    if (errorMap[errorType]) {
-      throw new Error(errorMap[errorType]);
+    if (ERROR_MAP[errorType]) {
+      throw new Error(ERROR_MAP[errorType]);
     }
     throw new Error(ERROR_MESSAGES.UNKNOWN_ERROR);
   }
   const tokens = await response.json().then(({ data }) => data);
 
-  if (!tokens.accessToken) {
+  if (typeof tokens.accessToken !== 'string') {
     throw new Error(ERROR_MESSAGES.UNKNOWN_ERROR);
   }
 
-  if (chrome && chrome.runtime) {
-    chrome.runtime.sendMessage(webExtensionId, { type: 'TOKENS', data: tokens }, (response) => {
-      if (!response.success) {
-        console.error('Token delivery failed');
-        throw new Error(ERROR_MESSAGES.EXT_COMM_ERROR);
+  // Provide tokens to the extension
+  window.postMessage({ message: EVENT_MAP.TOKEN_EXCHANGE, accessToken: tokens }, window.location.origin);
+}
+
+type Action =
+  | { type: 'LOADING' }
+  | { type: 'ACKNOWLEDGE' }
+  | { type: 'SUCCESS' }
+  | { type: 'TIMEOUT_CHECK' }
+  | { type: 'ERROR'; message: string };
+
+interface State {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  isAcknowledged: boolean;
+  errorMessage?: Maybe<string>;
+}
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'LOADING': {
+      return {
+        ...state,
+        status: 'loading',
+        errorMessage: null,
+      };
+    }
+    case 'ACKNOWLEDGE': {
+      return {
+        ...state,
+        isAcknowledged: true,
+      };
+    }
+    case 'SUCCESS': {
+      return {
+        ...state,
+        status: 'success',
+        errorMessage: null,
+      };
+    }
+    case 'TIMEOUT_CHECK': {
+      if (state.status === 'loading') {
+        return {
+          ...state,
+          status: 'error',
+          errorMessage: ERROR_MESSAGES.RUNTIME_ERROR,
+        };
       }
-    });
-  } else {
-    console.error('Chrome runtime not available');
-    throw new Error(ERROR_MESSAGES.RUNTIME_ERROR);
+      return state;
+    }
+    case 'ERROR': {
+      return {
+        ...state,
+        status: 'error',
+        errorMessage:
+          ERROR_MESSAGES[action.message] ?? Object.values(ERROR_MESSAGES).includes(action.message)
+            ? action.message
+            : ERROR_MESSAGES.UNKNOWN_ERROR,
+      };
+    }
+    default:
+      throw new Error('Invalid action');
   }
 }
 
 export function useWebExtensionState() {
-  const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string>();
+  const timeoutRef = useRef<any>(null);
+  const ackIntervalRef = useRef<any>(null);
+
+  const [{ status, isAcknowledged, errorMessage }, dispatch] = useReducer(reducer, {
+    status: 'idle',
+    isAcknowledged: false,
+  });
 
   useEffect(() => {
-    setState('loading');
-    const webExtensionId = parseCookie<string>('WEB_EXTENSION_ID');
-    if (chrome?.runtime && webExtensionId) {
-      chrome?.runtime?.sendMessage(webExtensionId, { type: 'EXT_IDENTIFIER' }, (response) => {
-        if (!response || !response.success || !response.data) {
-          setState('error');
-          setErrorMessage(ERROR_MESSAGES.RUNTIME_ERROR);
-        } else {
-          fetchTokens(response.data, webExtensionId)
-            .then(() => {
-              setState('success');
-            })
-            .catch((err) => {
-              setState('error');
-              if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {
-                setErrorMessage(err.message);
-              } else {
-                setErrorMessage(ERROR_MESSAGES.UNKNOWN_ERROR);
-              }
-            });
-        }
-      });
-    } else {
-      setState('error');
-      setErrorMessage(ERROR_MESSAGES.RUNTIME_ERROR);
+    if (isAcknowledged) {
+      clearTimeout(ackIntervalRef.current);
+      window.postMessage({ message: EVENT_MAP.EXT_IDENTIFIER }, window.location.origin);
     }
+  }, [isAcknowledged]);
+
+  useEffect(() => {
+    // Poll the content script until it lets us know it is ready and our message handler gets the message
+    ackIntervalRef.current = setInterval(() => {
+      window.postMessage({ message: EVENT_MAP.ACKNOWLEDGE }, window.location.origin);
+    }, 500);
   }, []);
 
-  return { state, errorMessage };
+  useEffect(() => {
+    dispatch({ type: 'LOADING' });
+    window.addEventListener('message', (event) => {
+      if (event.source !== window || event.origin !== window.location.origin) {
+        return;
+      }
+      const response = event.data;
+      if (response?.message === EVENT_MAP.ACKNOWLEDGE_RESPONSE) {
+        clearTimeout(ackIntervalRef.current);
+        dispatch({ type: 'ACKNOWLEDGE' });
+      } else if (response?.message === EVENT_MAP.EXT_IDENTIFIER_RESPONSE) {
+        if (!response.success) {
+          dispatch({ type: 'ERROR', message: ERROR_MESSAGES.RUNTIME_ERROR });
+        } else {
+          fetchTokens(response.deviceId).catch((err) => {
+            if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {
+              dispatch({ type: 'ERROR', message: err.message });
+            } else {
+              dispatch({ type: 'ERROR', message: ERROR_MESSAGES.UNKNOWN_ERROR });
+            }
+          });
+        }
+      } else if (response?.message === EVENT_MAP.TOKEN_EXCHANGE_RESPONSE) {
+        clearTimeout(timeoutRef.current);
+        if (!response.success) {
+          dispatch({ type: 'ERROR', message: ERROR_MESSAGES.RUNTIME_ERROR });
+        } else {
+          dispatch({ type: 'SUCCESS' });
+        }
+      } else if (response?.message === 'ERROR') {
+        dispatch({ type: 'ERROR', message: ERROR_MESSAGES.RUNTIME_ERROR });
+      }
+    });
+
+    timeoutRef.current = setTimeout(() => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        clearTimeout(ackIntervalRef.current);
+        dispatch({ type: 'TIMEOUT_CHECK' });
+      }
+    }, 30_000);
+  }, []);
+
+  return { status, errorMessage };
 }

@@ -1,4 +1,3 @@
-/// <reference types="chrome" />
 /// <reference lib="WebWorker" />
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { logger } from '@jetstream/shared/client-logger';
@@ -7,7 +6,7 @@ import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { z } from 'zod';
 
 export interface RequestOptions {
-  event: FetchEvent;
+  request: Request;
   params: Record<string, string>;
   // user: SalesforceOrgUi;
   jetstreamConn?: ApiConnection;
@@ -57,25 +56,28 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
   controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>
 ) {
   return async (req: RequestOptions) => {
-    const url = req.urlOverride || new URL(req.event.request.url);
+    const url = req.urlOverride || new URL(req.request.url);
     const queryParams = Object.fromEntries(url.searchParams.entries());
 
     let parsedBody: unknown = undefined;
 
-    if (req.event.request.body) {
-      if (req.event.request.headers.get('content-type') === 'application/json') {
-        parsedBody = await req.event.request.json();
+    if (req.request.method !== 'GET') {
+      if (req.request.headers.get('content-type') === 'application/json') {
+        try {
+          parsedBody = await req.request.json();
+        } catch (ex) {
+          // headers may not have been correct, just ignore and continue
+        }
       } else {
-        parsedBody = await req.event.request.text();
+        parsedBody = await req.request.text();
       }
     }
 
-    // const parsedBody = req.event.request.body ? await req.event.request.json() : undefined;
     try {
       logger.info(`Handling route ${url}`);
       const data = {
         params: params ? params.parse(req.params) : undefined,
-        body: body && req.event.request.body ? body.parse(parsedBody) : undefined,
+        body: body && parsedBody ? body.parse(parsedBody) : undefined,
         query: query ? query.parse(queryParams) : undefined,
         jetstreamConn: req.jetstreamConn,
         targetJetstreamConn: req.targetJetstreamConn,

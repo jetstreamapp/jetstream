@@ -26,12 +26,15 @@ https://github.com/robbederks/downzip
  */
 import { logger } from '@jetstream/shared/client-logger';
 import uniqueId from 'lodash/uniqueId';
+import { isBrowserExtension } from '../shared-browser-extension-helpers';
 
 export interface DownZipFile {
   name: string;
   downloadUrl: string;
   size: number;
 }
+
+const browser = globalThis['browser'] || globalThis['chrome'];
 
 const swScope = 'jetstream-download-zip';
 const TIMEOUT_MS = 5000;
@@ -42,8 +45,8 @@ const CMD_ACTIVE_DOWNLOADS = 'ACTIVE_DOWNLOADS';
 let downzip: DownZip;
 
 export async function getZipDownloadUrl(zipFileName: string, files: DownZipFile[]) {
-  // for chrome extensions, we want to re-initialize the DownZip class to reconnect to the service worker since it gets shut down after the first download
-  if (!downzip || globalThis.__IS_CHROME_EXTENSION__) {
+  // for browser extensions, we want to re-initialize the DownZip class to reconnect to the service worker since it gets shut down after the first download
+  if (!downzip || isBrowserExtension()) {
     downzip = new DownZip();
     await downzip.register();
   }
@@ -72,7 +75,7 @@ async function registerServiceWorker() {
  * A URL is generated and given to the service worker to listen to, and uses that to know what files to obtain
  */
 class DownZip {
-  private worker: ServiceWorker | ReturnType<typeof chrome.runtime.connect> | null;
+  private worker: ServiceWorker | ReturnType<typeof browser.runtime.connect> | null;
   private intervalTimers: any[] = [];
   private activeDownloads = new Set();
 
@@ -90,8 +93,8 @@ class DownZip {
         // When the download finishes, remove the interval timer
         // since the port is transferred to the worker, it can only be used once unless the worker kept track of it
 
-        if (globalThis.__IS_CHROME_EXTENSION__) {
-          const port = this.worker as ReturnType<typeof chrome.runtime.connect>;
+        if (globalThis.__IS_BROWSER_EXTENSION__) {
+          const port = this.worker as ReturnType<typeof browser.runtime.connect>;
           const eventHandler = (event: MessageEvent<any>) => {
             logger.log('[SW CLIENT][EVENT]', event.data);
             // when downloads finish, we remove our activeIds that we were tracking
@@ -144,8 +147,8 @@ class DownZip {
   }
 
   async register() {
-    if (globalThis.__IS_CHROME_EXTENSION__) {
-      this.worker = chrome.runtime.connect();
+    if (globalThis.__IS_BROWSER_EXTENSION__) {
+      this.worker = browser.runtime.connect();
     } else {
       // Register service worker and let it intercept our scope
       const result = await registerServiceWorker();
@@ -193,15 +196,16 @@ class DownZip {
 
     logger.log('Downloading as zip', { id, zipFileName, files });
 
-    if (globalThis.__IS_CHROME_EXTENSION__) {
+    if (globalThis.__IS_BROWSER_EXTENSION__) {
       return new Promise((resolve, reject) => {
-        const port = this.worker as ReturnType<typeof chrome.runtime.connect>;
+        const port = this.worker as ReturnType<typeof browser.runtime.connect>;
 
         this.sendMessage('INITIALIZE', { id, files, name: zipFileName });
 
         port.onMessage.addListener((message) => {
           if (message.command === CMD_ACKNOWLEDGE) {
-            resolve(`chrome-extension://${chrome.runtime.id}/download-zip/download-${id}`);
+            resolve(`${browser.runtime.getURL('')}download-zip/download-${id}`);
+
             port.disconnect();
           }
         });

@@ -43,7 +43,7 @@ const tiers = [
     description: 'Get the most out of Jetstream.',
     features: [
       'Everything in Free plan',
-      'Chrome Extension',
+      'Chrome and Firefox Extensions',
       'Save history across devices',
       'Save downloads to Google Drive',
       'Load data from Google Drive',

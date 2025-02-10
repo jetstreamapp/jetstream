@@ -13,7 +13,7 @@ import {
 import { test as base } from '@playwright/test';
 import { z } from 'zod';
 
-globalThis.__IS_CHROME_EXTENSION__ = false;
+globalThis.__IS_BROWSER_EXTENSION__ = false;
 
 // Ensure tests run via VSCode debugger are run from the root of the repo
 if (process.cwd().endsWith('/apps/jetstream-e2e')) {

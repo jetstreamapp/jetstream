@@ -1,12 +1,11 @@
-/// <reference types="chrome"/>
-import { SfdcPageButton } from './components/SfdcPageButton';
-import { AppWrapperNotJetstreamOwnedPage } from './core/AppWrapperNotJetstreamOwnedPage';
-import { initAndRenderReact } from './utils/web-extension.utils';
+import browser from 'webextension-polyfill';
+import { SfdcPageButton } from '../components/SfdcPageButton';
+import { AppWrapperNotJetstreamOwnedPage } from '../core/AppWrapperNotJetstreamOwnedPage';
+import { initAndRenderReact } from '../utils/web-extension.utils';
 
 const elementId = 'jetstream-app-container';
 
 function renderApp() {
-  // TODO: check storage to see if app is disabled before mounting
   if (!document.getElementById(elementId)) {
     const app = document.createElement('div');
     app.id = elementId;
@@ -27,15 +26,15 @@ function destroyApp() {
   }
 }
 
-chrome.storage.local.get('options', (storage: { options?: { enabled: boolean; recordSyncEnabled: boolean } }) => {
+browser.storage.local.get('options').then((storage: { options?: { enabled: boolean; recordSyncEnabled: boolean } }) => {
   if (!storage.options || storage.options.enabled) {
     renderApp();
   }
 });
 
-chrome.storage.onChanged.addListener((changes, area) => {
+browser.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.options?.newValue) {
-    const { enabled } = changes.options.newValue;
+    const { enabled } = changes.options.newValue as { enabled?: boolean };
     if (enabled) {
       renderApp();
     } else {

@@ -6,7 +6,7 @@ import 'dexie-observable';
 import 'dexie-syncable';
 
 /**
- * This library is intentionally kept very small to allow importing in chrome extension without importing the entire ui-core
+ * This library is intentionally kept very small to allow importing in browser extension without importing the entire ui-core
  */
 
 interface Migration {
@@ -30,7 +30,7 @@ export const SyncableTables = {
 
 const isChromeExtension = () => {
   try {
-    return !!window?.__IS_CHROME_EXTENSION__ || !!window?.chrome?.runtime?.id;
+    return !!window?.__IS_BROWSER_EXTENSION__ || !!window?.chrome?.runtime?.id;
   } catch (ex) {
     return false;
   }

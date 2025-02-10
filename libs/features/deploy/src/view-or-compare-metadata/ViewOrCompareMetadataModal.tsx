@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { isChromeExtension, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
@@ -26,7 +26,7 @@ export interface ViewOrCompareMetadataModalProps {
 
 export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClose }: ViewOrCompareMetadataModalProps) => {
   const { trackEvent } = useAmplitude();
-  const [chromeExtension] = useState(() => isChromeExtension());
+  const [chromeExtension] = useState(() => isBrowserExtension());
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const editorRef = useRef<editor.IStandaloneCodeEditor>();

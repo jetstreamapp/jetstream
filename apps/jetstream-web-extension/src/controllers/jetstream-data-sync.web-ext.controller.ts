@@ -1,4 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
+import browser from 'webextension-polyfill';
 import { z } from 'zod';
 import { environment } from '../environments/environment';
 import { ChromeStorageState } from '../utils/extension.types';
@@ -28,7 +29,7 @@ export const routeDefinition = {
 };
 
 async function getTokens() {
-  const { authTokens, extIdentifier } = (await chrome.storage.sync.get(['extIdentifier', 'authTokens'])) as Pick<
+  const { authTokens, extIdentifier } = (await browser.storage.sync.get(['extIdentifier', 'authTokens'])) as Pick<
     ChromeStorageState['sync'],
     'authTokens' | 'extIdentifier'
   >;

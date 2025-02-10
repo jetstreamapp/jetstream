@@ -1,4 +1,4 @@
-import { formatNumber, isChromeExtension } from '@jetstream/shared/ui-utils';
+import { formatNumber, isBrowserExtension } from '@jetstream/shared/ui-utils';
 import { DeployMetadataTableRow } from '@jetstream/types';
 import { AutoFullHeightContainer, DataTableSelectedContext, DataTree, Grid, Icon, SearchInput } from '@jetstream/ui';
 import groupBy from 'lodash/groupBy';
@@ -26,7 +26,7 @@ export const DeployMetadataDeploymentTable: FunctionComponent<DeployMetadataDepl
   onSelectedRows,
   onViewOrCompareOpen,
 }) => {
-  const [chromeExtension] = useState(() => isChromeExtension());
+  const [chromeExtension] = useState(() => isBrowserExtension());
   const [visibleRows, setVisibleRows] = useState<DeployMetadataTableRow[]>(rows);
   const [globalFilter, setGlobalFilter] = useState<string | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState(new Set<any>());

@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
-import { getChromeExtensionVersion, getOrgType, isChromeExtension, parseCookie } from '@jetstream/shared/ui-utils';
+import { getChromeExtensionVersion, getOrgType, isBrowserExtension, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   Announcement,
@@ -19,7 +19,7 @@ import localforage from 'localforage';
 import isString from 'lodash/isString';
 import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
-// FIXME: chrome extension should be able to obtain all of this information after logging in
+// FIXME: browser extension should be able to obtain all of this information after logging in
 const DEFAULT_PROFILE: UserProfileUi = {
   id: 'unknown',
   userId: 'unknown',
@@ -31,7 +31,7 @@ const DEFAULT_PROFILE: UserProfileUi = {
     skipFrontdoorLogin: true,
     recordSyncEnabled: true,
   },
-  // FIXME: we want these true for the chrome extension
+  // FIXME: we want these true for the browser extension
   entitlements: {
     googleDrive: false,
     chromeExtension: false,
@@ -89,7 +89,7 @@ async function getUserPreferences(): Promise<UserProfilePreferences> {
 
 async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   try {
-    const orgs = isChromeExtension() ? [] : await getOrgs();
+    const orgs = isBrowserExtension() ? [] : await getOrgs();
     return orgs || [];
   } catch (ex) {
     return [];
@@ -98,7 +98,7 @@ async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
 
 async function fetchJetstreamOrganizations(): Promise<JetstreamOrganization[]> {
   try {
-    const orgs = isChromeExtension() ? [] : await getJetstreamOrganizations();
+    const orgs = isBrowserExtension() ? [] : await getJetstreamOrganizations();
     return orgs || [];
   } catch (ex) {
     return [];
@@ -145,7 +145,7 @@ function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
 
 async function fetchAppVersion() {
   try {
-    return isChromeExtension() ? { version: getChromeExtensionVersion(), announcements: [] } : await checkHeartbeat();
+    return isBrowserExtension() ? { version: getChromeExtensionVersion(), announcements: [] } : await checkHeartbeat();
   } catch (ex) {
     return { version: 'unknown' };
   }
@@ -153,7 +153,7 @@ async function fetchAppVersion() {
 
 async function fetchUserProfile(): Promise<UserProfileUi> {
   // FIXME: this is a temporary fix to get the extension working, will want to fetch from server
-  const userProfile = isChromeExtension() ? DEFAULT_PROFILE : await getUserProfile();
+  const userProfile = isBrowserExtension() ? DEFAULT_PROFILE : await getUserProfile();
   return userProfile;
 }
 
@@ -179,7 +179,7 @@ export const appVersionState = atom<{ version: string; announcements?: Announcem
 
 export const isChromeExtensionState = selector<boolean>({
   key: 'isChromeExtensionState',
-  get: () => isChromeExtension(),
+  get: () => isBrowserExtension(),
 });
 
 export const userProfileState = atom<UserProfileUi>({
