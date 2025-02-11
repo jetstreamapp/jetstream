@@ -304,7 +304,7 @@ async function handleServerSyncResponse({ records, updatedAt }: PullResponse, ap
         const mods = getObjectDiffForDexie(data, existingRecordsById[key]);
         // FIXME: this is temporary - if the server modified the data, keep the server version
         // (NOTE: this likely is not needed anymore since we are backfilling the hashed key in the browser, but could happen before that migration happens)
-        if ('hashedKey' in mods.hashedKey && !mods.hashedKey) {
+        if ('hashedKey' in mods && !mods.hashedKey) {
           mods.hashedKey = data.hashedKey;
         }
         return { type: 2, table: entity, key, obj: data, mods, oldObj: existingRecordsById[key] } as IUpdateChange;
