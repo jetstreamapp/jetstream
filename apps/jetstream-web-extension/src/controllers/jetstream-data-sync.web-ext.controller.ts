@@ -3,7 +3,7 @@ import browser from 'webextension-polyfill';
 import { z } from 'zod';
 import { environment } from '../environments/environment';
 import { ChromeStorageState } from '../utils/extension.types';
-import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
+import { createRoute, handleErrorResponse } from './route.utils';
 
 export const MIN_PULL = 25;
 export const MAX_PULL = 100;
@@ -43,16 +43,14 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req)
   try {
     const { authTokens, extIdentifier } = await getTokens();
 
-    const results = await fetch(`${environment.serverUrl}/web-extension/data-sync/pull?${new URLSearchParams(query).toString()}`, {
+    return await fetch(`${environment.serverUrl}/web-extension/data-sync/pull?${new URLSearchParams(query).toString()}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: extIdentifier.id,
       },
-    }).then((res) => res.json().then(({ data }) => data));
-
-    return handleJsonResponse(results);
+    });
   } catch (ex) {
     return handleErrorResponse(ex);
   }
@@ -62,7 +60,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ query, body }
   try {
     const { authTokens, extIdentifier } = await getTokens();
 
-    const results = await fetch(`${environment.serverUrl}/web-extension/data-sync/push?${new URLSearchParams(query).toString()}`, {
+    return await fetch(`${environment.serverUrl}/web-extension/data-sync/push?${new URLSearchParams(query).toString()}`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -71,9 +69,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ query, body }
         [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: extIdentifier.id,
       },
       body: JSON.stringify(body),
-    }).then((res) => res.json().then(({ data }) => data));
-
-    return handleJsonResponse(results);
+    });
   } catch (ex) {
     return handleErrorResponse(ex);
   }

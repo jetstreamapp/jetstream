@@ -7,7 +7,7 @@ const webpack = require('webpack');
 
 // @ts-expect-error withReact is complaining about the type of the config - but works on some machines just fine
 module.exports = composePlugins(withNx(), withReact(), (config, { configuration }) => {
-  const isDev = config.mode === 'development';
+  const isDev = configuration === 'development';
   config.devtool = isDev ? 'inline-source-map' : false;
 
   config.entry = {

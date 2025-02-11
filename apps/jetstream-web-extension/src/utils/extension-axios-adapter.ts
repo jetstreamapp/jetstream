@@ -12,8 +12,9 @@ export async function browserExtensionAxiosAdapter(config: InternalAxiosRequestC
   if (!sfHost) {
     throw new AxiosError('No Salesforce host found in URL');
   }
-  const { headers, data, method, params, timeout } = config;
+  const { headers, data, method, timeout } = config;
 
+  // This gets modified
   const axiosResponse: AxiosResponse = {
     data: undefined,
     headers: {},
@@ -24,10 +25,7 @@ export async function browserExtensionAxiosAdapter(config: InternalAxiosRequestC
   };
 
   try {
-    const url = `${window.location.origin}${config.url || '/'}?${new URLSearchParams(
-      params ? JSON.parse(JSON.stringify(params)) : params
-    ).toString()}`;
-
+    const url = getUrl(config);
     const request = new Request(url, {
       method: method?.toUpperCase() ?? 'GET',
       headers: headers.normalize(false).toJSON() as HeadersInit,
@@ -71,13 +69,32 @@ export async function browserExtensionAxiosAdapter(config: InternalAxiosRequestC
   }
 }
 
+function getUrl(config: InternalAxiosRequestConfig) {
+  const params = new URLSearchParams();
+  if (config.params) {
+    Object.entries(config.params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '' || Number.isNaN(value)) {
+        return;
+      }
+      if (value instanceof Date) {
+        value = value.toISOString();
+      } else if (!Array.isArray(value) && typeof value === 'object') {
+        value = JSON.stringify(value);
+      }
+      params.append(key, String(value));
+    });
+  }
+  const url = `${window.location.origin}${config.url || '/'}?${params.toString()}`;
+  return url;
+}
+
 async function getAxiosResponse(
   config: InternalAxiosRequestConfig,
   request: Request,
   response: Response,
   axiosResponse: Partial<AxiosResponse>
 ): Promise<AxiosResponse> {
-  axiosResponse.data = getResponseBody(response);
+  axiosResponse.data = await getResponseBody(response);
   axiosResponse.status = response.status;
   axiosResponse.statusText = response.statusText;
   axiosResponse.headers = AxiosHeaders.from(response.headers as any);
@@ -105,12 +122,12 @@ async function throwAxiosNotFoundResponse(
   throw new AxiosError('Request failed with status code ' + 404, 'ERR_BAD_REQUEST', config, request, axiosResponse as AxiosResponse);
 }
 
-function getResponseBody(response: Response) {
+async function getResponseBody(response: Response) {
   if (!response.body) {
     return response.body;
   }
   if (response.headers.get('content-type')?.includes('application/json')) {
-    return response.json();
+    return await response.json();
   }
-  return response.text();
+  return await response.text();
 }

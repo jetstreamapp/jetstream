@@ -74,7 +74,6 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     }
 
     try {
-      logger.info(`Handling route ${url}`);
       const data = {
         params: params ? params.parse(req.params) : undefined,
         body: body && parsedBody ? body.parse(parsedBody) : undefined,

@@ -1,12 +1,11 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { convertUserProfileToSession } from '@jetstream/auth/server';
-import { UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { SocketEvent } from '@jetstream/types';
 import { createAdapter } from '@socket.io/cluster-adapter';
 import { setupWorker } from '@socket.io/sticky';
 import * as express from 'express';
-import { IncomingMessage, createServer } from 'http';
+import { createServer } from 'http';
 import { nanoid } from 'nanoid';
 import cluster from 'node:cluster';
 import { Server } from 'socket.io';
@@ -15,31 +14,6 @@ import * as webExtensionService from '../services/auth-web-extension.service';
 import { Request, Response } from '../types/types';
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
-
-function getUser(request: IncomingMessage) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = (request as any)?.session?.user as UserProfileSession | undefined;
-  return user;
-}
-
-async function getWebExtensionUser(request: IncomingMessage) {
-  if (!request.headers.origin?.startsWith(`chrome-extension://`) && !request.headers.origin?.startsWith(`moz-extension://`)) {
-    return;
-  }
-  const authorizationHeader = request.headers[HTTP.HEADERS.AUTHORIZATION.toLowerCase()] as string;
-  const deviceId = request.headers[HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID.toLowerCase()] as string;
-  if (!authorizationHeader || !deviceId || !authorizationHeader.startsWith('Bearer ')) {
-    return;
-  }
-  const accessToken = authorizationHeader.split(' ')[1];
-  const user = await webExtensionService
-    .verifyToken({ token: accessToken, deviceId })
-    .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile));
-
-  (request as any).session = { ...(request as any).session, user, deviceId };
-
-  return user;
-}
 
 export function emitSocketEvent({
   userId,
@@ -88,30 +62,6 @@ export function initSocketServer(
     //       secure: environment.production,
     //       sameSite: 'strict',
     //     },
-    allowRequest: async (req, callback) => {
-      try {
-        // normal session
-        let user = getUser(req);
-        if (user) {
-          callback(null, true);
-          return;
-        }
-        // web-extension session
-        user = await getWebExtensionUser(req);
-        if (user) {
-          callback(null, true);
-          return;
-        }
-        // Unauthorized
-        logger.warn('[SOCKET][ERROR] unauthorized');
-        callback('Unauthorized', false);
-        return;
-      } catch (ex) {
-        logger.warn('[SOCKET][ERROR] error authorizing', ex);
-        callback('Unauthorized', false);
-        return;
-      }
-    },
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   io.engine.generateId = (...args: unknown[]) => {
@@ -132,6 +82,35 @@ export function initSocketServer(
       next();
     } else {
       middlewareFns.sessionMiddleware(req, res, next);
+    }
+  });
+
+  io.use((socket, next) => {
+    if (
+      socket.handshake.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
+      socket.handshake.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
+    ) {
+      const authorizationHeader = socket.handshake.auth[HTTP.HEADERS.AUTHORIZATION] as string;
+      const deviceId = socket.handshake.auth[HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID] as string;
+
+      if (!authorizationHeader || !deviceId) {
+        return next(new Error('Unauthorized'));
+      }
+
+      const accessToken = authorizationHeader.split(' ')[1];
+      webExtensionService
+        .verifyToken({ token: accessToken, deviceId })
+        .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile))
+        .then((user) => {
+          (socket.request as any).session = { ...(socket.request as any).session, user, deviceId };
+          next();
+        })
+        .catch((err) => {
+          logger.error({ ...getExceptionLog(err) }, '[SOCKET] Error verifying token');
+          next(new Error('Unauthorized'));
+        });
+    } else {
+      next();
     }
   });
 
