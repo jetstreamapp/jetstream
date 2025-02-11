@@ -1,8 +1,7 @@
-/// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
-import { getChromeExtensionVersion, getOrgType, isBrowserExtension, parseCookie } from '@jetstream/shared/ui-utils';
+import { getBrowserExtensionVersion, getOrgType, isBrowserExtension, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   Announcement,
@@ -145,7 +144,7 @@ function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
 
 async function fetchAppVersion() {
   try {
-    return isBrowserExtension() ? { version: getChromeExtensionVersion(), announcements: [] } : await checkHeartbeat();
+    return isBrowserExtension() ? { version: getBrowserExtensionVersion(), announcements: [] } : await checkHeartbeat();
   } catch (ex) {
     return { version: 'unknown' };
   }

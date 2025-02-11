@@ -195,7 +195,6 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
       results = await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type);
     }
 
-    // Read the entire stream into a single Uint8Array
     const reader = results.getReader();
     const chunks: Uint8Array[] = [];
     let done = false;

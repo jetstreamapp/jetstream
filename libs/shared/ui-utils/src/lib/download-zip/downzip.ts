@@ -205,7 +205,6 @@ class DownZip {
         port.onMessage.addListener((message) => {
           if (message.command === CMD_ACKNOWLEDGE) {
             resolve(`${browser.runtime.getURL('')}download-zip/download-${id}`);
-
             port.disconnect();
           }
         });

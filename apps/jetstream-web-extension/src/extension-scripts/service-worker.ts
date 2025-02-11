@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 /**
- * Some parts of this file are based on the Salesforce Inspector extension for browser. (MIT license)
+ * Some parts of this file are based on the Salesforce Inspector extension for Chrome. (MIT license)
  * Credit: https://github.com/sorenkrabbe/Chrome-Salesforce-inspector/blob/master/addon/background.js
  */
 /// <reference lib="WebWorker" />
@@ -227,10 +227,6 @@ async function setConnection(key: string, data: OrgAndSessionInfo) {
   await browser.storage.session.set({ connections });
 }
 
-browser.runtime.onMessage.addListener((a: Message['request'], sender, sendResponse) => {
-  return true;
-});
-
 browser.runtime.onMessage.addListener(
   (
     request: Message['request'],
@@ -298,12 +294,11 @@ browser.runtime.onMessage.addListener(
         if ('uniqueId' in request.data) {
           handleResponse(getConnection(request.data.uniqueId, sender), sendResponse);
           return; // synchronous response
-        } else {
-          getConnectionFromHost(request.data.sfHost, sender)
-            .then((data) => handleResponse(data, sendResponse))
-            .catch(handleError(sendResponse));
-          return true; // indicate that sendResponse will be called asynchronously
         }
+        getConnectionFromHost(request.data.sfHost, sender)
+          .then((data) => handleResponse(data, sendResponse))
+          .catch(handleError(sendResponse));
+        return true; // indicate that sendResponse will be called asynchronously
       }
       default:
         logger.warn(`Unknown message`, request);
@@ -382,7 +377,6 @@ async function handleGetExternalIdentifier(sender: browser.Runtime.MessageSender
     storageSyncCache.extIdentifier = result.extIdentifier;
   }
   if (!result.extIdentifier?.id) {
-    // FIXME: return some error message identifier
     throw new Error('Could not get or initialize extension identifier');
   }
   logger.info('Extension identifier', result.extIdentifier.id);

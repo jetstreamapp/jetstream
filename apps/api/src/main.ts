@@ -195,7 +195,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             "'sha256-AS526U4qXJy7/SohgsysWUxi77DtcgSmP0hNfTo6/Hs='", // Google Analytics (Docs)
             "'sha256-pOkCIUf8FXwCoKWPXTEJAC2XGbyg3ftSrE+IES4aqEY='", // Google Analytics (Next/React)
             "'sha256-7mNBpJaHD4L73RpSf1pEaFD17uW3H/9+P1AYhm+j/Dg='", // Monaco unhandledrejection script
-            "'sha256-djX4iruGclmwOFqyJyEvkkFU0dkSDNqkDpKOJMUO70E='", // __IS_BROWSER_EXTENSION__ script
+            "'sha256-U1ZWk/Nvev4hBoGjgXSP/YN1w4VGTmd4NTYtXEr58xI='", // __IS_BROWSER_EXTENSION__ script
             'blob:',
             '*.google.com',
             '*.gstatic.com',
@@ -236,39 +236,37 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(httpLogger);
 
   // Handle CORS for web extension routes
-  if (ENV.WEB_EXTENSION_ID_CHROME) {
-    const allowedHeaders = [
-      HTTP.HEADERS.ACCEPT,
-      HTTP.HEADERS.CONTENT_TYPE,
-      HTTP.HEADERS.AUTHORIZATION,
-      HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
-    ].join(', ');
-    app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if (
-        req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
-        req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
-      ) {
-        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
-      }
-      next();
-    });
+  const allowedHeaders = [
+    HTTP.HEADERS.ACCEPT,
+    HTTP.HEADERS.CONTENT_TYPE,
+    HTTP.HEADERS.AUTHORIZATION,
+    HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
+  ].join(', ');
+  app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (
+      (ENV.WEB_EXTENSION_ID_CHROME && req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`) ||
+      (ENV.WEB_EXTENSION_ID_MOZILLA && req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`)
+    ) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
+    }
+    next();
+  });
 
-    app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if (
-        req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
-        req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
-      ) {
-        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
-        res.sendStatus(200);
-        return;
-      }
-      next();
-    });
-  }
+  app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (
+      (ENV.WEB_EXTENSION_ID_CHROME && req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`) ||
+      (ENV.WEB_EXTENSION_ID_MOZILLA && req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`)
+    ) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
+      res.sendStatus(200);
+      return;
+    }
+    next();
+  });
 
   // proxy must be provided prior to body parser to ensure streaming response
   if (ENV.ENVIRONMENT === 'development') {

@@ -23,7 +23,7 @@ function getUser(request: IncomingMessage) {
 }
 
 async function getWebExtensionUser(request: IncomingMessage) {
-  if (request.headers.origin?.startsWith(`chrome-extension://`) || request.headers.origin?.startsWith(`moz-extension://`)) {
+  if (!request.headers.origin?.startsWith(`chrome-extension://`) && !request.headers.origin?.startsWith(`moz-extension://`)) {
     return;
   }
   const authorizationHeader = request.headers[HTTP.HEADERS.AUTHORIZATION.toLowerCase()] as string;

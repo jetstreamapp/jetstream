@@ -1,4 +1,5 @@
 // FIXME: we should try to minimize the dependencies in the web extension - this pulls in chevrotain and a bunch of other stuff
+// Maybe we can split some code into multiple libraries?
 /* eslint-disable no-restricted-globals */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
