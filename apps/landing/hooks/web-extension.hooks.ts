@@ -2,6 +2,9 @@ import type { Maybe } from '@jetstream/types';
 import { useEffect, useReducer, useRef } from 'react';
 import { ENVIRONMENT } from '../utils/environment';
 
+// FIXME: delete this after some time when the prior extension versions are no longer in use
+const webExtensionId = 'nhahnhcpbhlkmpkdgbbadffnhblhlomm';
+
 /**
  * DATA FLOW:
  * Page --> Content Script: ACKNOWLEDGE (every 500ms until ACKNOWLEDGE_RESPONSE or timeout - used to know for sure that we have communication with the content script)
@@ -63,8 +66,7 @@ async function fetchTokens(deviceId: string) {
     throw new Error(ERROR_MESSAGES.UNKNOWN_ERROR);
   }
 
-  // Provide tokens to the extension
-  window.postMessage({ message: EVENT_MAP.TOKEN_EXCHANGE, accessToken: tokens }, window.location.origin);
+  return tokens;
 }
 
 type Action =
@@ -132,7 +134,7 @@ export function useWebExtensionState() {
   const ackIntervalRef = useRef<any>(null);
 
   const [{ status, isAcknowledged, errorMessage }, dispatch] = useReducer(reducer, {
-    status: 'idle',
+    status: 'loading',
     isAcknowledged: false,
   });
 
@@ -151,6 +153,45 @@ export function useWebExtensionState() {
   }, []);
 
   useEffect(() => {
+    /**
+     * FIXME:: TEMPORARY
+     * This code is the prior implementation and is here for backwards compatibility with older version of the chrome extension
+     */
+    try {
+      dispatch({ type: 'LOADING' });
+      if (chrome?.runtime) {
+        chrome?.runtime?.sendMessage(webExtensionId, { type: 'EXT_IDENTIFIER' }, (response) => {
+          clearTimeout(timeoutRef.current);
+          clearTimeout(ackIntervalRef.current);
+          if (!response || !response.success || !response.data) {
+            dispatch({ type: 'ERROR', message: ERROR_MESSAGES.RUNTIME_ERROR });
+          } else {
+            fetchTokens(response.data)
+              .then((accessToken) => {
+                dispatch({ type: 'SUCCESS' });
+                chrome.runtime.sendMessage(webExtensionId, { type: 'TOKENS', data: accessToken }, (response) => {
+                  if (!response.success) {
+                    console.error('Token delivery failed');
+                    dispatch({ type: 'ERROR', message: ERROR_MESSAGES.EXT_COMM_ERROR });
+                  }
+                });
+              })
+              .catch((err) => {
+                if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {
+                  dispatch({ type: 'ERROR', message: err.message });
+                } else {
+                  dispatch({ type: 'ERROR', message: ERROR_MESSAGES.UNKNOWN_ERROR });
+                }
+              });
+          }
+        });
+      }
+    } catch (ex) {
+      console.warn('There was an error communicating with the extension', ex);
+    }
+  }, []);
+
+  useEffect(() => {
     dispatch({ type: 'LOADING' });
     window.addEventListener('message', (event) => {
       if (event.source !== window || event.origin !== window.location.origin) {
@@ -164,13 +205,18 @@ export function useWebExtensionState() {
         if (!response.success) {
           dispatch({ type: 'ERROR', message: ERROR_MESSAGES.RUNTIME_ERROR });
         } else {
-          fetchTokens(response.deviceId).catch((err) => {
-            if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {
-              dispatch({ type: 'ERROR', message: err.message });
-            } else {
-              dispatch({ type: 'ERROR', message: ERROR_MESSAGES.UNKNOWN_ERROR });
-            }
-          });
+          fetchTokens(response.deviceId)
+            .then((accessToken) => {
+              // Provide tokens to the extension
+              window.postMessage({ message: EVENT_MAP.TOKEN_EXCHANGE, accessToken }, window.location.origin);
+            })
+            .catch((err) => {
+              if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {
+                dispatch({ type: 'ERROR', message: err.message });
+              } else {
+                dispatch({ type: 'ERROR', message: ERROR_MESSAGES.UNKNOWN_ERROR });
+              }
+            });
         }
       } else if (response?.message === EVENT_MAP.TOKEN_EXCHANGE_RESPONSE) {
         clearTimeout(timeoutRef.current);
