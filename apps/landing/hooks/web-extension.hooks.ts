@@ -159,6 +159,7 @@ export function useWebExtensionState() {
      */
     try {
       dispatch({ type: 'LOADING' });
+      const chrome = globalThis.chrome;
       if (chrome?.runtime) {
         chrome?.runtime?.sendMessage(webExtensionId, { type: 'EXT_IDENTIFIER' }, (response) => {
           clearTimeout(timeoutRef.current);
