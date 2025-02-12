@@ -135,7 +135,7 @@ export const MassUpdateRecordsDeployment = () => {
             hasError={!!batchSizeError}
             errorMessageId="batch-size-error"
             errorMessage={batchSizeError}
-            labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
+            labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
           >
             <input
               id="batch-size"
