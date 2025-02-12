@@ -212,7 +212,8 @@ const envSchema = z.object({
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
 
-  WEB_EXTENSION_ID: z.string().optional().default(''),
+  WEB_EXTENSION_ID_CHROME: z.string().optional().default(''),
+  WEB_EXTENSION_ID_MOZILLA: z.string().optional().default(''),
   /**
    * STRIPE
    */

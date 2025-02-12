@@ -7,13 +7,11 @@ import { $, chalk, fs } from 'zx'; // https://github.com/google/zx
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['help'],
-  string: ['version'],
   default: {
     help: false,
   },
   alias: {
     h: 'help',
-    v: 'version',
   },
 });
 
@@ -25,21 +23,14 @@ if (argv.help) {
     node scripts/web-extension-zip.mjs --version <version>
 
     Options:
-      -c, --version version number to use for zip file
       -h, --help    display help for command
   `);
   process.exit(0);
 }
 
-const version = argv.version;
-if (!version) {
-  console.error(chalk.red('--version must be provided'));
-  process.exit(1);
-}
-
 const ZIP_INPUT_DIR = join(process.cwd(), 'dist/apps/jetstream-web-extension');
 const OUTPUT_DIR = join(process.cwd(), 'dist/web-extension-build');
-const OUTPUT_FILENAME = `web-ext-${version}.zip`;
+const OUTPUT_FILENAME = `web-extension.zip`;
 const OUTPUT_PATH = join(OUTPUT_DIR, OUTPUT_FILENAME);
 
 async function main() {

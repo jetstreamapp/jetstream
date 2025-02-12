@@ -19,7 +19,9 @@ export function initSocket(serverUrl?: string, additionalHeaders?: Record<string
       rememberUpgrade: true,
       withCredentials: true,
       extraHeaders: additionalHeaders,
+      auth: additionalHeaders,
       transports,
+      tryAllTransports: true,
     });
   } else {
     socket = io({

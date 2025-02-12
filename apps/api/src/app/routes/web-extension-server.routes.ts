@@ -91,7 +91,7 @@ routes.get('/init', LAX_AuthRateLimit, webExtensionController.routeDefinition.in
 
 // API endpoint that /init calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
 routes.get('/session', STRICT_2X_AuthRateLimit, webExtensionController.routeDefinition.initSession.controllerFn());
-// Validate authentication status from chrome extension
+// Validate authentication status from browser extension
 routes.post('/verify', STRICT_AuthRateLimit, webExtensionController.routeDefinition.verifyTokens.controllerFn());
 routes.delete('/logout', STRICT_AuthRateLimit, webExtensionController.routeDefinition.logout.controllerFn());
 

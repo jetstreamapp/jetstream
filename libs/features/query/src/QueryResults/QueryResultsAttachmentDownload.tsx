@@ -7,6 +7,7 @@ import {
   getFilename,
   getOrgUrlParams,
   getZipDownloadUrl,
+  isBrowserExtension,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -72,6 +73,11 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
 
   useEffect(() => {
     setVisible(FILE_DOWNLOAD_FIELD_MAP.has(sobjectName || '') && hasRecords);
+    if (isBrowserExtension()) {
+      setDisabled(true);
+      setDisabledReason('This is not yet supported in the browser extension');
+      return;
+    }
     if (selectedRecords.length && !missingFields?.length) {
       setDisabled(false);
       setDisabledReason('');

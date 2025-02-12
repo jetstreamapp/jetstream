@@ -1,5 +1,6 @@
 import { Grid, Input } from '@jetstream/ui';
 import { useState } from 'react';
+import browser from 'webextension-polyfill';
 import '../sfdc-styles-shim.scss';
 
 interface SfdcPageButtonRecordSearchProps {
@@ -16,14 +17,14 @@ export function SfdcPageButtonRecordSearch({ sfHost }: SfdcPageButtonRecordSearc
     if (!isValidRecordId) {
       return;
     }
-    window.open(`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`, '_blank');
+    window.open(`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`, '_blank');
   }
 
   function handleEditRecord() {
     if (!isValidRecordId) {
       return;
     }
-    window.open(`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`, '_blank');
+    window.open(`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`, '_blank');
   }
 
   return (

@@ -2,6 +2,7 @@ import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Grid, RadioButton, RadioGroup, Slider } from '@jetstream/ui';
 import { useMemo, useState } from 'react';
 import { useRecoilValue } from 'recoil';
+import browser from 'webextension-polyfill';
 import { chromeSyncStorage } from '../utils/extension.store';
 import { ButtonPosition, DEFAULT_BUTTON_POSITION } from '../utils/extension.types';
 
@@ -30,7 +31,7 @@ export function PopupButtonOptions() {
   const currentButtonPositionDebounced = useDebounce(currentButtonPosition, 500);
 
   useNonInitialEffect(() => {
-    chrome.storage.sync.set({ buttonPosition: currentButtonPositionDebounced }).catch((ex) => {
+    browser.storage.sync.set({ buttonPosition: currentButtonPositionDebounced }).catch((ex) => {
       console.warn('Error setting button position', ex);
     });
   }, [currentButtonPositionDebounced]);

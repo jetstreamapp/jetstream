@@ -27,7 +27,7 @@ const personas = [
   },
   {
     name: 'ISVs',
-    description: `Leverage the Jetstream Chrome Extension to use the full power of Jetstream in your customer orgs to troubleshoot issues effortlessly. Jetstream simplifies ISV support.`,
+    description: `Leverage the Jetstream browser extension to use the full power of Jetstream in your customer orgs to troubleshoot issues effortlessly. Jetstream simplifies ISV support.`,
     icon: BuildingOfficeIcon,
   },
   {

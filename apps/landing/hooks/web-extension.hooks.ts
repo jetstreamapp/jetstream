@@ -1,7 +1,9 @@
-import { parseCookie } from '@jetstream/shared/ui-utils';
 import type { Maybe } from '@jetstream/types';
 import { useEffect, useReducer, useRef } from 'react';
 import { ENVIRONMENT } from '../utils/environment';
+
+// FIXME: delete this after some time when the prior extension versions are no longer in use
+const webExtensionId = 'nhahnhcpbhlkmpkdgbbadffnhblhlomm';
 
 /**
  * DATA FLOW:
@@ -152,13 +154,13 @@ export function useWebExtensionState() {
 
   useEffect(() => {
     /**
-     * TEMPORARY
+     * FIXME:: TEMPORARY
      * This code is the prior implementation and is here for backwards compatibility with older version of the chrome extension
      */
     try {
       dispatch({ type: 'LOADING' });
-      const webExtensionId = parseCookie<string>('WEB_EXTENSION_ID');
-      if (chrome?.runtime && webExtensionId) {
+      const chrome = globalThis.chrome;
+      if (chrome?.runtime) {
         chrome?.runtime?.sendMessage(webExtensionId, { type: 'EXT_IDENTIFIER' }, (response) => {
           clearTimeout(timeoutRef.current);
           clearTimeout(ackIntervalRef.current);

@@ -156,7 +156,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       navigate('', { replace: true, state: window.history.state.state });
       return;
     }
-    // Fallback to session state if browser history is not available (e.g. chrome extension)
+    // Fallback to session state if browser history is not available (e.g. browser extension)
     try {
       const potentialState = JSON.parse(sessionStorage.getItem('query') || '');
       if (isString(potentialState.soql)) {

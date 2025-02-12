@@ -1,4 +1,6 @@
 /* eslint-disable no-restricted-globals */
+import '../../utils/extension-public-path';
+
 import { AnonymousApex } from '@jetstream/feature/anon-apex';
 import { AutomationControl, AutomationControlEditor, AutomationControlSelection } from '@jetstream/feature/automation-control';
 import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jetstream/feature/create-object-and-fields';

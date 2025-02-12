@@ -43,7 +43,18 @@ export interface ChromeStorageState {
   };
 }
 
-export type Message = Logout | VerifyAuth | ToggleExtension | GetSfHost | GetSession | GetPageUrl | InitOrg | ApiAction | GetCurrentOrg;
+export type Message =
+  | ExternalIdentifier
+  | TokenExchange
+  | Logout
+  | VerifyAuth
+  | ToggleExtension
+  | GetSfHost
+  | GetSession
+  | GetPageUrl
+  | InitOrg
+  | GetOrgConnection;
+
 export type MessageRequest = Message['request'];
 
 export interface ResponseError {
@@ -59,6 +70,27 @@ export interface MessageResponse<T extends Message['response'] = Message['respon
 export interface SessionInfo {
   hostname: string;
   key: string;
+}
+
+export interface ExternalIdentifier {
+  request: {
+    message: 'EXT_IDENTIFIER';
+  };
+  response: {
+    success: boolean;
+    deviceId: string;
+  };
+}
+
+export interface TokenExchange {
+  request: {
+    message: 'TOKEN_EXCHANGE';
+    data: { accessToken: string };
+  };
+  response: {
+    success: boolean;
+    error?: Maybe<string>;
+  };
 }
 
 export interface Logout {
@@ -123,19 +155,10 @@ export interface InitOrg {
   response: { org: SalesforceOrgUi };
 }
 
-// Allows calling API routes from Salesforce pages
-export interface ApiAction {
-  request: {
-    message: 'API_ACTION';
-    data: { sfHost: string; method: string; pathname: string; queryParams?: URLSearchParams; body?: any };
-  };
-  response: { data: unknown };
-}
-
-export interface GetCurrentOrg {
+export interface GetOrgConnection {
   request: {
     message: 'GET_CURRENT_ORG';
-    data: { sfHost: string };
+    data: { sfHost: string } | { uniqueId: string };
   };
   response: OrgAndSessionInfo;
 }

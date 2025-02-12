@@ -13,7 +13,7 @@ export const MAX_PULL = 100;
 export const MAX_SYNC = 50;
 
 /**
- * FIXME: After browser and chrome extension get updated, remove server-side hashing
+ * FIXME: After browser and browser extension get updated, remove server-side hashing
  */
 export const hashRecordSyncKey = (key: string): string => {
   return crypto.createHash('SHA1').update(key).digest('hex');

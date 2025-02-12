@@ -1,3 +1,5 @@
+// FIXME: we should try to minimize the dependencies in the web extension - this pulls in chevrotain and a bunch of other stuff
+// Maybe we can split some code into multiple libraries?
 /* eslint-disable no-restricted-globals */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
@@ -8,6 +10,7 @@ import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useEffect, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
+import browser from 'webextension-polyfill';
 import '../sfdc-styles-shim.scss';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
@@ -268,7 +271,7 @@ export function SfdcPageButton() {
             `}
           >
             <a
-              href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}`}
+              href={`${browser.runtime.getURL('app.html')}?host=${sfHost}`}
               css={css`
                 width: 100%;
                 margin-bottom: 0;
@@ -311,7 +314,7 @@ export function SfdcPageButton() {
                       {PAGE_LINKS.map((item) => (
                         <GridCol key={item.link} className="slds-m-bottom_x-small" css={ItemColStyles}>
                           <a
-                            href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent(item.link)}`}
+                            href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent(item.link)}`}
                             className="slds-button slds-button_neutral slds-button_stretch"
                             target="_blank"
                             rel="noreferrer"
@@ -328,7 +331,7 @@ export function SfdcPageButton() {
                         <>
                           <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
                             <a
-                              href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
+                              href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`}
                               className="slds-button slds-button_neutral slds-button_stretch"
                               target="_blank"
                               rel="noreferrer"
@@ -339,7 +342,7 @@ export function SfdcPageButton() {
                           </GridCol>
                           <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
                             <a
-                              href={`${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`}
+                              href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=EDIT_RECORD&actionValue=${recordId}`}
                               className="slds-button slds-button_neutral slds-button_stretch"
                               target="_blank"
                               rel="noreferrer"

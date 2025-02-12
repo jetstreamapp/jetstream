@@ -13,7 +13,7 @@ const config = {
   coverageReporters: ['html'],
   globals: {
     ...nxPreset.globals,
-    __IS_CHROME_EXTENSION__: false,
+    __IS_BROWSER_EXTENSION__: false,
   },
 };
 

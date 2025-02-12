@@ -22,9 +22,9 @@ export const WelcomeToProEmail = () => (
         <Section style={{ marginTop: 16, marginBottom: 16 }}>
           <Section>
             <Row>
-              <Text style={mainHeading}>Chrome Extension</Text>
+              <Text style={mainHeading}>Browser Extension</Text>
               <Text style={SectionDetail}>
-                Get the fastest access to Jetstream directly from Salesforce by installing the Chrome Extension.
+                Get the fastest access to Jetstream directly from Salesforce by installing the browser extension.
               </Text>
             </Row>
           </Section>
@@ -33,10 +33,10 @@ export const WelcomeToProEmail = () => (
             <Row>
               <Text style={mainHeading}>History Sync</Text>
               <Text style={SectionDetail}>
-                Synchronize your Query History and Saved Load Mappings across all your devices and the Chrome Extension!
+                Synchronize your Query History and Saved Load Mappings across all your devices and the browser extension!
               </Text>
               <Text style={SectionDetail}>
-                <strong>Note:</strong> This setting is opt-in for the Chrome Extension. Enable it in the extension settings to share your
+                <strong>Note:</strong> This setting is opt-in for the browser extension. Enable it in the extension settings to share your
                 data through the Jetstream server.
               </Text>
             </Row>

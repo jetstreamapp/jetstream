@@ -1,6 +1,7 @@
 type RouteKey =
   | 'HOME'
   | 'CHROME_EXTENSION'
+  | 'FIREFOX_EXTENSION'
   | 'ORGANIZATIONS'
   | 'QUERY'
   | 'LOAD'
@@ -34,10 +35,10 @@ type RouteMap = Record<RouteKey, RouteItem>;
 
 function getRoutePath(path: string): Pick<RouteItem, 'ROUTE' | 'SEARCH_PARAM'> {
   /**
-   * In order for chrome extension pages to be able to be opened in a new tab
+   * In order for browser extension pages to be able to be opened in a new tab
    * we provide placeholder pages for all routes with extension so we can redirect back to app
    */
-  if (globalThis.__IS_CHROME_EXTENSION__) {
+  if (globalThis.__IS_BROWSER_EXTENSION__) {
     const searchParams = new URLSearchParams(globalThis?.location?.search);
     searchParams.set('url', path);
     return {
@@ -60,9 +61,17 @@ export const APP_ROUTES: RouteMap = {
   CHROME_EXTENSION: {
     ROUTE: 'https://chromewebstore.google.com/detail/jetstream/nhahnhcpbhlkmpkdgbbadffnhblhlomm',
     SEARCH_PARAM: undefined,
-    DOCS: 'https://docs.getjetstream.app/chrome-extension',
+    DOCS: 'https://docs.getjetstream.app/browser-extension',
     TITLE: 'Chrome Extension',
     DESCRIPTION: 'Use Jetstream on any Salesforce page with the Chrome Extension',
+    NEW_UNTIL: new Date(2025, 7, 31, 23, 59, 59).getTime(), // July 31, 2025
+  },
+  FIREFOX_EXTENSION: {
+    ROUTE: '', // FIXME: we need this to include a link to the firefox extension
+    SEARCH_PARAM: undefined,
+    DOCS: 'https://docs.getjetstream.app/browser-extension',
+    TITLE: 'Firefox Extension',
+    DESCRIPTION: 'Use Jetstream on any Salesforce page with the Firefox Extension',
     NEW_UNTIL: new Date(2025, 7, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   ORGANIZATIONS: {

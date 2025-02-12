@@ -1,6 +1,7 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
+import browser from 'webextension-polyfill';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 
@@ -22,8 +23,8 @@ export const useExtensionSettings = () => {
   useNonInitialEffect(() => {
     (async () => {
       try {
-        const options = await chrome.storage.local.get('options');
-        await chrome.storage.local.set({ options: { ...options, enabled, recordSyncEnabled } });
+        const options = await browser.storage.local.get('options');
+        await browser.storage.local.set({ options: { ...options, enabled, recordSyncEnabled } });
       } catch (ex) {
         console.warn('Error setting options', ex);
       }

@@ -1,5 +1,8 @@
+import '../../utils/extension-public-path';
+
 import { css } from '@emotion/react';
 import { CheckboxToggle, FeedbackLink, Grid, ScopedNotification } from '@jetstream/ui';
+import browser from 'webextension-polyfill';
 import JetstreamIcon from '../../components/icons/JetstreamIcon';
 import JetstreamLogo from '../../components/icons/JetstreamLogo';
 import { PopupButtonOptions } from '../../components/PopupButtonOptions';
@@ -74,7 +77,7 @@ export function Component() {
             <hr className="slds-m-vertical_small" />
             <PopupButtonOptions />
             <hr className="slds-m-vertical_small" />
-            <a href={`${chrome.runtime.getURL('additional-settings.html')}`} className="slds-button" target="_blank" rel="noreferrer">
+            <a href={`${browser.runtime.getURL('additional-settings.html')}`} className="slds-button" target="_blank" rel="noreferrer">
               Additional Settings
             </a>
           </>

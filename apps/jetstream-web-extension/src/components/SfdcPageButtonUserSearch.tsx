@@ -1,9 +1,11 @@
 import { css } from '@emotion/react';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import type { QueryResults } from '@jetstream/types';
+import type { QueryResult } from '@jetstream/types';
 import { CopyToClipboard, Grid, GridCol, List, ScopedNotification, SearchInput } from '@jetstream/ui';
 import { useEffect, useRef, useState } from 'react';
+import browser from 'webextension-polyfill';
 import '../sfdc-styles-shim.scss';
+import { getApiClientFromHost } from '../utils/extension-generic-api-request.utils';
 import { OrgAndSessionInfo } from '../utils/extension.types';
 import { sendMessage } from '../utils/web-extension.utils';
 
@@ -57,7 +59,7 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [usersResults, setUsersResults] = useState<QueryResults<User>>();
+  const [usersResults, setUsersResults] = useState<QueryResult<User>>();
 
   const [org, setOrg] = useState<OrgAndSessionInfo | null>(null);
   // const [action, setAction] = useState('view' | 'edit');
@@ -81,18 +83,12 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
       const currentSearchValue = currentSearchRef.current;
       setLoading(true);
       setErrorMessage(null);
-      sendMessage({
-        message: 'API_ACTION',
-        data: {
-          method: 'POST',
-          pathname: '/api/query',
-          sfHost,
-          body: { query: getUserSearchSoql(searchTermDebounced) },
-        },
-      })
-        .then(({ data }) => {
+
+      getApiClientFromHost(sfHost)
+        .then((apiConnection) => apiConnection.query.query<User>(getUserSearchSoql(searchTermDebounced)))
+        .then(({ queryResults }) => {
           if (currentSearchRef.current === currentSearchValue) {
-            setUsersResults(data as QueryResults<User>);
+            setUsersResults(queryResults);
             setLoading(false);
           }
         })
@@ -123,16 +119,16 @@ export function SfdcPageButtonUserSearch({ sfHost }: SfdcPageButtonUserSearchPro
           {errorMessage}
         </ScopedNotification>
       )}
-      {!!usersResults && !usersResults.queryResults.totalSize && (
+      {!!usersResults && !usersResults.totalSize && (
         <p className="slds-text-align_center slds-m-vertical_x-small slds-text-heading_small">No Results</p>
       )}
-      {!!usersResults?.queryResults?.totalSize && (
+      {!!usersResults?.totalSize && (
         <List
           css={css`
             max-height: 50vh;
             overflow-y: auto;
           `}
-          items={usersResults.queryResults.records}
+          items={usersResults.records}
           isActive={(item: User) => item.Id === searchTerm}
           // eslint-disable-next-line @typescript-eslint/no-empty-function
           onSelected={(key: string) => {}}
@@ -171,7 +167,7 @@ function handleLinkClick(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>)
 }
 
 function getOpenInJetstreamLink(sfHost: string, recordId: string) {
-  return `${chrome.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`;
+  return `${browser.runtime.getURL('app.html')}?host=${sfHost}&action=VIEW_RECORD&actionValue=${recordId}`;
 }
 
 function getSalesforceUserLink(sfHost: string, recordId: string) {

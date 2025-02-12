@@ -5,6 +5,7 @@
  */
 /* eslint-disable @typescript-eslint/no-empty-function */
 import type { Maybe } from '@jetstream/types';
+import browser from 'webextension-polyfill';
 
 // Implement the driver here.
 interface LocalForageDriver {
@@ -56,8 +57,7 @@ export const syncDriver = createDriver('webExtensionSyncStorage', 'sync');
  * pass with mocked browser and chrome objects
  */
 function getStorage() {
-  // @ts-expect-error browser and chrome are global objects
-  return (typeof browser !== 'undefined' && browser.storage) || (typeof chrome !== 'undefined' && chrome.storage);
+  return (typeof browser !== 'undefined' && browser.storage) || (typeof browser !== 'undefined' && browser.storage);
 }
 
 /**
@@ -67,7 +67,7 @@ function getStorage() {
 function usesPromises() {
   const storage = getStorage();
   try {
-    return storage && storage.local.get && storage.local.get() && typeof storage.local.get().then === 'function';
+    return !!storage && !!storage.local.get;
   } catch (e) {
     return false;
   }

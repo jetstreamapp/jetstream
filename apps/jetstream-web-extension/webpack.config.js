@@ -6,21 +6,21 @@ const path = require('path');
 const webpack = require('webpack');
 
 // @ts-expect-error withReact is complaining about the type of the config - but works on some machines just fine
-module.exports = composePlugins(withNx(), withReact(), (config) => {
-  const isDev = config.mode === 'development';
-  config.devtool = isDev ? 'inline-source-map' : 'source-map';
+module.exports = composePlugins(withNx(), withReact(), (config, { configuration }) => {
+  const isDev = configuration === 'development';
+  config.devtool = isDev ? 'inline-source-map' : false;
 
   config.entry = {
     app: './src/pages/app/App.tsx',
     popup: './src/pages/popup/Popup.tsx',
     additionalSettings: './src/pages/additional-settings/AdditionalSettings.tsx',
-    serviceWorker: './src/serviceWorker.ts',
-    contentScript: './src/contentScript.tsx',
+    serviceWorker: './src/extension-scripts/service-worker.ts',
+    contentScript: './src/extension-scripts/content-script.tsx',
+    contentAuthScript: './src/extension-scripts/content-auth-script.ts',
   };
   config.output = {
     filename: '[name].js',
     path: config.output?.path,
-    publicPath: `chrome-extension://${process.env.WEB_EXTENSION_ID}/`,
     clean: true,
   };
   config.resolve = {
@@ -30,7 +30,11 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
   config.optimization = {
     ...config.optimization,
     runtimeChunk: false,
-    splitChunks: false,
+    splitChunks: {
+      chunks(chunk) {
+        return chunk.name === 'app';
+      },
+    },
   };
   config.plugins = config.plugins || [];
   config.plugins.push(
@@ -40,7 +44,7 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
       NX_PUBLIC_ROLLBAR_KEY: '',
     }),
     new webpack.DefinePlugin({
-      'globalThis.__IS_CHROME_EXTENSION__': true,
+      'globalThis.__IS_BROWSER_EXTENSION__': true,
     }),
     createHtmlPagePlugin('app', 'app'),
     createHtmlPagePlugin('popup', 'popup'),
@@ -71,6 +75,25 @@ module.exports = composePlugins(withNx(), withReact(), (config) => {
           from: 'src/manifest.json',
           to: config.output.path,
           force: true,
+          /**
+           * Inject environment specific non-production hosts into manifest.json
+           */
+          transform: (content) => {
+            const manifest = JSON.parse(content.toString());
+            const contentAuthScript = manifest.content_scripts.find((item) => item.js.includes('contentAuthScript.js'));
+            const additionalJetstreamHosts = [];
+            switch (configuration) {
+              case 'development':
+                additionalJetstreamHosts.push('http://localhost/*');
+                break;
+              case 'staging':
+                additionalJetstreamHosts.push('https://staging.jetstream-app.com/web-extension/*');
+                break;
+            }
+            contentAuthScript.matches.push(...additionalJetstreamHosts);
+            manifest.host_permissions.push(...additionalJetstreamHosts);
+            return JSON.stringify(manifest, null, 2);
+          },
         },
         {
           from: 'src/redirect-utils/redirect.js',
