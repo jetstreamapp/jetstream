@@ -68,14 +68,14 @@ APP VERSION ${version}
 
   useEffect(() => {
     if (recordSyncEnabled) {
-      initSocket();
+      initSocket(appCookie.serverUrl);
     } else {
       disconnectSocket();
     }
     initDexieDb({ recordSyncEnabled }).catch((ex) => {
       logger.error('[DB] Error initializing db', ex);
     });
-  }, [recordSyncEnabled]);
+  }, [appCookie.serverUrl, recordSyncEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);
