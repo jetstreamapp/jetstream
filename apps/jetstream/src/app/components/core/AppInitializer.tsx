@@ -68,7 +68,7 @@ APP VERSION ${version}
 
   useEffect(() => {
     if (recordSyncEnabled) {
-      initSocket();
+      initSocket(appCookie.serverUrl);
     } else {
       disconnectSocket();
     }
