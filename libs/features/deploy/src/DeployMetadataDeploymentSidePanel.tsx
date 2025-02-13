@@ -7,6 +7,21 @@ import ManagedPackageSelection from './selection-components/ManagedPackageSelect
 import MetadataSelection from './selection-components/MetadataSelection';
 import UserSelection from './selection-components/UserSelection';
 
+function getLabel(activeItem: SidePanelType) {
+  switch (activeItem) {
+    case 'type-selection':
+      return 'Which Metadata Types';
+    case 'user-selection':
+      return 'Which Users';
+    case 'date-range-selection':
+      return 'Which Date Range';
+    case 'include-managed-selection':
+      return 'Include Managed Types';
+    default:
+      return null;
+  }
+}
+
 export interface DeployMetadataDeploymentSidePanelProps {
   selectedOrg: SalesforceOrgUi;
   activeItem: SidePanelType;
@@ -20,25 +35,10 @@ export const DeployMetadataDeploymentSidePanel: FunctionComponent<DeployMetadata
   isOpen,
   onClosed,
 }) => {
-  const [label, setLabel] = useState<string | null>(null);
+  const [label, setLabel] = useState<string | null>(() => getLabel(activeItem));
 
   useEffect(() => {
-    switch (activeItem) {
-      case 'type-selection':
-        setLabel('Which Metadata Types');
-        break;
-      case 'user-selection':
-        setLabel('Which Users');
-        break;
-      case 'date-range-selection':
-        setLabel('Which Date Range');
-        break;
-      case 'include-managed-selection':
-        setLabel('Include Managed Types');
-        break;
-      default:
-        break;
-    }
+    setLabel(getLabel(activeItem));
   }, [activeItem]);
 
   function handleSubmit() {
