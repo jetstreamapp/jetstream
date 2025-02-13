@@ -75,7 +75,7 @@ APP VERSION ${version}
     initDexieDb({ recordSyncEnabled }).catch((ex) => {
       logger.error('[DB] Error initializing db', ex);
     });
-  }, [recordSyncEnabled]);
+  }, [appCookie.serverUrl, recordSyncEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);
