@@ -2,11 +2,11 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { delay } from '@jetstream/shared/utils';
 import { LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
-import { DEXIE_DB_SYNC_NAME, dexieDataSync, dexieDb, hashRecordKey, SyncableTables } from '@jetstream/ui/db';
 import 'dexie-observable';
 import 'dexie-syncable';
 import localforage from 'localforage';
 import { initializeDexieSync } from './client-data-sync.db';
+import { DEXIE_DB_SYNC_NAME, dexieDataSync, dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
 
 class DexieInitializer {
   private static instance: DexieInitializer;
@@ -95,9 +95,9 @@ async function migrateQueryHistory() {
     if (queryHistory) {
       for (const item of Object.values(queryHistory)) {
         const createdAt = new Date((item as any).created || item.createdAt || new Date());
-        delete item['created'];
+        delete (item as any)['created'];
         item.key = `${SyncableTables.query_history.keyPrefix}_${item.key}`.toLowerCase() as QueryHistoryItem['key'];
-        item.hashedKey = await hashRecordKey(item.key);
+        item.hashedKey = await getHashedRecordKey(item.key);
         item.updatedAt = new Date(item.updatedAt || item.lastRun);
         item.lastRun = new Date(item.lastRun);
         item.isFavoriteIdx = item.isFavorite ? 'true' : 'false';
@@ -130,9 +130,9 @@ async function migrateLoadSavedMapping() {
         for (let item of Object.values(sobject)) {
           item = { ...item };
           const createdAt = new Date((item as any).createdDate || item.createdAt || new Date());
-          delete item['createdDate'];
+          delete (item as any)['createdDate'];
           item.key = `${SyncableTables.load_saved_mapping.keyPrefix}_${item.key}`.toLowerCase() as LoadSavedMappingItem['key'];
-          item.hashedKey = await hashRecordKey(item.key);
+          item.hashedKey = await getHashedRecordKey(item.key);
           item.createdAt = createdAt;
           item.updatedAt = createdAt;
           records.push(item);
@@ -162,7 +162,7 @@ async function addHashedKeyToRecord() {
     let didUpdate = false;
     for (const record of queryHistory) {
       if (!record.hashedKey) {
-        record.hashedKey = await hashRecordKey(record.key);
+        record.hashedKey = await getHashedRecordKey(record.key);
         didUpdate = true;
       }
     }
@@ -178,7 +178,7 @@ async function addHashedKeyToRecord() {
     didUpdate = false;
     for (const record of loadSavedMapping) {
       if (!record.hashedKey) {
-        record.hashedKey = await hashRecordKey(record.key);
+        record.hashedKey = await getHashedRecordKey(record.key);
         didUpdate = true;
       }
     }

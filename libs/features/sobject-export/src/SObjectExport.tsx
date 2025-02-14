@@ -26,6 +26,7 @@ import {
 } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -183,6 +184,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       rollbar.error('Error preparing sobject export', getErrorMessageAndStackObj(ex));
     } finally {
       setLoading(false);
+      recentHistoryItemsDb.addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', selectedSObjects);
     }
   }
 
@@ -253,6 +255,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                 sobjects={sobjects}
                 selectedSObjects={selectedSObjects}
                 allowSelectAll={false}
+                recentItemsEnabled
+                recentItemsKey="sobject"
                 onSobjects={handleSobjectChange}
                 onSelectedSObjects={setSelectedSObjects}
               />

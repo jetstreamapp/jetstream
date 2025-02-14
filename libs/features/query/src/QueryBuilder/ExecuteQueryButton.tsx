@@ -1,5 +1,6 @@
-import { DescribeGlobalSObjectResult, Maybe } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, KeyboardShortcut, Tooltip, getModifierKey } from '@jetstream/ui';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -7,9 +8,17 @@ interface ExecuteQueryButtonProps {
   soql: string;
   isTooling: boolean;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
+  selectedOrg: SalesforceOrgUi;
 }
 
-export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({ soql, isTooling, selectedSObject }) => {
+export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({ soql, isTooling, selectedOrg, selectedSObject }) => {
+  function handleClick() {
+    if (!selectedSObject) {
+      return;
+    }
+    recentHistoryItemsDb.addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', [selectedSObject.name]);
+  }
+
   return (
     <>
       {soql && selectedSObject && (
@@ -33,6 +42,7 @@ export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({
               },
             }}
             data-testid="execute-query-button"
+            onClick={handleClick}
           >
             <Icon type="utility" icon="right" className="slds-button__icon slds-button__icon_left" />
             Execute

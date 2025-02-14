@@ -16,6 +16,7 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -57,6 +58,16 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
   }
+  function handleContinue() {
+    if (!sobjects?.length) {
+      return;
+    }
+    recentHistoryItemsDb.addItemToRecentHistoryItems(
+      selectedOrg.uniqueId,
+      'sobject',
+      sobjects.map(({ name }) => name)
+    );
+  }
 
   return (
     <Page testId="automation-control--selection-page">
@@ -66,7 +77,7 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
           <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" docsPath="/automation-control" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link className="slds-button slds-button_brand" to="editor">
+              <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>
@@ -109,6 +120,8 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
               selectedOrg={selectedOrg}
               sobjects={sobjects}
               selectedSObjects={selectedSObjects}
+              recentItemsEnabled
+              recentItemsKey="sobject"
               filterFn={filterPermissionsSobjects}
               onSobjects={handleSobjectChange}
               onSelectedSObjects={setSelectedSObjects}

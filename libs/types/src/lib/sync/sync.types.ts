@@ -5,7 +5,7 @@ import { SavedFieldMapping } from '../ui/load-records-types';
 
 const DateTimeSchema = z.union([z.string(), z.date()]).transform((val) => (val instanceof Date ? val : parseISO(val)));
 
-export const SyncTypeSchema = z.enum(['query_history', 'load_saved_mapping']);
+export const SyncTypeSchema = z.enum(['query_history', 'load_saved_mapping', 'recent_history_item']);
 export type SyncType = z.infer<typeof SyncTypeSchema>;
 
 export const EntitySyncStatusSchema = z.object({
@@ -20,12 +20,12 @@ export const SyncRecordOperationBaseSchema = z.object({
   key: z.string(),
   hashedKey: z.string(),
   entity: SyncTypeSchema,
+  data: z.record(z.unknown()),
 });
 
 export const SyncRecordOperationCreateUpdateSchema = SyncRecordOperationBaseSchema.extend({
   type: z.enum(['create', 'update']),
   orgId: z.string().nullish(),
-  data: z.record(z.unknown()),
   createdAt: DateTimeSchema,
   updatedAt: DateTimeSchema,
 });
@@ -48,7 +48,9 @@ export type SyncRecordOperation = z.infer<typeof SyncRecordOperationSchema>;
 export const SyncRecordSchema = z.object({
   key: z.string(),
   hashedKey: z.string(),
-  entity: SyncTypeSchema,
+  // We are a little loose here to allow for future expansion and not break backwards compatibility
+  // since browser extensions can become out-dated, we need to account for that
+  entity: z.union([SyncTypeSchema, z.string()]),
   orgId: z.string().nullish(),
   data: z.record(z.unknown()),
   createdAt: DateTimeSchema,
@@ -64,6 +66,8 @@ export const PullResponseSchema = z.object({
   lastKey: z.string().nullish(),
 });
 export type PullResponse = z.infer<typeof PullResponseSchema>;
+
+export type SyncableRecord = QueryHistoryItem | LoadSavedMappingItem | RecentHistoryItem;
 
 export interface QueryHistoryItem {
   key: `qh_${string}`; // org:object:(lowercase/removespaces(soql))
@@ -99,6 +103,17 @@ export interface LoadSavedMappingItem {
   csvFields: string[];
   sobjectFields: string[];
   mapping: SavedFieldMapping;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type RecentHistoryItemType = 'sobject';
+
+export interface RecentHistoryItem {
+  key: `ri_${string}:${RecentHistoryItemType}`;
+  hashedKey: string;
+  org: string;
+  items: { name: string; lastUsed: Date }[];
   createdAt: Date;
   updatedAt: Date;
 }

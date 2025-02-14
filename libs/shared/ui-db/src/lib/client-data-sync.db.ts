@@ -7,21 +7,23 @@ import {
   PullResponse,
   PullResponseSchema,
   QueryHistoryItem,
+  RecentHistoryItem,
+  SyncableRecord,
   SyncRecord,
   SyncRecordOperation,
   SyncType,
 } from '@jetstream/types';
-import { dexieDb, hashRecordKey, SyncableEntities, SyncableTables } from '@jetstream/ui/db';
 import { parseISO } from 'date-fns';
 import Dexie from 'dexie';
 import type { ICreateChange, IDatabaseChange, IDeleteChange, IUpdateChange } from 'dexie-observable/api';
 import { ApplyRemoteChangesFunction } from 'dexie-syncable/api';
 import isString from 'lodash/isString';
 import { v4 as uuid } from 'uuid';
+import { dexieDb, getHashedRecordKey, SyncableEntities, SyncableTables } from './ui-db';
 
 interface CreateOrUpdateEventBase {
   type: 'create' | 'update';
-  fullRecord: QueryHistoryItem | LoadSavedMappingItem;
+  fullRecord: SyncableRecord;
   deletedAt?: null | never;
 }
 interface CreateOrUpdateEventQueryHistory extends CreateOrUpdateEventBase {
@@ -33,7 +35,12 @@ interface CreateOrUpdateEventLoadSavedMapping extends CreateOrUpdateEventBase {
   fullRecord: LoadSavedMappingItem;
 }
 
-type CreateOrUpdateEvent = CreateOrUpdateEventQueryHistory | CreateOrUpdateEventLoadSavedMapping;
+interface CreateOrUpdateEventRecentHistoryItem extends CreateOrUpdateEventBase {
+  keyPrefix: typeof SyncableTables['recent_history_item']['keyPrefix'];
+  fullRecord: RecentHistoryItem;
+}
+
+type CreateOrUpdateEvent = CreateOrUpdateEventQueryHistory | CreateOrUpdateEventLoadSavedMapping | CreateOrUpdateEventRecentHistoryItem;
 
 interface DeleteEvent {
   type: 'delete';
@@ -62,6 +69,7 @@ function filterInvalidKeyPrefixes(key: string): boolean {
   switch (keyPrefix) {
     case 'qh':
     case 'lsm':
+    case 'ri':
       return true;
     default: {
       return false;
@@ -72,7 +80,7 @@ function filterInvalidKeyPrefixes(key: string): boolean {
 function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): SyncRecordOperation {
   if (data.type === 'delete') {
     const { type, entity, key, hashedKey, deletedAt } = data;
-    return { key, hashedKey, type, entity, deletedAt };
+    return { key, hashedKey, type, entity, deletedAt, data: {} as any };
   }
   const { type, keyPrefix, fullRecord } = data;
   switch (keyPrefix) {
@@ -94,6 +102,17 @@ function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): S
         hashedKey: fullRecord.hashedKey,
         type,
         entity: 'load_saved_mapping',
+        data: fullRecord as any,
+        createdAt: fullRecord.createdAt,
+        updatedAt: fullRecord.updatedAt,
+      };
+    }
+    case 'ri': {
+      return {
+        key: fullRecord.key,
+        hashedKey: fullRecord.hashedKey,
+        type,
+        entity: 'recent_history_item',
         data: fullRecord as any,
         createdAt: fullRecord.createdAt,
         updatedAt: fullRecord.updatedAt,
@@ -227,7 +246,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
   // Backfill hashed key as needed
   for (const obj of Object.values(existingRecordsById)) {
     if (obj.key && !obj.hashedKey) {
-      obj.hashedKey = await hashRecordKey(obj.key);
+      obj.hashedKey = await getHashedRecordKey(obj.key);
     }
   }
 
@@ -255,6 +274,15 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
       }
     );
 
+  // deleted records will not show up in existing and oldObj is undefined, so we need to re calculate the hashedKey
+  const keyToHashedKey: Record<string, string> = {};
+  for (const { key, oldObj } of changesByType.deletes) {
+    const hashedKey = existingRecordsById[key]?.hashedKey ?? oldObj?.hashedKey;
+    if (!hashedKey) {
+      keyToHashedKey[key] = await getHashedRecordKey(key);
+    }
+  }
+
   const pushResponse = await dataSyncPushAllChanges({
     clientId: CLIENT_ID,
     updatedAt: syncedRevision,
@@ -271,15 +299,17 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
             fullRecord: existingRecordsById[key],
           })
         ),
-      ...changesByType.deletes.map(({ key, oldObj }) =>
-        transformEntityToSyncRecord({
-          entity: 'query_history',
-          type: 'delete',
-          key,
-          hashedKey: existingRecordsById[key].hashedKey ?? oldObj.hashedKey,
-          deletedAt,
-        })
-      ),
+      ...changesByType.deletes
+        .filter(({ key, oldObj }) => existingRecordsById[key]?.hashedKey ?? oldObj?.hashedKey ?? keyToHashedKey[key])
+        .map(({ key, oldObj, table }) =>
+          transformEntityToSyncRecord({
+            entity: table as SyncType,
+            type: 'delete',
+            key,
+            hashedKey: existingRecordsById[key]?.hashedKey ?? oldObj?.hashedKey ?? keyToHashedKey[key],
+            deletedAt,
+          })
+        ),
     ].filter(Boolean),
     chunkSize: MAX_PUSH_SIZE,
   });
@@ -357,5 +387,5 @@ async function getAllSyncableRecordsById(ids: string[]): Promise<Record<string, 
     })
   ).then((records) => records.flat().filter(Boolean));
 
-  return groupByFlat(records, 'key');
+  return groupByFlat(records as SyncableRecord[], 'key');
 }

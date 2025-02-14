@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { QueryHistoryItem, QueryHistoryObject, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb } from '@jetstream/ui/db';
+import { dexieDb } from './ui-db';
 
 export const queryHistoryObjectDb = {
   saveQueryHistoryObject,

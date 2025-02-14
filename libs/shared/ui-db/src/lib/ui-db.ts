@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
-import type { LoadSavedMappingItem, QueryHistoryItem, QueryHistoryObject } from '@jetstream/types';
+import type { LoadSavedMappingItem, QueryHistoryItem, QueryHistoryObject, RecentHistoryItem } from '@jetstream/types';
 import Dexie, { type EntityTable } from 'dexie';
 import 'dexie-observable';
 import 'dexie-syncable';
@@ -26,6 +26,10 @@ export const SyncableTables = {
     name: 'load_saved_mapping',
     keyPrefix: 'lsm',
   },
+  recent_history_item: {
+    name: 'recent_history_item',
+    keyPrefix: 'ri',
+  },
 } as const;
 
 const isChromeExtension = () => {
@@ -36,7 +40,7 @@ const isChromeExtension = () => {
   }
 };
 
-export async function hashRecordKey(key: string) {
+export async function getHashedRecordKey(key: string) {
   const encoder = new TextEncoder();
   const data = encoder.encode(key);
   const hashBuffer = await crypto.subtle.digest('SHA-1', data);
@@ -60,6 +64,7 @@ export const dexieDb = new Dexie(DEXIE_DB_NAME) as Dexie & {
   _query_history_object: EntityTable<QueryHistoryObject, 'key'>;
   query_history: EntityTable<QueryHistoryItem, 'key'>;
   load_saved_mapping: EntityTable<LoadSavedMappingItem, 'key'>;
+  recent_history_item: EntityTable<RecentHistoryItem, 'key'>;
 };
 
 export const SyncableEntities = new Set<SyncableEntity>(Object.keys(SyncableTables) as Array<SyncableEntity>);
@@ -69,6 +74,10 @@ dexieDb.version(1).stores({
   _query_history_object: 'key,org,sObject,[org+sObject]',
   query_history: 'key,org,sObject,updatedAt,lastRun,isFavoriteIdx,[sObject+org],[sObject+isFavoriteIdx],[org+isFavoriteIdx]',
   load_saved_mapping: 'key,sobject,*csvFields,*sobjectFields',
+});
+
+dexieDb.version(2).stores({
+  recent_history_item: 'key,org',
 });
 
 export const dexieDataSync = {

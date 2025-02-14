@@ -3,6 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
@@ -16,7 +17,7 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, userProfileState } from '@jetstream/ui/app-state';
-import { dexieDataSync } from '@jetstream/ui/db';
+import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
@@ -35,8 +36,10 @@ export const Settings = () => {
   const setUserProfile = useSetRecoilState(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
+  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
 
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
+  const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
   // TODO: Give option to disable
   const recordSyncEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
@@ -142,9 +145,32 @@ export const Settings = () => {
     } finally {
       setResetSyncLoading(false);
       fireToast({
-        message: 'Sync reset successfully!',
+        message: 'Sync reset successfully',
         type: 'success',
       });
+    }
+  }
+
+  async function resetRecentHistoryItems(type: 'all' | 'current') {
+    try {
+      setRecentRecentItemLoading(type);
+      if (type === 'current' && selectedOrg) {
+        await recentHistoryItemsDb.clearRecentHistoryItemsForCurrentOrg(selectedOrg.uniqueId);
+      } else if (type === 'all') {
+        await recentHistoryItemsDb.clearRecentHistoryItemsForAllOrgs();
+      }
+      fireToast({
+        message: 'History reset successfully',
+        type: 'success',
+      });
+    } catch (ex) {
+      logger.error('[DB] Error resetting sync', ex);
+      fireToast({
+        message: 'There was a problem resetting your history. Try again or file a support ticket for assistance.',
+        type: 'warning',
+      });
+    } finally {
+      setRecentRecentItemLoading(false);
     }
   }
 
@@ -195,6 +221,28 @@ export const Settings = () => {
                 </p>
               </div>
             )}
+
+            <div className="slds-m-top_large">
+              <h2 className="slds-text-heading_medium slds-m-top_x-small">Recent Objects</h2>
+              <button
+                className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
+                disabled={!selectedOrg}
+                onClick={() => resetRecentHistoryItems('current')}
+              >
+                {recentRecentItemLoading === 'current' && <Spinner className="slds-spinner slds-spinner_small" />}
+                Reset for Current Org
+              </button>
+              <button
+                className="slds-button slds-button_text-destructive slds-m-top_small slds-is-relative"
+                onClick={() => resetRecentHistoryItems('all')}
+              >
+                {recentRecentItemLoading === 'all' && <Spinner className="slds-spinner slds-spinner_small" />}
+                Reset for All Orgs
+              </button>
+              <p className=" slds-m-top_small">
+                Reset your list of recent objects. This will clear the list of objects you have recently viewed in Jetstream.
+              </p>
+            </div>
 
             <div className="slds-m-top_large">
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>

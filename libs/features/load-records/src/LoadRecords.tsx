@@ -25,6 +25,7 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import startCase from 'lodash/startCase';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
@@ -364,6 +365,11 @@ export const LoadRecords = () => {
 
   function changeStep(changeBy: number) {
     setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
+    if (currentStepIdx === 0 && selectedSObject?.name) {
+      recentHistoryItemsDb
+        .addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', [selectedSObject.name])
+        .catch((err) => logger.error('Error adding item to recent history items', err));
+    }
   }
 
   const handleIsLoading = useCallback((isLoading: boolean) => {

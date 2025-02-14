@@ -1,8 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Maybe, RecentHistoryItemType, SalesforceOrgUi } from '@jetstream/types';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { formatRelative } from 'date-fns/formatRelative';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
@@ -28,6 +30,8 @@ export interface ConnectedSobjectListMultiSelectProps {
   selectedSObjects: string[];
   allowSelectAll?: boolean;
   retainSelectionOnRefresh?: boolean;
+  recentItemsEnabled?: boolean;
+  recentItemsKey?: RecentHistoryItemType;
   filterFn?: (sobject: DescribeGlobalSObjectResult | null) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSObjects: (selectedSObjects: string[]) => void;
@@ -43,6 +47,8 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
       selectedSObjects,
       allowSelectAll,
       retainSelectionOnRefresh,
+      recentItemsEnabled,
+      recentItemsKey,
       filterFn = filterSobjectFn,
       onSobjects,
       onSelectedSObjects,
@@ -71,6 +77,13 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
     useEffect(() => {
       _lastRefreshed = lastRefreshed;
     }, [lastRefreshed]);
+
+    const recentItems = useLiveQuery(async () => {
+      if (recentItemsEnabled && recentItemsKey && sobjects) {
+        return recentHistoryItemsDb.getRecentHistoryFromRecords({ orgUniqueId: selectedOrg.uniqueId, recentItemsKey, records: sobjects });
+      }
+      return null;
+    }, [sobjects]);
 
     const loadObjects = useCallback(async () => {
       const uniqueId = selectedOrg.uniqueId;
@@ -136,6 +149,8 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
           loading={loading}
           errorMessage={errorMessage}
           allowSelectAll={allowSelectAll}
+          recentItemsEnabled={recentItemsEnabled}
+          recentItems={recentItems}
           onSelected={onSelectedSObjects}
           errorReattempt={() => setErrorMessage(null)}
         />

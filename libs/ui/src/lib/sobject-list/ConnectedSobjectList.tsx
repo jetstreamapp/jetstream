@@ -2,8 +2,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Maybe, RecentHistoryItemType, SalesforceOrgUi } from '@jetstream/types';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { formatRelative } from 'date-fns/formatRelative';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
@@ -29,6 +31,8 @@ export interface ConnectedSobjectListProps {
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
   initialSearchTerm?: string;
+  recentItemsEnabled?: boolean;
+  recentItemsKey?: RecentHistoryItemType;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult | null) => void;
@@ -42,6 +46,8 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   selectedSObject,
   isTooling,
   initialSearchTerm,
+  recentItemsEnabled,
+  recentItemsKey,
   filterFn = isTooling ? filterToolingSobjectFn : filterSobjectFn,
   onSobjects,
   onSelectedSObject,
@@ -62,6 +68,13 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   useEffect(() => {
     _lastRefreshed = lastRefreshed;
   }, [lastRefreshed]);
+
+  const recentItems = useLiveQuery(async () => {
+    if (recentItemsEnabled && recentItemsKey && sobjects) {
+      return recentHistoryItemsDb.getRecentHistoryFromRecords({ orgUniqueId: selectedOrg.uniqueId, recentItemsKey, records: sobjects });
+    }
+    return null;
+  }, [sobjects]);
 
   const loadObjects = useCallback(async () => {
     const uniqueId = selectedOrg.uniqueId;
@@ -90,7 +103,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   }, [filterFn, onSobjects, selectedOrg, isTooling]);
 
   useEffect(() => {
-    if (selectedOrg && !loading && !errorMessage && !sobjects) {
+    if (selectedOrg && !loading && !errorMessage && !sobjects?.length) {
       loadObjects();
     }
   }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
@@ -138,6 +151,8 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
         loading={loading}
         errorMessage={errorMessage}
         initialSearchTerm={initialSearchTerm}
+        recentItemsEnabled={recentItemsEnabled}
+        recentItems={recentItems}
         onSelected={onSelectedSObject}
         errorReattempt={() => setErrorMessage(null)}
         onSearchTermChange={onSearchTermChange}

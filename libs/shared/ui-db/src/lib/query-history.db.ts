@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
-import { dexieDb, hashRecordKey, SyncableTables } from '@jetstream/ui/db';
+import { dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
 
 export const queryHistoryDb = {
   getAllQueryHistory,
@@ -69,7 +69,7 @@ async function getOrInitQueryHistoryItem(
 
   const queryHistoryItem: QueryHistoryItem = {
     key,
-    hashedKey: existingItem?.hashedKey ?? (await hashRecordKey(key)),
+    hashedKey: existingItem?.hashedKey ?? (await getHashedRecordKey(key)),
     label: sObjectLabel,
     customLabel: existingItem?.customLabel ?? customLabel,
     soql,
