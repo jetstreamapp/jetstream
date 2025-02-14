@@ -83,6 +83,7 @@ export interface RecordDownloadModalProps {
 }
 
 const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
+const FILE_FORMAT_ALLOWED_BULK_API = new Set<FileExtCsvXLSXJsonGSheet>(['csv', 'gdrive']);
 const ALLOW_BULK_API_COUNT = 5_000;
 const REQUIRE_BULK_API_COUNT = 500_000;
 
@@ -161,7 +162,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   useEffect(() => {
     if (isBulkApi) {
-      setFileFormat(RADIO_FORMAT_CSV);
+      setFileFormat((prevValue) => (FILE_FORMAT_ALLOWED_BULK_API.has(prevValue) ? prevValue : RADIO_FORMAT_CSV));
     }
   }, [isBulkApi]);
 
@@ -343,7 +344,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               </button>
             </Fragment>
           }
-          skipAutoFocus
           overrideZIndex={1001}
           onClose={() => handleModalClose(true)}
           hide={isGooglePickerVisible}
@@ -432,7 +432,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_FORMAT_GDRIVE}
                   checked={fileFormat === RADIO_FORMAT_GDRIVE}
                   onChange={(value: FileExtGDrive) => setFileFormat(value)}
-                  disabled={isBulkApi}
                 />
               )}
               {!googleIntegrationEnabled && googleShowUpgradeToPro && (
