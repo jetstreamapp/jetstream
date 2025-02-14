@@ -26,8 +26,8 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { ErrorBoundaryFallback, fromQueryHistoryState, queryHistoryDb, useAmplitude } from '@jetstream/ui-core';
-import { dexieDb } from '@jetstream/ui/db';
+import { ErrorBoundaryFallback, fromQueryHistoryState, useAmplitude } from '@jetstream/ui-core';
+import { dexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
 import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';

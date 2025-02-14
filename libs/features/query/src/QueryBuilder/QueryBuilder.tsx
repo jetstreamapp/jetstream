@@ -308,7 +308,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               <QueryResetButton />
               <ManualSoql isTooling={isTooling} generatedSoql={soql} />
               <QueryHistory selectedOrg={selectedOrg} ref={queryHistoryRef} />
-              <ExecuteQueryButton soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
+              <ExecuteQueryButton selectedOrg={selectedOrg} soql={soql} isTooling={isTooling} selectedSObject={selectedSObject} />
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
@@ -333,6 +333,8 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}
+                recentItemsEnabled
+                recentItemsKey="sobject"
                 isTooling={isTooling}
                 initialSearchTerm={sObjectFilterTerm}
                 onSobjects={handleSobjectsChange}

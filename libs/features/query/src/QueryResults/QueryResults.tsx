@@ -46,11 +46,11 @@ import {
   fromQueryHistoryState,
   fromQueryState,
   isAsyncJob,
-  queryHistoryDb,
   useAmplitude,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { queryHistoryDb } from '@jetstream/ui/db';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import isString from 'lodash/isString';

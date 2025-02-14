@@ -16,6 +16,7 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, filterCreateFieldsSobjects } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -62,6 +63,17 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
     setSobjects(sobjects);
   }
 
+  function handleContinue() {
+    if (!sobjects?.length) {
+      return;
+    }
+    recentHistoryItemsDb.addItemToRecentHistoryItems(
+      selectedOrg.uniqueId,
+      'sobject',
+      sobjects.map(({ name }) => name)
+    );
+  }
+
   return (
     <Page testId="create-field-selection-page">
       <RequireMetadataApiBanner />
@@ -78,7 +90,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
               }}
             />
             {hasSelectionsMade && (
-              <Link className="slds-button slds-button_brand" to="configurator">
+              <Link className="slds-button slds-button_brand" to="configurator" onClick={handleContinue}>
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>
@@ -124,6 +136,8 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
               selectedOrg={selectedOrg}
               sobjects={sobjects}
               selectedSObjects={selectedSObjects}
+              recentItemsEnabled
+              recentItemsKey="sobject"
               filterFn={filterCreateFieldsSobjects}
               onSobjects={handleSobjectChange}
               onSelectedSObjects={setSelectedSObjects}

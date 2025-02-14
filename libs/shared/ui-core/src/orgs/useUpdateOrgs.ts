@@ -10,12 +10,13 @@ import {
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { queryHistoryDb, queryHistoryObjectDb } from '@jetstream/ui/db';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { Observable } from 'rxjs';
-import { fromJetstreamEvents, queryHistoryDb, queryHistoryObjectDb } from '..';
+import { fromJetstreamEvents } from '..';
 
 export function useUpdateOrgs() {
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
