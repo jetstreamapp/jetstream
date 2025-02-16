@@ -155,7 +155,7 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
   isMultiSelect: boolean;
 }) {
   return ({ row, column, onRowChange, onClose }: RenderEditCellProps<TRow, TSummaryRow>) => {
-    const allValues = useRef(new Set([BLANK_LIST_ITEM, ..._values.map((v) => v.value)]));
+    const allValues = useRef(new Set([BLANK_LIST_ITEM.value, ..._values.map((v) => v.value)]));
     const [values, setValues] = useState<ListItem[]>(() => [BLANK_LIST_ITEM, ..._values]);
 
     const selectedItemId = row[column.key as keyof TRow] as unknown as string;
