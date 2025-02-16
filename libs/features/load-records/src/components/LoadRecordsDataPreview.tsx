@@ -110,9 +110,10 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             return;
           }
           setTotalRecordCount(results.queryResults.totalSize);
-          setOmitTotalRecordCount(false);
+          setOmitTotalRecordCount(results.queryResults.totalSize < 0);
         } catch (ex) {
           logger.warn('[ERROR] Unable to get total record count', ex);
+          setOmitTotalRecordCount(true);
         } finally {
           if (!isMounted.current || selectedSObject?.name !== sobjectName) {
             // eslint-disable-next-line no-unsafe-finally

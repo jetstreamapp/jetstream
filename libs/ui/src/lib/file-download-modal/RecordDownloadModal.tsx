@@ -137,6 +137,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
+  // Big objects report -1 as totalSize
+  const totalRecordCountText =
+    (totalRecordCount || records.length) < 0
+      ? `more than ${formatNumber(records.length)}`
+      : formatNumber(totalRecordCount || records.length);
+
   const allowBulkApi =
     (totalRecordCount || 0) >= ALLOW_BULK_API_COUNT &&
     !Object.keys(subqueryFields).length &&
@@ -199,7 +205,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }, [fileName]);
 
   useEffect(() => {
-    const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
+    const hasMoreRecordsTemp = !!totalRecordCount && !!records && (totalRecordCount < 0 || totalRecordCount > records.length);
     setHasMoreRecords(hasMoreRecordsTemp);
     setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   }, [totalRecordCount, records]);
@@ -359,7 +365,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 <Fragment>
                   <Radio
                     name="radio-download"
-                    label={`All records (${formatNumber(totalRecordCount || records.length)})`}
+                    label={`All records (${totalRecordCountText})`}
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}

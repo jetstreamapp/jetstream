@@ -21,6 +21,7 @@ import {
   CloneEditView,
   QueryResults as IQueryResults,
   Maybe,
+  QueryResult,
   SalesforceOrgUi,
   SalesforceRecord,
   SobjectCollectionResponse,
@@ -79,6 +80,14 @@ const SOURCE_RECORD_ACTION: SourceAction = 'RECORD_ACTION';
 const RECORD_BULK_ACTION: SourceAction = 'RECORD_BULK_ACTION';
 const SOURCE_MANUAL: SourceAction = 'MANUAL';
 const SOURCE_RELOAD: SourceAction = 'RELOAD';
+
+function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown[]) {
+  if (queryResult.done) {
+    return records.length;
+  }
+  // Big objects report -1 as totalSize
+  return queryResult.totalSize < 0 ? queryResult.totalSize + 1 : queryResult.totalSize;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -295,7 +304,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setParsedQuery(results.parsedQuery);
       setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      setRecordCount(results.queryResults.totalSize);
+      setRecordCount(getTotalRecordCount(results.queryResults, results.queryResults.records));
       setRecords(results.queryResults.records);
       setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
       // Matching ReactRouter state format
@@ -377,7 +386,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       sobjectName && saveQueryHistory(soql, sobjectName, isTooling);
-      records && setRecords(records.concat(results.queryResults.records));
+      if (records) {
+        const newRecords = records.concat(results.queryResults.records);
+        setRecordCount(getTotalRecordCount(results.queryResults, newRecords));
+        setTotalRecordCount(getTotalRecordCount(results.queryResults, newRecords));
+        setRecords(newRecords);
+      }
       trackEvent(ANALYTICS_KEYS.query_LoadMore, {
         existingRecordCount: records?.length || 0,
         nextSetCount: results.queryResults.records.length,
