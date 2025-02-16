@@ -56,6 +56,7 @@ export type FieldDefinitionType =
 
 export type SalesforceFieldType =
   | 'AutoNumber'
+  | 'Address'
   | 'Formula'
   | 'Checkbox'
   | 'Currency'

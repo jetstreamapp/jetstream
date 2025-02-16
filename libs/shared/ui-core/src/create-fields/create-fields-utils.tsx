@@ -70,6 +70,7 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'picklist',
     values: [
       { id: 'AutoNumber', value: 'AutoNumber', label: 'Auto-Number' },
+      { id: 'Address', value: 'Address', label: 'Address' },
       { id: 'Checkbox', value: 'Checkbox', label: 'Checkbox' },
       { id: 'Currency', value: 'Currency', label: 'Currency' },
       { id: 'Date', value: 'Date', label: 'Date' },
@@ -402,6 +403,7 @@ export const allFields: FieldDefinitionType[] = [
 // The thought here is to know which fields to show when
 export const fieldTypeDependencies: FieldValueDependencies = {
   AutoNumber: ['displayFormat', 'startingNumber', 'populateExistingRows'],
+  Address: [],
   Formula: [
     'formula',
     'formulaTreatBlanksAs', // zeros | blanks
