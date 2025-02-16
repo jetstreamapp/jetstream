@@ -145,6 +145,8 @@ export function DataTableEditorBoolean<TRow extends { _idx: number }, TSummaryRo
   );
 }
 
+const BLANK_LIST_ITEM: ListItem = { id: '_BLANK_', label: '--None--', value: '' };
+
 export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TSummaryRow>({
   values: _values,
   isMultiSelect,
@@ -153,8 +155,8 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
   isMultiSelect: boolean;
 }) {
   return ({ row, column, onRowChange, onClose }: RenderEditCellProps<TRow, TSummaryRow>) => {
-    const allValues = useRef(new Set(_values.map((v) => v.value)));
-    const [values, setValues] = useState<ListItem[]>(_values);
+    const allValues = useRef(new Set([BLANK_LIST_ITEM.value, ..._values.map((v) => v.value)]));
+    const [values, setValues] = useState<ListItem[]>(() => [BLANK_LIST_ITEM, ..._values]);
 
     const selectedItemId = row[column.key as keyof TRow] as unknown as string;
     // only used if multi-select is enabled
@@ -200,7 +202,17 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
             onChange={(items) => {
               const _touchedColumns = new Set((row as any)._touchedColumns || []);
               _touchedColumns.add(column.key);
-              onRowChange({ ...row, [column.key]: (items || []).map((item) => item.value).join(';'), _touchedColumns }, false);
+              onRowChange(
+                {
+                  ...row,
+                  [column.key]: (items || [])
+                    .map((item) => item.value)
+                    .filter(Boolean)
+                    .join(';'),
+                  _touchedColumns,
+                },
+                false
+              );
             }}
           />
         </DataTableEditorPopover>
@@ -223,7 +235,7 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
           onSelected={(item) => {
             const _touchedColumns = new Set((row as any)._touchedColumns || []);
             _touchedColumns.add(column.key);
-            onRowChange({ ...row, [column.key]: item.value, _touchedColumns }, true);
+            onRowChange({ ...row, [column.key]: item.value === '' ? null : item.value, _touchedColumns }, true);
           }}
         />
       </DataTableEditorPopover>
