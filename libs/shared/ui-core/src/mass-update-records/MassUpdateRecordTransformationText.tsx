@@ -42,6 +42,10 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
         </span>
       );
       break;
+    case 'update':
+      title += `Update without changing data`;
+      objectAndField = <span>Update without changing data</span>;
+      break;
     case 'null':
       title += `"${selectedField}" will be set to ${isBoolean ? 'false' : 'null'}`;
       objectAndField = (
