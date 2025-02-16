@@ -372,7 +372,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             if (failedResultsById[id]) {
               return { ...row, _saveError: failedResultsById[id].errors[0].message };
             } else {
-              return { ...row, _touchedColumns: new Set(), _saveError: null };
+              const tempRow: RowSalesforceRecordWithKey = { ...row, _touchedColumns: new Set(), _saveError: null };
+              Array.from(row._touchedColumns).forEach((col) => (tempRow._record[col] = row[col]));
+              return tempRow;
             }
           }
           if (row._saveError) {
