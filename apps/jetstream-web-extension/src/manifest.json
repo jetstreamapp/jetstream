@@ -27,6 +27,7 @@
     "https://*.force.com/*",
     "https://*.lightning.force.com/*",
     "https://*.salesforce.com/*",
+    "https://*.salesforce-setup.com/*",
     "https://*.visual.force.com/*",
     "https://*.visualforce.com/*"
   ],
@@ -69,6 +70,7 @@
         "https://*.cloudforce.com/*",
         "https://*.force.com/*",
         "https://*.lightning.force.com/*",
+        "https://*.salesforce-setup.com/*",
         "https://*.salesforce.com/*",
         "https://*.visual.force.com/*",
         "https://*.visualforce.com/*"
@@ -85,7 +87,13 @@
   "web_accessible_resources": [
     {
       "resources": ["*.html", "*.js", "*.css", "*.map", "*.png", "*.svg", "/app/", "/assets/"],
-      "matches": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"]
+      "matches": [
+        "https://*.salesforce.com/*",
+        "https://*.salesforce-setup.com/*",
+        "https://*.force.com/*",
+        "https://*.cloudforce.com/*",
+        "https://*.visualforce.com/*"
+      ]
     }
   ],
   "minimum_chrome_version": "121"
