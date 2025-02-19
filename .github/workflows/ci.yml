@@ -124,7 +124,7 @@ jobs:
       JETSTREAM_SERVER_DOMAIN: localhost:3333
       JETSTREAM_SERVER_URL: http://localhost:3333
       JETSTREAM_SESSION_SECRET: ${{ secrets.JETSTREAM_SESSION_SECRET }}
-      SFDC_API_VERSION: '62.0'
+      SFDC_API_VERSION: '63.0'
       SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
       SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
       SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}

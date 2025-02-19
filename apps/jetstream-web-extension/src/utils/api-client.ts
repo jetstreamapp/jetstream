@@ -10,7 +10,7 @@ export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiC
     userId: 'unknown',
     organizationId: 'unknown',
     accessToken,
-    apiVersion: '62.0',
+    apiVersion: '63.0',
     instanceUrl,
     // refreshToken: refresh_token,
     logger,
