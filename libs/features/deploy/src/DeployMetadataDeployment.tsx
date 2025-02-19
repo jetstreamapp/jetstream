@@ -24,7 +24,7 @@ import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
@@ -239,6 +239,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     setViewOrCompareModalOpen(true);
   }, []);
 
+  const selectedMetadata = useMemo(() => convertRowsToMapOfListMetadataResults(Array.from(selectedRows)), [selectedRows]);
+
   return (
     <div>
       {activeDownloadType && (
@@ -246,7 +248,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           type={activeDownloadType}
           selectedOrg={selectedOrg}
           modalTagline={`${formatNumber(selectedRows.size)} components will be included`}
-          listMetadataItems={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          listMetadataItems={selectedMetadata}
           onClose={handleFileModalClose}
         />
       )}
@@ -273,7 +275,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {viewOrCompareModalOpen && (
         <ViewOrCompareMetadataModal
           sourceOrg={selectedOrg}
-          selectedMetadata={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          selectedMetadata={selectedMetadata}
           onClose={() => setViewOrCompareModalOpen(false)}
         />
       )}
@@ -281,7 +283,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {deleteMetadataModalOpen && (
         <DeleteMetadataModal
           selectedOrg={selectedOrg}
-          selectedMetadata={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          selectedMetadata={selectedMetadata}
           onClose={() => setDeleteMetadataModalOpen(false)}
         />
       )}
