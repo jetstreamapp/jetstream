@@ -67,13 +67,15 @@ initXlsx(XLSX);
  * https://git.sheetjs.com/sheetjs/sheetjs/issues/2900
  */
 export function initXlsx(_xlsx: typeof import('xlsx')) {
-  import('xlsx/dist/cpexcel.full.mjs')
-    .then((module) => {
-      _xlsx.set_cptable(module);
-    })
-    .catch((ex) => {
-      // ignore error
-    });
+  if (!globalThis.__IS_BROWSER_EXTENSION__) {
+    import('xlsx/dist/cpexcel.full.mjs')
+      .then((module) => {
+        XLSX.set_cptable(module);
+      })
+      .catch((ex) => {
+        // ignore error
+      });
+  }
 }
 
 export function formatNumber(number?: number) {

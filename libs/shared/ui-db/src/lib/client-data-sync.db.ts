@@ -351,24 +351,51 @@ async function handleServerSyncResponse({ records, updatedAt }: PullResponse, ap
 }
 
 function enrichDataTypes(entity: SyncRecord['entity'], data: Record<string, unknown>) {
+  enrichDataTypesForAll(data);
   switch (entity) {
     case 'query_history':
       enrichDataTypesForQueryHistory(data);
+      break;
+    case 'load_saved_mapping':
+      enrichDataTypesForLoadMapping(data);
+      break;
+    case 'recent_history_item':
+      enrichDataTypesForRecentHistory(data);
       break;
     default:
       break;
   }
 }
 
-function enrichDataTypesForQueryHistory(data: Record<string, unknown>) {
+function enrichDataTypesForAll(data: Record<string, unknown>) {
+  if (!data) {
+    return;
+  }
   if (isString(data.created)) {
     data.createdAt = parseISO(data.created);
   }
+  if (isString(data.updatedAt)) {
+    data.updatedAt = parseISO(data.updatedAt);
+  }
+}
+
+function enrichDataTypesForQueryHistory(data: Record<string, unknown>) {
   if (isString(data.lastRun)) {
     data.lastRun = parseISO(data.lastRun);
   }
-  if (isString(data.updatedAt)) {
-    data.updatedAt = parseISO(data.updatedAt);
+}
+
+function enrichDataTypesForLoadMapping(data: Record<string, unknown>) {
+  // nothing to do here
+}
+
+function enrichDataTypesForRecentHistory(data: Record<string, unknown>) {
+  if (Array.isArray(data.items)) {
+    data.items.forEach((item) => {
+      if (isString(item.lastUsed)) {
+        item.lastUsedAt = parseISO(item.lastUsed);
+      }
+    });
   }
 }
 
