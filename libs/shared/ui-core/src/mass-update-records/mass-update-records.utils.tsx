@@ -35,6 +35,7 @@ export const transformationOptionListItems: ListItem[] = [
   { id: 'staticValue', value: 'staticValue', label: 'Provided value' },
   { id: 'anotherField', value: 'anotherField', label: 'Value from different field' },
   { id: 'null', value: 'null', label: 'Clear field value' },
+  { id: 'update', value: 'update', label: 'Update record without changes' },
 ];
 
 export const transformationCriteriaListItems: ListItem[] = [
@@ -258,7 +259,7 @@ export function prepareRecords(
           newRecord[selectedField] = lodashGet(newRecord, transformationOptions.alternateField, emptyFieldValue);
         } else if (transformationOptions.option === 'staticValue') {
           newRecord[selectedField] = transformationOptions.staticValue;
-        } else {
+        } else if (transformationOptions.option === 'null') {
           newRecord[selectedField] = emptyFieldValue;
         }
       }
