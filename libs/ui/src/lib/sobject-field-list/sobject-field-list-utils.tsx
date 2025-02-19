@@ -1,6 +1,6 @@
 import { REGEX } from '@jetstream/shared/utils';
 import { FieldWrapper } from '@jetstream/types';
-import { FilterTypes } from './SobjectFieldListFilterNew';
+import { FilterTypes } from './SobjectFieldListFilter';
 
 export function getBgColor(level: number): string | undefined {
   switch (level) {
