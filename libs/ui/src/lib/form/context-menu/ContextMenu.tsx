@@ -1,6 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { css } from '@emotion/react';
-import { FocusTrap } from '@headlessui/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import {
   KeyBuffer,
@@ -13,6 +12,7 @@ import {
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
 import { ContextMenuItem } from '@jetstream/types';
+import { FocusScope } from '@react-aria/focus';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
@@ -144,7 +144,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
 
   return (
     <OutsideClickHandler onOutsideClick={() => onClose()}>
-      <FocusTrap>
+      <FocusScope contain restoreFocus autoFocus>
         <div
           ref={setPopperElement}
           // Selectively picked from `slds-dropdown slds-dropdown_small`
@@ -203,7 +203,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
             ))}
           </ul>
         </div>
-      </FocusTrap>
+      </FocusScope>
     </OutsideClickHandler>
   );
 };

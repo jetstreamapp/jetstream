@@ -166,13 +166,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         title: 'open filters menu',
       }}
     >
-      <Icon
-        type="utility"
-        icon="filter"
-        description="Open filters menu"
-        className="slds-button__icon slds-button__icon_large"
-        omitContainer
-      />
+      <Icon type="utility" icon="filterList" description="Open filters menu" className="slds-button__icon" omitContainer />
       {!!filterSelectedCount && (
         <div
           title="Reset all filters"
@@ -182,8 +176,8 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
             top: -0.8rem;
             right: -0.5rem;
             border-radius: 50%;
-            width: 1.25rem;
-            height: 1.25rem;
+            width: 1rem;
+            height: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;

@@ -223,7 +223,7 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalR
       >
         <Icon
           type="utility"
-          icon="filter"
+          icon="filterList"
           className={classNames('slds-button__icon slds-icon_x-small', {
             'slds-text-color_brand': active,
           })}

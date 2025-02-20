@@ -222,9 +222,9 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     >
       <Icon
         type="utility"
-        icon="filter"
+        icon="filterList"
         description="Open filters menu"
-        className="slds-button__icon slds-button__icon_large"
+        className="slds-button__icon slds-button__icon_medium"
         omitContainer
       />
       {!!hasFiltersApplied && (
@@ -233,8 +233,8 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           css={css`
             position: absolute;
             background-color: #ba0517;
-            top: -0.125rem;
-            right: -0.5rem;
+            top: -0.4rem;
+            right: -0.4rem;
             border-radius: 50%;
             width: 0.75rem;
             height: 0.75rem;
