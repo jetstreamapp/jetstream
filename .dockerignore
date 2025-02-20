@@ -13,7 +13,7 @@
 
 # Include specific files
 !/yarn.lock
-!/.eslintrc.json
+!/eslint.config.js
 !/.gitignore
 !/babel.config.json
 !/Dockerfile
