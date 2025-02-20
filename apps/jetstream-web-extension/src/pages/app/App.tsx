@@ -1,4 +1,6 @@
 /* eslint-disable no-restricted-globals */
+import '../../utils/extension-public-path';
+
 import { AnonymousApex } from '@jetstream/feature/anon-apex';
 import { AutomationControl, AutomationControlEditor, AutomationControlSelection } from '@jetstream/feature/automation-control';
 import { CreateFields, CreateFieldsSelection, CreateObjectAndFields } from '@jetstream/feature/create-object-and-fields';
@@ -20,7 +22,6 @@ import { Suspense, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AppWrapper } from '../../core/AppWrapper';
-import '../../utils/monaco-loader';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
 
 initAndRenderReact(
@@ -29,7 +30,6 @@ initAndRenderReact(
   </AppWrapper>
 );
 
-const featureFlags = new Set<string>();
 const pageUrl = new URL(location.href);
 const searchParams = pageUrl.searchParams;
 const url = searchParams.get('url');
@@ -57,15 +57,7 @@ export function App() {
 
   return (
     <div>
-      <HeaderNavbar
-        featureFlags={featureFlags}
-        isBillingEnabled={false}
-        isChromeExtension
-        // unavailableRoutes={unavailableRoutesDefault}
-        // orgsDropdown={<OrgPreview selectedOrg={selectedOrg} />}
-        // userProfile={userProfile}
-        // featureFlags={featureFlags}
-      />
+      <HeaderNavbar isBillingEnabled={false} isChromeExtension />
       <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
@@ -78,8 +70,8 @@ export function App() {
               </Route>
 
               <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
-              <Route path={APP_ROUTES.LOAD.ROUTE} element={<LoadRecords featureFlags={featureFlags} />} />
-              <Route path={APP_ROUTES.LOAD_MULTIPLE.ROUTE} element={<LoadRecordsMultiObject featureFlags={featureFlags} />} />
+              <Route path={APP_ROUTES.LOAD.ROUTE} element={<LoadRecords />} />
+              <Route path={APP_ROUTES.LOAD_MULTIPLE.ROUTE} element={<LoadRecordsMultiObject />} />
               <Route path={APP_ROUTES.AUTOMATION_CONTROL.ROUTE} element={<AutomationControl />}>
                 <Route index element={<AutomationControlSelection />} />
                 <Route path="editor" element={<AutomationControlEditor />} />

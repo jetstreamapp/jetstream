@@ -4,7 +4,7 @@ import { environment } from '../environments/environment';
 export const GlobalExtensionLoggedOut = () => {
   return (
     <div className="slds-card slds-box">
-      <p>This page is only accessible when you are logged in to the Chrome extension. Login to continue.</p>
+      <p>This page is only accessible when you are logged in to the browser extension. Login to continue.</p>
       <a
         href={`${environment.serverUrl}/web-extension/init`}
         target="_blank"

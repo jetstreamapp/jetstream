@@ -3,6 +3,7 @@ import express from 'express';
 import Router from 'express-promise-router';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
+import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import { routeDefinition as imageController } from '../controllers/image.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
@@ -15,7 +16,7 @@ import { routeDefinition as queryController } from '../controllers/sf-query.cont
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
-import { addOrgsToLocal, checkAuth, ensureTargetOrgExists } from './route.middleware';
+import { addOrgsToLocal, checkAuth, ensureTargetOrgExists, verifyEntitlement } from './route.middleware';
 
 const routes: express.Router = Router();
 
@@ -65,6 +66,14 @@ routes.post('/billing/checkout-session', billingController.createCheckoutSession
 routes.get('/billing/checkout-session/complete', billingController.processCheckoutSuccess.controllerFn());
 routes.get('/billing/subscriptions', billingController.getSubscriptions.controllerFn());
 routes.post('/billing/portal', billingController.createBillingPortalSession.controllerFn());
+
+/**
+ * ************************************
+ * Data History Sync Routes
+ * ************************************
+ */
+routes.get('/data-sync/pull', verifyEntitlement('recordSync'), dataSyncController.pull.controllerFn());
+routes.post('/data-sync/push', verifyEntitlement('recordSync'), dataSyncController.push.controllerFn());
 
 /**
  * ************************************

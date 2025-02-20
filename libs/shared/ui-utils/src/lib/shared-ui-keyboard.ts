@@ -1,4 +1,4 @@
-import { ListItem } from '@jetstream/types';
+import type { ListItem } from '@jetstream/types';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 

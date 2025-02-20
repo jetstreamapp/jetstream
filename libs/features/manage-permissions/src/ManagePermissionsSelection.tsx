@@ -15,6 +15,7 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -74,6 +75,17 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     setSobjects(sobjects);
   }
 
+  function handleContinue() {
+    if (!sobjects?.length) {
+      return;
+    }
+    recentHistoryItemsDb.addItemToRecentHistoryItems(
+      selectedOrg.uniqueId,
+      'sobject',
+      sobjects.map(({ name }) => name)
+    );
+  }
+
   return (
     <Page testId="manage-permissions-page">
       <RequireMetadataApiBanner />
@@ -82,7 +94,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" docsPath="/permissions" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
-              <Link className="slds-button slds-button_brand" to="editor">
+              <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>
                 Continue
                 <Icon type="utility" icon="forward" className="slds-button__icon slds-button__icon_right" />
               </Link>
@@ -162,6 +174,8 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
               selectedOrg={selectedOrg}
               sobjects={sobjects}
               selectedSObjects={selectedSObjects}
+              recentItemsEnabled
+              recentItemsKey="sobject"
               filterFn={filterPermissionsSobjects}
               onSobjects={handleSobjectChange}
               onSelectedSObjects={setSelectedSObjects}

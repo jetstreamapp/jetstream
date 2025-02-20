@@ -1,93 +1,20 @@
-import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
 import { detectDateFormatForLocale, formatNumber } from '@jetstream/shared/ui-utils';
-import {
-  ApiMode,
-  DescribeGlobalSObjectResult,
-  FieldMapping,
-  InsertUpdateUpsertDelete,
-  LocalOrGoogle,
-  Maybe,
-  SavedFieldMapping,
-} from '@jetstream/types';
-import localforage from 'localforage';
+import { ApiMode, DescribeGlobalSObjectResult, FieldMapping, InsertUpdateUpsertDelete, LocalOrGoogle, Maybe } from '@jetstream/types';
 import isNumber from 'lodash/isNumber';
-import { atom, selector, selectorFamily } from 'recoil';
+import { atom, selector } from 'recoil';
 import {
   BATCH_RECOMMENDED_THRESHOLD,
   MAX_API_CALLS,
   MAX_BULK,
-  STATIC_MAPPING_PREFIX,
   getLabelWithOptionalRecommended,
   getMaxBatchSize,
 } from '../load/load-records-utils';
-// import {
-//   BATCH_RECOMMENDED_THRESHOLD,
-//   MAX_API_CALLS,
-//   MAX_BULK,
-//   STATIC_MAPPING_PREFIX,
-//   getLabelWithOptionalRecommended,
-//   getMaxBatchSize,
-// } from '@jetstream/types';
 
 const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
 SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('Document', { bodyField: 'Body' });
 SUPPORTED_ATTACHMENT_OBJECTS.set('ContentVersion', { bodyField: 'VersionData' });
 const DATE_FIELDS = new Set(['date', 'datetime']);
-
-export interface LoadSavedMappingItem {
-  key: string; // object:createdDate
-  name: string;
-  sobject: string;
-  csvFields: string[];
-  sobjectFields: string[];
-  mapping: SavedFieldMapping;
-  createdDate: Date;
-}
-
-const initLoadSavedMapping = async (): Promise<Record<string, Record<string, LoadSavedMappingItem>>> => {
-  try {
-    return (await localforage.getItem<Record<string, Record<string, LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping)) || {};
-  } catch (ex) {
-    logger.error('Error getting loadSavedMapping from localforage', ex);
-    return {};
-  }
-};
-
-export const savedFieldMappingState = atom<Record<string, Record<string, LoadSavedMappingItem>>>({
-  key: 'load.savedFieldMappingState',
-  default: initLoadSavedMapping(),
-  effects: [
-    ({ onSet }) => {
-      onSet(async (newValue) => {
-        try {
-          logger.log('Saving loadSavedMapping to localforage', newValue);
-          await localforage.setItem<Record<string, Record<string, LoadSavedMappingItem>>>(INDEXED_DB.KEYS.loadSavedMapping, newValue);
-        } catch (ex) {
-          logger.error('Error saving loadSavedMapping to localforage', ex);
-        }
-      });
-    },
-  ],
-});
-
-export const selectSavedFieldMappingState = selectorFamily<
-  LoadSavedMappingItem[],
-  { sobject: string; csvFields: Set<string>; objectFields: Set<string> }
->({
-  key: 'load.selectSavedFieldMappingState',
-  get:
-    ({ sobject, csvFields, objectFields }) =>
-    ({ get }) => {
-      const savedMappings = Object.values(get(savedFieldMappingState)[sobject] || {});
-      return savedMappings.filter(
-        (item) =>
-          item.csvFields.filter((field) => !field.startsWith(STATIC_MAPPING_PREFIX)).every((field) => csvFields.has(field)) &&
-          item.sobjectFields.every((field) => objectFields.has(field))
-      );
-    },
-});
 
 export const priorSelectedOrg = atom<string | null>({
   key: 'load.priorSelectedOrg',

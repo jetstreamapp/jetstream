@@ -47,5 +47,5 @@ export interface TransformationOptions {
   whereClause: string;
 }
 
-export type TransformationOption = 'staticValue' | 'anotherField' | 'null';
+export type TransformationOption = 'staticValue' | 'anotherField' | 'update' | 'null';
 export type TransformationCriteria = 'all' | 'onlyIfBlank' | 'onlyIfNotBlank' | 'custom';

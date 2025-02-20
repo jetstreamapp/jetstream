@@ -1,4 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import type * as oauth from 'oauth4webapi';
 
 const oauthPromise = import('oauth4webapi');
@@ -75,6 +76,6 @@ export class OauthClients {
 
 // eager init
 OauthClients.getInstance().catch((err) => {
-  logger.error('FATAL INIT ERROR - could not load oauth clients', err);
+  logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load oauth clients');
   process.exit(1);
 });

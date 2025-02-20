@@ -1,9 +1,10 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { listMetadata as listMetadataApi, queryAll } from '@jetstream/shared/data';
+import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
+import { uniqWith } from 'lodash';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_listmetadata.htm
@@ -45,6 +46,10 @@ const getFolderSoqlQuery = (type: string) => {
   return `SELECT Id, DeveloperName, ParentId, Type FROM Folder WHERE type = '${type}' ORDER BY Type, ParentId NULLS FIRST`;
 };
 
+const getPersonTypeSoqlQuery = () => {
+  return `SELECT DeveloperName, SobjectType FROM RecordType WHERE IsPersonType = TRUE`;
+};
+
 const METADATA_TYPES_WITH_NESTED_FOLDERS = new Set(['Report', 'Dashboard']);
 
 // helper method
@@ -55,12 +60,46 @@ async function fetchListMetadata(
   skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
   const { type, folder } = item;
-  const { data: items, cache } = await listMetadataApi(
+  // eslint-disable-next-line prefer-const
+  let { data: items, cache } = await listMetadataApi(
     selectedOrg,
     [{ type, folder: folder || undefined }],
     skipRequestCache,
     skipCacheIfOlderThan
   );
+
+  /**
+   * Special handling for PersonAccount record types to work around Salesforce nuance
+   * The fullName is incorrect for PersonAccount record types, they show up under the `Account.` prefix
+   */
+  if (item.type === 'RecordType') {
+    try {
+      // Fetch all person account record types
+      const personAccountRecordTypes = await queryWithCache<{ DeveloperName: string; SobjectType: string }>(
+        selectedOrg,
+        getPersonTypeSoqlQuery()
+      ).then((results) => results.data.queryResults.records);
+
+      if (personAccountRecordTypes.length > 0) {
+        const personAccountsWithFullName = personAccountRecordTypes.map((record) => ({
+          ...record,
+          fullName: `${record.SobjectType}.${record.DeveloperName}`,
+        }));
+        const recordTypesByFullName = groupByFlat(personAccountsWithFullName, 'fullName');
+        // Replace fullName prefix "Account" with "PersonAccount"
+        items = items.map((listMetadataItem) => {
+          const personAccountRecordType = recordTypesByFullName[listMetadataItem.fullName];
+          if (listMetadataItem.type !== 'RecordType' || !personAccountRecordType) {
+            return listMetadataItem;
+          }
+          return { ...listMetadataItem, fullName: `PersonAccount.${personAccountRecordType.DeveloperName}` };
+        });
+      }
+    } catch (ex) {
+      logger.error('Error monkey-patching PersonAccount record types', ex);
+    }
+  }
+
   return {
     ...item,
     items: orderObjectsBy(items, 'fullName'),
@@ -255,7 +294,6 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
 
         setListMetadataItems(newMetadataItems);
 
-        // tried queue, but hit a stupid error - we may want a queue in the future for parallel requests
         for (const item of itemsToProcess) {
           const { type, inFolder } = item;
           try {
@@ -265,6 +303,14 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
               responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
             } else {
               responseItem = await fetchListMetadata(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
+            }
+
+            // Some sobjects are in the list twice (Salesforce bug - specifically Account shows up twice)
+            if (responseItem?.items) {
+              responseItem.items = uniqWith(
+                responseItem.items,
+                (currValue, otherValue) => `${currValue.type}:${currValue.fullName}` === `${otherValue.type}:${otherValue.fullName}`
+              );
             }
 
             if (!isMounted.current) {

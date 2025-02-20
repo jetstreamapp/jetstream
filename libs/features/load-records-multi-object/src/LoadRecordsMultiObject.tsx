@@ -23,7 +23,7 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
-import { ChangeEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
@@ -37,11 +37,7 @@ initXlsx(XLSX);
 const TEMPLATE_DOWNLOAD_LINK = '/assets/content/Jetstream%20-%20Load%20Records%20to%20Multiple%20Objects%20-%20Template.xlsx';
 const HEIGHT_BUFFER = 170;
 
-export interface LoadRecordsMultiObjectProps {
-  featureFlags: Set<string>;
-}
-
-export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectProps> = ({ featureFlags }) => {
+export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
@@ -180,7 +176,7 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle
-            icon={{ type: 'standard', icon: 'data_streams' }}
+            icon={{ type: 'standard', icon: 'record_update' }}
             label="Load Records to Multiple Objects"
             docsPath="/load/with-related"
           />
@@ -258,6 +254,8 @@ export const LoadRecordsMultiObject: FunctionComponent<LoadRecordsMultiObjectPro
                 disabled: fileProcessingLoading || dataLoadLoading,
                 onReadFile: handleGoogleFile,
               }}
+              source="load_records_multi_object"
+              trackEvent={trackEvent}
             />
             <div className="slds-form-element__help slds-truncate">
               Choose an Excel file that is in the correct format from the provided template.

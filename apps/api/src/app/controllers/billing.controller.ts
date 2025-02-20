@@ -1,4 +1,5 @@
-import { ENV } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
+import { UserProfileUi } from '@jetstream/types';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import * as userDbService from '../db/user.db';
@@ -86,38 +87,45 @@ const createCheckoutSessionHandler = createRoute(
   }
 );
 
-const processCheckoutSuccessHandler = createRoute(
-  routeDefinition.processCheckoutSuccess.validators,
-  async ({ user: sessionUser, query }, req, res) => {
-    ensureStripeIsInitialized();
-    const { subscribeAction, sessionId } = query;
+const processCheckoutSuccessHandler = createRoute(routeDefinition.processCheckoutSuccess.validators, async ({ user, query }, req, res) => {
+  ensureStripeIsInitialized();
+  const { subscribeAction, sessionId } = query;
 
-    if (!subscribeAction || !sessionId) {
-      return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
-    }
-
-    const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
-    if (!user.subscriptions?.[0]?.customerId) {
-      return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
-    }
-
-    await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
-
-    redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
+  if (!subscribeAction || !sessionId) {
+    return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
   }
-);
+
+  await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
+
+  redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
+});
 
 const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, req, res) => {
   ensureStripeIsInitialized();
-  const userProfile = await userDbService.findById(user.id);
-  // No billing account, so there are no subscriptions
-  if (!userProfile.billingAccount?.customerId) {
-    sendJson(res, { customer: null });
+
+  const {
+    success,
+    reason,
+    didUpdate,
+    stripeCustomer: internalCustomer,
+  } = await stripeService.synchronizeStripeWithJetstreamIfRequired({ userId: user.id });
+  if (!success) {
+    logger.error({ userId: user.id }, `Did not synchronize Stripe with Jetstream: ${reason}`);
+    sendJson(res, { customer: null, didUpdate });
     return;
   }
+  if (!internalCustomer) {
+    sendJson(res, { customer: null, didUpdate });
+    return;
+  }
+  const customer = stripeService.convertCustomerWithSubscriptionsToUserFacing(internalCustomer);
 
-  const customer = await stripeService.getUserFacingStripeCustomer({ customerId: userProfile.billingAccount.customerId });
-  sendJson(res, { customer });
+  let userProfile: UserProfileUi | undefined;
+  if (didUpdate) {
+    userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id });
+  }
+
+  sendJson(res, { customer, didUpdate, userProfile });
 });
 
 const createBillingPortalSession = createRoute(

@@ -12,6 +12,8 @@ export interface FileOrGoogleSelectorProps {
   omitGoogle?: boolean;
   googleShowUpgradeToPro: boolean;
   initialSelectedTab?: 'local' | 'google';
+  source: string;
+  trackEvent: (key: string, value?: unknown) => void;
 }
 
 export const FileOrGoogleSelector = ({
@@ -20,6 +22,8 @@ export const FileOrGoogleSelector = ({
   omitGoogle,
   googleShowUpgradeToPro,
   initialSelectedTab = 'local',
+  source,
+  trackEvent,
 }: FileOrGoogleSelectorProps) => {
   if (omitGoogle && !googleShowUpgradeToPro) {
     return <FileSelector {...fileSelectorProps}></FileSelector>;
@@ -38,7 +42,7 @@ export const FileOrGoogleSelector = ({
           {
             id: 'google',
             title: 'Google Drive',
-            content: <GoogleSelectedProUpgradeButton />,
+            content: <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />,
           },
         ]}
       />

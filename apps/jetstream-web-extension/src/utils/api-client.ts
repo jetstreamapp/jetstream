@@ -10,7 +10,7 @@ export function initApiClient({ key: accessToken, hostname }: SessionInfo): ApiC
     userId: 'unknown',
     organizationId: 'unknown',
     accessToken,
-    apiVersion: '62.0',
+    apiVersion: '63.0',
     instanceUrl,
     // refreshToken: refresh_token,
     logger,
@@ -43,11 +43,11 @@ export async function initApiClientAndOrg(sessionInfo: SessionInfo): Promise<Org
       companyInfoRecord = queryResults.records[0];
     }
   } catch (ex) {
-    console.warn('Error getting org info %o', ex);
+    logger.warn('Error getting org info %o', ex);
   }
 
   const org: SalesforceOrgUi = {
-    uniqueId: identity.organization_id,
+    uniqueId: `${identity.organization_id}-${identity.user_id}`,
     label: identity.username,
     filterText: identity.username,
     accessToken: sessionInfo.key,

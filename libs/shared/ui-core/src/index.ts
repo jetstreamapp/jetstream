@@ -31,6 +31,7 @@ export * from './formula-evaluator/FormulaEvaluatorUserSearch';
 export * from './icons/JetstreamIcon';
 export * from './icons/JetstreamLogo';
 export * from './icons/JetstreamLogoInverse';
+export * from './icons/JetstreamProLogo';
 export * from './jetstream-events';
 export * from './jobs/Job';
 export * from './jobs/Jobs';

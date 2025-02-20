@@ -1,4 +1,4 @@
-import {
+import type {
   InputAcceptTypeCsv,
   InputAcceptTypeExcel,
   InputAcceptTypeTsv,
@@ -12,20 +12,6 @@ export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 export const SESSION_EXP_DAYS = 2;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
-
-export const FEATURE_FLAGS = Object.freeze({
-  ALL: 'all',
-  AUTOMATION_CONTROL: 'automation-control',
-  AUTOMATION_CONTROL_NEW: 'automation-control-new',
-  QUERY: 'query',
-  LOAD: 'load',
-  LOAD_MULTI_OBJ: 'load-multi-object',
-  PERMISSION_MANAGER: 'permission-manager',
-  DEPLOYMENT: 'deployment',
-  NOTIFICATIONS: 'notifications',
-  ALLOW_GOOGLE_UPLOAD: 'allow-google-upload',
-  UPDATE_RECORDS: 'update-records',
-});
 
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
@@ -47,6 +33,7 @@ export const HTTP = {
   },
   HEADERS: {
     ACCEPT: 'Accept',
+    AUTHORIZATION: 'Authorization',
     X_CLIENT_REQUEST_ID: 'X-Client-Request-Id',
     X_REQUEST_ID: 'X-Request-Id',
     X_RETRY: 'X-RETRY',
@@ -63,6 +50,7 @@ export const HTTP = {
     X_CACHE_KEY: 'X-CACHE-KEY',
     X_CACHE_AGE: 'X-CACHE-AGE',
     X_CACHE_EXP: 'X-CACHE-ECP',
+    X_WEB_EXTENSION_DEVICE_ID: 'X-Web-Extension-Device-Identifier',
     CONTENT_TYPE: 'Content-Type',
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',
@@ -128,13 +116,11 @@ export const fileExtToGoogleDriveMimeType = {
 
 export const INDEXED_DB = {
   KEYS: {
-    automationControlHistory: 'AUTOMATION:QUERY',
     queryHistory: 'HISTORY:QUERY',
     loadSavedMapping: 'LOAD:SAVED_MAPPING',
     apexHistory: 'HISTORY:APEX',
     deployHistory: 'HISTORY:DEPLOY',
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
-    recordHistory: 'HISTORY:RECORDS',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
     sobjectExportSelection: 'USER:SOBJECT_EXPORT_OPTIONS',
@@ -164,6 +150,9 @@ export const ANALYTICS_KEYS = {
   /** Browser Notifications */
   notifications_modal_opened: 'notifications_modal_opened',
   notifications_permission_requested: 'notifications_permission_requested',
+  /** Misc */
+  file_download: 'file_download',
+  chrome_extension_link: 'chrome_extension_link',
   /** Record Modal */
   record_modal_action_change: 'record_modal_action_change',
   record_modal_view_related: 'record_modal_view_related',
@@ -209,7 +198,7 @@ export const ANALYTICS_KEYS = {
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
   attachment_ModalOpened: 'attachment_ModalOpened',
-  attachment_Cancelled: 'attachment_Cancelled',
+  attachment_Canceled: 'attachment_Canceled',
   attachment_Downloaded: 'attachment_Downloaded',
   attachment_Error: 'attachment_Error',
   /** LOAD */
@@ -288,6 +277,11 @@ export const ANALYTICS_KEYS = {
   /** FEEDBACK */
   donate_popover_open: 'donate_popover_open',
   donate_popover_cta_click: 'donate_popover_cta_click',
+
+  /** BILLING */
+  billing_page_accessed: 'billing_page_accessed',
+  billing_portal: 'billing_portal',
+  billing_session: 'billing_session',
 } as const;
 
 export const LOG_LEVELS = ['NONE', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'FINE', 'FINER', 'FINEST'];

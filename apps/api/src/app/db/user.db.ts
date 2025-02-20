@@ -1,5 +1,6 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
+import { UserProfileUi } from '@jetstream/types';
 import { Entitlement, Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
@@ -137,8 +138,37 @@ export const findByIdWithSubscriptions = (id: string) => {
   });
 };
 
-export const findIdByUserIdUserFacing = ({ userId }: { userId: string }) => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect });
+export const findIdByUserIdUserFacing = ({
+  userId,
+  omitSubscriptions = false,
+}: {
+  userId: string;
+  omitSubscriptions?: boolean;
+}): Promise<UserProfileUi> => {
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => ({
+    id: user.id,
+    userId: user.userId,
+    email: user.email,
+    name: user.name,
+    emailVerified: user.emailVerified,
+    picture: user.picture,
+    preferences: { skipFrontdoorLogin: false, recordSyncEnabled: true },
+    billingAccount: user.billingAccount,
+    entitlements: {
+      chromeExtension: user.entitlements?.chromeExtension ?? true,
+      recordSync: user.entitlements?.recordSync ?? false,
+      googleDrive: user.entitlements?.googleDrive ?? false,
+    },
+    subscriptions: omitSubscriptions
+      ? []
+      : user.subscriptions.map((subscription) => ({
+          id: subscription.id,
+          productId: subscription.productId,
+          subscriptionId: subscription.subscriptionId,
+          priceId: subscription.priceId,
+          status: subscription.status as UserProfileUi['subscriptions'][number]['status'],
+        })),
+  }));
 };
 
 export const checkUserEntitlement = ({
@@ -153,22 +183,25 @@ export const checkUserEntitlement = ({
 
 export async function updateUser(
   user: UserProfileSession,
-  data: { name?: string; preferences?: { skipFrontdoorLogin: boolean } }
+  data: { name?: string; preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean } }
 ): Promise<User> {
   try {
     const existingUser = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { id: true, name: true, preferences: { select: { skipFrontdoorLogin: true } } },
+      select: { id: true, name: true, preferences: { select: { skipFrontdoorLogin: true, recordSyncEnabled: true } } },
     });
-    const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? (existingUser?.preferences?.skipFrontdoorLogin || false);
+    // PATCH update
+    const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? existingUser?.preferences?.skipFrontdoorLogin ?? false;
+    const recordSyncEnabled = data.preferences?.recordSyncEnabled ?? existingUser?.preferences?.recordSyncEnabled ?? true;
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         name: data.name ?? existingUser.name,
         preferences: {
           upsert: {
-            create: { skipFrontdoorLogin },
-            update: { skipFrontdoorLogin },
+            create: { skipFrontdoorLogin, recordSyncEnabled },
+            update: { skipFrontdoorLogin, recordSyncEnabled },
           },
         },
       },
@@ -198,7 +231,7 @@ export async function deleteUserAndAllRelatedData(userId: string): Promise<void>
   });
 }
 
-export async function findByBillingAccountByCustomerId({ customerId }: { customerId: string }) {
+export async function findBillingAccountByCustomerId({ customerId }: { customerId: string }) {
   const billingAccount = await prisma.billingAccount.findFirst({ where: { customerId } });
   return billingAccount;
 }

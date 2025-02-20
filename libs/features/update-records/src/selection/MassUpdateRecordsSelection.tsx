@@ -13,6 +13,7 @@ import {
 } from '@jetstream/ui';
 import { filterMassUpdateSobject } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
@@ -70,11 +71,22 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     reset();
   }
 
+  function handleContinue() {
+    if (!sobjects?.length) {
+      return;
+    }
+    recentHistoryItemsDb.addItemToRecentHistoryItems(
+      selectedOrg.uniqueId,
+      'sobject',
+      sobjects.map(({ name }) => name)
+    );
+  }
+
   return (
     <Page testId="mass-update-records-selection-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'bundle_config' }} label="Update Records" docsPath="/load/update-records" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Update Records" docsPath="/load/update-records" />
           <PageHeaderActions colType="actions" buttonType="separate">
             {rows.length > 1 && (
               <button className="slds-button slds-button_neutral" disabled={!allRowsValid} onClick={validateAllRowRecords}>
@@ -82,7 +94,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
               </button>
             )}
             {allRowsValidated ? (
-              <Link className="slds-button slds-button_brand" to="deployment">
+              <Link className="slds-button slds-button_brand" to="deployment" onClick={handleContinue}>
                 Review Changes
               </Link>
             ) : (
@@ -126,6 +138,8 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
               selectedOrg={selectedOrg}
               sobjects={sobjects}
               selectedSObjects={selectedSObjects}
+              recentItemsEnabled
+              recentItemsKey="sobject"
               filterFn={filterMassUpdateSobject}
               onSobjects={setSobjects}
               onSelectedSObjects={setSelectedSObjects}

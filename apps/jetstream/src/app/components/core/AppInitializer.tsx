@@ -1,11 +1,12 @@
 /* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { checkHeartbeat, registerMiddleware } from '@jetstream/shared/data';
+import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
-import { Announcement, ApplicationCookie, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { Announcement, SalesforceOrgUi } from '@jetstream/types';
 import { useAmplitude, usePageViews } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { initDexieDb } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
@@ -32,16 +33,18 @@ localforage.config({
 
 export interface AppInitializerProps {
   onAnnouncements?: (announcements: Announcement[]) => void;
-  onUserProfile: (userProfile: UserProfileUi) => void;
   children?: React.ReactNode;
 }
 
-export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, onUserProfile, children }) => {
-  const userProfile = useRecoilValue<UserProfileUi>(fromAppState.userProfileState);
+export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
+  const userProfile = useRecoilValue(fromAppState.userProfileState);
   const { version, announcements } = useRecoilValue(fromAppState.appVersionState);
-  const appCookie = useRecoilValue<ApplicationCookie>(fromAppState.applicationCookieState);
+  const appCookie = useRecoilValue(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+
+  const recordSyncEntitlementEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
 
   useEffect(() => {
     console.log(
@@ -63,6 +66,17 @@ APP VERSION ${version}
       'background: #222; color: #FFFFFF'
     );
   }, [version]);
+
+  useEffect(() => {
+    if (recordSyncEnabled) {
+      initSocket(appCookie.serverUrl);
+    } else {
+      disconnectSocket();
+    }
+    initDexieDb({ recordSyncEnabled }).catch((ex) => {
+      logger.error('[DB] Error initializing db', ex);
+    });
+  }, [appCookie.serverUrl, recordSyncEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);
@@ -92,12 +106,6 @@ APP VERSION ${version}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invalidOrg]);
-
-  useEffect(() => {
-    if (userProfile) {
-      onUserProfile(userProfile);
-    }
-  }, [onUserProfile, userProfile]);
 
   /**
    * When a tab/browser window becomes visible check with the server

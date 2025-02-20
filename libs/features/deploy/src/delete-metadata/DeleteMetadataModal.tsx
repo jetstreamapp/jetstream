@@ -82,6 +82,8 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_delete_modal"
+          trackEvent={trackEvent}
         />
       )}
     </Fragment>

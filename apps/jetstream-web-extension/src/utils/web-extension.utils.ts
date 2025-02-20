@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { createRoot } from 'react-dom/client';
+import browser from 'webextension-polyfill';
 import { Message, MessageRequest, MessageResponse } from './extension.types';
 
 type RequestResponseMap = {
@@ -33,9 +34,9 @@ export function initAndRenderReact(
 
 export async function sendMessage<T extends MessageRequest>(message: T): Promise<ResponseForRequest<T>> {
   try {
-    return await chrome.runtime.sendMessage<T, MessageResponse<ResponseForRequest<T>>>(message).then(handleResponse);
+    return await browser.runtime.sendMessage<T, MessageResponse<ResponseForRequest<T>>>(message).then(handleResponse);
   } catch (error) {
-    console.error('Error sending message', error);
+    logger.error('Error sending message', error);
     throw error;
   }
 }

@@ -45,6 +45,16 @@ function getRowClass(row: RowSalesforceRecordWithKey): string | undefined {
   return row._saveError ? 'save-error' : undefined;
 }
 
+function getTotalCountText(queryResults: QueryResults['queryResults']) {
+  // Big objects report -1 as totalSize
+  if (queryResults.totalSize < 0 && !queryResults.done) {
+    return `more than ${formatNumber(queryResults.records.length)}`;
+  } else if (queryResults.totalSize < 0 && queryResults.done) {
+    return formatNumber(queryResults.records.length);
+  }
+  return formatNumber(queryResults.totalSize || 0);
+}
+
 export interface SalesforceRecordDataTableProps {
   org: SalesforceOrgUi;
   isTooling: boolean;
@@ -117,7 +127,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     const [dirtyRows, setDirtyRows] = useState<RowSalesforceRecordWithKey[]>([]);
     const [saveErrors, setSaveErrors] = useState<string[]>([]);
 
-    const [totalRecordCount, setTotalRecordCount] = useState<number>();
+    const [totalRecordCountText, setTotalRecordCountText] = useState<string>();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [loadMoreErrorMessage, setLoadMoreErrorMessage] = useState<string | null>(null);
     const [hasMoreRecords, setHasMoreRecords] = useState(false);
@@ -148,7 +158,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         setSubqueryColumnsMap(subqueryColumns);
         setRecords(queryResults.queryResults.records);
         onFilteredRowsChanged(queryResults.queryResults.records);
-        setTotalRecordCount(queryResults.queryResults.totalSize);
+        setTotalRecordCountText(getTotalCountText(queryResults.queryResults));
         if (!queryResults.queryResults.done && queryResults.queryResults.nextRecordsUrl) {
           setHasMoreRecords(true);
           setNextRecordsUrl(queryResults.queryResults.nextRecordsUrl);
@@ -264,7 +274,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         if (results.queryResults.done) {
           setHasMoreRecords(false);
         }
-        setRecords((records || []).concat(results.queryResults.records));
+        const newRecords = (records || []).concat(results.queryResults.records);
+        setRecords(newRecords);
+        setTotalRecordCountText(getTotalCountText({ ...results.queryResults, records: newRecords }));
         setIsLoadingMore(false);
         if (onLoadMoreRecords) {
           onLoadMoreRecords(results);
@@ -360,7 +372,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             if (failedResultsById[id]) {
               return { ...row, _saveError: failedResultsById[id].errors[0].message };
             } else {
-              return { ...row, _touchedColumns: new Set(), _saveError: null };
+              const tempRow: RowSalesforceRecordWithKey = { ...row, _touchedColumns: new Set(), _saveError: null };
+              Array.from(row._touchedColumns).forEach((col) => (tempRow._record[col] = row[col]));
+              return tempRow;
             }
           }
           if (row._saveError) {
@@ -408,7 +422,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         <Grid className="slds-p-around_xx-small" align="spread">
           <div className="slds-grid">
             <div className="slds-p-around_x-small">
-              Showing {formatNumber(visibleRecordCount)} of {formatNumber(totalRecordCount || 0)} records
+              Showing {formatNumber(visibleRecordCount)} of {totalRecordCountText} records
             </div>
             {hasMoreRecords && (
               <div>

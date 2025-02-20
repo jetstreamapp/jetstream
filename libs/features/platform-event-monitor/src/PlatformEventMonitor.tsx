@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
-import { isChromeExtension, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
+import { isBrowserExtension, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
-import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -20,7 +20,8 @@ export interface PlatformEventMonitorProps {}
 
 export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
-  const [chromeExtension] = useState(() => isChromeExtension());
+  const { trackEvent } = useAmplitude();
+  const [chromeExtension] = useState(() => isBrowserExtension());
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const isMounted = useRef(true);
@@ -212,6 +213,8 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
           header={downloadResultsData.headers}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="platform_event_monitor"
+          trackEvent={trackEvent}
         />
       )}
     </AutoFullHeightContainer>

@@ -51,6 +51,7 @@ const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
   updatedAt: new Date(),
   preferences: {
     skipFrontdoorLogin: false,
+    recordSyncEnabled: false,
     id: 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
     userId: 'test|TEST_USER_ID',
     createdAt: new Date(),
@@ -74,6 +75,7 @@ const envSchema = z.object({
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
     .optional()
     .transform((value) => value ?? 'debug'),
+  PRETTY_LOGS: booleanSchema,
   CI: booleanSchema,
   // LOCAL OVERRIDE
   // EXAMPLE_USER: z.record(z.any()).optional(),
@@ -210,7 +212,8 @@ const envSchema = z.object({
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
 
-  WEB_EXTENSION_ID: z.string().optional().default(''),
+  WEB_EXTENSION_ID_CHROME: z.string().optional().default(''),
+  WEB_EXTENSION_ID_MOZILLA: z.string().optional().default(''),
   /**
    * STRIPE
    */
@@ -218,6 +221,7 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRO_ANNUAL_PRICE_ID: z.string().optional(),
   STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_BILLING_PORTAL_LINK: z.string().optional(),
 });
 
 const parseResults = envSchema.safeParse({
@@ -229,6 +233,7 @@ const parseResults = envSchema.safeParse({
   SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION,
   STRIPE_PRO_ANNUAL_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID,
   STRIPE_PRO_MONTHLY_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
+  STRIPE_BILLING_PORTAL_LINK: process.env.NX_PUBLIC_STRIPE_BILLING_PORTAL_LINK,
   VERSION,
 });
 

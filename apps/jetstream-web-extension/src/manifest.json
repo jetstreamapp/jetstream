@@ -1,7 +1,7 @@
 {
   "name": "Jetstream",
   "description": "Jetstream is a set of tools that supercharge your administration of Salesforce.com.",
-  "version": "0.0.2",
+  "version": "1.5.0",
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmPjyzVG3Kpm0wyjDECyDLnwPlyEhlNmfzcPVybZz9gFKiHTm0qEuUYqGqOSAOWE6KnOR8RbiNkyrROGeEbGmhZIXxS02yKPTpJsA4qflKtTUGoeT7XcOm9cHWw3+BrVuqABCdXEwv/Do1/UX2vu9WeOMHQAr911nVl77JrhhaMQvpu0ruJjD+sZ9QbfjdLNeVeU1+hzgpuvpDnMihDIfZv47GaqvTTwxT67P09loBySjXMmx2mrtOpyLzsATLwQr6kmQQAX5X23ykw3PxY4NWBDldqXxKqTomMkwa3x6mh/4jmI5h6p6Wt6Gaf9FcG1pBOXTrUHNfdFzuK6ahYBsRQIDAQAB",
   "icons": {
@@ -10,20 +10,24 @@
     "48": "assets/icons/jetstream-icon-48.png",
     "128": "assets/icons/jetstream-icon-128.png"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "support@getjetstream.app",
+      "strict_min_version": "120.0"
+    }
+  },
   "oauth2": {
     "client_id": "1046118608516-p17mt3hd7ko18gd5mcdo8t3o7t6856hd.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/drive.file"]
   },
   "permissions": ["storage", "cookies"],
-  "externally_connectable": {
-    "matches": ["https://getjetstream.app/web-extension/*", "http://localhost:3333/web-extension/*"]
-  },
   "host_permissions": [
     "https://getjetstream.app/web-extension/*",
     "https://*.cloudforce.com/*",
     "https://*.force.com/*",
     "https://*.lightning.force.com/*",
     "https://*.salesforce.com/*",
+    "https://*.salesforce-setup.com/*",
     "https://*.visual.force.com/*",
     "https://*.visualforce.com/*"
   ],
@@ -41,6 +45,7 @@
     "open_in_tab": false
   },
   "background": {
+    "scripts": ["serviceWorker.js"],
     "service_worker": "serviceWorker.js"
   },
   "commands": {
@@ -65,19 +70,31 @@
         "https://*.cloudforce.com/*",
         "https://*.force.com/*",
         "https://*.lightning.force.com/*",
+        "https://*.salesforce-setup.com/*",
         "https://*.salesforce.com/*",
         "https://*.visual.force.com/*",
         "https://*.visualforce.com/*"
       ],
       "all_frames": true,
       "js": ["contentScript.js"]
+    },
+    {
+      "matches": ["https://getjetstream.app/web-extension/*"],
+      "js": ["contentAuthScript.js"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": ["*.html", "*.js", "*.css", "*.map", "*.png", "*.svg", "/app/", "/assets/"],
-      "matches": ["https://*.salesforce.com/*", "https://*.force.com/*", "https://*.cloudforce.com/*", "https://*.visualforce.com/*"]
+      "matches": [
+        "https://*.salesforce.com/*",
+        "https://*.salesforce-setup.com/*",
+        "https://*.force.com/*",
+        "https://*.cloudforce.com/*",
+        "https://*.visualforce.com/*"
+      ]
     }
   ],
-  "minimum_chrome_version": "110"
+  "minimum_chrome_version": "121"
 }

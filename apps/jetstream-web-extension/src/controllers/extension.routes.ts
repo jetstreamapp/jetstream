@@ -1,5 +1,6 @@
 import { UserProfileUi } from '@jetstream/types';
 import { Router } from 'tiny-request-router';
+import { routeDefinition as dataSyncController } from './jetstream-data-sync.web-ext.controller';
 import { handleJsonResponse, RequestOptions } from './route.utils';
 import { routeDefinition as bulkApiController } from './sf-bulk-api.web-ext.controller';
 import { routeDefinition as bulkQuery20ApiController } from './sf-bulk-query-20-api.web-ext.controller';
@@ -28,6 +29,19 @@ router.get('/api/me', async (req) => {
   } as UserProfileUi);
 });
 
+/**
+ * ************************************
+ * Data History Sync Routes
+ * ************************************
+ */
+router.get('/api/data-sync/pull', dataSyncController.pull.controllerFn());
+router.post('/api/data-sync/push', dataSyncController.push.controllerFn());
+
+/**
+ * ************************************
+ * orgsController Routes
+ * ************************************
+ */
 router.get('/api/orgs', async (req) => {
   return handleJsonResponse([]);
 });

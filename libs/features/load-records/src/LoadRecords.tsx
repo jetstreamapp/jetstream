@@ -25,6 +25,7 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import startCase from 'lodash/startCase';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
@@ -50,11 +51,7 @@ const steps: Step[] = [
 const enabledSteps: Step[] = steps.filter((step) => step.enabled);
 const finalStep: Step = enabledSteps[enabledSteps.length - 1];
 
-export interface LoadRecordsProps {
-  featureFlags: Set<string>;
-}
-
-export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
+export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
@@ -368,6 +365,11 @@ export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
 
   function changeStep(changeBy: number) {
     setCurrentStep(enabledSteps[currentStepIdx + changeBy]);
+    if (currentStepIdx === 0 && selectedSObject?.name) {
+      recentHistoryItemsDb
+        .addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', [selectedSObject.name])
+        .catch((err) => logger.error('Error adding item to recent history items', err));
+    }
   }
 
   const handleIsLoading = useCallback((isLoading: boolean) => {
@@ -406,7 +408,7 @@ export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
     <Page testId="load-records-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'data_streams' }} label="Load Records" docsPath="/load" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Load Records" docsPath="/load" />
           <PageHeaderActions colType="actions" buttonType="separate">
             <button
               data-testid="start-over-button"
@@ -457,7 +459,6 @@ export const LoadRecords = ({ featureFlags }: LoadRecordsProps) => {
                 hasGoogleDriveAccess={hasGoogleDriveAccess}
                 googleShowUpgradeToPro={googleShowUpgradeToPro}
                 googleApiConfig={googleApiConfig}
-                featureFlags={featureFlags}
                 selectedOrg={selectedOrg}
                 sobjects={sobjects}
                 selectedSObject={selectedSObject}

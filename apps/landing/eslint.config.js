@@ -291,7 +291,7 @@ module.exports = [
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
-      '@next/next/no-html-link-for-pages': ['error', 'apps/landing/pages'],
+      '@next/next/no-html-link-for-pages': ['error', 'landing/pages'],
     },
     ignores: ['jest.config.ts'],
     languageOptions: {

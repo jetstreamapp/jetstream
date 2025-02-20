@@ -21,7 +21,7 @@ if (!GEO_IP_API_PASSWORD) {
 }
 
 async function initiateDownload() {
-  const response = await fetch(GEO_IP_API_HOSTNAME, {
+  const response = await fetch(`${GEO_IP_API_HOSTNAME}/api/download`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${Buffer.from(`${GEO_IP_API_USERNAME}:${GEO_IP_API_PASSWORD}`).toString('base64')}`,

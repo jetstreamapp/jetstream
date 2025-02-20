@@ -102,7 +102,7 @@ export function multiWordObjectFilter<T>(
   props: Array<keyof T>,
   value: string,
   optionalExtraCondition?: (item: T) => boolean
-): (value: T, index: number, array: T[]) => boolean {
+): (value: T, index?: number, array?: T[]) => boolean {
   value = value || '';
   let search: string[];
   // If value is surrounded in quotes, treat as literal value
@@ -160,11 +160,11 @@ export function orderValues<T extends number | string | boolean>(items: T[], ord
  * Group objects by a field and return a map of key to array of objects
  * If there are multiple objects with the same key, the last item in list will win.
  */
-export function groupByFlat<T>(items: T[], prop: keyof T): Record<string, T> {
+export function groupByFlat<T>(items: T[], prop: keyof T, startingObj: Record<string, T> = {}): Record<string, T> {
   return items.reduce((output: Record<string, T>, item) => {
     output[item[prop] as any] = item;
     return output;
-  }, {});
+  }, startingObj);
 }
 
 export function getMapFromObj<T>(items: T[], prop: keyof T): Map<string, T> {
@@ -994,4 +994,61 @@ export function uint8ArrayToBase64(bytes: Uint8Array): string {
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+}
+
+const { toString } = {};
+function toStringTag(o: unknown) {
+  return toString.call(o).slice(8, -1);
+}
+
+const _hasOwn = {}.hasOwnProperty;
+function hasOwn(obj: unknown, prop: string) {
+  return _hasOwn.call(obj, prop);
+}
+
+/**
+ * https://github.com/dexie/Dexie.js/blob/master/src/functions/utils.ts
+ */
+export function getObjectDiffForDexie(a: any, b: any, rv?: any, prfx?: string) {
+  // Compares objects a and b and produces a diff object.
+  rv = rv || {};
+  prfx = prfx || '';
+  Object.keys(a).forEach((prop) => {
+    if (!hasOwn(b, prop)) {
+      // Property removed
+      rv[prfx + prop] = undefined;
+    } else {
+      const ap = a[prop];
+      const bp = b[prop];
+      if (typeof ap === 'object' && typeof bp === 'object' && ap && bp) {
+        const apTypeName = toStringTag(ap);
+        const bpTypeName = toStringTag(bp);
+
+        if (apTypeName !== bpTypeName) {
+          rv[prfx + prop] = b[prop]; // Property changed to other type
+        } else if (ap instanceof Date && bp instanceof Date) {
+          if (ap.getTime() !== bp.getTime()) {
+            rv[prfx + prop] = b[prop];
+          }
+        } else if (apTypeName === 'Object') {
+          // Pojo objects (not Date, ArrayBuffer, Array etc). Go deep.
+          getObjectDiffForDexie(ap, bp, rv, prfx + prop + '.');
+        } else if (ap !== bp) {
+          // Values differ.
+          // Could have checked if arrays or binary types have same
+          // content here but I think that would be a suboptimation.
+          // Prefer simplicity.
+          rv[prfx + prop] = b[prop];
+        }
+      } else if (ap !== bp) {
+        rv[prfx + prop] = b[prop];
+      } // Primitive value changed
+    }
+  });
+  Object.keys(b).forEach((prop) => {
+    if (!hasOwn(a, prop)) {
+      rv[prfx + prop] = b[prop]; // Property added
+    }
+  });
+  return rv;
 }

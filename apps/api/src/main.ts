@@ -2,17 +2,20 @@ import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-st
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
 import { ENV, getExceptionLog, httpLogger, logger, pgPool, prisma } from '@jetstream/api-config';
 import { hashPassword, pruneExpiredRecords } from '@jetstream/auth/server';
-import { SessionData as JetstreamSessionData } from '@jetstream/auth/types';
+import { SessionData as JetstreamSessionData, UserProfileSession } from '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
+import { setupPrimary } from '@socket.io/cluster-adapter';
+import { setupMaster } from '@socket.io/sticky';
 import { json, raw, urlencoded } from 'body-parser';
-import cluster from 'cluster';
 import pgSimple from 'connect-pg-simple';
 import cors from 'cors';
 import express from 'express';
 import proxy from 'express-http-proxy';
 import session from 'express-session';
 import helmet from 'helmet';
+import cluster from 'node:cluster';
+import http from 'node:http';
 import { cpus } from 'os';
 import { join } from 'path';
 import { initSocketServer } from './app/controllers/socket.controller';
@@ -36,6 +39,15 @@ import {
 } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { environment } from './environments/environment';
+
+declare module 'express' {
+  interface Request {
+    chromeExtension?: {
+      user: UserProfileSession;
+      deviceId?: string;
+    };
+  }
+}
 
 declare module 'express-session' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -72,6 +84,14 @@ JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
 if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   logger.info(`Number of CPUs is ${CPU_COUNT}`);
   logger.info(`Master ${process.pid} is running`);
+
+  // Setup socket.io sticky session for cluster, uses sid parameter to route to the same worker on each request
+  const socketIoClusterRouterServer = http.createServer();
+  setupMaster(socketIoClusterRouterServer, {
+    loadBalancingMethod: 'least-connection', // either "random", "round-robin" or "least-connection"
+  });
+
+  setupPrimary();
 
   const rateLimiterStore = new ClusterMemoryStorePrimary();
   rateLimiterStore.init();
@@ -114,7 +134,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   });
 
   const app = express();
-  const httpServer = initSocketServer(app, [sessionMiddleware]);
+  const httpServer = initSocketServer(app, { sessionMiddleware });
 
   if (environment.production) {
     app.set('trust proxy', 1); // required for environments such as heroku / {render?}
@@ -175,7 +195,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             "'sha256-AS526U4qXJy7/SohgsysWUxi77DtcgSmP0hNfTo6/Hs='", // Google Analytics (Docs)
             "'sha256-pOkCIUf8FXwCoKWPXTEJAC2XGbyg3ftSrE+IES4aqEY='", // Google Analytics (Next/React)
             "'sha256-7mNBpJaHD4L73RpSf1pEaFD17uW3H/9+P1AYhm+j/Dg='", // Monaco unhandledrejection script
-            "'sha256-djX4iruGclmwOFqyJyEvkkFU0dkSDNqkDpKOJMUO70E='", // __IS_CHROME_EXTENSION__ script
+            "'sha256-U1ZWk/Nvev4hBoGjgXSP/YN1w4VGTmd4NTYtXEr58xI='", // __IS_BROWSER_EXTENSION__ script
             'blob:',
             '*.google.com',
             '*.gstatic.com',
@@ -216,27 +236,37 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(httpLogger);
 
   // Handle CORS for web extension routes
-  if (ENV.WEB_EXTENSION_ID) {
-    app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
-        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
-      }
-      next();
-    });
+  const allowedHeaders = [
+    HTTP.HEADERS.ACCEPT,
+    HTTP.HEADERS.CONTENT_TYPE,
+    HTTP.HEADERS.AUTHORIZATION,
+    HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
+  ].join(', ');
+  app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (
+      (ENV.WEB_EXTENSION_ID_CHROME && req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`) ||
+      (ENV.WEB_EXTENSION_ID_MOZILLA && req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`)
+    ) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
+    }
+    next();
+  });
 
-    app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if (req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID}`) {
-        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
-        res.sendStatus(200);
-        return;
-      }
-      next();
-    });
-  }
+  app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (
+      (ENV.WEB_EXTENSION_ID_CHROME && req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`) ||
+      (ENV.WEB_EXTENSION_ID_MOZILLA && req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`)
+    ) {
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', allowedHeaders);
+      res.sendStatus(200);
+      return;
+    }
+    next();
+  });
 
   // proxy must be provided prior to body parser to ensure streaming response
   if (ENV.ENVIRONMENT === 'development') {
@@ -420,19 +450,18 @@ try {
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },
-          entitlements: { create: { chromeExtension: true, recordSync: true, googleDrive: true } },
+          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
         },
         update: {
           entitlements: {
             upsert: {
-              create: { chromeExtension: true, recordSync: true, googleDrive: true },
-              update: { chromeExtension: true, recordSync: true, googleDrive: true },
+              create: { chromeExtension: false, recordSync: false, googleDrive: false },
+              update: { chromeExtension: false, recordSync: false, googleDrive: false },
             },
           },
         },
         where: { id: user.id },
       });
-      logger.info('Example user created');
     }
   })();
 } catch (ex) {

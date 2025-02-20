@@ -105,6 +105,8 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_to_org"
+          trackEvent={trackEvent}
         />
       )}
     </Fragment>

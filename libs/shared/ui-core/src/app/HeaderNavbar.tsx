@@ -1,10 +1,11 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
-import { Header, Navbar, NavbarItem, NavbarMenuItems } from '@jetstream/ui';
-import { applicationCookieState, selectUserPreferenceState } from '@jetstream/ui/app-state';
+import { DropDownItem, UserProfileUi } from '@jetstream/types';
+import { Header, Navbar, NavbarItem, NavbarMenuItems, UpgradeToProButton } from '@jetstream/ui';
+import { applicationCookieState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilValue } from 'recoil';
+import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
@@ -12,13 +13,11 @@ import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
 import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
+import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
 
 export interface HeaderNavbarProps {
-  // FIXME: web extension will have a user profile if they have gotten this far
-  userProfile?: Maybe<UserProfileUi>;
-  featureFlags: Set<string>;
   isBillingEnabled: boolean;
   isChromeExtension?: boolean;
 }
@@ -31,38 +30,40 @@ function logout(serverUrl: string) {
 
 function getMenuItems({
   userProfile,
-  featureFlags,
   isBillingEnabled,
   deniedNotifications,
 }: {
-  userProfile: Maybe<UserProfileUi>;
-  featureFlags: Set<string>;
+  userProfile: UserProfileUi;
   isBillingEnabled: boolean;
   deniedNotifications?: boolean;
 }) {
   const menu: DropDownItem[] = [];
 
-  menu.push({ id: 'profile', value: 'Your Profile', subheader: userProfile?.email, icon: { type: 'utility', icon: 'profile_alt' } });
-  if (isBillingEnabled) {
-    menu.push({ id: 'billing', value: 'Billing', icon: { type: 'utility', icon: 'your_account' } });
-  }
+  menu.push({ id: 'profile', value: 'Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
-  menu.push({ id: 'nav-user-logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
+  if (isBillingEnabled) {
+    menu.push({ id: 'billing', value: 'Billing & Subscription', subheader: 'Billing', icon: { type: 'utility', icon: 'billing' } });
+  }
+
   if (deniedNotifications && window.Notification && window.Notification.permission === 'default') {
-    menu.unshift({
+    menu.push({
       id: 'enable-notifications',
       value: 'Enable Notifications',
       subheader: 'Notifications',
       icon: { type: 'utility', icon: 'notification' },
     });
   }
+
+  menu.push({ id: 'nav-user-logout', subheader: 'Logout', value: 'Logout', icon: { type: 'utility', icon: 'logout' } });
   return menu;
 }
 
-export const HeaderNavbar = ({ userProfile, featureFlags, isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
+export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
   const navigate = useNavigate();
-  const [applicationState] = useRecoilState(applicationCookieState);
+  const { trackEvent } = useAmplitude();
+  const userProfile = useRecoilValue(userProfileState);
+  const applicationState = useRecoilValue(applicationCookieState);
   const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
@@ -91,28 +92,41 @@ export const HeaderNavbar = ({ userProfile, featureFlags, isBillingEnabled, isCh
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    userProfile && setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications: !isEnabled }));
+    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications: !isEnabled }));
   }
 
   useEffect(() => {
-    userProfile && setUserMenuItems(getMenuItems({ userProfile, featureFlags, isBillingEnabled, deniedNotifications }));
-  }, [userProfile, featureFlags, deniedNotifications, isBillingEnabled]);
+    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications }));
+  }, [userProfile, deniedNotifications, isBillingEnabled]);
 
   const rightHandMenuItems = useMemo(() => {
-    return isChromeExtension
-      ? [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />]
-      : // FIXME: replace Donate with "Sign up for PRO"
-        [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
-  }, [isChromeExtension]);
+    if (isChromeExtension) {
+      return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+    }
+
+    if (!isBillingEnabled) {
+      return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
+    }
+
+    if (userProfile.subscriptions.length === 0) {
+      return [
+        <UpgradeToProButton trackEvent={trackEvent} source="navbar" />,
+        <RecordSearchPopover />,
+        <UserSearchPopover />,
+        <Jobs />,
+        <HeaderHelpPopover />,
+      ];
+    }
+
+    return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+  }, [isChromeExtension, isBillingEnabled, userProfile.subscriptions.length, trackEvent]);
 
   return (
     <Fragment>
-      {enableNotifications && (
-        <NotificationsRequestModal featureFlags={featureFlags} userInitiated onClose={handleNotificationMenuClosed} />
-      )}
+      {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
-        logo={Logo}
+        logo={isChromeExtension || userProfile.subscriptions?.length > 0 ? LogoPro : Logo}
         orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}

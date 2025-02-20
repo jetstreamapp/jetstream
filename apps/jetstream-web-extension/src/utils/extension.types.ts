@@ -1,5 +1,5 @@
 import { ApiConnection } from '@jetstream/salesforce-api';
-import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import type { Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 export const AUTH_CHECK_INTERVAL_MIN = 5;
@@ -21,9 +21,7 @@ export interface ButtonPosition {
 }
 
 export interface JwtPayload {
-  userId: string;
-  name: string;
-  email: string;
+  userProfile: UserProfileUi;
   aud: string;
   iss: string;
   sub: string;
@@ -40,12 +38,23 @@ export interface ChromeStorageState {
   local: {
     options: {
       enabled: boolean;
+      recordSyncEnabled: boolean;
     };
-    // connections: Record<string, OrgAndSessionInfo>;
   };
 }
 
-export type Message = Logout | VerifyAuth | ToggleExtension | GetSfHost | GetSession | GetPageUrl | InitOrg;
+export type Message =
+  | ExternalIdentifier
+  | TokenExchange
+  | Logout
+  | VerifyAuth
+  | ToggleExtension
+  | GetSfHost
+  | GetSession
+  | GetPageUrl
+  | InitOrg
+  | GetOrgConnection;
+
 export type MessageRequest = Message['request'];
 
 export interface ResponseError {
@@ -61,6 +70,27 @@ export interface MessageResponse<T extends Message['response'] = Message['respon
 export interface SessionInfo {
   hostname: string;
   key: string;
+}
+
+export interface ExternalIdentifier {
+  request: {
+    message: 'EXT_IDENTIFIER';
+  };
+  response: {
+    success: boolean;
+    deviceId: string;
+  };
+}
+
+export interface TokenExchange {
+  request: {
+    message: 'TOKEN_EXCHANGE';
+    data: { accessToken: string };
+  };
+  response: {
+    success: boolean;
+    error?: Maybe<string>;
+  };
 }
 
 export interface Logout {
@@ -124,6 +154,15 @@ export interface InitOrg {
   };
   response: { org: SalesforceOrgUi };
 }
+
+export interface GetOrgConnection {
+  request: {
+    message: 'GET_CURRENT_ORG';
+    data: { sfHost: string } | { uniqueId: string };
+  };
+  response: OrgAndSessionInfo;
+}
+
 export interface OrgAndSessionInfo {
   org: SalesforceOrgUi;
   sessionInfo: SessionInfo;
@@ -140,9 +179,8 @@ export const ExtensionIdentifier = z.object({
 
 export const AuthTokens = z.object({
   accessToken: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  email: z.string(),
+  // TODO: UserProfileUi - but we don't have zod types for that, so just casting
+  userProfile: z.any().nullish(),
   expiresAt: z.number(),
   lastChecked: z.number().nullable(),
   loggedIn: z.boolean(),

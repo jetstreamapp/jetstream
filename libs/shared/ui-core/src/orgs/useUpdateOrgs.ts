@@ -10,6 +10,7 @@ import {
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { queryHistoryDb, queryHistoryObjectDb } from '@jetstream/ui/db';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
@@ -71,6 +72,8 @@ export function useUpdateOrgs() {
       handleRefetchOrgs();
       handleRefetchOrganizations();
       setSelectedOrgId(null);
+      queryHistoryDb.deleteAllQueryHistoryForOrg(org);
+      queryHistoryObjectDb.deleteAllQueryHistoryObjectForOrg(org);
       // async, but results are ignored as this will not throw
       clearCacheForOrg(org);
       clearQueryHistoryForOrg(org);

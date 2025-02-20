@@ -1,8 +1,10 @@
+import { UserProfileUi } from '@jetstream/types';
 import { atom, selector } from 'recoil';
 import { setRecoil } from 'recoil-nexus';
+import browser from 'webextension-polyfill';
 import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
 
-chrome.storage.onChanged.addListener((changes, namespace) => {
+browser.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' || namespace === 'sync') {
     setRecoil(chromeStorageState, (prevValue) => {
       const newState: ChromeStorageState = {
@@ -32,8 +34,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
 async function initAuthState(): Promise<ChromeStorageState> {
   const [local, sync] = await Promise.all([
-    chrome.storage.local.get(['options', 'connections']),
-    chrome.storage.sync.get(['extIdentifier', 'authTokens', 'buttonPosition']),
+    browser.storage.local.get(['options', 'connections']),
+    browser.storage.sync.get(['extIdentifier', 'authTokens', 'buttonPosition']),
   ]);
   return {
     local: {
@@ -41,6 +43,7 @@ async function initAuthState(): Promise<ChromeStorageState> {
       options: {
         ...(local as ChromeStorageState['local'])?.options,
         enabled: (local as ChromeStorageState['local'])?.options?.enabled ?? true,
+        recordSyncEnabled: (local as ChromeStorageState['local'])?.options?.recordSyncEnabled ?? false,
       },
     },
     sync: {
@@ -73,4 +76,9 @@ export const chromeLocalStorage = selector({
 export const chromeStorageOptions = selector({
   key: 'chromeStorageOptions',
   get: ({ get }) => get(chromeStorageState).local.options,
+});
+
+export const UserProfileState = selector({
+  key: 'UserProfileState',
+  get: ({ get }) => get(chromeStorageState).sync?.authTokens?.userProfile as UserProfileUi | undefined,
 });

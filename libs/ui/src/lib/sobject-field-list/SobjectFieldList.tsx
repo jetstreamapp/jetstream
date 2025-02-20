@@ -13,7 +13,7 @@ import List from '../list/List';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import Spinner from '../widgets/Spinner';
-import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilterNew';
+import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilter';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import { filterFieldsFn, getBgColor } from './sobject-field-list-utils';
 

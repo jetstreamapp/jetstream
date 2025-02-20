@@ -34,6 +34,7 @@ export class WebExtensionPage {
   }
 
   get baseExtensionUrl() {
+    // FIXME: needs to be cross-environment
     return `chrome-extension://${this.extensionId}`;
   }
 

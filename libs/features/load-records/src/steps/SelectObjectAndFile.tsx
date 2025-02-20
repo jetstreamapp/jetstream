@@ -24,13 +24,13 @@ import {
   XlsxSheetSelectionModalPromise,
   fireToast,
 } from '@jetstream/ui';
+import { useAmplitude } from '@jetstream/ui-core';
 import LoadRecordsLoadTypeButtons from '../components/LoadRecordsLoadTypeButtons';
 
 export interface LoadRecordsSelectObjectAndFileProps {
   hasGoogleDriveAccess: boolean;
   googleShowUpgradeToPro: boolean;
   googleApiConfig: GoogleApiClientConfig;
-  featureFlags: Set<string>;
   selectedOrg: SalesforceOrgUi;
   sobjects: Maybe<DescribeGlobalSObjectResult[]>;
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
@@ -44,7 +44,7 @@ export interface LoadRecordsSelectObjectAndFileProps {
   allowBinaryAttachment: Maybe<boolean>;
   binaryAttachmentBodyField: Maybe<string>;
   inputZipFilename: Maybe<string>;
-  onSobjects: (sobjects: DescribeGlobalSObjectResult[]) => void;
+  onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSobject: (selectedSObject: DescribeGlobalSObjectResult) => void;
   onFileChange: (data: any[], headers: string[], filename: string, inputFileType: LocalOrGoogle) => void;
   onZipFileChange: (data: ArrayBuffer, filename: string) => void;
@@ -61,7 +61,6 @@ export const LoadRecordsSelectObjectAndFile = ({
   hasGoogleDriveAccess,
   googleShowUpgradeToPro,
   googleApiConfig,
-  featureFlags,
   selectedOrg,
   selectedSObject,
   isCustomMetadataObject,
@@ -83,6 +82,7 @@ export const LoadRecordsSelectObjectAndFile = ({
   onExternalIdChange,
   children,
 }: LoadRecordsSelectObjectAndFileProps) => {
+  const { trackEvent } = useAmplitude();
   const hasGoogleInputConfigured =
     hasGoogleDriveAccess && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
@@ -159,8 +159,10 @@ export const LoadRecordsSelectObjectAndFile = ({
           selectedOrg={selectedOrg}
           sobjects={sobjects}
           selectedSObject={selectedSObject}
+          recentItemsEnabled
+          recentItemsKey="sobject"
           filterFn={filterLoadSobjects}
-          onSobjects={(sobjects) => onSobjects(sobjects || [])}
+          onSobjects={(sobjects) => onSobjects(sobjects || null)}
           onSelectedSObject={(sobject) => {
             if (sobject) {
               onSelectedSobject(sobject);
@@ -195,6 +197,8 @@ export const LoadRecordsSelectObjectAndFile = ({
                     filename: inputFileType === 'google' ? inputFilename : undefined,
                     onReadFile: handleGoogleFile,
                   }}
+                  source="load_records_single_object"
+                  trackEvent={trackEvent}
                 />
               </GridCol>
             </Grid>

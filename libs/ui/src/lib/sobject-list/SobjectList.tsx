@@ -2,11 +2,12 @@ import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, Maybe, UpDown } from '@jetstream/types';
-import { Fragment, FunctionComponent, createRef, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, RefObject, createRef, forwardRef, useEffect, useState } from 'react';
 import SearchInput from '../form/search-input/SearchInput';
 import EmptyState from '../illustrations/EmptyState';
 import AutoFullHeightContainer from '../layout/AutoFullHeightContainer';
 import List from '../list/List';
+import Tabs from '../tabs/Tabs';
 import Spinner from '../widgets/Spinner';
 
 export interface SobjectListProps {
@@ -16,6 +17,8 @@ export interface SobjectListProps {
   loading: boolean;
   errorMessage?: Maybe<string>;
   initialSearchTerm?: string;
+  recentItemsEnabled?: boolean;
+  recentItems?: Maybe<DescribeGlobalSObjectResult[]>;
   onSelected: (sobject: DescribeGlobalSObjectResult) => void;
   errorReattempt: () => void;
   onSearchTermChange?: (searchTerm: string) => void;
@@ -23,16 +26,22 @@ export interface SobjectListProps {
 
 export const SobjectList: FunctionComponent<SobjectListProps> = ({
   isTooling,
-  sobjects,
+  sobjects: allSobjects,
   selectedSObject,
   loading,
   errorMessage,
   initialSearchTerm,
+  recentItemsEnabled,
+  recentItems,
   onSelected,
   errorReattempt,
   onSearchTermChange,
 }) => {
+  const [activeTab, setActiveTab] = useState<'all' | 'recent'>('all');
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
+
+  const sobjects = recentItemsEnabled && activeTab === 'recent' ? recentItems : allSobjects;
+
   const [filteredSobjects, setFilteredSobjects] = useState<DescribeGlobalSObjectResult[]>(() => {
     if (sobjects && sobjects.length > 0 && searchTerm) {
       return sobjects.filter(multiWordObjectFilter(['name', 'label'], searchTerm));
@@ -99,34 +108,103 @@ export const SobjectList: FunctionComponent<SobjectListProps> = ({
                 Showing {formatNumber(filteredSobjects.length)} of {formatNumber(sobjects.length)} objects
               </div>
             </div>
-            <AutoFullHeightContainer bottomBuffer={25}>
-              <List
-                ref={ulRef}
-                autoScrollToFocus
-                items={filteredSobjects}
-                isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
-                onSelected={(key) => {
-                  const selected = sobjects.find((item) => item.name === key);
-                  selected && onSelected(selected);
-                }}
-                getContent={(item: DescribeGlobalSObjectResult) => ({
-                  key: item.name,
-                  testId: item.name,
-                  heading: item.label,
-                  subheading: item.name,
-                })}
-                searchTerm={searchTerm}
-                highlightText
+            {recentItemsEnabled ? (
+              <Tabs
+                initialActiveId="all"
+                onChange={(id) => setActiveTab(id as 'all' | 'recent')}
+                tabs={[
+                  {
+                    id: 'all',
+                    title: 'All Objects',
+                    titleText: 'View all objects',
+                    content: (
+                      <AutoFullHeightContainer bottomBuffer={25}>
+                        <SobjectListContent
+                          sobjects={sobjects}
+                          selectedSObject={selectedSObject}
+                          loading={loading}
+                          filteredSobjects={filteredSobjects}
+                          onSelected={onSelected}
+                          searchTerm={searchTerm}
+                        />
+                      </AutoFullHeightContainer>
+                    ),
+                  },
+                  {
+                    id: 'recent',
+                    title: 'Recent Objects',
+                    titleText: 'View recently used objects',
+                    content: (
+                      <AutoFullHeightContainer bottomBuffer={25}>
+                        <SobjectListContent
+                          sobjects={sobjects}
+                          selectedSObject={selectedSObject}
+                          loading={loading}
+                          filteredSobjects={filteredSobjects}
+                          onSelected={onSelected}
+                          searchTerm={searchTerm}
+                        />
+                      </AutoFullHeightContainer>
+                    ),
+                  },
+                ]}
               />
-              {!loading && !filteredSobjects.length && (
-                <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
-              )}
-            </AutoFullHeightContainer>
+            ) : (
+              <AutoFullHeightContainer bottomBuffer={25}>
+                <SobjectListContent
+                  sobjects={sobjects}
+                  selectedSObject={selectedSObject}
+                  loading={loading}
+                  filteredSobjects={filteredSobjects}
+                  onSelected={onSelected}
+                  searchTerm={searchTerm}
+                />
+              </AutoFullHeightContainer>
+            )}
           </Fragment>
         )}
       </div>
     </Fragment>
   );
 };
+
+interface SobjectListContentProps extends Pick<SobjectListProps, 'selectedSObject' | 'loading' | 'onSelected'> {
+  sobjects: DescribeGlobalSObjectResult[];
+  filteredSobjects: DescribeGlobalSObjectResult[];
+  searchTerm: string;
+}
+
+const SobjectListContent = forwardRef(
+  (
+    { sobjects, selectedSObject, loading, filteredSobjects, onSelected, searchTerm }: SobjectListContentProps,
+    ref: RefObject<HTMLUListElement>
+  ) => {
+    return (
+      <>
+        <List
+          ref={ref}
+          autoScrollToFocus
+          items={filteredSobjects}
+          isActive={(item: DescribeGlobalSObjectResult) => item.name === selectedSObject?.name}
+          onSelected={(key) => {
+            const selected = sobjects.find((item) => item.name === key);
+            selected && onSelected(selected);
+          }}
+          getContent={(item: DescribeGlobalSObjectResult) => ({
+            key: item.name,
+            testId: item.name,
+            heading: item.label,
+            subheading: item.name,
+          })}
+          searchTerm={searchTerm}
+          highlightText
+        />
+        {!loading && !filteredSobjects.length && (
+          <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>
+        )}
+      </>
+    );
+  }
+);
 
 export default SobjectList;

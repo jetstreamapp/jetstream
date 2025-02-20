@@ -1,5 +1,5 @@
 import { RadioGroup } from '@headlessui/react';
-import { CheckIcon } from '@heroicons/react/solid';
+import { CheckIcon } from '@heroicons/react/20/solid';
 import classNames from 'classnames';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -25,7 +25,7 @@ const tiers = [
     },
     description: 'Access to all core features.',
     features: [
-      '10 Salesforce Org Connections',
+      'Unlimited Salesforce Org Connections',
       'Query Builder',
       'Data Loader',
       'Metadata Tools',
@@ -43,10 +43,10 @@ const tiers = [
     description: 'Get the most out of Jetstream.',
     features: [
       'Everything in Free plan',
-      'Unlimited Salesforce Org Connections',
-      'Chrome Extension',
+      'Chrome and Firefox Extensions',
       'Save history across devices',
-      'Google Drive integration',
+      'Save downloads to Google Drive',
+      'Load data from Google Drive',
     ],
     mostPopular: true,
     comingSoon: false,
@@ -56,12 +56,11 @@ const tiers = [
     id: 'tier-team',
     href: '#',
     price: { monthly: { price: 'Coming Soon', suffix: null }, annually: { price: 'Coming Soon', suffix: null } },
-    description: 'Get more features and save per user.',
+    description: `Manage your team's access for your enterprise.`,
     features: [
       'Everything in Professional plan',
       'Team management',
       'Access Control',
-      '25 Users Included',
       'Priority support',
       'Audit Logs',
       'SOC II Compliance',

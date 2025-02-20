@@ -1,5 +1,5 @@
 import { ENV, getExceptionLog, logger, telemetryAddUserToAttributes } from '@jetstream/api-config';
-import { AuthError, ExpiredVerificationToken, InvalidCaptcha, checkUserAgentSimilarity } from '@jetstream/auth/server';
+import { AuthError, ExpiredVerificationToken, InvalidCaptcha, MissingEntitlement, checkUserAgentSimilarity } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
@@ -10,6 +10,7 @@ import * as express from 'express';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
+import { checkUserEntitlement } from '../db/user.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { getApiAddressFromReq } from '../utils/route.utils';
 
@@ -187,6 +188,26 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
 
   next();
 }
+
+export const verifyEntitlement =
+  (entitlement: Parameters<typeof checkUserEntitlement>[0]['entitlement']) =>
+  async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+      if (!req.session.user) {
+        return next(new UserFacingError('User is required'));
+      }
+
+      if (!(await checkUserEntitlement({ userId: req.session.user.id, entitlement }))) {
+        next(new MissingEntitlement());
+        return;
+      }
+
+      next();
+    } catch (ex) {
+      res.status(403);
+      next(new UserFacingError('You do not have access to this feature'));
+    }
+  };
 
 export function ensureOrgExists(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!res.locals?.jetstreamConn) {

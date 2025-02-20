@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
@@ -16,6 +15,7 @@ import { QueryHistoryItem, QueryHistorySelection, SalesforceOrgUi, UpDown } from
 import {
   ButtonGroupContainer,
   EmptyState,
+  getModifierKey,
   Grid,
   GridCol,
   Icon,
@@ -25,20 +25,32 @@ import {
   SearchInput,
   Spinner,
   Tooltip,
-  getModifierKey,
 } from '@jetstream/ui';
 import { ErrorBoundaryFallback, fromQueryHistoryState, useAmplitude } from '@jetstream/ui-core';
+import { dexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
+import { useLiveQuery } from 'dexie-react-hooks';
+import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
 import QueryHistoryWhichOrg from './QueryHistoryWhichOrg';
 import QueryHistoryWhichType from './QueryHistoryWhichType';
 
 const SHOWING_STEP = 25;
+const SOBJECT_ALL = 'ALL';
+
+const defaultSelectedObject: QueryHistorySelection = {
+  key: SOBJECT_ALL,
+  name: 'All',
+  label: 'All Objects',
+  isTooling: false,
+};
+
+export type QueryHistoryType = 'HISTORY' | 'SAVED';
+export type WhichOrgType = 'ALL' | 'SELECTED';
 
 export interface QueryHistoryRef {
   open: (type: fromQueryHistoryState.QueryHistoryType) => void;
@@ -53,28 +65,72 @@ export interface QueryHistoryProps {
 export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, selectedOrg, onRestore }, ref) => {
   const location = useLocation();
   const { trackEvent } = useAmplitude();
-  const [queryHistoryStateMap, setQueryHistorySateMap] = useRecoilState(fromQueryHistoryState.queryHistoryState);
-  const queryHistory = useRecoilValue(fromQueryHistoryState.selectQueryHistoryState);
-  const [whichType, setWhichType] = useRecoilState(fromQueryHistoryState.queryHistoryWhichType);
-  const [whichOrg, setWhichOrg] = useRecoilState(fromQueryHistoryState.queryHistoryWhichOrg);
-  const resetWhichType = useResetRecoilState(fromQueryHistoryState.queryHistoryWhichType);
-  const resetWhichOrg = useResetRecoilState(fromQueryHistoryState.queryHistoryWhichOrg);
+  const [whichType, setWhichType] = useState<QueryHistoryType>('HISTORY');
+  const [whichOrg, setWhichOrg] = useState<WhichOrgType>('SELECTED');
   const ulRef = createRef<HTMLUListElement>();
 
-  const [selectedObject, setSelectedObject] = useRecoilState(fromQueryHistoryState.selectedObjectState);
-  const resetSelectedObject = useResetRecoilState(fromQueryHistoryState.selectedObjectState);
-  const selectObjectsList = useRecoilValue(fromQueryHistoryState.selectObjectsList);
+  const [selectedObject, setSelectedObject] = useState(SOBJECT_ALL);
+
+  const selectObjectsList = useLiveQuery(
+    () =>
+      dexieDb._query_history_object
+        .orderBy('sObject')
+        .filter((item) => whichOrg === 'ALL' || item.org === selectedOrg.uniqueId)
+        .toArray()
+        .then((items) => [
+          defaultSelectedObject,
+          ...uniqBy(items, 'sObject').map(
+            (item): QueryHistorySelection => ({
+              key: item.sObject,
+              name: item.sObject,
+              label: item.sObjectLabel,
+              isTooling: item.isTooling === 'true',
+            })
+          ),
+        ]),
+    [whichOrg],
+    [] as QueryHistorySelection[]
+  );
 
   const [isOpen, setIsOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [filterValue, setFilterValue] = useState('');
+  const [sObjectFilterValue, setSObjectFilterValue] = useState('');
   const [filteredSelectObjectsList, setFilteredSelectObjectsList] = useState(selectObjectsList);
 
   const [sqlFilterValue, setSqlFilterValue] = useState('');
-  const [filteredQueryHistory, setFilteredQueryHistory] = useState(queryHistory);
-
   const [showingUpTo, setShowingUpTo] = useState(SHOWING_STEP);
-  const [visibleQueryHistory, setVisibleQueryHistory] = useState(filteredQueryHistory.slice(0, showingUpTo));
+
+  const filterRecordsFn = useCallback(
+    (item: QueryHistoryItem) => {
+      if (selectedObject !== SOBJECT_ALL && item.sObject !== selectedObject) {
+        return false;
+      }
+      if (whichOrg === 'SELECTED' && item.org !== selectedOrg.uniqueId) {
+        return false;
+      }
+      if (whichType === 'SAVED' && !item.isFavorite) {
+        return false;
+      }
+      if (sqlFilterValue) {
+        return multiWordObjectFilter(['label', 'soql'], sqlFilterValue)(item);
+      }
+      return true;
+    },
+    [selectedObject, selectedOrg.uniqueId, sqlFilterValue, whichOrg, whichType]
+  );
+
+  const queryHistory = useLiveQuery(
+    // Since we want to sort by lastRun, we cannot use a normal where clause
+    () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).limit(showingUpTo).toArray(),
+    [filterRecordsFn, showingUpTo],
+    [] as QueryHistoryItem[]
+  );
+
+  const totalRecordCount = useLiveQuery(
+    () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).count(),
+    [filterRecordsFn, showingUpTo],
+    0
+  );
 
   useImperativeHandle(ref, () => {
     return {
@@ -98,17 +154,6 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   useGlobalEventHandler('keydown', onKeydown);
 
-  useEffect(() => {
-    if (queryHistory) {
-      fromQueryHistoryState.cleanUpHistoryState().then((remainingItems) => {
-        if (remainingItems) {
-          setQueryHistorySateMap(remainingItems);
-        }
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // reset load more when specific properties changes
   useEffect(() => {
     setShowingUpTo(SHOWING_STEP);
@@ -124,30 +169,13 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   useNonInitialEffect(() => {
     if (!isOpen) {
-      resetSelectedObject();
-      setFilterValue('');
+      setSelectedObject(SOBJECT_ALL);
+      setSObjectFilterValue('');
       setSqlFilterValue('');
-      resetWhichType();
-      resetWhichOrg();
+      setWhichType('HISTORY');
+      setWhichOrg('ALL');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, resetSelectedObject, showingUpTo]);
-
-  useEffect(() => {
-    if (queryHistory) {
-      if (!sqlFilterValue) {
-        setFilteredQueryHistory(queryHistory);
-      } else {
-        setFilteredQueryHistory(queryHistory.filter(multiWordObjectFilter(['label', 'soql'], sqlFilterValue)));
-      }
-    }
-  }, [queryHistory, sqlFilterValue]);
-
-  useEffect(() => {
-    if (filteredQueryHistory && showingUpTo) {
-      setVisibleQueryHistory(filteredQueryHistory.slice(0, showingUpTo));
-    }
-  }, [filteredQueryHistory, showingUpTo]);
+  }, [isOpen, showingUpTo]);
 
   useEffect(() => {
     if (isOpen) {
@@ -160,30 +188,28 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     if (selectedObject) {
       setSqlFilterValue('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedObject]);
 
   useEffect(() => {
-    if (!filterValue && selectObjectsList !== filteredSelectObjectsList) {
+    if (!sObjectFilterValue && selectObjectsList !== filteredSelectObjectsList) {
       setFilteredSelectObjectsList(selectObjectsList);
-    } else if (filterValue) {
+    } else if (sObjectFilterValue) {
       setFilteredSelectObjectsList(
-        selectObjectsList.filter(multiWordObjectFilter(['name', 'label'], filterValue, (item) => item.name === 'all'))
+        selectObjectsList.filter(multiWordObjectFilter(['name', 'label'], sObjectFilterValue, (item) => item.key === SOBJECT_ALL))
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectObjectsList, filterValue]);
+  }, [selectObjectsList, sObjectFilterValue]);
 
   function handleOpenModal(type: fromQueryHistoryState.QueryHistoryType = 'HISTORY', source = 'buttonClick') {
     setWhichType(type);
     setIsOpen(true);
-    fromQueryHistoryState.initQueryHistory().then((queryHistory) => setQueryHistorySateMap(queryHistory));
     trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened, { source, type });
   }
 
-  function handleExecute({ created, lastRun, runCount, isTooling, isFavorite }: QueryHistoryItem) {
+  function handleExecute({ createdAt, lastRun, runCount, isTooling, isFavorite }: QueryHistoryItem) {
     trackEvent(ANALYTICS_KEYS.query_HistoryExecute, {
-      created,
+      created: createdAt,
       lastRun,
       runCount,
       isTooling,
@@ -194,9 +220,9 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   function onModalClose() {
     setIsOpen(false);
-    resetSelectedObject();
-    resetWhichType();
-    resetWhichOrg();
+    setWhichType('HISTORY');
+    setWhichOrg('ALL');
+    setSelectedObject(SOBJECT_ALL);
   }
 
   function handleSearchKeyboard(direction: UpDown) {
@@ -210,13 +236,13 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
   }
 
   function handleEndRestore(item: QueryHistoryItem, fatalError: boolean, errors?: any) {
-    const { soql, created, lastRun, runCount, isTooling, isFavorite } = item;
+    const { soql, createdAt, lastRun, runCount, isTooling, isFavorite } = item;
     setIsRestoring(false);
     if (!fatalError) {
       setIsOpen(false);
       onRestore && onRestore(soql, isTooling);
     }
-    trackEvent(ANALYTICS_KEYS.query_HistoryRestore, { created, lastRun, runCount, isTooling, isFavorite, fatalError, errors });
+    trackEvent(ANALYTICS_KEYS.query_HistoryRestore, { created: createdAt, lastRun, runCount, isTooling, isFavorite, fatalError, errors });
   }
 
   function showMore() {
@@ -225,14 +251,11 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
   }
 
   async function handleSaveFavorite(item: QueryHistoryItem, isFavorite: boolean) {
-    let queryHistory = queryHistoryStateMap;
     try {
-      // ensure that changes made in other browser tabs are not overwritten
-      queryHistory = await fromQueryHistoryState.initQueryHistory();
+      await queryHistoryDb.setAsFavorite(item.key, isFavorite);
     } catch (ex) {
-      logger.warn('[ERROR] Could not get updated query history', ex);
+      logger.warn('[ERROR] Could not updated query history', ex);
     }
-    setQueryHistorySateMap({ ...queryHistory, [item.key]: { ...item, isFavorite } });
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'modal', isFavorite });
   }
 
@@ -310,8 +333,8 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                     className="slds-p-around_xx-small"
                     placeholder="Filter Objects"
                     autoFocus
-                    value={filterValue}
-                    onChange={setFilterValue}
+                    value={sObjectFilterValue}
+                    onChange={setSObjectFilterValue}
                     onArrowKeyUpDown={handleSearchKeyboard}
                   />
                   <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
@@ -321,7 +344,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                 <List
                   ref={ulRef}
                   items={filteredSelectObjectsList}
-                  isActive={(item: QueryHistorySelection) => item.name === selectedObject}
+                  isActive={(item: QueryHistorySelection) => item.key === selectedObject}
                   subheadingPlaceholder
                   onSelected={setSelectedObject}
                   getContent={(item: QueryHistorySelection) => ({
@@ -329,7 +352,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                     heading: (
                       <Grid align="spread">
                         <div className="slds-truncate">{item.label}</div>
-                        {item.name !== 'all' && (
+                        {item.key !== SOBJECT_ALL && (
                           <Icon
                             type="utility"
                             className="slds-icon slds-icon-text-default slds-icon_x-small"
@@ -339,7 +362,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                         )}
                       </Grid>
                     ),
-                    subheading: item.name !== 'all' ? item.name : '',
+                    subheading: item.key !== SOBJECT_ALL ? item.name : '',
                   })}
                 />
               </GridCol>
@@ -353,9 +376,9 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                   onChange={setSqlFilterValue}
                 />
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                  Showing {formatNumber(visibleQueryHistory.length)} of {formatNumber(queryHistory.length)} queries
+                  Showing {formatNumber(queryHistory.length)} of {formatNumber(totalRecordCount)} queries
                 </div>
-                {visibleQueryHistory.map((item) => (
+                {queryHistory.map((item) => (
                   <QueryHistoryItemCard
                     key={item.key}
                     isOnSavedQueries={whichType === 'SAVED'}
@@ -366,10 +389,10 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                     endRestore={(fatalError, errors) => handleEndRestore(item, fatalError, errors)}
                   />
                 ))}
-                {visibleQueryHistory.length === 0 && (
+                {queryHistory.length === 0 && (
                   <EmptyState headline="There are no matching queries." subHeading="Adjust your selection."></EmptyState>
                 )}
-                {!!visibleQueryHistory.length && visibleQueryHistory.length < filteredQueryHistory.length && (
+                {queryHistory.length < totalRecordCount && (
                   <div className="slds-grid slds-grid_align-center slds-m-around_small">
                     <button className="slds-button slds-button_neutral" onClick={showMore}>
                       Load More

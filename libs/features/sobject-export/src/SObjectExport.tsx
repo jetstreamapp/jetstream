@@ -24,8 +24,9 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { fromJetstreamEvents } from '@jetstream/ui-core';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
@@ -77,6 +78,7 @@ const DEFAULT_OPTIONS: ExportOptions = {
 export interface SObjectExportProps {}
 
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
+  const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const rollbar = useRollbar();
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
@@ -182,6 +184,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       rollbar.error('Error preparing sobject export', getErrorMessageAndStackObj(ex));
     } finally {
       setLoading(false);
+      recentHistoryItemsDb.addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', selectedSObjects);
     }
   }
 
@@ -201,6 +204,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
           allowedTypes={['xlsx']}
           onModalClose={() => setExportDataModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="sobject_export"
+          trackEvent={trackEvent}
         />
       )}
       <Page testId="sobject-export-page">
@@ -250,6 +255,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                 sobjects={sobjects}
                 selectedSObjects={selectedSObjects}
                 allowSelectAll={false}
+                recentItemsEnabled
+                recentItemsKey="sobject"
                 onSobjects={handleSobjectChange}
                 onSelectedSObjects={setSelectedSObjects}
               />

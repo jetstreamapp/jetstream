@@ -1,22 +1,23 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { FieldMapping } from '@jetstream/types';
+import { FieldMapping, LoadSavedMappingItem } from '@jetstream/types';
 import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification, Tooltip } from '@jetstream/ui';
-import { fromLoadRecordsState } from '@jetstream/ui-core';
+import { dexieDb, getHashedRecordKey } from '@jetstream/ui/db';
 import { formatISO } from 'date-fns/formatISO';
 import omit from 'lodash/omit';
-import { FunctionComponent, useMemo, useRef, useState } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 
-const getDefaultItem = (sobject: string): fromLoadRecordsState.LoadSavedMappingItem => ({
-  key: '',
+const getDefaultItem = (sobject: string): LoadSavedMappingItem => ({
+  key: 'lsm_',
+  hashedKey: '',
   name: '',
   sobject,
   csvFields: [],
   sobjectFields: [],
   mapping: {},
-  createdDate: new Date(),
+  createdAt: new Date(),
+  updatedAt: new Date(),
 });
 
 export interface SaveMappingPopoverProps {
@@ -27,8 +28,7 @@ export interface SaveMappingPopoverProps {
 export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({ sobject, fieldMapping }) => {
   const popoverRef = useRef<PopoverRef>(null);
   const [mappingName, saveSetMappingName] = useState('');
-  const [currentSavedMapping, setCurrentSavedMapping] = useState<fromLoadRecordsState.LoadSavedMappingItem>(() => getDefaultItem(sobject));
-  const setFieldMappingState = useSetRecoilState(fromLoadRecordsState.savedFieldMappingState);
+  const [currentSavedMapping, setCurrentSavedMapping] = useState<LoadSavedMappingItem>(() => getDefaultItem(sobject));
 
   const hasErrors = useMemo(
     () =>
@@ -39,34 +39,27 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
     [fieldMapping]
   );
 
-  function handleOpen(isOpen: boolean) {
-    if (isOpen) {
-      saveSetMappingName('');
-      setCurrentSavedMapping(
-        Object.keys(fieldMapping).reduce((acc: fromLoadRecordsState.LoadSavedMappingItem, key) => {
-          const field = fieldMapping[key];
-          if (field.targetField) {
-            acc.csvFields.push(key);
-            acc.sobjectFields.push(field.targetField);
-            acc.mapping[key] = omit({ ...field }, 'fieldMetadata');
-          }
-          return acc;
-        }, getDefaultItem(sobject))
-      );
-    }
-  }
+  useEffect(() => {
+    saveSetMappingName('');
+    setCurrentSavedMapping(
+      Object.keys(fieldMapping).reduce((acc: LoadSavedMappingItem, key) => {
+        const field = fieldMapping[key];
+        if (field.targetField) {
+          acc.csvFields.push(key);
+          acc.sobjectFields.push(field.targetField);
+          acc.mapping[key] = omit({ ...field }, 'fieldMetadata');
+        }
+        return acc;
+      }, getDefaultItem(sobject))
+    );
+  }, [fieldMapping, sobject]);
 
-  function handleSave() {
-    const newMapping: fromLoadRecordsState.LoadSavedMappingItem = { ...currentSavedMapping, name: mappingName };
-    newMapping.createdDate = new Date();
-    newMapping.key = `${sobject}:${newMapping.csvFields.length}:${formatISO(newMapping.createdDate)}`;
-    setFieldMappingState((prevItems) => ({
-      ...prevItems,
-      [sobject]: {
-        ...(prevItems[sobject] || {}),
-        [newMapping.key]: newMapping,
-      },
-    }));
+  async function handleSave() {
+    const newMapping: LoadSavedMappingItem = { ...currentSavedMapping, name: mappingName };
+    newMapping.createdAt = new Date();
+    newMapping.key = `lsm_${sobject}:${newMapping.csvFields.length}:${formatISO(newMapping.createdAt).toLowerCase()}`;
+    newMapping.hashedKey = await getHashedRecordKey(newMapping.key);
+    dexieDb.load_saved_mapping.put(newMapping);
     saveSetMappingName('');
     setCurrentSavedMapping(getDefaultItem(sobject));
     popoverRef.current?.close();
@@ -75,7 +68,6 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
   return (
     <Popover
       ref={popoverRef}
-      onChange={handleOpen}
       placement="bottom-end"
       footer={
         <footer className="slds-popover__footer">

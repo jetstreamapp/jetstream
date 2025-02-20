@@ -55,7 +55,7 @@ export const routeDefinition = {
     controllerFn: () => addBatchToJob,
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
-      body: z.any(),
+      body: z.string(),
       query: z.object({
         closeJob: BooleanQueryParamSchema,
       }),
@@ -195,14 +195,28 @@ const downloadResults = createRoute(routeDefinition.downloadResults.validators, 
       results = await jetstreamConn!.bulk.downloadRecords(jobId, batchId, type);
     }
 
-    // parse entire stream since there isn't a way to stream parse in the browser with PapaParse
-    let csvString = '';
+    const reader = results.getReader();
+    const chunks: Uint8Array[] = [];
     let done = false;
     while (!done) {
-      const { value, done: isDone } = await results.getReader().read();
+      const { value, done: isDone } = await reader.read();
       done = isDone;
-      csvString += new TextDecoder().decode(value);
+      if (value) {
+        chunks.push(value);
+      }
     }
+
+    // Concatenate the chunks into a single Uint8Array
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const csvData = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      csvData.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    // Decode the Uint8Array to a string
+    const csvString = new TextDecoder().decode(csvData);
 
     const csv = parseCsv(csvString, {
       delimiter: ',',

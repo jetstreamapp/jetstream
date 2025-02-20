@@ -181,6 +181,8 @@ export const MassUpdateRecordsDeploymentRow = ({
           fileNameParts={downloadModalData.fileNameParts}
           onModalClose={handleModalClose}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="automation_control"
+          trackEvent={trackEvent}
         />
       )}
       {resultsModalData.open && (

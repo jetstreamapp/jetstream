@@ -52,6 +52,8 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = ({
       selectedOrg={selectedOrg}
       sobjects={sobjects}
       selectedSObject={selectedSObject}
+      recentItemsEnabled
+      recentItemsKey="sobject"
       isTooling={isTooling}
       onSobjects={handleSobjectChange}
       onSelectedSObject={setSelectedSObject}

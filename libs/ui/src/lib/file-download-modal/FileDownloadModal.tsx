@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile } from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
@@ -72,7 +72,9 @@ export interface FileDownloadModalProps {
    */
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
-  onModalClose: (cancelled?: boolean) => void;
+  source: string;
+  trackEvent: (key: string, value?: unknown) => void;
+  onModalClose: (canceled?: boolean) => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   /** this may be useful if alternateDownloadButton is provided, otherwise this usually is not required */
   onChange?: (data: { fileName: string; fileFormat: FileExtAllTypes }) => void;
@@ -104,6 +106,8 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   header,
   fileNameParts = ['records'],
   alternateDownloadButton,
+  source,
+  trackEvent,
   onModalClose,
   onChange,
   emitUploadToGoogleEvent,
@@ -220,6 +224,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
 
         onModalClose();
       }
+      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
     } catch (ex) {
       logger.error('[FILE DOWNLOAD][ERROR]', ex);
       onError && onError(ex);
@@ -354,7 +359,9 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
               onChange={(value: FileExtGDrive) => setFileFormat(value)}
             />
           )}
-          {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
+          {!googleIntegrationEnabled && googleShowUpgradeToPro && (
+            <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
+          )}
         </RadioGroup>
         {fileFormat === 'gdrive' && googleIntegrationEnabled && google_apiKey && google_appId && google_clientId && (
           <FileDownloadGoogle

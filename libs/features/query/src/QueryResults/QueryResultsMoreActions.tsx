@@ -29,7 +29,7 @@ const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BUL
       hasError={!batchSize || batchSize > maxSize || batchSize < 1}
       errorMessageId="batch-size-error"
       errorMessage={`Batch size must be between 1 and ${formatNumber(maxSize)}`}
-      labelHelp="The batch size determines how many records will be deleted at a time. Only change this if you are experiencing issues with Salesforce governor limits."
+      labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
     >
       <input
         id="batch-size"
@@ -123,7 +123,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
           })
           .catch((ex) => {
             logger.info(ex);
-            // user cancelled
+            // user canceled
           });
         break;
       }

@@ -1,5 +1,6 @@
 import { logger } from '@jetstream/api-config';
-import { CookieConfig, CreateCSRFTokenParams, ValidateCSRFTokenParams } from '@jetstream/auth/types';
+import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
+import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcrypt';
 import * as Bowser from 'bowser';
 
@@ -200,3 +201,14 @@ export function checkUserAgentSimilarity(sessionUserAgent: string, currentUserAg
     }) === true
   );
 }
+
+export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSession => {
+  return {
+    id: user.id,
+    userId: user.userId || user.id,
+    name: user.name,
+    email: user.email,
+    emailVerified: user.emailVerified,
+    authFactors: [],
+  };
+};

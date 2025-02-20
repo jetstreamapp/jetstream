@@ -1,6 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { TITLES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { getSubscriptions } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { StripeUserFacingCustomer } from '@jetstream/types';
 import {
@@ -13,9 +14,11 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { JetstreamProLogo, useAmplitude } from '@jetstream/ui-core';
+import { fromAppState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useSetRecoilState } from 'recoil';
 import { environment } from '../../../environments/environment';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
 import BillingPlanCard from './BillingPlanCard';
@@ -26,12 +29,13 @@ export const Billing = () => {
   useTitle(TITLES.SETTINGS);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
+  const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(environment.STRIPE_PRO_MONTHLY_PRICE_ID);
   const [customerWithSubscriptions, setCustomerWithSubscriptions] = useState<StripeUserFacingCustomer | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState({
-    hasCancelledSubscriptions: false,
+    hasCanceledSubscriptions: false,
     hasFutureDatedCancellation: false,
     hasActiveSubscriptions: false,
   });
@@ -47,12 +51,16 @@ export const Billing = () => {
         // TODO: should we do something on the server - like ensure server has the subscription?
         // depending on webhook timing, we may want to do this here
       }
-      const subscriptions = await getSubscriptions().then(({ customer }) => customer);
-      const hasCancelledSubscriptions = subscriptions?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
-      const hasFutureDatedCancellation = subscriptions?.subscriptions.some((item) => item.cancelAtPeriodEnd) ?? false;
-      const hasActiveSubscriptions = subscriptions?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
-      setSubscriptionStatus({ hasCancelledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
-      setCustomerWithSubscriptions(subscriptions);
+      const { customer, didUpdate, userProfile } = await getSubscriptions();
+      if (userProfile) {
+        // this ensures that all entitlements are updated across the application to match what is on the server
+        setUserProfile(userProfile);
+      }
+      const hasCanceledSubscriptions = customer?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
+      const hasFutureDatedCancellation = customer?.subscriptions.some((item) => item.cancelAtPeriodEnd) ?? false;
+      const hasActiveSubscriptions = customer?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
+      setSubscriptionStatus({ hasCanceledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
+      setCustomerWithSubscriptions(customer);
     } catch (ex) {
       logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
       rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
@@ -71,7 +79,7 @@ export const Billing = () => {
     <Page testId="billing-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'your_account' }} label="Billing" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'billing' }} label="Billing" />
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
@@ -84,13 +92,18 @@ export const Billing = () => {
 
         {subscriptionStatus.hasFutureDatedCancellation && (
           <ScopedNotification theme="info" className="slds-m-around_medium">
-            Your plan is scheduled to be cancelled, visit the Billing Portal view more information or to resume service.
+            Your plan is scheduled to be canceled, visit the Billing Portal view more information or to resume service.
           </ScopedNotification>
         )}
 
         {customerWithSubscriptions && (
           <div className="slds-box slds-box_small slds-m-bottom_small">
-            <form method="POST" action="/api/billing/portal" target="_blank">
+            <form
+              method="POST"
+              action="/api/billing/portal"
+              target="_blank"
+              onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal, { action: 'click', location: 'cta_button' })}
+            >
               <p className="slds-text-heading_small">Visit the Billing Portal to manage your billing information</p>
               <ul className="slds-list_dotted slds-m-bottom_small">
                 <li>Change plans</li>
@@ -108,18 +121,45 @@ export const Billing = () => {
           </div>
         )}
 
+        <div className="slds-box slds-box_small slds-m-bottom_small">
+          {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
+            <JetstreamProLogo width="250px" className="slds-m-bottom_x-small" />
+          )}
+          <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
+          <ul className="slds-list_dotted slds-m-bottom_small">
+            <li>
+              Access to the{' '}
+              <a
+                href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
+                target="_blank"
+                className="slds-text-heading_x-small"
+                rel="noreferrer"
+                onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'billing_page' })}
+              >
+                Chrome Extension
+              </a>
+            </li>
+            <li>Save query history across devices</li>
+            <li>Save downloads to Google Drive</li>
+            <li>Load data from Google Drive</li>
+          </ul>
+        </div>
+
         <div className="slds-box slds-box_small">
           {customerWithSubscriptions && subscriptionStatus.hasActiveSubscriptions ? (
             <BillingExistingSubscriptions customerWithSubscriptions={customerWithSubscriptions} />
           ) : (
-            <form method="POST" action="/api/billing/checkout-session">
-              <p className="slds-text-heading_small">Subscribe to Jetstream</p>
+            <form
+              method="POST"
+              action="/api/billing/checkout-session"
+              onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan })}
+            >
               <fieldset className="slds-form-element" role="radiogroup">
                 <legend className="slds-form-element__legend slds-form-element__label">Select a plan</legend>
                 <div className="slds-form-element__control">
                   <BillingPlanCard
                     descriptionTitle="Professional - Monthly"
-                    description="Get access to the Google Drive, Chrome Extension, Query History Sync, and more coming soon!"
+                    description="Get started with Professional."
                     checked={selectedPlan === environment.STRIPE_PRO_MONTHLY_PRICE_ID}
                     value={environment.STRIPE_PRO_MONTHLY_PRICE_ID}
                     price="$25"
@@ -128,15 +168,14 @@ export const Billing = () => {
                   />
                   <BillingPlanCard
                     descriptionTitle="Professional - Annual"
-                    description="Get two months for free from the monthly plan."
+                    description="Get two months free."
                     checked={selectedPlan === environment.STRIPE_PRO_ANNUAL_PRICE_ID}
                     value={environment.STRIPE_PRO_ANNUAL_PRICE_ID}
                     price="$250"
                     priceDescription="Billed Annually"
                     onChange={setSelectedPlan}
                   />
-                  {/* Coming soon team plan or something? */}
-                  {/* <BillingPlanCard /> */}
+                  {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
                 </div>
               </fieldset>
               <button type="submit" className="slds-button slds-button_brand slds-m-top_medium">

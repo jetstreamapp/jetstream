@@ -23,7 +23,7 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
     <div
       css={css`
         max-width: 33rem;
-        margin-top: 5rem;
+        margin-top: 3rem;
         padding: 1rem;
         border-radius: 0.25rem;
         border: 1px solid #ea001e;
@@ -39,6 +39,7 @@ export const SettingsDeleteAccount: FunctionComponent<SettingsDeleteAccountProps
         <div className="slds-text-heading_medium slds-text-color_destructive">Danger Zone</div>
       </Grid>
       <p className=" slds-m-bottom_small">Would you like to delete your account and all of your stored data?</p>
+      <p className=" slds-m-bottom_small">Any active subscriptions will be cancelled at the end of your current billing period.</p>
       {!showConfirmation && (
         <button className="slds-button slds-button_text-destructive" onClick={handleInitialDelete}>
           Delete Account

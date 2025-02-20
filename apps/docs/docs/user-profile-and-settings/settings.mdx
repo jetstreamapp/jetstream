@@ -7,11 +7,17 @@ sidebar_label: Settings
 slug: /user-profile-and-settings/settings
 ---
 
+import { JetstreamProLogo } from '@site/src/shared-components/JetstreamProLogo';
+
 On the settings page, you can perform the following actions:
 
 - **Don't Auto-Login on Link Clicks**: When enabled, Jetstream will not automatically log you in to Salesforce when you click on a link in an email.
   - Use this if you have SSO configured and clicking Salesforce links from Jetstream asks you to login again.
   - When this setting is enabled, clicking Salesforce links will be much faster as long as you are already logged in to Salesforce.
+- **Data Sync**
+  - <JetstreamProLogo width="250px" />
+  - If you don't want to have your data history stored in the Jetstream server, you can disable the data sync.
+  - You can choose to "Reset Sync" on any devices where you want to push/pull from the Jetstream server to ensure the devices are in sync.
 - **Logging**: Enable or disable logging of your Jetstream activity within your browser's console.
   - Use this if you are experiencing issues with Jetstream and need to provide logs to the Jetstream team.
 - **Delete Account**: Delete your Jetstream account. This action is irreversible.

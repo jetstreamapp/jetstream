@@ -110,6 +110,8 @@ export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedO
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_package"
+          trackEvent={trackEvent}
         />
       )}
     </Fragment>

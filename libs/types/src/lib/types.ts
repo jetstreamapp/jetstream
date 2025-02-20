@@ -100,29 +100,21 @@ export interface UserProfilePreferences {
   deniedNotifications?: boolean;
 }
 
-/**
- * @deprecated
- */
-export interface FeatureFlag {
-  flagVersion: string; // V1.0
-  flags: string[]; // all | query
-  isDefault: boolean;
-}
-
 export interface UserProfileUi {
   id: string;
   /** @deprecated */
-  userId: string;
+  userId?: string;
   email: string;
   name: string;
   emailVerified: boolean;
   picture?: Maybe<string>;
   preferences: {
     skipFrontdoorLogin: boolean;
+    recordSyncEnabled: boolean;
   };
-  billingAccount?: {
+  billingAccount?: Maybe<{
     customerId: string;
-  };
+  }>;
   entitlements: {
     googleDrive: boolean;
     chromeExtension: boolean;
@@ -130,10 +122,10 @@ export interface UserProfileUi {
   };
   subscriptions: {
     id: string;
-    productId: string;
+    productId?: Maybe<string>;
     subscriptionId: string;
     priceId: string;
-    status: true;
+    status: 'ACTIVE' | 'CANCELED' | 'INCOMPLETE' | 'INCOMPLETE_EXPIRED' | 'PAST_DUE' | 'PAUSED' | 'TRIALING' | 'UNPAID';
   }[];
 }
 

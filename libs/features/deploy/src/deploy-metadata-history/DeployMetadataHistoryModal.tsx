@@ -218,6 +218,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
           allowedTypes={['zip']}
           onModalClose={() => handleDownloadModalClose()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_history_modal"
+          trackEvent={trackEvent}
         />
       )}
       {downloadItemModalState.open && downloadItemModalState.org && downloadItemModalState.data && (
@@ -234,6 +236,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
           data={downloadItemModalState.data}
           onModalClose={() => handleDownloadResultsModalClose()}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_history_modal"
+          trackEvent={trackEvent}
         />
       )}
       {viewItemModalState.open && viewItemModalState.org && viewItemModalState.item && (

@@ -2,13 +2,22 @@ import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { DescribeGlobalSObjectResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Maybe, RecentHistoryItemType, SalesforceOrgUi } from '@jetstream/types';
+import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { formatRelative } from 'date-fns/formatRelative';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
 import { SobjectList } from './SobjectList';
+import {
+  filterSobjects,
+  getDefaultSobjectFilters,
+  getHasFiltersApplied,
+  ObjectFilterValues,
+  SobjectFieldListFilter,
+} from './SobjectListFilter';
 
 // Store global state so that if a user leaves and comes back and items are restored
 // we know the most recent known value to start with instead of no value
@@ -29,6 +38,8 @@ export interface ConnectedSobjectListProps {
   selectedSObject: Maybe<DescribeGlobalSObjectResult>;
   isTooling?: boolean;
   initialSearchTerm?: string;
+  recentItemsEnabled?: boolean;
+  recentItemsKey?: RecentHistoryItemType;
   filterFn?: (sobject: DescribeGlobalSObjectResult) => boolean;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSObject: (selectedSObject: DescribeGlobalSObjectResult | null) => void;
@@ -42,6 +53,8 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   selectedSObject,
   isTooling,
   initialSearchTerm,
+  recentItemsEnabled,
+  recentItemsKey,
   filterFn = isTooling ? filterToolingSobjectFn : filterSobjectFn,
   onSobjects,
   onSelectedSObject,
@@ -51,6 +64,8 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
+
+  const [selectedFilters, setSelectedFilters] = useState<ObjectFilterValues>(() => getDefaultSobjectFilters());
 
   useEffect(() => {
     isMounted.current = true;
@@ -62,6 +77,25 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   useEffect(() => {
     _lastRefreshed = lastRefreshed;
   }, [lastRefreshed]);
+
+  const recentItems = useLiveQuery(async () => {
+    if (recentItemsEnabled && recentItemsKey && sobjects) {
+      return recentHistoryItemsDb.getRecentHistoryFromRecords({ orgUniqueId: selectedOrg.uniqueId, recentItemsKey, records: sobjects });
+    }
+    return null;
+  }, [sobjects]);
+
+  const { sobjectsFiltered, recentItemsFiltered } = useMemo(() => {
+    if (!sobjects || !recentItems || !getHasFiltersApplied(selectedFilters)) {
+      return {
+        sobjectsFiltered: sobjects,
+        recentItemsFiltered: recentItems,
+      };
+    }
+    const sobjectsFiltered = filterSobjects(sobjects, selectedFilters);
+    const recentItemsFiltered = filterSobjects(recentItems, selectedFilters);
+    return { sobjectsFiltered, recentItemsFiltered };
+  }, [recentItems, selectedFilters, sobjects]);
 
   const loadObjects = useCallback(async () => {
     const uniqueId = selectedOrg.uniqueId;
@@ -90,7 +124,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   }, [filterFn, onSobjects, selectedOrg, isTooling]);
 
   useEffect(() => {
-    if (selectedOrg && !loading && !errorMessage && !sobjects) {
+    if (selectedOrg && !loading && !errorMessage && !sobjects?.length) {
       loadObjects();
     }
   }, [selectedOrg, loading, errorMessage, sobjects, onSobjects, loadObjects]);
@@ -117,7 +151,10 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
   return (
     <Fragment>
       <Grid>
-        <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{label}</h2>
+        <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">
+          {label}
+          <SobjectFieldListFilter onChange={setSelectedFilters} />
+        </h2>
         <div>
           <Tooltip id={`sobject-list-refresh-tooltip`} content={lastRefreshed}>
             <button
@@ -133,11 +170,13 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       </Grid>
       <SobjectList
         isTooling={isTooling}
-        sobjects={sobjects}
+        sobjects={sobjectsFiltered}
         selectedSObject={selectedSObject}
         loading={loading}
         errorMessage={errorMessage}
         initialSearchTerm={initialSearchTerm}
+        recentItemsEnabled={recentItemsEnabled}
+        recentItems={recentItemsFiltered}
         onSelected={onSelectedSObject}
         errorReattempt={() => setErrorMessage(null)}
         onSearchTermChange={onSearchTermChange}

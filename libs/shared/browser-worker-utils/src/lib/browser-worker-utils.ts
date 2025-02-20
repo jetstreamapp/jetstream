@@ -135,21 +135,21 @@ const BACK_OFF_INTERVAL = 25;
 export async function pollRetrieveMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void; isCancelled?: () => boolean }
+  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void; isCanceled?: () => boolean }
 ) {
   let { interval, maxAttempts, onChecked } = options || {};
   interval = interval || DEFAULT_INTERVAL_5_SEC;
   maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
   onChecked = isFunction(onChecked) ? onChecked : NOOP;
-  const isCancelled = options?.isCancelled || (() => false);
+  const isCanceled = options?.isCanceled || (() => false);
 
   let attempts = 0;
   let done = false;
   let retrieveResults: RetrieveResult = {} as RetrieveResult;
   while (!done && attempts <= maxAttempts) {
     await delay(interval);
-    if (isCancelled && isCancelled()) {
-      throw new Error('Job cancelled');
+    if (isCanceled && isCanceled()) {
+      throw new Error('Job canceled');
     }
     retrieveResults = await checkMetadataRetrieveResults(selectedOrg, id);
     logger.log({ retrieveResults });
@@ -160,8 +160,8 @@ export async function pollRetrieveMetadataResultsUntilDone(
     if (attempts % BACK_OFF_INTERVAL === 0) {
       interval += DEFAULT_INTERVAL_5_SEC;
     }
-    if (isCancelled && isCancelled()) {
-      throw new Error('Job cancelled');
+    if (isCanceled && isCanceled()) {
+      throw new Error('Job canceled');
     }
   }
   if (!done) {

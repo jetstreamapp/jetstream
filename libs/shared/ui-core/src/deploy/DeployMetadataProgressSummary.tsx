@@ -2,7 +2,7 @@ import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { DeployResultStatus } from '@jetstream/types';
 import { Grid, ProgressRing, Spinner } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { FunctionComponent, useEffect, useReducer } from 'react';
+import { FunctionComponent, useEffect, useReducer } from 'react';
 
 type Action = { type: 'CHANGE'; payload: { status: DeployResultStatus; totalProcessed: number; totalErrors: number; totalItems: number } };
 
@@ -137,7 +137,7 @@ export const DeployMetadataProgressSummary: FunctionComponent<DeployMetadataProg
       >
         {totalErrors} {pluralizeFromNumber('Error', totalErrors)}
       </span>
-      {status === 'Canceled' && <span className="slds-text-color_error">Deployment was cancelled</span>}
+      {status === 'Canceled' && <span className="slds-text-color_error">Deployment was canceled</span>}
     </Grid>
   );
 };

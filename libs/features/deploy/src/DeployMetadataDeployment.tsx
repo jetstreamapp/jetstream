@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { copyRecordsToClipboard, formatNumber, isChromeExtension } from '@jetstream/shared/ui-utils';
+import { copyRecordsToClipboard, formatNumber, isBrowserExtension } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { DeployMetadataTableRow, ListMetadataResult, SalesforceOrgUi, SidePanelType } from '@jetstream/types';
 import {
@@ -24,7 +24,7 @@ import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
@@ -90,7 +90,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const [viewOrCompareModalOpen, setViewOrCompareModalOpen] = useState(false);
   const [deleteMetadataModalOpen, setDeleteMetadataModalOpen] = useState(false);
 
-  const [chromeExtension] = useState(() => isChromeExtension());
+  const [chromeExtension] = useState(() => isBrowserExtension());
 
   const listMetadataFilterFn = useCallback(
     (item: ListMetadataResult) => {
@@ -239,6 +239,8 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     setViewOrCompareModalOpen(true);
   }, []);
 
+  const selectedMetadata = useMemo(() => convertRowsToMapOfListMetadataResults(Array.from(selectedRows)), [selectedRows]);
+
   return (
     <div>
       {activeDownloadType && (
@@ -246,7 +248,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           type={activeDownloadType}
           selectedOrg={selectedOrg}
           modalTagline={`${formatNumber(selectedRows.size)} components will be included`}
-          listMetadataItems={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          listMetadataItems={selectedMetadata}
           onClose={handleFileModalClose}
         />
       )}
@@ -265,13 +267,15 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
           allowedTypes={['xlsx', 'csv', 'json']}
           onModalClose={() => setExportData(null)}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata"
+          trackEvent={trackEvent}
         />
       )}
 
       {viewOrCompareModalOpen && (
         <ViewOrCompareMetadataModal
           sourceOrg={selectedOrg}
-          selectedMetadata={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          selectedMetadata={selectedMetadata}
           onClose={() => setViewOrCompareModalOpen(false)}
         />
       )}
@@ -279,7 +283,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       {deleteMetadataModalOpen && (
         <DeleteMetadataModal
           selectedOrg={selectedOrg}
-          selectedMetadata={convertRowsToMapOfListMetadataResults(Array.from(selectedRows))}
+          selectedMetadata={selectedMetadata}
           onClose={() => setDeleteMetadataModalOpen(false)}
         />
       )}

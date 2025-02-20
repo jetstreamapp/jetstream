@@ -21,6 +21,7 @@ import StandardIcon_ActionsAndButtons from './icons/standard/ActionsAndButtons';
 import StandardIcon_Activations from './icons/standard/Activations';
 import StandardIcon_Apex from './icons/standard/Apex';
 import StandardIcon_AssetRelationship from './icons/standard/AssetRelationship';
+import StandardIcon_Billing from './icons/standard/Billing';
 import StandardIcon_BundleConfig from './icons/standard/BundleConfig';
 import StandardIcon_ConnectedApps from './icons/standard/ConnectedApps';
 import StandardIcon_DataStreams from './icons/standard/DataStreams';
@@ -55,6 +56,7 @@ import UtilityIcon_Arrowdown from './icons/utility/Arrowdown';
 import UtilityIcon_Arrowup from './icons/utility/Arrowup';
 import UtilityIcon_Back from './icons/utility/Back';
 import UtilityIcon_Ban from './icons/utility/Ban';
+import UtilityIcon_Billing from './icons/utility/Billing';
 import UtilityIcon_Bold from './icons/utility/Bold';
 import UtilityIcon_ChangeRecordType from './icons/utility/ChangeRecordType';
 import UtilityIcon_Chart from './icons/utility/Chart';
@@ -97,6 +99,7 @@ import UtilityIcon_Italic from './icons/utility/Italic';
 import UtilityIcon_Left from './icons/utility/Left';
 import UtilityIcon_Link from './icons/utility/Link';
 import UtilityIcon_Logout from './icons/utility/Logout';
+import UtilityIcon_Magicwand from './icons/utility/Magicwand';
 import UtilityIcon_MergeField from './icons/utility/MergeField';
 import UtilityIcon_MinimizeWindow from './icons/utility/MinimizeWindow';
 import UtilityIcon_Moneybag from './icons/utility/Moneybag';
@@ -131,6 +134,7 @@ import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
 import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
+import UtilityIcon_SetupAssistantGuide from './icons/utility/SetupAssistantGuide';
 import UtilityIcon_Share from './icons/utility/Share';
 import UtilityIcon_Shortcuts from './icons/utility/Shortcuts';
 import UtilityIcon_Steps from './icons/utility/Steps';
@@ -185,9 +189,10 @@ const standardIcons = {
   activations: StandardIcon_Activations,
   apex: StandardIcon_Apex,
   asset_relationship: StandardIcon_AssetRelationship,
+  billing: StandardIcon_Billing,
   bundle_config: StandardIcon_BundleConfig,
-  data_streams: StandardIcon_ConnectedApps,
-  connected_apps: StandardIcon_DataStreams,
+  connected_apps: StandardIcon_ConnectedApps,
+  data_streams: StandardIcon_DataStreams,
   employee_organization: StandardIcon_EmployeeOrganization,
   entity: StandardIcon_Entity,
   events: StandardIcon_Events,
@@ -237,6 +242,7 @@ const utilityIcons = {
   arrowup: UtilityIcon_Arrowup,
   back: UtilityIcon_Back,
   ban: UtilityIcon_Ban,
+  billing: UtilityIcon_Billing,
   bold: UtilityIcon_Bold,
   change_record_type: UtilityIcon_ChangeRecordType,
   chart: UtilityIcon_Chart,
@@ -279,6 +285,7 @@ const utilityIcons = {
   left: UtilityIcon_Left,
   link: UtilityIcon_Link,
   logout: UtilityIcon_Logout,
+  magicwand: UtilityIcon_Magicwand,
   merge_field: UtilityIcon_MergeField,
   minimize_window: UtilityIcon_MinimizeWindow,
   moneybag: UtilityIcon_Moneybag,
@@ -313,6 +320,7 @@ const utilityIcons = {
   search: UtilityIcon_Search,
   settings: UtilityIcon_Settings,
   setup: UtilityIcon_Setup,
+  setup_assistant_guide: UtilityIcon_SetupAssistantGuide,
   share: UtilityIcon_Share,
   shortcuts: UtilityIcon_Shortcuts,
   steps: UtilityIcon_Steps,

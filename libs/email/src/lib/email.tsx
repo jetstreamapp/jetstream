@@ -14,6 +14,7 @@ import { PasswordResetEmail } from './email-templates/auth/PasswordResetEmail';
 import { TwoStepVerificationEmail } from './email-templates/auth/TwoStepVerificationEmail';
 import { VerifyEmail } from './email-templates/auth/VerifyEmail';
 import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
+import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
 /**
  *
  * TODO:
@@ -62,7 +63,23 @@ export async function sendWelcomeEmail(emailAddress: string) {
   }
 }
 
-export async function sendGoodbyeEmail(emailAddress: string) {
+export async function sendWelcomeToProEmail(emailAddress: string) {
+  try {
+    const component = <WelcomeToProEmail />;
+    const [html, text] = await renderComponent(component);
+
+    await sendEmail({
+      to: emailAddress,
+      subject: 'Welcome to Jetstream Pro!',
+      text,
+      html,
+    });
+  } catch (error) {
+    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending welcome to pro email');
+  }
+}
+
+export async function sendGoodbyeEmail(emailAddress: string, billingPortalLinkText?: Maybe<string>) {
   const component = (
     <GenericEmail
       heading="We're sorry to see you go!"
@@ -70,6 +87,7 @@ export async function sendGoodbyeEmail(emailAddress: string) {
       segments={[
         `We hope that you will give us a try in the future.`,
         `If you have any feedback on how we can improve or why Jetstream wasn't the right tool for you, please let us know by replying to this email.`,
+        billingPortalLinkText || '',
       ]}
     />
   );
@@ -83,12 +101,16 @@ export async function sendGoodbyeEmail(emailAddress: string) {
   });
 }
 
-export async function sendInternalAccountDeletionEmail(userId: string, reason?: Maybe<string>) {
+export async function sendInternalAccountDeletionEmail(userId: string, reason?: Maybe<string>, billingResults?: Maybe<string>) {
   const component = (
     <GenericEmail
       heading="Account deleted"
       preview="Account deleted"
-      segments={[`The user ${userId} was deleted.`, reason || 'No reason was provided.']}
+      segments={[
+        `The user ${userId} was deleted.`,
+        reason || 'No reason was provided.',
+        billingResults || 'No billing results were provided.',
+      ]}
     />
   );
   const [html, text] = await renderComponent(component);
@@ -107,7 +129,7 @@ export async function sendEmailVerification(emailAddress: string, code: string, 
 
   await sendEmail({
     to: emailAddress,
-    subject: 'Verify your email on Jetstream',
+    subject: `Verify your email on Jetstream - ${code}`,
     text,
     html,
   });
@@ -119,7 +141,7 @@ export async function sendVerificationCode(emailAddress: string, code: string, e
 
   await sendEmail({
     to: emailAddress,
-    subject: 'Verify your identity on Jetstream',
+    subject: `Verify your identity on Jetstream - ${code}`,
     text,
     html,
   });

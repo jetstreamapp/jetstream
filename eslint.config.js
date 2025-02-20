@@ -21,8 +21,12 @@ module.exports = [
               onlyDependOnLibsWithTags: ['scope:server', 'scope:type-only', 'scope:shared', 'scope:any'],
             },
             {
+              sourceTag: 'scope:browser',
+              onlyDependOnLibsWithTags: ['scope:browser', 'scope:type-only', 'scope:shared', 'scope:any'],
+            },
+            {
               sourceTag: 'scope:e2e',
-              onlyDependOnLibsWithTags: ['scope:server', 'scope:type-only', 'scope:shared', 'scope:e2e', 'scope:any'],
+              onlyDependOnLibsWithTags: ['scope:server', 'scope:browser', 'scope:type-only', 'scope:shared', 'scope:e2e', 'scope:any'],
             },
             {
               sourceTag: 'scope:worker',

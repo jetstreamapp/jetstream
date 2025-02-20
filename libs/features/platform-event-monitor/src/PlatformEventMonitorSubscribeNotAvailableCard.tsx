@@ -14,8 +14,8 @@ export const PlatformEventMonitorSubscribeNotAvailableCard = () => {
       }
     >
       <EmptyState
-        headline="Unavailable in Chrome Extension"
-        subHeading="To subscribe to platform events, use the Jetstream Application instead of the Chrome Extension."
+        headline="Unavailable in browser extension"
+        subHeading="To subscribe to platform events, use the Jetstream Application instead of the browser extension."
         illustration={<NoPreviewIllustration />}
       />
     </Card>

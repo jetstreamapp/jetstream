@@ -21,6 +21,7 @@ import {
   CloneEditView,
   QueryResults as IQueryResults,
   Maybe,
+  QueryResult,
   SalesforceOrgUi,
   SalesforceRecord,
   SobjectCollectionResponse,
@@ -50,6 +51,7 @@ import {
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { queryHistoryDb } from '@jetstream/ui/db';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
@@ -78,6 +80,14 @@ const SOURCE_RECORD_ACTION: SourceAction = 'RECORD_ACTION';
 const RECORD_BULK_ACTION: SourceAction = 'RECORD_BULK_ACTION';
 const SOURCE_MANUAL: SourceAction = 'MANUAL';
 const SOURCE_RELOAD: SourceAction = 'RELOAD';
+
+function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown[]) {
+  if (queryResult.done) {
+    return records.length;
+  }
+  // Big objects report -1 as totalSize
+  return queryResult.totalSize < 0 ? queryResult.totalSize + 1 : queryResult.totalSize;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryResultsProps {}
@@ -119,7 +129,6 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontdoorLogin = useRecoilValue(fromAppState.selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
-  const [queryHistory, setQueryHistory] = useRecoilState(fromQueryHistoryState.queryHistoryState);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev) => isAsyncJob(ev) && ev.type === 'BulkDelete'))
   );
@@ -156,7 +165,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       navigate('', { replace: true, state: window.history.state.state });
       return;
     }
-    // Fallback to session state if browser history is not available (e.g. chrome extension)
+    // Fallback to session state if browser history is not available (e.g. browser extension)
     try {
       const potentialState = JSON.parse(sessionStorage.getItem('query') || '');
       if (isString(potentialState.soql)) {
@@ -256,23 +265,11 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     }
     if (soql && sObject) {
       try {
-        // eslint-disable-next-line prefer-const
-        let { queryHistoryItem, refreshedQueryHistory } = await fromQueryHistoryState.getQueryHistoryItem(
-          selectedOrg,
-          soql,
-          sObject,
+        await queryHistoryDb.saveQueryHistoryItem(selectedOrg, soql, sObject, {
           sObjectLabel,
-          tooling
-        );
-        refreshedQueryHistory = refreshedQueryHistory || queryHistory;
-        // increment count and ensure certain properties are not overwritten
-        if (refreshedQueryHistory && refreshedQueryHistory[queryHistoryItem.key]) {
-          queryHistoryItem.runCount = refreshedQueryHistory[queryHistoryItem.key].runCount + 1;
-          queryHistoryItem.created = refreshedQueryHistory[queryHistoryItem.key].created;
-          queryHistoryItem.label = refreshedQueryHistory[queryHistoryItem.key].label;
-          queryHistoryItem.isFavorite = refreshedQueryHistory[queryHistoryItem.key].isFavorite;
-        }
-        setQueryHistory({ ...refreshedQueryHistory, [queryHistoryItem.key]: queryHistoryItem });
+          isTooling: tooling,
+          incrementRunCount: true,
+        });
       } catch (ex) {
         logger.warn(ex);
       }
@@ -307,7 +304,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setParsedQuery(results.parsedQuery);
       setQueryResults(results);
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
-      setRecordCount(results.queryResults.totalSize);
+      setRecordCount(getTotalRecordCount(results.queryResults, results.queryResults.records));
       setRecords(results.queryResults.records);
       setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
       // Matching ReactRouter state format
@@ -330,7 +327,10 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       trackEvent(ANALYTICS_KEYS.query_ExecuteQuery, { source, success: true, isTooling: tooling, includeDeletedRecords });
 
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
-      sobjectName && (await saveQueryHistory(soqlQuery, sobjectName, tooling));
+      if (sobjectName) {
+        // this is async, but don't block on results
+        saveQueryHistory(soqlQuery, sobjectName, tooling).catch((ex) => logger.warn('Error saving query history', ex));
+      }
       setSobject(sobjectName);
     } catch (ex) {
       if (!isMounted.current) {
@@ -386,7 +386,12 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       const sobjectName = results.parsedQuery?.sObject || results.columns?.entityName;
       setNextRecordsUrl(results.queryResults.nextRecordsUrl);
       sobjectName && saveQueryHistory(soql, sobjectName, isTooling);
-      records && setRecords(records.concat(results.queryResults.records));
+      if (records) {
+        const newRecords = records.concat(results.queryResults.records);
+        setRecordCount(getTotalRecordCount(results.queryResults, newRecords));
+        setTotalRecordCount(getTotalRecordCount(results.queryResults, newRecords));
+        setRecords(newRecords);
+      }
       trackEvent(ANALYTICS_KEYS.query_LoadMore, {
         existingRecordCount: records?.length || 0,
         nextSetCount: results.queryResults.records.length,
@@ -468,7 +473,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       })
       .catch((ex) => {
         logger.info(ex);
-        // user cancelled
+        // user canceled
       });
   }
 

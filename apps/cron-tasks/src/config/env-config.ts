@@ -8,7 +8,7 @@ try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
   console.info(`APP VERSION ${VERSION}`);
 } catch (ex) {
-  console.warn('COULD NOT READ VERSION FILE', ex);
+  // could not read environment version
 }
 
 export const ENV = {
@@ -33,6 +33,6 @@ export const ENV = {
   MAX_MIND_LICENSE_KEY: process.env.MAX_MIND_LICENSE_KEY,
 
   GEO_IP_API_HOSTNAME: process.env.GEO_IP_API_HOSTNAME,
-  GEO_IP_API_USERNAME: process.env.MAX_MIND_ACCOUNT_ID,
-  GEO_IP_API_PASSWORD: process.env.MAX_MIND_LICENSE_KEY,
+  GEO_IP_API_USERNAME: process.env.GEO_IP_API_USERNAME,
+  GEO_IP_API_PASSWORD: process.env.GEO_IP_API_PASSWORD,
 };

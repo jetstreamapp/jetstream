@@ -7,7 +7,7 @@ import { ENV } from './env-config';
 export const logger = pino({
   level: ENV.LOG_LEVEL,
   transport:
-    ENV.ENVIRONMENT === 'development' && !ENV.IS_LOCAL_DOCKER && !ENV.CI
+    ENV.ENVIRONMENT === 'development' && ENV.PRETTY_LOGS && !ENV.IS_LOCAL_DOCKER
       ? {
           target: 'pino-pretty',
         }
@@ -69,7 +69,7 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
   },
   customProps: function (req, res) {
     return {
-      userId: (req as any).user?.id,
+      userId: (req as any).session?.user?.id,
       sessionId: (req as any).session?.id,
     };
   },

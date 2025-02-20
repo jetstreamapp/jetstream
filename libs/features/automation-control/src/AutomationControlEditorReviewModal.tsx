@@ -140,7 +140,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
       },
       error: (err) => {
         logger.warn('preparePayloads - error()', err);
-        // Set all items not already prepared as error since observable is cancelled on error
+        // Set all items not already prepared as error since observable is canceled on error
         setDeploymentItemMap((prevState) => ({
           ...prevState,
           ...Object.keys(deploymentItemMap)
@@ -221,7 +221,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
       },
       error: (err) => {
         logger.warn('handleDeployMetadata - error()', err);
-        // Set all items not already prepared as error since observable is cancelled on error
+        // Set all items not already prepared as error since observable is canceled on error
         setDeploymentItemMap((prevState) => ({
           ...prevState,
           ...Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {

@@ -762,6 +762,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
         passwordUpdatedAt: new Date(),
         lastLoggedIn: new Date(),
         preferences: { create: { skipFrontdoorLogin: false } },
+        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
         authFactors: {
           create: {
             type: '2fa-email',
@@ -770,6 +771,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
         },
       },
     });
+
     // FIXME: do we really need a userId? Should be able to drop after Auth0 migration
     // update userId to include the DB id as the second part of the userId instead of the email
     return await tx.user.update({

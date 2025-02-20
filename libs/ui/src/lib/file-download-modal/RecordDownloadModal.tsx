@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { MIME_TYPES } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
 import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
@@ -74,13 +74,16 @@ export interface RecordDownloadModalProps {
   selectedRecords?: SalesforceRecord[];
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
-  onModalClose: (cancelled?: boolean) => void;
+  source: string;
+  trackEvent: (key: string, value?: unknown) => void;
+  onModalClose: (canceled?: boolean) => void;
   onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
   children?: React.ReactNode;
 }
 
 const PROHIBITED_BULK_APEX_TYPES = new Set(['Address', 'Location', 'complexvaluetype']);
+const FILE_FORMAT_ALLOWED_BULK_API = new Set<FileExtCsvXLSXJsonGSheet>(['csv', 'gdrive']);
 const ALLOW_BULK_API_COUNT = 5_000;
 const REQUIRE_BULK_API_COUNT = 500_000;
 
@@ -100,6 +103,8 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   selectedRecords,
   totalRecordCount,
   includeDeletedRecords = false,
+  source,
+  trackEvent,
   onModalClose,
   onDownload,
   onDownloadFromServer,
@@ -132,6 +137,12 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   const hasSubqueryFields = subqueryFields && !!Object.keys(subqueryFields).length && (fileFormat === 'xlsx' || fileFormat === 'gdrive');
 
+  // Big objects report -1 as totalSize
+  const totalRecordCountText =
+    (totalRecordCount || records.length) < 0
+      ? `more than ${formatNumber(records.length)}`
+      : formatNumber(totalRecordCount || records.length);
+
   const allowBulkApi =
     (totalRecordCount || 0) >= ALLOW_BULK_API_COUNT &&
     !Object.keys(subqueryFields).length &&
@@ -157,7 +168,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
 
   useEffect(() => {
     if (isBulkApi) {
-      setFileFormat(RADIO_FORMAT_CSV);
+      setFileFormat((prevValue) => (FILE_FORMAT_ALLOWED_BULK_API.has(prevValue) ? prevValue : RADIO_FORMAT_CSV));
     }
   }, [isBulkApi]);
 
@@ -194,13 +205,13 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   }, [fileName]);
 
   useEffect(() => {
-    const hasMoreRecordsTemp = !!totalRecordCount && !!records && totalRecordCount > records.length;
+    const hasMoreRecordsTemp = !!totalRecordCount && !!records && (totalRecordCount < 0 || totalRecordCount > records.length);
     setHasMoreRecords(hasMoreRecordsTemp);
     setDownloadRecordsValue(hasMoreRecordsTemp ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   }, [totalRecordCount, records]);
 
-  function handleModalClose(cancelled?: boolean) {
-    onModalClose(cancelled);
+  function handleModalClose(canceled?: boolean) {
+    onModalClose(canceled);
     if (whichFields !== 'specified') {
       setWhichFields('specified');
     }
@@ -292,6 +303,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
         }
         handleModalClose();
       }
+      trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
       // TODO: show error message somewhere
       logger.error('Error downloading file', ex);
@@ -338,7 +350,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               </button>
             </Fragment>
           }
-          skipAutoFocus
           overrideZIndex={1001}
           onClose={() => handleModalClose(true)}
           hide={isGooglePickerVisible}
@@ -354,7 +365,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                 <Fragment>
                   <Radio
                     name="radio-download"
-                    label={`All records (${formatNumber(totalRecordCount || records.length)})`}
+                    label={`All records (${totalRecordCountText})`}
                     value={RADIO_ALL_SERVER}
                     checked={downloadRecordsValue === RADIO_ALL_SERVER}
                     onChange={setDownloadRecordsValue}
@@ -427,10 +438,11 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
                   value={RADIO_FORMAT_GDRIVE}
                   checked={fileFormat === RADIO_FORMAT_GDRIVE}
                   onChange={(value: FileExtGDrive) => setFileFormat(value)}
-                  disabled={isBulkApi}
                 />
               )}
-              {!googleIntegrationEnabled && googleShowUpgradeToPro && <GoogleSelectedProUpgradeButton />}
+              {!googleIntegrationEnabled && googleShowUpgradeToPro && (
+                <GoogleSelectedProUpgradeButton trackEvent={trackEvent} source={source} />
+              )}
               {fileFormat === 'gdrive' && (
                 <FileDownloadGoogle
                   google_apiKey={google_apiKey}

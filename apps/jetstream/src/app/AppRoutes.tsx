@@ -1,5 +1,4 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { Maybe, UserProfileUi } from '@jetstream/types';
 import { AppHome, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -80,12 +79,7 @@ const PlatformEventMonitor = lazy(() =>
 const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
-export interface AppRoutesProps {
-  featureFlags: Set<string>;
-  userProfile: Maybe<UserProfileUi>;
-}
-
-export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
+export const AppRoutes = () => {
   const location = useLocation();
 
   // Preload sub-pages if user is on parent page
@@ -127,7 +121,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         path={APP_ROUTES.LOAD.ROUTE}
         element={
           <OrgSelectionRequired>
-            <LoadRecords featureFlags={featureFlags} />
+            <LoadRecords />
           </OrgSelectionRequired>
         }
       />
@@ -135,7 +129,7 @@ export const AppRoutes = ({ featureFlags, userProfile }: AppRoutesProps) => {
         path={APP_ROUTES.LOAD_MULTIPLE.ROUTE}
         element={
           <OrgSelectionRequired>
-            <LoadRecordsMultiObject featureFlags={featureFlags} />
+            <LoadRecordsMultiObject />
           </OrgSelectionRequired>
         }
       />

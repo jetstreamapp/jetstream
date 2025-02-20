@@ -10,7 +10,7 @@ export class PlatformEventPage {
   readonly publisherCard: Locator;
 
   constructor(page: Page, apiRequestUtils: ApiRequestUtils, playwrightPage: PlaywrightPage) {
-    page.evaluate('__IS_CHROME_EXTENSION__ = false;');
+    page.evaluate('__IS_BROWSER_EXTENSION__ = false;');
     this.apiRequestUtils = apiRequestUtils;
     this.playwrightPage = playwrightPage;
     this.page = page;
