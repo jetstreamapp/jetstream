@@ -1,5 +1,5 @@
 import { Dialog, DialogBackdrop, TransitionChild } from '@headlessui/react';
-import { Bars3Icon } from '@heroicons/react/24/outline';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Fragment } from 'react';
 
 export interface ModalProps {
@@ -18,10 +18,11 @@ export const Modal = ({
   onClose,
 }: ModalProps) => {
   return (
-    <Dialog as="div" className="fixed z-10 inset-0 overflow-y-auto" onClose={() => onClose()}>
+    <Dialog as="div" className="fixed z-10 inset-0 overflow-y-auto" open={isOpen} onClose={() => onClose()}>
       <DialogBackdrop
         transition
         className="fixed inset-0 bg-gray-500/75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
+        onClick={() => onClose()}
       />
       <div className={className}>
         {/* This element is to trick the browser into centering the modal contents. */}
@@ -45,7 +46,7 @@ export const Modal = ({
                 onClick={() => onClose()}
               >
                 <span className="sr-only">Close</span>
-                <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
               </button>
             </div>
             {children}
