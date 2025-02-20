@@ -29,6 +29,16 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
   // if runtime chunk is enabled, then the service worker will not work
   config.optimization = {
     ...config.optimization,
+    minimizer: [
+      (compiler) => {
+        const TerserPlugin = require('terser-webpack-plugin');
+        new TerserPlugin({
+          parallel: true,
+          minify: TerserPlugin.esbuildMinify,
+          // @ts-expect-error this is correct, not sure why it is complaining
+        }).apply(compiler);
+      },
+    ],
     runtimeChunk: false,
     splitChunks: {
       chunks(chunk) {

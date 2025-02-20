@@ -80,7 +80,7 @@ async function saveRecentHistoryItem(
   recentHistoryItem: Pick<RecentHistoryItem, 'key' | 'items' | 'org'> & Partial<Pick<RecentHistoryItem, 'hashedKey' | 'createdAt'>>
 ) {
   const items = uniqBy(recentHistoryItem.items, 'name')
-    .sort((a, b) => b.lastUsed.getTime() - a.lastUsed.getTime())
+    .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())
     .slice(0, MAX_ITEM_SIZE);
 
   const newItem: RecentHistoryItem = {
