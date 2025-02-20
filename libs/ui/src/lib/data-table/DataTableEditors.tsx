@@ -1,9 +1,9 @@
-import { FocusTrap } from '@headlessui/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
 import { isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { FocusScope } from '@react-aria/focus';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
@@ -71,9 +71,9 @@ function DataTableEditorPopover({
         }}
       >
         {referenceElement && (
-          <FocusTrap>
+          <FocusScope contain restoreFocus autoFocus>
             <div className="slds-p-around_x-small">{children}</div>
-          </FocusTrap>
+          </FocusScope>
         )}
       </PopoverContainer>
     </OutsideClickHandler>

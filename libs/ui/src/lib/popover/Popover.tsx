@@ -1,5 +1,5 @@
 import { css, SerializedStyles } from '@emotion/react';
-import { FocusTrap, Popover as HeadlessPopover } from '@headlessui/react';
+import { Popover as HeadlessPopover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
@@ -128,7 +128,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
             <Fragment>
               {open && (
                 <ConditionalPortal omitPortal={omitPortal} portalRef={portalRef}>
-                  <HeadlessPopover.Panel
+                  <PopoverPanel
                     ref={setPopperElement as any}
                     data-testid={testId}
                     style={{ ...styles.popper, ...panelStyle }}
@@ -194,67 +194,68 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
                     `}
                     {...panelProps}
                   >
-                    <FocusTrap features={FocusTrap.features.All}>
-                      {/* CLOSE BUTTON */}
-                      <HeadlessPopover.Button
-                        ref={setCloseElement}
-                        className={classNames(
-                          'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
-                          {
-                            'slds-button_icon-inverse': inverseIcons,
-                          },
-                          closeBtnClassName
-                        )}
-                        title="Close dialog"
-                      >
-                        <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
-                        <span className="slds-assistive-text">Close dialog</span>
-                      </HeadlessPopover.Button>
-                      {/* CONTENT */}
-                      {header}
-                      <div css={bodyStyle} className={bodyClassName}>
-                        {content}
-                      </div>
-                      {footer}
-                      {/* ARROW */}
-                      <div
-                        css={css`
+                    {/* FIXME: adding any type of focus lock/trap etc.. causes all selection in the popover to stop working */}
+                    {/* <FocusScope contain restoreFocus autoFocus> */}
+                    {/* CLOSE BUTTON */}
+                    <PopoverButton
+                      ref={setCloseElement}
+                      className={classNames(
+                        'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
+                        {
+                          'slds-button_icon-inverse': inverseIcons,
+                        },
+                        closeBtnClassName
+                      )}
+                      title="Close dialog"
+                    >
+                      <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
+                      <span className="slds-assistive-text">Close dialog</span>
+                    </PopoverButton>
+                    {/* CONTENT */}
+                    {header}
+                    <div css={bodyStyle} className={bodyClassName}>
+                      {content}
+                    </div>
+                    {footer}
+                    {/* ARROW */}
+                    <div
+                      css={css`
+                        position: absolute;
+                        width: 1rem;
+                        height: 1rem;
+                        background: inherit;
+                        visibility: hidden;
+                        &::before {
+                          visibility: visible;
+                          content: '';
+                          transform: rotate(45deg);
                           position: absolute;
                           width: 1rem;
                           height: 1rem;
                           background: inherit;
-                          visibility: hidden;
-                          &::before {
-                            visibility: visible;
-                            content: '';
-                            transform: rotate(45deg);
-                            position: absolute;
-                            width: 1rem;
-                            height: 1rem;
-                            background: inherit;
-                          }
-                          &::after {
-                            visibility: visible;
-                            content: '';
-                            transform: rotate(45deg);
-                            position: absolute;
-                            width: 1rem;
-                            height: 1rem;
-                            /* background-color: inherit; */
-                          }
-                        `}
-                        className="popover-arrow"
-                        ref={setArrowElement}
-                        style={styles.arrow}
-                      ></div>
-                    </FocusTrap>
-                  </HeadlessPopover.Panel>
+                        }
+                        &::after {
+                          visibility: visible;
+                          content: '';
+                          transform: rotate(45deg);
+                          position: absolute;
+                          width: 1rem;
+                          height: 1rem;
+                          /* background-color: inherit; */
+                        }
+                      `}
+                      className="popover-arrow"
+                      ref={setArrowElement}
+                      style={styles.arrow}
+                    ></div>
+                    {/* </FocusScope> */}
+                  </PopoverPanel>
                 </ConditionalPortal>
               )}
 
-              <HeadlessPopover.Button ref={setReferenceElement} {...(buttonProps as typeof HeadlessPopover.Button)} style={buttonStyle}>
+              <PopoverButton ref={setReferenceElement} {...(buttonProps as typeof PopoverButton)} style={buttonStyle}>
                 {children}
-              </HeadlessPopover.Button>
+              </PopoverButton>
             </Fragment>
           );
         }}

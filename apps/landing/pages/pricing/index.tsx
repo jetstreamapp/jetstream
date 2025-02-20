@@ -1,4 +1,4 @@
-import { RadioGroup } from '@headlessui/react';
+import { Radio, RadioGroup } from '@headlessui/react';
 import { CheckIcon } from '@heroicons/react/20/solid';
 import classNames from 'classnames';
 import Link from 'next/link';
@@ -91,13 +91,9 @@ export default function Page() {
               className="grid grid-cols-2 gap-x-1 rounded-full bg-white/5 p-1 text-center text-xs/5 font-semibold text-white"
             >
               {frequencies.map((option) => (
-                <RadioGroup.Option
-                  key={option.value}
-                  value={option}
-                  className="cursor-pointer rounded-full px-2.5 py-1 aria-checked:bg-cyan-500"
-                >
+                <Radio key={option.value} value={option} className="cursor-pointer rounded-full px-2.5 py-1 aria-checked:bg-cyan-500">
                   {option.label}
-                </RadioGroup.Option>
+                </Radio>
               ))}
             </RadioGroup>
           </fieldset>
