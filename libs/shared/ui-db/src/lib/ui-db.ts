@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 import { logger } from '@jetstream/shared/client-logger';
-import type { LoadSavedMappingItem, QueryHistoryItem, QueryHistoryObject, RecentHistoryItem } from '@jetstream/types';
+import type { ApiHistoryItem, LoadSavedMappingItem, QueryHistoryItem, QueryHistoryObject, RecentHistoryItem } from '@jetstream/types';
 import Dexie, { type EntityTable } from 'dexie';
 import 'dexie-observable';
 import 'dexie-syncable';
@@ -29,6 +29,10 @@ export const SyncableTables = {
   recent_history_item: {
     name: 'recent_history_item',
     keyPrefix: 'ri',
+  },
+  api_request_history: {
+    name: 'api_request_history',
+    keyPrefix: 'api',
   },
 } as const;
 
@@ -65,6 +69,7 @@ export const dexieDb = new Dexie(DEXIE_DB_NAME) as Dexie & {
   query_history: EntityTable<QueryHistoryItem, 'key'>;
   load_saved_mapping: EntityTable<LoadSavedMappingItem, 'key'>;
   recent_history_item: EntityTable<RecentHistoryItem, 'key'>;
+  api_request_history: EntityTable<ApiHistoryItem, 'key'>;
 };
 
 export const SyncableEntities = new Set<SyncableEntity>(Object.keys(SyncableTables) as Array<SyncableEntity>);
@@ -78,6 +83,10 @@ dexieDb.version(1).stores({
 
 dexieDb.version(2).stores({
   recent_history_item: 'key,org',
+});
+
+dexieDb.version(3).stores({
+  api_request_history: 'key,org,lastRun,isFavorite,[org+isFavorite]',
 });
 
 export const dexieDataSync = {
