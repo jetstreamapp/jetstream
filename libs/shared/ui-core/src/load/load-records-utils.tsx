@@ -428,7 +428,7 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
           left: {
             field: 'DataType',
             operator: 'IN',
-            value: ['string', 'phone', 'url', 'email'],
+            value: ['string', 'double', 'phone', 'url', 'email'],
             literalType: 'STRING',
           },
         },
