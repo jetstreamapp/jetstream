@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { delay } from '@jetstream/shared/utils';
-import { LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
+import { ApiHistoryItem, LoadSavedMappingItem, QueryHistoryItem } from '@jetstream/types';
 import 'dexie-observable';
 import 'dexie-syncable';
 import localforage from 'localforage';
@@ -66,6 +66,7 @@ class DexieInitializer {
   private async _init() {
     await migrateQueryHistory();
     await migrateLoadSavedMapping();
+    await migrateApiRequestHistory();
     await addHashedKeyToRecord();
     this.hasInitialized = true;
   }
@@ -148,6 +149,35 @@ async function migrateLoadSavedMapping() {
     await dexieDb._migration.put({ entity: 'load_saved_mapping', completedAt: new Date() });
   } catch (ex) {
     logger.warn('[DB] Error migrating load_saved_mapping', ex);
+  }
+}
+
+async function migrateApiRequestHistory() {
+  try {
+    const migrationRecord = await dexieDb._migration.get('api_request_history');
+    if (migrationRecord?.completedAt) {
+      return;
+    }
+    const recordsById = await localforage.getItem<Record<string, ApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory);
+    if (recordsById) {
+      for (const item of Object.values(recordsById)) {
+        const createdAt = new Date(item.lastRun || new Date());
+        item.key = `${SyncableTables.api_request_history.keyPrefix}_${item.key}`.toLowerCase() as ApiHistoryItem['key'];
+        item.hashedKey = await getHashedRecordKey(item.key);
+        item.updatedAt = new Date(item.lastRun);
+        item.lastRun = new Date(item.lastRun);
+        item.isFavorite = 'false';
+        item.createdAt = createdAt;
+      }
+      await dexieDb.api_request_history.bulkPut(Object.values(recordsById)).catch((ex) => {
+        if (ex.name === 'BulkError') {
+          logger.warn('[DB] Error migrating api history', ex.failures);
+        }
+      });
+    }
+    await dexieDb._migration.put({ entity: 'api_request_history', completedAt: new Date() });
+  } catch (ex) {
+    logger.warn('[DB] Error migrating api history', ex);
   }
 }
 

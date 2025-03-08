@@ -40,7 +40,16 @@ interface CreateOrUpdateEventRecentHistoryItem extends CreateOrUpdateEventBase {
   fullRecord: RecentHistoryItem;
 }
 
-type CreateOrUpdateEvent = CreateOrUpdateEventQueryHistory | CreateOrUpdateEventLoadSavedMapping | CreateOrUpdateEventRecentHistoryItem;
+interface CreateOrUpdateEventApiRequestHistory extends CreateOrUpdateEventBase {
+  keyPrefix: typeof SyncableTables['api_request_history']['keyPrefix'];
+  fullRecord: RecentHistoryItem;
+}
+
+type CreateOrUpdateEvent =
+  | CreateOrUpdateEventQueryHistory
+  | CreateOrUpdateEventLoadSavedMapping
+  | CreateOrUpdateEventRecentHistoryItem
+  | CreateOrUpdateEventApiRequestHistory;
 
 interface DeleteEvent {
   type: 'delete';
@@ -64,18 +73,8 @@ function getKeyPrefix(key: string): typeof SyncableTables[keyof typeof SyncableT
 /**
  * If we ever get some unexpected data stored, ignore it
  */
-function filterInvalidKeyPrefixes(key: string): boolean {
-  const keyPrefix = getKeyPrefix(key);
-  switch (keyPrefix) {
-    case 'qh':
-    case 'lsm':
-    case 'ri':
-      return true;
-    default: {
-      return false;
-    }
-  }
-}
+const syncableKeyPrefixes = new Set(Object.values(SyncableTables).map(({ keyPrefix }) => keyPrefix));
+const filterInvalidKeyPrefixes = (key: string) => syncableKeyPrefixes.has(getKeyPrefix(key));
 
 function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): SyncRecordOperation {
   if (data.type === 'delete') {
@@ -113,6 +112,19 @@ function transformEntityToSyncRecord(data: CreateOrUpdateEvent | DeleteEvent): S
         hashedKey: fullRecord.hashedKey,
         type,
         entity: 'recent_history_item',
+        orgId: fullRecord.org,
+        data: fullRecord as any,
+        createdAt: fullRecord.createdAt,
+        updatedAt: fullRecord.updatedAt,
+      };
+    }
+    case 'api': {
+      return {
+        key: fullRecord.key,
+        hashedKey: fullRecord.hashedKey,
+        type,
+        entity: 'api_request_history',
+        orgId: fullRecord.org,
         data: fullRecord as any,
         createdAt: fullRecord.createdAt,
         updatedAt: fullRecord.updatedAt,
@@ -362,6 +374,9 @@ function enrichDataTypes(entity: SyncRecord['entity'], data: Record<string, unkn
     case 'recent_history_item':
       enrichDataTypesForRecentHistory(data);
       break;
+    case 'api_request_history':
+      enrichDataTypesForApiRequestHistory(data);
+      break;
     default:
       break;
   }
@@ -399,6 +414,11 @@ function enrichDataTypesForRecentHistory(data: Record<string, unknown>) {
   }
 }
 
+function enrichDataTypesForApiRequestHistory(data: Record<string, unknown>) {
+  if (isString(data.lastRun)) {
+    data.lastRun = parseISO(data.lastRun);
+  }
+}
 /**
  * Given a list of id's, fetch all records from dexie
  * Since ids have a prefix, that is used to know what tables to fetch from

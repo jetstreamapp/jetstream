@@ -1,15 +1,8 @@
 import { css } from '@emotion/react';
-import { logger } from '@jetstream/shared/client-logger';
-import { HTTP, INDEXED_DB, MIME_TYPES } from '@jetstream/shared/constants';
+import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import {
-  HttpMethod,
-  SalesforceApiHistoryItem,
-  SalesforceApiHistoryRequest,
-  SalesforceApiRequest as SalesforceApiReqSample,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { HttpMethod, SalesforceApiHistoryRequest, SalesforceApiRequest as SalesforceApiReqSample, SalesforceOrgUi } from '@jetstream/types';
 import {
   Card,
   Grid,
@@ -23,14 +16,11 @@ import {
   getModifierKey,
 } from '@jetstream/ui';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
-import localforage from 'localforage';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useReducer, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import SalesforceApiExamplesModal from './SalesforceApiExamplesModal';
-import SalesforceApiHistory from './SalesforceApiHistory';
+import { SalesforceApiHistoryModal } from './SalesforceApiHistoryModal';
 import SalesforceApiUserInput from './SalesforceApiUserInput';
-import * as fromSalesforceApiHistory from './salesforceApi.state';
 
 type JsonText = 'JSON' | 'TEXT';
 type Action =
@@ -103,22 +93,12 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   const [body, setBody] = useState(() => _priorRequest?.body || DEFAULT_BODY);
   const [{ headersErrorMessage, bodyErrorMessage }, dispatch] = useReducer(errorMessageReducer, {});
   const [bodyType, setBodyType] = useState<JsonText>(_priorRequest?.bodyType || 'JSON');
-  const historyItems = useRecoilValue(fromSalesforceApiHistory.salesforceApiHistoryState);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const monaco = useMonaco();
 
   const debouncedUrl = useDebounce(url, 300);
   const debouncedHeaders = useDebounce(headers, 300);
   const debouncedBody = useDebounce(body, 300);
-
-  useNonInitialEffect(() => {
-    (async () => {
-      try {
-        await localforage.setItem<Record<string, SalesforceApiHistoryItem>>(INDEXED_DB.KEYS.salesforceApiHistory, historyItems);
-      } catch (ex) {
-        logger.warn(ex);
-      }
-    })();
-  }, [historyItems]);
 
   useNonInitialEffect(() => {
     dispatch({ type: 'HEADER_CHANGE', payload: { value: debouncedHeaders } });
@@ -174,12 +154,21 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
     }
   }
 
-  function handleRestoreFromHistory(request: SalesforceApiHistoryRequest) {
+  function handleRestoreFromHistory(request: SalesforceApiHistoryRequest, doExecute: boolean) {
     setUrl(request.url);
     setMethod(request.method);
     setHeaders(JSON.stringify(request.headers, null, 2));
     setBody(request.body);
     setBodyType(request.bodyType);
+    if (doExecute) {
+      onSubmit({
+        url: request.url,
+        method: request.method,
+        headers: request.headers,
+        body: request.method === 'GET' ? '' : request.body,
+        bodyType: request.bodyType,
+      });
+    }
   }
 
   function handleRestoreFromExampleReq(request: SalesforceApiReqSample) {
@@ -216,128 +205,134 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   };
 
   return (
-    <Card
-      icon={{ type: 'standard', icon: 'actions_and_buttons' }}
-      title={
-        <Grid vertical>
-          <div>Salesforce API Request</div>
-          <ViewDocsLink textReset path="/developer/salesforce-api" />
-        </Grid>
-      }
-      actions={
-        <>
-          <SalesforceApiHistory className="slds-col" disabled={loading} onHistorySelected={handleRestoreFromHistory} />
-          <Tooltip
-            content={
-              <div className="slds-p-bottom_small">
-                <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
-              </div>
-            }
-          >
-            <button
-              className="slds-button slds-button_brand"
-              onClick={() => handleSubmit()}
-              disabled={loading || !!headersErrorMessage || !!bodyErrorMessage}
-            >
-              <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Submit
-            </button>
-          </Tooltip>
-        </>
-      }
-    >
-      <div>
-        <SalesforceApiExamplesModal onExecute={handleRestoreFromExampleReq} />
-        <SalesforceApiUserInput
+    <>
+      {isHistoryModalOpen && (
+        <SalesforceApiHistoryModal
           selectedOrg={selectedOrg}
-          url={url}
-          method={method}
-          loading={loading}
-          onUrlChange={setUrl}
-          onMethodChange={setMethod}
-          onAltEnter={handleSubmit}
+          onSubmit={handleRestoreFromHistory}
+          onClose={() => setIsHistoryModalOpen(false)}
         />
-        <Grid verticalAlign="end" className="slds-m-top_x-small">
-          <h2 className="slds-text-heading_small">Request Headers</h2>
-          {headersErrorMessage && (
-            <Tooltip id="headers-error" content="The headers must be valid JSON to submit your request">
-              <Icon type="utility" icon="error" className="slds-icon slds-icon_xx-small slds-m-left_xx-small slds-icon-text-error" />
+      )}
+      <Card
+        icon={{ type: 'standard', icon: 'actions_and_buttons' }}
+        title={
+          <Grid vertical>
+            <div>Salesforce API Request</div>
+            <ViewDocsLink textReset path="/developer/salesforce-api" />
+          </Grid>
+        }
+        actions={
+          <>
+            <button
+              className="slds-button slds-button_neutral slds-m-right_x-small"
+              disabled={loading}
+              onClick={() => setIsHistoryModalOpen(true)}
+            >
+              <Icon type="utility" icon="date_time" className="slds-button__icon slds-button__icon_left" omitContainer />
+              View History
+            </button>
+            <Tooltip
+              content={
+                <div className="slds-p-bottom_small">
+                  <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />
+                </div>
+              }
+            >
+              <button
+                className="slds-button slds-button_brand"
+                onClick={() => handleSubmit()}
+                disabled={loading || !!headersErrorMessage || !!bodyErrorMessage}
+              >
+                <Icon type="utility" icon="apex" className="slds-button__icon slds-button__icon_left" omitContainer />
+                Submit
+              </button>
             </Tooltip>
-          )}
-        </Grid>
-        <Editor
-          height="150px"
-          theme="vs-dark"
-          language="json"
-          value={headers}
-          options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
-          onMount={handleHeaderEditorMount}
-          onChange={(value) => setHeaders(value || '')}
-        />
-        <Grid
-          verticalAlign="end"
-          className="slds-m-top_x-small"
-          css={css`
-            min-height: 33px;
-          `}
-        >
-          <h2 className="slds-text-heading_small">Request Body</h2>
-          <HelpText
-            id="requestHelp"
-            className="slds-m-bottom_xx-small slds-m-left_xx-small"
-            content={`If you need to include the Session Id in the body of the request, for example with SOAP requests, add the text "{sessionId}" in the request, which will be replaced with the session id.`}
+          </>
+        }
+      >
+        <div>
+          <SalesforceApiExamplesModal onExecute={handleRestoreFromExampleReq} />
+          <SalesforceApiUserInput
+            selectedOrg={selectedOrg}
+            url={url}
+            method={method}
+            loading={loading}
+            onUrlChange={setUrl}
+            onMethodChange={setMethod}
+            onAltEnter={handleSubmit}
           />
-          {method === 'GET' && <span className="slds-col_bump-left">Body is not allowed for GET requests</span>}
-          {bodyErrorMessage && (
-            <Tooltip id="headers-error" content="The body must be valid JSON to submit your request">
-              <Icon type="utility" icon="error" className="slds-icon slds-icon_xx-small slds-m-left_xx-small slds-icon-text-error" />
-            </Tooltip>
-          )}
-          {method !== 'GET' && (
-            <RadioGroup className="slds-col_bump-left" isButtonGroup>
-              <RadioButton
-                name="bodyType"
-                label="JSON"
-                value="JSON"
-                disabled={loading}
-                checked={bodyType === 'JSON'}
-                onChange={(value) => setBodyType(value as JsonText)}
-              />
-              <RadioButton
-                name="bodyType"
-                label="Text"
-                value="TEXT"
-                disabled={loading}
-                checked={bodyType === 'TEXT'}
-                onChange={(value) => setBodyType(value as JsonText)}
-              />
-            </RadioGroup>
-          )}
-        </Grid>
-        <div className="slds-is-relative">
-          <div
-            css={css`
-              position: absolute;
-              width: 100%;
-              height: 100%;
-              background-color: green;
-            `}
-          />
+          <Grid verticalAlign="end" className="slds-m-top_x-small">
+            <h2 className="slds-text-heading_small">Request Headers</h2>
+            {headersErrorMessage && (
+              <Tooltip id="headers-error" content="The headers must be valid JSON to submit your request">
+                <Icon type="utility" icon="error" className="slds-icon slds-icon_xx-small slds-m-left_xx-small slds-icon-text-error" />
+              </Tooltip>
+            )}
+          </Grid>
           <Editor
-            height="60vh"
+            height="150px"
             theme="vs-dark"
-            language={bodyType === 'TEXT' ? 'plaintext' : 'json'}
-            value={body}
-            options={{
-              readOnly: method === 'GET',
-            }}
-            onMount={handleBodyEditorMount}
-            onChange={(value) => setBody(value || '')}
+            language="json"
+            value={headers}
+            options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
+            onMount={handleHeaderEditorMount}
+            onChange={(value) => setHeaders(value || '')}
           />
+          <Grid
+            verticalAlign="end"
+            className="slds-m-top_x-small"
+            css={css`
+              min-height: 33px;
+            `}
+          >
+            <h2 className="slds-text-heading_small">Request Body</h2>
+            <HelpText
+              id="requestHelp"
+              className="slds-m-bottom_xx-small slds-m-left_xx-small"
+              content={`If you need to include the Session Id in the body of the request, for example with SOAP requests, add the text "{sessionId}" in the request, which will be replaced with the session id.`}
+            />
+            {method === 'GET' && <span className="slds-col_bump-left">Body is not allowed for GET requests</span>}
+            {bodyErrorMessage && (
+              <Tooltip id="headers-error" content="The body must be valid JSON to submit your request">
+                <Icon type="utility" icon="error" className="slds-icon slds-icon_xx-small slds-m-left_xx-small slds-icon-text-error" />
+              </Tooltip>
+            )}
+            {method !== 'GET' && (
+              <RadioGroup className="slds-col_bump-left" isButtonGroup>
+                <RadioButton
+                  name="bodyType"
+                  label="JSON"
+                  value="JSON"
+                  disabled={loading}
+                  checked={bodyType === 'JSON'}
+                  onChange={(value) => setBodyType(value as JsonText)}
+                />
+                <RadioButton
+                  name="bodyType"
+                  label="Text"
+                  value="TEXT"
+                  disabled={loading}
+                  checked={bodyType === 'TEXT'}
+                  onChange={(value) => setBodyType(value as JsonText)}
+                />
+              </RadioGroup>
+            )}
+          </Grid>
+          <div className="slds-is-relative">
+            <Editor
+              height="60vh"
+              theme="vs-dark"
+              language={bodyType === 'TEXT' ? 'plaintext' : 'json'}
+              value={body}
+              options={{
+                readOnly: method === 'GET',
+              }}
+              onMount={handleBodyEditorMount}
+              onChange={(value) => setBody(value || '')}
+            />
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </>
   );
 };
-
-export default SalesforceApiRequest;

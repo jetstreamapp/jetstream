@@ -9,7 +9,7 @@ export const queryHistoryDb = {
   getOrInitQueryHistoryItem,
   saveQueryHistoryItem,
   setAsFavorite,
-  deleteAllQueryHistoryForOrg,
+  deleteAllQueryHistoryForOrgExceptFavorites,
   TEMP_deleteItem,
 };
 
@@ -127,9 +127,9 @@ async function TEMP_deleteItem(key: string): Promise<void> {
   }
 }
 
-async function deleteAllQueryHistoryForOrg(org: SalesforceOrgUi): Promise<void> {
+async function deleteAllQueryHistoryForOrgExceptFavorites(org: SalesforceOrgUi): Promise<void> {
   try {
-    await dexieDb.query_history.where({ org: org.uniqueId }).delete();
+    await dexieDb.query_history.where({ org: org.uniqueId, isFavoriteIdx: 'false' }).delete();
   } catch (ex) {
     logger.error('[DB] Error deleting query history for org', ex);
   }

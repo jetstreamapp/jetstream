@@ -3,17 +3,17 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { apiRequestHistoryDb } from '@jetstream/ui/db';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import SalesforceApiRequest from './SalesforceApiRequest';
-import SalesforceApiResponse from './SalesforceApiResponse';
-import * as fromSalesforceApiHistory from './salesforceApi.state';
+import { SalesforceApiRequest } from './SalesforceApiRequest';
+import { SalesforceApiResponse } from './SalesforceApiResponse';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SalesforceApiProps {}
@@ -28,7 +28,6 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
   const [loading, setLoading] = useState(false);
-  const [historyItems, setHistoryItems] = useRecoilState(fromSalesforceApiHistory.salesforceApiHistoryState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -56,13 +55,12 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
 
         const results = await manualRequest(selectedOrg, request);
         setResults(results);
-        fromSalesforceApiHistory
-          .initSalesforceApiHistoryItem(selectedOrg, requestData, {
+        apiRequestHistoryDb
+          .saveApiHistoryItem(selectedOrg, requestData, {
             status: results.status || 200,
             statusText: results.statusText || 'OK',
           })
           .then((updatedHistoryItems) => {
-            setHistoryItems(updatedHistoryItems);
             trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: true });
           })
           .catch((ex) => {
@@ -77,21 +75,11 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           status: null,
           statusText: null,
         });
-        fromSalesforceApiHistory
-          .initSalesforceApiHistoryItem(selectedOrg, requestData)
-          .then((updatedHistoryItems) => {
-            setHistoryItems(updatedHistoryItems);
-            trackEvent(ANALYTICS_KEYS.sfdcApi_Submitted, { success: false, error: getErrorMessage(ex) });
-          })
-          .catch((ex) => {
-            logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
-          });
       } finally {
         setLoading(false);
       }
     },
-    [historyItems, selectedOrg, setHistoryItems, trackEvent]
+    [selectedOrg, trackEvent, rollbar]
   );
 
   return (
