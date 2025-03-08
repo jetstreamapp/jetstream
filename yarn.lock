@@ -16025,10 +16025,10 @@ formdata-polyfill@^4.0.10:
   dependencies:
     fetch-blob "^3.1.2"
 
-formulon@^6.25.2:
-  version "6.25.2"
-  resolved "https://registry.yarnpkg.com/formulon/-/formulon-6.25.2.tgz#adbea07606b44e01b13368ab9e2654499653b53a"
-  integrity sha512-0RMW4kKE0ycEOfZqft7TAF4+6mUS9Yo5k4e9ER5aAGI1WXuqen9JJFR0eLyJ53NqaB81x1pHZ5C/SdPnfANEtg==
+formulon@^6.25.3:
+  version "6.25.3"
+  resolved "https://registry.yarnpkg.com/formulon/-/formulon-6.25.3.tgz#cb8768e8ec881fc6090cc4d7494609cb54e92606"
+  integrity sha512-B4lCkwOxwLT3WJsa92CE2grHQS5LY+zKsYTVIW2Sm1blsBKVKjKbPxiUg+F++sZDaS966Cm20tD4oZuHqTTvUg==
   dependencies:
     decimal.js "^10.3.1"
 
