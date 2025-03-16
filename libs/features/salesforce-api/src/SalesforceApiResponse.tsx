@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
-import { Card, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
+import { Badge, Card, CopyToClipboard, Grid, Spinner } from '@jetstream/ui';
 import Editor from '@monaco-editor/react';
-import classNames from 'classnames';
 import { FunctionComponent } from 'react';
+import { getBadgeTypeFromMethod } from './salesforce-api.utils';
 
 export interface SalesforceApiResponseProps {
   loading: boolean;
@@ -16,7 +16,15 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
     <Card
       icon={{ type: 'standard', icon: 'outcome' }}
       title="Response"
-      actions={<CopyToClipboard type="button" content={results?.body || ''} disabled={!results} />}
+      actions={
+        results?.status && (
+          <div>
+            <Badge type={results.status >= 200 && results.status <= 299 ? 'success' : 'error'}>
+              {results?.status} {results?.statusText}
+            </Badge>
+          </div>
+        )
+      }
     >
       {loading && <Spinner />}
       <Grid
@@ -25,25 +33,17 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
           min-height: 56px;
         `}
       >
-        {results?.status && (
-          <div>
-            Status:{' '}
-            <span
-              className={classNames({
-                'slds-text-color_success': results.status >= 200 && results.status <= 299,
-                'slds-text-color_error': results.status < 200 || results.status > 299,
-              })}
-            >
-              {results?.status} {results?.statusText}
+        {request && (
+          <div className="slds-m-top_xx-small slds-grid">
+            <div>
+              <Badge type={getBadgeTypeFromMethod(request.method)}>{request.method}</Badge>
+            </div>
+            <div>
+              <CopyToClipboard content={request.url} className="slds-m-horizontal_xx-small" />
+            </div>
+            <span className="slds-line-clamp_large" title={request.url}>
+              {request.url}
             </span>
-            {request && (
-              <span className="slds-m-left_small">
-                <span className="slds-m-right_x-small">{request.method}</span>
-                <span className="slds-truncate" title={request.url}>
-                  {request.url}
-                </span>
-              </span>
-            )}
           </div>
         )}
         <div
@@ -58,7 +58,10 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
           {results?.errorMessage}
         </div>
       </Grid>
-      <h2 className="slds-text-heading_small slds-m-top_x-small">Response Headers</h2>
+      <h2 className="slds-text-heading_small slds-m-top_x-small">
+        Response Headers
+        {results?.headers && <CopyToClipboard content={results.headers} className="slds-m-horizontal_xx-small" />}
+      </h2>
       <Editor
         height="150px"
         theme="vs-dark"
@@ -77,7 +80,10 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
           min-height: 33px;
         `}
       >
-        <h2 className="slds-text-heading_small">Response Body</h2>
+        <h2 className="slds-text-heading_small">
+          Response Body
+          {results?.body && <CopyToClipboard content={results.body} className="slds-m-horizontal_xx-small" />}
+        </h2>
       </Grid>
       <Editor
         height="60vh"
@@ -92,5 +98,3 @@ export const SalesforceApiResponse: FunctionComponent<SalesforceApiResponseProps
     </Card>
   );
 };
-
-export default SalesforceApiResponse;

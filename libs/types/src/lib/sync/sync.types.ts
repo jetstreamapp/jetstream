@@ -2,10 +2,11 @@ import { parseISO } from 'date-fns';
 import { z } from 'zod';
 import { Maybe } from '../types';
 import { SavedFieldMapping } from '../ui/load-records-types';
+import { SalesforceApiHistoryRequest, SalesforceApiHistoryResponse } from '../ui/types';
 
 const DateTimeSchema = z.union([z.string(), z.date()]).transform((val) => (val instanceof Date ? val : parseISO(val)));
 
-export const SyncTypeSchema = z.enum(['query_history', 'load_saved_mapping', 'recent_history_item']);
+export const SyncTypeSchema = z.enum(['query_history', 'load_saved_mapping', 'recent_history_item', 'api_request_history']);
 export type SyncType = z.infer<typeof SyncTypeSchema>;
 
 export const EntitySyncStatusSchema = z.object({
@@ -117,3 +118,20 @@ export interface RecentHistoryItem {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * NOTE: this could contain sensitive information, so we do not want to sync to server
+ */
+export interface ApiHistoryItem {
+  key: `api_${string}`; // org:method:url
+  hashedKey: string;
+  org: string;
+  label: string;
+  lastRun: Date;
+  isFavorite: 'true' | 'false';
+  request: SalesforceApiHistoryRequest;
+  response: SalesforceApiHistoryResponse;
+  createdAt: Date;
+  updatedAt: Date;
+}
+export type ApiHistoryBodyType = 'JSON' | 'TEXT';

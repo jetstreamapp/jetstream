@@ -10,13 +10,46 @@ import {
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { queryHistoryDb, queryHistoryObjectDb } from '@jetstream/ui/db';
+import { apiRequestHistoryDb, queryHistoryDb, queryHistoryObjectDb, recentHistoryItemsDb } from '@jetstream/ui/db';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { Observable } from 'rxjs';
 import { fromJetstreamEvents } from '..';
+
+async function deleteAllHistoryRecords(org: SalesforceOrgUi) {
+  try {
+    await queryHistoryDb.deleteAllQueryHistoryForOrgExceptFavorites(org);
+  } catch (ex) {
+    logger.warn('Error running deleteAllQueryHistoryForOrgExceptFavorites history for org', ex);
+  }
+  try {
+    await queryHistoryObjectDb.deleteAllQueryHistoryObjectForOrg(org);
+  } catch (ex) {
+    logger.warn('Error running deleteAllQueryHistoryObjectForOrg for org', ex);
+  }
+  try {
+    await recentHistoryItemsDb.clearRecentHistoryItemsForCurrentOrg(org.uniqueId);
+  } catch (ex) {
+    logger.warn('Error running clearRecentHistoryItemsForCurrentOrg for org', ex);
+  }
+  try {
+    await apiRequestHistoryDb.deleteAllApiHistoryForOrg(org);
+  } catch (ex) {
+    logger.warn('Error running deleteAllApiHistoryForOrg for org', ex);
+  }
+  try {
+    await clearCacheForOrg(org);
+  } catch (ex) {
+    logger.warn('Error running clearCacheForOrg for org', ex);
+  }
+  try {
+    await clearQueryHistoryForOrg(org);
+  } catch (ex) {
+    logger.warn('Error running clearQueryHistoryForOrg for org', ex);
+  }
+}
 
 export function useUpdateOrgs() {
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
@@ -72,11 +105,7 @@ export function useUpdateOrgs() {
       handleRefetchOrgs();
       handleRefetchOrganizations();
       setSelectedOrgId(null);
-      queryHistoryDb.deleteAllQueryHistoryForOrg(org);
-      queryHistoryObjectDb.deleteAllQueryHistoryObjectForOrg(org);
-      // async, but results are ignored as this will not throw
-      clearCacheForOrg(org);
-      clearQueryHistoryForOrg(org);
+      deleteAllHistoryRecords(org);
     } catch (ex) {
       logger.warn('Error removing org', ex);
     }
