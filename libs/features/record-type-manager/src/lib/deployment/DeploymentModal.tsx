@@ -129,7 +129,7 @@ export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, 
           {!results && (
             <div>
               <p>The following Record Type picklist fields have been modified:</p>
-              <DeploymentSummary modifiedValues={modifiedValues} />
+              <DeploymentSummary modifiedValues={modifiedValues} viewMode={viewMode} />
             </div>
           )}
           {results && (
