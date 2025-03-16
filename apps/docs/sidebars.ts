@@ -32,7 +32,13 @@ const sidebar = {
     {
       type: 'category',
       label: 'Deploy Metadata',
-      items: ['deploy/deploy-metadata', 'deploy/deploy-object', 'deploy/deploy-fields', 'deploy/formula-evaluator'],
+      items: [
+        'deploy/deploy-metadata',
+        'deploy/deploy-object',
+        'deploy/deploy-fields',
+        'deploy/record-type-picklist-manager',
+        'deploy/formula-evaluator',
+      ],
     },
     {
       type: 'category',
