@@ -1,6 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { text } from '@storybook/addon-knobs';
-import { cloneDeep } from 'lodash';
 import Icon from '../widgets/Icon';
 import Tree, { TreeItems } from './Tree';
 
@@ -62,7 +61,7 @@ const tree: TreeItems[] = [
 
 export const base = () => <Tree header={text('header', 'My Tree')} items={tree} />;
 
-const tree2 = cloneDeep(tree);
+const tree2 = structuredClone(tree);
 
 tree2[1].label = (
   <div className="">

@@ -1,0 +1,16 @@
+{
+  "name": "features-record-type-manager",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/record-type-manager/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/features/record-type-manager/jest.config.ts"
+      }
+    }
+  }
+}

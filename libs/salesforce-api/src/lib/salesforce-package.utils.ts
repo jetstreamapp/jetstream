@@ -1,6 +1,8 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
-import { isObjectLike, isString, get as lodashGet } from 'lodash';
+import lodashGet from 'lodash/get';
+import isObjectLike from 'lodash/isObjectLike';
+import isString from 'lodash/isString';
 import { create as xmlBuilder } from 'xmlbuilder2';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;

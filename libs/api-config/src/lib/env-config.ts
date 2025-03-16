@@ -4,7 +4,7 @@ import type { Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { join } from 'path';
 import { z } from 'zod';
 

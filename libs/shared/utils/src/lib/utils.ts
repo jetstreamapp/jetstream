@@ -1052,3 +1052,22 @@ export function getObjectDiffForDexie(a: any, b: any, rv?: any, prfx?: string) {
   });
   return rv;
 }
+
+/**
+ *  Returns the name if name an label are identical or "name (label)" if they are different
+ */
+export function getNameOrNameAndLabelFromObj<T>(record: T, nameField: keyof T, labelField: keyof T): string {
+  if (!record) {
+    return '';
+  }
+  const name = (record[nameField] as unknown as string) || '';
+  const label = (record[labelField] as unknown as string) || '';
+  return getNameOrNameAndLabel(name, label);
+}
+
+/**
+ *  Returns the name if name an label are identical or "name (label)" if they are different
+ */
+export function getNameOrNameAndLabel(name: string, label: string): string {
+  return !label || name === label ? name : `${label} (${name})`;
+}

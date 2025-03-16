@@ -12,6 +12,7 @@ type RouteKey =
   | 'DEPLOY_METADATA'
   | 'CREATE_FIELDS'
   | 'FORMULA_EVALUATOR'
+  | 'RECORD_TYPE_MANAGER'
   | 'ANON_APEX'
   | 'DEBUG_LOG_VIEWER'
   | 'OBJECT_EXPORT'
@@ -64,7 +65,7 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/browser-extension',
     TITLE: 'Chrome Extension',
     DESCRIPTION: 'Use Jetstream on any Salesforce page with the Chrome Extension',
-    NEW_UNTIL: new Date(2025, 7, 31, 23, 59, 59).getTime(), // July 31, 2025
+    NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   FIREFOX_EXTENSION: {
     ROUTE: '', // FIXME: we need this to include a link to the firefox extension
@@ -72,14 +73,13 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/browser-extension',
     TITLE: 'Firefox Extension',
     DESCRIPTION: 'Use Jetstream on any Salesforce page with the Firefox Extension',
-    NEW_UNTIL: new Date(2025, 7, 31, 23, 59, 59).getTime(), // July 31, 2025
+    NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   ORGANIZATIONS: {
     ...getRoutePath('/organizations'),
     DOCS: 'https://docs.getjetstream.app/organizations',
     TITLE: 'Organizations',
     DESCRIPTION: 'Setup organizations to group Salesforce Orgs',
-    NEW_UNTIL: new Date(2024, 11, 31, 23, 59, 59).getTime(), // October 31, 2024
   },
   QUERY: {
     ...getRoutePath('/query'),
@@ -134,7 +134,13 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/deploy/formula-evaluator',
     TITLE: 'Formula Evaluator',
     DESCRIPTION: 'Create and test formulas',
-    NEW_UNTIL: new Date(2023, 3, 15, 23, 59, 59).getTime(), // April 15, 2023
+  },
+  RECORD_TYPE_MANAGER: {
+    ...getRoutePath('/record-type-manager'),
+    DOCS: 'https://docs.getjetstream.app/deploy/record-type-manager',
+    TITLE: 'Record Type Picklist Manager',
+    DESCRIPTION: 'View and update record type picklist values',
+    NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   ANON_APEX: {
     ...getRoutePath('/apex'),

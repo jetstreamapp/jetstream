@@ -30,7 +30,7 @@ export interface ListWithFilterMultiSelectProps {
   loading?: boolean;
   hasError?: boolean;
   allowRefresh?: boolean;
-  lastRefreshed?: string;
+  lastRefreshed?: Maybe<string>;
   autoFillContainerProps?: AutoFullHeightContainerProps;
   portalRef?: Element;
   onSelected: (items: string[]) => void;

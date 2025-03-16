@@ -431,3 +431,88 @@ export interface UserPermission {
   enabled: string;
   name: string;
 }
+
+export interface RecordTypeRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  Description: string | null;
+  DeveloperName: string;
+  IsActive: boolean;
+  IsPersonType: boolean;
+  NamespacePrefix: string | null;
+  SobjectType: string;
+}
+
+export interface RecordTypeMetadataRecord {
+  attributes: RecordAttributes;
+  Id: string;
+  Name: string;
+  FullName: string;
+  IsPersonType: boolean;
+  Metadata: RecordTypeMetadataTooling;
+  SobjectType: string;
+}
+
+export interface RecordTypeMetadataTooling {
+  active: string;
+  businessProcess: string;
+  compactLayoutAssignment: string;
+  description: string;
+  label: string;
+  picklistValues: RecordTypeMetadataToolingPicklist[];
+  urls: null;
+}
+
+export interface RecordTypeMetadataToolingPicklist {
+  picklist: string;
+  values: RecordTypeMetadataToolingPicklistValue[];
+}
+
+export interface RecordTypeMetadataToolingPicklistValue {
+  default: boolean;
+  valueName: string;
+  controllingFieldValues: string[] | null; // TODO: do we need this?
+  allowEmail: boolean | null;
+  closed: boolean | null;
+  color: string | null;
+  converted: boolean | null;
+  cssExposed: boolean | null;
+  description: string | null;
+  forecastCategory: string | null;
+  highPriority: boolean | null;
+  isActive: boolean | null;
+  probability: number | null;
+  reverseRole: string | null;
+  reviewed: boolean | null;
+  won: boolean | null;
+}
+
+export interface ReadMetadataRecordType {
+  '@xsi:type'?: 'RecordType';
+  active: boolean;
+  businessProcess?: string;
+  compactLayoutAssignment?: string;
+  description?: string;
+  fullName: string;
+  label: string;
+  picklistValues: ReadMetadataRecordTypePicklistEntry[];
+}
+
+export interface ReadMetadataRecordTypePicklistEntry {
+  picklist: string;
+  values: {
+    fullName: string;
+    default: 'true' | 'false';
+  }[];
+}
+
+export interface ReadMetadataRecordTypeExtended extends ReadMetadataRecordType {
+  sobject: string;
+  recordType: string;
+  picklistValues: ReadMetadataRecordTypePicklistEntryExtended[];
+}
+
+export interface ReadMetadataRecordTypePicklistEntryExtended extends ReadMetadataRecordTypePicklistEntry {
+  fieldName: string;
+}

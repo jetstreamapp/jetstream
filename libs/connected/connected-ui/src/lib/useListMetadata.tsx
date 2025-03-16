@@ -4,7 +4,7 @@ import { useRollbar } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ListMetadataQuery, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
-import { uniqWith } from 'lodash';
+import uniqWith from 'lodash/uniqWith';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_listmetadata.htm

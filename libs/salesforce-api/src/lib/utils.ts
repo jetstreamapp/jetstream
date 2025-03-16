@@ -1,7 +1,8 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureArray, unSanitizeXml } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, DeployResult, Maybe } from '@jetstream/types';
-import { isEmpty, isObject } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
 import { ApiRequestOptions } from './types';

@@ -34,6 +34,7 @@
       "@jetstream/feature/organizations": ["libs/features/organizations/src/index.ts"],
       "@jetstream/feature/platform-event-monitor": ["libs/features/platform-event-monitor/src/index.ts"],
       "@jetstream/feature/query": ["libs/features/query/src/index.ts"],
+      "@jetstream/feature/record-type-manager": ["libs/features/record-type-manager/src/index.ts"],
       "@jetstream/feature/salesforce-api": ["libs/features/salesforce-api/src/index.ts"],
       "@jetstream/feature/sobject-export": ["libs/features/sobject-export/src/index.ts"],
       "@jetstream/feature/update-records": ["libs/features/update-records/src/index.ts"],

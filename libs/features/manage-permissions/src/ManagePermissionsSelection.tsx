@@ -59,7 +59,6 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
     setPermissionSets(profilesAndPermSetsData.permissionSets);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
 
   useEffect(() => {
