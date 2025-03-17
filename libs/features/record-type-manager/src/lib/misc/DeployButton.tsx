@@ -1,3 +1,4 @@
+import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import { Tooltip } from '@jetstream/ui';
 import { Fragment } from 'react';
@@ -12,15 +13,15 @@ interface DeployButtonProps {
 export function DeployButton({ modifiedValues, configurationErrors, handleDeploy }: DeployButtonProps) {
   const hasModifiedValue = modifiedValues.length !== 0;
 
-  // FIXME: I could potentially allow deployment if errors are present but data not modified
-  // since SFDC just ignores the invalid data in the deployment from what I could tell
+  const buttonLabel = hasModifiedValue ? `Deploy Changes (${formatNumber(modifiedValues.length)})` : 'Deploy Changes';
+
   const deployButton = (
     <button
       className="slds-button slds-button_brand"
       disabled={!!configurationErrors || modifiedValues.length === 0}
       onClick={handleDeploy}
     >
-      Deploy Changes
+      {buttonLabel}
     </button>
   );
 

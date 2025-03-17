@@ -45,7 +45,7 @@ export function DeploymentSummary({ modifiedValues, viewMode }: DeploymentSummar
                         </p>
                         <div className="slds-m-left_x-small">
                           <p className="slds-line-clamp_small">{Array.from(values).join(', ')}</p>
-                          {defaultValue && <p>Default: {defaultValue}</p>}
+                          <p>Default: {defaultValue || '--NONE--'}</p>
                         </div>
                       </div>
                     ))}

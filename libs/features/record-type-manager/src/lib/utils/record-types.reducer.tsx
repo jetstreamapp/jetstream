@@ -145,19 +145,20 @@ function getModifiedPickLists(objectMetadata: Record<string, SobjectWithPicklist
         allValues.push(modifiedValue);
         if (dirtyValues.size || defaultValue !== initialDefaultValue) {
           modifiedValues.push(modifiedValue);
+          // Only calculate errors if the field is dirty - sometimes SFDC has invalid configuration to start with
+          // and we don't want to show errors for that - missing fields in deployment are ignored
+          hasError = addErrors(
+            currentValues,
+            modifiedValue,
+            sobjectName,
+            fieldName,
+            recordType,
+            defaultValue,
+            hasError,
+            errorsByField,
+            errorsByRecordType
+          );
         }
-
-        hasError = addErrors(
-          currentValues,
-          modifiedValue,
-          sobjectName,
-          fieldName,
-          recordType,
-          defaultValue,
-          hasError,
-          errorsByField,
-          errorsByRecordType
-        );
       });
     });
   });

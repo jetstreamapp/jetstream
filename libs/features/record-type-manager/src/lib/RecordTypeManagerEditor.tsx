@@ -1,4 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { getNameOrNameAndLabel, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
@@ -30,7 +31,7 @@ const HEIGHT_BUFFER = 170;
 export function RecordTypeManagerEditor() {
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const [viewMode, setViewMode] = useState<ViewMode>('FIELD');
+  const [viewMode, setViewMode] = useState<ViewMode>('RECORD_TYPE');
   const [deployModalOpen, setDeployModalOpen] = useState(false);
 
   const {
@@ -92,7 +93,7 @@ export function RecordTypeManagerEditor() {
             <PageHeaderTitle
               icon={{ type: 'standard', icon: 'picklist_choice' }}
               label="Record Type Picklist Manager"
-              docsPath="/deploy/record-type-manager"
+              docsPath={APP_ROUTES.RECORD_TYPE_MANAGER.DOCS}
             />
             <PageHeaderActions colType="actions" buttonType="separate">
               <Link className="slds-button slds-button_neutral" to="..">
