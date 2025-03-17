@@ -1,4 +1,5 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, SalesforceOrgUi } from '@jetstream/types';
@@ -178,7 +179,7 @@ export const LoadRecordsMultiObject = () => {
           <PageHeaderTitle
             icon={{ type: 'standard', icon: 'record_update' }}
             label="Load Records to Multiple Objects"
-            docsPath="/load/with-related"
+            docsPath={APP_ROUTES.LOAD_MULTIPLE.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             <button

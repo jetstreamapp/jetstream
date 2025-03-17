@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
@@ -214,7 +215,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
             <PageHeaderTitle
               icon={{ type: 'standard', icon: 'product_consumed' }}
               label="Export Object Metadata"
-              docsPath="/developer/export-object-metadata"
+              docsPath={APP_ROUTES.OBJECT_EXPORT.DOCS}
             />
             <PageHeaderActions colType="actions" buttonType="separate">
               <button className="slds-button slds-button_brand" disabled={!hasSelectionsMade || loading} onClick={handleExport}>

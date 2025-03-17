@@ -14,16 +14,11 @@ export const ViewDocsLink: FunctionComponent<ViewDocsLinkProps> = ({ className, 
   if (!path) {
     return null;
   }
-  if (!path.startsWith('/')) {
-    path = `/${path}`;
+  if (!path.startsWith(DOCS_BASE_PATH)) {
+    path = `${DOCS_BASE_PATH}${path}`;
   }
   return (
-    <a
-      href={`${DOCS_BASE_PATH}${path}`}
-      target="_blank"
-      rel="noreferrer"
-      className={classNames('slds-grid', { 'slds-text-body_regular': textReset }, className)}
-    >
+    <a href={path} target="_blank" rel="noreferrer" className={classNames('slds-grid', { 'slds-text-body_regular': textReset }, className)}>
       Documentation
       <Icon type="utility" icon="new_window" className="slds-icon slds-text-link slds-icon_xx-small slds-m-left_xx-small" />
     </a>

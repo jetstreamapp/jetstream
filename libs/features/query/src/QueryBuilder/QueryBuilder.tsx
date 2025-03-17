@@ -4,6 +4,7 @@ import { IconObj } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   getFlattenedListItemsById,
   getListItemsFromFieldWithRelatedItems,
@@ -282,7 +283,7 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
               labelHeading={isTooling ? 'Metadata' : 'Objects'}
               // label={pageTitle}
               label="Query Records"
-              docsPath="/query"
+              docsPath={APP_ROUTES.QUERY.DOCS}
               titleDropDown={
                 <CheckboxToggle
                   id={`query-type-toggle`}

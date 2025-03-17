@@ -7,6 +7,7 @@ import {
   getJetstreamOrganizations,
   updateJetstreamOrganization,
 } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { JetstreamOrganization, JetstreamOrganizationCreateUpdatePayload, JetstreamOrganizationWithOrgs, Maybe } from '@jetstream/types';
@@ -197,7 +198,11 @@ export function Organizations() {
     <Page testId="organization-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'employee_organization' }} label="Organizations" docsPath="/organizations" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'employee_organization' }}
+            label="Organizations"
+            docsPath={APP_ROUTES.ORGANIZATIONS.DOCS}
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             <AddOrg className="slds-button slds-button_neutral" label="Add Salesforce Org" onAddOrg={handleAddOrg} />
             <button className="slds-button slds-button_brand" onClick={() => handleOpenCreateOrganizationModal()}>

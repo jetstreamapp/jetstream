@@ -137,7 +137,7 @@ export const APP_ROUTES: RouteMap = {
   },
   RECORD_TYPE_MANAGER: {
     ...getRoutePath('/record-type-manager'),
-    DOCS: 'https://docs.getjetstream.app/deploy/record-type-manager',
+    DOCS: 'https://docs.getjetstream.app/deploy/record-type-picklist-manager',
     TITLE: 'Record Type Picklist Manager',
     DESCRIPTION: 'View and update record type picklist values',
     NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
@@ -174,21 +174,25 @@ export const APP_ROUTES: RouteMap = {
   },
   FEEDBACK_SUPPORT: {
     ...getRoutePath('/feedback'),
+    DOCS: 'https://docs.getjetstream.app/feedback',
     TITLE: 'Feedback and Support',
     DESCRIPTION: 'Report bugs and request features',
   },
   PROFILE: {
     ...getRoutePath('/profile'),
+    DOCS: 'https://docs.getjetstream.app/user-profile-and-settings/user-profile',
     TITLE: 'Profile',
     DESCRIPTION: 'Update your user profile',
   },
   SETTINGS: {
     ...getRoutePath('/settings'),
+    DOCS: 'https://docs.getjetstream.app/user-profile-and-settings/settings',
     TITLE: 'User Settings',
     DESCRIPTION: 'Update your user settings',
   },
   BILLING: {
     ...getRoutePath('/settings/billing'),
+    DOCS: 'https://docs.getjetstream.app/user-profile-and-settings/billing',
     TITLE: 'Billing',
     DESCRIPTION: 'Manage your Jetstream subscription',
   },

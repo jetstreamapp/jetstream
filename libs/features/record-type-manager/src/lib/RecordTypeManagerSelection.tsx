@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { useListMetadata } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
   AutoFullHeightContainer,
   Icon,
@@ -55,7 +56,7 @@ export function RecordTypeManagerSelection() {
           <PageHeaderTitle
             icon={{ type: 'standard', icon: 'picklist_choice' }}
             label="Record Type Picklist Manager"
-            docsPath="/deploy/record-type-manager"
+            docsPath={APP_ROUTES.RECORD_TYPE_MANAGER.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (

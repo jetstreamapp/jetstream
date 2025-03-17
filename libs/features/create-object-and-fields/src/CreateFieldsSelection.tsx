@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
@@ -79,7 +80,7 @@ export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps
       <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath="/deploy-fields" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'form' }} label="Create Fields" docsPath={APP_ROUTES.CREATE_FIELDS.DOCS} />
           <PageHeaderActions colType="actions" buttonType="separate">
             <CreateNewObject
               initialSelectedProfiles={selectedProfiles}
