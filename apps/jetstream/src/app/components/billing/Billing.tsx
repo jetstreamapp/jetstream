@@ -137,6 +137,16 @@ export const Billing = () => {
                 onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'billing_page' })}
               >
                 Chrome Extension
+              </a>{' '}
+              and{' '}
+              <a
+                href={APP_ROUTES.FIREFOX_EXTENSION.ROUTE}
+                target="_blank"
+                className="slds-text-heading_x-small"
+                rel="noreferrer"
+                onClick={() => trackEvent(ANALYTICS_KEYS.firefox_extension_link, { action: 'clicked', source: 'billing_page' })}
+              >
+                Firefox Extension
               </a>
             </li>
             <li>Save query history across devices</li>

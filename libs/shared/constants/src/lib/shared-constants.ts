@@ -153,6 +153,7 @@ export const ANALYTICS_KEYS = {
   /** Misc */
   file_download: 'file_download',
   chrome_extension_link: 'chrome_extension_link',
+  firefox_extension_link: 'firefox_extension_link',
   /** Record Modal */
   record_modal_action_change: 'record_modal_action_change',
   record_modal_view_related: 'record_modal_view_related',

@@ -55,15 +55,28 @@ export const AppHomeChromeExtension = () => {
               </Badge>
             )}
           </h3>
-          <a
-            href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
-            target="_blank"
-            className="slds-text-heading_x-small"
-            rel="noreferrer"
-            onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'app_home' })}
-          >
-            Visit the Chrome Store to install the Chrome Extension
-          </a>
+          <p>
+            <a
+              href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
+              target="_blank"
+              className="slds-text-heading_x-small"
+              rel="noreferrer"
+              onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'app_home' })}
+            >
+              Visit the Chrome Store to install the Extension
+            </a>
+          </p>
+          <p>
+            <a
+              href={APP_ROUTES.FIREFOX_EXTENSION.ROUTE}
+              target="_blank"
+              className="slds-text-heading_x-small"
+              rel="noreferrer"
+              onClick={() => trackEvent(ANALYTICS_KEYS.firefox_extension_link, { action: 'clicked', source: 'app_home' })}
+            >
+              Visit the Firefox Store to install the Extension
+            </a>
+          </p>
           {!hasExtensionAccess && (
             <>
               <p>

@@ -68,7 +68,7 @@ export const APP_ROUTES: RouteMap = {
     NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   FIREFOX_EXTENSION: {
-    ROUTE: '', // FIXME: we need this to include a link to the firefox extension
+    ROUTE: 'https://addons.mozilla.org/en-US/firefox/addon/jetstreamapp',
     SEARCH_PARAM: undefined,
     DOCS: 'https://docs.getjetstream.app/browser-extension',
     TITLE: 'Firefox Extension',
