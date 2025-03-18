@@ -92,18 +92,32 @@ export default function Page() {
           {errorHeading && <p className="mt-2 text-xl">{errorHeading}</p>}
           <p className="mt-2 text-base">{status}</p>
           {hasError && (
-            <p className="mt-8 text-base text-gray-500">
-              If you need more assistance, you can file a support ticket or email{' '}
-              <a
-                href="mailto:support@getjetstream.app"
-                className="text-cyan-600 hover:text-cyan-500 hover:underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {email}
-              </a>
-              .
-            </p>
+            <div className="mt-8 text-base text-gray-500">
+              <p className="mb-2">
+                For help resolving this issue,{' '}
+                <a
+                  href="https://docs.getjetstream.app/troubleshooting"
+                  className="text-cyan-600 hover:text-cyan-500 hover:underline mb-1"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  refer to the documentation
+                </a>
+                for troubleshooting tips.
+              </p>
+              <p>
+                If you need more assistance, you can file a support ticket or email{' '}
+                <a
+                  href="mailto:support@getjetstream.app"
+                  className="text-cyan-600 hover:text-cyan-500 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {email}
+                </a>
+                .
+              </p>
+            </div>
           )}
         </div>
       </div>
