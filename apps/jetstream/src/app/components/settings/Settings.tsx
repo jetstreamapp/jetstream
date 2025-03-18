@@ -2,6 +2,7 @@ import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -178,7 +179,7 @@ export const Settings = () => {
     <Page testId="settings-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'settings' }} label="Settings" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'settings' }} label="Settings" docsPath={APP_ROUTES.SETTINGS.DOCS} />
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-horizontal_x-small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>

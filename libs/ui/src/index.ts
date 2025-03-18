@@ -120,6 +120,7 @@ export * from './lib/popover/PopoverErrorButton';
 export * from './lib/progress-indicator/ProgressIndicator';
 export * from './lib/progress-indicator/ProgressIndicatorListItem';
 export * from './lib/progress-ring/ProgressRing';
+export * from './lib/progress-ring/ProgressRingLoading';
 export * from './lib/providers/DialogServiceProvider';
 export * from './lib/scoped-notification/ScopedNotification';
 export * from './lib/section/Section';

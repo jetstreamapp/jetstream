@@ -9,6 +9,7 @@ import {
   removePassword,
   updateUserProfile,
 } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import {
   AutoFullHeightContainer,
@@ -167,7 +168,7 @@ export const Profile = () => {
     <Page testId="settings-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'user' }} label="Profile" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'user' }} label="Profile" docsPath={APP_ROUTES.PROFILE.DOCS} />
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>

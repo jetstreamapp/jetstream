@@ -93,6 +93,7 @@ export function App() {
                 <Route path="*" element={<Navigate to=".." />} />
               </Route>
               <Route path={APP_ROUTES.FORMULA_EVALUATOR.ROUTE} element={<FormulaEvaluator />} />
+              <Route path={APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE} element={<FormulaEvaluator />} />
               <Route path={APP_ROUTES.LOAD_MASS_UPDATE.ROUTE} element={<MassUpdateRecords />}>
                 <Route index element={<MassUpdateRecordsSelection />} />
                 <Route path="deployment" element={<MassUpdateRecordsDeployment />} />

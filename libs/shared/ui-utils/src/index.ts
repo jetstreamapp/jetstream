@@ -24,3 +24,4 @@ export * from './lib/shared-ui-keyboard';
 export * from './lib/shared-ui-observables';
 export * from './lib/shared-ui-query-utils';
 export * from './lib/shared-ui-utils';
+export { xmlUtils } from './lib/shared-ui-xml-utils';

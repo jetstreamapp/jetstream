@@ -57,6 +57,16 @@ const FormulaEvaluator = lazy(() =>
   import('@jetstream/feature/formula-evaluator').then((module) => ({ default: module.FormulaEvaluator }))
 );
 
+const RecordTypeManager = lazy(() =>
+  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManager }))
+);
+const RecordTypeManagerSelection = lazy(() =>
+  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerSelection }))
+);
+const RecordTypeManagerEditor = lazy(() =>
+  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerEditor }))
+);
+
 const MassUpdateRecords = lazy(() => import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecords })));
 const MassUpdateRecordsSelection = lazy(() =>
   import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsSelection }))
@@ -189,6 +199,18 @@ export const AppRoutes = () => {
           </OrgSelectionRequired>
         }
       />
+      <Route
+        path={APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE}
+        element={
+          <OrgSelectionRequired>
+            <RecordTypeManager />
+          </OrgSelectionRequired>
+        }
+      >
+        <Route index element={<RecordTypeManagerSelection />} />
+        <Route path="editor" element={<RecordTypeManagerEditor />} />
+        <Route path="*" element={<Navigate to=".." />} />
+      </Route>
       <Route
         path={APP_ROUTES.LOAD_MASS_UPDATE.ROUTE}
         element={

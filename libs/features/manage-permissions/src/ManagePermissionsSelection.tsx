@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
@@ -59,7 +60,6 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
   useNonInitialEffect(() => {
     setProfiles(profilesAndPermSetsData.profiles);
     setPermissionSets(profilesAndPermSetsData.permissionSets);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profilesAndPermSetsData.profiles, profilesAndPermSetsData.permissionSets]);
 
   useEffect(() => {
@@ -91,7 +91,11 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
       <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'portal' }} label="Manage Permissions" docsPath="/permissions" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'portal' }}
+            label="Manage Permissions"
+            docsPath={APP_ROUTES.PERMISSION_MANAGER.DOCS}
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>

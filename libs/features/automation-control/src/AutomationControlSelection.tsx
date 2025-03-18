@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, SalesforceOrgUi } from '@jetstream/types';
@@ -74,7 +75,11 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
       <RequireMetadataApiBanner />
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'activations' }} label="Automation Control" docsPath="/automation-control" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'activations' }}
+            label="Automation Control"
+            docsPath={APP_ROUTES.AUTOMATION_CONTROL.DOCS}
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             {hasSelectionsMade && (
               <Link className="slds-button slds-button_brand" to="editor" onClick={handleContinue}>

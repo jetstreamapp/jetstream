@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -86,7 +87,11 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     <Page testId="mass-update-records-selection-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Update Records" docsPath="/load/update-records" />
+          <PageHeaderTitle
+            icon={{ type: 'standard', icon: 'record_update' }}
+            label="Update Records"
+            docsPath={APP_ROUTES.LOAD_MASS_UPDATE.DOCS}
+          />
           <PageHeaderActions colType="actions" buttonType="separate">
             {rows.length > 1 && (
               <button className="slds-button slds-button_neutral" disabled={!allRowsValid} onClick={validateAllRowRecords}>

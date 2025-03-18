@@ -4,7 +4,7 @@ import { HTMLAttributes, ReactNode, forwardRef, useEffect, useState } from 'reac
 import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 
-interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   className?: string;
   isOpen: boolean;
   /** Used to know where to place popover */

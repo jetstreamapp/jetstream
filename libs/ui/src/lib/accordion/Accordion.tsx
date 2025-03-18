@@ -11,6 +11,12 @@ export interface AccordionProps {
   sections: UiSection[];
   allowMultiple?: boolean;
   showExpandCollapseAll?: boolean; // only applies if allowMultiple
+  expandAllClassName?: string;
+  expandAllContainerClassName?: string;
+  /**
+   * Additional content to display next to the expand/collapse all button.
+   */
+  expandAllExtraContent?: ReactNode;
   onActiveIdsChange?: (openIds: string[]) => void;
 }
 
@@ -19,6 +25,9 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
   initOpenIds,
   allowMultiple = true,
   showExpandCollapseAll = false,
+  expandAllClassName,
+  expandAllContainerClassName,
+  expandAllExtraContent,
   onActiveIdsChange,
 }) => {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set(initOpenIds));
@@ -61,18 +70,19 @@ export const Accordion: FunctionComponent<AccordionProps> = ({
   return (
     <Fragment>
       {allowMultiple && showExpandCollapseAll && (
-        <div>
+        <div className={expandAllContainerClassName}>
           {openIds.size < sections.length ? (
-            <button className={classNames('slds-button')} title="Expand All" onClick={handleExpandAll}>
+            <button className={classNames(expandAllClassName, 'slds-button')} title="Expand All" onClick={handleExpandAll}>
               <Icon type="utility" icon="expand_all" className="slds-button__icon slds-button__icon_left" omitContainer />
               Expand All
             </button>
           ) : (
-            <button className={classNames('slds-button')} title="Collapse All" onClick={handleCollapseAll}>
+            <button className={classNames(expandAllClassName, 'slds-button')} title="Collapse All" onClick={handleCollapseAll}>
               <Icon type="utility" icon="collapse_all" className="slds-button__icon slds-button__icon_left" omitContainer />
               Collapse All
             </button>
           )}
+          {expandAllExtraContent}
         </div>
       )}
       <ul className="slds-accordion">

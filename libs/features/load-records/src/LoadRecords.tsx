@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { FieldWithRelatedEntities, LocalOrGoogle, SalesforceOrgUi, Step } from '@jetstream/types';
 import {
@@ -408,7 +409,7 @@ export const LoadRecords = () => {
     <Page testId="load-records-page">
       <PageHeader>
         <PageHeaderRow>
-          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Load Records" docsPath="/load" />
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'record_update' }} label="Load Records" docsPath={APP_ROUTES.LOAD.DOCS} />
           <PageHeaderActions colType="actions" buttonType="separate">
             <button
               data-testid="start-over-button"

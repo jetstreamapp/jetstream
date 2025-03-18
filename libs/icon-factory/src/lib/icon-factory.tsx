@@ -35,6 +35,7 @@ import StandardIcon_Formula from './icons/standard/Formula';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Outcome from './icons/standard/Outcome';
+import StandardIcon_PicklistChoice from './icons/standard/PicklistChoice';
 import StandardIcon_Portal from './icons/standard/Portal';
 import StandardIcon_PortalRolesAndSubordinates from './icons/standard/PortalRolesAndSubordinates';
 import StandardIcon_ProductConsumed from './icons/standard/ProductConsumed';
@@ -203,6 +204,7 @@ const standardIcons = {
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   outcome: StandardIcon_Outcome,
+  picklist_choice: StandardIcon_PicklistChoice,
   portal: StandardIcon_Portal,
   portal_roles_and_subordinates: StandardIcon_PortalRolesAndSubordinates,
   product_consumed: StandardIcon_ProductConsumed,

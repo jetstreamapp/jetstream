@@ -27,8 +27,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import PopoverContainer from '../../popover/PopoverContainer';
-import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import PopoverContainer, { PopoverContainerProps } from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
@@ -105,6 +104,8 @@ export interface ComboboxProps {
    * If using virtual list, this ensures child detection for keyboard navigation is correct.
    */
   isVirtual?: boolean;
+  usePortal?: boolean;
+  popoverProps?: PopoverContainerProps;
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
   onFilterInputChange?: (value: string) => void;
@@ -168,6 +169,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       errorMessage,
       showSelectionAsButton,
       isVirtual,
+      usePortal,
       children,
       onInputChange,
       onFilterInputChange,
@@ -390,14 +392,15 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   onSelected={onLeadingDropdownChange}
                 />
               )}
-              <OutsideClickHandler
+              <div
                 className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}
-                onOutsideClick={() => {
-                  if (isOpen) {
-                    setIsOpen(false);
-                    onClose && onClose();
-                  }
-                }}
+                // additionalParentRef={popoverRef.current}
+                // onOutsideClick={() => {
+                //   // if (isOpen) {
+                //   //   setIsOpen(false);
+                //   //   onClose && onClose();
+                //   // }
+                // }}
               >
                 <div
                   ref={entireContainerEl}
@@ -441,7 +444,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     ref={popoverRef}
                     isOpen={isOpen}
                     referenceElement={inputEl.current}
-                    className={`slds-dropdown_length-${itemLength} slds-dropdown_fluid`}
+                    className={classNames(`slds-dropdown_length-${itemLength}`, { 'slds-dropdown_fluid': !usePortal })}
                     id={listId}
                     role="listbox"
                     isEager={isVirtual}
@@ -452,6 +455,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                      */
                     onMouseDown={(event) => event.preventDefault()}
                     onBlur={handleBlur}
+                    usePortal={usePortal}
                   >
                     <div ref={divContainerEl}>
                       {hasGroups && children}
@@ -469,7 +473,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                     </div>
                   </PopoverContainer>
                 </div>
-              </OutsideClickHandler>
+              </div>
             </Fragment>
           )}
         </div>

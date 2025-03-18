@@ -220,6 +220,13 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
                 label: APP_ROUTES.CREATE_FIELDS.TITLE,
               },
               {
+                id: 'record-type-manager',
+                path: APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE,
+                search: APP_ROUTES.RECORD_TYPE_MANAGER.SEARCH_PARAM,
+                title: APP_ROUTES.RECORD_TYPE_MANAGER.DESCRIPTION,
+                label: APP_ROUTES.RECORD_TYPE_MANAGER.TITLE,
+              },
+              {
                 id: 'formula-evaluator',
                 path: APP_ROUTES.FORMULA_EVALUATOR.ROUTE,
                 search: APP_ROUTES.FORMULA_EVALUATOR.SEARCH_PARAM,

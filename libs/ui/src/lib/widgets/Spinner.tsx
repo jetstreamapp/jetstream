@@ -1,5 +1,5 @@
-import React, { FunctionComponent } from 'react';
 import classNames from 'classnames';
+import { FunctionComponent } from 'react';
 
 export interface SpinnerProps {
   size?: 'xx-small' | 'x-small' | 'small' | 'medium' | 'large';

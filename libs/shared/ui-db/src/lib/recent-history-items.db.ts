@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { RecentHistoryItem, RecentHistoryItemType } from '@jetstream/types';
-import { uniqBy } from 'lodash';
+import uniqBy from 'lodash/uniqBy';
 import { dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
 
 export const recentHistoryItemsDb = {
