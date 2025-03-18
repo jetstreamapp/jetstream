@@ -98,7 +98,6 @@ const TEST_DATA: { 'Contact.Record_Type_1': ReadMetadataRecordTypeExtended; 'Con
 describe('getObjectWithRecordTypesXml', () => {
   it('should work', () => {
     const recordTypeXml = getObjectWithRecordTypesXml(Object.values(TEST_DATA));
-    console.log(recordTypeXml);
     expect(recordTypeXml).toEqual(
       [
         `<?xml version="1.0" encoding="UTF-8"?>`,
