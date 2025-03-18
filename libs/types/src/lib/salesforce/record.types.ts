@@ -439,7 +439,6 @@ export interface RecordTypeRecord {
   Description: string | null;
   DeveloperName: string;
   IsActive: boolean;
-  IsPersonType: boolean;
   NamespacePrefix: string | null;
   SobjectType: string;
 }
@@ -449,7 +448,6 @@ export interface RecordTypeMetadataRecord {
   Id: string;
   Name: string;
   FullName: string;
-  IsPersonType: boolean;
   Metadata: RecordTypeMetadataTooling;
   SobjectType: string;
 }

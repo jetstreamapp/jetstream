@@ -1,5 +1,5 @@
-import { logger } from '@jetstream/shared/client-logger';
 import { xmlUtils } from '@jetstream/shared/ui-utils';
+import { ensureArray } from '@jetstream/shared/utils';
 import {
   ListItem,
   ListMetadataResult,
@@ -7,7 +7,6 @@ import {
   ReadMetadataRecordTypeExtended,
   ReadMetadataRecordTypePicklistEntryExtended,
 } from '@jetstream/types';
-import { Query, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
 import { RecordTypePicklistSummary } from '../types/record-types.types';
@@ -17,14 +16,16 @@ const XML_NS = xmlUtils.SOAP_XML_NAMESPACE;
 /**
  * Some fullName have invalid objects vs reality
  * Some picklist field names are different from metadadata API vs reality
+ * Ensure array data types are consistent
  * @param record
  * @returns
  */
 export function repairAndEnrichMetadata(record: ReadMetadataRecordType): ReadMetadataRecordTypeExtended {
   const [sobject, recordType] = getValidSobjectNameFromFullName(record.fullName);
-  const picklistValues = record.picklistValues.map((picklistValues): ReadMetadataRecordTypePicklistEntryExtended => {
+  const picklistValues = ensureArray(record.picklistValues).map((picklistValues): ReadMetadataRecordTypePicklistEntryExtended => {
     const fieldName = getValidFieldNameName(decodeURIComponent(picklistValues.picklist));
 
+    picklistValues.values = ensureArray(picklistValues.values);
     picklistValues.values.forEach((value) => {
       value.fullName = decodeURIComponent(value.fullName);
     });
@@ -92,73 +93,6 @@ function setOriginalMetadataSobjectName(modifiedValues: RecordTypePicklistSummar
     }
     return item;
   });
-}
-
-export function getRecordTypeSoql(): string {
-  const query: Query = {
-    fields: [
-      getField('Id'),
-      getField('Name'),
-      getField('Description'),
-      getField('DeveloperName'),
-      getField('IsActive'),
-      getField('IsPersonType'),
-      getField('NamespacePrefix'),
-      getField('SobjectType'),
-    ],
-    sObject: 'RecordType',
-    orderBy: [
-      {
-        field: 'SobjectType',
-        order: 'ASC',
-      },
-      {
-        field: 'Name',
-        order: 'ASC',
-      },
-    ],
-  };
-
-  const soql = composeQuery(query);
-  logger.log('getRecordTypeQuery()', soql);
-  return soql;
-}
-
-export function getRecordTypeMetadataSoql(id: string): string {
-  const query: Query = {
-    fields: [
-      getField('Id'),
-      getField('Name'),
-      getField('FullName'),
-      getField('IsPersonType'),
-      getField('Metadata'),
-      getField('SobjectType'),
-    ],
-    sObject: 'RecordType',
-    where: {
-      left: {
-        field: 'Id',
-        operator: '=',
-        value: id,
-        literalType: 'STRING',
-      },
-    },
-    limit: 1,
-    orderBy: [
-      {
-        field: 'SobjectType',
-        order: 'ASC',
-      },
-      {
-        field: 'Name',
-        order: 'ASC',
-      },
-    ],
-  };
-
-  const soql = composeQuery(query);
-  logger.log('getRecordTypeMetadata()', soql);
-  return soql;
 }
 
 function getRecordTypeModifiedData(
