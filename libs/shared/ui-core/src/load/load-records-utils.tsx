@@ -434,6 +434,7 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
         },
       },
     },
+    limit: 2000,
     orderBy: [
       {
         field: 'EntityDefinitionId',

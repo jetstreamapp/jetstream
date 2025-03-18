@@ -637,6 +637,7 @@ export function getQueryForAllPermissionableFields(allSobjects: string[]): strin
           },
         },
       },
+      limit: 2000,
       orderBy: [
         {
           // EntityDefinition.QualifiedApiName is not supported in order by
