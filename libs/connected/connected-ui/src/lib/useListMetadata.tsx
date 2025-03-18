@@ -96,6 +96,7 @@ async function fetchListMetadata(
         });
       }
     } catch (ex) {
+      // IsPersonType is only available in orgs where this feature is enabled - so if it fails we don't need to monkey-patch
       logger.error('Error monkey-patching PersonAccount record types', ex);
     }
   }
