@@ -1201,7 +1201,6 @@ export function getQueriesForAllCustomFieldsForObjects(allSobjects: string[]): s
           },
         },
       },
-      limit: 2000,
       orderBy: [
         {
           // EntityDefinition.QualifiedApiName is not supported in order by
