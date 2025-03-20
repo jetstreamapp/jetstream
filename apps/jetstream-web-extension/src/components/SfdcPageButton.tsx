@@ -5,28 +5,36 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useInterval } from '@jetstream/shared/ui-utils';
-import type { Maybe } from '@jetstream/types';
+import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import browser from 'webextension-polyfill';
 import '../sfdc-styles-shim.scss';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
-import { getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
+import { getRecordPageObject, getRecordPageRecordId, sendMessage } from '../utils/web-extension.utils';
 import JetstreamIcon from './icons/JetstreamIcon';
 import JetstreamLogo from './icons/JetstreamLogo';
+import { SfdcPageButtonOrgInfo } from './SfdcPageButtonOrgInfo';
 import { SfdcPageButtonRecordSearch } from './SfdcPageButtonRecordSearch';
 import { SfdcPageButtonUserSearch } from './SfdcPageButtonUserSearch';
+interface PageLink {
+  link: string;
+  label: string;
+  includeCurrentRecord?: boolean;
+}
 
-const PAGE_LINKS = [
+const PAGE_LINKS: PageLink[] = [
   {
     link: APP_ROUTES.QUERY.ROUTE,
     label: 'Query Records',
+    includeCurrentRecord: true,
   },
   {
     link: APP_ROUTES.LOAD.ROUTE,
     label: 'Load Records',
+    includeCurrentRecord: true,
   },
   {
     link: APP_ROUTES.AUTOMATION_CONTROL.ROUTE,
@@ -41,73 +49,14 @@ const PAGE_LINKS = [
     label: 'Deploy and View Metadata',
   },
   {
+    link: APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE,
+    label: 'View Debug Logs',
+  },
+  {
     link: APP_ROUTES.ANON_APEX.ROUTE,
     label: 'Anonymous Apex',
   },
 ];
-
-const ButtonLinkCss = css`
-  :hover {
-    --slds-c-button-color-background-hover: var(
-      --slds-c-button-neutral-color-background-hover,
-      var(
-        --sds-c-button-neutral-color-background-hover,
-        var(--slds-g-color-neutral-base-95, var(--lwc-colorBackgroundButtonDefaultHover, rgb(243, 243, 243)))
-      )
-    );
-    --slds-c-button-color-border-hover: var(
-      --slds-c-button-neutral-color-border-hover,
-      var(
-        --sds-c-button-neutral-color-border-hover,
-        var(--slds-g-color-border-base-4, var(--lwc-buttonColorBorderPrimary, rgb(201, 201, 201)))
-      )
-    );
-    --slds-c-button-color-border: var(--slds-c-button-color-border-hover);
-    --slds-c-button-color-background: var(--slds-c-button-color-background-hover);
-    color: var(
-      --slds-c-button-text-color-hover,
-      var(--sds-c-button-text-color-hover, var(--lwc-brandAccessibleActive, rgba(53, 93, 150, 1)))
-    );
-    text-decoration: none;
-  }
-  text-align: center;
-  justify-content: center;
-  width: 100%;
-  transition: border 0.15s linear;
-  --slds-c-button-color-background: var(
-    --slds-c-button-neutral-color-background,
-    var(
-      --sds-c-button-neutral-color-background,
-      var(--slds-g-color-neutral-base-100, var(--lwc-buttonColorBackgroundPrimary, rgb(255, 255, 255)))
-    )
-  );
-  --slds-c-button-color-border: var(
-    --slds-c-button-neutral-color-border,
-    var(--sds-c-button-neutral-color-border, var(--slds-g-color-border-base-4, var(--lwc-buttonColorBorderPrimary, rgb(201, 201, 201))))
-  );
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  padding-top: var(--slds-c-button-spacing-block-start, var(--sds-c-button-spacing-block-start, 0));
-  padding-right: var(--slds-c-button-spacing-inline-end, var(--sds-c-button-spacing-inline-end, 0));
-  padding-bottom: var(--slds-c-button-spacing-block-end, var(--sds-c-button-spacing-block-end, 0));
-  padding-left: var(--slds-c-button-spacing-inline-start, var(--sds-c-button-spacing-inline-start, 0));
-  background: none;
-  background-color: var(--slds-c-button-color-background, var(--sds-c-button-color-background, transparent));
-  background-clip: border-box;
-  border-color: var(--slds-c-button-color-border, var(--sds-c-button-color-border, transparent));
-  border-style: solid;
-  border-width: var(--slds-c-button-sizing-border, var(--sds-c-button-sizing-border, var(--lwc-borderWidthThin, 1px)));
-  border-radius: var(--slds-c-button-radius-border, var(--sds-c-button-radius-border, var(--lwc-buttonBorderRadius, 0.25rem)));
-  box-shadow: var(--slds-c-button-shadow, var(--sds-c-button-shadow));
-  line-height: var(--slds-c-button-line-height, var(--sds-c-button-line-height, var(--lwc-lineHeightButton, 1.875rem)));
-  text-decoration: none;
-  color: var(--slds-c-button-text-color, var(--sds-c-button-text-color, var(--lwc-brandAccessible, rgba(1, 118, 211, 1))));
-  -webkit-appearance: none;
-  white-space: normal;
-  user-select: none;
-  cursor: pointer;
-`;
 
 const ItemColStyles = css`
   padding-right: var(--lwc-spacingSmall, 0.75rem);
@@ -136,7 +85,19 @@ const HorizontalRule = () => {
   );
 };
 
+function getActionLink(sfHost: string, pageLink: PageLink, objectName?: string) {
+  const searchParams = new URLSearchParams({ host: sfHost, url: pageLink.link });
+
+  if (pageLink.includeCurrentRecord && objectName) {
+    if (objectName) {
+      searchParams.set('url', `${pageLink.link}?objectName=${objectName}`);
+    }
+  }
+  return `${browser.runtime.getURL('app.html')}?${searchParams.toString()}`;
+}
+
 export function SfdcPageButton() {
+  const currentPathname = useRef<string>(location.pathname);
   const options = useRecoilValue(chromeStorageOptions);
   const { authTokens, buttonPosition } = useRecoilValue(chromeSyncStorage);
   const [isOnSalesforcePage] = useState(
@@ -146,6 +107,8 @@ export function SfdcPageButton() {
   const [sfHost, setSfHost] = useState<Maybe<string>>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [recordId, setRecordId] = useState(() => getRecordPageRecordId(location.pathname));
+  const [objectName, setObjectName] = useState(() => getRecordPageObject(location.pathname));
+  const [org, setOrg] = useState<SalesforceOrgUi | null>(null);
 
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
@@ -160,10 +123,15 @@ export function SfdcPageButton() {
     }
   }, []);
 
-  // check to see if the url changed and update the id
   // TODO: figure out if there is a better way to listen for url change events
-
-  useInterval(() => setRecordId(() => getRecordPageRecordId(location.pathname)), 5000);
+  useInterval(() => {
+    if (currentPathname.current === location.pathname) {
+      return;
+    }
+    currentPathname.current = location.pathname;
+    setRecordId(() => getRecordPageRecordId(location.pathname));
+    setObjectName(() => getRecordPageObject(location.pathname));
+  }, 5000);
 
   useEffect(() => {
     if (isOnSalesforcePage) {
@@ -186,6 +154,7 @@ export function SfdcPageButton() {
                     message: 'INIT_ORG',
                     data: { sessionInfo },
                   });
+                  setOrg(org);
                   setSalesforceOrgs([org]);
                   setSelectedOrgId(org.uniqueId);
                 }
@@ -205,7 +174,12 @@ export function SfdcPageButton() {
     return null;
   }
 
-  if (!isOnSalesforcePage || !sfHost) {
+  // don't show the button in iframes
+  if (window.self !== window.top) {
+    return null;
+  }
+
+  if (!isOnSalesforcePage || !sfHost || !org) {
     return null;
   }
 
@@ -262,31 +236,6 @@ export function SfdcPageButton() {
           `}
           onOutsideClick={() => setIsOpen(false)}
         >
-          <header
-            data-testid="jetstream-ext-popup-header"
-            className="slds-p-left_medium slds-p-around_small slds-grid"
-            css={css`
-              padding: var(--lwc-spacingSmall, 0.75rem);
-              display: flex;
-            `}
-          >
-            <a
-              href={`${browser.runtime.getURL('app.html')}?host=${sfHost}`}
-              css={css`
-                width: 100%;
-                margin-bottom: 0;
-                cursor: pointer;
-                color: var(--lwc-brandTextLink, rgba(11, 92, 171, 1));
-                text-decoration: none;
-                transition: color 0.1s linear;
-                background-color: transparent;
-              `}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <JetstreamLogo />
-            </a>
-          </header>
           <div
             data-testid="jetstream-ext-popup-body"
             className="slds-popover__body slds-is-relative"
@@ -314,11 +263,10 @@ export function SfdcPageButton() {
                       {PAGE_LINKS.map((item) => (
                         <GridCol key={item.link} className="slds-m-bottom_x-small" css={ItemColStyles}>
                           <a
-                            href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&url=${encodeURIComponent(item.link)}`}
+                            href={getActionLink(sfHost, item, objectName)}
                             className="slds-button slds-button_neutral slds-button_stretch"
                             target="_blank"
                             rel="noreferrer"
-                            css={ButtonLinkCss}
                           >
                             {item.label}
                           </a>
@@ -335,7 +283,6 @@ export function SfdcPageButton() {
                               className="slds-button slds-button_neutral slds-button_stretch"
                               target="_blank"
                               rel="noreferrer"
-                              css={ButtonLinkCss}
                             >
                               View Current Record
                             </a>
@@ -346,13 +293,26 @@ export function SfdcPageButton() {
                               className="slds-button slds-button_neutral slds-button_stretch"
                               target="_blank"
                               rel="noreferrer"
-                              css={ButtonLinkCss}
                             >
                               Edit Current Record
                             </a>
                           </GridCol>
                         </>
                       )}
+
+                      {objectName && (
+                        <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
+                          <a
+                            href={`${browser.runtime.getURL('app.html')}?host=${sfHost}&action=CREATE_RECORD&actionValue=${objectName}`}
+                            className="slds-button slds-button_neutral slds-button_stretch"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Create New Record
+                          </a>
+                        </GridCol>
+                      )}
+
                       <GridCol className="slds-m-bottom_x-small" css={ItemColStyles}>
                         <SfdcPageButtonRecordSearch sfHost={sfHost} />
                       </GridCol>
@@ -364,9 +324,34 @@ export function SfdcPageButton() {
                   title: 'User Search',
                   content: <SfdcPageButtonUserSearch sfHost={sfHost} />,
                 },
+                {
+                  id: 'quick-links',
+                  title: 'Quick Links',
+                  content: <SfdcPageButtonOrgInfo org={org} />,
+                },
               ]}
             />
           </div>
+          <footer className="slds-popover__footer">
+            <div className="slds-grid slds-grid_align-center slds-grid_vertical-align-center">
+              <a
+                href={`${browser.runtime.getURL('app.html')}?host=${sfHost}`}
+                css={css`
+                  width: 175px;
+                  margin-bottom: 0;
+                  cursor: pointer;
+                  color: var(--lwc-brandTextLink, rgba(11, 92, 171, 1));
+                  text-decoration: none;
+                  transition: color 0.1s linear;
+                  background-color: transparent;
+                `}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <JetstreamLogo />
+              </a>
+            </div>
+          </footer>
         </OutsideClickHandler>
       )}
     </>

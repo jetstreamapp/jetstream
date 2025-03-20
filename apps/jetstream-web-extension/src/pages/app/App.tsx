@@ -51,6 +51,8 @@ export function App() {
       appActionObservable.next({ action, payload: { recordId: actionValue } });
     } else if (action === 'EDIT_RECORD' && actionValue) {
       appActionObservable.next({ action, payload: { recordId: actionValue } });
+    } else if (action === 'CREATE_RECORD' && actionValue) {
+      appActionObservable.next({ action, payload: { objectName: actionValue } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
