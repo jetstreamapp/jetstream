@@ -56,6 +56,11 @@ export const RecordSearchPopover: FunctionComponent = () => {
       handleSubmit(null, appActionEvents.payload.recordId);
       setRecordId(appActionEvents.payload.recordId);
       setAction('edit');
+    } else if (appActionEvents && appActionEvents.action === 'CREATE_RECORD') {
+      setRecordId('');
+      setSobjectName(appActionEvents.payload.objectName);
+      setAction('create');
+      setModalOpen(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appActionEvents]);

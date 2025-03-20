@@ -95,11 +95,6 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
   }, []);
 
   useEffect(() => {
-    dispatch({ type: 'INIT' });
-    init();
-  }, [org]);
-
-  useEffect(() => {
     if (expirationDate && activeDebugLevel?.Id && userTrace) {
       extendExpirationBeforeExpire(expirationDate, activeDebugLevel.Id, userTrace);
     }
@@ -123,60 +118,75 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
     }
   }
 
-  const init = useCallback(async () => {
-    try {
-      const { queryResults: debugLevelResults } = await query<DebugLevel>(org, getDebugLevelQuery(), true);
-      const { queryResults: traceResults } = await query<UserTrace>(org, getTraceFlagQuery(org.userId), true);
+  const init = useCallback(
+    async (retry = true) => {
+      try {
+        const { queryResults: debugLevelResults } = await query<DebugLevel>(org, getDebugLevelQuery(), true);
+        const { queryResults: traceResults } = await query<UserTrace>(org, getTraceFlagQuery(org.userId), true);
 
-      if (isMounted.current) {
-        let newExpirationDate;
-        let debugLevels = debugLevelResults.records;
-        let activeDebugLevel =
-          debugLevels.find(
-            (item) => item.DeveloperName.toLowerCase() === 'sfdc_devconsole' || item.DeveloperName.toLowerCase().includes('DEBUG')
-          ) || debugLevels[0];
-        let userTrace = traceResults.records[0];
+        if (isMounted.current) {
+          let newExpirationDate;
+          let debugLevels = debugLevelResults.records;
+          let activeDebugLevel =
+            debugLevels.find(
+              (item) => item.DeveloperName.toLowerCase() === 'sfdc_devconsole' || item.DeveloperName.toLowerCase().includes('DEBUG')
+            ) || debugLevels[0];
+          let userTrace = traceResults.records[0];
 
-        if (!debugLevels.length) {
-          activeDebugLevel = await createDebugLevel(org);
-          debugLevels = [activeDebugLevel];
-        }
+          if (!debugLevels.length) {
+            activeDebugLevel = await createDebugLevel(org);
+            debugLevels = [activeDebugLevel];
+          }
 
-        if (!userTrace) {
-          // trace does not exist, create
-          const results = await createOrExtendDebugTrace(org, extendTraceHours, activeDebugLevel.Id);
-          userTrace = results.trace;
-          newExpirationDate = results.expirationDate;
-        } else {
-          newExpirationDate = parseISO(userTrace.ExpirationDate);
-          // Trace is expired, extend
-          if (isBefore(newExpirationDate, new Date())) {
-            const results = await createOrExtendDebugTrace(org, extendTraceHours, activeDebugLevel.Id, userTrace);
+          if (!userTrace) {
+            // trace does not exist, create
+            const results = await createOrExtendDebugTrace(org, extendTraceHours, activeDebugLevel.Id);
             userTrace = results.trace;
             newExpirationDate = results.expirationDate;
+          } else {
+            newExpirationDate = parseISO(userTrace.ExpirationDate);
+            // Trace is expired, extend
+            if (isBefore(newExpirationDate, new Date())) {
+              const results = await createOrExtendDebugTrace(org, extendTraceHours, activeDebugLevel.Id, userTrace);
+              userTrace = results.trace;
+              newExpirationDate = results.expirationDate;
+            }
           }
+          dispatch({
+            type: 'SUCCESS',
+            payload: {
+              userTrace,
+              debugLevels: debugLevels,
+              activeDebugLevel: activeDebugLevel,
+              expirationDate: newExpirationDate,
+            },
+          });
         }
-        dispatch({
-          type: 'SUCCESS',
-          payload: {
-            userTrace,
-            debugLevels: debugLevels,
-            activeDebugLevel: activeDebugLevel,
-            expirationDate: newExpirationDate,
-          },
-        });
+      } catch (ex) {
+        if (retry) {
+          // Retry once if we get an error, this happens if there are no debug sessions
+          // but retrying a second time works for some unknown reason
+          logger.warn('[APEX LOG][INIT][RETRY]', ex.message);
+          setTimeout(() => init(false), 1000);
+        } else {
+          logger.error('[APEX LOG][TRACE][ERROR]', ex.message);
+          logger.error(ex.stack);
+          dispatch({
+            type: 'ERROR',
+            payload: {
+              errorMessage: ex.message,
+            },
+          });
+        }
       }
-    } catch (ex) {
-      logger.error('[APEX LOG][TRACE][ERROR]', ex.message);
-      logger.error(ex.stack);
-      dispatch({
-        type: 'ERROR',
-        payload: {
-          errorMessage: ex.message,
-        },
-      });
-    }
-  }, [org, extendTraceHours]);
+    },
+    [org, extendTraceHours]
+  );
+
+  useEffect(() => {
+    dispatch({ type: 'INIT' });
+    init(true);
+  }, [init]);
 
   /**
    * Sets a timeout to extend the user trace if the user is still on the page when the
