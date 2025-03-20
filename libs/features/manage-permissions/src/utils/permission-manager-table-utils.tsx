@@ -1363,6 +1363,7 @@ export const RowActionRenderer = ({
   return (
     <Popover
       ref={popoverRef}
+      testId="row-action-popover"
       size={type === 'object' ? 'large' : 'medium'}
       placement="bottom"
       onChange={handlePopoverChange}
@@ -1404,6 +1405,7 @@ export const RowActionRenderer = ({
       buttonProps={{
         className: 'slds-button slds-button_stretch',
         onChange: handleOpen,
+        'data-testid': `row-action-button-${row.sobject}.${row.apiName}`,
       }}
       buttonStyle={{ lineHeight: '1rem' }}
     >

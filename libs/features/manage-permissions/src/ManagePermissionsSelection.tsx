@@ -139,6 +139,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
         >
           <div className="slds-p-horizontal_x-small">
             <ListWithFilterMultiSelect
+              testId="profiles-list"
               labels={{
                 listHeading: 'Profiles',
                 filter: 'Filter Profiles',
@@ -157,6 +158,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
           </div>
           <div className="slds-p-horizontal_x-small">
             <ListWithFilterMultiSelect
+              testId="permission-sets-list"
               labels={{
                 listHeading: 'Permission Sets',
                 filter: 'Filter Permission Sets',

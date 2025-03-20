@@ -17,6 +17,7 @@ import Tooltip from '../widgets/Tooltip';
 import List from './List';
 
 export interface ListWithFilterMultiSelectProps {
+  testId?: string;
   labels: {
     listHeading?: string;
     filter: string; // {Filter Items}
@@ -43,6 +44,7 @@ export interface ListWithFilterMultiSelectProps {
  * This will extend to the full page height
  */
 export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSelectProps> = ({
+  testId,
   labels,
   items,
   selectedItems = [],
@@ -150,7 +152,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
           <Spinner />
         </div>
       )}
-      <div>
+      <div data-testid={testId}>
         {hasError && (
           <p className="slds-p-around_medium slds-text-align_center">
             <span className="slds-text-color_error">There was an error loading {labels.descriptorPlural} for the selected org.</span>

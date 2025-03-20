@@ -3,6 +3,7 @@ export * from './lib/e2e-database-validation.utils';
 export * from './lib/pageObjectModels/AuthenticationPage.model';
 export * from './lib/pageObjectModels/LoadSingleObjectPage.model';
 export * from './lib/pageObjectModels/LoadWithoutFilePage.model';
+export * from './lib/pageObjectModels/ManagePermissionPage.model';
 export * from './lib/pageObjectModels/OrganizationsPage';
 export * from './lib/pageObjectModels/PlatformEventPage.model';
 export * from './lib/pageObjectModels/PlaywrightPage.model';
