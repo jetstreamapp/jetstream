@@ -5,6 +5,7 @@ import {
   AuthenticationPage,
   LoadSingleObjectPage,
   LoadWithoutFilePage,
+  ManagePermissionPage,
   OrganizationsPage,
   PlatformEventPage,
   PlaywrightPage,
@@ -40,6 +41,7 @@ type MyFixtures = {
   newUser: Awaited<ReturnType<AuthenticationPage['signUpAndVerifyEmail']>>;
   queryPage: QueryPage;
   loadSingleObjectPage: LoadSingleObjectPage;
+  managePermissionPage: ManagePermissionPage;
   organizationsPage: OrganizationsPage;
   loadWithoutFilePage: LoadWithoutFilePage;
   platformEventPage: PlatformEventPage;
@@ -62,9 +64,9 @@ export const test = base.extend<MyFixtures>({
   newUser: async ({ authenticationPage }, use) => {
     await use(await authenticationPage.signUpAndVerifyEmail());
   },
-  queryPage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
+  queryPage: async ({ page, apiRequestUtils }, use) => {
     await apiRequestUtils.selectDefaultOrg();
-    await use(new QueryPage(page, apiRequestUtils, playwrightPage));
+    await use(new QueryPage(page, apiRequestUtils));
   },
   loadSingleObjectPage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
     await apiRequestUtils.selectDefaultOrg();
@@ -73,6 +75,10 @@ export const test = base.extend<MyFixtures>({
   loadWithoutFilePage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
     await apiRequestUtils.selectDefaultOrg();
     await use(new LoadWithoutFilePage(page, apiRequestUtils, playwrightPage));
+  },
+  managePermissionPage: async ({ page, apiRequestUtils }, use) => {
+    await apiRequestUtils.selectDefaultOrg();
+    await use(new ManagePermissionPage(page, apiRequestUtils));
   },
   organizationsPage: async ({ page }, use) => {
     await use(new OrganizationsPage(page));

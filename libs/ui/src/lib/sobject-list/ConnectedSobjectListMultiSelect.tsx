@@ -5,7 +5,7 @@ import { DescribeGlobalSObjectResult, Maybe, RecentHistoryItemType, SalesforceOr
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { formatRelative } from 'date-fns/formatRelative';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import Grid from '../grid/Grid';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
@@ -132,7 +132,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
     }
 
     return (
-      <Fragment>
+      <div data-testid="sobject-list-multi-select">
         <Grid>
           <h2 className="slds-text-heading_medium slds-grow slds-text-align_center">{label}</h2>
           <div>
@@ -154,7 +154,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
           onSelected={onSelectedSObjects}
           errorReattempt={() => setErrorMessage(null)}
         />
-      </Fragment>
+      </div>
     );
   }
 );
