@@ -189,7 +189,7 @@ export class AuthenticationPage {
 
     await expect(this.page.getByText('Enter your verification code from your authenticator app')).toBeVisible();
 
-    await this.verifyTotp(email, password, secret, rememberMe);
+    await this.verifyTotp(email, secret, rememberMe);
   }
 
   async verifyEmail(email: string, rememberMe = false) {
@@ -213,7 +213,7 @@ export class AuthenticationPage {
     await this.page.waitForURL(`**/app`);
   }
 
-  async verifyTotp(email: string, password: string, secret: string, rememberMe = false) {
+  async verifyTotp(email: string, secret: string, rememberMe = false) {
     const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
     const { generateTOTP } = await import('@oslojs/otp');
 
@@ -230,9 +230,13 @@ export class AuthenticationPage {
     }
 
     await this.verificationCodeInput.fill(code);
+
     if (rememberMe) {
       await this.rememberDeviceInput.check();
+    } else {
+      await this.rememberDeviceInput.uncheck();
     }
+
     await this.continueButton.click();
 
     await this.page.waitForURL(`**/app`);

@@ -67,7 +67,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       csrfToken,
       captchaToken: '',
       type: activeFactor,
-      rememberDevice: false,
+      rememberDevice: true,
     },
   });
 

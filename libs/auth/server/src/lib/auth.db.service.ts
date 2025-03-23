@@ -27,7 +27,7 @@ import {
   LoginWithExistingIdentity,
 } from './auth.errors';
 import { ensureAuthError, verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY } from './auth.service';
-import { hashPassword, verifyPassword } from './auth.utils';
+import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, verifyPassword } from './auth.utils';
 
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
   id: true,
@@ -121,7 +121,7 @@ export async function createRememberDevice({
       deviceId,
       ipAddress,
       userAgent,
-      expiresAt: addDays(new Date(), 30),
+      expiresAt: addDays(new Date(), REMEMBER_DEVICE_DAYS),
     },
   });
 }
@@ -138,18 +138,46 @@ export async function hasRememberDeviceRecord({
   userAgent?: Maybe<string>;
 }) {
   try {
-    const matchingRecords = await prisma.rememberedDevice.count({
+    const rememberMe = await prisma.rememberedDevice.findFirst({
+      select: {
+        id: true,
+        deviceId: true,
+        userAgent: true,
+        ipAddress: true,
+        expiresAt: true,
+      },
       where: {
         userId,
         deviceId,
-        ipAddress,
-        userAgent,
         expiresAt: { gte: new Date() },
       },
     });
-    return matchingRecords > 0;
+
+    if (!rememberMe) {
+      return false;
+    }
+
+    if (rememberMe.userAgent && userAgent) {
+      const isSimilar = checkUserAgentSimilarity(rememberMe.userAgent, userAgent);
+      if (!isSimilar) {
+        logger.warn({ deviceId, userId }, `User agent mismatch for remembered device: ${rememberMe.userAgent} !== ${userAgent}`);
+        return false;
+      }
+    }
+
+    // refresh the expiration date
+    await prisma.rememberedDevice.update({
+      data: {
+        expiresAt: addDays(new Date(), REMEMBER_DEVICE_DAYS),
+        ipAddress: ipAddress || rememberMe.ipAddress,
+        userAgent: userAgent || rememberMe.userAgent,
+      },
+      where: { id: rememberMe.id },
+    });
+
+    return true;
   } catch (ex) {
-    logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error checking for remember device record');
+    logger.error({ ...getErrorMessageAndStackObj(ex), deviceId, userId }, 'Error checking for remember device record');
     return false;
   }
 }
