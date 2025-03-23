@@ -278,7 +278,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
           <NotSeeingRecentMetadataPopover
             org={selectedOrg}
             loading={refreshLoading}
-            serverUrl={serverUrl}
             disabled={deployInProgress}
             onReload={handleRefreshMetadata}
           />
