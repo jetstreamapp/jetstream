@@ -13,6 +13,7 @@ import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
   bulkApiAddBatchToJob,
   bulkApiCreateJob,
+  deleteReportsById,
   queryMore,
   retrieveMetadataFromListMetadata,
   retrieveMetadataFromManifestFile,
@@ -71,7 +72,7 @@ export class JobWorker {
   }
 
   public async handleMessage(name: AsyncJobType, payloadData: AsyncJobWorkerMessagePayload, port?: MessagePort) {
-    const { org, job } = payloadData || {};
+    const { org, job, apiVersion } = payloadData || {};
     switch (name) {
       case 'CancelJob': {
         const { job } = payloadData as AsyncJobWorkerMessagePayload<CancelJob>;
@@ -87,18 +88,30 @@ export class JobWorker {
           let { records, batchSize } = job.meta as { records: SalesforceRecord[]; batchSize?: number };
           records = Array.isArray(records) ? records : [records];
 
-          batchSize = clamp(batchSize || MAX_DELETE_RECORDS, 1, 200);
-
           const sobject = getSObjectFromRecordUrl(records[0].attributes.url);
+
+          const isReport = sobject === 'Report';
+          const matchBatchSize = isReport ? 25 : 200;
+
+          batchSize = clamp(batchSize || MAX_DELETE_RECORDS, 1, matchBatchSize);
+
           const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
 
           const results: any[] = [];
           for (const ids of splitArrayToMaxSize(allIds, batchSize)) {
             try {
               // TODO: add progress notification and allow cancellation
-              let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
-              tempResults = ensureArray(tempResults);
-              tempResults.forEach((result) => results.push(result));
+
+              if (isReport) {
+                // Reports cannot be deleted using the sobjectOperation, so we need to use
+                // /services/data/v34.0/analytics/reports/00OD0000001cxIE
+                const tempResults = await deleteReportsById(org, ids, apiVersion);
+                tempResults.forEach((result) => results.push(result));
+              } else {
+                let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
+                tempResults = ensureArray(tempResults);
+                tempResults.forEach((result) => results.push(result));
+              }
             } catch (ex) {
               logger.error('There was a problem deleting these records');
             }

@@ -78,9 +78,10 @@ const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validato
   }
 });
 
-// TODO: combine with salesforceRequest and rename
-// The request payload and response are slightly different, but the logic is the same
-// The only difference is the caller is expected to pass in the full url to call (AFAIK)
+/**
+ * Similar to salesforceRequest, but the results are not processed as JSON.
+ * This is useful for raw text responses, such as when downloading files.
+ */
 const salesforceRequestManual = createRoute(
   routeDefinition.salesforceRequestManual.validators,
   async ({ body, jetstreamConn }, req, res, next) => {

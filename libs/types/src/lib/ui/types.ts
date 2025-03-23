@@ -431,6 +431,7 @@ export interface AsyncJob<T = unknown, R = unknown> {
 export interface AsyncJobWorkerMessagePayload<T = unknown> {
   job: AsyncJob<T>;
   org: SalesforceOrgUi;
+  apiVersion: string;
 }
 
 export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
