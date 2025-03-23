@@ -1,39 +1,65 @@
 import { css } from '@emotion/react';
 import { SalesforceOrgUi } from '@jetstream/types';
+import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import classNames from 'classnames';
 import { FunctionComponent, useRef } from 'react';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { useRecoilValue } from 'recoil';
+import Popover, { PopoverProps, PopoverRef } from '../popover/Popover';
 import Icon from './Icon';
 import SalesforceLogin from './SalesforceLogin';
 import Spinner from './Spinner';
 
+const DEFAULT_MESSAGES = [
+  'Make sure all objects and fields have proper permissions.',
+  'If you recently created an object or field, use the button below to clear the cache and reload from Salesforce.',
+];
+
 export interface NotSeeingRecentMetadataPopoverProps {
-  loading: boolean;
+  className?: string;
+  loading?: boolean;
   header?: string;
   /** only required to show viewInSalesforceSetup */
   org?: SalesforceOrgUi;
-  serverUrl?: string;
+  /**
+   * Label of button shown when popover is closed
+   */
+  label?: string;
+  headerLabel?: string;
+  /**
+   * Label of button shown when popover is closed
+   */
+  refreshButtonLabel?: string;
   viewInSalesforceSetup?: {
     label: string;
     title: string;
     link: string;
   };
+  messages?: string[];
   disabled?: boolean;
+  popoverProps?: Partial<Omit<PopoverProps, 'children'>>;
   onReload: () => void;
 }
 
 export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMetadataPopoverProps> = ({
+  className,
   org,
-  loading,
-  serverUrl,
-  header = 'Missing Fields?',
+  loading = false,
+  header = 'Missing Metadata?',
+  label = 'Not seeing recent metadata?',
+  refreshButtonLabel: buttonLabel = 'Refresh Metadata',
   viewInSalesforceSetup = {
-    label: 'View object in Salesforce setup',
+    label: 'View objects in Salesforce setup',
     link: `/lightning/setup/ObjectManager/home`,
-    title: `View object in Salesforce setup`,
+    title: `View objects in Salesforce setup`,
   },
+  messages = DEFAULT_MESSAGES,
   disabled,
+  popoverProps,
   onReload,
 }) => {
+  const { serverUrl } = useRecoilValue(applicationCookieState);
+  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+
   const popoverRef = useRef<PopoverRef>(null);
 
   function handleReload() {
@@ -59,11 +85,12 @@ export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMe
           `}
         >
           {loading && <Spinner />}
-          {viewInSalesforceSetup && serverUrl && org && (
+          {viewInSalesforceSetup && org && (
             <SalesforceLogin
+              className="slds-m-bottom_x-small"
               serverUrl={serverUrl}
               org={org}
-              skipFrontDoorAuth
+              skipFrontDoorAuth={skipFrontDoorAuth}
               returnUrl={viewInSalesforceSetup.link}
               title={viewInSalesforceSetup.title}
               iconPosition="right"
@@ -71,25 +98,29 @@ export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMe
               {viewInSalesforceSetup.label}
             </SalesforceLogin>
           )}
-          <p className="slds-m-bottom_x-small">Make sure all objects and fields have proper permissions.</p>
-          <p className="slds-m-bottom_x-small">If metadata is not showing up, try refreshing the metadata cache.</p>
+          {messages.map((message) => (
+            <p key={message} className="slds-m-bottom_x-small">
+              {message}
+            </p>
+          ))}
         </div>
       }
       footer={
         <footer className="slds-popover__footer">
           <button className="slds-button slds-button_neutral slds-button_stretch" disabled={loading} onClick={handleReload}>
             <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-            Refresh Metadata
+            {buttonLabel}
           </button>
         </footer>
       }
       buttonProps={{
-        className: 'slds-button',
+        className: classNames(className, 'slds-button'),
         disabled,
       }}
+      {...popoverProps}
     >
       {loading && <Spinner size="x-small" />}
-      Not seeing recent metadata?
+      {label}
     </Popover>
   );
 };

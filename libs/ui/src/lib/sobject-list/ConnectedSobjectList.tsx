@@ -109,7 +109,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       }
       if (resultsWithCache.cache) {
         const cache = resultsWithCache.cache;
-        setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
+        setLastRefreshed(`Last updated from Salesforce ${formatRelative(cache.age, new Date())}`);
       }
       onSobjects(orderObjectsBy(results.sobjects.filter(filterFn), 'label'));
     } catch (ex) {

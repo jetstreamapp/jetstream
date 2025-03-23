@@ -3,7 +3,7 @@
 import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
-import { describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
+import { clearCacheForOrg, describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
 import {
   AsyncJobNew,
@@ -29,6 +29,7 @@ import {
   Grid,
   Icon,
   Modal,
+  NotSeeingRecentMetadataPopover,
   PopoverErrorButton,
   RecordDownloadModal,
   SalesforceLogin,
@@ -187,123 +188,130 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     setIsFormDirty(Object.values(modifiedRecord).filter((value) => value !== undefined).length > 0);
   }, [action, modifiedRecord]);
 
-  const fetchMetadata = useCallback(async () => {
-    try {
-      let picklistValues: PicklistFieldValues = {};
-      let record: SalesforceRecord = {};
+  const fetchMetadata = useCallback(
+    async (clearCache = false) => {
+      try {
+        let picklistValues: PicklistFieldValues = {};
+        let record: SalesforceRecord = {};
 
-      const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
-      setChildRelationships(
-        sobjectMetadata.data.childRelationships.filter(
-          (item) => item.relationshipName && item.childSObject && !CHILD_RELATIONSHIP_BLOCK_LIST.has(item.relationshipName)
-        )
-      );
-
-      if (action !== 'create' && recordId) {
-        const response: SalesforceRecord | ErrorResult = (
-          await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: [recordId] })
-        )[0];
-        if ('success' in response && !response.success) {
-          setFormErrors(handleEditFormErrorResponse(response));
-          setLoading(false);
-          return;
+        if (clearCache) {
+          await clearCacheForOrg(selectedOrg);
         }
-        record = response;
-      }
 
-      let recordTypeId = record?.RecordTypeId;
-      if (!recordTypeId) {
-        const recordTypeInfos = sobjectMetadata.data.recordTypeInfos;
-        if (recordTypeInfos.length === 1) {
-          recordTypeId = recordTypeInfos[0].recordTypeId;
-        } else {
-          const foundRecordType = recordTypeInfos.find((recordType) => recordType.master);
-          if (foundRecordType) {
-            recordTypeId = foundRecordType.recordTypeId;
+        const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
+        setChildRelationships(
+          sobjectMetadata.data.childRelationships.filter(
+            (item) => item.relationshipName && item.childSObject && !CHILD_RELATIONSHIP_BLOCK_LIST.has(item.relationshipName)
+          )
+        );
+
+        if (action !== 'create' && recordId) {
+          const response: SalesforceRecord | ErrorResult = (
+            await sobjectOperation(selectedOrg, sobjectName, 'retrieve', { ids: [recordId] })
+          )[0];
+          if ('success' in response && !response.success) {
+            setFormErrors(handleEditFormErrorResponse(response));
+            setLoading(false);
+            return;
           }
+          record = response;
         }
-      }
-      if (recordTypeId) {
-        try {
-          const results = await genericRequest<PicklistFieldValuesResponse>(selectedOrg, {
-            method: 'GET',
-            url: `/services/data/${apiVersion}/ui-api/object-info/${sobjectName}/picklist-values/${recordTypeId}`,
-            isTooling: false,
-          });
-          picklistValues = results.picklistFieldValues;
-        } catch (ex) {
-          logger.warn('[RECORD-UI][ERROR]', ex);
-          if (ex?.message?.endsWith('not supported in UI API')) {
-            // UI API is not supported, artificially build picklist values
-            picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata.data);
+
+        let recordTypeId = record?.RecordTypeId;
+        if (!recordTypeId) {
+          const recordTypeInfos = sobjectMetadata.data.recordTypeInfos;
+          if (recordTypeInfos.length === 1) {
+            recordTypeId = recordTypeInfos[0].recordTypeId;
           } else {
-            throw ex;
+            const foundRecordType = recordTypeInfos.find((recordType) => recordType.master);
+            if (foundRecordType) {
+              recordTypeId = foundRecordType.recordTypeId;
+            }
           }
         }
-      } else {
-        // UI API is not supported because there is no record type id, artificially build picklist values
-        picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata.data);
-      }
+        if (recordTypeId) {
+          try {
+            const results = await genericRequest<PicklistFieldValuesResponse>(selectedOrg, {
+              method: 'GET',
+              url: `/services/data/${apiVersion}/ui-api/object-info/${sobjectName}/picklist-values/${recordTypeId}`,
+              isTooling: false,
+            });
+            picklistValues = results.picklistFieldValues;
+          } catch (ex) {
+            logger.warn('[RECORD-UI][ERROR]', ex);
+            if (ex?.message?.endsWith('not supported in UI API')) {
+              // UI API is not supported, artificially build picklist values
+              picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata.data);
+            } else {
+              throw ex;
+            }
+          }
+        } else {
+          // UI API is not supported because there is no record type id, artificially build picklist values
+          picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata.data);
+        }
 
-      // Query all related records so that related record name can be shown in the UI
-      if (recordId) {
-        try {
-          const { queryResults } = await query(
-            selectedOrg,
-            composeQuery({
-              sObject: sobjectName,
-              fields: sobjectMetadata.data.fields
-                .filter((field) => field.type === 'reference' && field.relationshipName && record[field.name])
-                .map((field) =>
-                  getField({
-                    field: 'Name',
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    relationships: [field.relationshipName!],
-                  })
-                ),
-              where: {
-                left: {
-                  field: 'Id',
-                  operator: '=',
-                  value: recordId,
-                  literalType: 'STRING',
+        // Query all related records so that related record name can be shown in the UI
+        if (recordId) {
+          try {
+            const { queryResults } = await query(
+              selectedOrg,
+              composeQuery({
+                sObject: sobjectName,
+                fields: sobjectMetadata.data.fields
+                  .filter((field) => field.type === 'reference' && field.relationshipName && record[field.name])
+                  .map((field) =>
+                    getField({
+                      field: 'Name',
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      relationships: [field.relationshipName!],
+                    })
+                  ),
+                where: {
+                  left: {
+                    field: 'Id',
+                    operator: '=',
+                    value: recordId,
+                    literalType: 'STRING',
+                  },
                 },
-              },
-            })
-          );
-          record = { ...record, ...queryResults.records[0] };
-        } catch (ex) {
-          logger.warn('Could not fetch related records');
+              })
+            );
+            record = { ...record, ...queryResults.records[0] };
+          } catch (ex) {
+            logger.warn('Could not fetch related records');
+          }
+        }
+
+        if (action === 'clone') {
+          record.attributes = undefined;
+          record.Id = undefined;
+        }
+
+        if (isMounted.current) {
+          setSobjectFields(sobjectMetadata.data.fields);
+          setPicklistValues(picklistValues);
+          setInitialRecord(record);
+          setLoading(false);
+          onFetch && recordId && onFetch(recordId, record);
+        }
+      } catch (ex) {
+        if (isMounted.current) {
+          logger.error('Error fetching metadata', ex);
+          rollbar.error('Error fetching record metadata', { message: ex.message, stack: ex.stack });
+          setFormErrors({
+            hasErrors: true,
+            fieldErrors: {},
+            generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
+          });
+          setLoading(false);
+          onFetchError && recordId && onFetchError(recordId, sobjectName);
         }
       }
-
-      if (action === 'clone') {
-        record.attributes = undefined;
-        record.Id = undefined;
-      }
-
-      if (isMounted.current) {
-        setSobjectFields(sobjectMetadata.data.fields);
-        setPicklistValues(picklistValues);
-        setInitialRecord(record);
-        setLoading(false);
-        onFetch && recordId && onFetch(recordId, record);
-      }
-    } catch (ex) {
-      if (isMounted.current) {
-        logger.error('Error fetching metadata', ex);
-        rollbar.error('Error fetching record metadata', { message: ex.message, stack: ex.stack });
-        setFormErrors({
-          hasErrors: true,
-          fieldErrors: {},
-          generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
-        });
-        setLoading(false);
-        onFetchError && recordId && onFetchError(recordId, sobjectName);
-      }
-    }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [action, apiVersion, recordId, selectedOrg, sobjectName]);
+    [action, apiVersion, recordId, selectedOrg, sobjectName]
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -595,26 +603,47 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       <PopoverErrorButton className="slds-m-right_small" errors={formErrors.generalErrors} omitPortal />
                     </span>
                   )}
-                  <ButtonGroupContainer className="slds-float_left">
-                    <button
-                      className="slds-button slds-button_neutral"
-                      onClick={() => handleCopyToClipboard()}
-                      title="Copy the record to the clipboard which can then pasted into a spreadsheet."
-                    >
-                      <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      <span>Copy to Clipboard</span>
-                    </button>
-                    <DropDown
-                      className="slds-button_last"
-                      dropDownClassName="slds-dropdown_actions"
-                      position="right"
-                      items={[
-                        { id: 'csv', value: 'Copy as CSV' },
-                        { id: 'json', value: 'Copy as JSON' },
-                      ]}
-                      onSelected={(item) => handleCopyToClipboard(item as CopyAsDataType)}
-                    />
-                  </ButtonGroupContainer>
+                  <div className="slds-float_left">
+                    <ButtonGroupContainer>
+                      <button
+                        className="slds-button slds-button_neutral"
+                        onClick={() => handleCopyToClipboard()}
+                        title="Copy the record to the clipboard which can then pasted into a spreadsheet."
+                      >
+                        <Icon type="utility" icon="copy_to_clipboard" className="slds-button__icon slds-button__icon_left" omitContainer />
+                        <span>Copy to Clipboard</span>
+                      </button>
+                      <DropDown
+                        className="slds-button_last"
+                        dropDownClassName="slds-dropdown_actions"
+                        position="right"
+                        items={[
+                          { id: 'csv', value: 'Copy as CSV' },
+                          { id: 'json', value: 'Copy as JSON' },
+                        ]}
+                        onSelected={(item) => handleCopyToClipboard(item as CopyAsDataType)}
+                      />
+                    </ButtonGroupContainer>
+                    <div className="slds-text-align_left d-inline-block">
+                      <NotSeeingRecentMetadataPopover
+                        className="slds-m-left_small"
+                        popoverProps={{ omitPortal: true, placement: 'top-start' }}
+                        header="Missing Fields?"
+                        label="Not seeing all fields?"
+                        refreshButtonLabel="Reload Fields"
+                        org={selectedOrg}
+                        viewInSalesforceSetup={{
+                          label: 'View object in Salesforce setup',
+                          title: 'View object in Salesforce setup',
+                          link: `/lightning/setup/ObjectManager/${sobjectName}/Details/view`,
+                        }}
+                        onReload={() => {
+                          setLoading(true);
+                          fetchMetadata(true);
+                        }}
+                      />
+                    </div>
+                  </div>
                   <button
                     className="slds-button slds-button_neutral"
                     onClick={() => setIsViewAsJson(!isViewAsJson)}
