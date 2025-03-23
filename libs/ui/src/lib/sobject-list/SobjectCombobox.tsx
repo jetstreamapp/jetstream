@@ -83,10 +83,6 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
         if (!isMounted.current || uniqueId !== selectedOrg.uniqueId || priorToolingValue !== isTooling) {
           return;
         }
-        // if (resultsWithCache.cache) {
-        //   const cache = resultsWithCache.cache;
-        //   setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
-        // }
         setSObjects(sobjectToListItem(orderObjectsBy(results.sobjects.filter(filterFn), 'label')));
       } catch (ex) {
         logger.error(ex);

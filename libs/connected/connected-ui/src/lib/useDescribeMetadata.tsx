@@ -74,7 +74,7 @@ export function useDescribeMetadata(
         }
 
         if (cache) {
-          setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
+          setLastRefreshed(`Last updated from Salesforce ${formatRelative(cache.age, new Date())}`);
         }
         setOrgInformation({
           organizationNamespace: data.organizationNamespace,

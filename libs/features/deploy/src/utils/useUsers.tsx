@@ -53,7 +53,7 @@ export function useUsers(
 
         if (isMounted.current) {
           if (cache) {
-            setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
+            setLastRefreshed(`Last updated from Salesforce ${formatRelative(cache.age, new Date())}`);
           }
           dispatch({ type: 'SUCCESS', payload: getListItemFromQueryResults(selectedOrg, data.queryResults.records, sortCurrentUserFirst) });
         }

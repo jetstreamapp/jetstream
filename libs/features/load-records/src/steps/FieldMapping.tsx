@@ -14,7 +14,17 @@ import {
   Maybe,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { Alert, ButtonGroupContainer, DropDown, Grid, GridCol, Icon, SearchInput, Tooltip } from '@jetstream/ui';
+import {
+  Alert,
+  ButtonGroupContainer,
+  DropDown,
+  Grid,
+  GridCol,
+  Icon,
+  NotSeeingRecentMetadataPopover,
+  SearchInput,
+  Tooltip,
+} from '@jetstream/ui';
 import {
   autoMapFields,
   checkFieldsForMappingError,
@@ -28,7 +38,6 @@ import classNames from 'classnames';
 import { memo, useEffect, useRef, useState } from 'react';
 import LoadRecordsFieldMappingRow from '../components/LoadRecordsFieldMappingRow';
 import LoadRecordsFieldMappingStaticRow from '../components/LoadRecordsFieldMappingStaticRow';
-import LoadRecordsRefreshCachePopover from '../components/LoadRecordsRefreshCachePopover';
 import { LoadMappingPopover } from '../components/load-mapping-storage/LoadMappingPopover';
 import SaveMappingPopover from '../components/load-mapping-storage/SaveMappingPopover';
 
@@ -264,7 +273,25 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               <LoadMappingPopover sobject={sobject} csvFields={csvFields} objectFields={objectFields} onLoadMapping={handleLoadMapping} />
             </ButtonGroupContainer>
             <SearchInput id="field-filter" className="slds-size_1-of-2" placeholder="Filter fields from file" onChange={setSearchTerm} />
-            <LoadRecordsRefreshCachePopover org={org} sobject={sobject} loading={refreshLoading} onReload={handleCacheRefresh} />
+            <NotSeeingRecentMetadataPopover
+              popoverProps={{ omitPortal: true, placement: 'top-start' }}
+              header="Missing Fields?"
+              label="Not seeing all fields?"
+              refreshButtonLabel="Reload Fields"
+              org={org}
+              viewInSalesforceSetup={{
+                label: 'View object in Salesforce setup',
+                title: 'View object in Salesforce setup',
+                link: `/lightning/setup/ObjectManager/${sobject}/Details/view`,
+              }}
+              loading={refreshLoading}
+              disabled={refreshLoading}
+              messages={[
+                'If there are fields that are not showing up in the list for mapping, make sure the field is not read-only and that your user has access to the field.',
+                'If the missing fields were created recently or if permissions were updated recently then you can reload the fields.',
+              ]}
+              onReload={handleCacheRefresh}
+            />
           </Grid>
           <table className="slds-table slds-table_cell-buffer slds-table_bordered">
             <thead>

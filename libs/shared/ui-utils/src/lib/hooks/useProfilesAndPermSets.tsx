@@ -105,7 +105,7 @@ export function useProfilesAndPermSets(
         );
         if (isMounted.current) {
           if (cache) {
-            setLastRefreshed(`Last updated ${formatRelative(cache.age, new Date())}`);
+            setLastRefreshed(`Last updated from Salesforce ${formatRelative(cache.age, new Date())}`);
           }
 
           const output = getListItemFromQueryResults(data.queryResults.records.filter((item) => item.Type !== 'Group'));

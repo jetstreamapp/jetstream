@@ -81,7 +81,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     const [closeElement, setCloseElement] = useState<HTMLElement | null>(null);
 
     const { styles, attributes } = usePopper(referenceElement, popperElement, {
-      placement: placement,
+      placement,
       modifiers: [
         { name: 'arrow', options: { element: arrowElement } },
         { name: 'offset', options: { offset: [0, 12] } },

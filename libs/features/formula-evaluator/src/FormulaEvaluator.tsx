@@ -300,14 +300,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   <ViewDocsLink textReset path="/deploy/formula-evaluator" />
                 </Grid>
               }
-              actions={
-                <NotSeeingRecentMetadataPopover
-                  org={selectedOrg}
-                  loading={refreshLoading}
-                  serverUrl={serverUrl}
-                  onReload={handleRefreshMetadata}
-                />
-              }
+              actions={<NotSeeingRecentMetadataPopover org={selectedOrg} loading={refreshLoading} onReload={handleRefreshMetadata} />}
             >
               <Grid vertical>
                 <SobjectCombobox

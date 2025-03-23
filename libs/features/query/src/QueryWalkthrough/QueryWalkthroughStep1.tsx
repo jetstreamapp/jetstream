@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryWalkthroughStep1Props {}
@@ -8,7 +8,7 @@ export const QueryWalkthroughStep1: FunctionComponent<QueryWalkthroughStep1Props
   return (
     <div>
       <p className="slds-text-heading_small">
-        This tool helps you easily create powerful queries (searches) to fetch records from your Salesforce org.
+        Jetstream helps you easily create powerful queries (searches) to fetch records from your Salesforce org.
       </p>
       <p className="slds-m-top_small">The main flow is simple:</p>
       <ol className="slds-list_ordered slds-m-vertical_small">
@@ -18,6 +18,12 @@ export const QueryWalkthroughStep1: FunctionComponent<QueryWalkthroughStep1Props
         <li>Click the 'Execute' button.</li>
       </ol>
       <p>From the Query Results page you can then delete or download any of the records that were returned.</p>
+      <p className="slds-m-top_small">
+        <strong>
+          Tip: If you are not seeing objects or fields, make sure you have permission to view them. Click the "refresh" icon above the
+          objects to clear the cache.
+        </strong>
+      </p>
     </div>
   );
 };
