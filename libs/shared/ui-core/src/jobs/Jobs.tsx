@@ -43,7 +43,7 @@ export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
   const rollbar = useRollbar();
   const setJobs = useSetRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
@@ -72,6 +72,7 @@ export const Jobs: FunctionComponent = () => {
           data: {
             job: { ...job },
             org: job.org,
+            apiVersion: defaultApiVersion,
           },
         });
       });
@@ -499,6 +500,7 @@ export const Jobs: FunctionComponent = () => {
         data: {
           job: { ...job, meta: null, results: null },
           org: job.org,
+          apiVersion: defaultApiVersion,
         },
       });
       setJobs((prevJobs) => ({

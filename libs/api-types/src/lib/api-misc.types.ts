@@ -8,7 +8,7 @@ export const SalesforceApiRequestSchema = z.object({
   headers: z.record(z.string()).nullish(),
   options: z
     .object({
-      responseType: z.enum(['json', 'text']).nullish(),
+      responseType: z.enum(['json', 'text']).nullish().default('json'),
       noContentResponse: z.any().nullish(),
     })
     .nullish(),

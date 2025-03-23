@@ -42,6 +42,7 @@ import {
   PullResponse,
   PullResponseSchema,
   QueryResults,
+  RecordResult,
   RetrieveResult,
   SalesforceApiRequest,
   SalesforceOrgUi,
@@ -943,4 +944,39 @@ export async function googleUploadFile(
       })
     )
     .then((response) => response.data);
+}
+
+export async function deleteReportsById(org: SalesforceOrgUi, ids: string[], apiVersion: string): Promise<RecordResult[]> {
+  const output: RecordResult[] = [];
+  for (const id of ids) {
+    try {
+      const response = await manualRequest(org, {
+        method: 'DELETE',
+        url: `/services/data/${apiVersion}/analytics/reports/${id}`,
+      });
+
+      if (response.error) {
+        const results = JSON.parse(response.body || '[]') as {
+          errorCode: string;
+          message: string;
+          specificErrorCode: number;
+        }[];
+        output.push({
+          errors: results.map((error) => ({ fields: [], message: error.message, statusCode: error.errorCode })),
+          success: false,
+          id,
+        });
+        continue;
+      }
+      output.push({ success: true, id });
+    } catch (ex) {
+      output.push({
+        errors: [{ fields: [], message: 'UNKOWN ERROR', statusCode: 'UNKNOWN' }],
+        success: false,
+        id,
+      });
+    }
+  }
+
+  return output;
 }
