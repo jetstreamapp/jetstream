@@ -149,6 +149,7 @@ import UtilityIcon_Task from './icons/utility/Task';
 import UtilityIcon_Text from './icons/utility/Text';
 import UtilityIcon_ToggleOff from './icons/utility/ToggleOff';
 import UtilityIcon_ToggleOn from './icons/utility/ToggleOn';
+import UtilityIcon_Undelete from './icons/utility/Undelete';
 import UtilityIcon_Underline from './icons/utility/Underline';
 import UtilityIcon_Undo from './icons/utility/Undo';
 import UtilityIcon_Up from './icons/utility/Up';
@@ -336,6 +337,7 @@ const utilityIcons = {
   text: UtilityIcon_Text,
   toggle_off: UtilityIcon_ToggleOff,
   toggle_on: UtilityIcon_ToggleOn,
+  undelete: UtilityIcon_Undelete,
   underline: UtilityIcon_Underline,
   undo: UtilityIcon_Undo,
   up: UtilityIcon_Up,

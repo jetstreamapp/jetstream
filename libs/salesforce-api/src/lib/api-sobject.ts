@@ -4,11 +4,13 @@ import {
   DescribeSObjectResult,
   Maybe,
   OperationReturnType,
+  RecordResult,
   SalesforceRecord,
   SobjectOperation,
 } from '@jetstream/types';
 import { ApiConnection } from './connection';
-import { SalesforceApi } from './utils';
+import { SoapResponse } from './types';
+import { correctRecordResultSoapXmlResponse, SalesforceApi } from './utils';
 
 export class ApiSObject extends SalesforceApi {
   constructor(connection: ApiConnection) {
@@ -35,7 +37,7 @@ export class ApiSObject extends SalesforceApi {
     records,
   }: {
     sobject: string;
-    operation: string;
+    operation: 'retrieve' | 'create' | 'update' | 'upsert' | 'delete' | 'undelete';
     externalId?: Maybe<string>;
     allOrNone?: Maybe<boolean>;
     ids?: Maybe<string | string[]>;
@@ -142,6 +144,23 @@ export class ApiSObject extends SalesforceApi {
           url: `${BASE_URL}/sobjects?ids=${ids.join(',')}`,
         });
 
+        break;
+      }
+      case 'undelete': {
+        if (!Array.isArray(ids)) {
+          throw new Error(`The ids property must be included`);
+        }
+        operationPromise = this.apiRequest<SoapResponse<'undeleteResponse', RecordResult[]>>(
+          this.prepareSoapRequestOptions({
+            type: 'PARTNER',
+            header: {
+              AllOrNoneHeader: { allOrNone: allOrNone ? 'true' : 'false' },
+            },
+            body: { undelete: { ids } },
+          })
+        ).then((response) => {
+          return correctRecordResultSoapXmlResponse(response['ns1:Envelope'].Body.undeleteResponse.result);
+        });
         break;
       }
       default:

@@ -11,7 +11,7 @@ export const routeDefinition = {
     validators: {
       params: z.object({
         sobject: z.string(),
-        operation: z.string(),
+        operation: z.enum(['retrieve', 'create', 'update', 'upsert', 'delete', 'undelete']),
       }),
       body: RecordOperationRequestSchema,
       query: z.object({
