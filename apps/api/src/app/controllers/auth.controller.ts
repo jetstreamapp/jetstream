@@ -320,189 +320,194 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
 /**
  * FIXME: This should probably be broken up and logic moved to the auth service
  */
-const callback = createRoute(routeDefinition.callback.validators, async ({ body, params, query, clearCookie }, req, res, next) => {
-  let provider: Provider | null = null;
-  try {
-    const providers = listProviders();
+const callback = createRoute(
+  routeDefinition.callback.validators,
+  async ({ body, params, query, setCookie, clearCookie }, req, res, next) => {
+    let provider: Provider | null = null;
+    try {
+      const providers = listProviders();
 
-    provider = providers[params.provider];
-    if (!provider) {
-      throw new InvalidParameters('Missing provider');
-    }
-
-    let isNewUser = false;
-    const {
-      pkceCodeVerifier,
-      nonce,
-      linkIdentity: linkIdentityCookie,
-      returnUrl,
-      rememberDevice,
-      redirectUrl: redirectUrlCookie,
-    } = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const cookies = parseCookie(req.headers.cookie!);
-    clearOauthCookies(res);
-
-    if (provider.type === 'oauth') {
-      // oauth flow
-      const { userInfo } = await validateCallback(
-        provider.provider as OauthProviderType,
-        new URLSearchParams(query),
-        cookies[pkceCodeVerifier.name],
-        cookies[nonce.name]
-      );
-
-      if (!userInfo.email) {
-        throw new InvalidParameters('Missing email from OAuth provider');
+      provider = providers[params.provider];
+      if (!provider) {
+        throw new InvalidParameters('Missing provider');
       }
 
-      const providerUser = {
-        id: userInfo.sub,
-        email: userInfo.email,
-        emailVerified: userInfo.email_verified ?? false,
-        givenName: userInfo.given_name,
-        familyName: userInfo.family_name,
-        username: userInfo.preferred_username || (userInfo.username as string | undefined) || userInfo.email,
-        name:
-          userInfo.name ??
-          (userInfo.given_name && userInfo.family_name ? `${userInfo.given_name} ${userInfo.family_name}` : userInfo.email),
-        picture: (userInfo.picture_thumbnail as string | undefined) || userInfo.picture,
-      };
+      let isNewUser = false;
+      const {
+        pkceCodeVerifier,
+        nonce,
+        linkIdentity: linkIdentityCookie,
+        returnUrl,
+        rememberDevice,
+        redirectUrl: redirectUrlCookie,
+      } = getCookieConfig(ENV.USE_SECURE_COOKIES);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const cookies = parseCookie(req.headers.cookie!);
+      clearOauthCookies(res);
 
-      // If user has an active session and user is linking an identity to an existing account
-      // link and redirect to profile page
-      if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
-        await linkIdentityToUser({
-          userId: req.session.user.id,
+      if (provider.type === 'oauth') {
+        // oauth flow
+        const { userInfo } = await validateCallback(
+          provider.provider as OauthProviderType,
+          new URLSearchParams(query),
+          cookies[pkceCodeVerifier.name],
+          cookies[nonce.name]
+        );
+
+        if (!userInfo.email) {
+          throw new InvalidParameters('Missing email from OAuth provider');
+        }
+
+        const providerUser = {
+          id: userInfo.sub,
+          email: userInfo.email,
+          emailVerified: userInfo.email_verified ?? false,
+          givenName: userInfo.given_name,
+          familyName: userInfo.family_name,
+          username: userInfo.preferred_username || (userInfo.username as string | undefined) || userInfo.email,
+          name:
+            userInfo.name ??
+            (userInfo.given_name && userInfo.family_name ? `${userInfo.given_name} ${userInfo.family_name}` : userInfo.email),
+          picture: (userInfo.picture_thumbnail as string | undefined) || userInfo.picture,
+        };
+
+        // If user has an active session and user is linking an identity to an existing account
+        // link and redirect to profile page
+        if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
+          await linkIdentityToUser({
+            userId: req.session.user.id,
+            provider: provider.provider,
+            providerUser,
+          });
+          createUserActivityFromReq(req, res, {
+            action: 'LINK_IDENTITY',
+            method: provider.provider.toUpperCase(),
+            success: true,
+          });
+          redirect(res, cookies[returnUrl.name] || `${ENV.JETSTREAM_CLIENT_URL}/profile`);
+          return;
+        }
+
+        const sessionData = await handleSignInOrRegistration({
+          providerType: provider.type,
           provider: provider.provider,
           providerUser,
         });
-        createUserActivityFromReq(req, res, {
-          action: 'LINK_IDENTITY',
-          method: provider.provider.toUpperCase(),
-          success: true,
+        isNewUser = sessionData.isNewUser;
+
+        initSession(req, sessionData);
+      } else if (provider.type === 'credentials' && req.method === 'POST') {
+        if (!body || !('action' in body)) {
+          throw new InvalidAction('Missing action in body');
+        }
+        const { action, csrfToken, email, password } = body;
+        await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+
+        const sessionData =
+          action === 'login'
+            ? await handleSignInOrRegistration({
+                providerType: 'credentials',
+                action,
+                email,
+                password,
+              })
+            : await handleSignInOrRegistration({
+                providerType: 'credentials',
+                action,
+                email,
+                name: body.name,
+                password,
+              });
+
+        isNewUser = sessionData.isNewUser;
+
+        initSession(req, sessionData);
+      } else {
+        throw new InvalidProvider(`Provider type ${provider.type} is not supported. Method=${req.method}`);
+      }
+
+      if (!req.session.user) {
+        throw new AuthError('Session not initialized');
+      }
+
+      // check for remembered device - emailVerification cannot be bypassed
+      if (
+        cookies[rememberDevice.name] &&
+        Array.isArray(req.session.pendingVerification) &&
+        req.session.pendingVerification.length > 0 &&
+        req.session.pendingVerification.find((item) => item.type !== 'email')
+      ) {
+        const deviceId = cookies[rememberDevice.name];
+        const isDeviceRemembered = await hasRememberDeviceRecord({
+          userId: req.session.user.id,
+          deviceId,
+          ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+          userAgent: req.get('User-Agent'),
         });
-        redirect(res, cookies[returnUrl.name] || `${ENV.JETSTREAM_CLIENT_URL}/profile`);
-        return;
+        if (isDeviceRemembered) {
+          req.session.pendingVerification = null;
+          // update cookie expiration date
+          setCookie(rememberDevice.name, deviceId, rememberDevice.options);
+        } else {
+          // deviceId is not valid, remove cookie
+          clearCookie(rememberDevice.name, rememberDevice.options);
+        }
       }
 
-      const sessionData = await handleSignInOrRegistration({
-        providerType: provider.type,
-        provider: provider.provider,
-        providerUser,
+      if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
+        const initialVerification = req.session.pendingVerification[0];
+
+        if (initialVerification.type === 'email') {
+          await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
+        } else if (initialVerification.type === '2fa-email') {
+          await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
+        }
+
+        await setCsrfCookie(res);
+
+        if (provider.type === 'oauth') {
+          redirect(res, `/auth/verify`);
+        } else {
+          sendJson(res, { error: false, redirect: `/auth/verify` });
+        }
+      } else {
+        if (isNewUser) {
+          await sendWelcomeEmail(req.session.user.email);
+        }
+
+        let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+
+        if (cookies[redirectUrlCookie.name]) {
+          const redirectValue = cookies[redirectUrlCookie.name];
+          redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+          clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
+        }
+
+        // No verification required
+        if (provider.type === 'oauth') {
+          redirect(res, redirectUrl);
+        } else {
+          // this was an API call, client will handle redirect
+          sendJson(res, { error: false, redirect: redirectUrl });
+        }
+      }
+
+      createUserActivityFromReq(req, res, {
+        action: 'LOGIN',
+        method: provider.provider.toUpperCase(),
+        success: true,
       });
-      isNewUser = sessionData.isNewUser;
-
-      initSession(req, sessionData);
-    } else if (provider.type === 'credentials' && req.method === 'POST') {
-      if (!body || !('action' in body)) {
-        throw new InvalidAction('Missing action in body');
-      }
-      const { action, csrfToken, email, password } = body;
-      await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
-
-      const sessionData =
-        action === 'login'
-          ? await handleSignInOrRegistration({
-              providerType: 'credentials',
-              action,
-              email,
-              password,
-            })
-          : await handleSignInOrRegistration({
-              providerType: 'credentials',
-              action,
-              email,
-              name: body.name,
-              password,
-            });
-
-      isNewUser = sessionData.isNewUser;
-
-      initSession(req, sessionData);
-    } else {
-      throw new InvalidProvider(`Provider type ${provider.type} is not supported. Method=${req.method}`);
-    }
-
-    if (!req.session.user) {
-      throw new AuthError('Session not initialized');
-    }
-
-    // check for remembered device - emailVerification cannot be bypassed
-    if (
-      cookies[rememberDevice.name] &&
-      Array.isArray(req.session.pendingVerification) &&
-      req.session.pendingVerification.length > 0 &&
-      req.session.pendingVerification.find((item) => item.type !== 'email')
-    ) {
-      const deviceId = cookies[rememberDevice.name];
-      const isDeviceRemembered = await hasRememberDeviceRecord({
-        userId: req.session.user.id,
-        deviceId,
-        ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
-        userAgent: req.get('User-Agent'),
+    } catch (ex) {
+      createUserActivityFromReqWithError(req, res, ex, {
+        action: 'LOGIN',
+        email: body && 'email' in body ? body.email : undefined,
+        method: provider?.provider?.toUpperCase(),
+        success: false,
       });
-      if (isDeviceRemembered) {
-        req.session.pendingVerification = null;
-      } else {
-        // deviceId is not valid, remove cookie
-        clearCookie(rememberDevice.name, rememberDevice.options);
-      }
+      next(ensureAuthError(ex));
     }
-
-    if (Array.isArray(req.session.pendingVerification) && req.session.pendingVerification.length > 0) {
-      const initialVerification = req.session.pendingVerification[0];
-
-      if (initialVerification.type === 'email') {
-        await sendEmailVerification(req.session.user.email, initialVerification.token, EMAIL_VERIFICATION_TOKEN_DURATION_HOURS);
-      } else if (initialVerification.type === '2fa-email') {
-        await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
-      }
-
-      await setCsrfCookie(res);
-
-      if (provider.type === 'oauth') {
-        redirect(res, `/auth/verify`);
-      } else {
-        sendJson(res, { error: false, redirect: `/auth/verify` });
-      }
-    } else {
-      if (isNewUser) {
-        await sendWelcomeEmail(req.session.user.email);
-      }
-
-      let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
-
-      if (cookies[redirectUrlCookie.name]) {
-        const redirectValue = cookies[redirectUrlCookie.name];
-        redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
-        clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
-      }
-
-      // No verification required
-      if (provider.type === 'oauth') {
-        redirect(res, redirectUrl);
-      } else {
-        // this was an API call, client will handle redirect
-        sendJson(res, { error: false, redirect: redirectUrl });
-      }
-    }
-
-    createUserActivityFromReq(req, res, {
-      action: 'LOGIN',
-      method: provider.provider.toUpperCase(),
-      success: true,
-    });
-  } catch (ex) {
-    createUserActivityFromReqWithError(req, res, ex, {
-      action: 'LOGIN',
-      email: body && 'email' in body ? body.email : undefined,
-      method: provider?.provider?.toUpperCase(),
-      success: false,
-    });
-    next(ensureAuthError(ex));
   }
-});
+);
 
 const verification = createRoute(
   routeDefinition.verification.validators,
