@@ -40,6 +40,7 @@ import type {
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
   SalesforceRecord,
+  SobjectOperation,
   UploadToGoogleJob,
   WorkerMessage,
 } from '@jetstream/types';
@@ -79,11 +80,12 @@ export class JobWorker {
         this.canceledJobIds.add(job.id);
         break;
       }
+      case 'BulkUndelete':
       case 'BulkDelete': {
         try {
           // TODO: add validation to ensure that we have at least one record
           // also, we are assuming that all records are same SObject
-          const MAX_DELETE_RECORDS = 200;
+          const MAX_RECORDS_PER_BATCH = 200;
 
           let { records, batchSize } = job.meta as { records: SalesforceRecord[]; batchSize?: number };
           records = Array.isArray(records) ? records : [records];
@@ -93,22 +95,23 @@ export class JobWorker {
           const isReport = sobject === 'Report';
           const matchBatchSize = isReport ? 25 : 200;
 
-          batchSize = clamp(batchSize || MAX_DELETE_RECORDS, 1, matchBatchSize);
+          batchSize = clamp(batchSize || MAX_RECORDS_PER_BATCH, 1, matchBatchSize);
 
           const allIds: string[] = records.map((record) => getIdFromRecordUrl(record.attributes.url));
 
           const results: any[] = [];
+          const operation: SobjectOperation = name === 'BulkDelete' ? 'delete' : 'undelete';
           for (const ids of splitArrayToMaxSize(allIds, batchSize)) {
             try {
               // TODO: add progress notification and allow cancellation
 
-              if (isReport) {
+              if (isReport && operation === 'delete') {
                 // Reports cannot be deleted using the sobjectOperation, so we need to use
                 // /services/data/v34.0/analytics/reports/00OD0000001cxIE
                 const tempResults = await deleteReportsById(org, ids, apiVersion);
                 tempResults.forEach((result) => results.push(result));
               } else {
-                let tempResults = await sobjectOperation(org, sobject, 'delete', { ids }, { allOrNone: false });
+                let tempResults = await sobjectOperation(org, sobject, operation, { ids }, { allOrNone: false });
                 tempResults = ensureArray(tempResults);
                 tempResults.forEach((result) => results.push(result));
               }

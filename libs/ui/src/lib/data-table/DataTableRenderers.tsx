@@ -607,6 +607,9 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   if (!isFunction(row?._action)) {
     return null;
   }
+
+  const isDeleted = !!row.IsDeleted;
+
   return (
     <Fragment>
       <ErrorMessageRenderer row={row} />
@@ -625,11 +628,20 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
           <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer />
         </button>
       </Tooltip>
-      <Tooltip content="Delete">
-        <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'delete')}>
-          <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
-        </button>
-      </Tooltip>
+      {isDeleted && (
+        <Tooltip content="Restore from Recycle Bin">
+          <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'undelete')}>
+            <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer />
+          </button>
+        </Tooltip>
+      )}
+      {!isDeleted && (
+        <Tooltip content="Delete">
+          <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'delete')}>
+            <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+          </button>
+        </Tooltip>
+      )}
       <Tooltip content="Turn Into Apex">
         <button className="slds-button slds-button_icon" onClick={() => row._action(row, 'apex')}>
           <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer />

@@ -35,7 +35,7 @@ Here are some examples of things you can do from the Query Results page:
 - Click on an Id to navigate to that record in Salesforce.
 - Download records so you can make changes to records, then load the data back in to Salesforce.
 - Copy records to your clipboard and paste into a spreadsheet.
-- Modify records (view, edit, clone, delete).
+- Modify records (view, edit, clone, delete, restore from recycle bin).
 - Update all of the queried records in bulk, such as updating a picklist field for all records.
 
 <img src={require('./query-results-records.png').default} alt="Query results table" />
@@ -71,11 +71,14 @@ On the left side of each record, there are four icons.
 
 ### Bulk Record Actions
 
-If you select one or more records, a table menu button at the top of the page will be enabled and within the menu you can:
+If you select one or more records, the settings icon button at the top of the page will be enabled and within the menu you can:
 
-1. Delete the selected records
-2. Turn the selected records into Apex code
-3. Open each record in a new tab within Salesforce. (Make sure you have an active session with the Salesforce instance prior to to selecting this action, as you will not be automatically logged in.)
+1. Bulk update records based on query results
+2. Create a new record
+3. Delete the selected records
+4. Undelete the selected records
+5. Turn the selected records into Apex code
+6. Open each record in a new tab within Salesforce. (Make sure you have an active session with the Salesforce instance prior to to selecting this action, as you will not be automatically logged in.)
 
 <img src={require('./bulk-record-actions.png').default} alt="Bulk Record Actions" />
 

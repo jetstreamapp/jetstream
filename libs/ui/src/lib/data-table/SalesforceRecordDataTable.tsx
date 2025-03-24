@@ -81,6 +81,7 @@ export interface SalesforceRecordDataTableProps {
   onView: (record: any, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') => void;
   onUpdateRecords: (records: any[]) => Promise<SobjectCollectionResponse>;
   onDelete: (record: any) => void;
+  onUndelete: (record: any) => void;
   onGetAsApex: (record: any) => void;
   onSavedRecords: (results: { recordCount: number; failureCount: number }) => void;
   onReloadQuery: () => void;
@@ -112,6 +113,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onView,
     onUpdateRecords,
     onDelete,
+    onUndelete,
     onGetAsApex,
     onSavedRecords,
     onReloadQuery,
@@ -200,7 +202,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       setSaveErrors(dirtyRows.filter((row) => row._saveError).map((row) => row._saveError!));
     }, [dirtyRows]);
 
-    const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'delete' | 'apex') => {
+    const handleRowAction = useCallback((row: RowWithKey, action: 'view' | 'edit' | 'clone' | 'delete' | 'undelete' | 'apex') => {
       const record = row._record;
       logger.info('row action', record, action);
       switch (action) {
@@ -215,6 +217,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           break;
         case 'delete':
           onDelete(record);
+          break;
+        case 'undelete':
+          onUndelete(record);
           break;
         case 'apex':
           onGetAsApex(record);

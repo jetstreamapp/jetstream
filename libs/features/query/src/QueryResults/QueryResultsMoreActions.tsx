@@ -19,7 +19,6 @@ const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BUL
   const [batchSize, setBatchSize] = useState(maxSize);
   useNonInitialEffect(() => {
     onBatchSizeChange(batchSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchSize]);
 
   return (
@@ -54,6 +53,7 @@ export interface QueryResultsMoreActionsProps {
   filteredRows: any[];
   selectedRows: any[];
   totalRecordCount: number;
+  includeDeletedRecords?: boolean;
   refreshRecords: () => void;
   onCreateNewRecord: () => void;
 }
@@ -67,6 +67,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   filteredRows,
   selectedRows,
   totalRecordCount,
+  includeDeletedRecords,
   refreshRecords,
   onCreateNewRecord,
 }) => {
@@ -74,7 +75,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
   const { confirm, setOptions } = useConfirmation();
   const [openModal, setOpenModal] = useState<false | 'bulk-update' | 'apex'>(false);
 
-  function handleAction(id: 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
+  function handleAction(id: 'bulk-delete' | 'bulk-undelete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record') {
     logger.log({ id, selectedRows });
     switch (id) {
       case 'bulk-update': {
@@ -98,7 +99,7 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
               </p>
               <p>
                 <strong>These records will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the
-                Salesforce recycle bin.
+                Salesforce Recycle Bin.
               </p>
               <BatchSize
                 type="BATCH"
@@ -120,6 +121,45 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
             ];
             fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
             trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
+          })
+          .catch((ex) => {
+            logger.info(ex);
+            // user canceled
+          });
+        break;
+      }
+      case 'bulk-undelete': {
+        if (!selectedRows) {
+          return;
+        }
+        const recordCountText = `${selectedRows.length} ${pluralizeIfMultiple('Record', selectedRows)}`;
+        confirm({
+          content: (
+            <div className="slds-m-around_medium">
+              <p className="slds-align_absolute-center slds-m-bottom_small">
+                <span>Are you sure you want to restore {recordCountText}</span>?
+              </p>
+              <p>Jetstream will attempt to restore these records from the Salesforce Recycle Bin.</p>
+              <BatchSize
+                type="BATCH"
+                onBatchSizeChange={(batchSize) => {
+                  setOptions((prevValue) => ({
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    ...prevValue!,
+                    submitDisabled: !batchSize || batchSize > MAX_BULK || batchSize < 1,
+                    data: { batchSize },
+                  }));
+                }}
+              />
+            </div>
+          ),
+        })
+          .then(({ batchSize }: { batchSize: number }) => {
+            const jobs: AsyncJobNew[] = [
+              { type: 'BulkUndelete', title: `Restore ${recordCountText}`, org: selectedOrg, meta: { batchSize, records: selectedRows } },
+            ];
+            fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+            trackEvent(ANALYTICS_KEYS.query_BulkUndelete, { numRecords: selectedRows.length, source: 'HEADER_ACTION' });
           })
           .catch((ex) => {
             logger.info(ex);
@@ -217,6 +257,15 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
             },
           },
           {
+            id: 'bulk-undelete',
+            value: 'Restore records from the Recycle Bin',
+            disabled: !includeDeletedRecords || disabled || selectedRows.length === 0,
+            icon: {
+              icon: 'undelete',
+              type: 'utility',
+            },
+          },
+          {
             id: 'get-as-apex',
             value: 'Convert selected records to Apex',
             disabled: disabled || selectedRows.length === 0,
@@ -235,7 +284,9 @@ export const QueryResultsMoreActions: FunctionComponent<QueryResultsMoreActionsP
             },
           },
         ]}
-        onSelected={(item) => handleAction(item as 'bulk-delete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record')}
+        onSelected={(item) =>
+          handleAction(item as 'bulk-delete' | 'bulk-undelete' | 'get-as-apex' | 'open-in-new-tab' | 'bulk-update' | 'new-record')
+        }
       />
 
       {openModal === 'bulk-update' && sObject && totalRecordCount && parsedQuery && (
