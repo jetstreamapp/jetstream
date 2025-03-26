@@ -8,7 +8,29 @@ export type SobjectExportFieldName =
   | 'aiPredictionField'
   | 'formulaTreatNullNumberAsZero'
   | 'restrictedDelete'
-  | 'typeLabel';
+  | 'typeLabel'
+  | ExtendedFieldDefinition;
+
+export type ExtendedFieldDefinition =
+  | 'BusinessOwnerId'
+  | 'BusinessStatus'
+  | 'ComplianceGroup'
+  | 'IsFieldHistoryTracked'
+  | 'IsFlsEnabled'
+  | 'SecurityClassification';
+
+export interface FieldDefinitionRecord {
+  Id: string;
+  QualifiedApiName: string;
+  EntityDefinition: {
+    QualifiedApiName: string;
+  };
+  BusinessStatus: string;
+  ComplianceGroup: string;
+  IsFieldHistoryTracked: boolean;
+  IsFlsEnabled: boolean;
+  SecurityClassification: string;
+}
 
 export interface SobjectExportField {
   name: SobjectExportFieldName;
