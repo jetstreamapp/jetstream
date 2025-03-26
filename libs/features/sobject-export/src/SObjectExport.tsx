@@ -35,10 +35,18 @@ import {
   ExportHeaderOption,
   ExportOptions,
   ExportWorksheetLayout,
+  FieldDefinitionRecord,
   SavedExportOptions,
   SobjectExportFieldName,
 } from './sobject-export-types';
-import { getAttributes, getChildRelationshipNames, getSobjectMetadata, prepareExport } from './sobject-export-utils';
+import {
+  FIELD_DEFINITION_API_FIELDS,
+  getAttributes,
+  getChildRelationshipNames,
+  getExtendedFieldDefinitionData,
+  getSobjectMetadata,
+  prepareExport,
+} from './sobject-export-utils';
 
 const HEIGHT_BUFFER = 170;
 const FIELD_ATTRIBUTES: ListItem<SobjectExportFieldName>[] = getAttributes().map(({ label, name, description, tertiaryLabel }) => ({
@@ -164,7 +172,20 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
       const sobjectsWithChildRelationships = selectedAttributes.includes('childRelationshipName')
         ? await getChildRelationshipNames(selectedOrg, metadataResults)
         : {};
-      const output = prepareExport(metadataResults, sobjectsWithChildRelationships, selectedAttributes, options);
+
+      const extendedFieldDefinitionData: Record<string, Record<string, FieldDefinitionRecord>> = selectedAttributes.some((item) =>
+        FIELD_DEFINITION_API_FIELDS.has(item as any)
+      )
+        ? await getExtendedFieldDefinitionData(selectedOrg, selectedSObjects)
+        : {};
+
+      const output = prepareExport(
+        metadataResults,
+        sobjectsWithChildRelationships,
+        extendedFieldDefinitionData,
+        selectedAttributes,
+        options
+      );
 
       if (options.saveAsDefaultSelection) {
         try {
