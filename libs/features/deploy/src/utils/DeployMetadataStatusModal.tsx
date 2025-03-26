@@ -155,7 +155,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
               </button>
             )}
           </div>
-          <div>
+          <Grid>
             {onGoBack && (
               <button className="slds-button slds-button_neutral" onClick={() => handleGoBack()} disabled={loading}>
                 <Icon type="utility" icon="back" className="slds-button__icon slds-button__icon_left" omitContainer />
@@ -165,7 +165,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
             <button className="slds-button slds-button_brand" onClick={() => onClose()} disabled={loading}>
               Close
             </button>
-          </div>
+          </Grid>
         </Grid>
       }
       size="lg"
