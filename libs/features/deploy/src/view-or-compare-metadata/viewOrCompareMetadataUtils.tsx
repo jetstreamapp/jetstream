@@ -3,7 +3,7 @@ import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import { Tooltip, TreeItems } from '@jetstream/ui';
 import classNames from 'classnames';
 import JSZip from 'jszip';
-import { FileItemMetadata, FilePropertiesWithContent } from './viewOrCompareMetadataTypes';
+import { DeployFromCompareMetadataItem, FileItemMetadata, FilePropertiesWithContent } from './viewOrCompareMetadataTypes';
 
 export function getEditorLanguage({ fileName, type }: FilePropertiesWithContent) {
   if (type === 'ApexClass' || type === 'ApexTrigger') {
@@ -79,7 +79,7 @@ export function buildTree(
             // set different id for folders
             id = `FOLDER|${id}|${i}|${name}`;
           }
-          output.result.push({ id, label: getTreeLabel(id, name, meta), meta, treeItems: output[name].result });
+          output.result.push({ id, label: getTreeLabel(id, name, meta), title: name, meta, treeItems: output[name].result });
         }
         return output[name];
       }, level);
@@ -127,6 +127,15 @@ export function compare(sourceFile: FilePropertiesWithContent, targetFiles: Reco
     }
   }
   return match;
+}
+
+export function getDeployMetadataFromComparisonTree(files: TreeItems<FileItemMetadata | null>[]): DeployFromCompareMetadataItem[] {
+  return files
+    .map((metadata) => ({
+      type: metadata.treeItems?.[0]?.meta?.type as string,
+      items: metadata.treeItems?.map((item) => item.meta) || [],
+    }))
+    .filter((item) => item.type);
 }
 
 export function generateExport(sourceResultFiles: FilePropertiesWithContent[], targetResultFiles: FilePropertiesWithContent[]) {

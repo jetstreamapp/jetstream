@@ -1,4 +1,4 @@
-import { Grid, Icon } from '@jetstream/ui';
+import { Grid, Icon, Tooltip } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 import { OrgType } from './viewOrCompareMetadataTypes';
 
@@ -14,6 +14,7 @@ export interface ViewOrCompareMetadataModalFooterProps {
   reloadMetadata?: () => void;
   onDownloadPackage: (which: OrgType) => void;
   onExportSummary: () => void;
+  onDeployToTarget: () => void;
   onClose: () => void;
 }
 
@@ -29,6 +30,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
   reloadMetadata,
   onDownloadPackage,
   onExportSummary,
+  onDeployToTarget,
   onClose,
 }) => {
   const hasBoth = hasSourceMetadata && hasTargetMetadata;
@@ -51,14 +53,30 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
           </div>
         )}
       </div>
-      <div>
+      <Grid>
+        <Tooltip
+          content={
+            hasTargetMetadata
+              ? 'Deploy changes to the target org, confirm which metadata components to deploy on the next screen'
+              : 'Select a target org to deploy changes'
+          }
+        >
+          <button
+            className="slds-button slds-button_brand slds-m-right_x-small"
+            onClick={() => onDeployToTarget()}
+            disabled={!hasTargetMetadata}
+          >
+            <Icon type="utility" icon="share" className="slds-button__icon slds-button__icon_left" omitContainer />
+            Deploy Changes
+          </button>
+        </Tooltip>
         <button
           className="slds-button slds-button_neutral"
           onClick={() => onDownloadPackage('SOURCE')}
           disabled={!hasSourceMetadata || sourceLoading}
         >
           <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Download Source Package
+          Source Package
         </button>
 
         {!isChromeExtension && (
@@ -69,7 +87,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
               disabled={!hasTargetMetadata || targetLoading || !hasTargetMetadataContent}
             >
               <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-              Download Target Package
+              Target Package
             </button>
 
             <button className="slds-button slds-button_neutral" onClick={() => onExportSummary()} disabled={!hasBoth}>
@@ -82,7 +100,7 @@ export const ViewOrCompareMetadataModalFooter: FunctionComponent<ViewOrCompareMe
         <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
           Close
         </button>
-      </div>
+      </Grid>
     </Grid>
   );
 };

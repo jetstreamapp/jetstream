@@ -17,3 +17,8 @@ export interface FileItemMetadata {
   targetHasLoaded: boolean;
   sourceAndTargetMatch: boolean;
 }
+
+export interface DeployFromCompareMetadataItem {
+  type: string;
+  items: FileItemMetadata[];
+}

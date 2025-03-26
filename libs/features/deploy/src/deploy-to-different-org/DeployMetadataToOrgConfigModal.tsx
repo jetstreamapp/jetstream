@@ -15,6 +15,7 @@ export interface DeployMetadataToOrgConfigModalProps {
   initialOptions?: Maybe<DeployOptions>;
   initialSelectedDestinationOrg?: SalesforceOrgUi;
   selectedMetadata: Record<string, ListMetadataResult[]>;
+  lockDestinationOrg?: boolean;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) => void;
@@ -25,6 +26,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   initialOptions,
   initialSelectedDestinationOrg,
   selectedMetadata,
+  lockDestinationOrg = false,
   onSelection,
   onClose,
   onDeploy,
@@ -111,6 +113,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
                 label="Deploy components to"
                 hideLabel={false}
                 placeholder="Select an org"
+                disabled={lockDestinationOrg}
                 orgs={orgs}
                 selectedOrg={destinationOrg}
                 onSelected={setDestinationOrg}
