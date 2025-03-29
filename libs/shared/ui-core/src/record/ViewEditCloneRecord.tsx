@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { mockPicklistValuesFromSobjectDescribe, UiRecordForm } from '@jetstream/record-form';
+import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
-import { clearCacheForOrg, describeGlobal, describeSObject, genericRequest, query, sobjectOperation } from '@jetstream/shared/data';
+import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   BulkDownloadJob,
@@ -16,7 +17,6 @@ import {
   FileExtCsvXLSXJsonGSheet,
   Maybe,
   PicklistFieldValues,
-  PicklistFieldValuesResponse,
   RecordResult,
   SalesforceOrgUi,
   SalesforceRecord,
@@ -217,39 +217,13 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           record = response;
         }
 
-        let recordTypeId = record?.RecordTypeId;
-        if (!recordTypeId) {
-          const recordTypeInfos = sobjectMetadata.data.recordTypeInfos;
-          if (recordTypeInfos.length === 1) {
-            recordTypeId = recordTypeInfos[0].recordTypeId;
-          } else {
-            const foundRecordType = recordTypeInfos.find((recordType) => recordType.master);
-            if (foundRecordType) {
-              recordTypeId = foundRecordType.recordTypeId;
-            }
-          }
-        }
-        if (recordTypeId) {
-          try {
-            const results = await genericRequest<PicklistFieldValuesResponse>(selectedOrg, {
-              method: 'GET',
-              url: `/services/data/${apiVersion}/ui-api/object-info/${sobjectName}/picklist-values/${recordTypeId}`,
-              isTooling: false,
-            });
-            picklistValues = results.picklistFieldValues;
-          } catch (ex) {
-            logger.warn('[RECORD-UI][ERROR]', ex);
-            if (ex?.message?.endsWith('not supported in UI API')) {
-              // UI API is not supported, artificially build picklist values
-              picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata.data);
-            } else {
-              throw ex;
-            }
-          }
-        } else {
-          // UI API is not supported because there is no record type id, artificially build picklist values
-          picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata.data);
-        }
+        picklistValues = await getPicklistValuesForRecordAndRecordType({
+          apiVersion,
+          org: selectedOrg,
+          sobjectMetadata: sobjectMetadata.data,
+          sobjectName,
+          record,
+        });
 
         // Query all related records so that related record name can be shown in the UI
         if (recordId) {
@@ -298,7 +272,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       } catch (ex) {
         if (isMounted.current) {
           logger.error('Error fetching metadata', ex);
-          rollbar.error('Error fetching record metadata', { message: ex.message, stack: ex.stack });
+          rollbar.error('Error fetching record metadata', getErrorMessageAndStackObj(ex));
           setFormErrors({
             hasErrors: true,
             fieldErrors: {},
@@ -644,46 +618,48 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       />
                     </div>
                   </div>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => setIsViewAsJson(!isViewAsJson)}
-                    disabled={loading || !initialRecord}
-                  >
-                    <Icon
-                      type="utility"
-                      icon={isViewAsJson ? 'record_lookup' : 'merge_field'}
-                      className="slds-button__icon slds-button__icon_left"
-                      omitContainer
-                    />
-                    {isViewAsJson ? 'View as Record' : 'View as JSON'}
-                  </button>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => onChangeAction('edit')}
-                    disabled={loading || !initialRecord}
-                  >
-                    <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Edit
-                  </button>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => onChangeAction('clone')}
-                    disabled={loading || !initialRecord}
-                  >
-                    <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Clone
-                  </button>
-                  <button
-                    className="slds-button slds-button_neutral"
-                    onClick={() => handleDownloadModalOpen()}
-                    disabled={loading || !initialRecord}
-                  >
-                    <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
-                    Download
-                  </button>
-                  <button className="slds-button slds-button_brand" onClick={() => onClose()}>
-                    Close
-                  </button>
+                  <Grid verticalAlign="center" align="end">
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => setIsViewAsJson(!isViewAsJson)}
+                      disabled={loading || !initialRecord}
+                    >
+                      <Icon
+                        type="utility"
+                        icon={isViewAsJson ? 'record_lookup' : 'merge_field'}
+                        className="slds-button__icon slds-button__icon_left"
+                        omitContainer
+                      />
+                      {isViewAsJson ? 'View as Record' : 'View as JSON'}
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => onChangeAction('edit')}
+                      disabled={loading || !initialRecord}
+                    >
+                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Edit
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => onChangeAction('clone')}
+                      disabled={loading || !initialRecord}
+                    >
+                      <Icon type="utility" icon="copy" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Clone
+                    </button>
+                    <button
+                      className="slds-button slds-button_neutral"
+                      onClick={() => handleDownloadModalOpen()}
+                      disabled={loading || !initialRecord}
+                    >
+                      <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+                      Download
+                    </button>
+                    <button className="slds-button slds-button_brand" onClick={() => onClose()}>
+                      Close
+                    </button>
+                  </Grid>
                 </div>
               )}
               {action !== 'view' && (

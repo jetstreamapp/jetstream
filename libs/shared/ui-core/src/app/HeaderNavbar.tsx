@@ -186,6 +186,13 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
                 title: APP_ROUTES.LOAD_MASS_UPDATE.DESCRIPTION,
                 label: APP_ROUTES.LOAD_MASS_UPDATE.TITLE,
               },
+              {
+                id: 'create-records',
+                path: APP_ROUTES.LOAD_CREATE_RECORD.ROUTE,
+                search: APP_ROUTES.LOAD_CREATE_RECORD.SEARCH_PARAM,
+                title: APP_ROUTES.LOAD_CREATE_RECORD.DESCRIPTION,
+                label: APP_ROUTES.LOAD_CREATE_RECORD.TITLE,
+              },
             ]}
           />
 
