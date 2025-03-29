@@ -12,6 +12,7 @@ const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((m
 const LoadRecordsMultiObject = lazy(() =>
   import('@jetstream/feature/load-records-multi-object').then((module) => ({ default: module.LoadRecordsMultiObject }))
 );
+const CreateRecords = lazy(() => import('@jetstream/feature/create-records').then((module) => ({ default: module.CreateRecords })));
 
 const Query = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.Query })));
 const QueryBuilder = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryBuilder })));
@@ -140,6 +141,14 @@ export const AppRoutes = () => {
         element={
           <OrgSelectionRequired>
             <LoadRecordsMultiObject />
+          </OrgSelectionRequired>
+        }
+      />
+      <Route
+        path={APP_ROUTES.LOAD_CREATE_RECORD.ROUTE}
+        element={
+          <OrgSelectionRequired>
+            <CreateRecords />
           </OrgSelectionRequired>
         }
       />
