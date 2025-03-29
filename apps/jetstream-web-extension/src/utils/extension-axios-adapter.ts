@@ -26,10 +26,14 @@ export async function browserExtensionAxiosAdapter(config: InternalAxiosRequestC
 
   try {
     const url = getUrl(config);
+    let body = data;
+    if (data && typeof data !== 'string' && headers.get('content-type') === 'application/json') {
+      body = JSON.stringify(data);
+    }
     const request = new Request(url, {
       method: method?.toUpperCase() ?? 'GET',
       headers: headers.normalize(false).toJSON() as HeadersInit,
-      body: data && typeof data !== 'string' ? JSON.stringify(data) : data,
+      body,
     });
 
     const route = extensionRoutes.match(request.method as Method, config.url || '/');
