@@ -339,6 +339,9 @@ export const salesforceOrgsOmitSelectedState = selector({
 export const selectSkipFrontdoorAuth = selector({
   key: 'selectSkipFrontdoorAuth',
   get: ({ get }) => {
+    if (isBrowserExtension()) {
+      return true;
+    }
     const userProfile = get(userProfileState);
     return userProfile?.preferences?.skipFrontdoorLogin || false;
   },

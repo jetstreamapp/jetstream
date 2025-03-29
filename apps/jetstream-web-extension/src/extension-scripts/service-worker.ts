@@ -36,8 +36,6 @@ import {
 import '../utils/serviceWorker.zip-handler';
 import { getRecordPageRecordId } from '../utils/web-extension.utils';
 
-const ctx: ServiceWorkerGlobalScope = self as any;
-
 if (!environment.production) {
   enableLogger(true);
 }
