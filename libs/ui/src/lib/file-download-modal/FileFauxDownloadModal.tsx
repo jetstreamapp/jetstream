@@ -42,7 +42,7 @@ export interface FileFauxDownloadModalProps {
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
   source: string;
-  trackEvent: (key: string, value?: unknown) => void;
+  trackEvent: (key: string, value?: Record<string, any>) => void;
   onCancel: () => void;
   onDownload: (data: {
     fileName: string;

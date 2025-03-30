@@ -8,7 +8,7 @@ import Tooltip from '../../widgets/Tooltip';
 export interface UpgradeToProButtonProps {
   showOpenInNewTabIcon?: boolean;
   source: 'navbar' | string;
-  trackEvent: (key: string, value?: unknown) => void;
+  trackEvent: (key: string, value?: Record<string, any>) => void;
 }
 
 export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }: UpgradeToProButtonProps) => {
