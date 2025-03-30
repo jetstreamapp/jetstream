@@ -40,8 +40,9 @@ routes.post('/sentry-tunnel', async (req: express.Request, res: express.Response
     if (!ENV.SENTRY_DSN?.includes(hostname)) {
       throw new Error('Sentry host is not valid');
     }
+
     const projectId = dsn.pathname.replace(/^\//, '');
-    const url = `https://${dsn.hostname}/api/${projectId}/envelope/`;
+    const url = `https://${hostname}/api/${projectId}/envelope/`;
 
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: envelope });
     if (response.ok) {
