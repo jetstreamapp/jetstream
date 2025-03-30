@@ -29,32 +29,6 @@ routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
   sendJson(res as any, { version: ENV.VERSION || null, announcements: getAnnouncements() });
 });
 
-routes.post('/sentry-tunnel', async (req: express.Request, res: express.Response) => {
-  try {
-    const envelope = (req.body as Buffer).toString('utf8');
-    const [firstRow] = envelope.trim().split('\n');
-    const header = JSON.parse(firstRow);
-    const dsn = new URL(header.dsn);
-
-    const hostname = dsn.hostname;
-    if (!ENV.SENTRY_DSN?.includes(hostname)) {
-      throw new Error('Sentry host is not valid');
-    }
-
-    const projectId = dsn.pathname.replace(/^\//, '');
-    const url = `https://${hostname}/api/${projectId}/envelope/`;
-
-    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: envelope });
-    if (response.ok) {
-      res.status(200).json({});
-    } else {
-      res.status(500).json({ error: 'error tunneling to sentry' });
-    }
-  } catch (ex) {
-    res.status(500).json({ error: 'error in sentry tunnel' });
-  }
-});
-
 /**
  * ************************************
  * userController Routes

@@ -11,7 +11,6 @@ let hasProfileInit = false;
 if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
-    tunnel: `/api/sentry-tunnel`,
     ignoreErrors: ['expired access/refresh token', 'socket hang up'],
     integrations: [
       Sentry.feedbackIntegration({
@@ -46,7 +45,6 @@ function init(appCookie: ApplicationCookie, version: string) {
       ignoreErrors: ['expired access/refresh token', 'socket hang up'],
       release: version,
       environment: appCookie.environment,
-      tunnel: `/api/sentry-tunnel`,
       attachStacktrace: true,
       integrations: [
         Sentry.feedbackIntegration({
