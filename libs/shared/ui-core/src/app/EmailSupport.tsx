@@ -1,5 +1,5 @@
 import { emailSupport } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
 import { InputReadFileContent } from '@jetstream/types';
 import { FileSelector, Icon, ScopedNotification, Spinner, Textarea, fireToast } from '@jetstream/ui';
 import { useState } from 'react';
@@ -14,7 +14,7 @@ interface EmailSupportProps {
  * Form to allow users to send an email to support with attachments.
  */
 export function EmailSupport({ placeholder = 'Tell us what happened.' }: EmailSupportProps) {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const [loading, setLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -51,12 +51,7 @@ export function EmailSupport({ placeholder = 'Tell us what happened.' }: EmailSu
       await emailSupport(emailBody, attachments);
       setIsSent(true);
     } catch (ex) {
-      rollbar.error('Error sending support email', {
-        errorName: ex.name,
-        message: ex.message,
-        stack: ex.stack,
-        emailBody,
-      });
+      sentry.trackError('Error sending support email', ex, 'EmailSupport', { emailBody });
       setErrorMessage(`Uh Oh, something went wrong. Please try again later.`);
     } finally {
       setLoading(false);

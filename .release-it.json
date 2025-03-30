@@ -15,7 +15,7 @@
     "releaseName": "Jetstream ${version}"
   },
   "hooks": {
-    "before:init": ["yarn test:all", "SKIP_ROLLBAR=true yarn build"],
-    "after:release": "CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD) && git checkout release && git reset --hard $CURRENT_BRANCH && git push origin release -f && git checkout main && yarn rollbar:create-deploy"
+    "before:init": ["yarn test:all", "SKIP_SENTRY=true yarn build"],
+    "after:release": "CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD) && git checkout release && git reset --hard $CURRENT_BRANCH && git push origin release -f && git checkout main"
   }
 }

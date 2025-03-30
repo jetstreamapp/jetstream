@@ -17,9 +17,8 @@ import { SObjectExport } from '@jetstream/feature/sobject-export';
 import { MassUpdateRecords, MassUpdateRecordsDeployment, MassUpdateRecordsSelection } from '@jetstream/feature/update-records';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { appActionObservable, AppActionTypes } from '@jetstream/shared/ui-utils';
-import { AppHome, AppLoading, ErrorBoundaryFallback, Feedback, HeaderNavbar } from '@jetstream/ui-core';
+import { AppHome, AppLoading, ErrorBoundary, Feedback, HeaderNavbar } from '@jetstream/ui-core';
 import { Suspense, useEffect } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AppWrapper } from '../../core/AppWrapper';
 import { initAndRenderReact } from '../../utils/web-extension.utils';
@@ -62,7 +61,7 @@ export function App() {
       <HeaderNavbar isBillingEnabled={false} isChromeExtension />
       <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
         <Suspense fallback={<AppLoading />}>
-          <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+          <ErrorBoundary>
             <Routes>
               <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={false} />} />
               <Route path={APP_ROUTES.QUERY.ROUTE} element={<Query />}>

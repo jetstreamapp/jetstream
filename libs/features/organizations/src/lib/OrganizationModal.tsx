@@ -1,5 +1,5 @@
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { JetstreamOrganizationCreateUpdatePayload, JetstreamOrganizationWithOrgs, Maybe } from '@jetstream/types';
 import { fireToast, Grid, Input, Modal, Textarea } from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
@@ -13,7 +13,7 @@ interface OrganizationModalProps {
 
 export function OrganizationModal({ organization, onSubmit, onClose }: OrganizationModalProps) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const [loading, setLoading] = useState(false);
   const [updatedOrg, setUpdatedOrg] = useState(() => ({
     name: organization?.name || '',
@@ -34,7 +34,7 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
       onClose();
     } catch (ex) {
       fireToast({ message: `There was an error creating the organization. ${getErrorMessage(ex)}`, type: 'error' });
-      rollbar.error('OrganizationModal: Error creating organization', getErrorMessageAndStackObj(ex));
+      sentry.trackError('OrganizationModal: Error creating organization', ex, 'OrganizationModal');
     } finally {
       setLoading(false);
     }

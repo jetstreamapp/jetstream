@@ -10,7 +10,7 @@ import {
   updateUserProfile,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { useSentry, useTitle } from '@jetstream/shared/ui-utils';
 import {
   AutoFullHeightContainer,
   Grid,
@@ -38,7 +38,7 @@ export const Profile = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const setUserProfile = useSetRecoilState(userProfileState);
@@ -61,7 +61,7 @@ export const Profile = () => {
       setLoadingError(false);
       setFullUserProfile(await getFullUserProfile());
     } catch (ex) {
-      rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
+      sentry.trackError('Settings: Error fetching user', ex, 'Profile');
       setLoadingError(true);
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export const Profile = () => {
         message: 'There was a problem updating your user. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error updating user', { stack: ex.stack, message: ex.message });
+      sentry.trackError('Settings: Error updating user', ex);
     } finally {
       setLoading(false);
       setEditMode(false);
@@ -126,7 +126,7 @@ export const Profile = () => {
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error setting password', { stack: ex.stack, message: ex.message });
+      sentry.trackError('Settings: Error setting password', ex);
     }
   }
 
@@ -143,7 +143,7 @@ export const Profile = () => {
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error resetting password', { stack: ex.stack, message: ex.message });
+      sentry.trackError('Settings: Error resetting password', ex);
     }
   }
 
@@ -156,7 +156,7 @@ export const Profile = () => {
         message: 'There was a problem removing your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error removing password', { stack: ex.stack, message: ex.message });
+      sentry.trackError('Settings: Error removing password', ex);
     }
   }
 

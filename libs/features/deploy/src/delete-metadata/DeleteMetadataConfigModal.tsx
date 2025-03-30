@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
-import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getOrgType, useNonInitialEffect, useSentry } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
@@ -29,7 +28,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
   onClose,
   onDeploy,
 }) => {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const [file, setFile] = useState<ArrayBuffer>();
   const [isConfigValid, setIsConfigValid] = useState(true);
@@ -96,7 +95,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
       const file = await zip.generateAsync({ type: 'arraybuffer', compressionOptions: { level: 5 } });
       setFile(file);
     } catch (ex) {
-      rollbar.critical('Error creating destructive package.xml', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Error creating destructive package.xml', ex, 'DeleteMetadataConfigModal');
     }
   }
 

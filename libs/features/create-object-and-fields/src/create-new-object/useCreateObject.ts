@@ -1,6 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useDeployMetadataPackage } from '@jetstream/ui-core';
 import { useCallback, useState } from 'react';
@@ -31,7 +30,7 @@ interface UseCreateObjectOptions {
 }
 
 export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: UseCreateObjectOptions) {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const [loading, setLoading] = useState(false);
   const [deployed, setDeployed] = useState(false);
   const [status, setStatus] = useState<CreateObjectResultsStatus>('NOT_STARTED');
@@ -95,18 +94,18 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
           }
           setStatus('SUCCESS');
         } catch (ex) {
-          rollbar.error('Deploy object permission records Fatal Error', getErrorMessageAndStackObj(ex));
+          sentry.trackError('Deploy object permission records Fatal Error', ex);
           setStatus('FAILED');
         } finally {
           setLoading(false);
           setDeployed(true);
         }
       } catch (ex) {
-        rollbar.error('Deploy object Fatal Error', getErrorMessageAndStackObj(ex));
+        sentry.trackError('Deploy object Fatal Error', ex);
         setStatus('FAILED');
       }
     },
-    [apiVersion, doDeployMetadata, rollbar, selectedOrg]
+    [apiVersion, doDeployMetadata, sentry, selectedOrg]
   );
 
   return {

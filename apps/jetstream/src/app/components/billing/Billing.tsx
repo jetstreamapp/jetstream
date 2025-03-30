@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { getSubscriptions } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { useSentry, useTitle } from '@jetstream/shared/ui-utils';
 import { StripeUserFacingCustomer } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -28,7 +28,7 @@ const HEIGHT_BUFFER = 170;
 export const Billing = () => {
   useTitle(TITLES.SETTINGS);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
@@ -62,8 +62,8 @@ export const Billing = () => {
       setSubscriptionStatus({ hasCanceledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
       setCustomerWithSubscriptions(customer);
     } catch (ex) {
-      logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
-      rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
+      logger.error('Settings: Error fetching user', ex);
+      sentry.trackError('Settings: Error fetching user', ex);
       setLoadingError(true);
     } finally {
       setLoading(false);

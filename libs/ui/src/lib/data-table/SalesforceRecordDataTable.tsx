@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';
-import { formatNumber, useRollbar } from '@jetstream/shared/ui-utils';
+import { formatNumber, useSentry } from '@jetstream/shared/ui-utils';
 import { flattenRecord, getIdFromRecordUrl, groupByFlat, nullifyEmptyStrings } from '@jetstream/shared/utils';
 import { CloneEditView, ContextMenuItem, Field, Maybe, QueryResults, SalesforceOrgUi, SobjectCollectionResponse } from '@jetstream/types';
 import uniqueId from 'lodash/uniqueId';
@@ -117,7 +117,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
     onReloadQuery,
   }: SalesforceRecordDataTableProps) => {
     const isMounted = useRef(true);
-    const rollbar = useRollbar();
+    const sentry = useSentry();
     const [columns, setColumns] = useState<Column<RowSalesforceRecordWithKey>[]>();
     const [subqueryColumnsMap, setSubqueryColumnsMap] = useState<Record<string, ColumnWithFilter<RowSalesforceRecordWithKey, unknown>[]>>();
     const [records, setRecords] = useState<any[]>();
@@ -288,7 +288,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         // oops. show the user an error
         setIsLoadingMore(false);
         setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
-        rollbar.error('Load Remaining Records failed', { message: ex.message, stack: ex.stack });
+        sentry.trackError('Load Remaining Records failed', ex);
       }
     }
 
@@ -396,7 +396,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           message: `There was a problem saving your records. ${ex?.message || ''}`,
           type: 'error',
         });
-        rollbar.error('Error saving records - inline query', { message: ex.message, stack: ex.stack });
+        sentry.trackError('Error saving records - inline query', ex);
       } finally {
         setIsSavingRecords(false);
       }

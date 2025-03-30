@@ -1,38 +1,32 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Icon } from '@jetstream/ui';
-import { FunctionComponent, useEffect } from 'react';
-import { FallbackProps } from 'react-error-boundary';
+import * as Sentry from '@sentry/react';
+import { FunctionComponent, ReactNode } from 'react';
+import { FallbackProps, ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
 import { Link } from 'react-router-dom';
 import { EmailSupport } from './EmailSupport';
 
-// componentStack is depreacted in version 3.0 and must be added as a listener to every place ErrorBoundary is used
-export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, /** componentStack, */ resetErrorBoundary }) => {
-  const rollbar = useRollbar();
+function logError(error: Error, info: { componentStack: string }) {
+  try {
+    logger.error(error);
+    Sentry.captureReactException(error, info);
+    logger.error(info.componentStack);
+  } catch (ex) {
+    logger.error('Error logging event to sentry');
+    logger.error(ex);
+  }
+}
 
-  useEffect(() => {
-    if (error && rollbar) {
-      try {
-        logger.error(error);
-        // logger.error(componentStack);
-        rollbar.error(`[UNCAUGHT] ${error.message}`, error, {
-          errorName: error.name,
-          message: error.message,
-          stack: error.stack,
-          // componentStack,
-        });
-      } catch (ex) {
-        try {
-          rollbar.error('An unknown error occurred logging error event', { message: ex.message, stack: ex.stack });
-        } catch (ex) {
-          logger.error('Error logging event to rollbar');
-          logger.error(ex);
-        }
-      }
-    }
-  }, [/** componentStack, */ error, rollbar]);
+export const ErrorBoundary = ({ children }: { children: ReactNode }) => {
+  return (
+    <ReactErrorBoundary FallbackComponent={ErrorBoundaryFallback} onError={logError}>
+      {children}
+    </ReactErrorBoundary>
+  );
+};
 
+const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, resetErrorBoundary }) => {
   function resetPage() {
     window.location.reload();
   }

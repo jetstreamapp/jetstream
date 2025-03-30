@@ -26,13 +26,12 @@ import {
   Spinner,
   Tooltip,
 } from '@jetstream/ui';
-import { ErrorBoundaryFallback, fromQueryHistoryState, useAmplitude } from '@jetstream/ui-core';
+import { ErrorBoundary, fromQueryHistoryState, useAmplitude } from '@jetstream/ui-core';
 import { dexieDb, queryHistoryDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
 import { useLiveQuery } from 'dexie-react-hooks';
 import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
@@ -265,7 +264,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
   }
 
   return (
-    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+    <ErrorBoundary>
       <ButtonGroupContainer>
         <Tooltip
           content={

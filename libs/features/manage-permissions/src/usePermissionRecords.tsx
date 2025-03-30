@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, groupByFlat } from '@jetstream/shared/utils';
 import {
   EntityParticlePermissionsRecord,
   FieldPermissionDefinitionMap,
@@ -25,7 +25,7 @@ import {
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -96,7 +96,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
-      rollbar.error('[useProfilesAndPermSets][ERROR]', getErrorMessageAndStackObj(ex));
+      sentry.trackError('[useProfilesAndPermSets][ERROR]', ex, 'usePermissionRecords');
       if (isMounted.current) {
         setHasError(true);
       }

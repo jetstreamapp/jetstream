@@ -2,7 +2,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
-import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { useObservable, useSentry } from '@jetstream/shared/ui-utils';
 import { Announcement, SalesforceOrgUi } from '@jetstream/types';
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -82,12 +82,7 @@ APP VERSION ${version}
     announcements && onAnnouncements && onAnnouncements(announcements);
   }, [announcements, onAnnouncements]);
 
-  useRollbar({
-    accessToken: environment.rollbarClientAccessToken,
-    environment: appCookie.environment,
-    userProfile: userProfile,
-    version,
-  });
+  useSentry({ appCookie, userProfile, version });
   useAmplitude();
 
   useEffect(() => {

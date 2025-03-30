@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
-import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useRollbar } from '@jetstream/shared/ui-utils';
+import { formatNumber, getFilename, isEnterKey, prepareCsvFile, prepareExcelFile, saveFile, useSentry } from '@jetstream/shared/ui-utils';
 import { flattenRecords, getMapOfBaseAndSubqueryRecords } from '@jetstream/shared/utils';
 import {
   FileExtCsv,
@@ -110,7 +110,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   onDownloadFromServer,
   children,
 }) => {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const hasGoogleInputConfigured =
     googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
@@ -307,7 +307,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     } catch (ex) {
       // TODO: show error message somewhere
       logger.error('Error downloading file', ex);
-      rollbar.error('Record download error', { message: ex.message, stack: ex.stack });
+      sentry.trackError('Record download error', ex);
       setErrorMessage('There was a problem preparing your file download.');
     }
   }

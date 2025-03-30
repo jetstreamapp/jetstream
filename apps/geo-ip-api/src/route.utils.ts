@@ -1,4 +1,4 @@
-import { getExceptionLog, rollbarServer } from '@jetstream/api-config';
+import { getExceptionLog, sentryServer } from '@jetstream/api-config';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { NextFunction } from 'express';
 import type pino from 'pino';
@@ -48,16 +48,14 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(ex);
       }
     } catch (ex) {
-      rollbarServer.error('Route Validation Error', req, {
-        context: `route#createRoute`,
-        custom: {
-          ...getExceptionLog(ex, true),
-          message: ex.message,
-          stack: ex.stack,
+      sentryServer.captureException(ex, {
+        tags: { requestId: res.locals.requestId },
+        extra: {
+          message: 'Route validation error',
+          location: `route#createRoute`,
           url: req.url,
           params: req.params,
           query: req.query,
-          body: req.body,
         },
       });
       req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');

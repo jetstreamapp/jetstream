@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
   serverUrl: 'https://getjetstream.app',
-  rollbarClientAccessToken: process.env.NX_PUBLIC_ROLLBAR_KEY,
+  sentryDsn: process.env.NX_PUBLIC_SENTRY_DSN,
   amplitudeToken: process.env.NX_PUBLIC_AMPLITUDE_KEY,
   isWebExtension: true,
 };

@@ -4,7 +4,7 @@ export * from './app/AppLoading';
 export * from './app/ConfirmPageChange';
 export * from './app/DownloadFileStream';
 export * from './app/EmailSupport';
-export * from './app/ErrorBoundaryFallback';
+export * from './app/ErrorBoundary';
 export * from './app/Feedback';
 export * from './app/HeaderAnnouncementPopover';
 export * from './app/HeaderDonatePopover';

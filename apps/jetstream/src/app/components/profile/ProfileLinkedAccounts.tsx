@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import type { UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useCsrfToken, useRollbar } from '@jetstream/shared/ui-utils';
+import { useCsrfToken, useSentry } from '@jetstream/shared/ui-utils';
 import { fireToast, Grid } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { FunctionComponent } from 'react';
@@ -20,7 +20,7 @@ const searchParams = new URLSearchParams({
 
 export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps> = ({ fullUserProfile, onUserProfilesChange }) => {
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { unlinkAccount, loading: linkAccountLoading, providers } = useLinkAccount();
   const { csrfToken } = useCsrfToken();
 
@@ -34,7 +34,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
         message: 'There was a problem unlinking your account. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      rollbar.error('Settings: Error unlinking account', { stack: ex.stack, message: ex.message });
+      sentry.trackError('Settings: Error unlinking account', ex, 'ProfileLinkedAccounts');
     }
   }
 

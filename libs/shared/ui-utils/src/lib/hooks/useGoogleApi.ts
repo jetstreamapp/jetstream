@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isBrowserExtension } from '../shared-browser-extension-helpers';
 import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';
-import { useRollbar } from './useRollbar';
+import { useSentry } from './useSentry';
 
 let useInjectScriptGapi: () => [boolean, boolean] = () => [false, false];
 let useInjectScriptGis: () => [boolean, boolean] = () => [false, false];
@@ -37,7 +37,7 @@ export interface GoogleApiClientConfig {
  * @returns
  */
 export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: GoogleApiClientConfig) {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const tokenClient = useRef<Maybe<google.accounts.oauth2.TokenClient>>(_tokenClient);
   const tokenResponse = useRef<Maybe<google.accounts.oauth2.TokenResponse>>(_tokenResponse);
   const tokenCallback = useRef<
@@ -70,9 +70,12 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
   useEffect(() => {
     if (gapiScriptLoadError || gisScriptLoadError) {
       setError('There was an error initializing Google');
-      rollbar?.critical('Error loading Google API script from Network');
+      sentry.trackMessage('Error loading Google API script from Network', {
+        tags: { location: 'useGoogleApi' },
+        extra: { gapiScriptLoadError, gisScriptLoadError },
+      });
     }
-  }, [gapiScriptLoadError, gisScriptLoadError, rollbar]);
+  }, [gapiScriptLoadError, gisScriptLoadError, sentry]);
 
   const callback = useCallback((response: google.accounts.oauth2.TokenResponse) => {
     logger.log('[GOOGLE] access token obtained');
@@ -137,12 +140,12 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
       } catch (ex) {
         logger.error('[GOOGLE] Error loading library', ex);
         setError('There was a problem loading Google');
-        rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex: ex });
+        sentry.trackError('Google Sign In error', ex, 'useGoogleApi');
       } finally {
         setLoading(false);
       }
     }
-  }, [rollbar]);
+  }, [sentry]);
 
   const isTokenValid = useCallback(() => {
     return !!tokenClient.current && !!tokenResponse.current && !!currentTokenExpiration && isAfter(currentTokenExpiration, new Date());

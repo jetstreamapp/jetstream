@@ -2,6 +2,8 @@ import Layout from '../../components/layouts/Layout';
 
 const webSubProcessors = [
   { name: 'Amplitude', function: 'Telemetry', location: 'United States', optional: 'No' },
+  { name: 'BetterStack', function: 'Server Logging', location: 'Europe', optional: 'No' },
+  { name: 'Backblaze', function: 'Log storage', location: 'United States', optional: 'No' },
   { name: 'Cloudflare', function: 'Infrastructure', location: 'United States', optional: 'No' },
   {
     name: 'Cloudinary',
@@ -17,7 +19,7 @@ const webSubProcessors = [
   },
   { name: 'Mailgun', function: 'Email', location: 'United States', optional: 'No' },
   { name: 'Render', function: 'Infrastructure', location: 'United States', optional: 'No' },
-  { name: 'Rollbar', function: 'Automated bug tracking', location: 'United States', optional: 'No' },
+  { name: 'Sentry', function: 'Automated bug tracking', location: 'United States', optional: 'No' },
   { name: 'Salesforce.com', function: 'Application core', location: 'United States', optional: 'No' },
 ];
 

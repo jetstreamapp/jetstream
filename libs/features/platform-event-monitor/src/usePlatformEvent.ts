@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
-import { useDebounce, useRollbar } from '@jetstream/shared/ui-utils';
+import { useDebounce, useSentry } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj, orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
@@ -23,7 +23,7 @@ export interface PlatformEventDownloadData {
 export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }) {
   const isMounted = useRef(true);
   const cometD = useRef<CometD>();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { trackEvent } = useAmplitude();
   const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [platformEvents, setPlatformEvents] = useState<PlatformEventObject[]>([]);
@@ -82,10 +82,10 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         }
       } catch (ex) {
         setPlatformEventFetchError(getErrorMessage(ex));
-        rollbar.error(`Fetch platform event error`, getErrorMessageAndStackObj(ex));
+        sentry.trackError(`Fetch platform event error`, getErrorMessageAndStackObj(ex));
       }
     },
-    [rollbar, selectedOrg]
+    [sentry, selectedOrg]
   );
 
   useEffect(() => {

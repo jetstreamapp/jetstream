@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
-import { saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { saveFile, useBrowserNotifications, useObservable, useSentry } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
@@ -44,7 +44,7 @@ export const Jobs: FunctionComponent = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
   const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const setJobs = useSetRecoilState(jobsState);
   const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
   const [jobs, setJobsArr] = useRecoilState(selectJobs);
@@ -111,7 +111,7 @@ export const Jobs: FunctionComponent = () => {
         })
         .catch((err) => {
           handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
-          rollbar.error('Error saving to Google Drive', { err, message: err?.message });
+          sentry.trackError('Error saving to Google Drive', { err, message: err?.message });
         })
         .finally(() => {
           setJobs((prevJobs) => ({

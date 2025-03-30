@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeMetadata as describeMetadataApi } from '@jetstream/shared/data';
-import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { DescribeMetadataResult, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
@@ -16,7 +16,6 @@ export function useDescribeMetadata(
   loadOnInit = true
 ) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   // map of each item or child item to parent item
   const [metadataItemMap, setMetadataItemMap] = useState<Record<string, MetadataObject>>(initialMetadataItemMap || {});
   const [metadataItems, setMetadataItems] = useState<string[] | undefined>(initialItems);

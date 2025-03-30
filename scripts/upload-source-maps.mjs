@@ -9,7 +9,7 @@ import { $, chalk, fs, path } from 'zx'; // https://github.com/google/zx
 
 if (process.env.SKIP_ROLLBAR) {
   console.log(chalk.yellow('Skipping Rollbar asset upload'));
-  return;
+  process.exit(0);
 }
 console.log(chalk.blue(`Uploading sourcemaps to Rollbar`));
 const distPath = path.join(__dirname, '../dist');
@@ -21,7 +21,7 @@ console.log(chalk.blue(`Version: ${version}`));
 
 if (!accessToken) {
   console.error(chalk.redBright('🚫 COULD NOT UPLOAD SOURCEMAPS - ACCESS TOKEN NOT SET 🚫'));
-  return;
+  process.exit(1);
 }
 
 $.verbose = false;

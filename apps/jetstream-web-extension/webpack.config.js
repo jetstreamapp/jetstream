@@ -51,7 +51,7 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
     // @ts-expect-error this is valid, not sure why it is complaining
     new webpack.EnvironmentPlugin({
       NX_PUBLIC_AMPLITUDE_KEY: '',
-      NX_PUBLIC_ROLLBAR_KEY: '',
+      NX_PUBLIC_SENTRY_DSN: '',
     }),
     new webpack.DefinePlugin({
       'globalThis.__IS_BROWSER_EXTENSION__': true,

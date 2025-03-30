@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { getOrgType, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getOrgType, useNonInitialEffect, useSentry } from '@jetstream/shared/ui-utils';
 import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
 import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
@@ -42,7 +41,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   onClose,
   onDeploy,
 }) => {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<Maybe<ArrayBuffer>>(initialFile);
@@ -106,7 +105,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
       setZipFileError(null);
     } catch (ex) {
       logger.warn('[ZIP][ERROR]', ex);
-      rollbar.error(`JSZip Error: ${getErrorMessage(ex)}`, getErrorMessageAndStackObj(ex));
+      sentry.trackError('JSZip Error', ex, 'DeployMetadataPackageConfigModal');
       setZipFileError('There was an error reading the zip file. Make sure the file is a valid zip file and try again.');
       setFileName(undefined);
       setFileContents(undefined);

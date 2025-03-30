@@ -3,7 +3,7 @@ import { Maybe } from '@jetstream/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';
-import { useRollbar } from './useRollbar';
+import { useSentry } from './useSentry';
 
 const useInjectScript = getUseInjectScript('https://accounts.google.com/gsi/client');
 
@@ -61,7 +61,7 @@ export function useLoadGoogleApi({
   clientId,
 }: GoogleApiClientConfig): [GoogleApiData, (options?: gapi.auth2.SigninOptions) => void, () => void] {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const [scriptLoaded, scriptLoadError] = useInjectScript();
   const [error, setError] = useState<string | null>(null);
   const [hasApisLoaded, setHasApisLoaded] = useState(false);
@@ -95,9 +95,12 @@ export function useLoadGoogleApi({
   useEffect(() => {
     if (scriptLoadError) {
       setError('There was an error initializing Google');
-      rollbar?.critical('Error loading Google API script from Network');
+      sentry.trackMessage('Error loading Google API script from Network', {
+        tags: { location: 'useLoadGoogleApi' },
+        extra: { scriptLoadError },
+      });
     }
-  }, [scriptLoadError]);
+  }, [scriptLoadError, sentry]);
 
   // load the Drive picker api
   const loadApis = useCallback(async () => {
@@ -119,7 +122,7 @@ export function useLoadGoogleApi({
             if (isMounted.current) {
               logger.error('Error loading API client', reason);
               setError('There was an error initializing Google');
-              rollbar?.critical('Error loading Google API', { reason });
+              sentry.trackError('Error loading Google API', reason, 'useLoadGoogleApi');
             }
           }
         );
@@ -161,7 +164,7 @@ export function useLoadGoogleApi({
         let errorMessage = 'There was an error initializing Google';
         const details: string = ex?.details || '';
         logger.error('Error loading API client', ex);
-        rollbar?.critical('Error loading Google API', { message: ex.message || ex.error, stack: ex.stack, details: ex.details, error: ex });
+        sentry.trackError('Error loading Google API', ex, 'useLoadGoogleApi');
         if (ex.error === 'idpiframe_initialization_failed') {
           if (details.startsWith('Not a valid origin for the client')) {
             // this is a misconfiguration, keep default error message
@@ -207,12 +210,12 @@ export function useLoadGoogleApi({
             setError('You did not provide the required access, sign in again and choose the necessary permissions.');
           } else {
             setError('There was a problem signing in');
-            rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex: ex });
+            sentry.trackError('Google Sign In error', ex, 'useLoadGoogleApi');
           }
         }
       }
     },
-    [authorized, error, hasApisLoaded, hasInitialized, signedIn]
+    [authorized, hasApisLoaded, hasInitialized, scriptLoaded, sentry, signedIn]
   );
 
   const signOut = useCallback(() => {
@@ -225,9 +228,9 @@ export function useLoadGoogleApi({
       }
     } catch (ex) {
       logger.error('Error Signing out', ex);
-      rollbar?.critical('Google Sign Out error (could be user initiated)', { message: ex.message || ex.error, stack: ex.stack });
+      sentry.trackError('Google Sign Out error (could be user initiated)', ex, 'useLoadGoogleApi');
     }
-  }, [signedIn]);
+  }, [sentry, signedIn]);
 
   return [
     {

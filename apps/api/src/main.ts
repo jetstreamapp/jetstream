@@ -145,18 +145,23 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   // Setup session
   app.use(sessionMiddleware);
 
+  const sentryReportingUri = ENV.SENTRY_CSP_REPORT_URI
+    ? `${ENV.SENTRY_CSP_REPORT_URI}&sentry_environment=${ENV.ENVIRONMENT}&sentry_release=${ENV.VERSION || 'unknown'}`
+    : null;
+
   // app.use(compression());
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
+          reportUri: sentryReportingUri || [],
+          reportTo: 'csp-endpoint',
           defaultSrc: [
             "'self'",
             '*.google-analytics.com',
             '*.google.com',
             '*.googleapis.com',
             '*.gstatic.com',
-            '*.rollbar.com',
             'api.amplitude.com',
             'api.cloudinary.com',
             'https://challenges.cloudflare.com',
@@ -167,6 +172,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             'https://api.stripe.com',
             'https://*.js.stripe.com',
             'https://hooks.stripe.com',
+            '*.sentry.io',
           ],
           baseUri: ["'self'"],
           blockAllMixedContent: [],
@@ -215,6 +221,21 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       },
     })
   );
+
+  app.use((req, res, next) => {
+    if (sentryReportingUri) {
+      res.setHeader(
+        'Report-To',
+        JSON.stringify({
+          group: 'csp-endpoint',
+          max_age: 10886400,
+          endpoints: [{ url: sentryReportingUri }],
+          include_subdomains: true,
+        })
+      );
+    }
+    next();
+  });
 
   app.use(blockBotByUserAgentMiddleware);
 
@@ -329,7 +350,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   app.use('/webhook', webhookRoutes);
 
-  app.use(raw({ limit: '30mb', type: ['text/csv'] }));
+  app.use(raw({ limit: '30mb', type: ['text/csv', 'text/plain'] }));
   app.use(raw({ limit: '30mb', type: ['application/zip'] }));
   app.use(json({ limit: '20mb', type: ['json', 'application/csp-report'] }));
   app.use(urlencoded({ extended: true }));
@@ -408,23 +429,25 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     logger.error(getExceptionLog(error), '[SERVER][ERROR]');
   });
 
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, shutting down gracefully');
-    server.close(() => {
-      logger.info('Server closed');
+  if (ENV.ENVIRONMENT !== 'development') {
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        logger.info('Server closed');
 
-      pgPool.end().then(() => {
-        logger.info('DB pool closed');
-        process.exit(0);
+        pgPool.end().then(() => {
+          logger.info('DB pool closed');
+          process.exit(0);
+        });
       });
-    });
 
-    // Force close after 30s
-    setTimeout(() => {
-      logger.error('Could not close connections in time, forcefully shutting down');
-      process.exit(1);
-    }, 30_000);
-  });
+      // Force close after 30s
+      setTimeout(() => {
+        logger.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 30_000);
+    });
+  }
 }
 
 /**

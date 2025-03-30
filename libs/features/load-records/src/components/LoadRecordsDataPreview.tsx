@@ -5,12 +5,11 @@ import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, groupByFlat } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
-import { ErrorBoundaryFallback, fromLoadRecordsState } from '@jetstream/ui-core';
+import { ErrorBoundary, fromLoadRecordsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
-import { ErrorBoundary } from 'react-error-boundary';
 import { useRecoilState, useRecoilValue } from 'recoil';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
@@ -193,7 +192,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               `}
             >
               <p className="slds-text-heading_small">File Preview</p>
-              <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+              <ErrorBoundary>
                 <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
                   <DataTable
                     org={selectedOrg}

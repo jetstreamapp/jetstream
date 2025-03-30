@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { genericRequest, sobjectOperation } from '@jetstream/shared/data';
-import { useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { useBrowserNotifications, useSentry } from '@jetstream/shared/ui-utils';
 import { REGEX, getSuccessOrFailureChar, groupByFlat, pluralizeFromNumber, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { CompositeGraphResponseBodyData, CompositeResponse, ErrorResult, RecordResult, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
@@ -58,7 +58,7 @@ interface UseCreateFieldsOptions {
 }
 
 export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, permissionSets, sObjects }: UseCreateFieldsOptions) {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const [loading, setLoading] = useState(false);
   const [_results, setResults] = useState<CreateFieldsResults[]>([]);
@@ -111,16 +111,13 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         } catch (ex) {
           setFatalError(true);
           setFatalErrorMessage('There was a problem preparing the data for deployment');
-          rollbar.critical('Create fields - prepare payload error', {
-            message: ex.message,
-            stack: ex.stack,
-          });
+          sentry.trackError('Create fields - prepare payload error', ex, 'useCreateFields');
           return false;
         }
       }
       return false;
     },
-    [rollbar, sObjects, selectedOrg.orgNamespacePrefix]
+    [sentry, sObjects, selectedOrg.orgNamespacePrefix]
   );
 
   /**
@@ -237,7 +234,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
                 originalRecord.Errors = result.flsErrors.join('\n');
               } catch (ex) {
                 logger.warn('Error getting FLS errors');
-                rollbar.error('Create fields - error getting FLS results', {
+                sentry.trackError('Create fields - error getting FLS results', {
                   message: ex.message,
                   stack: ex.stack,
                 });
@@ -253,7 +250,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         });
       }
     },
-    [rollbar, selectedOrg]
+    [sentry, selectedOrg]
   );
 
   /**
@@ -324,7 +321,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
           } catch (ex) {
             setLayoutErrorMessage('There was an unexpected error updating page layouts');
             pageLayoutStatus = 'FAILED';
-            rollbar.error('Create fields - page layouts - error', {
+            sentry.trackError('Create fields - page layouts - error', {
               message: ex.message,
               stack: ex.stack,
             });
@@ -354,7 +351,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
             'key'
           )
         );
-        rollbar.error('Create fields error', {
+        sentry.trackError('Create fields error', {
           message: ex.message,
           stack: ex.stack,
         });
@@ -367,7 +364,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg]
+    [apiVersion, deployFieldMetadata, deployFieldPermissions, sentry, selectedOrg]
   );
 
   function sendBrowserNotification(resultsById: Record<string, CreateFieldsResults>) {

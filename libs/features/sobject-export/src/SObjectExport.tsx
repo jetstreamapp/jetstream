@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -89,7 +89,7 @@ export interface SObjectExportProps {}
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
 
@@ -203,7 +203,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     } catch (ex) {
       logger.error(ex);
       setErrorMessage(getErrorMessage(ex));
-      rollbar.error('Error preparing sobject export', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Error preparing sobject export', ex, 'SObjectExport');
     } finally {
       setLoading(false);
       recentHistoryItemsDb.addItemToRecentHistoryItems(selectedOrg.uniqueId, 'sobject', selectedSObjects);

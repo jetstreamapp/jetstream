@@ -4,8 +4,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { filterCreateSobjects, isErrorResponse, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { filterCreateSobjects, isErrorResponse, useNonInitialEffect, useSentry } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
   DescribeGlobalSObjectResult,
@@ -40,7 +40,7 @@ const HEIGHT_BUFFER = 160;
 
 export const CreateRecords = () => {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { trackEvent } = useAmplitude();
 
   const { defaultApiVersion } = useRecoilValue(applicationCookieState);
@@ -177,7 +177,7 @@ export const CreateRecords = () => {
     } catch (ex) {
       if (isMounted.current) {
         logger.error('Error fetching metadata', ex);
-        rollbar.error('Error fetching record metadata', getErrorMessageAndStackObj(ex));
+        sentry.trackError('Error fetching record metadata', ex, 'CreateRecords');
         setFormErrors({
           hasErrors: true,
           fieldErrors: {},
