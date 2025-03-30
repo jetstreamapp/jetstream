@@ -47,9 +47,6 @@ routes.post('/sentry-tunnel', async (req: express.Request, res: express.Response
     if (response.ok) {
       res.status(200).json({});
     } else {
-      response.text().then((text) => {
-        console.log(text);
-      });
       res.status(500).json({ error: 'error tunneling to sentry' });
     }
   } catch (ex) {

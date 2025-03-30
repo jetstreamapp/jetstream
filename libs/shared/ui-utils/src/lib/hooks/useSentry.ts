@@ -102,16 +102,10 @@ export function logErrorToSentry(message: string, error: unknown, location?: str
     if (!sentryDsn) {
       return;
     }
-    Sentry.getCurrentScope().addAttachment({
-      filename: 'recentLogs.txt',
-      contentType: 'text/json',
-      data: getRecentLogs(),
-    });
     Sentry.captureException(error, {
       extra: { message, recentLogs: getRecentLogs(), ...extra },
       tags: { location },
     });
-    Sentry.getCurrentScope().clearAttachments();
   } catch (ex) {
     logger.log('[SENTRY] Error logging to sentry', ex);
   }

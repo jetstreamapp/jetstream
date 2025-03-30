@@ -82,7 +82,10 @@ APP VERSION ${version}
     announcements && onAnnouncements && onAnnouncements(announcements);
   }, [announcements, onAnnouncements]);
 
-  useSentry({ appCookie, userProfile, version });
+  const sentry = useSentry({ appCookie, userProfile, version });
+  useEffect(() => {
+    sentry.trackError('Settings: Error unlinking account', new Error('Some Error'), 'ProfileLinkedAccounts');
+  }, [sentry]);
   useAmplitude();
 
   useEffect(() => {
