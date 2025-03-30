@@ -106,7 +106,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   function handleToggleOpen(open: boolean, source = 'buttonClick') {
     setIsOpen(open);
     if (open) {
-      trackEvent(ANALYTICS_KEYS.deploy_history_opened, source);
+      trackEvent(ANALYTICS_KEYS.deploy_history_opened, { source });
     }
   }
 

@@ -13,7 +13,7 @@ export interface FileOrGoogleSelectorProps {
   googleShowUpgradeToPro: boolean;
   initialSelectedTab?: 'local' | 'google';
   source: string;
-  trackEvent: (key: string, value?: unknown) => void;
+  trackEvent: (key: string, value?: Record<string, any>) => void;
 }
 
 export const FileOrGoogleSelector = ({

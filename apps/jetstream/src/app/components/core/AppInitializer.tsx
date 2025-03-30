@@ -4,7 +4,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { Announcement, SalesforceOrgUi } from '@jetstream/types';
-import { useAmplitude, usePageViews } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
@@ -89,7 +89,6 @@ APP VERSION ${version}
     version,
   });
   useAmplitude();
-  usePageViews();
 
   useEffect(() => {
     if (invalidOrg) {

@@ -216,21 +216,19 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     })
   );
 
+  app.use(blockBotByUserAgentMiddleware);
+
   if (ENV.ENVIRONMENT === 'development') {
-    /**
-     * All analytics go through our server instead of directly to amplitude
-     * This ensures that amplitude is not blocked by various browser tools
-     */
     app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (req, res) => res.status(200).send('success'));
   } else {
-    /**
-     * All analytics go through our server instead of directly to amplitude
-     * This ensures that amplitude is not blocked by various browser tools
-     */
-    app.use('/analytics', proxy('https://api.amplitude.com'));
+    app.use(
+      '/analytics',
+      proxy('https://api2.amplitude.com', {
+        proxyReqPathResolver: (req) => req.originalUrl.replace('/analytics', '/2/httpapi'),
+      })
+    );
   }
 
-  app.use(blockBotByUserAgentMiddleware);
   app.use(setApplicationCookieMiddleware);
 
   app.use(httpLogger);

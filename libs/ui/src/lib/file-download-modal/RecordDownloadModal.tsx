@@ -75,7 +75,7 @@ export interface RecordDownloadModalProps {
   totalRecordCount?: number;
   includeDeletedRecords?: boolean;
   source: string;
-  trackEvent: (key: string, value?: unknown) => void;
+  trackEvent: (key: string, value?: Record<string, any>) => void;
   onModalClose: (canceled?: boolean) => void;
   onDownload?: (fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) => void;
   onDownloadFromServer?: (options: DownloadFromServerOpts) => void;
