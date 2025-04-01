@@ -95,10 +95,7 @@ export function useLoadGoogleApi({
   useEffect(() => {
     if (scriptLoadError) {
       setError('There was an error initializing Google');
-      sentry.trackMessage('Error loading Google API script from Network', {
-        tags: { location: 'useLoadGoogleApi' },
-        extra: { scriptLoadError },
-      });
+      sentry.trackMessage('Error loading Google API script from Network', 'useLoadGoogleApi', { scriptLoadError });
     }
   }, [scriptLoadError, sentry]);
 

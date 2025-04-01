@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, sobjectOperation } from '@jetstream/shared/data';
 import { useDebounce, useSentry } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj, orderValues } from '@jetstream/shared/utils';
+import { getErrorMessage, orderValues } from '@jetstream/shared/utils';
 import { Maybe, PlatformEventMessage, PlatformEventMessagePayload, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -82,7 +82,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         }
       } catch (ex) {
         setPlatformEventFetchError(getErrorMessage(ex));
-        sentry.trackError(`Fetch platform event error`, getErrorMessageAndStackObj(ex));
+        sentry.trackError(`Fetch platform event error`, ex, 'usePlatformEvent');
       }
     },
     [sentry, selectedOrg]

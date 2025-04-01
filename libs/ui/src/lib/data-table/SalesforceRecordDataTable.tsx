@@ -288,7 +288,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         // oops. show the user an error
         setIsLoadingMore(false);
         setLoadMoreErrorMessage('There was a problem loading the rest of the records.');
-        sentry.trackError('Load Remaining Records failed', ex);
+        sentry.trackError('Load Remaining Records failed', ex, 'SalesforceDataTable');
       }
     }
 
@@ -396,7 +396,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
           message: `There was a problem saving your records. ${ex?.message || ''}`,
           type: 'error',
         });
-        sentry.trackError('Error saving records - inline query', ex);
+        sentry.trackError('Error saving records - inline query', ex, 'SalesforceDataTable');
       } finally {
         setIsSavingRecords(false);
       }

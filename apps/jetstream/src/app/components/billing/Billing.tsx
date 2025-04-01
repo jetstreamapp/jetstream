@@ -63,7 +63,7 @@ export const Billing = () => {
       setCustomerWithSubscriptions(customer);
     } catch (ex) {
       logger.error('Settings: Error fetching user', ex);
-      sentry.trackError('Settings: Error fetching user', ex);
+      sentry.trackError('Settings: Error fetching user', ex, 'Billing');
       setLoadingError(true);
     } finally {
       setLoading(false);

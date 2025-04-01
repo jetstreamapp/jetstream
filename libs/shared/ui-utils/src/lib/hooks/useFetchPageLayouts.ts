@@ -77,10 +77,7 @@ export function useFetchPageLayouts(selectedOrg: SalesforceOrgUi, sObjects: stri
     } catch (ex) {
       logger.warn('[LAYOUT][FETCH][ERROR]', ex);
       setError('There was a problem getting page layouts');
-      sentry.trackError('Create fields - fetch layouts error', {
-        message: ex.message,
-        stack: ex.stack,
-      });
+      sentry.trackError('Create fields - fetch layouts error', ex, 'useFetchPageLayouts');
     } finally {
       setLoading(false);
     }

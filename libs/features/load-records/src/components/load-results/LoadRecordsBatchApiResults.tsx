@@ -148,10 +148,9 @@ export const LoadRecordsBatchApiResults = ({
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
-        sentry.trackError('Error preparing batch api data', new Error('Error preparing batch api data'), 'LoadRecordsBatchApiResults', {
-          message: 'Pre-processing failed',
-          queryErrors: preparedData?.queryErrors,
-          errors: preparedDataResponse.errors?.flatMap((error) => error.errors) || [],
+        sentry.trackMessage('Error preparing batch api data', 'LoadRecordsBatchApiResults', {
+          queryErrors: preparedData?.queryErrors?.slice(0, 5) || [],
+          errors: preparedDataResponse.errors?.flatMap((error) => error.errors)?.slice(0, 5) || [],
         });
       } else {
         setStatus(STATUSES.PROCESSING);

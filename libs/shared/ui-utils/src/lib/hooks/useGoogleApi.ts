@@ -70,10 +70,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
   useEffect(() => {
     if (gapiScriptLoadError || gisScriptLoadError) {
       setError('There was an error initializing Google');
-      sentry.trackMessage('Error loading Google API script from Network', {
-        tags: { location: 'useGoogleApi' },
-        extra: { gapiScriptLoadError, gisScriptLoadError },
-      });
+      sentry.trackMessage('Error loading Google API script from Network', 'useGoogleApi', { gapiScriptLoadError, gisScriptLoadError });
     }
   }, [gapiScriptLoadError, gisScriptLoadError, sentry]);
 

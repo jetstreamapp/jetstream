@@ -96,7 +96,7 @@ export const Profile = () => {
         message: 'There was a problem updating your user. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      sentry.trackError('Settings: Error updating user', ex);
+      sentry.trackError('Settings: Error updating user', ex, 'Profile');
     } finally {
       setLoading(false);
       setEditMode(false);
@@ -126,7 +126,7 @@ export const Profile = () => {
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      sentry.trackError('Settings: Error setting password', ex);
+      sentry.trackError('Settings: Error setting password', ex, 'Profile');
     }
   }
 
@@ -143,7 +143,7 @@ export const Profile = () => {
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      sentry.trackError('Settings: Error resetting password', ex);
+      sentry.trackError('Settings: Error resetting password', ex, 'Profile');
     }
   }
 
@@ -156,7 +156,7 @@ export const Profile = () => {
         message: 'There was a problem removing your password. Try again or file a support ticket for assistance.',
         type: 'error',
       });
-      sentry.trackError('Settings: Error removing password', ex);
+      sentry.trackError('Settings: Error removing password', ex, 'Profile');
     }
   }
 

@@ -96,7 +96,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
     } catch (ex) {
       logger.warn('[useProfilesAndPermSets][ERROR]', getErrorMessage(ex));
-      sentry.trackError('[useProfilesAndPermSets][ERROR]', ex, 'usePermissionRecords');
+      sentry.trackError('Error fetching permission metadata', ex, 'usePermissionRecords');
       if (isMounted.current) {
         setHasError(true);
       }

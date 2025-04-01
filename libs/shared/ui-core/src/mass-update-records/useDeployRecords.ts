@@ -82,7 +82,7 @@ export function useDeployRecords(
           // Log error for investigation of failure - but do not log for known errors
           const errorMessage = getErrorMessage(ex)?.toLowerCase() || '';
           if (!errorMessage.includes('aborted') && !errorMessage.includes('limit exceeded')) {
-            sentry.trackError('There was an error loading batch for mass record update', ex);
+            sentry.trackError('There was an error loading batch for mass record update', ex, 'useDeployRecords');
           }
 
           deployResults.processingErrors = [...deployResults.processingErrors];
@@ -179,7 +179,7 @@ export function useDeployRecords(
 
           isMounted.current && onDeployResults(row.sobject, deployResults);
 
-          sentry.trackError('There was an error loading data for mass record update', ex);
+          sentry.trackError('There was an error loading data for mass record update', ex, 'useDeployRecords');
           logger.error('Error loading data for row', ex);
         }
       }
@@ -263,7 +263,7 @@ export function useDeployRecords(
 
         onDeployResults(sobject, newDeployResults);
 
-        sentry.trackError('There was an error loading data for mass record update', ex);
+        sentry.trackError('There was an error loading data for mass record update', ex, 'useDeployRecords');
         logger.error('Error loading data for row', ex);
       }
     },
@@ -297,7 +297,7 @@ export function useDeployRecords(
             onDeployResults(row.sobject, { ...deployResults });
           } catch (ex) {
             logger.error('Error polling bulk api job', ex);
-            sentry.trackError('There was an error polling bulk api job', ex);
+            sentry.trackError('There was an error polling bulk api job', ex, 'useDeployRecords');
             const deployResults: DeployResults = {
               ...row.deployResults,
               done: true,
@@ -332,7 +332,7 @@ export function useDeployRecords(
         }
         notifyUser(`Updating records has finished`, { body: 'Updating records has finished', tag: 'massUpdateRecords' });
       } catch (ex) {
-        sentry.trackError('There was an error polling for mass record update results', ex);
+        sentry.trackError('There was an error polling for mass record update results', ex, 'useDeployRecords');
         logger.warn('Error polling for jobs', ex);
         notifyUser(`Updating records has failed`, { body: 'There was a problem with your data processing', tag: 'massUpdateRecords' });
       }

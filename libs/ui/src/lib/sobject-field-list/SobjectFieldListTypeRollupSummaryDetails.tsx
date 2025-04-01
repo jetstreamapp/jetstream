@@ -95,11 +95,7 @@ const TooltipContent = ({
         });
       }
     } catch (ex) {
-      sentry.trackError('Error getting tooltip content', {
-        query,
-        message: ex.message,
-        stack: ex.stack,
-      });
+      sentry.trackError('Error getting tooltip content', ex, 'SobjectFieldListTypeRollupSummaryDetails');
       if (isMounted.current) {
         setContent({ label: `Oops. There was a problem getting the Roll-Up Summary content.`, items: [] });
       }

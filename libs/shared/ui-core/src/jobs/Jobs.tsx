@@ -111,7 +111,7 @@ export const Jobs: FunctionComponent = () => {
         })
         .catch((err) => {
           handleGoogleUploadFailure({ fileData, fileName, fileType }, newJob);
-          sentry.trackError('Error saving to Google Drive', { err, message: err?.message });
+          sentry.trackError('Error saving to Google Drive', err, 'Jobs');
         })
         .finally(() => {
           setJobs((prevJobs) => ({

@@ -5,7 +5,6 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { clearCacheForOrg, describeGlobal, describeSObject, query, sobjectOperation } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, isErrorResponse, useNonInitialEffect, useSentry } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import {
   AsyncJobNew,
   BulkDownloadJob,
@@ -272,7 +271,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       } catch (ex) {
         if (isMounted.current) {
           logger.error('Error fetching metadata', ex);
-          sentry.trackError('Error fetching record metadata', getErrorMessageAndStackObj(ex));
+          sentry.trackError('Error fetching record metadata', ex, 'ViewEditCloneRecord');
           setFormErrors({
             hasErrors: true,
             fieldErrors: {},

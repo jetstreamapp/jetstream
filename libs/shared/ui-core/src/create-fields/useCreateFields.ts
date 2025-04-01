@@ -234,10 +234,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
                 originalRecord.Errors = result.flsErrors.join('\n');
               } catch (ex) {
                 logger.warn('Error getting FLS errors');
-                sentry.trackError('Create fields - error getting FLS results', {
-                  message: ex.message,
-                  stack: ex.stack,
-                });
+                sentry.trackError('Create fields - error getting FLS results', ex, 'useCreateFields');
               }
             } else {
               originalRecord.Id = record.id;
@@ -245,6 +242,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
           }
         });
       } catch (ex) {
+        sentry.trackError('Error deploying field permissions', ex, 'useCreateFields');
         Object.values(_resultsById).forEach((result) => {
           result.flsErrorMessage = 'An unknown error has occurred.';
         });
@@ -321,10 +319,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
           } catch (ex) {
             setLayoutErrorMessage('There was an unexpected error updating page layouts');
             pageLayoutStatus = 'FAILED';
-            sentry.trackError('Create fields - page layouts - error', {
-              message: ex.message,
-              stack: ex.stack,
-            });
+            sentry.trackError('Create fields - page layouts - error', ex, 'useCreateFields');
           }
         }
 
@@ -351,10 +346,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
             'key'
           )
         );
-        sentry.trackError('Create fields error', {
-          message: ex.message,
-          stack: ex.stack,
-        });
+        sentry.trackError('Create fields error', ex, 'useCreateFields');
         notifyUser(`There was an error deploying your fields`, {
           body: `An unexpected error has occurred. ${ex.message}`,
           tag: 'create-fields',

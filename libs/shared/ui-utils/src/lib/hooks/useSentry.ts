@@ -87,20 +87,37 @@ export function useSentry(
     }
   }, [userProfile, appCookie]);
 
-  const trackError = useCallback((message: string, error: unknown, location?: string, extra?: Record<string, unknown>) => {
+  const trackError = useCallback((message: string, error: unknown, location: string, extra?: Record<string, unknown>) => {
     logErrorToSentry(message, error, location, extra);
   }, []);
 
-  return useMemo(() => ({ trackError, trackMessage: Sentry.captureMessage }), [trackError]);
+  const trackMessage = useCallback((message: string, location: string, extra?: Record<string, unknown>) => {
+    logMessageToSentry(message, location, extra);
+  }, []);
+
+  return useMemo(() => ({ trackError, trackMessage }), [trackError, trackMessage]);
 }
 
-// This should be used outside of a component (e.x. utility function)
-export function logErrorToSentry(message: string, error: unknown, location?: string, extra: Record<string, unknown> = {}) {
+export function logErrorToSentry(message: string, error: unknown, location: string, extra: Record<string, unknown> = {}) {
   try {
     if (!sentryDsn) {
       return;
     }
     Sentry.captureException(error, {
+      extra: { message, recentLogs: getRecentLogs(), ...extra },
+      tags: { location },
+    });
+  } catch (ex) {
+    logger.log('[SENTRY] Error logging to sentry', ex);
+  }
+}
+
+export function logMessageToSentry(message: string, location: string, extra: Record<string, unknown> = {}) {
+  try {
+    if (!sentryDsn) {
+      return;
+    }
+    Sentry.captureMessage(message, {
       extra: { message, recentLogs: getRecentLogs(), ...extra },
       tags: { location },
     });

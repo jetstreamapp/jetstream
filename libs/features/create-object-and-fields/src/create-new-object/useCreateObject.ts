@@ -94,14 +94,14 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
           }
           setStatus('SUCCESS');
         } catch (ex) {
-          sentry.trackError('Deploy object permission records Fatal Error', ex);
+          sentry.trackError('Deploy object permission records Fatal Error', ex, 'useCreateObject');
           setStatus('FAILED');
         } finally {
           setLoading(false);
           setDeployed(true);
         }
       } catch (ex) {
-        sentry.trackError('Deploy object Fatal Error', ex);
+        sentry.trackError('Deploy object Fatal Error', ex, 'useCreateObject');
         setStatus('FAILED');
       }
     },

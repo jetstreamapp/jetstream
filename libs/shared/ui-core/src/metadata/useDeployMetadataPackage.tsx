@@ -147,7 +147,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => v
         }
       } catch (ex) {
         logger.warn('[useDeployMetadataPackage][ERROR]', ex.message);
-        sentry.trackError('Problem deploying custom metadata', { message: ex.message, stack: ex.stack, deployOptions });
+        sentry.trackError('Problem deploying custom metadata', ex, 'useDeployMetadataPackage');
         if (isMounted.current) {
           dispatch({ type: 'ERROR', payload: { errorMessage: ex.message } });
         }

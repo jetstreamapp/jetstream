@@ -307,7 +307,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     } catch (ex) {
       // TODO: show error message somewhere
       logger.error('Error downloading file', ex);
-      sentry.trackError('Record download error', ex);
+      sentry.trackError('Record download error', ex, 'RecordDownloadModal');
       setErrorMessage('There was a problem preparing your file download.');
     }
   }
