@@ -180,6 +180,7 @@ export const ANALYTICS_KEYS = {
   automation_export: 'automation_export',
   /** QUERY */
   query_BulkDelete: 'query_BulkDelete',
+  query_BulkUndelete: 'query_BulkUndelete',
   query_CopyToClipboard: 'query_CopyToClipboard',
   query_DownloadResults: 'query_DownloadResults',
   query_ExecuteQuery: 'query_ExecuteQuery',

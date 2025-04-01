@@ -1,13 +1,13 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureArray, unSanitizeXml } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, DeployResult, Maybe } from '@jetstream/types';
+import { ensureArray, ensureBoolean, unSanitizeXml } from '@jetstream/shared/utils';
+import { BulkApiCreateJobRequestPayload, DeployResult, Maybe, RecordResult } from '@jetstream/types';
 import isEmpty from 'lodash/isEmpty';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
 import { ApiRequestOptions } from './types';
 
-type SOAP_TYPE = 'APEX' | 'METADATA';
+type SOAP_TYPE = 'APEX' | 'METADATA' | 'PARTNER';
 
 interface SoapRequestOptions {
   type: SOAP_TYPE;
@@ -75,23 +75,35 @@ export class SalesforceApi {
 
   createSoapEnvelope({ body, header, type }: SoapRequestOptions) {
     const { accessToken, callOptions } = this.sessionInfo;
-    const xmlHeader = header ? toSoapXML(header) : '';
+    const namespacePrefix = SoapTagPrefixMap[type] ? `${SoapTagPrefixMap[type]}:` : '';
+    const xmlHeader = header ? toSoapXML(header, undefined, SoapTagPrefixMap[type]) : '';
     const callOptionsXml = callOptions
-      ? `<CallOptions>${Object.entries(callOptions)
+      ? `<${namespacePrefix}CallOptions>${Object.entries(callOptions)
           .map(([attribute, value]) => `<${attribute}>${value}</${attribute}>`)
-          .join('')}</CallOptions>`
+          .join('')}</${namespacePrefix}CallOptions>`
       : '';
+
+    const envelopeAttributes = Object.entries({
+      'xmlns:soapenv': 'http://schemas.xmlsoap.org/soap/envelope/',
+      'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
+      'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+      'xmlns:urn': SoapNamespacePrefixMap[type] || '',
+      xmlns: SoapNamespaceMap[type] || '',
+    })
+      .filter(([_, value]) => value)
+      .map(([key, value]) => `${key}="${value}"`)
+      .join(' ');
 
     return [
       '<?xml version="1.0" encoding="UTF-8"?>',
-      `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="${SoapNamespaceMap[type]}">`,
+      `<soapenv:Envelope ${envelopeAttributes}>`,
       `<soapenv:Header>`,
-      `<SessionHeader><sessionId>${accessToken}</sessionId></SessionHeader>`,
+      `<${namespacePrefix}SessionHeader><${namespacePrefix}sessionId>${accessToken}</${namespacePrefix}sessionId></${namespacePrefix}SessionHeader>`,
       callOptionsXml,
       xmlHeader,
       '</soapenv:Header>',
       `<soapenv:Body>`,
-      toSoapXML(body),
+      toSoapXML(body, undefined, SoapTagPrefixMap[type]),
       '</soapenv:Body>',
       '</soapenv:Envelope>',
     ]
@@ -100,51 +112,53 @@ export class SalesforceApi {
   }
 }
 
-export const SoapNamespaceMap: Record<SOAP_TYPE, string> = {
+export const SoapNamespaceMap: Record<SOAP_TYPE, string | undefined> = {
   METADATA: 'http://soap.sforce.com/2006/04/metadata',
-  // APEX: 'urn:partner.soap.sforce.com',
   APEX: 'http://soap.sforce.com/2006/08/apex',
+  PARTNER: undefined,
+} as const;
+
+export const SoapNamespacePrefixMap: Record<SOAP_TYPE, string | undefined> = {
+  METADATA: undefined,
+  APEX: undefined,
+  PARTNER: 'urn:partner.soap.sforce.com',
+} as const;
+
+export const SoapTagPrefixMap: Record<SOAP_TYPE, string | undefined> = {
+  METADATA: undefined,
+  APEX: undefined,
+  PARTNER: 'urn',
 } as const;
 
 export const SoapPrefixMap: Record<SOAP_TYPE, string> = {
   METADATA: '/services/Soap/m',
   APEX: '/services/Soap/s',
+  PARTNER: '/services/Soap/u',
 } as const;
 
-// function soapNamespaceToUrl(namespace: SoapNamespace, apiVersion: string) {
-//   switch (namespace) {
-//     case 'http://soap.sforce.com/2006/04/metadata':
-//       return `/services/Soap/m/${apiVersion}`;
-//     case 'http://soap.sforce.com/2006/08/apex':
-//       return `/services/Soap/s/${apiVersion}`;
-//     default:
-//       throw new Error(`Unknown namespace: ${namespace}`);
-//   }
-// }
-
-export function toSoapXML(name: unknown, value?: unknown): string {
+export function toSoapXML(name: unknown, value?: unknown, namespacePrefix?: string): string {
   if (isObject(name)) {
     value = name;
     name = null;
   }
   if (Array.isArray(value)) {
-    return value.map((v) => toSoapXML(name, v)).join('');
+    return value.map((v) => toSoapXML(name, v, namespacePrefix)).join('');
   }
 
   if (value === null || value === undefined) {
     return '';
   }
 
-  const attrs: any[] = [];
-  const elems: any[] = [];
+  const attrs: string[] = [];
+  const elems: string[] = [];
   if (isObject(value)) {
     for (let k in value) {
       const v = (value as any)[k];
       if (k[0] === '@') {
         k = k.substring(1);
-        attrs.push(k + '="' + v + '"');
+        attrs.push(`${k}="${v}"`);
       } else {
-        elems.push(toSoapXML(k, v));
+        elems.push(toSoapXML(k, v, namespacePrefix));
       }
     }
     value = elems.join('');
@@ -156,46 +170,12 @@ export function toSoapXML(name: unknown, value?: unknown): string {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
   }
-  const startTag = name ? '<' + name + (attrs.length > 0 ? ' ' + attrs.join(' ') : '') + '>' : '';
-  const endTag = name ? '</' + name + '>' : '';
-  return startTag + value + endTag;
+  const tagName = name && namespacePrefix ? `${namespacePrefix}:${name}` : name;
+  const attributes = attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
+  const startTag = tagName ? `<${tagName}${attributes}>` : '';
+  const endTag = tagName ? `</${tagName}>` : '';
+  return `${startTag}${value}${endTag}`;
 }
-
-// TODO: potentially something like this
-// function convertSoapReturnType(value: any, schema?: any): any {
-//   if (Array.isArray(value)) {
-//     return value.map((v) => convertSoapReturnType(v, schema && schema[0]));
-//   } else if (isObject(value)) {
-//     if ((value as any).$ && (value as any).$['xsi:nil'] === 'true') {
-//       return null;
-//     } else if (Array.isArray(schema)) {
-//       return [ convertSoapReturnType(value, schema[0]) ];
-//     } else {
-//       const obj: any = {};
-//       for (const key in value) {
-//         obj[key] = convertSoapReturnType((value as any)[key], schema && schema[key]);
-//       }
-//       return obj;
-//     }
-//   } else {
-//     if (Array.isArray(schema)) {
-//       return [ convertSoapReturnType(value, schema[0]) ];
-//     } else if (isObject(schema)) {
-//       return {};
-//     } else {
-//       switch(schema) {
-//         case 'string':
-//           return String(value);
-//         case 'number':
-//           return Number(value);
-//         case 'boolean':
-//           return value === 'true';
-//         default:
-//           return value;
-//       }
-//     }
-//   }
-// }
 
 export function correctDeployMetadataResultTypes(results: DeployResult) {
   try {
@@ -246,6 +226,14 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
     // just return as-is
     return results;
   }
+}
+
+export function correctRecordResultSoapXmlResponse(results: RecordResult | RecordResult[]): RecordResult[] {
+  return ensureArray(results).map((row: RecordResult) => ({
+    ...row,
+    errors: (row.success as any) === 'true' ? undefined : ensureArray((row as any).errors),
+    success: ensureBoolean(row.success),
+  })) as RecordResult[];
 }
 
 export function correctInvalidArrayXmlResponseTypes<T = any>(item: T[] | T): T[] {

@@ -5,7 +5,7 @@ export type OperationReturnType<O extends SobjectOperation, R = any> = O extends
   : RecordResult[];
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete';
+export type SobjectOperation = 'retrieve' | 'create' | 'update' | 'upsert' | 'delete' | 'undelete';
 
 export interface RecordAttributes {
   type: string;

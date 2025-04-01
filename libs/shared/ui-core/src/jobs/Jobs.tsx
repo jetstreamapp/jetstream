@@ -140,7 +140,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error ocurred',
+              statusMessage: error || 'An unknown error occurred',
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Delete records failed`, { body: newJob.statusMessage, tag: 'BulkDelete' });
@@ -156,11 +156,49 @@ export const Jobs: FunctionComponent = () => {
               status: firstErrorRec.length ? 'failed' : 'success',
               statusMessage: firstErrorRec.length
                 ? `${firstErrorRec.length} ${pluralizeIfMultiple('Error', firstErrorRec)} - ${
-                    firstErrorRec[0]?.errors[0]?.message || 'An unknown error ocurred'
+                    firstErrorRec[0]?.errors[0]?.message || 'An unknown error occurred'
                   }`
                 : `${results.length.toLocaleString()} ${pluralizeIfMultiple('record', results)} deleted successfully`,
             };
             notifyUser(`Delete records finished`, { body: newJob.statusMessage, tag: 'BulkDelete' });
+          }
+          setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+        } catch (ex) {
+          // TODO:
+          logger.error('[ERROR][JOB] Error processing job results', ex);
+        }
+        break;
+      }
+      case 'BulkUndelete': {
+        try {
+          let newJob = { ...data.job };
+          if (error) {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'failed',
+              statusMessage: error || 'An unknown error occurred',
+            };
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+            notifyUser(`Restore records failed`, { body: newJob.statusMessage, tag: 'BulkUndelete' });
+          } else {
+            const results: RecordResult[] = Array.isArray(data.results) ? data.results : [data.results];
+            const firstErrorRec = results.filter((record) => !record.success) as ErrorResult[];
+
+            newJob = {
+              ...newJob,
+              results,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: firstErrorRec.length ? 'failed' : 'success',
+              statusMessage: firstErrorRec.length
+                ? `${firstErrorRec.length} ${pluralizeIfMultiple('Error', firstErrorRec)} - ${
+                    firstErrorRec[0]?.errors[0]?.message || 'An unknown error occurred'
+                  }`
+                : `${results.length.toLocaleString()} ${pluralizeIfMultiple('record', results)} restored successfully`,
+            };
+            notifyUser(`Restore records finished`, { body: newJob.statusMessage, tag: 'BulkUndelete' });
           }
           setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
         } catch (ex) {
@@ -178,7 +216,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error ocurred',
+              statusMessage: error || 'An unknown error occurred',
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
@@ -368,7 +406,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error ocurred',
+              statusMessage: error || 'An unknown error occurred',
             };
             notifyUser(`Package download failed`, { body: newJob.statusMessage, tag: 'RetrievePackageZip' });
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));

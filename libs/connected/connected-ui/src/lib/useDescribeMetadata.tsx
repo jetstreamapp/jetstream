@@ -61,10 +61,8 @@ export function useDescribeMetadata(
       setHasLoaded(true);
       try {
         setLoading(true);
-        if (hasError) {
-          setHasError(false);
-          setErrorMessage(null);
-        }
+        setHasError(false);
+        setErrorMessage(null);
         if (clearCache) {
           clearCacheForOrg(selectedOrg);
         }

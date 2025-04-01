@@ -130,7 +130,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
   const skipFrontdoorLogin = useRecoilValue(fromAppState.selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const bulkDeleteJob = useObservable(
-    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev) => isAsyncJob(ev) && ev.type === 'BulkDelete'))
+    fromJetstreamEvents
+      .getObservable('jobFinished')
+      .pipe(filter((ev) => isAsyncJob(ev) && (ev.type === 'BulkDelete' || ev.type === 'BulkUndelete')))
   );
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { confirm } = useConfirmation();
@@ -447,7 +449,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       content: (
         <div className="slds-m-around_medium">
           <p className="slds-align_absolute-center slds-m-bottom_small">
-            Are you sure you want to <span className="slds-text-color_destructive slds-p-left_xx-small">delete {label}</span>?
+            <span>
+              Are you sure you want to <span className="slds-text-color_destructive slds-p-left_xx-small">delete {label}</span>?
+            </span>
           </p>
           <p>
             <strong>This record will be deleted from Salesforce.</strong> If you want to recover deleted records you can use the Salesforce
@@ -470,6 +474,40 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
         ];
         fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
         trackEvent(ANALYTICS_KEYS.query_BulkDelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
+      })
+      .catch((ex) => {
+        logger.info(ex);
+        // user canceled
+      });
+  }
+
+  async function handleUndelete(record?: SalesforceRecord) {
+    const label = record.Name || record.Name || record.Id || getRecordIdFromAttributes(record);
+    await confirm({
+      content: (
+        <div className="slds-m-around_medium">
+          <p className="slds-align_absolute-center slds-m-bottom_small">
+            <span>
+              Are you sure you want to restore the record: <strong>{label}</strong> from the Recycle Bin?
+            </span>
+          </p>
+        </div>
+      ),
+      header: 'Confirm Restore',
+      confirmText: 'Restore',
+      cancelText: 'Cancel',
+    })
+      .then(() => {
+        const jobs: AsyncJobNew[] = [
+          {
+            type: 'BulkUndelete',
+            title: `Restore Record - ${label}`,
+            org: selectedOrg,
+            meta: { records: [record] },
+          },
+        ];
+        fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+        trackEvent(ANALYTICS_KEYS.query_BulkUndelete, { numRecords: selectedRows.length, source: 'ROW_ACTION' });
       })
       .catch((ex) => {
         logger.info(ex);
@@ -620,6 +658,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               filteredRows={filteredRows}
               selectedRows={selectedRows}
               totalRecordCount={totalRecordCount || 0}
+              includeDeletedRecords={includeDeletedRecords}
               refreshRecords={() => executeQuery(soql, SOURCE_RELOAD, { isTooling })}
               onCreateNewRecord={handleCreateNewRecord}
             />
@@ -769,6 +808,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
               onUpdateRecords={handleUpdateRecords}
               onDelete={(record) => {
                 handleDelete(record);
+              }}
+              onUndelete={(record) => {
+                handleUndelete(record);
               }}
               onGetAsApex={(record) => {
                 handleGetAsApex(record);

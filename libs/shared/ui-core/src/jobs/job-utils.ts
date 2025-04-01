@@ -6,6 +6,7 @@ import { unparse } from 'papaparse';
 
 export function downloadJob(job: AsyncJob) {
   switch (job.type) {
+    case 'BulkUndelete':
     case 'BulkDelete': {
       const results = job.results as RecordResult[];
       if (!Array.isArray(results)) {
@@ -24,7 +25,7 @@ export function downloadJob(job: AsyncJob) {
         } else {
           const errors = (result as ErrorResult)?.errors || [];
           return {
-            id: '',
+            id: result.id || '',
             success: false,
             errors: errors.map((error) => error.message).join(';'),
             fields: errors.map((error) => error.fields).join(';'),
