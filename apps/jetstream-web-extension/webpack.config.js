@@ -46,6 +46,19 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
       },
     },
   };
+
+  // Ensure Sentry gets transpiled - even though we omit this package completely
+  config.module?.rules?.push({
+    test: /\.[jt]sx?$/,
+    include: /node_modules[\\/]@sentry/,
+    use: {
+      loader: 'babel-loader',
+      options: {
+        presets: ['@babel/preset-env'],
+      },
+    },
+  });
+
   config.plugins = config.plugins || [];
   config.plugins.push(
     // @ts-expect-error this is valid, not sure why it is complaining
@@ -57,6 +70,11 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
       'globalThis.__IS_BROWSER_EXTENSION__': true,
       'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': 'null',
       'import.meta.env.NX_PUBLIC_SENTRY_DSN': 'null',
+      __SENTRY_DEBUG__: false,
+      __SENTRY_TRACING__: false,
+      __RRWEB_EXCLUDE_IFRAME__: true,
+      __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+      __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
     }),
     createHtmlPagePlugin('app', 'app'),
     createHtmlPagePlugin('popup', 'popup'),

@@ -4,7 +4,7 @@ import { UI_ENV } from '@jetstream/ui/env';
 import * as Sentry from '@sentry/react';
 import { useCallback, useEffect, useMemo } from 'react';
 
-const sentryDsn = UI_ENV.sentryDsn;
+const sentryDsn = globalThis.__IS_BROWSER_EXTENSION__ ? undefined : UI_ENV.sentryDsn;
 
 let hasInit = false;
 let hasProfileInit = false;
