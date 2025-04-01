@@ -60,6 +60,7 @@
       "@jetstream/ui-core/shared": ["libs/shared/ui-core-shared/src/index.ts"],
       "@jetstream/ui/app-state": ["libs/shared/ui-app-state/src/index.ts"],
       "@jetstream/ui/db": ["libs/shared/ui-db/src/index.ts"],
+      "@jetstream/ui/env": ["libs/shared/ui-env/src/index.ts"],
       "@jetstream/workspace-plugin": ["tools/workspace-plugin/src/index.ts"]
     }
   },

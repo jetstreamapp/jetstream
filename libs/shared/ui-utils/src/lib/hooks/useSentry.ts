@@ -1,9 +1,10 @@
 import { logBuffer, logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
+import { UI_ENV } from '@jetstream/ui/env';
 import * as Sentry from '@sentry/react';
 import { useCallback, useEffect, useMemo } from 'react';
 
-const sentryDsn = import.meta.env.NX_PUBLIC_SENTRY_DSN;
+const sentryDsn = UI_ENV.sentryDsn;
 
 let hasInit = false;
 let hasProfileInit = false;

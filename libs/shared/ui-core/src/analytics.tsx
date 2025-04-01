@@ -1,13 +1,13 @@
-/// <reference types="vite/client" />
 import * as amplitude from '@amplitude/analytics-browser';
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { UI_ENV } from '@jetstream/ui/env';
 import isBoolean from 'lodash/isBoolean';
 import { useEffect } from 'react';
 import { useRecoilValue } from 'recoil';
 
-const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
+const amplitudeToken = UI_ENV.amplitudeToken;
 
 let hasInit = false;
 let hasProfileInit = false;

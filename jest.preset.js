@@ -11,6 +11,9 @@ const config = {
   resolver: '@nx/jest/plugins/resolver',
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageReporters: ['html'],
+  moduleNameMapper: {
+    '.*ui-env': './libs/shared/ui-env/src/lib/__tests__/ui-env.mock.ts',
+  },
   globals: {
     ...nxPreset.globals,
     __IS_BROWSER_EXTENSION__: false,
