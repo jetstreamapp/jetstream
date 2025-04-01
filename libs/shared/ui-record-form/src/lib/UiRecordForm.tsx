@@ -34,7 +34,6 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   viewRelatedRecord,
 }) => {
   const [columnSize, setColumnSize] = useState<1 | 2 | 3 | 4>(2);
-  const [showReadOnlyFields, setShowReadOnlyFields] = useState(true);
   const [showFieldTypes, setShowFieldTypes] = useState(false);
   const [limitToRequired, setLimitToRequired] = useState(false);
   const [limitToErrorFields, setLimitToErrorFields] = useState(false);
@@ -56,9 +55,6 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
       if (debouncedFilters) {
         visibleFields = fieldMetadata.filter(multiWordObjectFilter(['name', 'label', 'type'], debouncedFilters));
       }
-      if (!showReadOnlyFields) {
-        visibleFields = visibleFields.filter((field) => !field.readOnly);
-      }
       if (limitToRequired) {
         visibleFields = visibleFields.filter(
           (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable
@@ -73,7 +69,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
         setVisibleFieldMetadataRows([]);
       }
     }
-  }, [fieldMetadata, debouncedFilters, showReadOnlyFields, columnSize, limitToRequired, action, limitToErrorFields, saveErrors]);
+  }, [fieldMetadata, debouncedFilters, columnSize, limitToRequired, action, limitToErrorFields, saveErrors]);
 
   useNonInitialEffect(() => {
     setFieldMetadata(convertMetadataToEditableFields(sobjectFields, picklistValues, action, record));
@@ -120,15 +116,6 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
           />
         </Grid>
         <Grid>
-          {(action === 'create' || action === 'clone') && (
-            <Checkbox
-              id={`record-form-show-readonly`}
-              label="Include read-only fields"
-              checked={showReadOnlyFields}
-              disabled={!fieldMetadata || disabled}
-              onChange={setShowReadOnlyFields}
-            />
-          )}
           <Checkbox
             id={`record-form-show-field-types`}
             label="Show fields types"

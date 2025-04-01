@@ -25,6 +25,7 @@
       "@jetstream/feature/anon-apex": ["libs/features/anon-apex/src/index.ts"],
       "@jetstream/feature/automation-control": ["libs/features/automation-control/src/index.ts"],
       "@jetstream/feature/create-object-and-fields": ["libs/features/create-object-and-fields/src/index.ts"],
+      "@jetstream/feature/create-records": ["libs/features/create-records/src/index.ts"],
       "@jetstream/feature/debug-log-viewer": ["libs/features/debug-log-viewer/src/index.ts"],
       "@jetstream/feature/deploy": ["libs/features/deploy/src/index.ts"],
       "@jetstream/feature/formula-evaluator": ["libs/features/formula-evaluator/src/index.ts"],

@@ -55,6 +55,7 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
     }),
     new webpack.DefinePlugin({
       'globalThis.__IS_BROWSER_EXTENSION__': true,
+      'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': 'null',
     }),
     createHtmlPagePlugin('app', 'app'),
     createHtmlPagePlugin('popup', 'popup'),

@@ -7,6 +7,7 @@ type RouteKey =
   | 'LOAD'
   | 'LOAD_MULTIPLE'
   | 'LOAD_MASS_UPDATE'
+  | 'LOAD_CREATE_RECORD'
   | 'AUTOMATION_CONTROL'
   | 'PERMISSION_MANAGER'
   | 'DEPLOY_METADATA'
@@ -104,6 +105,13 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/load/update-records',
     TITLE: 'Update Records Without a File',
     DESCRIPTION: 'Update records based on specified criteria',
+  },
+  LOAD_CREATE_RECORD: {
+    ...getRoutePath('/create-record'),
+    DOCS: 'https://docs.getjetstream.app/load/create-record-without-file',
+    TITLE: 'Create New Record',
+    DESCRIPTION: 'Create new records without a file',
+    NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   AUTOMATION_CONTROL: {
     ...getRoutePath('/automation-control'),

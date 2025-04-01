@@ -11,12 +11,13 @@ import Editor, { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
+import { DeployComparedMetadataModal } from './DeployComparedMetadataModal';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';
 import ViewOrCompareMetadataSidebar from './ViewOrCompareMetadataSidebar';
 import { useViewOrCompareMetadata } from './useViewOrCompareMetadata';
-import { EditorType, FileItemMetadata, OrgType } from './viewOrCompareMetadataTypes';
-import { generateExport, getEditorLanguage } from './viewOrCompareMetadataUtils';
+import { DeployFromCompareMetadataItem, EditorType, FileItemMetadata, OrgType } from './viewOrCompareMetadataTypes';
+import { generateExport, getDeployMetadataFromComparisonTree, getEditorLanguage } from './viewOrCompareMetadataUtils';
 
 export interface ViewOrCompareMetadataModalProps {
   sourceOrg: SalesforceOrgUi;
@@ -53,6 +54,18 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
     fileNameParts: [],
     allowedTypes: [],
   });
+
+  const [deployConfirmationModalConfig, setDeployConfirmationModalConfig] = useState<{
+    open: boolean;
+    targetOrg: SalesforceOrgUi | null;
+    items: DeployFromCompareMetadataItem[];
+  }>({
+    open: false,
+    targetOrg: null,
+    items: [],
+  });
+
+  const mainModalOpen = !downloadFileModalConfig.open && !deployConfirmationModalConfig.open;
 
   const {
     fetchMetadata,
@@ -195,6 +208,10 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
     }
   }
 
+  function handleDeployToTarget() {
+    setDeployConfirmationModalConfig({ open: true, targetOrg, items: getDeployMetadataFromComparisonTree(files) });
+  }
+
   function handleFileDownloadModalClose() {
     setDownloadFileModalConfig({
       open: false,
@@ -230,7 +247,21 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
           trackEvent={trackEvent}
         />
       )}
-      {!downloadFileModalConfig.open && (
+      {deployConfirmationModalConfig.open && deployConfirmationModalConfig.targetOrg && (
+        <DeployComparedMetadataModal
+          sourceOrg={sourceOrg}
+          targetOrg={deployConfirmationModalConfig.targetOrg}
+          items={deployConfirmationModalConfig.items}
+          onClose={(closeAll) => {
+            if (closeAll) {
+              onClose();
+            } else {
+              setDeployConfirmationModalConfig({ open: false, targetOrg: null, items: [] });
+            }
+          }}
+        />
+      )}
+      {mainModalOpen && (
         <Modal
           header={chromeExtension ? 'View Metadata' : 'View or Compare Metadata'}
           footer={
@@ -246,6 +277,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
               reloadMetadata={handleReload}
               onDownloadPackage={handleDownload}
               onExportSummary={handleExport}
+              onDeployToTarget={handleDeployToTarget}
               onClose={onClose}
             />
           }

@@ -116,7 +116,7 @@ export function validateEditForm(sobjectFields: Field[], record: SalesforceRecor
   return output;
 }
 
-export function handleEditFormErrorResponse(result: ErrorResult): EditFromErrors {
+export function handleEditFormErrorResponse(result: ErrorResult, includeFieldErrorsInGeneral = true): EditFromErrors {
   const output: EditFromErrors = { hasErrors: false, generalErrors: [], fieldErrors: {} };
 
   result.errors.forEach((error) => {
@@ -129,8 +129,12 @@ export function handleEditFormErrorResponse(result: ErrorResult): EditFromErrors
           output.fieldErrors[field] = error.message;
         }
       });
+      if (includeFieldErrorsInGeneral) {
+        output.generalErrors.push(`${error.statusCode}: ${error.message}`);
+      }
+    } else {
+      output.generalErrors.push(`${error.statusCode}: ${error.message}`);
     }
-    output.generalErrors.push(error.message);
   });
   return output;
 }

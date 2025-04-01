@@ -4,8 +4,10 @@ import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcrypt';
 import * as Bowser from 'bowser';
 
+export const REMEMBER_DEVICE_DAYS = 30;
+
 const TIME_15_MIN = 60 * 15;
-const TIME_30_DAYS = 30 * 24 * 60 * 60;
+const REMEMBER_DEVICE_MAX_AGE = REMEMBER_DEVICE_DAYS * 24 * 60 * 60;
 
 export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
   const cookiePrefix = useSecureCookies ? '__Secure-' : '';
@@ -96,7 +98,7 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         sameSite: 'lax',
         path: '/',
         secure: useSecureCookies,
-        maxAge: TIME_30_DAYS,
+        maxAge: REMEMBER_DEVICE_MAX_AGE,
       },
     },
     redirectUrl: {

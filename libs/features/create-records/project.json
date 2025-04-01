@@ -1,0 +1,16 @@
+{
+  "name": "features-create-records",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/features/create-records/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/features/create-records/jest.config.ts"
+      }
+    }
+  }
+}

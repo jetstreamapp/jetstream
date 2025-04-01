@@ -73,7 +73,7 @@ export interface FileDownloadModalProps {
   fileNameParts?: string[];
   alternateDownloadButton?: React.ReactNode; // If provided, then caller must manage what happens on click - used for URL links
   source: string;
-  trackEvent: (key: string, value?: unknown) => void;
+  trackEvent: (key: string, value?: Record<string, any>) => void;
   onModalClose: (canceled?: boolean) => void;
   // TODO: we may want to provide a hook "onPrepareDownload" to override default file generation process
   /** this may be useful if alternateDownloadButton is provided, otherwise this usually is not required */

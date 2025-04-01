@@ -1,6 +1,17 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
+import { genericRequest } from '@jetstream/shared/data';
 import { sortQueryFields } from '@jetstream/shared/ui-utils';
-import { CloneEditView, DescribeSObjectResult, Field, FieldType, PicklistFieldValues, SalesforceRecord } from '@jetstream/types';
+import {
+  CloneEditView,
+  DescribeSObjectResult,
+  Field,
+  FieldType,
+  PicklistFieldValues,
+  PicklistFieldValuesResponse,
+  SalesforceOrgUi,
+  SalesforceRecord,
+} from '@jetstream/types';
 import isString from 'lodash/isString';
 import {
   EditableFieldCheckbox,
@@ -161,4 +172,66 @@ export function mockPicklistValuesFromSobjectDescribe(sobjectMetadata: DescribeS
       };
       return output;
     }, {});
+}
+
+export async function getPicklistValuesForRecordAndRecordType({
+  org,
+  sobjectName,
+  record,
+  recordTypeId,
+  sobjectMetadata,
+  apiVersion,
+}: {
+  org: SalesforceOrgUi;
+  sobjectName: string;
+  /**
+   * Optional existing record where the record type will attempted to be obtained from
+   */
+  record?: SalesforceRecord;
+  /**
+   * If provided, this will be used as the record type id instead of attempting to obtain it from the record or sobjectMetadata
+   * This is useful if the user selected a record type to use
+   */
+  recordTypeId?: string;
+  sobjectMetadata: DescribeSObjectResult;
+  apiVersion: string;
+}) {
+  let picklistValues: PicklistFieldValues = {};
+
+  recordTypeId = recordTypeId || record?.RecordTypeId;
+  if (!recordTypeId) {
+    const recordTypeInfos = sobjectMetadata.recordTypeInfos;
+    if (recordTypeInfos.length === 1) {
+      recordTypeId = recordTypeInfos[0].recordTypeId;
+    } else {
+      const foundRecordType = recordTypeInfos.find((recordType) => recordType.master);
+      if (foundRecordType) {
+        recordTypeId = foundRecordType.recordTypeId;
+      }
+    }
+  }
+
+  if (recordTypeId) {
+    try {
+      const results = await genericRequest<PicklistFieldValuesResponse>(org, {
+        method: 'GET',
+        url: `/services/data/${apiVersion}/ui-api/object-info/${sobjectName}/picklist-values/${recordTypeId}`,
+        isTooling: false,
+      });
+      picklistValues = results.picklistFieldValues;
+    } catch (ex) {
+      logger.warn('[RECORD-UI][ERROR]', ex);
+      if (ex?.message?.endsWith('not supported in UI API')) {
+        // UI API is not supported, artificially build picklist values
+        picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata);
+      } else {
+        throw ex;
+      }
+    }
+  } else {
+    // UI API is not supported because there is no record type id, artificially build picklist values
+    picklistValues = mockPicklistValuesFromSobjectDescribe(sobjectMetadata);
+  }
+
+  return picklistValues;
 }

@@ -162,6 +162,9 @@ export const ANALYTICS_KEYS = {
   record_modal_json: 'record_modal_json',
   record_modal_save: 'record_modal_save',
   record_modal_clipboard: 'record_modal_clipboard',
+  /** Create Record */
+  create_record_save: 'create_record_save',
+  create_record_action: 'create_record_action',
   /** USER SEARCH MODAL */
   user_search_opened: 'user_search_opened',
   user_search_view_user: 'user_search_view_user',

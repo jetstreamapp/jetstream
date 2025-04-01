@@ -68,6 +68,8 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         } catch (ex) {
           // headers may not have been correct, just ignore and continue
         }
+      } else if (req.request.headers.get('content-type') === 'application/zip') {
+        parsedBody = await req.request.arrayBuffer();
       } else {
         parsedBody = await req.request.text();
       }

@@ -1677,6 +1677,17 @@ export function isRelationshipField(field: Field): boolean {
 export function filterLoadSobjects(sobject: DescribeGlobalSObjectResult | DescribeSObjectResult) {
   return (
     (sobject.createable || sobject.updateable || sobject.name.endsWith('__mdt')) &&
+    !sobject.name.startsWith('Apex') &&
+    !sobject.name.endsWith('__History') &&
+    !sobject.name.endsWith('__Tag') &&
+    !sobject.name.endsWith('__Feed')
+  );
+}
+
+export function filterCreateSobjects(sobject: DescribeGlobalSObjectResult | DescribeSObjectResult) {
+  return (
+    sobject.createable &&
+    !sobject.name.startsWith('Apex') &&
     !sobject.name.endsWith('__History') &&
     !sobject.name.endsWith('__Tag') &&
     !sobject.name.endsWith('__Feed')

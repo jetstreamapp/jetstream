@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { Fragment, FunctionComponent, RefObject, SyntheticEvent, useEffect, useRef } from 'react';
+import React, { Fragment, FunctionComponent, ReactNode, RefObject, SyntheticEvent, useEffect, useRef } from 'react';
 import HelpText from '../../widgets/HelpText';
 
 export interface CheckboxProps {
@@ -9,7 +9,7 @@ export interface CheckboxProps {
   checkboxClassName?: string;
   checked: boolean;
   indeterminate?: boolean;
-  label: string;
+  label: ReactNode;
   hideLabel?: boolean;
   labelHelp?: string | JSX.Element | null;
   helpText?: React.ReactNode | string;

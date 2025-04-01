@@ -1,11 +1,27 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { describeSObject } from '@jetstream/shared/data';
+import { describeSObject, queryAllUsingOffset } from '@jetstream/shared/data';
 import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ApiResponse, ChildRelationship, DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import { ExportOptions, SobjectExportField, SobjectFetchResult } from './sobject-export-types';
+import {
+  ExportOptions,
+  ExtendedFieldDefinition,
+  FieldDefinitionRecord,
+  SobjectExportField,
+  SobjectFetchResult,
+} from './sobject-export-types';
+
+export const FIELD_DEFINITION_API_FIELDS = new Set<ExtendedFieldDefinition>([
+  'BusinessOwnerId',
+  'BusinessStatus',
+  'ComplianceGroup',
+  'IsFieldHistoryTracked',
+  'IsFlsEnabled',
+  'SecurityClassification',
+]);
 
 export async function getSobjectMetadata(org: SalesforceOrgUi, selectedSobjects: string[]): Promise<SobjectFetchResult[]> {
   const CONCURRENT_LIMIT = 7;
@@ -78,9 +94,32 @@ export async function getChildRelationshipNames(
   }
 }
 
+export async function getExtendedFieldDefinitionData(
+  selectedOrg: SalesforceOrgUi,
+  selectedSObjects: string[]
+): Promise<Record<string, Record<string, FieldDefinitionRecord>>> {
+  const allRecords: FieldDefinitionRecord[] = [];
+  for (const sobjects of splitArrayToMaxSize(selectedSObjects, 10)) {
+    try {
+      const results = await queryAllUsingOffset<FieldDefinitionRecord>(selectedOrg, getFieldDefinitionQuery(sobjects), true);
+      allRecords.push(...results.queryResults.records);
+    } catch (ex) {
+      logger.warn('Error getting extended field definition data for sobject export', ex);
+      logErrorToRollbar('Error getting extended field definition data for sobject export', getErrorMessageAndStackObj(ex));
+    }
+  }
+
+  return allRecords.reduce((acc: Record<string, Record<string, FieldDefinitionRecord>>, record) => {
+    acc[record.EntityDefinition.QualifiedApiName] = acc[record.EntityDefinition.QualifiedApiName] || {};
+    acc[record.EntityDefinition.QualifiedApiName][record.QualifiedApiName] = record;
+    return acc;
+  }, {});
+}
+
 export function prepareExport(
   sobjectMetadata: SobjectFetchResult[],
   sobjectsWithChildRelationships: Record<string, Record<string, ChildRelationship>>,
+  extendedFieldDefinitionData: Record<string, Record<string, FieldDefinitionRecord>>,
   selectedAttributes: string[],
   options: ExportOptions
 ): Record<string, any[]> {
@@ -106,7 +145,9 @@ export function prepareExport(
             const obj = { 'Object Name': sobject } as any;
             selectedAttributeFields.forEach(({ name, label, getterFn, childRelationshipGetterFn: relationshipGetterFn }) => {
               const _label = options.headerOption === 'label' ? label : name;
-              const value = field[name as keyof Field];
+              const value = FIELD_DEFINITION_API_FIELDS.has(name as ExtendedFieldDefinition)
+                ? extendedFieldDefinitionData?.[sobject]?.[field.name]?.[name as keyof FieldDefinitionRecord]
+                : field[name as keyof Field];
 
               if (isFunction(getterFn)) {
                 obj[_label] = getterFn(value);
@@ -170,6 +211,28 @@ export function prepareExport(
   return output;
 }
 
+function getFieldDefinitionQuery(sobjects: string[]) {
+  const soql = composeQuery({
+    fields: [
+      getField('Id'),
+      getField('EntityDefinition.QualifiedApiName'),
+      getField('QualifiedApiName'),
+      ...Array.from(FIELD_DEFINITION_API_FIELDS).map((field) => getField(field)),
+    ],
+    sObject: 'FieldDefinition',
+    where: {
+      left: {
+        field: 'EntityDefinition.QualifiedApiName',
+        operator: 'IN',
+        value: sobjects,
+        literalType: 'STRING',
+      },
+    },
+  });
+  logger.info('getFieldDefinitionQuery()', { soql });
+  return soql;
+}
+
 export function getAttributes(): SobjectExportField[] {
   return [
     {
@@ -207,6 +270,17 @@ export function getAttributes(): SobjectExportField[] {
       name: 'byteLength',
       label: 'Byte Length',
       description: 'For variable-length fields (including binary fields), the maximum size of the field, in bytes.',
+    },
+    {
+      name: 'BusinessOwnerId',
+      label: 'Business Owner',
+      description:
+        'Indicates the person or group associated with this field. The business owner understands the importance of the field’s data to your company and might be responsible for determining the minimum security classification.',
+    },
+    {
+      name: 'BusinessStatus',
+      label: 'Business Status',
+      description: 'Indicates whether the field is in use.',
     },
     {
       name: 'calculated',
@@ -254,6 +328,11 @@ export function getAttributes(): SobjectExportField[] {
           .filter(Boolean)
           .join(', ');
       },
+    },
+    {
+      name: 'ComplianceGroup',
+      label: 'Compliance Group',
+      description: 'The compliance acts, definitions, or regulations related to the field’s data.',
     },
     {
       name: 'controllerName',
@@ -387,6 +466,16 @@ export function getAttributes(): SobjectExportField[] {
         'The text that displays in the field-level help hover text for this field.\n\nNote\nThis property is not returned unless at least one field on the object contains a value. When at least one field has field-level help, all fields on the object list the property with either the field-level help value or null for fields that have blank field-level help.',
     },
     {
+      name: 'IsFieldHistoryTracked',
+      label: 'Is Field History Tracked',
+      description: 'If true, the field’s history can be tracked.',
+    },
+    {
+      name: 'IsFlsEnabled',
+      label: 'Is Field Level Security Enabled',
+      description: 'If true, you can set field-level security on this field.',
+    },
+    {
       name: 'length',
       label: 'Length',
       description:
@@ -513,6 +602,12 @@ export function getAttributes(): SobjectExportField[] {
       description:
         'Indicates whether a foreign key can be included in prefiltering (true) or not (false) when used in a SOSL WHERE clause. Prefiltering means to filter by a specific field value before executing the full search query. Available in API version 40.0 and later.',
     },
+    {
+      name: 'SecurityClassification',
+      label: 'Security Classification',
+      description: 'Indicates the sensitivity of the data contained in this field.',
+    },
+
     {
       name: 'soapType',
       label: 'Soap Type',
