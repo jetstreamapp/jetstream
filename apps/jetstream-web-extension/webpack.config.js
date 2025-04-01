@@ -47,19 +47,12 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
     },
   };
 
-  // Ensure Sentry gets transpiled - even though we omit this package completely
-  config.module?.rules?.push({
-    test: /\.[jt]sx?$/,
-    include: /node_modules[\\/]@sentry/,
-    use: {
-      loader: 'babel-loader',
-      options: {
-        presets: ['@babel/preset-env'],
-      },
-    },
-  });
-
   config.plugins = config.plugins || [];
+  config.plugins.push(
+    // @ts-expect-error this is valid, not sure why it is complaining
+    new webpack.NormalModuleReplacementPlugin(/@sentry\/react/, '@jetstream/mocks/sentry')
+  );
+  // Omit Sentry from the build - it is huge and there is a lot of work to get it going with the web extension
   config.plugins.push(
     // @ts-expect-error this is valid, not sure why it is complaining
     new webpack.EnvironmentPlugin({

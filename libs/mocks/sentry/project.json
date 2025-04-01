@@ -1,0 +1,8 @@
+{
+  "name": "mocks-sentry",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/mocks/sentry/src",
+  "projectType": "library",
+  "tags": ["scope:mocks"],
+  "targets": {}
+}
