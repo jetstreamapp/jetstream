@@ -1,15 +1,8 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import {
-  decodeHtmlEntity,
-  flattenRecord,
-  getErrorMessage,
-  getErrorMessageAndStackObj,
-  getSuccessOrFailureChar,
-  pluralizeFromNumber,
-} from '@jetstream/shared/utils';
+import { convertDateToLocale, useBrowserNotifications, useSentry } from '@jetstream/shared/ui-utils';
+import { decodeHtmlEntity, flattenRecord, getErrorMessage, getSuccessOrFailureChar, pluralizeFromNumber } from '@jetstream/shared/utils';
 import {
   ApiMode,
   DownloadModalData,
@@ -86,7 +79,7 @@ export const LoadRecordsBatchApiResults = ({
   const isMounted = useRef(true);
   const isAborted = useRef(false);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const processingStatusRef = useRef<{ success: number; failure: number }>({ success: 0, failure: 0 });
   const [preparedData, setPreparedData] = useState<PrepareDataResponse>();
   const [prepareDataProgress, setPrepareDataProgress] = useState(0);
@@ -155,10 +148,9 @@ export const LoadRecordsBatchApiResults = ({
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
-        rollbar.error('Error preparing batch api data', {
-          message: 'Pre-processing failed',
-          queryErrors: preparedData?.queryErrors,
-          errors: preparedDataResponse.errors?.flatMap((error) => error.errors) || [],
+        sentry.trackMessage('Error preparing batch api data', 'LoadRecordsBatchApiResults', {
+          queryErrors: preparedData?.queryErrors?.slice(0, 5) || [],
+          errors: preparedDataResponse.errors?.flatMap((error) => error.errors)?.slice(0, 5) || [],
         });
       } else {
         setStatus(STATUSES.PROCESSING);
@@ -177,7 +169,7 @@ export const LoadRecordsBatchApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error preparing batch api data', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Error preparing batch api data', ex, 'LoadRecordsBatchApiResults');
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,7 +222,7 @@ export const LoadRecordsBatchApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error loading batches', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Error loading batches', ex, 'LoadRecordsBatchApiResults');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

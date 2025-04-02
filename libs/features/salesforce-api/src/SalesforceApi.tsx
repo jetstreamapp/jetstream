@@ -2,8 +2,7 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { manualRequest } from '@jetstream/shared/data';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
@@ -23,7 +22,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   const isMounted = useRef(true);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
@@ -65,7 +64,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
           })
           .catch((ex) => {
             logger.warn('[ERROR] Could not save history', ex);
-            rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
+            sentry.trackError('Error saving apex history', ex, 'SalesforceApi');
           });
       } catch (ex) {
         setResults({
@@ -79,7 +78,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
         setLoading(false);
       }
     },
-    [selectedOrg, trackEvent, rollbar]
+    [selectedOrg, trackEvent, sentry]
   );
 
   return (

@@ -1,6 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
@@ -33,7 +32,7 @@ export const useQueryRestore = (
   options = options || {};
   const { silent, startRestore, endRestore } = options;
 
-  const rollbar = useRollbar();
+  const sentry = useSentry();
 
   const isMounted = useRef(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -161,8 +160,8 @@ export const useQueryRestore = (
           setErrorMessage(ex.message);
         } else {
           logger.warn('[QUERY RESTORE][ERROR]', ex);
-          setErrorMessage('An unknown error has ocurred while restoring your query');
-          rollbar.error('Query Restore Error', { ...getErrorMessageAndStackObj(ex), query: currSoql });
+          setErrorMessage('An unknown error has occurred while restoring your query');
+          sentry.trackError('Query Restore Error', ex, 'useQueryRestore', { query: currSoql });
         }
         endRestore(true, toolingOverride ?? isTooling);
       }

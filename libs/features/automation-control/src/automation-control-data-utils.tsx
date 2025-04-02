@@ -10,7 +10,7 @@ import {
 import {
   getOrgType,
   getToolingRecords,
-  logErrorToRollbar,
+  logErrorToSentry,
   pollMetadataResultsUntilDone,
   pollRetrieveMetadataResultsUntilDone,
 } from '@jetstream/shared/ui-utils';
@@ -393,7 +393,7 @@ export async function getProcessBuildersMetadata(
           }
         } catch (ex) {
           logger.warn('Error processing flow metadata', ex);
-          logErrorToRollbar(
+          logErrorToSentry(
             getErrorMessage(ex),
             {
               ...getErrorMessageAndStackObj(ex),

@@ -8,9 +8,9 @@ import {
   getOrgUrlParams,
   getZipDownloadUrl,
   isBrowserExtension,
-  useRollbar,
+  useSentry,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -62,7 +62,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   hasRecords,
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { trackEvent } = useAmplitude();
   const [modalOpen, setModalOpen] = useState(false);
   const [downloadAttachmentUrl, setDownloadAttachmentUrl] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setErrorMessage('There was a problem initiating the download, your browser may not support this capability.');
       setDisabledReason('There was a problem initiating the download, your browser may not support this capability.');
       trackEvent(ANALYTICS_KEYS.attachment_Error, { selectedRecords: selectedRecords.length, sobjectName, error: getErrorMessage(ex) });
-      rollbar.error('Error initiating zip download', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Error initiating zip download', ex, 'QueryResultsAttachmentDownload');
     }
   }
 

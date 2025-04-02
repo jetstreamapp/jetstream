@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -45,7 +45,6 @@ export interface AutomationControlSelectionProps {}
 
 export const AutomationControlSelection: FunctionComponent<AutomationControlSelectionProps> = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
-  const rollbar = useRollbar();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 

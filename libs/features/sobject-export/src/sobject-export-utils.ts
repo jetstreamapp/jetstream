@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject, queryAllUsingOffset } from '@jetstream/shared/data';
-import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { logErrorToSentry } from '@jetstream/shared/ui-utils';
+import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import { ApiResponse, ChildRelationship, DescribeSObjectResult, Field, SalesforceOrgUi } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isFunction from 'lodash/isFunction';
@@ -89,7 +89,7 @@ export async function getChildRelationshipNames(
     return sobjectsWithChildRelationships;
   } catch (ex) {
     logger.warn('Error getting child relationship names for sobject export', ex);
-    logErrorToRollbar('Error getting child relationship names for sobject export', getErrorMessageAndStackObj(ex));
+    logErrorToSentry('Error getting child relationship names for sobject export', ex, 'sobject-export-utils');
     return {};
   }
 }
@@ -105,7 +105,7 @@ export async function getExtendedFieldDefinitionData(
       allRecords.push(...results.queryResults.records);
     } catch (ex) {
       logger.warn('Error getting extended field definition data for sobject export', ex);
-      logErrorToRollbar('Error getting extended field definition data for sobject export', getErrorMessageAndStackObj(ex));
+      logErrorToSentry('Error getting extended field definition data for sobject export', ex, 'sobject-export-utils');
     }
   }
 

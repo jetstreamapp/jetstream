@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
-import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { formatNumber, useNonInitialEffect, useSentry } from '@jetstream/shared/ui-utils';
+import { groupByFlat } from '@jetstream/shared/utils';
 import {
   DeployMessage,
   DownloadModalData,
@@ -59,7 +59,7 @@ export const PerformLoadCustomMetadata = ({
   inputFileData,
   onIsLoading,
 }: PerformLoadCustomMetadataProps) => {
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { trackEvent } = useAmplitude();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
@@ -124,7 +124,7 @@ export const PerformLoadCustomMetadata = ({
         document.title = `Loading Records | ${TITLES.BAR_JETSTREAM}`;
       } catch (ex) {
         setDeployMetadataError('There was a problem preparing the Custom Metadata for deployment. Please check your file and try again.');
-        rollbar.error('Problem preparing custom metadata', getErrorMessageAndStackObj(ex));
+        sentry.trackError('Problem preparing custom metadata', ex, 'PerformLoadCustomMetadata');
       }
     }
   }

@@ -46,16 +46,28 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
       },
     },
   };
+
   config.plugins = config.plugins || [];
+  config.plugins.push(
+    // @ts-expect-error this is valid, not sure why it is complaining
+    new webpack.NormalModuleReplacementPlugin(/@sentry\/react/, '@jetstream/mocks/sentry')
+  );
+  // Omit Sentry from the build - it is huge and there is a lot of work to get it going with the web extension
   config.plugins.push(
     // @ts-expect-error this is valid, not sure why it is complaining
     new webpack.EnvironmentPlugin({
       NX_PUBLIC_AMPLITUDE_KEY: '',
-      NX_PUBLIC_ROLLBAR_KEY: '',
+      NX_PUBLIC_SENTRY_DSN: '',
     }),
     new webpack.DefinePlugin({
       'globalThis.__IS_BROWSER_EXTENSION__': true,
       'import.meta.env.NX_PUBLIC_AMPLITUDE_KEY': 'null',
+      'import.meta.env.NX_PUBLIC_SENTRY_DSN': 'null',
+      __SENTRY_DEBUG__: false,
+      __SENTRY_TRACING__: false,
+      __RRWEB_EXCLUDE_IFRAME__: true,
+      __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+      __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
     }),
     createHtmlPagePlugin('app', 'app'),
     createHtmlPagePlugin('popup', 'popup'),

@@ -4,10 +4,9 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { salesforceApiReq } from '@jetstream/shared/data';
 import { SalesforceApiRequest } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTree, Grid, Icon, Modal, setColumnFromType, Spinner } from '@jetstream/ui';
-import { ErrorBoundaryFallback, useAmplitude } from '@jetstream/ui-core';
+import { ErrorBoundary, useAmplitude } from '@jetstream/ui-core';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 const groupedRows = ['groupName'] as const;
 
@@ -95,7 +94,7 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
   }
 
   return (
-    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+    <ErrorBoundary>
       <button className="slds-button" aria-hidden="true" tabIndex={-1} title="View samples API requests" onClick={() => setIsOpen(true)}>
         <Icon type="utility" icon="open_folder" className="slds-button__icon slds-button__icon_left" omitContainer />
         Example API Endpoints

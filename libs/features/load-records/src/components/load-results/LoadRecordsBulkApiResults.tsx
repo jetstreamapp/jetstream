@@ -2,11 +2,10 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { bulkApiAbortJob, bulkApiGetJob, bulkApiGetRecords, bulkApiGetRecordsFromAllBatches } from '@jetstream/shared/data';
-import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, useSentry } from '@jetstream/shared/ui-utils';
 import {
   decodeHtmlEntity,
   getErrorMessage,
-  getErrorMessageAndStackObj,
   getSuccessOrFailureChar,
   pluralizeFromNumber,
   splitArrayToMaxSize,
@@ -111,7 +110,7 @@ export const LoadRecordsBulkApiResults = ({
   const isMounted = useRef(true);
   const isAborted = useRef(false);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
@@ -270,7 +269,9 @@ export const LoadRecordsBulkApiResults = ({
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
-        rollbar.error('Error preparing bulk api data', { queryErrors: preparedDataResponse?.queryErrors });
+        sentry.trackError('Error preparing bulk api data', new Error('Error preparing bulk api data'), 'LoadRecordsBulkApiResults', {
+          queryErrors: preparedDataResponse?.queryErrors,
+        });
       } else {
         setStatus(STATUSES.UPLOADING);
         setPreparedData(preparedDataResponse);
@@ -287,7 +288,7 @@ export const LoadRecordsBulkApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error preparing bulk api data', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Error preparing bulk api data', ex, 'LoadRecordsBulkApiResults');
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -341,7 +342,7 @@ export const LoadRecordsBulkApiResults = ({
             tag: 'load-records',
           });
         }
-        rollbar.error('Error loading batches', {
+        sentry.trackError('Error loading batches', new Error('Error loading batches'), 'LoadRecordsBulkApiResults', {
           message: loadError.message,
           stack: loadError.stack,
           specificErrors: loadError.additionalErrors.map((error) => ({

@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+import { logErrorToSentry } from '@jetstream/shared/ui-utils';
 import { loader } from '@monaco-editor/react';
 
 // Load as static resource instead of bundled in application
@@ -15,9 +15,5 @@ loader
   })
   .catch((ex) => {
     logger.error('[ERROR] Failed to load monaco editor', ex);
-    logErrorToRollbar('Failed to load monaco editor', {
-      message: ex?.message,
-      stack: ex?.stack,
-      exception: ex,
-    });
+    logErrorToSentry('Failed to load monaco editor', ex, 'monaco-loader');
   });

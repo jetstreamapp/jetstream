@@ -1,8 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { hasModifierKey, isHKey, useGlobalEventHandler, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { hasModifierKey, isHKey, useGlobalEventHandler, useSentry } from '@jetstream/shared/ui-utils';
 import { SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   EmptyState,
@@ -32,7 +31,7 @@ interface DeployMetadataHistoryModalProps {
 
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const modalRef = useRef(null);
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
@@ -95,7 +94,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         } catch (ex) {
           logger.warn('Failed to get deploy history', ex);
           setError('There was an error retrieving your history.');
-          rollbar.error('Failed to get deploy history', getErrorMessageAndStackObj(ex));
+          sentry.trackError('Failed to get deploy history', ex, 'DeployMetadataHistoryModal');
         } finally {
           setIsLoading(false);
         }
@@ -122,7 +121,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       trackEvent(ANALYTICS_KEYS.deploy_history_download_package, { type: item.type, status: item.status });
     } catch (ex) {
       logger.warn('Failed to download deploy history item', ex);
-      rollbar.error('Failed to download deploy history item', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Failed to download deploy history item', ex, 'DeployMetadataHistoryModal');
       fireToast({
         message: 'There was an error downloading your file.',
         type: 'error',
@@ -145,7 +144,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       trackEvent(ANALYTICS_KEYS.deploy_history_view_details, { type: item.type, status: item.status });
     } catch (ex) {
       logger.warn('Failed to view history', ex);
-      rollbar.error('Failed to view history', getErrorMessageAndStackObj(ex));
+      sentry.trackError('Failed to view history', ex, 'DeployMetadataHistoryModal');
       fireToast({
         message: 'Oops. There was a problem opening your history',
         type: 'error',

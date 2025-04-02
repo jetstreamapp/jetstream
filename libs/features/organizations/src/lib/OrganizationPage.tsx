@@ -8,8 +8,7 @@ import {
   updateJetstreamOrganization,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry, useTitle } from '@jetstream/shared/ui-utils';
 import { JetstreamOrganization, JetstreamOrganizationCreateUpdatePayload, JetstreamOrganizationWithOrgs, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -33,7 +32,7 @@ import { OrganizationModal } from './OrganizationModal';
 
 export function Organizations() {
   useTitle(TITLES.ORGANIZATIONS);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { trackEvent } = useAmplitude();
   const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
@@ -112,21 +111,11 @@ export function Organizations() {
           message: `Oops! There was a problem moving the Salesforce Org to the Organization. Please try again.`,
           type: 'error',
         });
-        rollbar.error('Organizations: Error moving org to organization', getErrorMessageAndStackObj(ex));
+        sentry.trackError('Organizations: Error moving org to organization', ex, 'Organizations');
         logger.error('Organizations: Error moving org to organization', ex);
       }
     },
-    [
-      allOrgs,
-      organizations,
-      rollbar,
-      selectedOrg?.uniqueId,
-      setOrganizations,
-      setOrganizationsFromDb,
-      setOrgs,
-      setSelectedOrgId,
-      trackEvent,
-    ]
+    [allOrgs, organizations, sentry, selectedOrg?.uniqueId, setOrganizations, setOrganizationsFromDb, setOrgs, setSelectedOrgId, trackEvent]
   );
 
   const handleCreateOrUpdate = async (organization: JetstreamOrganizationCreateUpdatePayload) => {

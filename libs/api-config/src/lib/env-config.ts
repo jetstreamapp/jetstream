@@ -114,7 +114,6 @@ const envSchema = z.object({
   IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
   IP_API_SERVICE: z.enum(['IP-API', 'LOCAL']).optional().describe('API Key used to get location information from IP address'),
   VERSION: z.string().optional(),
-  ROLLBAR_SERVER_TOKEN: z.string().optional(),
 
   // Legacy Auth0 - Used to allow JIT password migration
   AUTH0_CLIENT_ID: z.string().nullish(),
@@ -222,6 +221,9 @@ const envSchema = z.object({
   STRIPE_PRO_ANNUAL_PRICE_ID: z.string().optional(),
   STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
   STRIPE_BILLING_PORTAL_LINK: z.string().optional(),
+  SENTRY_CSP_REPORT_URI: z.string().optional(),
+  SENTRY_TUNNEL_URI: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
 });
 
 const parseResults = envSchema.safeParse({
@@ -234,6 +236,7 @@ const parseResults = envSchema.safeParse({
   STRIPE_PRO_ANNUAL_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID,
   STRIPE_PRO_MONTHLY_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
   STRIPE_BILLING_PORTAL_LINK: process.env.NX_PUBLIC_STRIPE_BILLING_PORTAL_LINK,
+  SENTRY_DSN: process.env.NX_PUBLIC_SENTRY_DSN,
   VERSION,
 });
 

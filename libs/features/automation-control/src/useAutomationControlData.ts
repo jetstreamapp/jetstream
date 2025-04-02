@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useSentry } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useAmplitude } from '@jetstream/ui-core';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
@@ -591,7 +591,7 @@ export function useAutomationControlData({
 }) {
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
 
   const [{ loading, hasError, errorMessage, data, rows, visibleRows, dirtyCount }, dispatch] = useReducer(reducer, {
     loading: false,
@@ -668,13 +668,15 @@ export function useAutomationControlData({
             dispatch({ type: 'FETCH_SUCCESS', payload: item });
           } else {
             dispatch({ type: 'FETCH_ERROR', payload: item });
-            rollbar.error('Automation Control Fetch Error', { item });
+            sentry.trackError('Automation Control Fetch Error', new Error('Automation Control Fetch Error'), 'useAutomationControlData', {
+              item,
+            });
           }
         },
         error: (err) => {
           dispatch({ type: 'ERROR', payload: { errorMessage: err.message } });
           logger.error('[AUTOMATION][FETCH][ERROR]', err);
-          rollbar.error('Automation Control Fatal Error', getErrorMessageAndStackObj(err));
+          sentry.trackError('Automation Control Fatal Error', err, 'useAutomationControlData');
         },
         complete: () => {
           dispatch({ type: 'FETCH_FINISH' });
@@ -687,7 +689,7 @@ export function useAutomationControlData({
     } catch (ex) {
       dispatch({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
     }
-  }, [selectedAutomationTypes, selectedOrg, defaultApiVersion, selectedSObjects, rollbar]);
+  }, [selectedAutomationTypes, selectedOrg, defaultApiVersion, selectedSObjects, sentry]);
 
   const refreshProcessBuilders = useCallback(async () => {
     dispatch({ type: 'FETCH_REFRESH', payload: { selectedTypes: ['FlowProcessBuilder'] } });

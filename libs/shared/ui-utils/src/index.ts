@@ -15,7 +15,7 @@ export * from './lib/hooks/useLocationState';
 export * from './lib/hooks/useNonInitialEffect';
 export * from './lib/hooks/useObservable';
 export * from './lib/hooks/useProfilesAndPermSets';
-export * from './lib/hooks/useRollbar';
+export * from './lib/hooks/useSentry';
 export * from './lib/hooks/useTitle';
 export * from './lib/queries';
 export * from './lib/shared-browser-extension-helpers';

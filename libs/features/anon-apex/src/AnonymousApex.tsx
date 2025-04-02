@@ -3,8 +3,8 @@ import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
-import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { useBrowserNotifications, useDebounce, useNonInitialEffect, useSentry, useTitle } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexHistoryItem, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import {
@@ -55,7 +55,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const apexRef = useRef<editor.IStandaloneCodeEditor>();
   const logRef = useRef<editor.IStandaloneCodeEditor>();
   const { trackEvent } = useAmplitude();
-  const rollbar = useRollbar();
+  const sentry = useSentry();
   const { serverUrl } = useRecoilValue(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
@@ -175,7 +175,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
             })
             .catch((ex) => {
               logger.warn('[ERROR] Could not save history', ex);
-              rollbar.error('Error saving apex history', getErrorMessageAndStackObj(ex));
+              sentry.trackError('Error saving apex history', ex, 'AnonymousApex');
             });
         }
         trackEvent(ANALYTICS_KEYS.apex_Submitted, { success: result.success });

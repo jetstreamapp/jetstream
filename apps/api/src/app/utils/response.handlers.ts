@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger, prisma, sentryServer } from '@jetstream/api-config';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
@@ -76,14 +76,17 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
   if (res.headersSent) {
     res.log.warn('Response headers already sent');
     try {
-      rollbarServer.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
-        context: `route#sendJson`,
-        custom: {
+      sentryServer.captureException(new Error('headers already sent'), {
+        tags: {
           requestId: res.locals.requestId,
+        },
+        extra: {
+          message: 'Response not handled by sendJson, headers already sent',
+          location: `route#sendJson`,
         },
       });
     } catch (ex) {
-      res.log.error(getExceptionLog(ex), 'Error sending to Rollbar');
+      res.log.error(getExceptionLog(ex), 'Error sending to Sentry');
     }
     return;
   }
@@ -141,20 +144,25 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     if (res.headersSent) {
       responseLogger.warn('Response headers already sent');
       try {
-        rollbarServer.warn('Error not handled by error handler, headers already sent', req, {
-          context: `route#errorHandler`,
-          custom: {
-            ...getExceptionLog(err, true),
+        sentryServer.captureException(new Error('headers already sent'), {
+          user: {
+            id: req.session.user?.id,
+            email: req.session.user?.email,
+            name: req.session.user?.name,
+          },
+          tags: {
+            requestId: res.locals.requestId,
+          },
+          extra: {
+            message: 'Response not handled by sendJson, headers already sent',
+            location: `route#sendJson`,
             url: req.url,
             params: req.params,
             query: req.query,
-            body: req.body,
-            userId: req.session.user?.id,
-            requestId: res.locals.requestId,
           },
         });
       } catch (ex) {
-        responseLogger.error(getExceptionLog(ex), 'Error sending to Rollbar');
+        responseLogger.error(getExceptionLog(ex), 'Error sending to Sentry');
       }
       return;
     }
@@ -258,20 +266,25 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     }
 
     try {
-      rollbarServer.warn('Error not handled by error handler', req, {
-        context: `route#errorHandler`,
-        custom: {
-          ...getExceptionLog(err, true),
+      sentryServer.captureException(new Error('headers already sent'), {
+        user: {
+          id: req.session.user?.id,
+          email: req.session.user?.email,
+          name: req.session.user?.name,
+        },
+        tags: {
+          requestId: res.locals.requestId,
+        },
+        extra: {
+          message: 'Error not handled by ErrorHandler',
+          location: `route#errorHandler`,
           url: req.url,
           params: req.params,
           query: req.query,
-          body: req.body,
-          userId: req.session.user?.id,
-          requestId: res.locals.requestId,
         },
       });
     } catch (ex) {
-      responseLogger.error(getExceptionLog(ex), 'Error sending to Rollbar');
+      responseLogger.error(getExceptionLog(ex), 'Error sending to Sentry');
     }
 
     const errorMessage = 'There was an error processing the request';

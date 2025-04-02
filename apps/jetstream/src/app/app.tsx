@@ -1,11 +1,10 @@
 import { Announcement } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
+import { AppLoading, DownloadFileStream, ErrorBoundary, HeaderNavbar } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
 import { RecoilRoot } from 'recoil';
 import RecoilNexus from 'recoil-nexus';
@@ -42,7 +41,7 @@ export const App = () => {
                   <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
                     <AnnouncementAlerts announcements={announcements} />
                     <Suspense fallback={<AppLoading />}>
-                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                      <ErrorBoundary>
                         <AppRoutes />
                       </ErrorBoundary>
                     </Suspense>

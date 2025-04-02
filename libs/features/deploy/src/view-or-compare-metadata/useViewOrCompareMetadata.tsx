@@ -1,6 +1,6 @@
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
-import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useSentry } from '@jetstream/shared/ui-utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
@@ -182,7 +182,7 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
   });
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const rollbar = useRollbar();
+  const sentry = useSentry();
 
   useEffect(() => {
     isMounted.current = true;
@@ -220,10 +220,10 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
       } catch (ex) {
         notifyUser('There was an error obtaining metadata', { body: getErrorMessage(ex), tag: 'view-or-compare' });
         dispatch({ type: 'FETCH_ERROR', payload: { which, error: getErrorMessage(ex) } });
-        rollbar.error('Error fetching/comparing metadata', { whichOrg: which, ...getErrorMessageAndStackObj(ex) });
+        sentry.trackError('Error fetching/comparing metadata', ex, 'useViewOrCompareMetadata', { whichOrg: which });
       }
     },
-    [notifyUser, rollbar, selectedMetadata]
+    [notifyUser, sentry, selectedMetadata]
   );
 
   return {

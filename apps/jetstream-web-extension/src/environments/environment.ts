@@ -4,7 +4,7 @@
 export const environment = {
   production: false,
   serverUrl: 'http://localhost:3333',
-  rollbarClientAccessToken: process.env.NX_PUBLIC_ROLLBAR_KEY,
+  sentryDsn: process.env.NX_PUBLIC_SENTRY_DSN,
   amplitudeToken: process.env.NX_PUBLIC_AMPLITUDE_KEY,
   isWebExtension: true,
 };
