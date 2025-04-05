@@ -17,6 +17,7 @@ const footerNavigation = {
   legal: [
     { name: 'Privacy & Security', href: ROUTES.PRIVACY },
     { name: 'Terms of Service', href: ROUTES.TERMS_OF_SERVICE },
+    { name: 'Data Processing Agreement', href: ROUTES.DPA },
     { name: 'Data Sub-Processors', href: ROUTES.SUB_PROCESSORS },
   ],
 };

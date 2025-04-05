@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LastUpdated from '../../components/LastUpdated';
 import Layout from '../../components/layouts/Layout';
 import { ROUTES } from '../../utils/environment';
 
@@ -7,6 +8,7 @@ const email = 'support@getjetstream.app';
 export default function Page() {
   return (
     <div className="m-8">
+      <LastUpdated className="text-gray-500" day={5} month="April" year={2025} />
       <h1>TERMS OF SERVICE</h1>
       <h2>OVERVIEW</h2>
       <p className="mb-2 pl-2">
@@ -219,16 +221,15 @@ export default function Page() {
         License information is available upon request. The Jetstream homepage uses the following open source licenses that require
         attribution.
       </p>
-      <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-font.txt</p>
-      <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-icons-images.txt</p>
       <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE.txt</p>
+      <p className="mb-2 pl-2">https://github.com/salesforce-ux/design-system/blob/master/LICENSE-icons-images.txt</p>
     </div>
   );
 }
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Terms of Service | Jetstream" navigationProps={{ omitLinks: ['/terms-of-service'] }}>
+    <Layout title="Terms of Service | Jetstream" navigationProps={{ omitLinks: [ROUTES.TERMS_OF_SERVICE] }}>
       {page}
     </Layout>
   );
