@@ -3,7 +3,6 @@ import Layout from '../../components/layouts/Layout';
 import { ROUTES } from '../../utils/environment';
 
 const webSubProcessors = [
-  { name: 'Amplitude', function: 'Telemetry', location: 'United States', optional: 'No', extension: false },
   { name: 'BackBlaze', function: 'Log storage', location: 'United States', optional: 'No', extension: false },
   { name: 'BetterStack', function: 'Server Logging and Status Page', location: 'EU', optional: 'No', extension: false },
   { name: 'Amplitude', function: 'Telemetry', location: 'United States', optional: 'No', extension: false },
@@ -43,7 +42,7 @@ export default function Page() {
       <h1>Jetstream Sub-Processors</h1>
       <p className="mb-2 pl-2">
         This page provides a list of sub-processors that Jetstream uses to provide services to our customers. Our web-based application and
-        chrome Extension have a different set of processors and different opt-in/opt-out capabilities.
+        Browser Extension have a different set of processors and different opt-in/opt-out capabilities.
       </p>
       <p className="mb-2 pl-2">We maintain up-to-date DPAs with each sub-processor.</p>
       <h2 className="mt-8">Web-based version of Jetstream</h2>
