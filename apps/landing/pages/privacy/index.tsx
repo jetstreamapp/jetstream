@@ -1,9 +1,13 @@
+import Link from 'next/link';
+import LastUpdated from '../../components/LastUpdated';
 import Layout from '../../components/layouts/Layout';
+import { ROUTES } from '../../utils/environment';
 
 export default function Page() {
   const email = 'support@getjetstream.app';
   return (
     <div className="m-8">
+      <LastUpdated className="text-gray-500" day={5} month="April" year={2025} />
       <h1>Privacy Policy</h1>
       <p className="mb-2 pl-2">
         This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from
@@ -41,10 +45,17 @@ export default function Page() {
         <li>All network traffic is encrypted using HTTPS 1.1, HTTPS/2, or HTTPS/3 TLS 1.3 X35519Kyber768Draft00 and AES_128_GCM</li>
         <li>
           Refer to our{' '}
-          <a className="underline" href="https://getjetstream.app/subprocessors/" target="_blank" rel="noreferrer">
+          <Link href={ROUTES.SUB_PROCESSORS} className="underline">
             data sub-processors
-          </a>{' '}
+          </Link>{' '}
           for information about our vendors.
+        </li>
+        <li>
+          Refer to our{' '}
+          <Link href={ROUTES.DPA} className="underline">
+            DPA
+          </Link>{' '}
+          for information about our Data Protection Policy.
         </li>
       </ol>
       <h2>PERSONAL INFORMATION WE COLLECT</h2>
@@ -134,8 +145,8 @@ export default function Page() {
       <h2>YOUR RIGHTS</h2>
       <p className="mb-2 pl-2">
         If you are a European resident, you have the right to access personal information we hold about you and to ask that your personal
-        information be corrected, updated, or deleted. If you would like to exercise this right, please contact us through the contact
-        information below.
+        information be corrected, updated, or deleted. If you would like to exercise this right, contact us through the contact information
+        below.
       </p>
       Additionally, if you are a European resident we note that we are processing your information in order to fulfill contracts we might
       have with you (for example if you make an order through the Site), or otherwise to pursue our legitimate business interests listed
@@ -153,8 +164,8 @@ export default function Page() {
       </p>
       <h2>CONTACT US</h2>
       <p className="mb-2 pl-2">
-        For more information about our privacy practices, if you have questions, or if you would like to make a complaint, please contact us
-        by e-mail at{' '}
+        For more information about our privacy practices, if you have questions, or if you would like to make a complaint, contact us by
+        e-mail at{' '}
         <a className="underline" href={`mailto:${email}?subject=Question about Privacy Policy`} target="_blank" rel="noreferrer">
           {email}
         </a>
@@ -166,7 +177,7 @@ export default function Page() {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Privacy | Jetstream" navigationProps={{ omitLinks: ['/privacy'] }}>
+    <Layout title="Privacy | Jetstream" navigationProps={{ omitLinks: [ROUTES.PRIVACY] }}>
       {page}
     </Layout>
   );

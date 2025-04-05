@@ -13,6 +13,7 @@ export const ROUTES = {
   PRIVACY: '/privacy',
   TERMS_OF_SERVICE: '/terms-of-service',
   SUB_PROCESSORS: '/subprocessors',
+  DPA: '/dpa',
   EXTERNAL: {
     DOCS: 'https://docs.getjetstream.app',
     STATUS: 'https://status.getjetstream.app',
