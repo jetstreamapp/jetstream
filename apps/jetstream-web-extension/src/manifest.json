@@ -50,17 +50,9 @@
   },
   "commands": {
     "open-jetstream-home-page": {
-      "suggested_key": {
-        "default": "Alt+J",
-        "mac": "Command+J"
-      },
       "description": "Open Jetstream in a new tab for the current Salesforce page."
     },
     "open-view-record-modal": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+V",
-        "mac": "Command+Shift+V"
-      },
       "description": "View the current Salesforce record in Jetstream."
     }
   },
