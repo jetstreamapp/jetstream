@@ -61,6 +61,24 @@ Click **Continue** to view all the metadata
 
 <img src={require('./deploy-selection.png').default} alt="Deploy selection" />
 
+:::tip
+
+To deploy State and Country or Territory Picklists, select `Standard Value Sets` and then choose the items `AddressCountryCode` and `AddressStateCode`.
+
+You can also include the `Settings` and select `Address` to deploy the settings.
+
+You may also need to include other related metadata, such as Custom Fields or page layouts where the picklist is used.
+
+As mentioned in the [Salesforce documentation](https://help.salesforce.com/s/articleView?language=en_US&id=sf.admin_state_country_picklists_api.htm&type=5), there are some limitations when deploying state and country/territory picklists:
+
+> You can use Metadata API to edit existing states, countries, and territories in state and country/territory picklists.
+> You can’t use Metadata API to create or delete new states, countries, or territories.
+>
+> To edit the existing states and countries in a picklist, configure your state and country/territory picklists in your sandbox org.
+> Then, use Metadata API to retrieve the sandbox configurations, and deploy them to your production org. You can’t deploy new ISO codes or update ISO code values using any API.
+
+:::
+
 ## Working with metadata
 
 Once the metadata is loaded, you will be shown a table with a list of all the metadata.

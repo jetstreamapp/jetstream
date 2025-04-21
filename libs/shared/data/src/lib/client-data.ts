@@ -57,6 +57,7 @@ import isFunction from 'lodash/isFunction';
 import isNil from 'lodash/isNil';
 import orderBy from 'lodash/orderBy';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
+import { getStandardValueSetTypes } from './standardValueSet';
 
 //// LANDING PAGE ROUTES
 
@@ -714,10 +715,16 @@ export async function listMetadata(
   return handleRequest<ListMetadataResultRaw[]>(
     { method: 'POST', url: `/api/metadata/list`, data: { types } },
     { org, useCache: true, skipRequestCache, skipCacheIfOlderThan, useBodyInCacheKey: true }
-  ).then(({ data, cache }) => ({
-    data: transformListMetadataResponse(data),
-    cache,
-  }));
+  ).then(({ data, cache }) => {
+    // Salesforce API does not support listing StandardValueSet, so we backfill it here
+    if (types.map(({ type }) => type).includes('StandardValueSet')) {
+      data.push(...getStandardValueSetTypes());
+    }
+    return {
+      data: transformListMetadataResponse(data),
+      cache,
+    };
+  });
 }
 
 export async function readMetadata<T = any>(org: SalesforceOrgUi, type: string, fullNames: string[]): Promise<T[]> {

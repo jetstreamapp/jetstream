@@ -121,12 +121,21 @@ export interface ListMetadataResultRaw {
   createdDate: string;
   fileName: string;
   fullName: string;
-  id: string;
+  id: string | null;
   lastModifiedById: string;
   lastModifiedByName: string;
   lastModifiedDate: string;
-  manageableState?: 'beta' | 'deleted' | 'deprecated' | 'deprecatedEditable' | 'installed' | 'installedEditable' | 'released' | 'unmanaged';
-  namespacePrefix?: string;
+  manageableState?:
+    | 'beta'
+    | 'deleted'
+    | 'deprecated'
+    | 'deprecatedEditable'
+    | 'installed'
+    | 'installedEditable'
+    | 'released'
+    | 'unmanaged'
+    | null;
+  namespacePrefix?: string | null;
   type: string;
 }
 
@@ -136,7 +145,7 @@ export interface ListMetadataResult {
   createdDate: Date | null;
   fileName: string;
   fullName: string;
-  id: string;
+  id: string | null;
   lastModifiedById: string | null;
   lastModifiedByName: string | null;
   lastModifiedDate: Date | null;
