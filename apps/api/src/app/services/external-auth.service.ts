@@ -4,34 +4,37 @@ import { UserProfileUi } from '@jetstream/types';
 import jwt from 'fast-jwt';
 import * as webExtDb from '../db/web-extension.db';
 
-const AUDIENCE = 'https://getjetstream.app/web-extension';
+export const AUDIENCE_WEB_EXT = 'https://getjetstream.app/web-extension';
+export const AUDIENCE_DESKTOP = 'https://getjetstream.app/desktop-app';
 const ISSUER = 'https://getjetstream.app';
 
 export const TOKEN_AUTO_REFRESH_DAYS = 7;
 const TOKEN_EXPIRATION = 60 * 60 * 24 * 90 * 1000; // 90 days
 
+export type Audience = typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
+
 export interface JwtDecodedPayload {
   userProfile: UserProfileUi;
-  aud: typeof AUDIENCE;
+  aud: typeof AUDIENCE_WEB_EXT | typeof AUDIENCE_DESKTOP;
   iss: typeof ISSUER;
   sub: string;
   iat: number;
   exp: number;
 }
 
-function prepareJwtFns(userId: string, durationMs: number = TOKEN_EXPIRATION) {
+function prepareJwtFns(userId: string, durationMs, audience) {
   const jwtSigner = jwt.createSigner({
     key: async () => ENV.JETSTREAM_AUTH_WEB_EXT_JWT_SECRET,
     algorithm: 'HS256',
     expiresIn: durationMs,
-    aud: AUDIENCE,
+    aud: audience,
     iss: ISSUER,
     sub: userId,
   });
   const jwtVerifier = jwt.createVerifier({
     key: async () => ENV.JETSTREAM_AUTH_WEB_EXT_JWT_SECRET,
     algorithms: ['HS256'],
-    allowedAud: AUDIENCE,
+    allowedAud: audience,
     allowedIss: ISSUER,
     allowedSub: userId,
   });
@@ -41,14 +44,14 @@ function prepareJwtFns(userId: string, durationMs: number = TOKEN_EXPIRATION) {
   };
 }
 
-async function generateJwt({ payload, durationMs }: { payload: UserProfileUi; durationMs: number }) {
-  const { jwtSigner } = prepareJwtFns(payload.id, durationMs);
+async function generateJwt({ payload, durationMs }: { payload: UserProfileUi; durationMs: number }, audience: Audience) {
+  const { jwtSigner } = prepareJwtFns(payload.id, durationMs, audience);
   const token = await jwtSigner({ userProfile: payload });
   return token;
 }
 
-export async function issueAccessToken(payload: UserProfileUi) {
-  return await generateJwt({ payload, durationMs: TOKEN_EXPIRATION });
+export async function issueAccessToken(payload: UserProfileUi, audience: Audience) {
+  return await generateJwt({ payload, durationMs: TOKEN_EXPIRATION }, audience);
 }
 
 export function decodeToken(token: string): JwtDecodedPayload {
@@ -56,7 +59,10 @@ export function decodeToken(token: string): JwtDecodedPayload {
   return decoder(token) as JwtDecodedPayload;
 }
 
-export async function verifyToken({ token, deviceId }: { token: string; deviceId: string }): Promise<JwtDecodedPayload> {
+export async function verifyToken(
+  { token, deviceId }: { token: string; deviceId: string },
+  audience: Audience
+): Promise<JwtDecodedPayload> {
   const decoder = jwt.createDecoder();
   const decodedPayload = decoder(token) as JwtDecodedPayload;
 
@@ -69,6 +75,6 @@ export async function verifyToken({ token, deviceId }: { token: string; deviceId
     throw new InvalidAccessToken('Browser extension is not enabled');
   }
 
-  const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION);
+  const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION, audience);
   return (await jwtVerifier(token)) as JwtDecodedPayload;
 }

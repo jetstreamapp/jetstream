@@ -291,6 +291,14 @@ export async function getOrgForRequest(
     }
   };
 
+  const handleConnectionError = async (error: string) => {
+    try {
+      await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: error });
+    } catch (ex) {
+      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][UPDATE] Error updating connection error on org');
+    }
+  };
+
   const jetstreamConn = new ApiConnection(
     {
       apiRequestAdapter: getApiRequestFactoryFn(fetch),
@@ -306,7 +314,8 @@ export async function getOrgForRequest(
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
     },
-    handleRefresh
+    handleRefresh,
+    handleConnectionError
   );
 
   return { org, jetstreamConn };

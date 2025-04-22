@@ -22,6 +22,7 @@ import { initSocketServer } from './app/controllers/socket.controller';
 import {
   apiRoutes,
   authRoutes,
+  desktopAppRoutes,
   oauthRoutes,
   platformEventRoutes,
   staticAuthenticatedRoutes,
@@ -342,6 +343,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
   app.use('/web-extension', webExtensionRoutes);
+  app.use('/desktop-app', desktopAppRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);

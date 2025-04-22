@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid';
 import cluster from 'node:cluster';
 import { Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import * as webExtensionService from '../services/auth-web-extension.service';
+import * as webExtensionService from '../services/external-auth.service';
 import { Request, Response } from '../types/types';
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
@@ -99,7 +99,7 @@ export function initSocketServer(
 
       const accessToken = authorizationHeader.split(' ')[1];
       webExtensionService
-        .verifyToken({ token: accessToken, deviceId })
+        .verifyToken({ token: accessToken, deviceId }, webExtensionService.AUDIENCE_WEB_EXT)
         .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile))
         .then((user) => {
           (socket.request as any).session = { ...(socket.request as any).session, user, deviceId };
@@ -120,7 +120,7 @@ export function initSocketServer(
     const userId = session?.user?.id as string | undefined;
     const deviceId = session?.deviceId as string | undefined;
 
-    logger.trace(
+    logger.debug(
       { socketId: socket.id, userId: session?.user?.id || 'unknown', sessionId: session?.id },
       '[SOCKET][CONNECT] %s',
       socket.id
@@ -139,7 +139,7 @@ export function initSocketServer(
     }
 
     socket.on('disconnect', (reason) => {
-      logger.trace({ socketId: socket.id, userId: userId || 'unknown' }, '[SOCKET][DISCONNECT] %s', reason);
+      logger.debug({ socketId: socket.id, userId: userId || 'unknown' }, '[SOCKET][DISCONNECT] %s', reason);
     });
 
     socket.on('error', (err) => {
