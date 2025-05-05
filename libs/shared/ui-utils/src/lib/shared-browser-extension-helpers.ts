@@ -1,6 +1,6 @@
 export const isBrowserExtension = () => {
   try {
-    return !!window?.__IS_BROWSER_EXTENSION__ || !!(globalThis?.browser || globalThis?.chrome)?.runtime?.id;
+    return !!globalThis.__IS_BROWSER_EXTENSION__;
   } catch (ex) {
     return false;
   }

@@ -256,7 +256,7 @@
     "zx": "^7.2.3"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "^2.12.2",
+    "@amplitude/analytics-browser": "2.9.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@express-rate-limit/cluster-memory-store": "^0.3.0",

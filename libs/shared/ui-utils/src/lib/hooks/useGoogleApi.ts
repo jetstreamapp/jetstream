@@ -3,7 +3,6 @@ import { Maybe } from '@jetstream/types';
 import { addSeconds } from 'date-fns/addSeconds';
 import { isAfter } from 'date-fns/isAfter';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isBrowserExtension } from '../shared-browser-extension-helpers';
 import { getUseInjectScript } from './useInjectScript';
 import { useNonInitialEffect } from './useNonInitialEffect';
 import { useRollbar } from './useRollbar';
@@ -11,7 +10,8 @@ import { useRollbar } from './useRollbar';
 let useInjectScriptGapi: () => [boolean, boolean] = () => [false, false];
 let useInjectScriptGis: () => [boolean, boolean] = () => [false, false];
 
-if (!isBrowserExtension()) {
+// This is explicitly not using isBrowserExtension() to ensure dead code removal
+if (!globalThis.__IS_BROWSER_EXTENSION__) {
   useInjectScriptGapi = getUseInjectScript('https://apis.google.com/js/api.js');
   useInjectScriptGis = getUseInjectScript('https://accounts.google.com/gsi/client');
 }
