@@ -88,8 +88,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     return;
   }
 
-  // FIXME: we need to add desktop as an entitlement to the user
-  if (!(await checkUserEntitlement({ userId: user.id, entitlement: 'chromeExtension' }))) {
+  if (!(await checkUserEntitlement({ userId: user.id, entitlement: 'desktop' }))) {
     next(new MissingEntitlement());
     return;
   }
