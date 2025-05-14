@@ -313,8 +313,8 @@ export async function getOrgForRequest(
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
     },
-    handleRefresh,
-    handleConnectionError
+    handleRefresh
+    // handleConnectionError
   );
 
   return { org, jetstreamConn };
