@@ -84,10 +84,7 @@ export const Settings = () => {
         return;
       }
       setLoading(true);
-      const userProfile = await updateUserProfile({
-        name: _modifiedUser.name,
-        preferences: { ..._modifiedUser.preferences },
-      });
+      const userProfile = await updateUserProfile(_modifiedUser);
       setUserProfile(await getUserProfileUi());
       setFullUserProfile(userProfile);
       trackEvent(ANALYTICS_KEYS.settings_update_user);
