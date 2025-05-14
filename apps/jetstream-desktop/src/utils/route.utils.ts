@@ -134,7 +134,7 @@ export function handleErrorResponse(error: Error, additionalHeaders?: Record<str
   return new Response(
     JSON.stringify({
       error: true,
-      message: getErrorMessage(error),
+      message: errorMessage,
     }),
     { status: 400, statusText: 'Bad Request', headers }
   );

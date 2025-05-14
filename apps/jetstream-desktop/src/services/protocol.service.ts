@@ -76,7 +76,7 @@ export function registerWebRequestHandlers() {
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: [platformEventUrl, ...desktopSocketRoutes] }, async (details, callback) => {
     const sourceUrl = new URL(details.url);
     const requestHeaders = details.requestHeaders || {};
-    if (sourceUrl.hostname.endsWith('salesforce.com') && sourceUrl.pathname.startsWith('/cometd/')) {
+    if (sourceUrl.hostname.endsWith('.salesforce.com') && sourceUrl.pathname.startsWith('/cometd/')) {
       const url = new URL(details.url);
       const uniqueId = url.searchParams.get(HTTP.HEADERS.X_SFDC_ID);
       if (uniqueId) {
@@ -113,7 +113,7 @@ export function registerWebRequestHandlers() {
       responseHeaders['Content-Security-Policy'] = [cspPolicy];
       if (
         // Handle PlatformEvent CORS - allow connecting directly to Salesforce
-        (targetUrl.hostname.endsWith('salesforce.com') && targetUrl.pathname.startsWith('/cometd/')) ||
+        (targetUrl.hostname.endsWith('.salesforce.com') && targetUrl.pathname.startsWith('/cometd/')) ||
         // Allow access to server desktop-app routes CORS
         (targetUrl.hostname === SERVER_URL.hostname && targetUrl.pathname.startsWith('/desktop-app/')) ||
         // Allow access to data sync socket requests CORS
