@@ -222,12 +222,14 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       // This error is emitted when a user attempts to make a request taht requires authentication, but the user is not logged in
       responseLogger.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
       res.status(status || 401);
-      res.set(HTTP.HEADERS.X_LOGOUT, '1');
-      let redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
-      if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
-        redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify?type=${req.session.pendingVerification[0].type}`;
+      if (!err.skipLogout) {
+        res.set(HTTP.HEADERS.X_LOGOUT, '1');
+        let redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/login`;
+        if (req.session?.pendingVerification && req.session.pendingVerification.some(({ exp }) => exp > Date.now())) {
+          redirectUrl = `${ENV.JETSTREAM_SERVER_URL}/auth/verify?type=${req.session.pendingVerification[0].type}`;
+        }
+        res.set(HTTP.HEADERS.X_LOGOUT_URL, redirectUrl);
       }
-      res.set(HTTP.HEADERS.X_LOGOUT_URL, redirectUrl);
       if (isJson) {
         return res.json({
           error: true,

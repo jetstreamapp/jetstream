@@ -1,6 +1,6 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { convertUserProfileToSession } from '@jetstream/auth/server';
-import { HTTP } from '@jetstream/shared/constants';
+import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { SocketEvent } from '@jetstream/types';
 import { createAdapter } from '@socket.io/cluster-adapter';
 import { setupWorker } from '@socket.io/sticky';
@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid';
 import cluster from 'node:cluster';
 import { Server } from 'socket.io';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import * as webExtensionService from '../services/auth-web-extension.service';
+import * as externalAuthService from '../services/external-auth.service';
 import { Request, Response } from '../types/types';
 
 let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
@@ -37,6 +37,33 @@ export function emitSocketEvent({
   }
 }
 
+function getExternalDeviceAuthMiddleware(audience: externalAuthService.Audience) {
+  const externalDeviceAuthMiddleware: Parameters<typeof io.use>[0] = (socket, next) => {
+    const authorizationHeader = socket.handshake.auth[HTTP.HEADERS.AUTHORIZATION] as string;
+    const deviceId =
+      (socket.handshake.auth[HTTP.HEADERS.X_EXT_DEVICE_ID] as string) ||
+      (socket.handshake.auth[HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID] as string);
+
+    if (!authorizationHeader || !deviceId) {
+      return next(new Error('Unauthorized'));
+    }
+
+    const accessToken = authorizationHeader.split(' ')[1];
+    externalAuthService
+      .verifyToken({ token: accessToken, deviceId }, audience)
+      .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile))
+      .then((user) => {
+        (socket.request as any).session = { ...(socket.request as any).session, user, deviceId };
+        next();
+      })
+      .catch((err) => {
+        logger.error({ ...getExceptionLog(err) }, '[SOCKET] Error verifying token');
+        next(new Error('Unauthorized'));
+      });
+  };
+  return externalDeviceAuthMiddleware;
+}
+
 export function initSocketServer(
   app: express.Express,
   middlewareFns: {
@@ -50,7 +77,7 @@ export function initSocketServer(
     cors: {
       origin: [`chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`, `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`],
       methods: ['GET', 'POST'],
-      allowedHeaders: [HTTP.HEADERS.AUTHORIZATION, HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID],
+      allowedHeaders: [HTTP.HEADERS.AUTHORIZATION, HTTP.HEADERS.X_EXT_DEVICE_ID, HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID],
       credentials: true,
     },
     // FIXME: ideally we would have a way to make this dynamic
@@ -90,25 +117,9 @@ export function initSocketServer(
       socket.handshake.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}` ||
       socket.handshake.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`
     ) {
-      const authorizationHeader = socket.handshake.auth[HTTP.HEADERS.AUTHORIZATION] as string;
-      const deviceId = socket.handshake.auth[HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID] as string;
-
-      if (!authorizationHeader || !deviceId) {
-        return next(new Error('Unauthorized'));
-      }
-
-      const accessToken = authorizationHeader.split(' ')[1];
-      webExtensionService
-        .verifyToken({ token: accessToken, deviceId })
-        .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile))
-        .then((user) => {
-          (socket.request as any).session = { ...(socket.request as any).session, user, deviceId };
-          next();
-        })
-        .catch((err) => {
-          logger.error({ ...getExceptionLog(err) }, '[SOCKET] Error verifying token');
-          next(new Error('Unauthorized'));
-        });
+      getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_WEB_EXT)(socket, next);
+    } else if (socket.handshake.headers[HTTP.HEADERS.X_SOURCE.toLowerCase()] === HTTP_SOURCE_DESKTOP) {
+      getExternalDeviceAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP)(socket, next);
     } else {
       next();
     }
@@ -120,7 +131,7 @@ export function initSocketServer(
     const userId = session?.user?.id as string | undefined;
     const deviceId = session?.deviceId as string | undefined;
 
-    logger.trace(
+    logger.debug(
       { socketId: socket.id, userId: session?.user?.id || 'unknown', sessionId: session?.id },
       '[SOCKET][CONNECT] %s',
       socket.id
@@ -139,7 +150,7 @@ export function initSocketServer(
     }
 
     socket.on('disconnect', (reason) => {
-      logger.trace({ socketId: socket.id, userId: userId || 'unknown' }, '[SOCKET][DISCONNECT] %s', reason);
+      logger.debug({ socketId: socket.id, userId: userId || 'unknown' }, '[SOCKET][DISCONNECT] %s', reason);
     });
 
     socket.on('error', (err) => {

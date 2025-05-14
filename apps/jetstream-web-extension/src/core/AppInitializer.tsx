@@ -54,7 +54,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     if (recordSyncEnabled) {
       initSocket(serverUrl, {
         [HTTP.HEADERS.AUTHORIZATION]: `Bearer ${authTokens.accessToken}`,
-        [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
       });
     } else {
       disconnectSocket();

@@ -70,6 +70,7 @@ model Entitlement {
   chromeExtension Boolean @default(false)
   googleDrive     Boolean @default(false)
   recordSync      Boolean @default(false)
+  desktop         Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
