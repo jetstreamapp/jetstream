@@ -12,6 +12,7 @@ export const ORG_VERSION_PLACEHOLDER = '_DEFAULT_VERSION_';
 export const SESSION_EXP_DAYS = 2;
 export const SFDC_BULK_API_NULL_VALUE = '#N/A';
 export const SFDC_BLANK_PICKLIST_VALUE = '--None--';
+export const HTTP_SOURCE_DESKTOP = 'JETSTREAM_DESKTOP';
 
 export const INPUT_ACCEPT_FILETYPES: {
   ZIP: InputAcceptTypeZip;
@@ -35,6 +36,7 @@ export const HTTP = {
     ACCEPT: 'Accept',
     AUTHORIZATION: 'Authorization',
     X_CLIENT_REQUEST_ID: 'X-Client-Request-Id',
+    X_SOURCE: 'X-Source',
     X_REQUEST_ID: 'X-Request-Id',
     X_RETRY: 'X-RETRY',
     X_LOGOUT: 'X-AUTH-LOGOUT', // 1=true
@@ -50,7 +52,11 @@ export const HTTP = {
     X_CACHE_KEY: 'X-CACHE-KEY',
     X_CACHE_AGE: 'X-CACHE-AGE',
     X_CACHE_EXP: 'X-CACHE-ECP',
+    /**
+     * @deprecated - use X_EXT_DEVICE_ID instead
+     */
     X_WEB_EXTENSION_DEVICE_ID: 'X-Web-Extension-Device-Identifier',
+    X_EXT_DEVICE_ID: 'X-Ext-Id',
     CONTENT_TYPE: 'Content-Type',
     X_MOCK_KEY: 'X-MOCK-KEY',
     X_FORWARDED_FOR: 'X-FORWARDED-FOR',

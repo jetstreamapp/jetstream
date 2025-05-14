@@ -68,6 +68,7 @@ export class UserFacingError extends Error {
 export class AuthenticationError extends Error {
   readonly status: number;
   readonly additionalData?: any;
+  skipLogout: boolean;
   constructor(message: string | Error, additionalData?: any) {
     if (message instanceof Error) {
       super(message.message);
@@ -78,6 +79,7 @@ export class AuthenticationError extends Error {
     }
     this.status = initStatus(message, 401);
     this.additionalData = additionalData;
+    this.skipLogout = Boolean(additionalData?.skipLogout ?? false);
   }
 }
 

@@ -1,5 +1,6 @@
 import apiRoutes from './api.routes';
 import authRoutes from './auth.routes';
+import desktopAppRoutes from './desktop-app.routes';
 import oauthRoutes from './oauth.routes';
 import platformEventRoutes from './platform-event.routes';
 import staticAuthenticatedRoutes from './static-authenticated.routes';
@@ -10,6 +11,7 @@ import webhookRoutes from './webhook.routes';
 export {
   apiRoutes,
   authRoutes,
+  desktopAppRoutes,
   oauthRoutes,
   platformEventRoutes,
   staticAuthenticatedRoutes,

@@ -23,7 +23,7 @@ jobs:
       - name: Init npm cache
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'yarn'
       - name: install dependencies
         run: yarn install --frozen-lockfile

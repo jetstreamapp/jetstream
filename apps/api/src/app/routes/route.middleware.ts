@@ -32,7 +32,6 @@ export function addContextMiddleware(req: express.Request, res: express.Response
  */
 export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   const appCookie: ApplicationCookie = {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     serverUrl: ENV.JETSTREAM_SERVER_URL,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     environment: ENV.ENVIRONMENT as any,
@@ -291,6 +290,14 @@ export async function getOrgForRequest(
     }
   };
 
+  const handleConnectionError = async (error: string) => {
+    try {
+      await salesforceOrgsDb.updateOrg_UNSAFE(org, { connectionError: error });
+    } catch (ex) {
+      logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][UPDATE] Error updating connection error on org');
+    }
+  };
+
   const jetstreamConn = new ApiConnection(
     {
       apiRequestAdapter: getApiRequestFactoryFn(fetch),
@@ -306,7 +313,8 @@ export async function getOrgForRequest(
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
     },
-    handleRefresh
+    handleRefresh,
+    handleConnectionError
   );
 
   return { org, jetstreamConn };

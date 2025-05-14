@@ -167,7 +167,7 @@ export async function createCSRFToken({ secret }: CreateCSRFTokenParams) {
  */
 export async function validateCSRFToken({ secret, cookieValue, bodyValue }: ValidateCSRFTokenParams): Promise<boolean> {
   if (!cookieValue) {
-    logger.trace('No CSRF token found in cookie');
+    logger.debug('No CSRF token found in cookie');
     return false;
   }
   const [csrfToken, csrfTokenHash] = cookieValue.split('|');
@@ -175,14 +175,14 @@ export async function validateCSRFToken({ secret, cookieValue, bodyValue }: Vali
   const expectedCsrfTokenHash = await createHash(`${csrfToken}${secret}`);
 
   if (csrfTokenHash !== expectedCsrfTokenHash) {
-    logger.trace('CSRF token hash does not match');
+    logger.debug('CSRF token hash does not match');
     return false;
   }
 
   const csrfTokenVerified = csrfToken === bodyValue;
 
   if (!csrfTokenVerified) {
-    logger.trace('CSRF token does not match');
+    logger.debug('CSRF token does not match');
     return false;
   }
 

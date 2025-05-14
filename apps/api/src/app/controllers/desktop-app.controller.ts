@@ -4,7 +4,6 @@ import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { addDays, fromUnixTime, isAfter } from 'date-fns';
 import { z } from 'zod';
-import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import * as userSyncDbService from '../db/data-sync.db';
 import * as userDbService from '../db/user.db';
 import { checkUserEntitlement } from '../db/user.db';
@@ -13,6 +12,7 @@ import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-
 import * as externalAuthService from '../services/external-auth.service';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
+import { routeDefinition as dataSyncController } from './data-sync.controller';
 
 export const routeDefinition = {
   initAuthMiddleware: {
@@ -24,6 +24,10 @@ export const routeDefinition = {
   logout: {
     controllerFn: () => logout,
     validators: {
+      body: z.object({
+        deviceId: z.string(),
+        accessToken: z.string(),
+      }),
       hasSourceOrg: false,
     },
   },
@@ -61,14 +65,15 @@ export const routeDefinition = {
 };
 
 /**
- * Render static page for web extension to initialize session
+ * Render static page for Desktop App to initialize session
  * Page calls back to API to initialize session so that we do not generate tokens in source code
  */
 const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.validators, async ({ setCookie }, req, res, next) => {
   // redirect to login flow if user is not signed in
   if (!req.session.user) {
+    const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
     const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/web-extension/init`, redirectUrlCookie.options);
+    setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/desktop-app/auth?${queryParams}`, redirectUrlCookie.options);
     redirect(res as any, '/auth/login/');
     return;
   }
@@ -83,6 +88,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     return;
   }
 
+  // FIXME: we need to add desktop as an entitlement to the user
   if (!(await checkUserEntitlement({ userId: user.id, entitlement: 'chromeExtension' }))) {
     next(new MissingEntitlement());
     return;
@@ -95,7 +101,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
 
   // if token is expiring within 7 days, issue a new token
   if (!storedRefreshToken || isAfter(storedRefreshToken.expiresAt, addDays(new Date(), -externalAuthService.TOKEN_AUTO_REFRESH_DAYS))) {
-    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
+    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_DESKTOP);
     storedRefreshToken = await webExtDb.create(user.id, {
       type: 'AUTH_TOKEN',
       token: accessToken,
@@ -105,7 +111,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
     });
   } else {
-    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
+    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_DESKTOP);
   }
 
   sendJson(res, { accessToken });
@@ -115,12 +121,12 @@ const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async 
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_WEB_EXT);
-    res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
+    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_DESKTOP);
+    res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
 
     sendJson(res, { success: true });
   } catch (ex) {
-    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
+    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying Desktop App token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
@@ -129,7 +135,7 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ body }, r
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_WEB_EXT);
+    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_DESKTOP);
     webExtDb.deleteByUserIdAndDeviceId({ userId: userProfile.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
     res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of browser extension');
 
@@ -169,7 +175,7 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
   };
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)! || req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID)!;
+  const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)!;
   emitRecordSyncEventsToOtherClients(deviceId, syncEvent);
 
   sendJson(res, response);

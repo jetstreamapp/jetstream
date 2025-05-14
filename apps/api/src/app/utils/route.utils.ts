@@ -69,7 +69,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         // this will exist if targetJetstreamConn exists, otherwise will throw
         targetOrg: res.locals.targetOrg as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        user: req.chromeExtension?.user || req.session.user!, // It is possible this is null, but middleware asserts it exists so this is easier to work with
+        user: req.externalAuth?.user || req.session.user!, // It is possible this is null, but middleware asserts it exists so this is easier to work with
         requestId: res.locals.requestId,
         setCookie: (name: string, value: string, options: CookieOptions) => {
           res.locals.cookies = res.locals.cookies || {};

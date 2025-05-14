@@ -48,7 +48,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req)
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
-        [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
       },
     });
   } catch (ex) {
@@ -66,7 +66,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ query, body }
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
-        [HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
       },
       body: JSON.stringify(body),
     });

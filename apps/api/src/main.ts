@@ -22,6 +22,7 @@ import { initSocketServer } from './app/controllers/socket.controller';
 import {
   apiRoutes,
   authRoutes,
+  desktopAppRoutes,
   oauthRoutes,
   platformEventRoutes,
   staticAuthenticatedRoutes,
@@ -42,7 +43,11 @@ import { environment } from './environments/environment';
 
 declare module 'express' {
   interface Request {
-    chromeExtension?: {
+    /**
+     * Authenticated user for external authenticated routes (e.g. web extension, desktop app)
+     * populated in externalAuthService.getExternalAuthMiddleware
+     */
+    externalAuth?: {
       user: UserProfileSession;
       deviceId?: string;
     };
@@ -238,6 +243,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     HTTP.HEADERS.ACCEPT,
     HTTP.HEADERS.CONTENT_TYPE,
     HTTP.HEADERS.AUTHORIZATION,
+    HTTP.HEADERS.X_EXT_DEVICE_ID,
     HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
   ].join(', ');
   app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -342,6 +348,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
   app.use('/web-extension', webExtensionRoutes);
+  app.use('/desktop-app', desktopAppRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);
