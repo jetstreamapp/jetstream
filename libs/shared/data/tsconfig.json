@@ -10,7 +10,7 @@
     "types": ["node", "jest"]
   },
   "files": [],
-  "include": [],
+  "include": ["../../../custom-typings/index.d.ts"],
   "references": [
     {
       "path": "./tsconfig.lib.json"

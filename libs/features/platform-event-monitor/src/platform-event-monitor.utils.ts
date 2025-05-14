@@ -1,11 +1,21 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
+import { isDesktop } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { CometD, Extension, Message, SubscriptionHandle } from 'cometd';
 import isNumber from 'lodash/isNumber';
 import { EventMessageUnsuccessful } from './platform-event-monitor.types';
 
 const subscriptions = new Map<string, SubscriptionHandle>();
+
+function getUrl(serverUrl: string, defaultApiVersion: string, selectedOrg: SalesforceOrgUi) {
+  if (isDesktop()) {
+    return `${selectedOrg.instanceUrl}/cometd/${defaultApiVersion.replace('v', '')}?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(
+      selectedOrg.uniqueId
+    )}`;
+  }
+  return `${serverUrl}/platform-event?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(selectedOrg.uniqueId)}`;
+}
 
 /**
  * Init cometD for org, must be called per org
@@ -25,7 +35,7 @@ export function init({
     const cometd = new CometD();
     cometd.unregisterTransport('websocket');
     cometd.configure({
-      url: `${serverUrl}/platform-event?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(selectedOrg.uniqueId)}`,
+      url: getUrl(serverUrl, defaultApiVersion, selectedOrg),
       requestHeaders: {
         [HTTP.HEADERS.X_SFDC_API_VERSION]: defaultApiVersion,
       },

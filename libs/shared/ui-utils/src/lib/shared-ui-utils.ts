@@ -8,6 +8,7 @@ import {
 } from '@jetstream/shared/data';
 import { NOOP, REGEX, delay, ensureBoolean, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
+  AddOrgHandlerFn,
   AndOr,
   BulkJobWithBatches,
   ChangeSet,
@@ -933,10 +934,10 @@ function handleWindowEvent(event: MessageEvent) {
   }
 }
 
-export function addOrg(
+export const addOrg: AddOrgHandlerFn = (
   options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
   callback: (org: SalesforceOrgUi) => void
-) {
+) => {
   const { serverUrl, loginUrl, addLoginTrue, jetstreamOrganizationId } = options;
   addOrgCallbackFn = callback;
   window.removeEventListener('message', handleWindowEvent);
@@ -952,7 +953,7 @@ export function addOrg(
   }
   windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
   window.addEventListener('message', handleWindowEvent, false);
-}
+};
 /// END ADD ORG ////
 
 const DEFAULT_INTERVAL_5_SEC = 5000;

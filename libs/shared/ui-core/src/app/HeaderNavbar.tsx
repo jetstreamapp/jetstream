@@ -1,5 +1,6 @@
+import { SerializedStyles } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { DropDownItem, UserProfileUi } from '@jetstream/types';
+import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems, UpgradeToProButton } from '@jetstream/ui';
 import { applicationCookieState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
 import { Fragment, useEffect, useMemo, useState } from 'react';
@@ -20,6 +21,10 @@ import NotificationsRequestModal from './NotificationsRequestModal';
 export interface HeaderNavbarProps {
   isBillingEnabled: boolean;
   isChromeExtension?: boolean;
+  isDesktop?: boolean;
+  logoCss?: SerializedStyles;
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
+  onLogoutHandlerFn?: () => void;
 }
 
 function logout(serverUrl: string) {
@@ -32,14 +37,18 @@ function getMenuItems({
   userProfile,
   isBillingEnabled,
   deniedNotifications,
+  isDesktop,
 }: {
   userProfile: UserProfileUi;
   isBillingEnabled: boolean;
   deniedNotifications?: boolean;
+  isDesktop?: boolean;
 }) {
   const menu: DropDownItem[] = [];
 
-  menu.push({ id: 'profile', value: 'Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
+  if (!isDesktop) {
+    menu.push({ id: 'profile', value: 'Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
+  }
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
   if (isBillingEnabled) {
@@ -59,7 +68,14 @@ function getMenuItems({
   return menu;
 }
 
-export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: HeaderNavbarProps) => {
+export const HeaderNavbar = ({
+  isBillingEnabled,
+  isChromeExtension = false,
+  isDesktop = false,
+  logoCss,
+  onAddOrgHandlerFn,
+  onLogoutHandlerFn,
+}: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const userProfile = useRecoilValue(userProfileState);
@@ -80,7 +96,7 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
         navigate(APP_ROUTES.SETTINGS.ROUTE);
         break;
       case 'nav-user-logout':
-        logout(applicationState.serverUrl);
+        onLogoutHandlerFn ? onLogoutHandlerFn() : logout(applicationState.serverUrl);
         break;
       case 'enable-notifications':
         setEnableNotifications(true);
@@ -92,15 +108,15 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications: !isEnabled }));
+    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications: !isEnabled, isDesktop }));
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications }));
-  }, [userProfile, deniedNotifications, isBillingEnabled]);
+    setUserMenuItems(getMenuItems({ userProfile, isBillingEnabled, deniedNotifications, isDesktop }));
+  }, [userProfile, deniedNotifications, isBillingEnabled, isDesktop]);
 
   const rightHandMenuItems = useMemo(() => {
-    if (isChromeExtension) {
+    if (isChromeExtension || isDesktop) {
       return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
     }
 
@@ -119,15 +135,16 @@ export const HeaderNavbar = ({ isBillingEnabled, isChromeExtension = false }: He
     }
 
     return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isChromeExtension, isBillingEnabled, userProfile.subscriptions.length, trackEvent]);
+  }, [isChromeExtension, isDesktop, isBillingEnabled, userProfile.subscriptions.length, trackEvent]);
 
   return (
     <Fragment>
       {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
-        logo={isChromeExtension || userProfile.subscriptions?.length > 0 ? LogoPro : Logo}
-        orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown />}
+        logo={isChromeExtension || isDesktop || userProfile.subscriptions?.length > 0 ? LogoPro : Logo}
+        logoCss={logoCss}
+        orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}
         isChromeExtension={isChromeExtension}

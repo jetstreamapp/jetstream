@@ -36,9 +36,9 @@ export const SyncableTables = {
   },
 } as const;
 
-const isChromeExtension = () => {
+const isWebExtension = () => {
   try {
-    return !!window?.__IS_BROWSER_EXTENSION__ || !!window?.chrome?.runtime?.id;
+    return !!globalThis.__IS_BROWSER_EXTENSION__ || !!window?.chrome?.runtime?.id;
   } catch (ex) {
     return false;
   }
@@ -53,8 +53,8 @@ export async function getHashedRecordKey(key: string) {
   return hashHex;
 }
 
-export const DEXIE_DB_NAME = isChromeExtension() ? 'jetstream-web-extension' : 'jetstream';
-export const DEXIE_DB_SYNC_NAME = isChromeExtension() ? 'jetstream-web-extension' : 'jetstream';
+export const DEXIE_DB_NAME = isWebExtension() ? 'jetstream-web-extension' : 'jetstream';
+export const DEXIE_DB_SYNC_NAME = isWebExtension() ? 'jetstream-web-extension' : 'jetstream';
 export const DEXIE_DB_SYNC_PATH = '/';
 
 export const dexieDb = new Dexie(DEXIE_DB_NAME) as Dexie & {

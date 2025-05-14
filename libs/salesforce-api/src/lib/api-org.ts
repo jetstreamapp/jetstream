@@ -1,4 +1,4 @@
-import { SalesforceUserIdentity } from '@jetstream/types';
+import { Maybe, SalesforceUserIdentity } from '@jetstream/types';
 import isString from 'lodash/isString';
 import { ApiConnection } from './connection';
 import { SalesforceApi } from './utils';
@@ -8,7 +8,7 @@ export class ApiOrg extends SalesforceApi {
     super(connection);
   }
 
-  getFrontdoorLoginUrl(returnUrl?: string): string {
+  getFrontdoorLoginUrl(returnUrl?: Maybe<string>): string {
     const url = new URL(`${this.sessionInfo.instanceUrl}/secur/frontdoor.jsp`);
     url.searchParams.append('sid', this.sessionInfo.accessToken);
     if (isString(returnUrl) && returnUrl) {
