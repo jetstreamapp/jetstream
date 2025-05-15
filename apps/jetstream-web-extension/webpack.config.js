@@ -29,6 +29,9 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
   // if runtime chunk is enabled, then the service worker will not work
   config.optimization = {
     ...config.optimization,
+    // NOTE: Tree shaking was breaking soql-parser-js - found this issue for short-term workaround: https://github.com/webpack/webpack/issues/16262
+    // FIXME: research this in more detail
+    innerGraph: false,
     minimizer: [
       (compiler) => {
         const TerserPlugin = require('terser-webpack-plugin');
