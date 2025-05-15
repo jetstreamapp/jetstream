@@ -21,6 +21,7 @@
       "@jetstream/auth/server": ["libs/auth/server/src/index.ts"],
       "@jetstream/auth/types": ["libs/auth/types/src/index.ts"],
       "@jetstream/connected-ui": ["libs/connected/connected-ui/src/index.ts"],
+      "@jetstream/desktop/types": ["libs/desktop-types/src/index.ts"],
       "@jetstream/email": ["libs/email/src/index.ts"],
       "@jetstream/feature/anon-apex": ["libs/features/anon-apex/src/index.ts"],
       "@jetstream/feature/automation-control": ["libs/features/automation-control/src/index.ts"],

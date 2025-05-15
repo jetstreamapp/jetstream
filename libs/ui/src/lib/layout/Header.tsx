@@ -1,4 +1,4 @@
-import { css } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { Fragment, FunctionComponent, ReactNode, Suspense, useState } from 'react';
@@ -7,6 +7,7 @@ import DropDown from '../form/dropdown/DropDown';
 export interface HeaderProps {
   userProfile: Maybe<UserProfileUi>;
   logo: string | ReactNode;
+  logoCss?: SerializedStyles;
   orgs?: ReactNode;
   userMenuItems: DropDownItem[];
   rightHandMenuItems?: ReactNode;
@@ -19,6 +20,7 @@ export interface HeaderProps {
 export const Header: FunctionComponent<HeaderProps> = ({
   userProfile,
   logo,
+  logoCss,
   orgs,
   rightHandMenuItems,
   userMenuItems,
@@ -32,6 +34,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
         <HeaderContent
           userProfile={userProfile}
           logo={logo}
+          logoCss={logoCss}
           orgs={orgs}
           rightHandMenuItems={rightHandMenuItems}
           userMenuItems={userMenuItems}
@@ -47,6 +50,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
 const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   userProfile,
   logo,
+  logoCss,
   orgs,
   rightHandMenuItems,
   userMenuItems,
@@ -62,13 +66,16 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
         className="slds-global-header__item non-draggable"
         css={css`
           padding: 0 0.25rem;
+          app-region: no-drag;
         `}
       >
         <div
           css={css`
             width: 10.7rem;
+            app-region: drag;
+            ${logoCss}
           `}
-          className="slds-global-header__logo non-draggable"
+          className="slds-global-header__logo"
           style={{ backgroundImage: `url(${logo})` }}
         ></div>
       </div>
@@ -79,6 +86,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
             className="slds-global-header__item non-draggable"
             css={css`
               padding: 0 0.25rem;
+              app-region: no-drag;
             `}
           >
             {orgs}
@@ -90,6 +98,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
         className="slds-global-header__item non-draggable"
         css={css`
           padding: 0 0.25rem;
+          app-region: no-drag;
         `}
       >
         <ul className="slds-global-actions non-draggable">
