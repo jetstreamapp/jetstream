@@ -1,5 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { app, BrowserWindow, nativeImage, shell } from 'electron';
+import { app, BrowserWindow, clipboard, Menu, nativeImage, shell } from 'electron';
 import log from 'electron-log/main';
 import * as path from 'path';
 import { ENV } from '../config/environment';
@@ -11,12 +11,6 @@ import { getWindowConfig } from './config';
 log.initialize();
 
 export class Browser {
-  private browserWindow!: Electron.BrowserWindow;
-
-  public get isVisible(): boolean {
-    return this.browserWindow.isVisible();
-  }
-
   public static get nativeIcon(): Electron.NativeImage {
     const icon = isMac() ? path.resolve(__dirname, './assets/icons/icon.icns') : path.resolve(__dirname, './assets/icons/icon.png');
     return nativeImage.createFromPath(icon);
@@ -36,6 +30,8 @@ export class Browser {
     const browserWindow = new BrowserWindow(getWindowConfig(icon));
     browserWindow.loadURL(ENV.CLIENT_URL);
     browserWindow.maximize();
+
+    browserWindow.webContents.on('context-menu', this.createContextMenu(browserWindow));
 
     browserWindow.webContents.setWindowOpenHandler((details) => {
       const url = new URL(details.url);
@@ -112,5 +108,58 @@ export class Browser {
       // app.dock.setMenu(dockMenu);
       app.dock.setIcon(Browser.nativeIcon);
     }
+  }
+
+  private createContextMenu(browserWindow: BrowserWindow) {
+    return (
+      event: {
+        preventDefault: () => void;
+        readonly defaultPrevented: boolean;
+      },
+      properties: Electron.ContextMenuParams
+    ) => {
+      const menuItems: Parameters<typeof Menu.buildFromTemplate>[0] = [];
+
+      if (properties.isEditable) {
+        menuItems.push({ label: 'Cut', role: 'cut' }, { label: 'Copy', role: 'copy' }, { label: 'Paste', role: 'paste' });
+      }
+
+      if (properties.selectionText) {
+        menuItems.push({
+          label: 'Copy Selection',
+          click: () => {
+            clipboard.writeText(properties.selectionText);
+          },
+        });
+      }
+
+      if (ENV.ENVIRONMENT === 'development') {
+        menuItems.push(
+          { type: 'separator' },
+          {
+            label: 'Reload',
+            click: () => browserWindow.webContents.reload(),
+          },
+          {
+            id: 'inspect',
+            label: 'Inspect Element',
+            click() {
+              browserWindow.webContents.inspectElement(properties.x, properties.y);
+
+              if (browserWindow.webContents.isDevToolsOpened()) {
+                browserWindow.webContents.devToolsWebContents?.focus();
+              }
+            },
+          }
+        );
+      }
+
+      if (menuItems.length === 0) {
+        menuItems.push({ label: 'No actions available', enabled: false });
+      }
+
+      const menu = Menu.buildFromTemplate(menuItems);
+      menu.popup({ window: browserWindow });
+    };
   }
 }

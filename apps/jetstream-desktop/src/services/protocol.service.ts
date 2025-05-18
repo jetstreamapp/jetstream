@@ -1,5 +1,4 @@
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
-import { ApplicationCookie } from '@jetstream/types';
 import { net, protocol, session } from 'electron';
 import logger from 'electron-log';
 import { join } from 'node:path';
@@ -39,35 +38,6 @@ export function registerProtocols() {
       status: 400,
       headers: { 'content-type': 'text/html' },
     });
-  });
-}
-
-/**
- * @deprecated - this does not work for custom protocols
- * we are using ipc instead
- */
-export async function setApplicationCookies() {
-  // Dynamically set the domain based on the environment
-  const { hostname } = new URL(ENV.CLIENT_URL);
-
-  const appCookie: ApplicationCookie = {
-    serverUrl: ENV.SERVER_URL,
-    environment: ENV.ENVIRONMENT,
-    defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
-    google_appId: '1071580433137',
-    google_apiKey: 'AIzaSyAOo0Xb3gNHDuXCDgmPJA0Jx2cpYroTXiA',
-    google_clientId: '1046118608516-lstbl00607e43hev2abfh9hegbv7iuav.apps.googleusercontent.com',
-  };
-
-  await session.defaultSession.cookies.set({
-    url: ENV.CLIENT_URL,
-    name: HTTP.COOKIE.JETSTREAM,
-    httpOnly: false,
-    domain: hostname,
-    path: '/',
-    sameSite: 'strict',
-    secure: false,
-    value: `j:${encodeURIComponent(JSON.stringify(appCookie))}`,
   });
 }
 
