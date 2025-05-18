@@ -18,9 +18,7 @@ const ENV_INTERNAL_DEV = {
 const ENV_INTERNAL_PROD = {
   ENVIRONMENT: 'production',
   CLIENT_URL: 'app://jetstream/client/index.html',
-  // FIXME: this is temporary, we need to deploy server changes to production first
-  // SERVER_URL: 'https://getjetstream.app',
-  SERVER_URL: 'http://localhost:3333',
+  SERVER_URL: 'https://getjetstream.app',
   SFDC_API_VERSION: ENV_INTERNAL_DEV.SFDC_API_VERSION,
   DESKTOP_SFDC_CALLBACK_URL: ENV_INTERNAL_DEV.DESKTOP_SFDC_CALLBACK_URL,
   DESKTOP_SFDC_CLIENT_ID: ENV_INTERNAL_DEV.DESKTOP_SFDC_CLIENT_ID,
