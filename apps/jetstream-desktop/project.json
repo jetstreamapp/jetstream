@@ -1,0 +1,70 @@
+{
+  "name": "jetstream-desktop",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/jetstream-desktop/src",
+  "projectType": "application",
+  "tags": ["scope:server"],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apps/jetstream-desktop",
+        "format": ["cjs"],
+        "bundle": true,
+        "main": "apps/jetstream-desktop/src/main.ts",
+        "additionalEntryPoints": ["apps/jetstream-desktop/src/preload.ts"],
+        "tsConfig": "apps/jetstream-desktop/tsconfig.app.json",
+        "assets": [
+          {
+            "input": "apps/jetstream-desktop/src/assets",
+            "glob": "**/*",
+            "output": "assets"
+          }
+        ],
+        "generatePackageJson": true,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "jetstream-desktop:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "jetstream-desktop:build:development"
+        },
+        "production": {
+          "buildTarget": "jetstream-desktop:build:production"
+        }
+      }
+    },
+    "test": {
+      "options": {
+        "passWithNoTests": true
+      }
+    }
+  }
+}

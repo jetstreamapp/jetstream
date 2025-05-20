@@ -415,23 +415,25 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     logger.error(getExceptionLog(error), '[SERVER][ERROR]');
   });
 
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, shutting down gracefully');
-    server.close(() => {
-      logger.info('Server closed');
+  if (ENV.ENVIRONMENT === 'production') {
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        logger.info('Server closed');
 
-      pgPool.end().then(() => {
-        logger.info('DB pool closed');
-        process.exit(0);
+        pgPool.end().then(() => {
+          logger.info('DB pool closed');
+          process.exit(0);
+        });
       });
-    });
 
-    // Force close after 30s
-    setTimeout(() => {
-      logger.error('Could not close connections in time, forcefully shutting down');
-      process.exit(1);
-    }, 30_000);
-  });
+      // Force close after 30s
+      setTimeout(() => {
+        logger.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 30_000);
+    });
+  }
 }
 
 /**

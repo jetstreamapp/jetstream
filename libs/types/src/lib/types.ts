@@ -317,3 +317,8 @@ export interface FormulaFieldsByType {
   user: string[];
   userRole: string[];
 }
+
+export type AddOrgHandlerFn = (
+  options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
+  callback: (org: SalesforceOrgUi) => void
+) => void;

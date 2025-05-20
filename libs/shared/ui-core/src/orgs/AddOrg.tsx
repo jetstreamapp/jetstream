@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { addOrg } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -24,15 +24,25 @@ function getFQDN(customUrl: string) {
   return `${CUSTOM_LOGIN_PROTOCOL}${customUrl}${CUSTOM_LOGIN_SUFFIX}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AddOrgProps {
   className?: string;
   label?: string;
   disabled?: boolean;
   onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
+  /**
+   * If provided, this will be used instead of the default addOrg function.
+   * This is used in the desktop app to open the browser for the login process.
+   */
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
-export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add Org', disabled, onAddOrg }) => {
+export const AddOrg: FunctionComponent<AddOrgProps> = ({
+  className,
+  label = 'Add Org',
+  disabled,
+  onAddOrg,
+  onAddOrgHandlerFn = addOrg,
+}) => {
   const popoverRef = useRef<PopoverRef>(null);
   const { trackEvent } = useAmplitude();
   const [orgType, setOrgType] = useState<OrgType>('prod');
@@ -56,7 +66,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({ className, label = 'Add
 
   function handleAddOrg() {
     loginUrl &&
-      addOrg(
+      onAddOrgHandlerFn(
         {
           serverUrl: applicationState.serverUrl,
           loginUrl,
