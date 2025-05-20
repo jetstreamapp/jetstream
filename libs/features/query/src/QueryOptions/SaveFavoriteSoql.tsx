@@ -79,13 +79,16 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
     const newQueryHistoryItem: QueryHistoryItem = { ...queryHistoryItem, customLabel: name.trim(), isFavorite: true };
     setQueryHistoryItem(newQueryHistoryItem);
     try {
-      await queryHistoryDb.saveQueryHistoryItem(selectedOrg, soql, sObject, {
+      const savedItem = await queryHistoryDb.saveQueryHistoryItem(selectedOrg, soql, sObject, {
         sObjectLabel,
         isTooling,
         incrementRunCount: false,
         isFavorite: true,
         customLabel: name.trim(),
       });
+      if (savedItem) {
+        setQueryHistoryItem(savedItem);
+      }
     } catch (ex) {
       logger.warn('Unable to save favorite', ex);
     }
