@@ -608,6 +608,7 @@ export function getQueryForAllPermissionableFields(allSobjects: string[]): strin
         getField('NamespacePrefix'),
         getField('IsCompound'),
         getField('isCreatable'),
+        getField('IsUpdatable'),
         getField('IsPermissionable'),
       ],
       sObject: 'EntityParticle',

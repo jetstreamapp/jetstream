@@ -689,7 +689,7 @@ export function getFieldRows(
         tableLabel: `${fieldPermission.label} (${fieldPermission.apiName})`,
         type: fieldPermission.metadata.DataType,
         // formula fields and auto-number fields do not allow editing
-        allowEditPermission: fieldPermission.metadata.IsCompound || fieldPermission.metadata.IsCreatable,
+        allowEditPermission: !fieldPermission.metadata.IsCompound && fieldPermission.metadata.IsUpdatable,
         permissions: {},
       };
 
