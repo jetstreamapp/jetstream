@@ -3,7 +3,12 @@ import { Browser } from './browser/browser';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
-import { registerDownloadHandler, registerProtocols, registerWebRequestHandlers } from './services/protocol.service';
+import {
+  registerDownloadHandler,
+  registerFileOpenHandler,
+  registerProtocols,
+  registerWebRequestHandlers,
+} from './services/protocol.service';
 
 initDeepLink();
 initAppMenu();
@@ -27,4 +32,5 @@ app.whenReady().then(async () => {
 
   registerWebRequestHandlers();
   registerDownloadHandler();
+  registerFileOpenHandler();
 });

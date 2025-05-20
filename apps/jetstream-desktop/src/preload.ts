@@ -5,6 +5,7 @@ const API: ElectronAPI = {
   // One-Way to Client
   onAuthenticate: (callback) => ipcRenderer.on('authenticate', (_event, payload) => callback(payload)),
   onOrgAdded: (callback) => ipcRenderer.on('orgAdded', (_event, payload) => callback(payload)),
+  onAction: (callback) => ipcRenderer.on('action', (_event, payload) => callback(payload)),
   // One-Way from Client
   login: () => ipcRenderer.invoke('login'),
   logout: () => ipcRenderer.invoke('logout'),

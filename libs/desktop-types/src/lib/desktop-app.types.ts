@@ -1,4 +1,4 @@
-import { ApplicationCookie, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { ApplicationCookie, InputReadFileContent, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 /**
@@ -6,9 +6,11 @@ import { z } from 'zod';
  * This interface defines the methods and events that are available in the Electron app
  * and can be used in the preload script to communicate with the main process.
  */
+// FIXME: these are "just here" - they don't do anything but do provide documentation
 export interface ElectronApiCallback {
   onAuthenticate: (payload: (payload: AuthenticatePayload) => void) => void;
   onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => void;
+  onAction: (payload: (action: DesktopAction) => void) => void;
 }
 
 export interface ElectronApiRequestResponse {
@@ -24,6 +26,15 @@ export interface ElectronApiRequestResponse {
 }
 
 export type ElectronAPI = ElectronApiCallback & ElectronApiRequestResponse;
+
+export interface DesktopActionLoadRecord {
+  action: 'LOAD_RECORD';
+  payload: {
+    fileContent: InputReadFileContent;
+  };
+}
+
+export type DesktopAction = DesktopActionLoadRecord;
 
 export interface IcpRequest {
   url: string;
@@ -85,6 +96,12 @@ export type AppData = z.infer<typeof AppDataSchema>;
 export const DesktopUserPreferencesSchema = z.object({
   skipFrontdoorLogin: z.boolean().optional().default(false),
   recordSyncEnabled: z.boolean().optional().default(false),
+  fileDownload: z
+    .object({
+      omitPrompt: z.boolean().optional().default(true),
+      downloadPath: z.string().optional().default(''),
+    })
+    .optional(),
 });
 export type DesktopUserPreferences = z.infer<typeof DesktopUserPreferencesSchema>;
 

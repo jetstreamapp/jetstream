@@ -14,6 +14,7 @@ import React, { Fragment, FunctionComponent, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { useElectronActionLoader } from './useElectronActionLoader';
 
 const orgConnectionError = new Subject<{ uniqueId: string; connectionError: string }>();
 const orgConnectionError$ = orgConnectionError.asObservable();
@@ -44,6 +45,8 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
   const [appCookie, setAppCookie] = useRecoilState(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+
+  useElectronActionLoader();
 
   const recordSyncEntitlementEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;

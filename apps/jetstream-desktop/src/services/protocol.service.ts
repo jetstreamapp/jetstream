@@ -1,12 +1,16 @@
+import { DesktopActionLoadRecord } from '@jetstream/desktop/types';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
-import { net, protocol, session } from 'electron';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { app, net, protocol, session } from 'electron';
 import logger from 'electron-log';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import path, { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { Browser } from '../browser/browser';
 import { ENV, SERVER_URL } from '../config/environment';
 import { initApiConnection } from '../utils/route.utils';
 import { getCspPolicy } from '../utils/utils';
-import { getAppData } from './persistence.service';
+import { getAppData, getUserPreferences } from './persistence.service';
 
 const cspPolicy = getCspPolicy();
 const platformEventUrl = 'https://*.salesforce.com/cometd/*';
@@ -110,5 +114,71 @@ export function registerWebRequestHandlers() {
     }
 
     callback({ responseHeaders });
+  });
+}
+
+export function registerDownloadHandler() {
+  session.defaultSession.on('will-download', (event, item, webContents) => {
+    const downloadPreferences = getUserPreferences().fileDownload;
+    if (
+      !downloadPreferences ||
+      !downloadPreferences.omitPrompt ||
+      !downloadPreferences.downloadPath ||
+      !existsSync(downloadPreferences.downloadPath)
+    ) {
+      return;
+    }
+    const downloadFilename = join(downloadPreferences.downloadPath, item.getFilename());
+    item.setSavePath(downloadFilename);
+    item.once('done', (event, state) => {
+      if (state === 'completed') {
+        logger.info(`Download completed: ${item.getSavePath()}`);
+        app.addRecentDocument(downloadFilename);
+      }
+    });
+  });
+}
+
+export function registerFileOpenHandler() {
+  app.on('open-file', async (event, filePath) => {
+    event.preventDefault();
+    function isAllowedExtension(extension?: string): boolean {
+      switch (extension) {
+        case '.csv':
+        case '.xlsx':
+          return true;
+        default:
+          return false;
+      }
+    }
+    try {
+      const name = path.basename(filePath);
+      const extension = path.extname(name).toLowerCase();
+      if (!isAllowedExtension(extension)) {
+        return;
+      }
+      const fileData: DesktopActionLoadRecord = {
+        action: 'LOAD_RECORD',
+        payload: {
+          fileContent: {
+            content: readFileSync(filePath).buffer as ArrayBuffer,
+            filename: name,
+            extension,
+            isPasteFromClipboard: false,
+          },
+        },
+      };
+
+      const newWindow = Browser.create();
+      if (newWindow.webContents?.isLoading()) {
+        newWindow.webContents.once('did-finish-load', () => {
+          newWindow.webContents.send('action', fileData);
+        });
+      } else if (newWindow) {
+        newWindow.webContents.send('file-dropped', fileData);
+      }
+    } catch (ex) {
+      logger.error('Error opening file:', getErrorMessageAndStackObj(ex));
+    }
   });
 }
