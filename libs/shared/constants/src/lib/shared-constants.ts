@@ -196,6 +196,7 @@ export const ANALYTICS_KEYS = {
   query_HistoryModalOpened: 'query_HistoryModalOpened',
   query_HistoryRestore: 'query_HistoryRestore',
   query_HistorySaveQueryToggled: 'query_HistorySaveQueryToggled',
+  query_HistoryUpdateLabel: 'query_HistoryUpdateLabel',
   query_HistoryShowMore: 'query_HistoryShowMore',
   query_HistoryTypeChanged: 'query_HistoryTypeChanged',
   query_LoadMore: 'query_LoadMore',
