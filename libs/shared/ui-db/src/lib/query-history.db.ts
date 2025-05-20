@@ -33,7 +33,11 @@ async function getAllQueryHistory(): Promise<QueryHistoryItem[]> {
   return await dexieDb.query_history.toArray();
 }
 
-async function setAsFavorite(key: QueryHistoryItem['key'], isFavorite: boolean, customLabel?: string): Promise<QueryHistoryItem> {
+async function setAsFavorite(
+  key: QueryHistoryItem['key'],
+  isFavorite: boolean,
+  customLabel?: string
+): Promise<QueryHistoryItem | undefined> {
   const updates: Partial<QueryHistoryItem> = { isFavorite };
   // update custom label if provided
   if (customLabel) {
@@ -42,8 +46,7 @@ async function setAsFavorite(key: QueryHistoryItem['key'], isFavorite: boolean, 
     updates.customLabel = null;
   }
   await dexieDb.query_history.update(key, updates);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return (await dexieDb.query_history.get(key))!;
+  return await dexieDb.query_history.get(key);
 }
 
 async function getOrInitQueryHistoryItem(
