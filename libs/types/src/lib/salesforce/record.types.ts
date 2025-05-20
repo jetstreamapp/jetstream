@@ -155,6 +155,7 @@ export interface EntityParticlePermissionsRecord {
   NamespacePrefix: string;
   IsCompound: boolean;
   IsCreatable: boolean;
+  IsUpdatable: boolean;
   IsPermissionable: boolean;
 }
 
