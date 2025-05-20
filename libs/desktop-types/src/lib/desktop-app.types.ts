@@ -17,6 +17,9 @@ export interface ElectronApiRequestResponse {
   addOrg: (payload: { loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> }) => void;
   checkAuth: () => Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined>;
   getAppCookie: () => Promise<ApplicationCookie>;
+  selectFolder: () => Promise<Maybe<string>>;
+  getPreferences: () => Promise<DesktopUserPreferences>;
+  setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
   request: (payload: { url: string; request: IcpRequest }) => Promise<IcpResponse>;
 }
 

@@ -1,36 +1,34 @@
 import { css } from '@emotion/react';
-import { UserProfileUiDesktop } from '@jetstream/desktop/types';
+import { DesktopUserPreferences } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { updateUserProfile } from '@jetstream/shared/data';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Page, Spinner, fireToast } from '@jetstream/ui';
+import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { desktopUserPreferences } from '../core/AppDesktopState';
 import LoggerConfig from './LoggerConfig';
 
 const HEIGHT_BUFFER = 170;
-
-type ModifiedUser = Pick<UserProfileUiDesktop, 'preferences'>;
 
 export const Settings = () => {
   useTitle(TITLES.SETTINGS);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
-  const [userProfile, setUserProfile] = useRecoilState(fromAppState.userProfileState);
-  const [modifiedUser, setModifiedUser] = useState<ModifiedUser>(() => ({ preferences: { ...userProfile.preferences } }));
+  const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
+  const [preferences, setPreferences] = useRecoilState(desktopUserPreferences);
+  const [modifiedPreferences, setModifiedPreferences] = useState<DesktopUserPreferences>(() => ({ ...preferences }));
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
 
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
-  // TODO: Give option to disable
   const recordSyncEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
 
   useEffect(() => {
@@ -55,39 +53,68 @@ export const Settings = () => {
   useGlobalEventHandler('keydown', onKeydown);
 
   useEffect(() => {
-    if (userProfile) {
-      setModifiedUser({ preferences: { ...userProfile.preferences } });
+    if (preferences) {
+      setModifiedPreferences({ ...preferences });
     }
-  }, [userProfile]);
+  }, [preferences]);
 
-  async function handleSave(_modifiedUser?: ModifiedUser) {
+  async function handleSave(_preferences?: DesktopUserPreferences) {
     try {
-      _modifiedUser = _modifiedUser || modifiedUser;
-      if (!_modifiedUser) {
+      _preferences = _preferences || modifiedPreferences;
+      if (!_preferences || !window.electronAPI) {
         return;
       }
-      const userProfile = await updateUserProfile<UserProfileUiDesktop>(_modifiedUser);
-      setUserProfile(userProfile);
+      const updatedPreferences = await window.electronAPI.setPreferences(_preferences);
+      setPreferences(updatedPreferences);
+      setModifiedPreferences(updatedPreferences);
+      // Ensure app state is updated to match user preference changes
+      setUserProfile((prev) => ({
+        ...prev,
+        preferences: updatedPreferences,
+      }));
       trackEvent(ANALYTICS_KEYS.settings_update_user);
     } catch (ex) {
-      logger.warn('Error updating user', ex);
+      logger.warn('Error updating user settings', ex);
       fireToast({
-        message: 'There was a problem updating your user. Try again or file a support ticket for assistance.',
+        message: 'There was a problem updating your settings. Try again or file a support ticket for assistance.',
         type: 'error',
       });
     }
   }
 
   function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
-    const _modifiedUser = { preferences: { ...userProfile.preferences, skipFrontdoorLogin } } as ModifiedUser;
-    setModifiedUser(_modifiedUser);
-    handleSave(_modifiedUser);
+    const _modifiedPreferences = { ...preferences, skipFrontdoorLogin };
+    setModifiedPreferences(_modifiedPreferences);
+    handleSave(_modifiedPreferences);
+  }
+
+  async function handleChooseFolder() {
+    if (!window.electronAPI) {
+      return;
+    }
+    const downloadPath = await window.electronAPI.selectFolder();
+    if (!downloadPath) {
+      // user canceled the folder selection
+      return;
+    }
+    const _modifiedPreferences = { ...preferences, fileDownload: { omitPrompt: true, downloadPath } };
+    setModifiedPreferences(_modifiedPreferences);
+    handleSave(_modifiedPreferences);
+  }
+
+  async function handleClearFolder() {
+    if (!window.electronAPI) {
+      return;
+    }
+    const _modifiedPreferences = { ...preferences, fileDownload: { omitPrompt: false, downloadPath: '' } };
+    setModifiedPreferences(_modifiedPreferences);
+    handleSave(_modifiedPreferences);
   }
 
   function handleRecordSyncChange(recordSyncEnabled: boolean) {
-    const _modifiedUser = { preferences: { ...userProfile.preferences, recordSyncEnabled } } as ModifiedUser;
-    setModifiedUser(_modifiedUser);
-    handleSave(_modifiedUser);
+    const _modifiedPreferences = { ...preferences, recordSyncEnabled };
+    setModifiedPreferences(_modifiedPreferences);
+    handleSave(_modifiedPreferences);
   }
 
   async function resetSync() {
@@ -172,18 +199,48 @@ export const Settings = () => {
             <h2 className="slds-text-heading_medium slds-m-vertical_small">General Settings</h2>
             <CheckboxToggle
               id="frontdoor-toggle"
-              checked={modifiedUser?.preferences?.skipFrontdoorLogin ?? false}
+              checked={modifiedPreferences?.skipFrontdoorLogin ?? false}
               label="Don't Auto-Login on Link Clicks"
               labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
               onChange={handleFrontdoorLoginChange}
             />
+
+            <Grid verticalAlign="end">
+              <Input
+                label="Save Download Without Prompt Location"
+                labelHelp="Specify the location to download saved files to. If provided, the file save dialog will not be shown."
+                className="slds-grow"
+              >
+                <input className="slds-input" value={modifiedPreferences?.fileDownload?.downloadPath || ''} disabled />
+              </Input>
+              <div className="slds-m-left_xx-small">
+                <button
+                  aria-label="Query History"
+                  className="slds-button slds-button_icon slds-button_icon-border-filled"
+                  onClick={() => handleChooseFolder()}
+                >
+                  <Icon type="utility" icon="file" className="slds-button__icon" omitContainer />
+                </button>
+              </div>
+              {modifiedPreferences?.fileDownload?.downloadPath && (
+                <div className="slds-m-left_xx-small">
+                  <button
+                    aria-label="Query History"
+                    className="slds-button slds-button_icon slds-button_icon-border-filled"
+                    onClick={() => handleClearFolder()}
+                  >
+                    <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+                  </button>
+                </div>
+              )}
+            </Grid>
 
             {recordSyncEnabled && (
               <div className="slds-m-top_large">
                 <h2 className="slds-text-heading_medium slds-m-vertical_small">History Data Sync</h2>
                 <CheckboxToggle
                   id="enable-record-sync-button"
-                  checked={modifiedUser?.preferences?.recordSyncEnabled ?? false}
+                  checked={modifiedPreferences?.recordSyncEnabled ?? false}
                   label="Data Sync"
                   labelHelp="Enable to sync Query History with the Jetstream server."
                   onChange={handleRecordSyncChange}

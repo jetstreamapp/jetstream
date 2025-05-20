@@ -9,7 +9,7 @@ import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api
 import { HTTP } from '@jetstream/shared/constants';
 import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
 import { addDays } from 'date-fns';
-import { ipcMain, shell } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
@@ -43,6 +43,9 @@ export function registerIpc(): void {
   registerHandler('addOrg', handleAddOrgEvent);
   registerHandler('checkAuth', handleCheckAuthEvent);
   registerHandler('getAppCookie', handleGetAppCookieEvent);
+  registerHandler('selectFolder', handleSelectFolderEvent);
+  registerHandler('getPreferences', handleGetPreferences);
+  registerHandler('setPreferences', handleSetPreferences);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
 }
@@ -57,6 +60,26 @@ const handleGetAppCookieEvent: MainIpcHandler<'getAppCookie'> = async (event) =>
     google_clientId: '1046118608516-lstbl00607e43hev2abfh9hegbv7iuav.apps.googleusercontent.com',
   };
   return appCookie;
+};
+
+const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async (event) => {
+  const result = await dialog.showOpenDialog({
+    buttonLabel: 'Select Folder',
+    defaultPath: app.getPath('downloads'),
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled) {
+    return null;
+  }
+  return result.filePaths[0];
+};
+
+const handleGetPreferences: MainIpcHandler<'getPreferences'> = async (event) => {
+  return dataService.getUserPreferences();
+};
+
+const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (event, payload) => {
+  return dataService.updateUserPreferences(payload);
 };
 
 const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {

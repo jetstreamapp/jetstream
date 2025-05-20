@@ -49,13 +49,17 @@ const yarnAddDevDeps = (() => {
     '@electron-forge/cli',
     '@electron-forge/maker-deb',
     '@electron-forge/maker-dmg',
+    '@electron-forge/maker-pkg',
     '@electron-forge/maker-rpm',
     '@electron-forge/maker-squirrel',
     '@electron-forge/maker-zip',
     '@electron-forge/plugin-auto-unpack-natives',
     '@electron-forge/plugin-fuses',
+    '@electron-forge/publisher-github',
     '@electron/fuses',
     'electron',
+    'ts-node',
+    'typescript',
   ].map((dep) => {
     const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
     if (!matchingDependency) {
@@ -82,7 +86,9 @@ async function build() {
   await $`cp -r ${MAIN_BUILD_DIR}/* ${TARGET_DIR}`;
   await $`cp -r ${RENDERER_BUILD_DIR}/* ${TARGET_CLIENT_DIR}`;
   await $`cp -r ${DOWNZIP_SW_BUILD_DIR}/* ${TARGET_DIR}`;
-  await $`cp forge.config.js ${TARGET_DIR}`;
+
+  await $`cp forge.config.ts ${TARGET_DIR}`;
+  await $`cp LICENSE.md ${TARGET_DIR}`;
 
   cd(TARGET_DIR);
 
@@ -94,10 +100,6 @@ async function build() {
   // Some dependencies are pulled in because we use their types, but we don't actually need them
   await $`yarn remove ${yarnRemoveDeps}`;
   await $`rm -rf node_modules/.prisma`;
-
-  console.log(chalk.blue(`Packaging application`));
-
-  await $`npx electron-forge make`;
 }
 
 async function main() {

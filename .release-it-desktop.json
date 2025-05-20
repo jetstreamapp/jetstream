@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/release-it@17/schema/release-it.json",
+  "plugins": {
+    "@release-it/bumper": {
+      "in": "apps/jetstream-desktop/package.json",
+      "out": "apps/jetstream-desktop/package.json"
+    }
+  },
+  "git": {
+    "tagAnnotation": "Release desktop ${version}",
+    "commitMessage": "chore: release desktop ${version}",
+    "tag": true,
+    "tagName": "desktop-v${version}"
+  },
+  "npm": false,
+  "github": false,
+  "hooks": {
+    "after:bump": ["npx prettier --write apps/jetstream-desktop/package.json", "yarn build:desktop"],
+    "after:release": "echo Successfully released ${name} v${version}."
+  }
+}

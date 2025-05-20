@@ -149,15 +149,14 @@ export function getUserPreferences() {
 }
 
 export function updateUserPreferences(preferences: Partial<DesktopUserPreferences>) {
-  const userPreferences = getUserPreferences();
-  const updatedPreferences = { ...userPreferences, ...preferences };
-  USER_PREFERENCES = updatedPreferences;
   try {
+    const updatedPreferences = DesktopUserPreferencesSchema.parse({ ...getUserPreferences(), ...preferences });
+    USER_PREFERENCES = updatedPreferences;
     writeFileSync(USER_PREFERENCES_FILE, JSON.stringify(updatedPreferences));
   } catch (ex) {
     logger.error('Error saving preferences file', ex);
   }
-  return updatedPreferences;
+  return getUserPreferences();
 }
 
 /**
