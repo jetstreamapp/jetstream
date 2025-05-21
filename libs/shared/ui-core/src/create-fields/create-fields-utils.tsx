@@ -97,27 +97,48 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Label',
     type: 'text',
     required: true,
+    validate: (value: string) => {
+      if (value?.length > 40) {
+        return false;
+      }
+      return true;
+    },
+    invalidErrorMessage: 'Must not exceed 40 characters',
   },
   fullName: {
     label: 'Name',
     type: 'text',
     required: true,
-    labelHelp: 'API name of field, cannot include more than one underscore. Do not add __c at the end.',
+    labelHelp: 'Field API name, cannot include consecutive underscores. Do not add __c at the end.',
     validate: (value: string) => {
-      if (!value || !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
+      if (!/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
         return false;
       }
       return true;
     },
-    invalidErrorMessage: 'Must be a valid API name',
+    invalidErrorMessage: 'Must be a valid API name and must not exceed 40 characters',
   },
   inlineHelpText: {
     label: 'Help Text',
     type: 'text',
+    validate: (value: string) => {
+      if (value?.length > 510) {
+        return false;
+      }
+      return true;
+    },
+    invalidErrorMessage: 'Must not exceed 510 characters',
   },
   description: {
     label: 'Description',
     type: 'textarea',
+    validate: (value: string) => {
+      if (value?.length > 1000) {
+        return false;
+      }
+      return true;
+    },
+    invalidErrorMessage: 'Must not exceed 1000 characters',
   },
   defaultValue: {
     label: 'Default Value',
@@ -161,7 +182,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
     },
     validate: (value: string, fieldValues: FieldValues) => {
-      if (!value || !/^[0-9]+$/.test(value)) {
+      if (!/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -175,7 +196,7 @@ export const fieldDefinitions: FieldDefinitions = {
       if (type === 'LongTextArea') {
         return 'Must be between 255 and 131,072';
       }
-      return 'Must be between 0 and 255';
+      return 'Must not exceed 255 characters';
     },
     required: true,
   },
@@ -184,13 +205,13 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text', // number
     labelHelp: 'Number of digits to the left of the decimal point',
     validate: (value: string) => {
-      if (!value || !/^[0-9]+$/.test(value)) {
+      if (!/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
       return isFinite(numValue) && numValue >= 1 && numValue <= 18;
     },
-    invalidErrorMessage: 'Must be between 0 and 18',
+    invalidErrorMessage: 'Must not exceed 18',
     required: true,
   },
   scale: {
@@ -198,13 +219,13 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text',
     labelHelp: 'Number of digits to the right of the decimal point',
     validate: (value: string) => {
-      if (!value || !/^[0-9]+$/.test(value)) {
+      if (!/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
       return isFinite(numValue) && numValue >= 0 && numValue <= 17;
     },
-    invalidErrorMessage: 'Must be between 0 and 17',
+    invalidErrorMessage: 'Must not exceed 17',
     required: true,
   },
   required: {
@@ -223,6 +244,17 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Picklist Values',
     type: 'textarea',
     required: true,
+    validate: (value: string) => {
+      const values = (value || '').split('\n');
+      if (!values.length) {
+        return false;
+      }
+      if (values.some((value) => value.length > 255)) {
+        return false;
+      }
+      return true;
+    },
+    invalidErrorMessage: 'There must be at least one value and no value can exceed 255 characters',
   },
   globalValueSet: {
     label: 'Global Picklist',
@@ -269,7 +301,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
     },
     validate: (value: string, fieldValues: FieldValues) => {
-      if (!value || !/^[0-9]+$/.test(value)) {
+      if (!/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -287,14 +319,14 @@ export const fieldDefinitions: FieldDefinitions = {
       } else if (type === 'Html') {
         return 'Must be between 10 and 50';
       }
-      return 'Must be between 0 and 10';
+      return 'Must not exceed 10';
     },
   },
   startingNumber: {
     label: 'Starting Number',
     type: 'text',
     validate: (value: string) => {
-      if (!value || !/^[0-9]+$/.test(value)) {
+      if (!/^[0-9]+$/.test(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -359,7 +391,7 @@ export const fieldDefinitions: FieldDefinitions = {
     labelHelp: 'This is relationship name for subqueries.',
     required: true,
     validate: (value: string) => {
-      if (!value || !/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
+      if (!/(^[a-zA-Z]+$)|(^[a-zA-Z]+[0-9a-zA-Z_]*[0-9a-zA-Z]$)/.test(value) || value.includes('__') || value.length > 40) {
         return false;
       }
       return true;
