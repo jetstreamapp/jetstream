@@ -6,7 +6,7 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream",
-  "version": "6.16.1",
+  "version": "6.16.2",
   "license": "GNU Lesser General Public License v3.0",
   "engines": {
     "node": ">=22 <23",
