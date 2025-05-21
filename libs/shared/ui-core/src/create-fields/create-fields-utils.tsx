@@ -35,6 +35,10 @@ const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
 const MAX_OBJ_IN_QUERY = 100;
 
+function isValidNumericString(value: string) {
+  return /^[0-9]+$/.test(value?.trim());
+}
+
 export function filterCreateFieldsSobjects(sobject: DescribeGlobalSObjectResult | null) {
   return (
     !!sobject &&
@@ -182,7 +186,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
     },
     validate: (value: string, fieldValues: FieldValues) => {
-      if (!/^[0-9]+$/.test(value)) {
+      if (!isValidNumericString(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -205,7 +209,7 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text', // number
     labelHelp: 'Number of digits to the left of the decimal point',
     validate: (value: string) => {
-      if (!/^[0-9]+$/.test(value)) {
+      if (!isValidNumericString(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -219,7 +223,7 @@ export const fieldDefinitions: FieldDefinitions = {
     type: 'text',
     labelHelp: 'Number of digits to the right of the decimal point',
     validate: (value: string) => {
-      if (!/^[0-9]+$/.test(value)) {
+      if (!isValidNumericString(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -301,7 +305,7 @@ export const fieldDefinitions: FieldDefinitions = {
       }
     },
     validate: (value: string, fieldValues: FieldValues) => {
-      if (!/^[0-9]+$/.test(value)) {
+      if (!isValidNumericString(value)) {
         return false;
       }
       const numValue = Number(value);
@@ -326,7 +330,7 @@ export const fieldDefinitions: FieldDefinitions = {
     label: 'Starting Number',
     type: 'text',
     validate: (value: string) => {
-      if (!/^[0-9]+$/.test(value)) {
+      if (!isValidNumericString(value)) {
         return false;
       }
       const numValue = Number(value);
