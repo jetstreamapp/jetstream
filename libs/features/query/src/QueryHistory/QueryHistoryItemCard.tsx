@@ -1,6 +1,7 @@
 import { IconObj } from '@jetstream/icon-factory';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
+import { useHover } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { QueryHistoryItem } from '@jetstream/types';
 import { ButtonGroupContainer, Card, CopyToClipboard, Grid, GridCol, Icon, Textarea } from '@jetstream/ui';
@@ -10,6 +11,7 @@ import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
+import { QueryHistoryEditNamePopover } from './QueryHistoryEditNamePopover';
 
 const SOBJECT_QUERY_ICON: IconObj = { type: 'standard', icon: 'record_lookup', description: 'Object Query' };
 const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
@@ -21,6 +23,7 @@ export interface QueryHistoryItemCardProps {
   item: QueryHistoryItem;
   onExecute: (item: QueryHistoryItem) => void;
   onSave: (item: QueryHistoryItem, value: boolean) => void;
+  onUpdate: (item: QueryHistoryItem, customLabel: string | null) => Promise<void>;
   startRestore: () => void;
   endRestore: (isTooling: boolean, fatalError: boolean, errors?: any) => void;
 }
@@ -30,6 +33,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   item,
   onExecute,
   onSave,
+  onUpdate,
   startRestore,
   endRestore,
 }) => {
@@ -39,6 +43,8 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 
   const [isRemoving, setIsRemoving] = useState(false);
+  const [cardRef, isHovered] = useHover();
+  const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -72,6 +78,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
 
   return (
     <Card
+      ref={cardRef as any}
       className="modal-card-override"
       icon={isTooling ? METADATA_QUERY_ICON : SOBJECT_QUERY_ICON}
       testId={`query-history-${soql}`}
@@ -79,6 +86,9 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
         <Grid wrap>
           <GridCol size={12}>
             <span>{customLabel ?? label}</span>
+            {(isHovered || isEditPopoverOpen) && (
+              <QueryHistoryEditNamePopover item={item} onOpenStateChange={setIsEditPopoverOpen} onSave={(value) => onUpdate(item, value)} />
+            )}
           </GridCol>
           <GridCol className="slds-text-body_small slds-text-color_weak">{sObject}</GridCol>
         </Grid>

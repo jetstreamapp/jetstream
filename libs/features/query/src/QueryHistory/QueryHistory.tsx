@@ -254,9 +254,22 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     try {
       await queryHistoryDb.setAsFavorite(item.key, isFavorite);
     } catch (ex) {
-      logger.warn('[ERROR] Could not updated query history', ex);
+      logger.warn('[ERROR] Could not update query history', ex);
     }
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'modal', isFavorite });
+  }
+
+  async function handleEdit(item: QueryHistoryItem, customLabel: string | null) {
+    try {
+      await queryHistoryDb.updateCustomLabel(item.key, customLabel);
+    } catch (ex) {
+      logger.warn('[ERROR] Could not update query history', ex);
+    }
+    trackEvent(ANALYTICS_KEYS.query_HistoryUpdateLabel, {
+      location: 'modal',
+      hadPriorCustomLabel: !!item.customLabel,
+      isReset: !customLabel,
+    });
   }
 
   function handleSetWhichType(type: fromQueryHistoryState.QueryHistoryType) {
@@ -384,6 +397,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                     isOnSavedQueries={whichType === 'SAVED'}
                     item={item}
                     onExecute={handleExecute}
+                    onUpdate={handleEdit}
                     onSave={handleSaveFavorite}
                     startRestore={handleStartRestore}
                     endRestore={(fatalError, errors) => handleEndRestore(item, fatalError, errors)}

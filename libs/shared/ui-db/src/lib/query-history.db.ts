@@ -9,6 +9,7 @@ export const queryHistoryDb = {
   getOrInitQueryHistoryItem,
   saveQueryHistoryItem,
   setAsFavorite,
+  updateCustomLabel,
   deleteAllQueryHistoryForOrgExceptFavorites,
   TEMP_deleteItem,
 };
@@ -33,17 +34,24 @@ async function getAllQueryHistory(): Promise<QueryHistoryItem[]> {
   return await dexieDb.query_history.toArray();
 }
 
-async function setAsFavorite(key: QueryHistoryItem['key'], isFavorite: boolean, customLabel?: string): Promise<QueryHistoryItem> {
+async function setAsFavorite(
+  key: QueryHistoryItem['key'],
+  isFavorite: boolean,
+  customLabel?: string
+): Promise<QueryHistoryItem | undefined> {
   const updates: Partial<QueryHistoryItem> = { isFavorite };
   // update custom label if provided
   if (customLabel) {
     updates.customLabel = customLabel;
-  } else if (!isFavorite) {
-    updates.customLabel = null;
   }
   await dexieDb.query_history.update(key, updates);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return (await dexieDb.query_history.get(key))!;
+  return await dexieDb.query_history.get(key);
+}
+
+async function updateCustomLabel(key: QueryHistoryItem['key'], customLabel: string | null): Promise<QueryHistoryItem | undefined> {
+  const updates: Partial<QueryHistoryItem> = { customLabel: customLabel || null };
+  await dexieDb.query_history.update(key, updates);
+  return await dexieDb.query_history.get(key);
 }
 
 async function getOrInitQueryHistoryItem(
