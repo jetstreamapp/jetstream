@@ -61,8 +61,8 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         },
       })
         .then(async (response) => {
+          logger.debug(`[API RESPONSE]: ${response.status}`);
           if (enableLogging) {
-            logger.debug(`[API RESPONSE]: ${response.status}`);
             if (response.status !== 204) {
               response
                 .clone()

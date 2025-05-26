@@ -38,7 +38,7 @@ function writeFile(path: string, data: string, encrypt = false) {
     _data = safeStorage.encryptString(data);
   }
   try {
-    writeFileAtomic.sync(path, data);
+    writeFileAtomic.sync(path, _data);
   } catch (error) {
     logger.error(`Error writing file ${path}:`, error);
     writeFileSync(path, Buffer.isBuffer(_data) ? new Uint8Array(_data) : _data);
