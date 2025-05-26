@@ -8,155 +8,111 @@ type MenuItem = Parameters<typeof Menu.buildFromTemplate>[0][0];
 export function initAppMenu() {
   let template: MenuItem[] = [];
 
-  if (isMac()) {
-    template = [
-      // { role: 'appMenu' }
-      {
-        label: app.name,
-        submenu: [
-          { role: 'about' },
-          { type: 'separator' },
-          { role: 'services' },
-          { type: 'separator' },
-          { role: 'hide' },
-          { role: 'hideOthers' },
-          { role: 'unhide' },
-          { type: 'separator' },
-          { role: 'quit' },
-        ],
-      },
-      // { role: 'fileMenu' }
-      {
-        label: 'File',
-        submenu: [
+  template = [
+    // { role: 'appMenu' }
+    ...((isMac()
+      ? [
           {
-            label: '&New Window',
-            accelerator: 'CmdOrCtrl+N',
-            click: () => Browser.create(),
+            label: app.name,
+            submenu: [
+              { role: 'about' },
+              { type: 'separator' },
+              { role: 'services' },
+              { type: 'separator' },
+              { role: 'hide' },
+              { role: 'hideOthers' },
+              { role: 'unhide' },
+              { type: 'separator' },
+              { role: 'quit' },
+            ],
+          } as MenuItem,
+        ]
+      : []) as MenuItem[]),
+    // { role: 'fileMenu' }
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'New Window',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => Browser.create(),
+        },
+        { type: 'separator' },
+        { role: isMac() ? 'close' : 'quit' },
+      ],
+    },
+    // { role: 'editMenu' }
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        ...(isMac()
+          ? [
+              { role: 'pasteAndMatchStyle' },
+              { role: 'delete' },
+              { role: 'selectAll' },
+              { type: 'separator' },
+              {
+                label: 'Speech',
+                submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }],
+              },
+            ]
+          : [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }]),
+      ],
+    },
+    // { role: 'viewMenu' }
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        ...((ENV.ENVIRONMENT === 'development' ? [{ role: 'forceReload' }] : []) as MenuItem[]),
+        ...((ENV.ENVIRONMENT === 'development' ? [{ role: 'toggleDevTools' }] : []) as any),
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    // { role: 'windowMenu' }
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac() ? [{ type: 'separator' }, { role: 'front' }, { type: 'separator' }, { role: 'window' }] : [{ role: 'close' }]),
+      ],
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'Documentation',
+          click: async () => {
+            await shell.openExternal('https://docs.getjetstream.app/');
           },
-          { type: 'separator' },
-          { role: 'close' },
-        ],
-      },
-      // { role: 'editMenu' }
-      {
-        label: 'Edit',
-        submenu: [
-          { role: 'undo' },
-          { role: 'redo' },
-          { type: 'separator' },
-          { role: 'cut' },
-          { role: 'copy' },
-          { role: 'paste' },
-          { role: 'pasteAndMatchStyle' },
-          { role: 'delete' },
-          { role: 'selectAll' },
-          { type: 'separator' },
-          {
-            label: 'Speech',
-            submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }],
+        },
+        {
+          label: 'Report an issue',
+          click: async () => {
+            await shell.openExternal('https://github.com/jetstreamapp/jetstream/issues');
           },
-        ],
-      },
-      // { role: 'viewMenu' }
-      {
-        label: 'View',
-        submenu: [
-          { role: 'reload' },
-          ENV.ENVIRONMENT === 'development' ? { role: 'forceReload' } : {},
-          ENV.ENVIRONMENT === 'development' ? { role: 'toggleDevTools' } : {},
-          { type: 'separator' },
-          { role: 'resetZoom' },
-          { role: 'zoomIn' },
-          { role: 'zoomOut' },
-          { type: 'separator' },
-          { role: 'togglefullscreen' },
-        ],
-      },
-      // { role: 'windowMenu' }
-      // Ideallly we show all the open windows in a list to choose from
-      // {
-      //   label: 'Window',
-      //   submenu: [
-      //     { role: 'minimize' },
-      //     { role: 'zoom' },
-      //   ],
-      // },
-      {
-        role: 'help',
-        submenu: [
-          {
-            label: 'Learn More',
-            click: async () => {
-              await shell.openExternal('https://docs.getjetstream.app/');
-            },
+        },
+        {
+          label: 'Email us',
+          click: async () => {
+            await shell.openExternal('email:support@getjetstream.app');
           },
-        ],
-      },
-    ];
-  } else {
-    template = [
-      // { role: 'fileMenu' }
-      {
-        label: 'File',
-        submenu: [
-          {
-            label: 'New Window',
-            accelerator: 'CmdOrCtrl+N',
-            click: () => Browser.create(),
-          },
-          { type: 'separator' },
-          { role: 'quit' },
-        ],
-      },
-      // { role: 'editMenu' }
-      {
-        label: 'Edit',
-        submenu: [
-          { role: 'undo' },
-          { role: 'redo' },
-          { type: 'separator' },
-          { role: 'cut' },
-          { role: 'copy' },
-          { role: 'paste' },
-          { role: 'delete' },
-          { type: 'separator' },
-          { role: 'selectAll' },
-        ],
-      },
-      // { role: 'viewMenu' }
-      {
-        label: 'View',
-        submenu: [
-          { role: 'reload' },
-          ENV.ENVIRONMENT === 'development' ? { role: 'forceReload' } : {},
-          ENV.ENVIRONMENT === 'development' ? { role: 'toggleDevTools' } : {},
-          { type: 'separator' },
-          { role: 'resetZoom' },
-          { role: 'zoomIn' },
-          { role: 'zoomOut' },
-          { type: 'separator' },
-          { role: 'togglefullscreen' },
-        ],
-      },
-      // { role: 'windowMenu' }
-      {
-        label: 'Window',
-        submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'close' }],
-      },
-      {
-        role: 'help',
-        submenu: [
-          {
-            label: 'Learn More',
-            click: async () => {
-              await shell.openExternal('https://docs.getjetstream.app/');
-            },
-          },
-        ],
-      },
-    ];
-  }
+        },
+      ],
+    },
+  ];
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);

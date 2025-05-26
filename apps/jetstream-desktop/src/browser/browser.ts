@@ -7,8 +7,10 @@ import { initApiConnection } from '../utils/route.utils';
 import { isMac } from '../utils/utils';
 import { getWindowConfig } from './config';
 
-// Optional, initialize the logger for any renderer process
-log.initialize();
+log.transports.file.level = ENV.LOG_LEVEL;
+log.initialize({
+  includeFutureSessions: false,
+});
 
 export class Browser {
   public static get nativeIcon(): Electron.NativeImage {

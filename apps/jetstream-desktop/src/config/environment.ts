@@ -1,10 +1,19 @@
 import type { Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import { app } from 'electron';
-import { resolve } from 'path';
 import { z } from 'zod';
 
-console.log(resolve(__dirname));
+const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error']);
+
+const args = process.argv.slice(1); // Slice off Electron path in dev, or binary path in prod
+for (const arg of args) {
+  if (arg.startsWith('--log-level=')) {
+    const results = logLevelSchema.safeParse(arg.split('=')[1]);
+    if (results.success) {
+      process.env.LOG_LEVEL = results.data;
+    }
+  }
+}
 
 const ENV_INTERNAL_DEV = {
   ENVIRONMENT: 'development',
@@ -38,10 +47,7 @@ function ensureBoolean(value: Maybe<string | boolean>): boolean {
 const booleanSchema = z.union([z.string(), z.boolean()]).optional().transform(ensureBoolean);
 
 const envSchema = z.object({
-  LOG_LEVEL: z
-    .enum(['debug', 'info', 'warn', 'error', 'fatal', 'silent'])
-    .optional()
-    .transform((value) => value ?? 'debug'),
+  LOG_LEVEL: logLevelSchema.optional().transform((value) => value ?? 'info'),
   CI: booleanSchema,
   ENVIRONMENT: z
     .enum(['development', 'production'])

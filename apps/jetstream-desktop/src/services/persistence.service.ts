@@ -20,6 +20,7 @@ import logger from 'electron-log';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { jwtDecode } from 'jwt-decode';
 import { join } from 'path';
+import writeFileAtomic from 'write-file-atomic';
 
 const userData = app.getPath('userData');
 const APP_DATA_FILE = join(userData, 'app-data.json');
@@ -31,29 +32,49 @@ let SALESFORCE_ORGS: SalesforceOrgServer[];
 let JETSTREAM_ORGS: JetstreamOrganizationServer[];
 let USER_PREFERENCES: DesktopUserPreferences;
 
+function writeFile(path: string, data: string, encrypt = false) {
+  let _data: string | Buffer = data;
+  if (encrypt) {
+    _data = safeStorage.encryptString(data);
+  }
+  try {
+    writeFileAtomic.sync(path, data);
+  } catch (error) {
+    logger.error(`Error writing file ${path}:`, error);
+    writeFileSync(path, Buffer.isBuffer(_data) ? new Uint8Array(_data) : _data);
+  }
+}
+
+function readFile(path: string, decrypt = false) {
+  if (decrypt) {
+    return safeStorage.decryptString(readFileSync(path));
+  }
+  return readFileSync(path, 'utf8');
+}
+
 /**
  * ******************************
  * APP DATA
  * ******************************
  */
 
-export function getAppData() {
+export function getAppData(): AppData {
   try {
     if (APP_DATA) {
       return APP_DATA;
     }
     if (!existsSync(APP_DATA_FILE)) {
       const appData = AppDataSchema.parse({});
-      writeFileSync(APP_DATA_FILE, new Uint8Array(safeStorage.encryptString(JSON.stringify(appData))));
+      writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
     }
-    const maybeAppData = AppDataSchema.safeParse(JSON.parse(safeStorage.decryptString(readFileSync(APP_DATA_FILE))));
+    const maybeAppData = AppDataSchema.safeParse(JSON.parse(readFile(APP_DATA_FILE, true)));
     const appData = maybeAppData.success ? maybeAppData.data : AppDataSchema.parse({});
     APP_DATA = appData;
     return appData;
   } catch (ex) {
     logger.error('Error reading app data file', ex);
     const appData = AppDataSchema.parse({});
-    writeFileSync(APP_DATA_FILE, new Uint8Array(safeStorage.encryptString(JSON.stringify(appData))));
+    writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
     return appData;
   }
 }
@@ -62,7 +83,7 @@ export function setAppData(appData: AppData) {
   try {
     appData = AppDataSchema.parse(appData);
     APP_DATA = appData;
-    writeFileSync(APP_DATA_FILE, new Uint8Array(safeStorage.encryptString(JSON.stringify(appData))));
+    writeFile(APP_DATA_FILE, JSON.stringify(appData), true);
   } catch (ex) {
     logger.error('Error reading app data file', ex);
     return false;
@@ -131,10 +152,13 @@ export function getFullUserProfile() {
 
 function readUserPreferences() {
   try {
-    if (!existsSync(USER_PREFERENCES_FILE)) {
-      writeFileSync(USER_PREFERENCES_FILE, JSON.stringify(DesktopUserPreferencesSchema.parse({})));
+    if (USER_PREFERENCES) {
+      return USER_PREFERENCES;
     }
-    const userPreferencesRaw = JSON.parse(readFileSync(USER_PREFERENCES_FILE, 'utf8'));
+    if (!existsSync(USER_PREFERENCES_FILE)) {
+      writeFile(USER_PREFERENCES_FILE, JSON.stringify(DesktopUserPreferencesSchema.parse({})));
+    }
+    const userPreferencesRaw = JSON.parse(readFile(USER_PREFERENCES_FILE));
     const userPreferences = DesktopUserPreferencesSchema.parse(userPreferencesRaw);
     USER_PREFERENCES = userPreferences;
     return userPreferences;
@@ -152,7 +176,7 @@ export function updateUserPreferences(preferences: Partial<DesktopUserPreference
   try {
     const updatedPreferences = DesktopUserPreferencesSchema.parse({ ...getUserPreferences(), ...preferences });
     USER_PREFERENCES = updatedPreferences;
-    writeFileSync(USER_PREFERENCES_FILE, JSON.stringify(updatedPreferences));
+    writeFile(USER_PREFERENCES_FILE, JSON.stringify(updatedPreferences));
   } catch (ex) {
     logger.error('Error saving preferences file', ex);
   }
@@ -167,10 +191,13 @@ export function updateUserPreferences(preferences: Partial<DesktopUserPreference
 
 function readOrgs(): OrgsPersistence {
   try {
-    if (!existsSync(SFDC_ORGS_FILE)) {
-      writeFileSync(SFDC_ORGS_FILE, JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] }));
+    if (JETSTREAM_ORGS && SALESFORCE_ORGS) {
+      return { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
     }
-    const orgsRaw = JSON.parse(readFileSync(SFDC_ORGS_FILE, 'utf8'));
+    if (!existsSync(SFDC_ORGS_FILE)) {
+      writeFile(SFDC_ORGS_FILE, JSON.stringify({ jetstreamOrganizations: [], salesforceOrgs: [] }), true);
+    }
+    const orgsRaw = JSON.parse(readFile(SFDC_ORGS_FILE, true));
     const { jetstreamOrganizations, salesforceOrgs } = OrgsPersistenceSchema.parse(orgsRaw);
     JETSTREAM_ORGS = jetstreamOrganizations;
     SALESFORCE_ORGS = salesforceOrgs;
@@ -184,7 +211,7 @@ function readOrgs(): OrgsPersistence {
 function saveOrgs() {
   try {
     const data = { jetstreamOrganizations: JETSTREAM_ORGS, salesforceOrgs: SALESFORCE_ORGS };
-    writeFileSync(SFDC_ORGS_FILE, JSON.stringify(data));
+    writeFile(SFDC_ORGS_FILE, JSON.stringify(data), true);
   } catch (ex) {
     logger.error('Error saving orgs file', ex);
   }
