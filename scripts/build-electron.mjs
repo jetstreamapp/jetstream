@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import minimist from 'minimist';
 import { join } from 'path';
 import { $, cd, chalk } from 'zx'; // https://github.com/google/zx
@@ -57,6 +57,7 @@ const yarnAddDevDeps = (() => {
     '@electron-forge/plugin-fuses',
     '@electron-forge/publisher-github',
     '@electron/fuses',
+    'dotenv',
     'electron',
     'ts-node',
     'typescript',
@@ -100,6 +101,12 @@ async function build() {
   // Some dependencies are pulled in because we use their types, but we don't actually need them
   await $`yarn remove ${yarnRemoveDeps}`;
   await $`rm -rf node_modules/.prisma`;
+
+  const envContent = ['GITHUB_TOKEN', 'APPLE_ID', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']
+    .filter((key) => process.env[key])
+    .map((key) => `${key}=${process.env[key] ?? ''}`)
+    .join('\n');
+  writeFileSync('.env', envContent);
 }
 
 async function main() {

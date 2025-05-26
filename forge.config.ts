@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerPKG } from '@electron-forge/maker-pkg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
@@ -10,7 +12,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import path from 'node:path';
 
 const isDarwin = process.platform == 'darwin';
-const isMas = isDarwin && process.argv.includes('mas');
+const isMas = isDarwin && process.argv.some((value) => value.includes('--platform=mas'));
 
 const packagerConfig: ForgePackagerOptions = {
   asar: true,
@@ -19,6 +21,7 @@ const packagerConfig: ForgePackagerOptions = {
   appCategoryType: 'public.app-category.business',
   appCopyright: `Copyright © ${new Date().getFullYear()} Jetstream Solutions`,
   icon: path.resolve('assets/icons/icon'),
+  ignore: ['.env'],
   protocols: [
     {
       name: 'Jetstream Protocol',
@@ -57,8 +60,16 @@ if (isDarwin) {
     process.env.PROVISIONING_PROFILE_PATH_MAS || '../../build-resources/Jetstream_Mac_App_Store_Profile.provisionprofile'
   );
 
-  if (!APPLE_ID || !APPLE_PASSWORD || !APPLE_TEAM_ID) {
-    console.error('Missing Apple ID, password, or team ID. Please set them in your environment variables.');
+  if (!APPLE_ID) {
+    console.error('Missing APPLE_ID environment variable.');
+    process.exit(1);
+  }
+  if (!APPLE_PASSWORD) {
+    console.error('Missing APPLE_PASSWORD environment variable.');
+    process.exit(1);
+  }
+  if (!APPLE_TEAM_ID) {
+    console.error('Missing APPLE_TEAM_ID.');
     process.exit(1);
   }
 
@@ -67,13 +78,11 @@ if (isDarwin) {
     // DEVELOPMENT BUILD
     packagerConfig.osxSign = {
       identity: `Apple Development`,
-      preEmbedProvisioningProfile: false,
       provisioningProfile: path.resolve('../../build-resources/JetstreamAppDevelopmentProfile.provisionprofile'),
     };
     // packagerConfig.osxSign = {
     // FIXME: this needs to be "Apple Distribution"
     //   identity: `Apple Distribution: JETSTREAM SOLUTIONS, LLC (${APPLE_TEAM_ID})`,
-    //   preEmbedProvisioningProfile: false,
     //   provisioningProfile: PROVISIONING_PROFILE_PATH_MAS,
     // };
     packagerConfig.osxNotarize = {
@@ -84,7 +93,6 @@ if (isDarwin) {
   } else {
     packagerConfig.osxSign = {
       identity: `Developer ID Application: JETSTREAM SOLUTIONS, LLC (${APPLE_TEAM_ID})`,
-      preEmbedProvisioningProfile: false,
       provisioningProfile: PROVISIONING_PROFILE_PATH_DARWIN,
     };
     packagerConfig.osxNotarize = {
