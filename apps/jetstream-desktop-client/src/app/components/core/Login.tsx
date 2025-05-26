@@ -7,13 +7,16 @@ import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
 
+// 12 hours in milliseconds
+const CHECK_AUTH_TIMER_INTERVAL = 12 * 60 * 60 * 1000;
+
 interface LoginProps {
   children: (props: { onLogout: () => void; authInfo: DesktopAuthInfo }) => React.ReactNode;
 }
 
 export function Login({ children }: LoginProps) {
   const [loading, setLoading] = useState(true);
-  // TODO: show loading indicator or message?
+  // TODO: show loading indicator while logging in via browser
   const [loggingIn, setLoggingIn] = useState(false);
   const [authInfo, setAuthInfo] = useState<DesktopAuthInfo>();
   const [userProfile, setUserProfile] = useRecoilState(fromAppState.userProfileState);
@@ -53,21 +56,48 @@ export function Login({ children }: LoginProps) {
         }
       })
       .finally(() => setLoading(false));
+
+    // Check auth every 12 hours
+    const interval = setInterval(() => {
+      window.electronAPI?.checkAuth().then((response) => {
+        if (response) {
+          const { authInfo, userProfile } = response;
+          setAuthInfo(authInfo);
+          setUserProfile(userProfile);
+        } else {
+          setAuthInfo(undefined);
+          setUserProfile(DEFAULT_PROFILE);
+        }
+      });
+    }, CHECK_AUTH_TIMER_INTERVAL);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, [authenticationEventHandler, setUserProfile]);
-
-  if (authInfo && userProfile?.id && userProfile.id !== DEFAULT_PROFILE.id) {
-    return children({ onLogout: handleLogout, authInfo });
-  }
-
-  if (loading) {
-    return <AppLoading />;
-  }
 
   function handleLogin() {
     setLoggingIn(true);
     window.electronAPI?.login();
   }
 
+  /**
+   * Logged in children renderer
+   */
+  if (authInfo && userProfile?.id && userProfile.id !== DEFAULT_PROFILE.id) {
+    return children({ onLogout: handleLogout, authInfo });
+  }
+
+  /**
+   * Loading
+   */
+  if (loading) {
+    return <AppLoading />;
+  }
+
+  /**
+   * Not logged in
+   */
   return (
     <div
       css={css`
