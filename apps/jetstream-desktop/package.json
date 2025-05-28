@@ -8,7 +8,11 @@
   },
   "author": "Jetstream",
   "license": "SEE LICENSE IN LICENSE.md",
-  "scripts": {},
+  "scripts": {
+    "build:macos:dmg": "DEBUG=electron-forge:* electron-forge make --arch=x64 --platform=darwin --overwrite && electron-forge make --arch=arm64 --platform=darwin --overwrite",
+    "build:macos:mas": "DEBUG=electron-forge:* electron-forge make --arch=universal --platform=mas",
+    "build:windows": "TODO"
+  },
   "devDependencies": {},
   "dependencies": {}
 }

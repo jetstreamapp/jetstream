@@ -1,4 +1,4 @@
-import { ElectronAPI } from '@jetstream/desktop/types';
+import type { ElectronAPI } from '@jetstream/desktop/types';
 import { contextBridge, ipcRenderer } from 'electron';
 
 const API: ElectronAPI = {

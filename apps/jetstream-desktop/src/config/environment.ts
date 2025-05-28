@@ -47,7 +47,12 @@ function ensureBoolean(value: Maybe<string | boolean>): boolean {
 const booleanSchema = z.union([z.string(), z.boolean()]).optional().transform(ensureBoolean);
 
 const envSchema = z.object({
-  LOG_LEVEL: logLevelSchema.optional().transform((value) => value ?? 'info'),
+  LOG_LEVEL: logLevelSchema.optional().transform((value) => {
+    if (value) {
+      return value;
+    }
+    return environment.ENVIRONMENT === 'development' ? 'debug' : 'info';
+  }),
   CI: booleanSchema,
   ENVIRONMENT: z
     .enum(['development', 'production'])
@@ -61,7 +66,10 @@ const envSchema = z.object({
   DESKTOP_SFDC_CALLBACK_URL: z.string().url(),
 });
 
-const parseResults = envSchema.safeParse(environment);
+const parseResults = envSchema.safeParse({
+  ...environment,
+  LOG_LEVEL: process.env.LOG_LEVEL,
+});
 
 if (!parseResults.success) {
   console.error(`❌ ${chalk.red('Error parsing environment variables:')}
