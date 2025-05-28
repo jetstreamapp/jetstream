@@ -361,7 +361,9 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
     // Configure file download content
     if (results.parsedQuery?.sObject && FILE_DOWNLOAD_FIELD_MAP.has(results.parsedQuery.sObject.toLowerCase())) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(results.parsedQuery.sObject.toLowerCase())!;
+      const { bodyField, nameField, extensionField, titleField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(
+        results.parsedQuery.sObject.toLowerCase()
+      )!;
       const missingFields: string[] = [];
       const fields = new Set(
         results.parsedQuery.fields?.map((field) => field.type === 'Field' && field.field.toLowerCase()).filter(Boolean) || []
@@ -369,8 +371,22 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       if (!fields.has(bodyField.toLowerCase())) {
         missingFields.push(bodyField);
       }
+      const hasTitleField = titleField && fields.has(titleField.toLowerCase());
+      const hasExtensionField = extensionField && fields.has(extensionField.toLowerCase());
+
       if (!fields.has(nameField.toLowerCase())) {
-        missingFields.push(nameField);
+        if (!hasTitleField && !hasExtensionField) {
+          missingFields.push(nameField);
+        }
+        // titleField is optional and will be used if available. But since name field is missing we flag this as missing as well
+        if (titleField && !hasTitleField) {
+          missingFields.push(titleField);
+        }
+        // Extension is only required if nameField is not available, otherwise we can get the extension from the nameField
+        if (titleField && hasTitleField && extensionField && !hasExtensionField) {
+          missingFields.push(nameField);
+          missingFields.push(extensionField);
+        }
       }
       if (!fields.has(sizeField.toLowerCase())) {
         missingFields.push(sizeField);
