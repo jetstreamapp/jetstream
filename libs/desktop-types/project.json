@@ -1,0 +1,13 @@
+{
+  "name": "desktop-types",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/desktop-types/src",
+  "projectType": "library",
+  "tags": ["scope:type-only"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    }
+  }
+}

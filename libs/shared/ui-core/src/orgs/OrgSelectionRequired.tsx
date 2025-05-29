@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
-import { JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
@@ -12,10 +12,15 @@ import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
 import { OrganizationSelector } from './OrganizationSelector';
 
 export interface OrgSelectionRequiredProps {
+  /**
+   * If provided, this will be used instead of the default addOrg function.
+   * This is used in the desktop app to open the browser for the login process.
+   */
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
   children?: React.ReactNode;
 }
 
-export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ children }) => {
+export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ onAddOrgHandlerFn, children }) => {
   const [allOrgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
   const selectedOrg = useRecoilValue<SalesforceOrgUi | undefined>(fromAppState.selectedOrgStateWithoutPlaceholder);
   const hasConfiguredOrg = useRecoilValue<boolean>(fromAppState.hasConfiguredOrgState);
@@ -39,7 +44,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       setLoadingRetry(true);
       await checkOrgHealth(selectedOrg);
       setOrgs(await getOrgs());
-      fireToast({ type: 'success', message: 'Your org is now valid.' });
+      fireToast({ type: 'success', message: 'Your org is now valid! 🎉' });
     } catch (ex) {
       fireToast({ type: 'error', message: 'Unable to connect to your org, reconnect to Salesforce to keep using this org.' });
       logger.log('Unable to connect to this org.', ex);
@@ -94,7 +99,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Retry Connection
               </button>
-              <AddOrg className="slds-button_brand" label="Reconnect Org" onAddOrg={handleAddOrg} />
+              <AddOrg className="slds-button_brand" label="Reconnect Org" onAddOrg={handleAddOrg} onAddOrgHandlerFn={onAddOrgHandlerFn} />
             </EmptyState>
           </div>
         </div>
@@ -136,7 +141,12 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
                   `}
                   title="Add a new Salesforce Org"
                 >
-                  <AddOrg className="slds-button slds-button_neutral" label="Add Salesforce Org" onAddOrg={handleAddOrg} />
+                  <AddOrg
+                    className="slds-button slds-button_neutral"
+                    label="Add Salesforce Org"
+                    onAddOrg={handleAddOrg}
+                    onAddOrgHandlerFn={onAddOrgHandlerFn}
+                  />
                 </Card>
               </Grid>
             </>

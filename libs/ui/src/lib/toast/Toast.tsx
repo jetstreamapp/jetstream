@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
+import { css } from '@emotion/react';
 import { InfoSuccessWarningError } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent, ReactNode } from 'react';
@@ -50,11 +51,21 @@ export const Toast: FunctionComponent<ToastProps> = ({
       <div className={classNames('slds-notify slds-notify_toast', getCssClass(type))} role="status">
         <span className="slds-assistive-text">{type || 'info'}</span>
         {showIcon && getIcon(type)}
-        <div className="slds-notify__content">
+        <div
+          css={css`
+            app-region: no-drag;
+          `}
+          className="slds-notify__content"
+        >
           <h2 className={headingClassName}>{children}</h2>
         </div>
         {onClose && (
-          <div className="slds-notify__close">
+          <div
+            css={css`
+              app-region: no-drag;
+            `}
+            className="slds-notify__close"
+          >
             <button className="slds-button slds-button_icon slds-button_icon-inverse" title="Close" onClick={onClose}>
               <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
               <span className="slds-assistive-text">Close</span>

@@ -34,7 +34,6 @@ export const AppToast: FunctionComponent = () => {
       setNextId(nextId + 1);
       autoDismissMessage(nextId, newMessage.duration ?? DEFAULT_DURATION);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newMessage]);
 
   function autoDismissMessage(id: number, duration: number) {

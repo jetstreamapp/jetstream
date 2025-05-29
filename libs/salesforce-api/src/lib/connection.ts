@@ -29,6 +29,7 @@ export class ApiConnection {
   sessionInfo: SessionInfo;
   apiRequest: ReturnType<ReturnType<typeof getApiRequestFactoryFn>>;
   refreshCallback: ((accessToken: string, refreshToken: string) => void) | undefined;
+  onConnectionError: ((error: string) => void) | undefined;
 
   org: ApiOrg;
   apex: ApiApex;
@@ -54,11 +55,13 @@ export class ApiConnection {
       sfdcClientSecret,
       logger = console,
     }: ApiConnectionOptions,
-    refreshCallback?: (accessToken: string, refreshToken: string) => void
+    refreshCallback?: (accessToken: string, refreshToken: string) => void,
+    onConnectionError?: (error: string) => void
   ) {
     this.logger = logger;
-    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), logging, logger);
+    this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), this.handleConnectionError.bind(this), logging, logger);
     this.refreshCallback = refreshCallback;
+    this.onConnectionError = onConnectionError;
     this.sessionInfo = {
       userId,
       organizationId,
@@ -118,6 +121,11 @@ export class ApiConnection {
 
   public handleRefresh(accessToken: string) {
     this.sessionInfo.accessToken = accessToken;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.refreshCallback?.(accessToken, this.sessionInfo.refreshToken!);
+  }
+
+  public handleConnectionError(error: string) {
+    this.onConnectionError?.(error);
   }
 }

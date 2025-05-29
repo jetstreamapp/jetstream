@@ -31,7 +31,12 @@ export class ApiRequestError extends Error {
  * Requires a fetch compatible function to avoid relying any specific fetch implementation
  */
 export function getApiRequestFactoryFn(fetch: FetchFn) {
-  return (onRefresh?: (accessToken: string) => void, enableLogging?: boolean, logger: Logger = console) => {
+  return (
+    onRefresh?: (accessToken: string) => void,
+    onConnectionError?: (accessToken: string) => void,
+    enableLogging?: boolean,
+    logger: Logger = console
+  ) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
       let { url, body, outputType } = options;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
@@ -42,7 +47,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         body = JSON.stringify(body);
       }
 
-      logger.trace(`[API REQUEST]: ${method} ${url}`);
+      logger.debug(`[API REQUEST]: ${method} ${url}`);
 
       return fetch(url, {
         method,
@@ -56,13 +61,13 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
         },
       })
         .then(async (response) => {
+          logger.debug(`[API RESPONSE]: ${response.status}`);
           if (enableLogging) {
-            logger.trace(`[API RESPONSE]: ${response.status}`);
             if (response.status !== 204) {
               response
                 .clone()
                 .text()
-                .then((responseBody) => logger.trace({ responseBody }))
+                .then((responseBody) => logger.debug({ responseBody }))
                 // eslint-disable-next-line @typescript-eslint/no-empty-function
                 .catch(() => {});
             }
@@ -95,7 +100,6 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
               (response.status === 403 && responseText === BAS_ACCESS_TOKEN_403) ||
               (response.status === 500 && SOAP_API_AUTH_ERROR_REGEX.test(responseText))) &&
             sessionInfo.sfdcClientId &&
-            sessionInfo.sfdcClientSecret &&
             sessionInfo.refreshToken
           ) {
             try {
@@ -112,6 +116,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             } catch (ex) {
               logger.warn('Unable to refresh accessToken');
               responseText = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
+              onConnectionError?.(ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
             }
           } else if (response.status === 420 && response.headers.get(HTTP.HEADERS.CONTENT_TYPE) === 'text/html') {
             responseText = 'An unexpected response was received from Salesforce. Please try again.';
@@ -166,17 +171,21 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
 }
 
 function exchangeRefreshToken(fetch: FetchFn, sessionInfo: ApiRequestOptions['sessionInfo']): Promise<{ access_token: string }> {
+  const searchParams = new URLSearchParams({
+    grant_type: 'refresh_token',
+  });
+  if (sessionInfo.sfdcClientId) {
+    searchParams.set('client_id', sessionInfo.sfdcClientId);
+  }
+  if (sessionInfo.sfdcClientSecret) {
+    searchParams.set('client_secret', sessionInfo.sfdcClientSecret);
+  }
+  if (sessionInfo.refreshToken) {
+    searchParams.set('refresh_token', sessionInfo.refreshToken);
+  }
   return fetch(`${sessionInfo.instanceUrl}/services/oauth2/token`, {
     method: 'POST',
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      client_id: sessionInfo.sfdcClientId!,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      client_secret: sessionInfo.sfdcClientSecret!,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      refresh_token: sessionInfo.refreshToken!,
-    }).toString(),
+    body: searchParams.toString(),
     headers: {
       [HTTP.HEADERS.CONTENT_TYPE]: HTTP.CONTENT_TYPE.FORM_URL,
       [HTTP.HEADERS.ACCEPT]: HTTP.CONTENT_TYPE.JSON,

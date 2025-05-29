@@ -237,9 +237,9 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
     const { org, useCache, useQueryParamsInCacheKey, useBodyInCacheKey } = options;
     const cachedResponse = getHeader(response.headers, HTTP.HEADERS.X_CACHE_RESPONSE) === '1';
     if (cachedResponse) {
-      logger.debug(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
+      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][CACHE]`, response.config.url, { response: response.data });
     } else {
-      logger.debug(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
+      logger.info(`[HTTP][RES][${response.config.method?.toUpperCase()}][${response.status}]`, response.config.url, {
         clientRequestId: response.headers['x-client-request-id'],
         requestId: response.headers['x-request-id'],
         response: response.data,
@@ -269,7 +269,7 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
 /**
  * Handle error responses
  */
-function responseErrorInterceptor<T>(options: {
+function responseErrorInterceptor(options: {
   org?: SalesforceOrgUi;
   useCache?: boolean;
   useQueryParamsInCacheKey?: boolean;
@@ -293,10 +293,9 @@ function responseErrorInterceptor<T>(options: {
       // take user to login page
       if (getHeader(response.headers, HTTP.HEADERS.X_LOGOUT) === '1') {
         // LOG USER OUT
+        console.log('logout', getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL));
         const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
-        // stupid unit tests - location.href is readonly TS compilation failure
-        // eslint-disable-next-line no-restricted-globals
-        (location as any).href = logoutUrl;
+        // (location as any).href = logoutUrl;
       }
     }
     throw new Error(message);
