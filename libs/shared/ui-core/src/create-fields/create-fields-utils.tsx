@@ -35,7 +35,7 @@ const READ_ONLY_TYPES = new Set<SalesforceFieldType>(['AutoNumber', 'Formula']);
 const NUMBER_TYPES = new Set<SalesforceFieldType>(['Number', 'Currency', 'Percent']);
 const MAX_OBJ_IN_QUERY = 100;
 
-function isValidNumericString(value: string) {
+function isValidNumericString(value: unknown): boolean {
   if (typeof value === 'number') {
     return isFinite(value);
   }
