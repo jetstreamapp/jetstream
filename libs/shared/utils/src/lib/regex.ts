@@ -29,4 +29,5 @@ export const REGEX = {
   CONSECUTIVE_UNDERSCORES: /_+/g,
   STARTS_WITH_NUMBER: /^[0-9]/,
   SFDC_ID: /^([0-9a-zA-Z]{16}|[0-9a-zA-Z]{18})$/,
+  FILE_EXTENSION: /\.[a-z0-9]+$/i,
 };

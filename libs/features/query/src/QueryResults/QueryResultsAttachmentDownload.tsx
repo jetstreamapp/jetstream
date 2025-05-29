@@ -10,7 +10,7 @@ import {
   isBrowserExtension,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj, REGEX, splitFilenameByExtension } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Icon, Modal, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -27,6 +27,11 @@ export interface QueryResultsAttachmentDownloadProps {
 
 interface EnabledObjectFiledMapping {
   bodyField: string;
+  /**
+   * titleField is optional and will be used if available, otherwise fallback to nameField
+   */
+  titleField?: string;
+  extensionField?: string;
   nameField: string;
   sizeField: string;
 }
@@ -34,23 +39,64 @@ interface EnabledObjectFiledMapping {
 export const FILE_DOWNLOAD_FIELD_MAP = new Map<string, EnabledObjectFiledMapping>();
 FILE_DOWNLOAD_FIELD_MAP.set('attachment', { bodyField: 'Body', nameField: 'Name', sizeField: 'BodyLength' });
 FILE_DOWNLOAD_FIELD_MAP.set('document', { bodyField: 'Body', nameField: 'Name', sizeField: 'BodyLength' });
-FILE_DOWNLOAD_FIELD_MAP.set('contentversion', { bodyField: 'VersionData', nameField: 'PathOnClient', sizeField: 'ContentSize' });
+FILE_DOWNLOAD_FIELD_MAP.set('contentversion', {
+  bodyField: 'VersionData',
+  titleField: 'Title',
+  extensionField: 'FileExtension',
+  nameField: 'PathOnClient',
+  sizeField: 'ContentSize',
+});
 
 const ROOT_FILENAME = '/api/file/stream-download';
 
-// TODO: duplicate files will overwrite eachother (e.x. contentversion)
 function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: SalesforceRecord): DownZipFile {
   sobjectName = sobjectName.toLowerCase();
   if (FILE_DOWNLOAD_FIELD_MAP.has(sobjectName)) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const { bodyField, nameField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(sobjectName)!;
+    const { bodyField, nameField, extensionField, titleField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(sobjectName)!;
+    let recordName = record[nameField];
+    if (titleField && record[titleField]) {
+      if (extensionField && record[extensionField]) {
+        recordName = `${record[titleField]}.${record[extensionField]}`;
+      } else {
+        // extract extension from nameField if it exists - which it should
+        const extension = splitFilenameByExtension(record[nameField])[1];
+        if (extension) {
+          recordName = `${record[titleField] || ''}${extension}`;
+        }
+      }
+    }
+
+    const [fileName, extension] = splitFilenameByExtension(recordName);
+    recordName = `${fileName.replaceAll(REGEX.SAFE_FILENAME, '-')}${extension || ''}`;
+
     return {
       downloadUrl: `${ROOT_FILENAME}?${getOrgUrlParams(selectedOrg, { url: record[bodyField] })}`,
-      name: record[nameField],
+      name: recordName,
       size: record[sizeField],
     };
   }
   throw new Error(`Object type ${sobjectName} does not support file download.`);
+}
+
+function getFileNamesWithoutDuplicates(org: SalesforceOrgUi, sobjectName: string, records: SalesforceRecord[]): DownZipFile[] {
+  return Object.values(
+    records.reduce((acc, record) => {
+      const file = getFile(org, sobjectName, record);
+      let fileName = file.name;
+      const [fileNameWithoutExt, fileExtension] = splitFilenameByExtension(file.name);
+      if (acc[file.name]) {
+        let counter = 1;
+        while (acc[`${fileNameWithoutExt} (${counter})${fileExtension}`]) {
+          counter++;
+        }
+        fileName = `${fileNameWithoutExt} (${counter})${fileExtension}`;
+        file.name = fileName;
+      }
+      acc[fileName] = file;
+      return acc;
+    }, {} as Record<string, DownZipFile>)
+  );
 }
 
 export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttachmentDownloadProps> = ({
@@ -83,7 +129,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setDisabledReason('');
     } else if (selectedRecords.length) {
       setDisabled(true);
-      setDisabledReason(`Your query must to the following fields to download attachments: ${missingFields.join(', ')}`);
+      setDisabledReason(`Your query must include the following fields to download attachments: ${missingFields.join(', ')}`);
     } else {
       setDisabled(true);
       setDisabledReason('Select one or more records');
@@ -107,8 +153,8 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
       setDisabledReason('');
       setErrorMessage(null);
       setModalOpen(true);
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const files = selectedRecords.map((record) => getFile(selectedOrg, sobjectName!, record));
+
+      const files = getFileNamesWithoutDuplicates(selectedOrg, sobjectName, selectedRecords);
       const url = await getZipDownloadUrl(getFilename(selectedOrg, [sobjectName, 'files']), files);
       setDownloadAttachmentUrl(url);
     } catch (ex) {
