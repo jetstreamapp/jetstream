@@ -30,7 +30,6 @@ import {
   DescribeSObjectResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
-  InputReadFileContent,
   JetstreamOrganization,
   ListMetadataQuery,
   ListMetadataResult,
@@ -96,13 +95,6 @@ export async function checkHeartbeat(): Promise<{ version: string; announcements
     logger.warn('Unable to parse announcements');
   }
   return heartbeat;
-}
-
-export async function emailSupport(emailBody: string, attachments: InputReadFileContent[]): Promise<void> {
-  const form = new FormData();
-  form.append('emailBody', emailBody);
-  attachments.forEach((attachment) => form.append('files', new Blob([attachment.content]), attachment.filename));
-  return handleRequest({ method: 'POST', url: '/api/support/email', data: form }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getUserProfile(): Promise<UserProfileUi> {

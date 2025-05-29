@@ -1071,3 +1071,12 @@ export function getNameOrNameAndLabelFromObj<T>(record: T, nameField: keyof T, l
 export function getNameOrNameAndLabel(name: string, label: string): string {
   return !label || name === label ? name : `${label} (${name})`;
 }
+
+export function splitFilenameByExtension(filename: string): [string, string] {
+  const match = filename.match(REGEX.FILE_EXTENSION);
+  if (match) {
+    const ext = match[0];
+    return [filename.slice(0, -ext.length), ext];
+  }
+  return [filename, ''];
+}
