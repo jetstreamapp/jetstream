@@ -295,7 +295,7 @@ function responseErrorInterceptor(options: {
         // LOG USER OUT
         console.log('logout', getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL));
         const logoutUrl = getHeader(response.headers, HTTP.HEADERS.X_LOGOUT_URL) || '/auth/login';
-        // (location as any).href = logoutUrl;
+        (location as any).href = logoutUrl;
       }
     }
     throw new Error(message);
