@@ -117,7 +117,12 @@ const config: ForgeConfig = {
       ['darwin']
     ),
     new MakerPKG({}),
-    new MakerSquirrel({}, ['win32']),
+    new MakerSquirrel(
+      {
+        loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
+      },
+      ['win32']
+    ),
     // I doubt there are many, if any, linux users
     // new MakerDeb({
     //   options: {
