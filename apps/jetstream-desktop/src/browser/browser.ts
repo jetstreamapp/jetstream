@@ -67,26 +67,12 @@ export class Browser {
     });
 
     this.createDock();
-    // TODO: use this to change styles when app is not focused (eg. dim elements)
-    // https://dev.to/vadimdemedes/making-electron-apps-feel-native-on-mac-52e8
-    // browserWindow.on('focus', () => {
-    //   browserWindow.webContents.send('focus');
-    // });
-
-    // browserWindow.on('blur', () => {
-    //   browserWindow.webContents.send('blur');
-    // });
-    //   ipcRenderer.on('focus', () => {
-    //     // Change UI state to focused
-    // });
-
-    // ipcRenderer.on('blur', () => {
-    //     // Change UI state to unfocused
-    // });
 
     browserWindow.once('ready-to-show', () => {
       browserWindow.show();
-      browserWindow.webContents.openDevTools();
+      if (ENV.ENVIRONMENT === 'development') {
+        browserWindow.webContents.openDevTools();
+      }
     });
 
     return browserWindow;
@@ -94,20 +80,6 @@ export class Browser {
 
   private createDock(): void {
     if (isMac() && app.dock) {
-      // const dockMenu = Menu.buildFromTemplate([
-      //   {
-      //     label: 'New Window',
-      //     click() {
-      //       // TODO: create a new window
-      //       // const newWindow = new Browser();
-      //       // newWindow.createBrowserWindow();
-      //       // newWindow.browserWindow.show();
-      //       // newWindow.browserWindow.focus();
-      //       console.log('New Window');
-      //     },
-      //   },
-      // ]);
-      // app.dock.setMenu(dockMenu);
       app.dock.setIcon(Browser.nativeIcon);
     }
   }

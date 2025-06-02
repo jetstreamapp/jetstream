@@ -1,6 +1,5 @@
 import { app, Menu, shell } from 'electron';
 import { Browser } from '../browser/browser';
-import { ENV } from '../config/environment';
 import { isMac } from '../utils/utils';
 
 type MenuItem = Parameters<typeof Menu.buildFromTemplate>[0][0];
@@ -27,7 +26,7 @@ export function initAppMenu() {
             ],
           } as MenuItem,
         ]
-      : []) as MenuItem[]),
+      : []) as any[]),
     // { role: 'fileMenu' }
     {
       label: 'File',
@@ -70,8 +69,8 @@ export function initAppMenu() {
       label: 'View',
       submenu: [
         { role: 'reload' },
-        ...((ENV.ENVIRONMENT === 'development' ? [{ role: 'forceReload' }] : []) as MenuItem[]),
-        ...((ENV.ENVIRONMENT === 'development' ? [{ role: 'toggleDevTools' }] : []) as any),
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },

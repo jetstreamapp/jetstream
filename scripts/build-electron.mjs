@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { readFileSync, writeFileSync } from 'fs';
+import { copy, ensureDir, remove } from 'fs-extra';
 import minimist from 'minimist';
 import { join } from 'path';
 import { $, cd, chalk } from 'zx'; // https://github.com/google/zx
@@ -79,17 +80,17 @@ async function build() {
   await $`yarn build:desktop:all`;
 
   // Prepare combined output target directory
-  await $`rm -rf ${TARGET_DIR}`;
-  await $`mkdir -p ${TARGET_DIR}`;
-  await $`mkdir -p ${TARGET_CLIENT_DIR}`;
+  await remove(TARGET_DIR);
+  await ensureDir(TARGET_DIR);
+  await ensureDir(TARGET_CLIENT_DIR);
 
   // Copy artifacts to the target directory
-  await $`cp -r ${MAIN_BUILD_DIR}/* ${TARGET_DIR}`;
-  await $`cp -r ${RENDERER_BUILD_DIR}/* ${TARGET_CLIENT_DIR}`;
-  await $`cp -r ${DOWNZIP_SW_BUILD_DIR}/* ${TARGET_DIR}`;
+  await copy(MAIN_BUILD_DIR, TARGET_DIR);
+  await copy(RENDERER_BUILD_DIR, TARGET_CLIENT_DIR);
+  await copy(DOWNZIP_SW_BUILD_DIR, TARGET_DIR);
 
-  await $`cp forge.config.ts ${TARGET_DIR}`;
-  await $`cp LICENSE.md ${TARGET_DIR}`;
+  await copy('forge.config.ts', join(TARGET_DIR, 'forge.config.ts'));
+  await copy('LICENSE.md', join(TARGET_DIR, 'LICENSE.md'));
 
   cd(TARGET_DIR);
 
@@ -100,7 +101,7 @@ async function build() {
   // Remove extra dependencies
   // Some dependencies are pulled in because we use their types, but we don't actually need them
   await $`yarn remove ${yarnRemoveDeps}`;
-  await $`rm -rf node_modules/.prisma`;
+  await remove(join(TARGET_DIR, 'node_modules/.prisma'));
 
   const envContent = ['GITHUB_TOKEN', 'APPLE_ID', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']
     .filter((key) => process.env[key])

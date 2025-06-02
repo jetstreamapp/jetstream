@@ -9,12 +9,13 @@ import {
   registerProtocols,
   registerWebRequestHandlers,
 } from './services/protocol.service';
+import { isMac } from './utils/utils';
 
 initDeepLink();
 initAppMenu();
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (!isMac()) {
     app.quit();
   }
 });

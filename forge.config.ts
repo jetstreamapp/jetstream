@@ -1,7 +1,6 @@
 import 'dotenv/config';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
-import { MakerPKG } from '@electron-forge/maker-pkg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
@@ -116,7 +115,6 @@ const config: ForgeConfig = {
       },
       ['darwin']
     ),
-    new MakerPKG({}),
     new MakerSquirrel(
       {
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
