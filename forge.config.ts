@@ -117,6 +117,15 @@ const config: ForgeConfig = {
     ),
     new MakerSquirrel(
       {
+        authors: 'Jetstream Solutions, LLC',
+        name: 'Jetstream',
+        description:
+          'The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.',
+        // iconUrl: 'https://getjetstream.app/assets/icons/icon_256x256.png',
+        windowsSign: {
+          // TODO
+        },
+        setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
       },
       ['win32']
