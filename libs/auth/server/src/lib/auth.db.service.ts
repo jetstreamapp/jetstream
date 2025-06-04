@@ -438,41 +438,41 @@ export async function setPasswordForUser(id: string, password: string) {
 
 export const generatePasswordResetToken = async (email: string) => {
   email = email.toLowerCase();
-  // NOTE: There could be duplicate users with the same email, but only one with a password set
-  // These users were migrated from Auth0, but we do not support this as a standard path
-  const user = await prisma.user.findMany({
-    where: { email, password: { not: null } },
-    take: 2,
-  });
-
-  if (!user.length) {
-    throw new InvalidAction('User does not exist or there is no password set');
-  }
-
-  if (user.length > 1) {
-    throw new InvalidAction('Multiple users with the same email address and a password set');
-  }
-
-  // if there is an existing token, delete it
-  const existingToken = await prisma.passwordResetToken.findFirst({
+  const users = await prisma.user.findMany({
     where: { email },
+    select: { id: true, password: true },
   });
 
-  if (existingToken) {
-    await prisma.passwordResetToken.delete({
-      where: { email_token: { email, token: existingToken.token } },
-    });
+  if (users.length === 0) {
+    throw new InvalidAction('User does not exist');
   }
 
-  const passwordResetToken = await prisma.passwordResetToken.create({
-    data: {
-      userId: user[0].id,
-      email,
-      expiresAt: addMinutes(new Date(), PASSWORD_RESET_DURATION_MINUTES),
-    },
-  });
+  const usersWithPasswordSet = users.filter((user) => user.password !== null);
 
-  return passwordResetToken;
+  if (users.length === 1 || usersWithPasswordSet.length === 1) {
+    const targetUser = usersWithPasswordSet.length === 1 ? usersWithPasswordSet[0] : users[0];
+
+    // Delete existing token if present
+    await prisma.passwordResetToken.deleteMany({
+      where: { email },
+    });
+
+    const passwordResetToken = await prisma.passwordResetToken.create({
+      data: {
+        userId: targetUser.id,
+        email,
+        expiresAt: addMinutes(new Date(), PASSWORD_RESET_DURATION_MINUTES),
+      },
+    });
+
+    return passwordResetToken;
+  }
+
+  if (usersWithPasswordSet.length === 0) {
+    throw new InvalidAction('No users with a password set for this email');
+  }
+
+  throw new InvalidAction('Multiple users with the same email address and a password set');
 };
 
 export const resetUserPassword = async (email: string, token: string, password: string) => {
@@ -654,7 +654,7 @@ async function createUserFromProvider(providerUser: ProviderUser, provider: Oaut
       email,
       // TODO: do we really get any benefit from storing this userId like this?
       // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
-      // TODO: this is nice as we can identify which identity is primary without joining the identity table - but could solve in other ways
+      // TODO: this is nice as we can identify which identity is primary without joining the identity table - could solve in other ways
       userId: `${provider}|${providerUser.id}`,
       name: providerUser.name,
       emailVerified: providerUser.emailVerified,
