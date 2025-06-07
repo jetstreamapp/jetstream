@@ -1,4 +1,4 @@
-@import '~@salesforce-ux/design-system/scss/_design-tokens';
+@use '@salesforce-ux/design-system/design-tokens/dist/ui-force.default' as slds;
 
 html {
   background: var(--lwc-brandBackgroundPrimary, rgba(176, 196, 223, 1));
@@ -54,65 +54,65 @@ pre {
 }
 
 .bg-color-gray {
-  background-color: $color-background;
+  background-color: slds.$color-background;
 }
 
 .bg-color-gray-light {
-  background-color: $color-gray-3;
+  background-color: slds.$color-gray-3;
 }
 
 .bg-color-gray-dark {
-  background-color: $color-background-dark;
+  background-color: slds.$color-background-dark;
 }
 
 .bg-color-color-orange {
-  background-color: $color-background-customer;
+  background-color: slds.$color-background-customer;
 }
 
 .bg-color-inverse {
-  background-color: $color-background-alt-inverse;
+  background-color: slds.$color-background-alt-inverse;
 }
 
 .bg-color-backdrop-tint {
-  background-color: $color-background-backdrop-tint;
+  background-color: slds.$color-background-backdrop-tint;
 }
 
 .bg-color-pink {
-  background-color: $palette-pink-60;
+  background-color: slds.$palette-pink-60;
 }
 
 .text-color-pink {
-  color: $palette-pink-60;
+  color: slds.$palette-pink-60;
 }
 
 .text-color_warning {
-  color: $color-text-warning-alt;
+  color: slds.$color-text-warning-alt;
 }
 
 .text-color_inverse-warning {
-  color: $color-text-warning;
+  color: slds.$color-text-warning;
 }
 
 .text-color_brand {
-  color: $color-text-link-hover;
+  color: slds.$color-text-link-hover;
 }
 
 .button-focus-color {
-  color: var(--sds-c-button-text-color-hover, $brand-accessible-active);
+  color: var(--sds-c-button-text-color-hover, slds.$brand-accessible-active);
 }
 
 .slds-text-link {
   cursor: pointer;
-  fill: $brand-text-link;
+  fill: slds.$brand-text-link;
   .faux-button-link {
     :hover {
-      color: $brand-accessible;
+      color: slds.$brand-accessible;
     }
   }
 }
 
 .gutter {
-  background-color: $color-background;
+  background-color: slds.$color-background;
   background-repeat: no-repeat;
   background-position: 50%;
 }
@@ -128,7 +128,7 @@ pre {
 // }
 
 .bg-white {
-  background-color: $color-background-alt;
+  background-color: slds.$color-background-alt;
 }
 
 .width-100 {
@@ -143,15 +143,15 @@ pre {
 }
 
 .active-item-yellow-bg {
-  background-color: $color-background-highlight;
+  background-color: slds.$color-background-highlight;
 }
 
 .bg-background-selection {
-  background-color: $color-background-selection;
+  background-color: slds.$color-background-selection;
 }
 
 .bg-new-item {
-  background-color: $color-background-row-new;
+  background-color: slds.$color-background-row-new;
 }
 
 .slds-item {
@@ -163,19 +163,19 @@ pre {
   }
   margin: 1px;
   &:not(.disabled):not(.read-only):hover {
-    background-color: $color-background;
+    background-color: slds.$color-background;
   }
   &:not(.read-only).is-active {
-    background-color: $color-background-highlight;
+    background-color: slds.$color-background-highlight;
   }
 }
 
 .table-row.is-selected {
-  background-color: $color-background-highlight;
+  background-color: slds.$color-background-highlight;
 }
 
 .is-disabled {
-  background-color: $color-background-input-disabled;
+  background-color: slds.$color-background-input-disabled;
 }
 
 .border-radius-25 {
@@ -183,15 +183,15 @@ pre {
 }
 
 .border-color-brand {
-  border-color: $color-border-brand;
+  border-color: slds.$color-border-brand;
 }
 
 .border-color-brand-dark {
-  border-color: $color-border-brand-dark;
+  border-color: slds.$color-border-brand-dark;
 }
 
 .slds-text-color_brand {
-  color: $brand-accessible;
+  color: slds.$brand-accessible;
 }
 
 .slds-popover_x-large {
@@ -213,7 +213,7 @@ pre {
   margin: 0;
   padding: 0;
 
-  color: $brand-text-link;
+  color: slds.$brand-text-link;
   text-decoration: none;
   transition: color 0.1s linear;
 
@@ -221,7 +221,7 @@ pre {
   &:active,
   &:focus {
     text-decoration: underline;
-    color: $brand-text-link-active;
+    color: slds.$brand-text-link-active;
   }
 }
 
@@ -370,7 +370,7 @@ pre {
 }
 
 .text-color-highlight {
-  background-color: $color-background-highlight-search;
+  background-color: slds.$color-background-highlight-search;
 }
 
 .w-100 {
@@ -419,20 +419,20 @@ button.ql-active {
 }
 
 .ql-editor blockquote {
-  border-left: 4px solid $color-gray-6;
+  border-left: 4px solid slds.$color-gray-6;
   padding-left: 4px;
   margin: 1rem !important;
 }
 
 .ql-editor pre.ql-syntax {
-  background-color: $color-background-inverse;
-  color: $color-text-inverse;
+  background-color: slds.$color-background-inverse;
+  color: slds.$color-text-inverse;
   overflow: visible;
   white-space: pre-wrap;
   margin-bottom: 5px;
   margin-top: 5px;
   padding: 5px 10px;
-  border-radius: $border-radius-medium;
+  border-radius: slds.$border-radius-medium;
 }
 
 .ql-editor pre {
@@ -444,17 +444,17 @@ button.ql-active {
 
 .ql-editor code,
 .ql-editor pre {
-  background-color: $color-gray-3;
-  border-radius: $border-radius-medium;
+  background-color: slds.$color-gray-3;
+  border-radius: slds.$border-radius-medium;
 }
 
 .ql-editor code {
-  font-size: $font-size-2;
+  font-size: slds.$font-size-2;
   padding: 2px 4px;
 }
 
 .text-bold {
-  font-weight: $font-weight-bold;
+  font-weight: slds.$font-weight-bold;
 }
 
 :root {

@@ -1,5 +1,5 @@
 import { enableLogger } from '@jetstream/shared/client-logger';
-import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
+import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
 import localforage from 'localforage';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
 import { RecoilRoot } from 'recoil';

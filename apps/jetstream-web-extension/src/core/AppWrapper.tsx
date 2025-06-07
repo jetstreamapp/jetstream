@@ -3,7 +3,7 @@ import { AxiosAdapterConfig } from '@jetstream/shared/data';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import { AppLoading } from '@jetstream/ui-core';
 import { OverlayProvider } from '@react-aria/overlays';
-import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.min.css';
+import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
 import { ReactNode, Suspense } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
