@@ -299,6 +299,19 @@ const toggleEnableDisableAuthFactorRoute = createRoute(
     const authFactors = await toggleEnableDisableAuthFactor(user.id, type, action);
     sendJson(res, authFactors);
 
+    const emailAction = action === 'enable' ? 'enabled' : 'disabled';
+    if (type === '2fa-email') {
+      await sendAuthenticationChangeConfirmation(user.email, `Email 2FA has been ${emailAction}`, {
+        preview: `Email 2FA has been ${emailAction}.`,
+        heading: `Email 2FA has been ${emailAction}`,
+      });
+    } else if (type === '2fa-otp') {
+      await sendAuthenticationChangeConfirmation(user.email, `Authenticator app 2FA has been ${emailAction}`, {
+        preview: `Authenticator app 2FA has been ${emailAction}.`,
+        heading: `Authenticator app 2FA has been ${emailAction}`,
+      });
+    }
+
     createUserActivityFromReq(req, res, {
       action: action === 'enable' ? '2FA_ACTIVATE' : '2FA_DEACTIVATE',
       method: type.toUpperCase(),
@@ -332,6 +345,12 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
     const updatedUser = await userDbService.findUserWithIdentitiesById(user.id);
 
     sendJson(res, updatedUser);
+
+    await sendAuthenticationChangeConfirmation(user.email, 'An linked identity has been removed from your account', {
+      preview: 'An linked identity has been removed from your account.',
+      heading: 'An linked identity has been removed from your account',
+      additionalTextSegments: [`The ${provider} identity has been removed from your account.`, 'You can link a new identity at any time.'],
+    });
 
     createUserActivityFromReq(req, res, {
       action: 'UNLINK_IDENTITY',
