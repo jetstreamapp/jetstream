@@ -1,8 +1,9 @@
-import { PrismaClient } from '@jetstream/prisma';
+import { PrismaClient } from '../libs/prisma/src/lib/generated/prisma/index.js';
 const prisma = new PrismaClient();
 
 async function main() {
   await prisma.salesforceApi.createMany({
+    skipDuplicates: true,
     data: [
       {
         id: '3e4ee46e-7c92-4a1c-b9f1-6ab1da93d4bb',
@@ -2943,7 +2944,6 @@ async function main() {
         body: null,
       },
     ],
-    skipDuplicates: true,
   });
 }
 
