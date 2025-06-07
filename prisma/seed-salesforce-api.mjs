@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@jetstream/prisma';
 const prisma = new PrismaClient();
 
 async function main() {

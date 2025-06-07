@@ -1,5 +1,5 @@
 import { prisma } from '@jetstream/api-config';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@jetstream/prisma';
 
 export type TokenTypeAuthToken = 'AUTH_TOKEN';
 export type TokenType = TokenTypeAuthToken;

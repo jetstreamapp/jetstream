@@ -11,10 +11,10 @@ import {
   UserSession,
   UserSessionWithLocation,
 } from '@jetstream/auth/types';
+import { Prisma } from '@jetstream/prisma';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
-import { Prisma } from '@prisma/client';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';

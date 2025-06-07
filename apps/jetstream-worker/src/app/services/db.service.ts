@@ -1,7 +1,5 @@
 // import { DB, Jobs } from '@jetstream/types';
-import { QueryResultRow } from 'pg';
-import { pool } from '../config/db.config';
-// import type { ScheduledExport } from '@prisma/client';
+// import type { ScheduledExport } from '@jetstream/prisma';
 /**
  * https://node-postgres.com/features/queries
  */

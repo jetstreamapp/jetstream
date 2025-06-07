@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, prisma } from '@jetstream/api-config';
+import { Prisma, SalesforceOrg } from '@jetstream/prisma';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Prisma, SalesforceOrg } from '@prisma/client';
 import { parseISO } from 'date-fns/parseISO';
 import isUndefined from 'lodash/isUndefined';
 import { NotFoundError } from '../utils/error-handler';

@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@jetstream/prisma';
 import { Pool } from 'pg';
 import { getExceptionLog, logger } from './api-logger';
 import { ENV } from './env-config';

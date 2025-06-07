@@ -1,7 +1,7 @@
 import { prisma } from '@jetstream/api-config';
+import { Prisma } from '@jetstream/prisma';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { Maybe, PullResponse, SyncRecordOperation, SyncRecordOperationCreateUpdate, SyncRecordOperationDelete } from '@jetstream/types';
-import { Prisma } from '@prisma/client';
 import { InputJsonValue } from '@prisma/client/runtime/library';
 import { isAfter } from 'date-fns';
 import clamp from 'lodash/clamp';

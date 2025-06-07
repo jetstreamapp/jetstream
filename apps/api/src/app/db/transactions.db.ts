@@ -1,5 +1,5 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { PrismaPromise } from '@prisma/client';
+import { PrismaPromise } from '@jetstream/prisma';
 
 /**
  * This file manages db operations as transactions that span multiple tables
