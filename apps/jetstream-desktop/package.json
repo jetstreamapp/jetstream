@@ -1,0 +1,20 @@
+{
+  "name": "jetstream",
+  "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jetstreamapp/jetstream"
+  },
+  "author": "Jetstream",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "scripts": {
+    "build:macos:dmg:x64": "electron-forge make --platform=darwin --arch=x64 --overwrite",
+    "build:macos:dmg:arm64": "electron-forge make --platform=darwin --arch=arm64 --overwrite",
+    "build:macos:mas": "electron-forge make --platform=mas --arch=universal",
+    "build:windows:x64": "npx electron-forge make --platform=win32 --arch=x64",
+    "build:windows:arm64": "npx electron-forge make --platform=win32 --arch=arm64"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

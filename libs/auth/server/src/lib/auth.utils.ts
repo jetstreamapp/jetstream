@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/api-config';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
 import { UserProfileUi } from '@jetstream/types';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
 
 export const REMEMBER_DEVICE_DAYS = 30;

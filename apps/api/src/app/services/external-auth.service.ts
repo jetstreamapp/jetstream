@@ -78,8 +78,10 @@ export async function verifyToken(
     throw new InvalidAccessToken('Access token is invalid for device');
   } else if (decodedPayload?.userProfile?.id !== userAccessToken.userId) {
     throw new InvalidAccessToken('Access token is invalid for user');
-  } else if (!userAccessToken.user.entitlements?.chromeExtension) {
+  } else if (audience === AUDIENCE_WEB_EXT && !userAccessToken.user.entitlements?.chromeExtension) {
     throw new InvalidAccessToken('Browser extension is not enabled');
+  } else if (audience === AUDIENCE_DESKTOP && !userAccessToken.user.entitlements?.desktop) {
+    throw new InvalidAccessToken('Desktop application is not enabled');
   }
 
   const { jwtVerifier } = prepareJwtFns(userAccessToken.userId, TOKEN_EXPIRATION, audience);

@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
-import { getBrowserExtensionVersion, getOrgType, isBrowserExtension, parseCookie } from '@jetstream/shared/ui-utils';
+import { getBrowserExtensionVersion, getOrgType, isBrowserExtension, isDesktop, parseCookie } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   Announcement,
@@ -19,7 +19,7 @@ import isString from 'lodash/isString';
 import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
 // FIXME: browser extension should be able to obtain all of this information after logging in
-const DEFAULT_PROFILE: UserProfileUi = {
+export const DEFAULT_PROFILE: UserProfileUi = {
   id: 'unknown',
   userId: 'unknown',
   email: 'unknown',
@@ -104,7 +104,7 @@ async function fetchJetstreamOrganizations(): Promise<JetstreamOrganization[]> {
   }
 }
 
-async function getSelectedOrgFromStorage(): Promise<string | undefined> {
+function getSelectedOrgFromStorage(): string | undefined {
   try {
     const selectedOrgIdBase64 =
       sessionStorage.getItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY) || localStorage.getItem(STORAGE_KEYS.SELECTED_ORG_STORAGE_KEY);
@@ -151,9 +151,13 @@ async function fetchAppVersion() {
 }
 
 async function fetchUserProfile(): Promise<UserProfileUi> {
-  // FIXME: this is a temporary fix to get the extension working, will want to fetch from server
-  const userProfile = isBrowserExtension() ? DEFAULT_PROFILE : await getUserProfile();
-  return userProfile;
+  if (isBrowserExtension()) {
+    return DEFAULT_PROFILE;
+  }
+  if (isDesktop()) {
+    return await getUserProfile().catch(() => DEFAULT_PROFILE);
+  }
+  return await getUserProfile();
 }
 
 const userPreferenceState = atom<UserProfilePreferences>({
@@ -176,8 +180,8 @@ export const appVersionState = atom<{ version: string; announcements?: Announcem
   default: fetchAppVersion(),
 });
 
-export const isChromeExtensionState = selector<boolean>({
-  key: 'isChromeExtensionState',
+export const isBrowserExtensionState = selector<boolean>({
+  key: 'isBrowserExtensionState',
   get: () => isBrowserExtension(),
 });
 
@@ -199,11 +203,11 @@ export const userProfileEntitlementState = selectorFamily({
 export const googleDriveAccessState = selector({
   key: 'googleDriveAccessState',
   get: ({ get }) => {
-    const isChromeExtension = get(isChromeExtensionState);
+    const isChromeExtension = get(isBrowserExtensionState);
     const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
     return {
-      hasGoogleDriveAccess: !isChromeExtension && hasGoogleDriveAccess,
-      googleShowUpgradeToPro: !isChromeExtension && !hasGoogleDriveAccess,
+      hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && hasGoogleDriveAccess,
+      googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !hasGoogleDriveAccess,
     };
   },
 });

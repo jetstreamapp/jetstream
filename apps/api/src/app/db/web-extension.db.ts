@@ -11,7 +11,7 @@ const SELECT = Prisma.validator<Prisma.WebExtensionTokenSelect>()({
   userId: true,
   user: {
     select: {
-      entitlements: { select: { chromeExtension: true, googleDrive: true, recordSync: true } },
+      entitlements: { select: { chromeExtension: true, googleDrive: true, recordSync: true, desktop: true } },
     },
   },
   type: true,

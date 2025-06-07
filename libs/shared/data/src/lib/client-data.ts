@@ -105,7 +105,7 @@ export async function deleteUserProfile(reason?: string): Promise<void> {
   return handleRequest({ method: 'DELETE', url: '/api/me', data: { reason } }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getFullUserProfile(): Promise<UserProfileUiWithIdentities> {
+export async function getFullUserProfile<T = UserProfileUiWithIdentities>(): Promise<T> {
   return handleRequest({ method: 'GET', url: '/api/me/profile' }).then(unwrapResponseIgnoreCache);
 }
 
@@ -121,7 +121,10 @@ export async function removePassword(): Promise<UserProfileUiWithIdentities> {
   return handleRequest({ method: 'DELETE', url: '/api/me/profile/password' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function updateUserProfile(userProfile: { name: string }): Promise<UserProfileUiWithIdentities> {
+export async function updateUserProfile<T = UserProfileUiWithIdentities>(userProfile: {
+  name?: string;
+  preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean };
+}): Promise<T> {
   return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
 }
 

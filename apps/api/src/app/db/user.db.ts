@@ -18,9 +18,10 @@ const userSelect: Prisma.UserSelect = {
   },
   entitlements: {
     select: {
-      recordSync: true,
       chromeExtension: true,
+      desktop: true,
       googleDrive: true,
+      recordSync: true,
     },
   },
   billingAccount: {
@@ -92,8 +93,9 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
   entitlements: {
     select: {
       chromeExtension: true,
-      recordSync: true,
+      desktop: true,
       googleDrive: true,
+      recordSync: true,
     },
   },
   subscriptions: {
@@ -158,6 +160,7 @@ export const findIdByUserIdUserFacing = ({
       chromeExtension: user.entitlements?.chromeExtension ?? true,
       recordSync: user.entitlements?.recordSync ?? false,
       googleDrive: user.entitlements?.googleDrive ?? false,
+      desktop: user.entitlements?.desktop ?? false,
     },
     subscriptions: omitSubscriptions
       ? []

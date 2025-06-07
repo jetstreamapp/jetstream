@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -17,12 +17,18 @@ interface OrgsDropdownProps {
   addOrgsButtonClassName?: string;
   omitAddOrgsButton?: boolean;
   omitOrganizationSelector?: boolean;
+  /**
+   * Override for handling the add org action.
+   * This is used in the desktop app to open the browser for the login process.
+   */
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
 export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   addOrgsButtonClassName,
   omitOrganizationSelector,
   omitAddOrgsButton,
+  onAddOrgHandlerFn,
 }) => {
   const allOrgs = useRecoilValue(fromAppState.salesforceOrgsState);
   const orgs = useRecoilValue(fromAppState.salesforceOrgsForOrganizationSelector);
@@ -115,7 +121,12 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
           )}
           {!omitAddOrgsButton && (
             <div className="slds-col">
-              <AddOrg className={addOrgsButtonClassName} onAddOrg={handleAddOrg} disabled={actionInProgress} />
+              <AddOrg
+                className={addOrgsButtonClassName}
+                onAddOrg={handleAddOrg}
+                onAddOrgHandlerFn={onAddOrgHandlerFn}
+                disabled={actionInProgress}
+              />
             </div>
           )}
         </Grid>

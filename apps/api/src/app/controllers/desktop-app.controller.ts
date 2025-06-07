@@ -136,11 +136,11 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ body }, r
     // This validates the token against the database record
     const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_DESKTOP);
     webExtDb.deleteByUserIdAndDeviceId({ userId: userProfile.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
-    res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of browser extension');
+    res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of desktop app');
 
     sendJson(res, { success: true });
   } catch (ex) {
-    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of browser extension');
+    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of desktop app');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });

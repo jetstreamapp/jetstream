@@ -10,7 +10,13 @@ import {
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { JetstreamOrganization, JetstreamOrganizationCreateUpdatePayload, JetstreamOrganizationWithOrgs, Maybe } from '@jetstream/types';
+import {
+  AddOrgHandlerFn,
+  JetstreamOrganization,
+  JetstreamOrganizationCreateUpdatePayload,
+  JetstreamOrganizationWithOrgs,
+  Maybe,
+} from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConfirmationModalPromise,
@@ -31,7 +37,7 @@ import OrganizationCard from './OrganizationCard';
 import { OrganizationCardNoOrganization } from './OrganizationCardNoOrganization';
 import { OrganizationModal } from './OrganizationModal';
 
-export function Organizations() {
+export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHandlerFn }) {
   useTitle(TITLES.ORGANIZATIONS);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
@@ -204,7 +210,12 @@ export function Organizations() {
             docsPath={APP_ROUTES.ORGANIZATIONS.DOCS}
           />
           <PageHeaderActions colType="actions" buttonType="separate">
-            <AddOrg className="slds-button slds-button_neutral" label="Add Salesforce Org" onAddOrg={handleAddOrg} />
+            <AddOrg
+              className="slds-button slds-button_neutral"
+              label="Add Salesforce Org"
+              onAddOrg={handleAddOrg}
+              onAddOrgHandlerFn={onAddOrgHandlerFn}
+            />
             <button className="slds-button slds-button_brand" onClick={() => handleOpenCreateOrganizationModal()}>
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" />
               Create New Organization
