@@ -42,6 +42,7 @@
       "@jetstream/feature/update-records": ["libs/features/update-records/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
       "@jetstream/monaco": ["libs/monaco-configuration/src/index.ts"],
+      "@jetstream/prisma": ["libs/prisma/src/index.ts"],
       "@jetstream/record-form": ["libs/shared/ui-record-form/src/index.ts"],
       "@jetstream/salesforce-api": ["libs/salesforce-api/src/index.ts"],
       "@jetstream/shared/browser-worker-utils": ["libs/shared/browser-worker-utils/src/index.ts"],

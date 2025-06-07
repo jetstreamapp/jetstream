@@ -1,8 +1,8 @@
 import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
+import { SalesforceOrg } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
-import { SalesforceOrg } from '@prisma/client';
 import { serialize } from 'cookie';
 import * as express from 'express';
 import { Duplex } from 'stream';

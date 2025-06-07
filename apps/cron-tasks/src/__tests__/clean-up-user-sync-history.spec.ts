@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@jetstream/prisma';
 import { addDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { createHash } from 'node:crypto';

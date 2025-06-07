@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { prisma } from '@jetstream/api-config';
+import { Prisma } from '@jetstream/prisma';
 import { Maybe } from '@jetstream/types';
-import { Prisma } from '@prisma/client';
 
 const SELECT = Prisma.validator<Prisma.JetstreamOrganizationSelect>()({
   id: true,

@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@jetstream/prisma';
 import { addDays, startOfDay } from 'date-fns';
 import { logger } from '../config/logger.config';
 

@@ -1,4 +1,4 @@
-import type { JetstreamOrganization as JetstreamOrg } from '@prisma/client';
+import type { JetstreamOrganization as JetstreamOrg } from '@jetstream/prisma';
 import { SalesforceOrgUi } from '../types';
 
 export type JetstreamOrganization = Pick<JetstreamOrg, 'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'> & {

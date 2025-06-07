@@ -1,0 +1,9 @@
+{
+  "name": "jetstream-prisma",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/prisma/src",
+  "projectType": "library",
+  "tags": ["scope:server"],
+  "// targets": "to see all targets run: nx show project jetstream-prisma --web",
+  "targets": {}
+}

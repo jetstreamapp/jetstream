@@ -1,7 +1,7 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
+import { Entitlement, Prisma, User } from '@jetstream/prisma';
 import { UserProfileUi } from '@jetstream/types';
-import { Entitlement, Prisma, User } from '@prisma/client';
 
 const userSelect: Prisma.UserSelect = {
   appMetadata: true,

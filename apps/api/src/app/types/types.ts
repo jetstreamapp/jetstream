@@ -1,6 +1,6 @@
 import { ResponseLocalsCookies } from '@jetstream/auth/types';
+import { SalesforceOrg } from '@jetstream/prisma';
 import { ApiConnection } from '@jetstream/salesforce-api';
-import { SalesforceOrg } from '@prisma/client';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import type pino from 'pino';
 
