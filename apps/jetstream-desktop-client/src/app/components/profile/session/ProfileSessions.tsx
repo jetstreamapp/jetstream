@@ -53,7 +53,7 @@ export const ProfileSessions = () => {
         })
       ) {
         setIsLoading(true);
-        const response = await revokeUserSession(sessionId);
+        const response = await revokeUserSession(sessionId, 'SESSION');
         setCurrentSessionId(response.currentSessionId);
         setSessions(response.sessions);
       }
