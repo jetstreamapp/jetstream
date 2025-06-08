@@ -1,10 +1,14 @@
 import { prisma } from '@jetstream/api-config';
+import { TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 
 export type TokenTypeAuthToken = 'AUTH_TOKEN';
 export type TokenType = TokenTypeAuthToken;
 
 export const TOKEN_TYPE_AUTH: TokenTypeAuthToken = 'AUTH_TOKEN';
+
+export const TOKEN_SOURCE_BROWSER_EXTENSION: TokenSourceBrowserExtensions = 'BROWSER_EXTENSION';
+export const TOKEN_SOURCE_DESKTOP: TokenSourceDesktop = 'DESKTOP';
 
 const SELECT = Prisma.validator<Prisma.WebExtensionTokenSelect>()({
   id: true,
@@ -15,6 +19,7 @@ const SELECT = Prisma.validator<Prisma.WebExtensionTokenSelect>()({
     },
   },
   type: true,
+  source: true,
   token: true,
   deviceId: true,
   ipAddress: true,
@@ -48,6 +53,7 @@ export const create = async (
   userId: string,
   payload: {
     type: TokenType;
+    source: TokenSource;
     token: string;
     deviceId: string;
     ipAddress: string;

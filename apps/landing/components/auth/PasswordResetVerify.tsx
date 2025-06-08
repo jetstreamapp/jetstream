@@ -106,7 +106,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
           <form onSubmit={handleSubmit(onSubmit)} method="POST" noValidate className="space-y-6">
             <input type="hidden" {...register('csrfToken')} />
             <input type="hidden" {...register('captchaToken')} />
-            <input type="hidden" {...register('email')} />
+            <input hidden readOnly {...register('email')} autoComplete="username" />
             <input type="hidden" {...register('token')} />
 
             <Input

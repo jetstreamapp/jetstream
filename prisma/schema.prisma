@@ -85,6 +85,7 @@ model WebExtensionToken {
   id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId    String   @db.Uuid
   type      String
+  source    String   @default("BROWSER_EXTENSION")
   token     String
   deviceId  String   @unique
   ipAddress String

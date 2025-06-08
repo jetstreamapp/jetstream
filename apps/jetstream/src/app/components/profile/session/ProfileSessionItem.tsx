@@ -1,34 +1,49 @@
 import { css } from '@emotion/react';
-import { SessionIpData, UserSessionWithLocation } from '@jetstream/auth/types';
+import { SessionIpData, TokenSource, UserSessionWithLocation } from '@jetstream/auth/types';
+import { Maybe } from '@jetstream/types';
 import { Badge, Card, Grid } from '@jetstream/ui';
-import Bowser from 'bowser';
 import { parseISO } from 'date-fns/parseISO';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, useMemo } from 'react';
+import { getBrowserInfo } from './browser-session.utils';
+import { ProfileSessionLocation } from './ProfileSessionLocation';
 
 export interface ProfileSessionItemProps {
-  isCurrentSession: boolean;
-  session: UserSessionWithLocation;
-  onRevokeSession: (sessionId: string) => void;
+  isCurrentSession?: boolean;
+  type: 'SESSION' | 'EXTERNAL_SESSION';
+  sessionId: string;
+  createdAt: string;
+  expiresAt: string;
+  ipAddress: string;
+  provider?: UserSessionWithLocation['provider'];
+  source?: TokenSource;
+  userAgent: string;
+  location?: Maybe<SessionIpData>;
+  onRevokeSession: (sessionId: string, type: 'SESSION' | 'EXTERNAL_SESSION') => void;
 }
 
-export const ProfileSessionItem: FunctionComponent<ProfileSessionItemProps> = ({ isCurrentSession, session, onRevokeSession }) => {
-  const { expires, ipAddress, location, loginTime, provider, userAgent } = session;
-
-  const { browserName, browserVersion, osName } = useMemo(() => {
-    const browser = Bowser.getParser(userAgent);
-    return {
-      browserName: browser.getBrowserName(),
-      browserVersion: browser.getBrowserVersion(),
-      osName: browser.getOSName(),
-    };
-  }, [userAgent]);
+export const ProfileSessionItem: FunctionComponent<ProfileSessionItemProps> = ({
+  isCurrentSession = false,
+  type,
+  sessionId,
+  createdAt,
+  expiresAt,
+  ipAddress,
+  location,
+  provider,
+  source,
+  userAgent,
+  onRevokeSession,
+}) => {
+  const { browserName, browserVersion, osName } = useMemo(() => getBrowserInfo(userAgent), [userAgent]);
 
   return (
     <Card
       title={
         <Grid verticalAlign="center">
-          <span>{osName}</span>
+          {source === 'BROWSER_EXTENSION' && <span>Web Extension - {osName}</span>}
+          {source === 'DESKTOP' && <span>Desktop - {osName}</span>}
+          {!source && <span>{osName}</span>}
           {isCurrentSession && (
             <Badge className="slds-m-left_x-small" type="default">
               This Device
@@ -52,51 +67,31 @@ export const ProfileSessionItem: FunctionComponent<ProfileSessionItemProps> = ({
                 );
               }
             `}
-            onClick={() => onRevokeSession(session.sessionId)}
+            onClick={() => onRevokeSession(sessionId, type)}
           >
             Revoke
           </button>
         )
       }
     >
+      {type === 'EXTERNAL_SESSION' && <p className="slds-text-color_weak">External Session</p>}
       <p className="slds-text-color_weak">
         {browserName} {browserVersion}
       </p>
       <p className="slds-text-color_weak">
-        {ipAddress} {location && <Location location={location} />}
+        {ipAddress} {location && <ProfileSessionLocation location={location} />}
       </p>
-      <p className="slds-text-color_weak">Logged in via {provider === 'credentials' ? 'Email & Password' : startCase(provider)}</p>
-      <p className="slds-text-color_weak" title={loginTime}>
+      {provider && (
+        <p className="slds-text-color_weak">Logged in via {provider === 'credentials' ? 'Email & Password' : startCase(provider)}</p>
+      )}
+      <p className="slds-text-color_weak" title={createdAt}>
         <span>Issued at </span>
-        {parseISO(loginTime).toLocaleString()}
+        {parseISO(createdAt).toLocaleString()}
       </p>
-      <p className="slds-text-color_weak" title={expires}>
+      <p className="slds-text-color_weak" title={expiresAt}>
         <span>Expires at </span>
-        {parseISO(expires).toLocaleString()}
+        {parseISO(expiresAt).toLocaleString()}
       </p>
     </Card>
   );
 };
-
-function Location({ location }: { location: SessionIpData }) {
-  if (location.status !== 'success') {
-    return null;
-  }
-  const { city, region, countryCode, lat, lon } = location;
-
-  const estimatedLocation = [city, region, countryCode].filter(Boolean).join(', ');
-
-  if (lat && lon) {
-    return (
-      <span>
-        (Est. location:{' '}
-        <a href={`https://www.google.com/maps?q=${lat},${lon}`} target="_blank" rel="noopener noreferrer">
-          {estimatedLocation}
-        </a>
-        )
-      </span>
-    );
-  }
-
-  return <span>(Est. location: {estimatedLocation})</span>;
-}

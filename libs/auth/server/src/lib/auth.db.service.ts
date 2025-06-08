@@ -1,14 +1,17 @@
 import { ENV, logger, prisma } from '@jetstream/api-config';
 import {
   AuthenticatedUser,
+  ExternalTokenSessionWithLocation,
+  LoginActivityUserFacing,
   OauthProviderType,
   ProviderTypeCredentials,
   ProviderTypeOauth,
   ProviderUser,
   SessionData,
-  SessionIpData,
+  TokenSource,
   TwoFactorTypeWithoutEmail,
   UserSession,
+  UserSessionAndExtTokensAndActivityWithLocation,
   UserSessionWithLocation,
 } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
@@ -17,6 +20,7 @@ import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
+import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
 import {
   InvalidAction,
@@ -26,7 +30,7 @@ import {
   InvalidRegistration,
   LoginWithExistingIdentity,
 } from './auth.errors';
-import { ensureAuthError, verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY } from './auth.service';
+import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, verifyPassword } from './auth.utils';
 
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -273,14 +277,36 @@ export async function toggleEnableDisableAuthFactor(userId: string, type: TwoFac
 }
 
 export async function deleteAuthFactor(userId: string, type: TwoFactorTypeWithoutEmail) {
+  if (!userId) {
+    throw new Error('Invalid userId');
+  }
   await prisma.authFactors.delete({
     where: { userId_type: { type, userId } },
   });
   return getAuthFactors(userId);
 }
 
+export async function getAllSessions(userId: string, currentSessionId: string) {
+  if (!userId) {
+    throw new Error('Invalid userId');
+  }
+  const sessions = await getUserSessions(userId);
+  const webTokenSessions = await getUserWebExtensionSessions(userId);
+  const loginActivity = await getUserActivity(userId);
+  const output: UserSessionAndExtTokensAndActivityWithLocation = {
+    currentSessionId,
+    sessions,
+    webTokenSessions,
+    loginActivity,
+  };
+  return output;
+}
+
 export async function getUserSessions(userId: string, omitLocationData?: boolean): Promise<UserSessionWithLocation[]> {
-  const sessions = await prisma.sessions
+  if (!userId) {
+    throw new Error('Invalid userId');
+  }
+  const sessions: UserSessionWithLocation[] = await prisma.sessions
     .findMany({
       select: {
         sid: true,
@@ -301,11 +327,10 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
         return {
           sessionId: sid,
           expires: expire.toISOString(),
-          userAgent: userAgent,
-          ipAddress: ipAddress,
+          userAgent,
+          ipAddress,
           loginTime: new Date(loginTime).toISOString(),
-          provider: provider,
-          // TODO: last activity?
+          provider,
         };
       })
     );
@@ -313,57 +338,108 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
   // Fetch location data and add to each session
   if (!omitLocationData && sessions.length > 0) {
     try {
-      let response: Awaited<ReturnType<typeof fetch>> | null = null;
-      const ipAddresses = sessions.map((session) => session.ipAddress);
-      if (ENV.IP_API_SERVICE === 'LOCAL' && ENV.GEO_IP_API_USERNAME && ENV.GEO_IP_API_PASSWORD && ENV.GEO_IP_API_HOSTNAME) {
-        response = await fetch(`${ENV.GEO_IP_API_HOSTNAME}/api/lookup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Basic ${Buffer.from(`${ENV.GEO_IP_API_USERNAME}:${ENV.GEO_IP_API_PASSWORD}`, 'utf-8').toString('base64')}`,
-          },
-          body: JSON.stringify({ ips: ipAddresses }),
-        });
-        if (response?.ok) {
-          const locations = (await response.json()) as
-            | { success: true; results: SessionIpData[] }
-            | { success: false; message: string; details?: string };
-
-          if (locations.success) {
-            return sessions.map(
-              (session, i): UserSessionWithLocation => ({
-                ...session,
-                location: locations.results[i],
-              })
-            );
-          }
-        }
-      } else if (ENV.IP_API_KEY) {
-        const params = new URLSearchParams({
-          fields: 'status,country,countryCode,region,regionName,city,isp,lat,lon,query',
-          key: ENV.IP_API_KEY,
-        });
-
-        response = await fetch(`https://pro.ip-api.com/batch?${params.toString()}`, {
-          method: 'POST',
-          body: JSON.stringify(ipAddresses),
-        });
-        if (response?.ok) {
-          const locations = (await response.json()) as SessionIpData[];
-          return sessions.map(
-            (session, i): UserSessionWithLocation => ({
-              ...session,
-              location: locations[i],
-            })
-          );
-        }
-      }
+      return await lookupGeoLocationFromIpAddresses(sessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
+        locationInfo.map(
+          ({ location }, i): UserSessionWithLocation => ({
+            ...sessions[i],
+            location,
+          })
+        )
+      );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
     }
   }
 
   return sessions;
+}
+
+export async function getUserWebExtensionSessions(userId: string, omitLocationData?: boolean): Promise<ExternalTokenSessionWithLocation[]> {
+  if (!userId) {
+    throw new Error('Invalid userId');
+  }
+  const webTokenSessions = await prisma.webExtensionToken
+    .findMany({
+      select: {
+        id: true,
+        source: true,
+        createdAt: true,
+        expiresAt: true,
+        ipAddress: true,
+        userAgent: true,
+      },
+      where: { userId, type: 'AUTH_TOKEN' },
+    })
+    .then((token) => {
+      return token.map((token) => ({
+        id: token.id,
+        source: token.source as TokenSource,
+        createdAt: token.createdAt.toISOString(),
+        expiresAt: token.expiresAt.toISOString(),
+        ipAddress: token.ipAddress,
+        userAgent: token.userAgent,
+      }));
+    });
+
+  if (!omitLocationData && webTokenSessions.length > 0) {
+    try {
+      return await lookupGeoLocationFromIpAddresses(webTokenSessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
+        locationInfo.map(
+          ({ location }, i): ExternalTokenSessionWithLocation => ({
+            ...webTokenSessions[i],
+            location,
+          })
+        )
+      );
+    } catch (ex) {
+      logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for webTokens');
+    }
+  }
+
+  return webTokenSessions;
+}
+
+export async function getUserActivity(userId: string) {
+  if (!userId) {
+    throw new Error('Invalid userId');
+  }
+  const recentActivity: LoginActivityUserFacing[] = await prisma.loginActivity
+    .findMany({
+      select: {
+        action: true,
+        createdAt: true,
+        errorMessage: true,
+        ipAddress: true,
+        method: true,
+        success: true,
+        userAgent: true,
+      },
+      where: { userId, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
+      take: 25,
+      orderBy: { createdAt: 'desc' },
+    })
+    .then((records) =>
+      records.map((record) => ({
+        ...record,
+        action: actionDisplayName[record.action] || record.action,
+        method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
+        createdAt: record.createdAt.toISOString(),
+      }))
+    );
+
+  try {
+    // mutate records to add location property if there is an associated ip address
+    const activityWithIpAddress = recentActivity.filter((item) => item.ipAddress);
+    await lookupGeoLocationFromIpAddresses(activityWithIpAddress.map(({ ipAddress }) => ipAddress) as string[]).then((locationInfo) => {
+      activityWithIpAddress.forEach((activityWithIpAddress, i) => {
+        activityWithIpAddress.location = locationInfo[i].location;
+      });
+    });
+  } catch (ex) {
+    logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for recent activity');
+  }
+
+  return recentActivity;
 }
 
 export async function revokeUserSession(userId: string, sessionId: string) {
@@ -379,7 +455,15 @@ export async function revokeUserSession(userId: string, sessionId: string) {
       sid: sessionId,
     },
   });
-  return getUserSessions(userId);
+}
+
+export async function revokeExternalSession(userId: string, sessionId: string) {
+  if (!userId || !sessionId) {
+    throw new Error('Invalid parameters');
+  }
+  await prisma.webExtensionToken.delete({
+    where: { id: sessionId },
+  });
 }
 
 export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<string>) {
@@ -389,20 +473,14 @@ export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<str
   await prisma.sessions.deleteMany({
     where: exceptId
       ? {
-          sess: {
-            path: ['user', 'id'],
-            equals: userId,
-          },
+          sess: { path: ['user', 'id'], equals: userId },
           NOT: { sid: exceptId },
         }
-      : {
-          sess: {
-            path: ['user', 'id'],
-            equals: userId,
-          },
-        },
+      : { sess: { path: ['user', 'id'], equals: userId } },
   });
-  return getUserSessions(userId);
+  await prisma.webExtensionToken.deleteMany({
+    where: exceptId ? { userId, NOT: { id: exceptId } } : { userId },
+  });
 }
 
 export async function setPasswordForUser(id: string, password: string) {
@@ -477,22 +555,22 @@ export const generatePasswordResetToken = async (email: string) => {
 
 export const resetUserPassword = async (email: string, token: string, password: string) => {
   email = email.toLowerCase();
-  // if there is an existing token, delete it
-  const restToken = await prisma.passwordResetToken.findUnique({
+
+  const resetToken = await prisma.passwordResetToken.findUnique({
     where: { email_token: { email, token } },
   });
 
-  if (!restToken) {
+  if (!resetToken) {
     throw new InvalidOrExpiredResetToken('Missing reset token');
   }
 
   // delete token - we don't need it anymore and if we fail later, the user will need to reset again
   await prisma.passwordResetToken.delete({
-    where: { email_token: { email, token: restToken.token } },
+    where: { email_token: { email, token: resetToken.token } },
   });
 
-  if (restToken.expiresAt < new Date()) {
-    throw new InvalidOrExpiredResetToken(`Expired at ${restToken.expiresAt.toISOString()}`);
+  if (resetToken.expiresAt < new Date()) {
+    throw new InvalidOrExpiredResetToken(`Expired at ${resetToken.expiresAt.toISOString()}`);
   }
 
   const hashedPassword = await hashPassword(password);
@@ -503,11 +581,13 @@ export const resetUserPassword = async (email: string, token: string, password: 
       passwordUpdatedAt: new Date(),
     },
     where: {
-      id: restToken.userId,
+      id: resetToken.userId,
     },
   });
 
-  await revokeAllUserSessions(restToken.userId);
+  await revokeAllUserSessions(resetToken.userId);
+
+  return resetToken.userId;
 };
 
 export const removePasswordFromUser = async (id: string) => {
@@ -539,24 +619,10 @@ async function getUserAndVerifyPassword(email: string, password: string) {
     where: { email, password: { not: null } },
   });
 
-  // There is not a user with the email address that has a password set
   if (!UNSAFE_userWithPassword) {
-    // FIXME: TEMPORARY This is temporary just to handle the users that signed up after we exported data
-    try {
-      const updatedUser = await migratePasswordFromAuth0(email, password);
-      return {
-        error: null,
-        user: updatedUser,
-      };
-    } catch (ex) {
-      return { error: new InvalidCredentials('Could not migrate from Auth0') };
-    }
-
-    // Use this after code above is removed
-    // if (!UNSAFE_userWithPassword) {
-    //   return { error: new InvalidCredentials() };
-    // }
+    return { error: new InvalidCredentials('Incorrect email or password') };
   }
+
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (await verifyPassword(password, UNSAFE_userWithPassword.password!)) {
     return {
@@ -567,30 +633,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
       }),
     };
   }
-  return { error: new InvalidCredentials('Incorrect email or password') };
-}
-
-async function migratePasswordFromAuth0(email: string, password: string) {
-  email = email.toLowerCase();
-  // If the user has a linked social identity, we have no way to confirm 100% that this is the correct account
-  // since we allowed same email on multiple accounts with Auth0
-  const userWithoutSocialIdentities = await prisma.user.findFirst({
-    select: { id: true, identities: true },
-    where: { email, password: null, identities: { none: {} } },
-  });
-
-  if (!userWithoutSocialIdentities || userWithoutSocialIdentities.identities.length > 0) {
-    logger.warn({ email }, 'Cannot migrate password on the fly from Auth0, user has linked social identity');
-    throw new InvalidCredentials('Could not migrate from Auth0');
-  }
-
-  await verifyAuth0CredentialsOrThrow_MIGRATION_TEMPORARY({ email, password });
-
-  return await prisma.user.update({
-    select: userSelect,
-    data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
-    where: { id: userWithoutSocialIdentities.id },
-  });
+  return { error: new InvalidCredentials('Incorrect email or password', { userId: UNSAFE_userWithPassword.id }) };
 }
 
 async function addIdentityToUser(userId: string, providerUser: ProviderUser, provider: OauthProviderType) {

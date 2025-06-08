@@ -103,6 +103,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_DESKTOP);
     storedRefreshToken = await webExtDb.create(user.id, {
       type: 'AUTH_TOKEN',
+      source: webExtDb.TOKEN_SOURCE_DESKTOP,
       token: accessToken,
       deviceId,
       ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),

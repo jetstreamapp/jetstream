@@ -682,9 +682,11 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
     let success = true;
+    let userId: string | undefined;
 
     try {
-      const { token } = await generatePasswordResetToken(email);
+      const { token, userId: _userId } = await generatePasswordResetToken(email);
+      userId = _userId;
       await sendPasswordReset(email, token, PASSWORD_RESET_DURATION_MINUTES);
 
       sendJson(res, { error: false });
@@ -699,6 +701,7 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
     createUserActivityFromReq(req, res, {
       action: 'PASSWORD_RESET_REQUEST',
       method: 'UNAUTHENTICATED',
+      userId,
       email,
       success,
     });
@@ -719,7 +722,7 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
     const { csrfToken, email, password, token } = body;
     await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
-    await resetUserPassword(email, token, password);
+    const userId = await resetUserPassword(email, token, password);
 
     await sendAuthenticationChangeConfirmation(email, 'Password change confirmation', {
       preview: 'Your password has been successfully changed.',
@@ -729,6 +732,7 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
     createUserActivityFromReq(req, res, {
       action: 'PASSWORD_RESET_COMPLETION',
       method: 'UNAUTHENTICATED',
+      userId,
       email,
       success: true,
     });

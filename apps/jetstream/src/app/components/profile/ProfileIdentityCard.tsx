@@ -90,7 +90,7 @@ export const ProfileIdentityCard: FunctionComponent<ProfileIdentityCardProps> = 
             <div
               css={css`
                 position: absolute;
-                bottom: 0.25rem;
+                top: -1.25rem;
                 right: 0.25rem;
               `}
             >

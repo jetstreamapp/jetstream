@@ -39,7 +39,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
   }
 
   return (
-    <Grid className="slds-m-top_small slds-m-bottom_large" vertical>
+    <Grid className="slds-m-top_small" vertical>
       <h2 className="slds-text-heading_small">Linked Accounts</h2>
       <p>You can login to Jetstream using any of these accounts</p>
       <ul className="slds-has-dividers_around-space">

@@ -1,10 +1,12 @@
 import { logger, prisma } from '@jetstream/api-config';
+import { Maybe } from '@jetstream/types';
 import type { Request, Response } from 'express';
 import { AuthError } from './auth.errors';
 
 export type Action =
   | 'LOGIN'
   | 'PASSWORD_SET'
+  | 'PASSWORD_REMOVE'
   | 'PASSWORD_RESET_REQUEST'
   | 'PASSWORD_RESET_COMPLETION'
   | 'OAUTH_INIT'
@@ -21,16 +23,43 @@ export type Action =
   | 'REVOKE_SESSION'
   | 'DELETE_ACCOUNT';
 
+export const actionDisplayName: Record<Action, string> = {
+  LOGIN: 'Login Attempt',
+  PASSWORD_SET: 'Password Set',
+  PASSWORD_REMOVE: 'Password Removed',
+  PASSWORD_RESET_REQUEST: 'Password Reset Request',
+  PASSWORD_RESET_COMPLETION: 'Password Reset Completion',
+  OAUTH_INIT: 'OAuth Login Initialization',
+  LINK_IDENTITY_INIT: 'Link Identity Initialization',
+  LINK_IDENTITY: 'Link Identity Completion',
+  UNLINK_IDENTITY: 'Unlink Identity',
+  EMAIL_VERIFICATION: 'Email Verification',
+  '2FA_VERIFICATION': '2FA Verification',
+  '2FA_RESEND_VERIFICATION': '2FA Resend Verification',
+  '2FA_SETUP': '2FA Setup',
+  '2FA_REMOVAL': '2FA Removal',
+  '2FA_ACTIVATE': '2FA Activate',
+  '2FA_DEACTIVATE': '2FA Deactivate',
+  REVOKE_SESSION: 'Revoke Session',
+  DELETE_ACCOUNT: 'Delete Account',
+};
+
+export const methodDisplayName: Record<string, string> = {
+  CREDENTIALS: 'Username/Password',
+  GOOGLE: 'Google',
+  SALESFORCE: 'Salesforce',
+};
+
 interface LoginActivity {
   action: Action;
-  method?: string;
+  method?: Maybe<string>;
   success: boolean;
-  email?: string;
-  userId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  errorMessage?: string;
-  requestId?: string;
+  email?: Maybe<string>;
+  userId?: Maybe<string>;
+  ipAddress?: Maybe<string>;
+  userAgent?: Maybe<string>;
+  errorMessage?: Maybe<string>;
+  requestId?: Maybe<string>;
 }
 
 export async function createUserActivityFromReq(
@@ -64,6 +93,7 @@ export async function createUserActivityFromReqWithError(
     data.success = false;
     if (ex instanceof AuthError) {
       data.errorMessage = `${ex.type}: ${ex.message}`;
+      data.userId = data.userId || ex.userId;
     } else if (ex instanceof Error) {
       data.errorMessage = ex.message;
     }
