@@ -432,7 +432,7 @@ export async function getUserActivity(userId: string) {
     const activityWithIpAddress = recentActivity.filter((item) => item.ipAddress);
     await lookupGeoLocationFromIpAddresses(activityWithIpAddress.map(({ ipAddress }) => ipAddress) as string[]).then((locationInfo) => {
       activityWithIpAddress.forEach((activityWithIpAddress, i) => {
-        activityWithIpAddress.location = locationInfo[0].location;
+        activityWithIpAddress.location = locationInfo[i].location;
       });
     });
   } catch (ex) {
