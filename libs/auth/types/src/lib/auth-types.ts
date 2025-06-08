@@ -66,7 +66,39 @@ export interface UserSession {
 }
 
 export interface UserSessionWithLocation extends UserSession {
-  location?: SessionIpData;
+  location?: Maybe<SessionIpData>;
+}
+
+export type TokenSourceBrowserExtensions = 'BROWSER_EXTENSION';
+export type TokenSourceDesktop = 'DESKTOP';
+export type TokenSource = TokenSourceBrowserExtensions | TokenSourceDesktop;
+
+export interface ExternalTokenSessionWithLocation {
+  id: string;
+  source: TokenSource;
+  createdAt: string;
+  expiresAt: string;
+  ipAddress: string;
+  userAgent: string;
+  location?: Maybe<SessionIpData>;
+}
+
+export interface LoginActivityUserFacing {
+  action: string;
+  createdAt: string;
+  errorMessage: Maybe<string>;
+  ipAddress: Maybe<string>;
+  method: Maybe<string>;
+  success: boolean;
+  userAgent: Maybe<string>;
+  location?: Maybe<SessionIpData>;
+}
+
+export interface UserSessionAndExtTokensAndActivityWithLocation {
+  currentSessionId: string;
+  sessions: UserSessionWithLocation[];
+  webTokenSessions: ExternalTokenSessionWithLocation[];
+  loginActivity: LoginActivityUserFacing[];
 }
 
 export type TwoFactorTypeEmail = 'email';

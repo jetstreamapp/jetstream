@@ -8,13 +8,14 @@ import {
   deleteAuthFactor,
   generate2faTotpUrl,
   generatePasswordResetToken,
+  getAllSessions,
   getAuthorizationUrl,
   getCookieConfig,
-  getUserSessions,
   PASSWORD_RESET_DURATION_MINUTES,
   removeIdentityFromUser,
   removePasswordFromUser,
   revokeAllUserSessions,
+  revokeExternalSession,
   revokeUserSession,
   setPasswordForUser,
   toggleEnableDisableAuthFactor,
@@ -80,6 +81,9 @@ export const routeDefinition = {
     validators: {
       params: z.object({
         id: z.string().min(32).max(64),
+      }),
+      query: z.object({
+        type: z.enum(['SESSION', 'EXTERNAL_SESSION']).optional().default('SESSION'),
       }),
       hasSourceOrg: false,
     },
@@ -219,6 +223,11 @@ const deletePassword = createRoute(routeDefinition.deletePassword.validators, as
   });
 
   sendJson(res, await userDbService.findUserWithIdentitiesById(user.id));
+  createUserActivityFromReq(req, res, {
+    action: 'PASSWORD_REMOVE',
+    method: 'USER_PROFILE',
+    success: true,
+  });
 });
 
 const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body, user }, req, res) => {
@@ -233,38 +242,38 @@ const updateProfile = createRoute(routeDefinition.updateProfile.validators, asyn
 });
 
 const getSessions = createRoute(routeDefinition.getSessions.validators, async ({ user }, req, res) => {
-  const sessions = await getUserSessions(user.id);
-  sendJson(res, {
-    currentSessionId: req.session.id,
-    sessions,
-  });
+  const sessions = await getAllSessions(user.id, req.session.id);
+  sendJson(res, sessions);
 });
 
-const revokeSession = createRoute(routeDefinition.revokeSession.validators, async ({ params, user }, req, res) => {
-  const sessions = await revokeUserSession(user.id, params.id);
-  sendJson(res, {
-    currentSessionId: req.session.id,
-    sessions,
-  });
+const revokeSession = createRoute(routeDefinition.revokeSession.validators, async ({ params, query, user }, req, res) => {
+  const { type } = query;
+  if (type === 'SESSION') {
+    await revokeUserSession(user.id, params.id);
+  } else if (type === 'EXTERNAL_SESSION') {
+    await revokeExternalSession(user.id, params.id);
+  }
+  const sessions = await getAllSessions(user.id, req.session.id);
+  sendJson(res, sessions);
 
   createUserActivityFromReq(req, res, {
     action: 'REVOKE_SESSION',
     method: 'SINGLE',
     success: true,
+    userId: user.id,
   });
 });
 
 const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validators, async ({ body, user }, req, res) => {
-  const sessions = await revokeAllUserSessions(user.id, body?.exceptId);
-  sendJson(res, {
-    currentSessionId: req.session.id,
-    sessions,
-  });
+  await revokeAllUserSessions(user.id, body?.exceptId);
+  const sessions = await getAllSessions(user.id, req.session.id);
+  sendJson(res, sessions);
 
   createUserActivityFromReq(req, res, {
     action: 'REVOKE_SESSION',
     method: 'ALL',
     success: true,
+    userId: user.id,
   });
 });
 
@@ -274,67 +283,94 @@ const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async 
 });
 
 const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validators, async ({ body, user }, req, res) => {
-  const { code, secretToken } = body;
-  const secret = await convertBase32ToHex(secretToken);
-  await verify2faTotpOrThrow(secret, code);
-  const authFactors = await createOrUpdateOtpAuthFactor(user.id, secret);
-  sendJson(res, authFactors);
+  try {
+    const { code, secretToken } = body;
+    const secret = await convertBase32ToHex(secretToken);
+    await verify2faTotpOrThrow(secret, code);
+    const authFactors = await createOrUpdateOtpAuthFactor(user.id, secret);
+    sendJson(res, authFactors);
 
-  await sendAuthenticationChangeConfirmation(user.email, 'A new 2FA method has been added to your account', {
-    preview: 'A new 2FA method has been added to your account.',
-    heading: 'Authenticator app added',
-  });
+    await sendAuthenticationChangeConfirmation(user.email, 'A new 2FA method has been added to your account', {
+      preview: 'A new 2FA method has been added to your account.',
+      heading: 'Authenticator app added',
+    });
 
-  createUserActivityFromReq(req, res, {
-    action: '2FA_SETUP',
-    method: '2FA-OTP',
-    success: true,
-  });
+    createUserActivityFromReq(req, res, {
+      action: '2FA_SETUP',
+      method: '2FA-OTP',
+      success: true,
+    });
+  } catch (ex) {
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: '2FA_SETUP',
+      method: '2FA-OTP',
+      success: false,
+    });
+    throw new UserFacingError('There was an error setting up the 2FA method');
+  }
 });
 
 const toggleEnableDisableAuthFactorRoute = createRoute(
   routeDefinition.toggleEnableDisableAuthFactor.validators,
   async ({ params, user }, req, res) => {
     const { type, action } = params;
-    const authFactors = await toggleEnableDisableAuthFactor(user.id, type, action);
-    sendJson(res, authFactors);
+    try {
+      const authFactors = await toggleEnableDisableAuthFactor(user.id, type, action);
+      sendJson(res, authFactors);
 
-    const emailAction = action === 'enable' ? 'enabled' : 'disabled';
-    if (type === '2fa-email') {
-      await sendAuthenticationChangeConfirmation(user.email, `Email 2FA has been ${emailAction}`, {
-        preview: `Email 2FA has been ${emailAction}.`,
-        heading: `Email 2FA has been ${emailAction}`,
+      const emailAction = action === 'enable' ? 'enabled' : 'disabled';
+      if (type === '2fa-email') {
+        await sendAuthenticationChangeConfirmation(user.email, `Email 2FA has been ${emailAction}`, {
+          preview: `Email 2FA has been ${emailAction}.`,
+          heading: `Email 2FA has been ${emailAction}`,
+        });
+      } else if (type === '2fa-otp') {
+        await sendAuthenticationChangeConfirmation(user.email, `Authenticator app 2FA has been ${emailAction}`, {
+          preview: `Authenticator app 2FA has been ${emailAction}.`,
+          heading: `Authenticator app 2FA has been ${emailAction}`,
+        });
+      }
+
+      createUserActivityFromReq(req, res, {
+        action: action === 'enable' ? '2FA_ACTIVATE' : '2FA_DEACTIVATE',
+        method: type.toUpperCase(),
+        success: true,
       });
-    } else if (type === '2fa-otp') {
-      await sendAuthenticationChangeConfirmation(user.email, `Authenticator app 2FA has been ${emailAction}`, {
-        preview: `Authenticator app 2FA has been ${emailAction}.`,
-        heading: `Authenticator app 2FA has been ${emailAction}`,
+    } catch (ex) {
+      createUserActivityFromReqWithError(req, res, ex, {
+        action: action === 'enable' ? '2FA_ACTIVATE' : '2FA_DEACTIVATE',
+        method: type.toUpperCase(),
+        success: false,
       });
+      throw new UserFacingError(`There was an error ${action}ing the authentication factor`);
     }
-
-    createUserActivityFromReq(req, res, {
-      action: action === 'enable' ? '2FA_ACTIVATE' : '2FA_DEACTIVATE',
-      method: type.toUpperCase(),
-      success: true,
-    });
   }
 );
 
 const deleteAuthFactorRoute = createRoute(routeDefinition.deleteAuthFactor.validators, async ({ params, user }, req, res) => {
   const { type } = params;
-  const authFactors = await deleteAuthFactor(user.id, type);
-  sendJson(res, authFactors);
+  try {
+    const authFactors = await deleteAuthFactor(user.id, type);
+    sendJson(res, authFactors);
 
-  await sendAuthenticationChangeConfirmation(user.email, 'Two-factor authentication method removed', {
-    preview: 'Two-factor authentication method removed.',
-    heading: 'An authentication method has been removed',
-  });
+    await sendAuthenticationChangeConfirmation(user.email, 'Two-factor authentication method removed', {
+      preview: 'Two-factor authentication method removed.',
+      heading: 'An authentication method has been removed',
+    });
 
-  createUserActivityFromReq(req, res, {
-    action: '2FA_REMOVAL',
-    method: type.toUpperCase(),
-    success: true,
-  });
+    createUserActivityFromReq(req, res, {
+      action: '2FA_REMOVAL',
+      method: type.toUpperCase(),
+      success: true,
+    });
+  } catch (ex) {
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: '2FA_REMOVAL',
+      method: type?.toUpperCase(),
+      success: false,
+    });
+    throw new UserFacingError('There was an error removing the authentication factor');
+  }
 });
 
 const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, async ({ query, user }, req, res) => {
@@ -369,31 +405,40 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
 });
 
 const linkIdentity = createRoute(routeDefinition.linkIdentity.validators, async ({ query, user, setCookie }, req, res) => {
-  const { provider } = query;
-  const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+  try {
+    const { provider } = query;
+    const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
-  clearOauthCookies(res);
-  const { authorizationUrl, code_verifier, nonce } = await getAuthorizationUrl(provider);
-  if (code_verifier) {
-    setCookie(cookieConfig.pkceCodeVerifier.name, code_verifier, cookieConfig.pkceCodeVerifier.options);
+    clearOauthCookies(res);
+    const { authorizationUrl, code_verifier, nonce } = await getAuthorizationUrl(provider);
+    if (code_verifier) {
+      setCookie(cookieConfig.pkceCodeVerifier.name, code_verifier, cookieConfig.pkceCodeVerifier.options);
+    }
+    if (nonce) {
+      setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
+    }
+    setCookie(cookieConfig.linkIdentity.name, '1', cookieConfig.linkIdentity.options);
+    setCookie(cookieConfig.returnUrl.name, `${ENV.JETSTREAM_CLIENT_URL}/app/profile`, cookieConfig.returnUrl.options);
+    redirect(res, authorizationUrl.toString());
+
+    await sendAuthenticationChangeConfirmation(user.email, 'A new identity has been linked to your account', {
+      preview: 'A new identity has been linked to your account.',
+      heading: 'A new login method has been added to your account',
+    });
+
+    createUserActivityFromReq(req, res, {
+      action: 'LINK_IDENTITY_INIT',
+      method: 'USER_PROFILE',
+      success: true,
+    });
+  } catch (ex) {
+    createUserActivityFromReqWithError(req, res, ex, {
+      action: 'LINK_IDENTITY_INIT',
+      method: 'USER_PROFILE',
+      success: false,
+    });
+    throw new UserFacingError('There was an error linking the identity');
   }
-  if (nonce) {
-    setCookie(cookieConfig.nonce.name, nonce, cookieConfig.nonce.options);
-  }
-  setCookie(cookieConfig.linkIdentity.name, '1', cookieConfig.linkIdentity.options);
-  setCookie(cookieConfig.returnUrl.name, `${ENV.JETSTREAM_CLIENT_URL}/app/profile`, cookieConfig.returnUrl.options);
-  redirect(res, authorizationUrl.toString());
-
-  await sendAuthenticationChangeConfirmation(user.email, 'A new identity has been linked to your account', {
-    preview: 'A new identity has been linked to your account.',
-    heading: 'A new login method has been added to your account',
-  });
-
-  createUserActivityFromReq(req, res, {
-    action: 'LINK_IDENTITY_INIT',
-    method: 'USER_PROFILE',
-    success: true,
-  });
 });
 
 const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, async ({ body, user, requestId }, req, res) => {

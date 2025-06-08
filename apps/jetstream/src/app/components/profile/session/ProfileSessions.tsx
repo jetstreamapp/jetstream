@@ -1,11 +1,9 @@
 import { css } from '@emotion/react';
-import { UserSessionWithLocation } from '@jetstream/auth/types';
-import { logger } from '@jetstream/shared/client-logger';
-import { getUserSessions, revokeAllUserSessions, revokeUserSession } from '@jetstream/shared/data';
 import { DropDownItem } from '@jetstream/types';
-import { Card, ConfirmationModalPromise, DropDown, fireToast, ScopedNotification, Spinner } from '@jetstream/ui';
+import { Card, DropDown, Grid, ScopedNotification, Spinner } from '@jetstream/ui';
 import partition from 'lodash/partition';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useSessionData } from '../useSessionData';
 import { ProfileSessionItem } from './ProfileSessionItem';
 
 const items: DropDownItem[] = [
@@ -16,74 +14,17 @@ const items: DropDownItem[] = [
   },
 ];
 
-export const ProfileSessions = () => {
-  const [currentSessionId, setCurrentSessionId] = useState<string>();
-  const [sessions, setSessions] = useState<UserSessionWithLocation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>();
+export const ProfileSessions = ({ sessionData }: { sessionData: ReturnType<typeof useSessionData> }) => {
+  const { errorMessage, isLoading, revokeAllSessions, revokeSession } = sessionData;
+  const { currentSessionId, sessions, webTokenSessions } = sessionData.sessions;
 
   const [currentSession, otherSessions] = useMemo(() => {
     return partition(sessions, (session) => session.sessionId === currentSessionId);
   }, [currentSessionId, sessions]);
 
-  const getSessions = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setErrorMessage(null);
-      const response = await getUserSessions();
-      setCurrentSessionId(response.currentSessionId);
-      setSessions(response.sessions);
-    } catch (ex) {
-      logger.error('Failed to get sessions', ex);
-      setErrorMessage('Failed to get sessions, please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    getSessions();
-  }, [getSessions]);
-
-  async function handleRevokeSession(sessionId: string) {
-    try {
-      if (
-        await ConfirmationModalPromise({
-          content: 'Are you sure you want to revoke this session?',
-        })
-      ) {
-        setIsLoading(true);
-        const response = await revokeUserSession(sessionId);
-        setCurrentSessionId(response.currentSessionId);
-        setSessions(response.sessions);
-      }
-    } catch (ex) {
-      logger.error('Failed to revoke session', ex);
-      fireToast({ message: 'There was an error revoking your sessions, try again later.', type: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   async function handleMenuAction(action: string) {
-    try {
-      if (action === 'revoke-all') {
-        if (
-          await ConfirmationModalPromise({
-            content: 'Are you sure you want to revoke all sessions?',
-          })
-        ) {
-          setIsLoading(true);
-          const response = await revokeAllUserSessions(currentSessionId);
-          setCurrentSessionId(response.currentSessionId);
-          setSessions(response.sessions);
-        }
-      }
-    } catch (ex) {
-      logger.error('Failed to revoke sessions', ex);
-      fireToast({ message: 'There was an error revoking your sessions, try again later.', type: 'error' });
-    } finally {
-      setIsLoading(false);
+    if (action === 'revoke-all') {
+      revokeAllSessions();
     }
   }
 
@@ -91,7 +32,17 @@ export const ProfileSessions = () => {
     <Card
       className="slds-is-relative"
       bodyClassName={null}
-      title="Sessions"
+      title={
+        <Grid verticalAlign="center">
+          Sessions{' '}
+          {isLoading && currentSession && (
+            <Spinner
+              className="slds-m-left_x-small slds-m-top_x-small slds-spinner slds-spinner_brand slds-spinner_x-small slds-spinner_inline"
+              hasContainer={false}
+            />
+          )}
+        </Grid>
+      }
       icon={{
         type: 'standard',
         icon: 'screen',
@@ -107,21 +58,49 @@ export const ProfileSessions = () => {
       }
     >
       {errorMessage && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
-      {isLoading && <Spinner />}
+      {isLoading && !currentSession && <Spinner />}
       {currentSession.map((session) => (
         <ProfileSessionItem
           key={session.sessionId}
-          session={session}
+          type="SESSION"
+          sessionId={session.sessionId}
+          createdAt={session.loginTime}
+          expiresAt={session.expires}
+          ipAddress={session.ipAddress}
+          provider={session.provider}
+          userAgent={session.userAgent}
+          location={session.location}
           isCurrentSession={session.sessionId === currentSessionId}
-          onRevokeSession={handleRevokeSession}
+          onRevokeSession={revokeSession}
         />
       ))}
       {otherSessions.map((session) => (
         <ProfileSessionItem
           key={session.sessionId}
-          session={session}
+          type="SESSION"
+          sessionId={session.sessionId}
+          createdAt={session.loginTime}
+          expiresAt={session.expires}
+          ipAddress={session.ipAddress}
+          provider={session.provider}
+          userAgent={session.userAgent}
+          location={session.location}
           isCurrentSession={session.sessionId === currentSessionId}
-          onRevokeSession={handleRevokeSession}
+          onRevokeSession={revokeSession}
+        />
+      ))}
+      {webTokenSessions.map((session) => (
+        <ProfileSessionItem
+          key={session.id}
+          type="EXTERNAL_SESSION"
+          sessionId={session.id}
+          createdAt={session.createdAt}
+          expiresAt={session.expiresAt}
+          ipAddress={session.ipAddress}
+          source={session.source}
+          userAgent={session.userAgent}
+          location={session.location}
+          onRevokeSession={revokeSession}
         />
       ))}
     </Card>

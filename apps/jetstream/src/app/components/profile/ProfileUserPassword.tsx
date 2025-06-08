@@ -90,10 +90,10 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
     );
   }
 
-  return <SetPassword onSetPassword={onSetPassword} />;
+  return <SetPassword username={fullUserProfile.email} onSetPassword={onSetPassword} />;
 };
 
-function SetPassword({ onSetPassword }: { onSetPassword: (password: string) => Promise<void> }) {
+function SetPassword({ username, onSetPassword }: { username: string; onSetPassword: (password: string) => Promise<void> }) {
   const [changePasswordActive, setChangePasswordActive] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -130,6 +130,8 @@ function SetPassword({ onSetPassword }: { onSetPassword: (password: string) => P
     return (
       <form className="slds-is-relative slds-m-top_small" onSubmit={handleSubmit(handleSetPassword)}>
         {loading && <Spinner />}
+
+        <input hidden readOnly name="username" value={username} autoComplete="username" />
 
         <FormRowItem>
           <Input

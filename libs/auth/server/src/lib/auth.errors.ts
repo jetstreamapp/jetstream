@@ -21,6 +21,7 @@ type ErrorOptions = Error | Record<string, unknown>;
 export class AuthError extends Error {
   type: ErrorType;
   kind?: 'signIn' | 'error';
+  userId?: string;
 
   constructor(message?: string | Error, errorOptions?: ErrorOptions) {
     if (message instanceof Error) {
@@ -42,6 +43,10 @@ export class AuthError extends Error {
 
     // @ts-expect-error https://github.com/microsoft/TypeScript/issues/3841
     this.kind = this.constructor.kind ?? 'error';
+
+    if (errorOptions && 'userId' in errorOptions && typeof errorOptions.userId === 'string') {
+      this.userId = errorOptions.userId;
+    }
 
     Error.captureStackTrace?.(this, this.constructor);
   }

@@ -25,12 +25,14 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { userProfileState } from '@jetstream/ui/app-state';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
 import { Profile2fa } from './2fa/Profile2fa';
 import { ProfileLinkedAccounts } from './ProfileLinkedAccounts';
 import { ProfileUserProfile } from './ProfileUserProfile';
+import { ProfileLoginActivity } from './session/ProfileLoginActivity';
 import { ProfileSessions } from './session/ProfileSessions';
+import { useSessionData } from './useSessionData';
 
 const HEIGHT_BUFFER = 170;
 
@@ -45,8 +47,8 @@ export const Profile = () => {
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const [editMode, setEditMode] = useState(false);
-  // const { linkAccount, unlinkAccount, loading: linkAccountLoading, providers } = useLinkAccount();
-  // const {csrfToken} = useCsrfToken();
+
+  const sessionData = useSessionData();
 
   useEffect(() => {
     isMounted.current = true;
@@ -55,24 +57,20 @@ export const Profile = () => {
     };
   }, []);
 
-  const getUserProfile = useCallback(async () => {
-    setLoading(true);
-    try {
-      setLoadingError(false);
-      setFullUserProfile(await getFullUserProfile());
-    } catch (ex) {
-      rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
-      setLoadingError(true);
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
-    getUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    (async () => {
+      setLoading(true);
+      try {
+        setLoadingError(false);
+        setFullUserProfile(await getFullUserProfile());
+      } catch (ex) {
+        rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
+        setLoadingError(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [rollbar]);
 
   useEffect(() => {
     if (fullUserProfile) {
@@ -89,6 +87,7 @@ export const Profile = () => {
       const userProfile = await updateUserProfile({ name: modifiedUser.name });
       setUserProfile(await getUserProfileUi());
       setFullUserProfile(userProfile);
+      sessionData.getSessions();
       trackEvent(ANALYTICS_KEYS.settings_update_user);
     } catch (ex) {
       logger.warn('Error updating user', ex);
@@ -110,6 +109,7 @@ export const Profile = () => {
       }
       return { ...prior, authFactors };
     });
+    sessionData.getSessions();
   }
 
   function handleCancelEdit() {
@@ -121,6 +121,7 @@ export const Profile = () => {
     try {
       setFullUserProfile(await initPassword(password));
       trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'set-password' });
+      sessionData.getSessions();
     } catch (ex) {
       fireToast({
         message: ex.message || 'There was a problem resetting your password. Try again or file a support ticket for assistance.',
@@ -133,6 +134,7 @@ export const Profile = () => {
   async function handleResetPassword() {
     try {
       await initResetPassword();
+      sessionData.getSessions();
       trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'reset-password' });
       fireToast({
         message: 'An email has been sent to continue the password reset process.',
@@ -150,6 +152,7 @@ export const Profile = () => {
   async function handleRemovePassword() {
     try {
       setFullUserProfile(await removePassword());
+      sessionData.getSessions();
       trackEvent(ANALYTICS_KEYS.settings_password_action, { action: 'remove-password' });
     } catch (ex) {
       fireToast({
@@ -182,7 +185,7 @@ export const Profile = () => {
         )}
         {fullUserProfile && (
           <Grid wrap gutters>
-            <GridCol size={12} sizeMedium={6}>
+            <GridCol className="slds-m-bottom_large" size={12} sizeMedium={6} sizeLarge={4}>
               <ProfileUserProfile
                 fullUserProfile={fullUserProfile}
                 name={modifiedUser?.name || ''}
@@ -201,8 +204,12 @@ export const Profile = () => {
               <ProfileLinkedAccounts fullUserProfile={fullUserProfile} onUserProfilesChange={setFullUserProfile} />
             </GridCol>
 
-            <GridCol size={12} sizeMedium={6}>
-              <ProfileSessions />
+            <GridCol className="slds-m-bottom_large" size={12} sizeMedium={6} sizeLarge={4}>
+              <ProfileSessions sessionData={sessionData} />
+            </GridCol>
+
+            <GridCol className="slds-m-bottom_large" size={12} sizeMedium={6} sizeLarge={4}>
+              <ProfileLoginActivity sessionData={sessionData} />
             </GridCol>
           </Grid>
         )}

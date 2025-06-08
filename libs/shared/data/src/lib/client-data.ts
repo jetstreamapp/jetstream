@@ -4,7 +4,7 @@ import type {
   TwoFactorTypeWithoutEmail,
   UserProfileAuthFactor,
   UserProfileUiWithIdentities,
-  UserSessionWithLocation,
+  UserSessionAndExtTokensAndActivityWithLocation,
 } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
@@ -128,7 +128,7 @@ export async function updateUserProfile<T = UserProfileUiWithIdentities>(userPro
   return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getUserSessions(): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
+export async function getUserSessions(): Promise<UserSessionAndExtTokensAndActivityWithLocation> {
   return handleRequest({ method: 'GET', url: '/api/me/profile/sessions' }).then(unwrapResponseIgnoreCache);
 }
 
@@ -140,11 +140,16 @@ export async function getCsrfToken(): Promise<{ csrfToken: string }> {
   return handleRequest({ method: 'GET', url: '/api/auth/csrf' }).then(unwrapResponseIgnoreCache);
 }
 
-export async function revokeUserSession(sessionId: string): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
-  return handleRequest({ method: 'DELETE', url: `/api/me/profile/sessions/${sessionId}` }).then(unwrapResponseIgnoreCache);
+export async function revokeUserSession(
+  sessionId: string,
+  type: 'SESSION' | 'EXTERNAL_SESSION'
+): Promise<UserSessionAndExtTokensAndActivityWithLocation> {
+  return handleRequest({ method: 'DELETE', url: `/api/me/profile/sessions/${sessionId}`, params: { type } }).then(
+    unwrapResponseIgnoreCache
+  );
 }
 
-export async function revokeAllUserSessions(exceptId?: string): Promise<{ currentSessionId: string; sessions: UserSessionWithLocation[] }> {
+export async function revokeAllUserSessions(exceptId?: string): Promise<UserSessionAndExtTokensAndActivityWithLocation> {
   return handleRequest({ method: 'DELETE', url: '/api/me/profile/sessions/', data: { exceptId } }).then(unwrapResponseIgnoreCache);
 }
 
