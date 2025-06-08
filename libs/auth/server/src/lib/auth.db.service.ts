@@ -556,21 +556,21 @@ export const generatePasswordResetToken = async (email: string) => {
 export const resetUserPassword = async (email: string, token: string, password: string) => {
   email = email.toLowerCase();
 
-  const restToken = await prisma.passwordResetToken.findUnique({
+  const resetToken = await prisma.passwordResetToken.findUnique({
     where: { email_token: { email, token } },
   });
 
-  if (!restToken) {
+  if (!resetToken) {
     throw new InvalidOrExpiredResetToken('Missing reset token');
   }
 
   // delete token - we don't need it anymore and if we fail later, the user will need to reset again
   await prisma.passwordResetToken.delete({
-    where: { email_token: { email, token: restToken.token } },
+    where: { email_token: { email, token: resetToken.token } },
   });
 
-  if (restToken.expiresAt < new Date()) {
-    throw new InvalidOrExpiredResetToken(`Expired at ${restToken.expiresAt.toISOString()}`);
+  if (resetToken.expiresAt < new Date()) {
+    throw new InvalidOrExpiredResetToken(`Expired at ${resetToken.expiresAt.toISOString()}`);
   }
 
   const hashedPassword = await hashPassword(password);
@@ -581,13 +581,13 @@ export const resetUserPassword = async (email: string, token: string, password: 
       passwordUpdatedAt: new Date(),
     },
     where: {
-      id: restToken.userId,
+      id: resetToken.userId,
     },
   });
 
-  await revokeAllUserSessions(restToken.userId);
+  await revokeAllUserSessions(resetToken.userId);
 
-  return restToken.userId;
+  return resetToken.userId;
 };
 
 export const removePasswordFromUser = async (id: string) => {
