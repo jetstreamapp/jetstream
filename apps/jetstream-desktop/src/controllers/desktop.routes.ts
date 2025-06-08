@@ -1,3 +1,4 @@
+import { app } from 'electron';
 import { Router } from 'tiny-request-router';
 import { handleJsonResponse, RequestOptions } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './jetstream-data-sync.desktop.controller';
@@ -15,7 +16,7 @@ const router = new Router<(req: RequestOptions) => Promise<Response>>();
 export const desktopRoutes = router;
 
 router.get('/api/heartbeat', async (req) => {
-  return handleJsonResponse({ version: 'unknown' });
+  return handleJsonResponse({ version: app.getVersion() });
 });
 router.get('/api/me', userController.getUserProfile.controllerFn());
 router.get('/api/me/profile', userController.getFullUserProfile.controllerFn());

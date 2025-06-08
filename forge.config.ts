@@ -148,8 +148,9 @@ const config: ForgeConfig = {
         owner: 'jetstreamapp',
         name: 'jetstream',
       },
-      draft: true,
       prerelease: true,
+      generateReleaseNotes: true,
+      tagPrefix: 'desktop-v',
     }),
   ],
   plugins: [
