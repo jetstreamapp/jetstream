@@ -5,7 +5,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
-import { PublisherGithub } from '@electron-forge/publisher-github';
+import { PublisherS3 } from '@electron-forge/publisher-s3';
 import type { ForgeConfig, ForgePackagerOptions } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import path from 'node:path';
@@ -106,7 +106,12 @@ const config: ForgeConfig = {
   packagerConfig,
   rebuildConfig: {},
   makers: [
-    new MakerZIP({}, ['darwin', 'linux', 'win32']),
+    new MakerZIP(
+      (arch) => ({
+        macUpdateManifestBaseUrl: `https://desktop-updates.s3.us-east-005.backblazeb2.com/jetstream/${arch}`,
+      }),
+      ['darwin', 'win32']
+    ),
     new MakerDMG(
       {
         format: 'ULFO',
@@ -116,7 +121,7 @@ const config: ForgeConfig = {
       ['darwin']
     ),
     new MakerSquirrel(
-      {
+      (arch) => ({
         authors: 'Jetstream Solutions, LLC',
         name: 'Jetstream',
         description:
@@ -125,33 +130,32 @@ const config: ForgeConfig = {
         windowsSign: {
           // TODO
         },
+        remoteReleases: `https://desktop-updates.s3.us-east-005.backblazeb2.com/jetstream/win32/${arch}`,
         setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
-      },
+      }),
       ['win32']
     ),
-    // I doubt there are many, if any, linux users
-    // new MakerDeb({
-    //   options: {
-    //     mimeType: ['x-scheme-handler/jetstream'],
-    //   },
-    // }),
-    // new MakerRpm({
-    //   options: {
-    //     mimeType: ['x-scheme-handler/jetstream'],
-    //   },
-    // }),
   ],
   publishers: [
-    new PublisherGithub({
-      repository: {
-        owner: 'jetstreamapp',
-        name: 'jetstream',
-      },
-      prerelease: true,
-      generateReleaseNotes: true,
-      tagPrefix: 'desktop-v',
+    new PublisherS3({
+      accessKeyId: process.env.BACKBLAZE_ACCESS_KEY_ID,
+      secretAccessKey: process.env.BACKBLAZE_SECRET_ACCESS_KEY,
+      endpoint: 'https://s3.us-east-005.backblazeb2.com',
+      bucket: 'desktop-updates',
+      region: 'us-east-005',
+      folder: 'jetstream',
+      public: true,
     }),
+    // new PublisherGithub({
+    //   repository: {
+    //     owner: 'jetstreamapp',
+    //     name: 'jetstream',
+    //   },
+    //   prerelease: true,
+    //   generateReleaseNotes: true,
+    //   tagPrefix: 'desktop-v',
+    // }),
   ],
   plugins: [
     new AutoUnpackNativesPlugin({}),

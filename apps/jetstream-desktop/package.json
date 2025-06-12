@@ -15,6 +15,11 @@
     "build:windows:x64": "npx electron-forge make --platform=win32 --arch=x64",
     "build:windows:arm64": "npx electron-forge make --platform=win32 --arch=arm64"
   },
+  "resolutions": {
+    "@aws-sdk/client-s3": "3.726.1",
+    "@aws-sdk/lib-storage": "3.726.1",
+    "@aws-sdk/types": "3.723.0"
+  },
   "devDependencies": {},
   "dependencies": {}
 }

@@ -56,6 +56,7 @@ const yarnAddDevDeps = (() => {
     '@electron-forge/maker-zip',
     '@electron-forge/plugin-auto-unpack-natives',
     '@electron-forge/plugin-fuses',
+    '@electron-forge/publisher-s3',
     '@electron-forge/publisher-github',
     '@electron/fuses',
     'dotenv',
@@ -103,7 +104,14 @@ async function build() {
   await $`yarn remove ${yarnRemoveDeps}`;
   await remove(join(TARGET_DIR, 'node_modules/.prisma'));
 
-  const envContent = ['GITHUB_TOKEN', 'APPLE_ID', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']
+  const envContent = [
+    'APPLE_ID',
+    'APPLE_PASSWORD',
+    'APPLE_TEAM_ID',
+    'BACKBLAZE_ACCESS_KEY_ID',
+    'BACKBLAZE_SECRET_ACCESS_KEY',
+    'GITHUB_TOKEN',
+  ]
     .filter((key) => process.env[key])
     .map((key) => `${key}=${process.env[key] ?? ''}`)
     .join('\n');
