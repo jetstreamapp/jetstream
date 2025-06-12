@@ -53,4 +53,11 @@ teardown('login and ensure org exists', async ({ page, request }) => {
     },
   });
   console.log(`Deleted ${results.count} session records`);
+
+  results = await prisma.loginConfiguration.deleteMany({
+    where: {
+      domains: { has: 'example.com' },
+    },
+  });
+  console.log(`Deleted ${results.count} loginConfiguration records`);
 });

@@ -1,10 +1,11 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
-import { OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
+import { OauthAndLocalProviders, OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
 import { parse as parseCookie } from 'cookie';
 import * as crypto from 'crypto';
 import type { Response } from 'express';
 import * as QRCode from 'qrcode';
 import { OauthClientProvider, OauthClients } from './OauthClients';
+import { getLoginConfiguration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken } from './auth.errors';
 import { getCookieConfig, validateCSRFToken } from './auth.utils';
 
@@ -143,6 +144,14 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
     nonce,
     authorizationUrl,
   };
+}
+
+export async function isProviderAllowed(email: string, provider: OauthAndLocalProviders): Promise<boolean> {
+  const loginConfiguration = await getLoginConfiguration(email);
+  if (!loginConfiguration) {
+    return true;
+  }
+  return loginConfiguration.allowedProviders.has(provider);
 }
 
 export async function validateCallback(

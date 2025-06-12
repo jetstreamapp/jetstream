@@ -3,6 +3,8 @@ import {
   AuthenticatedUser,
   ExternalTokenSessionWithLocation,
   LoginActivityUserFacing,
+  LoginConfiguration,
+  LoginConfigurationSchema,
   OauthProviderType,
   ProviderTypeCredentials,
   ProviderTypeOauth,
@@ -20,6 +22,7 @@ import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
+import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
 import {
@@ -32,6 +35,12 @@ import {
 } from './auth.errors';
 import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, verifyPassword } from './auth.utils';
+
+const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
+  max: 500,
+  // 5 minutes
+  ttl: 300_000,
+});
 
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
   id: true,
@@ -97,6 +106,37 @@ export async function findUserById_UNSAFE(id: string) {
     select: userSelect,
     where: { id },
   });
+}
+
+export async function getLoginConfiguration(email: string): Promise<LoginConfiguration | null> {
+  const domain = email?.split('@')[1];
+  if (!domain) {
+    return null;
+  }
+
+  const cachedValue = LOGIN_CONFIGURATION_CACHE.get(domain)?.value;
+  if (cachedValue) {
+    return cachedValue;
+  }
+
+  return prisma.loginConfiguration
+    .findFirst({
+      select: {
+        id: true,
+        allowedMfaMethods: true,
+        allowedProviders: true,
+        requireMfa: true,
+      },
+      where: { domains: { has: domain } },
+    })
+    .then((config) => {
+      if (!config) {
+        return null;
+      }
+      const value = LoginConfigurationSchema.parse(config);
+      LOGIN_CONFIGURATION_CACHE.set(domain, { value });
+      return value;
+    });
 }
 
 export async function setUserEmailVerified(id: string) {

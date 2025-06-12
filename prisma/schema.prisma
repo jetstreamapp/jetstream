@@ -54,6 +54,31 @@ model AuthFactors {
   @@id([userId, type])
 }
 
+model LoginConfiguration {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  domains           String[]       @default([]) @db.VarChar(255)
+  requireMfa        Boolean        @default(false)
+  allowedMfaMethods AuthFactor[]   @default([otp, email])
+  allowedProviders  AuthProvider[] @default([credentials, google, salesforce])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([domains])
+  @@map("login_configuration")
+}
+
+enum AuthFactor {
+  otp
+  email
+}
+
+enum AuthProvider {
+  credentials
+  google
+  salesforce
+}
+
 model PasswordResetToken {
   userId    String   @db.Uuid
   email     String
