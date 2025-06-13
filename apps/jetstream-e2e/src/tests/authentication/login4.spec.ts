@@ -35,7 +35,7 @@ test.describe('Login 4 - login configuration', () => {
       await playwrightPage.logout();
       await expect(page.getByTestId('home-hero-container')).toBeVisible();
 
-      await authenticationPage.fillOutLoginForm(user.email, user.password);
+      await authenticationPage.loginAndVerifyEmail(user.email, user.password, true);
       await page.waitForURL(`**/app`);
       expect(page.url()).toContain('/app');
 
