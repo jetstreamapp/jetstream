@@ -22,19 +22,45 @@ test.describe.configure({ mode: 'parallel' });
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Login 4 - login configuration', () => {
-  test('Allowed providers is enforced', async ({ page, authenticationPage, apiRequestUtils }) => {
+  test('Allowed providers is enforced', async ({ page, authenticationPage, playwrightPage }) => {
     await test.step('Username/password is not allowed for example.com', async () => {
-      await authenticationPage.fillOutSignUpForm(
-        'test@example.com',
-        authenticationPage.generateTestName(),
-        authenticationPage.generateTestPassword(),
-        authenticationPage.generateTestPassword()
-      );
+      const password = authenticationPage.generateTestPassword();
+      await authenticationPage.fillOutSignUpForm('test@example.com', authenticationPage.generateTestName(), password, password);
       await expect(page.getByText('method is not allowed')).toBeVisible();
     });
 
-    await test.step('Other domains can sign up', async () => {
-      await authenticationPage.signUpAndVerifyEmail();
+    const existingUser = await test.step('Other domains can sign up and login', async () => {
+      const user = await authenticationPage.signUpAndVerifyEmail();
+
+      await playwrightPage.logout();
+      await expect(page.getByTestId('home-hero-container')).toBeVisible();
+
+      await authenticationPage.fillOutLoginForm(user.email, user.password);
+      await page.waitForURL(`**/app`);
+      expect(page.url()).toContain('/app');
+
+      await playwrightPage.logout();
+      await expect(page.getByTestId('home-hero-container')).toBeVisible();
+
+      return user;
+    });
+
+    await test.step('Add domain restriction to existing users', async () => {
+      const { email, name, password } = existingUser;
+      const newEmail = email.replace('@', '@test.');
+      const user = await prisma.user.findFirstOrThrow({ where: { email } });
+      await prisma.user.update({ where: { id: user.id }, data: { email: newEmail } });
+      await prisma.loginConfiguration.create({
+        data: {
+          allowedMfaMethods: ['email'],
+          allowedProviders: ['salesforce'],
+          domains: ['test.getjetstream.app'],
+          requireMfa: false,
+        },
+      });
+
+      await authenticationPage.fillOutLoginForm('test@example.com', password);
+      await expect(page.getByText('method is not allowed')).toBeVisible();
     });
   });
 });

@@ -1,13 +1,13 @@
 import { prisma } from '@jetstream/api-config';
 import { test as teardown } from '@playwright/test';
 
-teardown('login and ensure org exists', async ({ page, request }) => {
+teardown('Delete database records', async ({ page, request }) => {
   console.log('GLOBAL TEARDOWN - STARTED');
   let results = await prisma.user.deleteMany({
     where: {
       email: {
         startsWith: 'test-',
-        endsWith: '@getjetstream.app',
+        endsWith: 'getjetstream.app',
       },
     },
   });
@@ -17,7 +17,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
     where: {
       email: {
         startsWith: 'test-',
-        endsWith: '@getjetstream.app',
+        endsWith: 'getjetstream.app',
       },
     },
   });
@@ -27,7 +27,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
     where: {
       email: {
         startsWith: 'test-',
-        endsWith: '@getjetstream.app',
+        endsWith: 'getjetstream.app',
       },
     },
   });
@@ -37,7 +37,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
     where: {
       email: {
         startsWith: 'test-',
-        endsWith: '@getjetstream.app',
+        endsWith: 'getjetstream.app',
       },
     },
   });
@@ -48,7 +48,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
       sess: {
         path: ['user', 'email'],
         string_starts_with: 'test-',
-        string_ends_with: '@getjetstream.app',
+        string_ends_with: 'getjetstream.app',
       },
     },
   });
@@ -56,7 +56,7 @@ teardown('login and ensure org exists', async ({ page, request }) => {
 
   results = await prisma.loginConfiguration.deleteMany({
     where: {
-      domains: { has: 'example.com' },
+      domains: { hasSome: ['example.com', 'test.getjetstream.app'] },
     },
   });
   console.log(`Deleted ${results.count} loginConfiguration records`);
