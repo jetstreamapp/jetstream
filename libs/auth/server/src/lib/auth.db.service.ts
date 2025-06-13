@@ -114,9 +114,9 @@ export async function getLoginConfiguration(email: string): Promise<LoginConfigu
     return null;
   }
 
-  const cachedValue = LOGIN_CONFIGURATION_CACHE.get(domain)?.value;
+  const cachedValue = LOGIN_CONFIGURATION_CACHE.get(domain);
   if (cachedValue) {
-    return cachedValue;
+    return cachedValue.value;
   }
 
   return prisma.loginConfiguration
