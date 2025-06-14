@@ -14,7 +14,8 @@ type ErrorType =
   | 'InvalidVerificationToken'
   | 'InvalidVerificationType'
   | 'LoginWithExistingIdentity'
-  | 'MissingEntitlement';
+  | 'MissingEntitlement'
+  | 'ProviderNotAllowed';
 
 type ErrorOptions = Error | Record<string, unknown>;
 
@@ -110,4 +111,8 @@ export class InvalidAccessToken extends AuthError {
 
 export class MissingEntitlement extends AuthError {
   static type: ErrorType = 'MissingEntitlement';
+}
+
+export class ProviderNotAllowed extends AuthError {
+  static type: ErrorType = 'ProviderNotAllowed';
 }

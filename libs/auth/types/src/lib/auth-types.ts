@@ -273,10 +273,22 @@ export type ProviderType = z.infer<typeof ProviderTypeSchema>;
 
 export const OauthProviderTypeSchema = z.enum(['salesforce', 'google']);
 export const LocalProviderTypeSchema = z.enum(['credentials']);
+export const OauthAndLocalProvidersSchema = z.union([OauthProviderTypeSchema, LocalProviderTypeSchema]);
 
 export type OauthProviderType = z.infer<typeof OauthProviderTypeSchema>;
 export type LocalProviderType = z.infer<typeof LocalProviderTypeSchema>;
-export type OauthAndLocalProviders = OauthProviderType | LocalProviderType;
+export type OauthAndLocalProviders = z.infer<typeof OauthAndLocalProvidersSchema>;
+
+export const MfaMethodSchema = z.enum(['otp', 'email']);
+export type MfaMethod = z.infer<typeof MfaMethodSchema>;
+
+export const LoginConfigurationSchema = z.object({
+  id: z.string().uuid(),
+  allowedMfaMethods: z.array(MfaMethodSchema).transform((value) => new Set(value)),
+  allowedProviders: z.array(OauthAndLocalProvidersSchema).transform((value) => new Set(value)),
+  requireMfa: z.boolean(),
+});
+export type LoginConfiguration = z.infer<typeof LoginConfigurationSchema>;
 
 // TODO: could do discriminated union?
 export const ProviderBaseSchema = z.object({

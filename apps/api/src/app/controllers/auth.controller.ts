@@ -22,9 +22,11 @@ import {
   InvalidSession,
   InvalidVerificationToken,
   InvalidVerificationType,
+  isProviderAllowed,
   linkIdentityToUser,
   getProviders as listProviders,
   PASSWORD_RESET_DURATION_MINUTES,
+  ProviderNotAllowed,
   resetUserPassword,
   setUserEmailVerified,
   TOKEN_DURATION_MINUTES,
@@ -358,6 +360,10 @@ const callback = createRoute(
           throw new InvalidParameters('Missing email from OAuth provider');
         }
 
+        if (!(await isProviderAllowed(userInfo.email, provider.provider))) {
+          throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
+        }
+
         const providerUser = {
           id: userInfo.sub,
           email: userInfo.email,
@@ -402,6 +408,10 @@ const callback = createRoute(
         }
         const { action, csrfToken, email, password } = body;
         await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+
+        if (!(await isProviderAllowed(email, provider.provider))) {
+          throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for ${email}`);
+        }
 
         const sessionData =
           action === 'login'

@@ -57,4 +57,5 @@ export const SIGN_IN_ERRORS = {
   InvalidOrExpiredResetToken: 'Your reset token is invalid, please restart the reset process.',
   InvalidAccessToken: 'Your session is invalid, please sign in again.',
   MissingEntitlement: `You are not permitted to access this feature.`,
+  ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
 };
