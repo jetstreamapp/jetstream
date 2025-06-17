@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        name: Checkout [master]
+        name: Checkout [main]
         with:
           fetch-depth: 0
 
@@ -55,6 +55,54 @@ jobs:
         with:
           name: dist-artifacts
           path: dist
+
+  test-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout [main]
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      # This is annoying since we have to run it here and in docker container
+      # it is used for the .env config - maybe there is a better way to do this?
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: generate .env file
+        run: yarn scripts:generate-env --silent
+
+      - name: Build Docker image
+        run: docker build -t jetstream-app .
+
+      - name: Start containers
+        run: docker compose -f docker-compose.yml up -d
+
+      - name: Wait for containers
+        run: |
+          echo "Waiting for containers to be healthy..."
+          timeout 30 bash -c 'until docker compose ps | grep -q "healthy"; do sleep 1; done'
+
+      - name: Check containers
+        run: docker compose ps
+
+      - name: Test API endpoints
+        run: |
+          echo "Testing API endpoints..."
+          curl --fail --retry 5 --retry-delay 2 http://localhost:3333/healthz
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
 
   test-cron:
     runs-on: ubuntu-latest
@@ -146,7 +194,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        name: Checkout [master]
+        name: Checkout [main]
         with:
           fetch-depth: 0
 
