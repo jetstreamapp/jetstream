@@ -8,6 +8,7 @@ import {
   OrganizationsPage,
   PlatformEventPage,
   PlaywrightPage,
+  ProfilePage,
   QueryPage,
 } from '@jetstream/test/e2e-utils';
 import { test as base } from '@playwright/test';
@@ -43,6 +44,7 @@ type MyFixtures = {
   organizationsPage: OrganizationsPage;
   loadWithoutFilePage: LoadWithoutFilePage;
   platformEventPage: PlatformEventPage;
+  profilePage: ProfilePage;
 };
 
 export const test = base.extend<MyFixtures>({
@@ -62,9 +64,9 @@ export const test = base.extend<MyFixtures>({
   newUser: async ({ authenticationPage }, use) => {
     await use(await authenticationPage.signUpAndVerifyEmail());
   },
-  queryPage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
+  queryPage: async ({ page, apiRequestUtils }, use) => {
     await apiRequestUtils.selectDefaultOrg();
-    await use(new QueryPage(page, apiRequestUtils, playwrightPage));
+    await use(new QueryPage(page, apiRequestUtils));
   },
   loadSingleObjectPage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
     await apiRequestUtils.selectDefaultOrg();
@@ -80,6 +82,10 @@ export const test = base.extend<MyFixtures>({
   platformEventPage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
     await apiRequestUtils.selectDefaultOrg();
     await use(new PlatformEventPage(page, apiRequestUtils, playwrightPage));
+  },
+  profilePage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
+    await apiRequestUtils.selectDefaultOrg();
+    await use(new ProfilePage(page, playwrightPage));
   },
 });
 

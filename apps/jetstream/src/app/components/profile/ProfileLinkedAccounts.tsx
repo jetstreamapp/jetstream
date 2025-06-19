@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import type { UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { LoginConfigurationUI, UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useCsrfToken, useRollbar } from '@jetstream/shared/ui-utils';
 import { fireToast, Grid } from '@jetstream/ui';
@@ -10,6 +10,7 @@ import { useLinkAccount } from './useLinkAccount';
 
 export interface ProfileLinkedAccountsProps {
   fullUserProfile: UserProfileUiWithIdentities;
+  loginConfiguration: LoginConfigurationUI | null;
   onUserProfilesChange: (userProfile: UserProfileUiWithIdentities) => void;
 }
 
@@ -18,10 +19,14 @@ const searchParams = new URLSearchParams({
   isAccountLink: 'true',
 }).toString();
 
-export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps> = ({ fullUserProfile, onUserProfilesChange }) => {
+export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps> = ({
+  fullUserProfile,
+  loginConfiguration,
+  onUserProfilesChange,
+}) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const { unlinkAccount, loading: linkAccountLoading, providers } = useLinkAccount();
+  const { unlinkAccount, providers } = useLinkAccount();
   const { csrfToken } = useCsrfToken();
 
   async function handleUnlinkAccount(identity: UserProfileIdentity) {
@@ -35,6 +40,15 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
         type: 'error',
       });
       rollbar.error('Settings: Error unlinking account', { stack: ex.stack, message: ex.message });
+    }
+  }
+
+  if (loginConfiguration) {
+    if (!loginConfiguration.allowIdentityLinking) {
+      return null;
+    }
+    if (!loginConfiguration.isGoogleAllowed && !loginConfiguration.isSalesforceAllowed) {
+      return null;
     }
   }
 
@@ -54,38 +68,42 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
       </ul>
       {providers && csrfToken && (
         <Grid>
-          <form action={`${providers.google.signinUrl}?${searchParams}`} method="POST">
-            <input type="hidden" name="csrfToken" value={csrfToken} />
-            <input type="hidden" name="callbackUrl" value={providers.google.callbackUrl} />
-            <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-m-right_small">
-              <img
-                src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
-                alt="Google"
-                className="slds-m-right_x-small"
-                css={css`
-                  width: 1.25rem;
-                  height: 1.25rem;
-                `}
-              />
-              Link Google Account
-            </button>
-          </form>
-          <form action={`${providers.salesforce.signinUrl}?${searchParams}`} method="POST">
-            <input type="hidden" name="csrfToken" value={csrfToken} />
-            <input type="hidden" name="callbackUrl" value={providers.salesforce.callbackUrl} />
-            <button type="submit" className="slds-button slds-button_neutral slds-m-top_small">
-              <img
-                src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
-                alt="Salesforce"
-                className="slds-m-right_x-small"
-                css={css`
-                  width: 1.25rem;
-                  height: 1.25rem;
-                `}
-              />
-              Link Salesforce Account
-            </button>
-          </form>
+          {loginConfiguration && loginConfiguration.isGoogleAllowed && (
+            <form action={`${providers.google.signinUrl}?${searchParams}`} method="POST">
+              <input type="hidden" name="csrfToken" value={csrfToken} />
+              <input type="hidden" name="callbackUrl" value={providers.google.callbackUrl} />
+              <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-m-right_small">
+                <img
+                  src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
+                  alt="Google"
+                  className="slds-m-right_x-small"
+                  css={css`
+                    width: 1.25rem;
+                    height: 1.25rem;
+                  `}
+                />
+                Link Google Account
+              </button>
+            </form>
+          )}
+          {loginConfiguration && loginConfiguration.isSalesforceAllowed && (
+            <form action={`${providers.salesforce.signinUrl}?${searchParams}`} method="POST">
+              <input type="hidden" name="csrfToken" value={csrfToken} />
+              <input type="hidden" name="callbackUrl" value={providers.salesforce.callbackUrl} />
+              <button type="submit" className="slds-button slds-button_neutral slds-m-top_small">
+                <img
+                  src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
+                  alt="Salesforce"
+                  className="slds-m-right_x-small"
+                  css={css`
+                    width: 1.25rem;
+                    height: 1.25rem;
+                  `}
+                />
+                Link Salesforce Account
+              </button>
+            </form>
+          )}
         </Grid>
       )}
     </Grid>

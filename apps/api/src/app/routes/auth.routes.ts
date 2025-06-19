@@ -55,4 +55,9 @@ routes.post(
 // Finish resetting password
 routes.post('/password/reset/verify', STRICT_AuthRateLimit, authController.routeDefinition.validatePasswordReset.controllerFn());
 
+// Get otp enrollment
+routes.get('/2fa-otp/enroll', STRICT_AuthRateLimit, authController.routeDefinition.getOtpEnrollmentData.controllerFn());
+// enroll otp factor
+routes.post('/2fa-otp/enroll', STRICT_AuthRateLimit, authController.routeDefinition.enrollOtpFactor.controllerFn());
+
 export default routes;

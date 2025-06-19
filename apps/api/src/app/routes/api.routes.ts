@@ -52,6 +52,7 @@ routes.delete('/me/profile/password', userController.deletePassword.controllerFn
 /**
  * 2FA Routes
  */
+routes.get('/me/profile/login-configuration', userController.getUserLoginConfiguration.controllerFn());
 routes.get('/me/profile/2fa-otp', userController.getOtpQrCode.controllerFn());
 routes.post('/me/profile/2fa-otp', userController.saveOtpAuthFactor.controllerFn());
 routes.post('/me/profile/2fa/:type/:action', userController.toggleEnableDisableAuthFactor.controllerFn());

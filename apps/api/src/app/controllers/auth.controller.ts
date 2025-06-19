@@ -2,20 +2,25 @@ import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import {
   AuthError,
   clearOauthCookies,
+  convertBase32ToHex,
+  createOrUpdateOtpAuthFactor,
   createRememberDevice,
   createUserActivityFromReq,
   createUserActivityFromReqWithError,
   EMAIL_VERIFICATION_TOKEN_DURATION_HOURS,
   ensureAuthError,
   ExpiredVerificationToken,
+  generate2faTotpUrl,
   generatePasswordResetToken,
   generateRandomCode,
   generateRandomString,
   getAuthorizationUrl,
   getCookieConfig,
+  getLoginConfiguration,
   getTotpAuthenticationFactor,
   handleSignInOrRegistration,
   hasRememberDeviceRecord,
+  IdentityLinkingNotAllowed,
   InvalidAction,
   InvalidParameters,
   InvalidProvider,
@@ -166,11 +171,28 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
+  getOtpEnrollmentData: {
+    controllerFn: () => getOtpEnrollmentData,
+    validators: {
+      hasSourceOrg: false,
+    },
+  },
+  enrollOtpFactor: {
+    controllerFn: () => enrollOtpFactor,
+    validators: {
+      body: z.object({
+        code: z.string().min(6).max(6),
+        secretToken: z.string().min(32).max(32),
+        csrfToken: z.string(),
+      }),
+      hasSourceOrg: false,
+    },
+  },
 };
 
 function initSession(
   req: Request<unknown, unknown, unknown>,
-  { user, isNewUser, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>
+  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>
 ) {
   const userAgent = req.get('User-Agent');
   if (userAgent) {
@@ -180,7 +202,12 @@ function initSession(
   req.session.loginTime = new Date().getTime();
   req.session.provider = provider;
   req.session.user = user as UserProfileSession;
+  req.session.pendingMfaEnrollment = null;
   req.session.pendingVerification = null;
+
+  if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
+    req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
+  }
 
   if (verificationRequired) {
     const token = generateRandomCode(6);
@@ -283,6 +310,10 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
       if (isAccountLink) {
         if (!req.session.user) {
           throw new InvalidSession('Cannot link account without an active session');
+        }
+        const loginConfiguration = await getLoginConfiguration(req.session.user.email);
+        if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
+          throw new IdentityLinkingNotAllowed();
         }
         setCookie(cookieConfig.linkIdentity.name, 'true', cookieConfig.linkIdentity.options);
       }
@@ -480,6 +511,12 @@ const callback = createRoute(
         } else {
           sendJson(res, { error: false, redirect: `/auth/verify` });
         }
+      } else if (req.session.pendingMfaEnrollment) {
+        if (provider.type === 'oauth') {
+          redirect(res, `/auth/mfa-enroll`);
+        } else {
+          sendJson(res, { error: false, redirect: `/auth/mfa-enroll` });
+        }
       } else {
         if (isNewUser) {
           await sendWelcomeEmail(req.session.user.email);
@@ -606,7 +643,12 @@ const verification = createRoute(
         success: true,
       });
 
-      sendJson(res, { error: false, redirect: redirectUrl });
+      if (req.session.pendingMfaEnrollment) {
+        setCookie(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options);
+        sendJson(res, { error: false, redirect: '/auth/mfa-enroll' });
+      } else {
+        sendJson(res, { error: false, redirect: redirectUrl });
+      }
     } catch (ex) {
       createUserActivityFromReqWithError(req, res, ex, {
         action: '2FA_VERIFICATION',
@@ -760,16 +802,130 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
   }
 });
 
-const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, async ({ query, clearCookie }, req, res, next) => {
+const verifyEmailViaLink = createRoute(
+  routeDefinition.verification.validators,
+  async ({ query, setCookie, clearCookie }, req, res, next) => {
+    try {
+      if (!req.session.user) {
+        throw new InvalidSession('User not set on session');
+      }
+
+      const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const cookies = parseCookie(req.headers.cookie!);
+
+      let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+
+      if (cookies[cookieConfig.redirectUrl.name]) {
+        const redirectValue = cookies[cookieConfig.redirectUrl.name];
+        redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+        clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
+      }
+
+      if (!req.session.pendingVerification?.length) {
+        if (req.session.pendingMfaEnrollment) {
+          setCookie(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options);
+          redirect(res, '/auth/mfa-enroll');
+        } else {
+          redirect(res, redirectUrl);
+        }
+        return;
+      }
+
+      const { code } = query;
+
+      const pendingVerification = req.session.pendingVerification.find(({ type }) => type === 'email');
+
+      if (!pendingVerification) {
+        throw new InvalidSession('Missing pending verification');
+      }
+
+      if (pendingVerification.exp <= new Date().getTime()) {
+        throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
+      }
+
+      switch (pendingVerification.type) {
+        case 'email': {
+          const { token } = pendingVerification;
+          if (token !== code) {
+            throw new InvalidVerificationToken('Provided code does not match');
+          }
+          req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
+          break;
+        }
+        default: {
+          throw new InvalidVerificationToken('Invalid verification type');
+        }
+      }
+
+      createUserActivityFromReq(req, res, {
+        action: 'EMAIL_VERIFICATION',
+        success: true,
+      });
+
+      req.session.pendingVerification = null;
+
+      if (req.session.pendingMfaEnrollment) {
+        setCookie(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options);
+        redirect(res, '/auth/mfa-enroll');
+      } else {
+        redirect(res, redirectUrl);
+      }
+    } catch (ex) {
+      createUserActivityFromReqWithError(req, res, ex, {
+        action: 'EMAIL_VERIFICATION',
+        success: false,
+      });
+
+      next(ensureAuthError(ex));
+    }
+  }
+);
+
+const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.validators, async ({ user }, req, res, next) => {
   try {
     if (!req.session.user) {
       throw new InvalidSession('User not set on session');
+    }
+
+    if (!req.session.pendingMfaEnrollment) {
+      res.status(403);
+      throw new InvalidAction('There is no pending MFA enrollment');
+    }
+
+    const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
+
+    sendJson(res, { secret, secretToken: new URL(uri).searchParams.get('secret'), imageUri, uri });
+  } catch (ex) {
+    next(ensureAuthError(ex));
+  }
+});
+
+const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, async ({ body, user, clearCookie }, req, res, next) => {
+  try {
+    if (!req.session.user) {
+      throw new InvalidSession('User not set on session');
+    }
+
+    if (!req.session.pendingMfaEnrollment) {
+      res.status(403);
+      throw new InvalidAction('There is no pending MFA enrollment');
     }
 
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const cookies = parseCookie(req.headers.cookie!);
+
+    const { csrfToken, code, secretToken } = body;
+    await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
+
+    const secret = await convertBase32ToHex(secretToken);
+    await verify2faTotpOrThrow(secret, code);
+    await createOrUpdateOtpAuthFactor(user.id, secret);
+
+    req.session.pendingMfaEnrollment = null;
 
     let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
 
@@ -779,47 +935,15 @@ const verifyEmailViaLink = createRoute(routeDefinition.verification.validators, 
       clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
     }
 
-    if (!req.session.pendingVerification?.length) {
-      sendJson(res, { error: false, redirect: redirectUrl });
-      return;
-    }
-
-    const { code } = query;
-
-    const pendingVerification = req.session.pendingVerification.find(({ type }) => type === 'email');
-
-    if (!pendingVerification) {
-      throw new InvalidSession('Missing pending verification');
-    }
-
-    if (pendingVerification.exp <= new Date().getTime()) {
-      throw new ExpiredVerificationToken(`Pending verification is expired: ${pendingVerification.exp}`);
-    }
-
-    switch (pendingVerification.type) {
-      case 'email': {
-        const { token } = pendingVerification;
-        if (token !== code) {
-          throw new InvalidVerificationToken('Provided code does not match');
-        }
-        req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
-        break;
-      }
-      default: {
-        throw new InvalidVerificationToken('Invalid verification type');
-      }
-    }
+    sendJson(res, { error: false, redirectUrl });
 
     createUserActivityFromReq(req, res, {
-      action: 'EMAIL_VERIFICATION',
+      action: '2FA_SETUP',
       success: true,
     });
-
-    req.session.pendingVerification = null;
-    redirect(res, redirectUrl);
   } catch (ex) {
     createUserActivityFromReqWithError(req, res, ex, {
-      action: 'EMAIL_VERIFICATION',
+      action: '2FA_SETUP',
       success: false,
     });
 

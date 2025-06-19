@@ -111,6 +111,9 @@ export type TwoFactorType = TwoFactorTypeEmail | TwoFactorTypeOtp | TwoFactorTyp
 export interface SessionData {
   user: UserProfileSession;
   csrfToken: string;
+  pendingMfaEnrollment?: {
+    factor: TwoFactorTypeOtp;
+  } | null;
   pendingVerification?: Array<
     | {
         type: TwoFactorTypeEmail;
@@ -168,17 +171,21 @@ export interface ProviderUser {
   picture?: Maybe<string>;
 }
 
-export type AuthenticatedUser = {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  authFactors: {
-    type: string;
-    enabled: boolean;
-  }[];
-};
+export const AuthenticatedUserSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean(),
+  authFactors: z.array(
+    z.object({
+      type: z.enum(['email', '2fa-otp', '2fa-email']),
+      enabled: z.boolean(),
+    })
+  ),
+});
+
+export type AuthenticatedUser = z.infer<typeof AuthenticatedUserSchema>;
 
 export interface CreateCSRFTokenParams {
   secret: string;
@@ -284,11 +291,38 @@ export type MfaMethod = z.infer<typeof MfaMethodSchema>;
 
 export const LoginConfigurationSchema = z.object({
   id: z.string().uuid(),
-  allowedMfaMethods: z.array(MfaMethodSchema).transform((value) => new Set(value)),
+  allowedMfaMethods: z.array(MfaMethodSchema).transform(
+    (value) =>
+      new Set(
+        value.map((value): TwoFactorTypeWithoutEmail => {
+          switch (value) {
+            case 'email':
+              return '2fa-email';
+            case 'otp':
+              return '2fa-otp';
+            default:
+              return '2fa-otp';
+          }
+        })
+      )
+  ),
   allowedProviders: z.array(OauthAndLocalProvidersSchema).transform((value) => new Set(value)),
   requireMfa: z.boolean(),
+  allowIdentityLinking: z.boolean(),
 });
 export type LoginConfiguration = z.infer<typeof LoginConfigurationSchema>;
+
+export type LoginConfigurationUI = {
+  isPasswordAllowed: boolean;
+  isGoogleAllowed: boolean;
+  isSalesforceAllowed: boolean;
+  requireMfa: boolean;
+  allowIdentityLinking: boolean;
+  allowedMfaMethods: {
+    email: boolean;
+    otp: boolean;
+  };
+};
 
 // TODO: could do discriminated union?
 export const ProviderBaseSchema = z.object({
@@ -322,3 +356,9 @@ export type Providers = z.infer<typeof ProvidersSchema>;
 
 export const ProviderKeysSchema = ProvidersSchema.keyof();
 export type ProviderKeys = z.infer<typeof ProviderKeysSchema>;
+
+export interface OtpEnrollmentData {
+  secretToken: string;
+  imageUri: string;
+  uri: string;
+}

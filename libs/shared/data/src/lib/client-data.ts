@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
+  LoginConfigurationUI,
   Providers,
   TwoFactorTypeWithoutEmail,
   UserProfileAuthFactor,
@@ -151,6 +152,10 @@ export async function revokeUserSession(
 
 export async function revokeAllUserSessions(exceptId?: string): Promise<UserSessionAndExtTokensAndActivityWithLocation> {
   return handleRequest({ method: 'DELETE', url: '/api/me/profile/sessions/', data: { exceptId } }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getLoginConfiguration(): Promise<LoginConfigurationUI | null> {
+  return handleRequest({ method: 'GET', url: '/api/me/profile/login-configuration' }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getOtpQrCode(): Promise<{ secret: string; secretToken: string; imageUri: string; uri: string }> {

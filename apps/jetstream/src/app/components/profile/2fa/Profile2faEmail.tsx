@@ -6,10 +6,12 @@ import { FunctionComponent, useMemo, useState } from 'react';
 
 export interface Profile2faEmailProps {
   isEnabled: boolean;
+  canEnable: boolean;
+  canDisabled: boolean;
   onUpdate: (authFactors: UserProfileAuthFactor[]) => void;
 }
 
-export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEnabled, onUpdate }) => {
+export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEnabled, canEnable, canDisabled, onUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleMenuAction(action: string) {
@@ -52,6 +54,10 @@ export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEna
     return items;
   }, [isEnabled]);
 
+  if (!canDisabled && !canEnable) {
+    return null;
+  }
+
   return (
     <Card
       title={
@@ -77,6 +83,8 @@ export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEna
     >
       {isLoading && <Spinner />}
       <p>Enter a code sent to your email address</p>
+      {!canDisabled && <p className="text-italic">This authentication factor is required for your account.</p>}
+      {!canEnable && <p className="text-italic">This authentication factor is not allowed for your account.</p>}
     </Card>
   );
 };

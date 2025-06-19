@@ -1,9 +1,10 @@
 import { prisma } from '@jetstream/api-config';
-import { Locator, Page, expect } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 import { randomBytes } from 'crypto';
 import {
   getPasswordResetToken,
   getUserSessionByEmail,
+  getUserSessionsByEmail,
   hasPasswordResetToken,
   verifyEmailLogEntryExists,
 } from '../e2e-database-validation.utils';
@@ -111,8 +112,8 @@ export class AuthenticationPage {
     await this.page.goto(this.routes.mfaVerify());
   }
 
-  generateTestEmail() {
-    return `test-${new Date().getTime()}.${randomBytes(8).toString('hex')}@getjetstream.app`;
+  generateTestEmail(domain = 'playwright.getjetstream.app') {
+    return `test-${new Date().getTime()}.${randomBytes(8).toString('hex')}@${domain}`;
   }
 
   generateTestName() {
@@ -123,8 +124,8 @@ export class AuthenticationPage {
     return `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
   }
 
-  async signUpWithoutEmailVerification() {
-    const email = this.generateTestEmail();
+  async signUpWithoutEmailVerification(emailOverride?: string) {
+    const email = emailOverride || this.generateTestEmail();
     const name = this.generateTestName();
     const password = this.generateTestPassword();
 
@@ -172,6 +173,69 @@ export class AuthenticationPage {
     };
   }
 
+  async signUpAndVerifyEmailPauseBeforeEnrollInOtp(emailOverride?: string) {
+    const { email, name, password } = await this.signUpWithoutEmailVerification(emailOverride);
+
+    // ensure email verification was sent
+    await verifyEmailLogEntryExists(email, 'Verify your email');
+
+    // Get token from session
+    const { pendingVerification } = await getUserSessionByEmail(email);
+
+    await expect(pendingVerification || []).toHaveLength(1);
+
+    if (pendingVerification[0].type !== 'email') {
+      throw new Error('Expected email verification');
+    }
+    const { token } = pendingVerification[0];
+
+    await this.verificationCodeInput.fill(token);
+    await this.continueButton.click();
+
+    // user should be prompted to enroll in TOTP
+    await expect(this.page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+
+    return {
+      email,
+      name,
+      password,
+    };
+  }
+
+  async enrollInOtp(email: string) {
+    const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
+    const { generateTOTP } = await import('@oslojs/otp');
+
+    await expect(this.page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
+    const { pendingMfaEnrollment } = await getUserSessionByEmail(email);
+    await expect(pendingMfaEnrollment?.factor).toBeTruthy();
+
+    const secret = await this.page.getByTestId('totp-secret').textContent();
+    const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+
+    await this.verificationCodeInput.fill(code);
+    await this.continueButton.click();
+
+    await this.page.waitForURL(`**/app`);
+
+    return { secret };
+  }
+
+  async signUpAndVerifyEmailAndEnrollInOtp(emailOverride?: string) {
+    const { email, name, password } = await this.signUpAndVerifyEmailPauseBeforeEnrollInOtp(emailOverride);
+
+    const { secret } = await this.enrollInOtp(email);
+
+    await verifyEmailLogEntryExists(email, 'Welcome to Jetstream');
+
+    return {
+      email,
+      name,
+      password,
+      secret,
+    };
+  }
+
   async loginAndVerifyEmail(email: string, password: string, rememberMe = false) {
     await this.fillOutLoginForm(email, password);
 
@@ -192,11 +256,12 @@ export class AuthenticationPage {
     await this.verifyTotp(email, secret, rememberMe);
   }
 
-  async verifyEmail(email: string, rememberMe = false) {
+  async verifyEmail(email: string, rememberMe = false, waitForPage = '**/app') {
     // Get token from session
-    const { pendingVerification } = await getUserSessionByEmail(email);
+    const sessions = await getUserSessionsByEmail(email);
+    const pendingVerification = sessions.find((session) => session.pendingVerification?.length)?.pendingVerification || [];
 
-    await expect(pendingVerification || []).toHaveLength(1);
+    await expect(pendingVerification).toHaveLength(1);
 
     if (pendingVerification.some(({ type }) => type !== '2fa-email' && type !== 'email')) {
       throw new Error('Expected email verification');
@@ -210,7 +275,7 @@ export class AuthenticationPage {
     }
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(waitForPage);
   }
 
   async verifyTotp(email: string, secret: string, rememberMe = false) {

@@ -1,4 +1,4 @@
-import { UserProfileAuthFactor } from '@jetstream/auth/types';
+import { OtpEnrollmentData, UserProfileAuthFactor } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { deleteAuthFactor, getOtpQrCode, saveOtpAuthFactor, toggleEnableDisableAuthFactor } from '@jetstream/shared/data';
 import { DropDownItem } from '@jetstream/types';
@@ -8,11 +8,13 @@ import { FormEvent, FunctionComponent, useCallback, useEffect, useMemo, useState
 export interface Profile2faOtpProps {
   isConfigured: boolean;
   isEnabled: boolean;
+  canEnable: boolean;
+  canDisabled: boolean;
   onUpdate: (authFactors: UserProfileAuthFactor[]) => void;
 }
 
-export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigured, isEnabled, onUpdate }) => {
-  const [otp2fa, setOtp2fa] = useState<{ secretToken: string; imageUri: string; uri: string }>();
+export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigured, isEnabled, canEnable, canDisabled, onUpdate }) => {
+  const [otp2fa, setOtp2fa] = useState<OtpEnrollmentData>();
   const [editIsActive, setEditIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [twoFaCode, setTwoFaCode] = useState('');
@@ -91,14 +93,14 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
 
   const menuItems = useMemo(() => {
     const items: DropDownItem[] = [];
-    if (isEnabled) {
+    if (isEnabled && canDisabled) {
       items.push({
         id: 'disable',
         value: 'Disable',
         trailingDivider: true,
         icon: { type: 'utility', icon: 'toggle_off', description: 'Disable' },
       });
-    } else {
+    } else if (!isEnabled && canEnable) {
       items.push({
         id: 'enable',
         value: 'Enable',
@@ -106,9 +108,15 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
         icon: { type: 'utility', icon: 'toggle_on', description: 'Disable' },
       });
     }
-    items.push({ id: 'delete', value: 'Delete', icon: { type: 'utility', icon: 'delete', description: 'Delete' } });
+    if (canDisabled) {
+      items.push({ id: 'delete', value: 'Delete', icon: { type: 'utility', icon: 'delete', description: 'Delete' } });
+    }
     return items;
-  }, [isEnabled]);
+  }, [canDisabled, canEnable, isEnabled]);
+
+  if (!canDisabled && !canEnable) {
+    return null;
+  }
 
   return (
     <Card
@@ -125,12 +133,12 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
       className="slds-is-relative"
       actions={
         <>
-          {!isConfigured && (
+          {!isConfigured && canEnable && (
             <button className="slds-button slds-button_neutral" onClick={() => setEditIsActive(true)}>
               Set Up
             </button>
           )}
-          {isConfigured && (
+          {isConfigured && !!menuItems.length && (
             <DropDown
               testId="mfa-totp-menu-button"
               dropDownClassName="slds-dropdown_actions"
@@ -144,6 +152,8 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
     >
       {isLoading && <Spinner />}
       {!editIsActive && <p>Use a code from an authenticator app</p>}
+      {!canDisabled && <p className="text-italic">This authentication factor is required for your account.</p>}
+      {!canEnable && <p className="text-italic">This authentication factor is not allowed for your account.</p>}
       {editIsActive && otp2fa && (
         <form onSubmit={handleSave}>
           <h5>Scan the QR code with your authenticator app</h5>

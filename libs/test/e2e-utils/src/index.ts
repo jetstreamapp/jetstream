@@ -6,5 +6,6 @@ export * from './lib/pageObjectModels/LoadWithoutFilePage.model';
 export * from './lib/pageObjectModels/OrganizationsPage';
 export * from './lib/pageObjectModels/PlatformEventPage.model';
 export * from './lib/pageObjectModels/PlaywrightPage.model';
+export * from './lib/pageObjectModels/ProfilePage.model';
 export * from './lib/pageObjectModels/QueryPage.model';
 export * from './lib/pageObjectModels/WebExtensionPage.model';
