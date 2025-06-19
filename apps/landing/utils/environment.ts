@@ -31,6 +31,7 @@ export const ROUTES = {
     verify: `/auth/verify`,
     api_csrf: `/api/auth/csrf`,
     api_logout: `/api/auth/logout`,
+    api_otp_enroll: `/api/auth/2fa-otp/enroll`,
     api_providers: `/api/auth/providers`,
     api_session: `/api/auth/session`,
     api_verify: `/api/auth/verify`,
@@ -43,6 +44,7 @@ export const ROUTES = {
 export const SIGN_IN_ERRORS = {
   default: 'Check your details and try again.',
   AuthError: 'Check your details and try again.',
+  IdentityLinkingNotAllowed: 'Linking identities is not allowed, please sign in with the same account you used originally.',
   InvalidCsrfToken: 'The form is invalid, refresh the page and start over.',
   InvalidCredentials: 'Sign in failed. Check the details you provided are correct.',
   InvalidAction: 'The form is invalid, refresh the page and start over.',

@@ -118,6 +118,21 @@ export async function redirectIfPendingVerificationMiddleware(req: express.Reque
   next();
 }
 
+export async function redirectIfMfaEnrollmentRequiredMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.session?.pendingMfaEnrollment) {
+    const isJson = (req.get(HTTP.HEADERS.ACCEPT) || '').includes(HTTP.CONTENT_TYPE.JSON);
+
+    if (!isJson) {
+      res.redirect(302, `/auth/mfa-enroll`);
+      return;
+    } else {
+      next(new AuthError('Pending Multi-factor authentication enrollment. Login again to finish the enrollment.'));
+      return;
+    }
+  }
+  next();
+}
+
 export async function checkAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userAgent = req.get('User-Agent');
 

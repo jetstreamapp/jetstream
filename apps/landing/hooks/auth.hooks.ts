@@ -1,6 +1,7 @@
-import { TwoFactorType } from '@jetstream/auth/types';
+import { OtpEnrollmentData, TwoFactorType } from '@jetstream/auth/types';
 import { Maybe } from '@jetstream/types';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useCallback, useEffect, useState } from 'react';
 import { ROUTES } from '../utils/environment';
 
 interface AuthState {
@@ -88,5 +89,68 @@ export function useCsrfToken() {
     isLoadingCsrfToken,
     csrfToken,
     csrfTokenError,
+  };
+}
+
+export function useOtpEnrollment(isLoadingInitial = true) {
+  const router = useRouter();
+  const [otp2fa, setOtp2fa] = useState<OtpEnrollmentData>();
+
+  const [isLoading, setIsLoading] = useState(isLoadingInitial);
+  const [error, setError] = useState<string>();
+
+  const fetchEnrollmentData = useCallback(() => {
+    setIsLoading(true);
+    fetch(ROUTES.AUTH.api_otp_enroll, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+        router.push(ROUTES.AUTH.login);
+      })
+      .then(({ data }: { data: OtpEnrollmentData }) => {
+        setOtp2fa(data);
+      })
+      .catch((error) => {
+        setError(error?.message ?? 'Unable to initialize the form');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [router]);
+
+  const submitEnrollmentData = useCallback(async (csrfToken: string, secretToken: string, code: string) => {
+    const response = await fetch(ROUTES.AUTH.api_otp_enroll, {
+      method: 'POST',
+      body: new URLSearchParams({ csrfToken, secretToken, code }).toString(),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+    });
+    if (response.ok) {
+      return response.json();
+    }
+    return response
+      .json()
+      .then((response) => {
+        throw new Error(response.errorType || 'InvalidVerificationToken');
+      })
+      .catch((error) => {
+        throw new Error('InvalidVerificationToken');
+      });
+  }, []);
+
+  return {
+    isLoading,
+    otp2fa,
+    error,
+    fetchEnrollmentData,
+    submitEnrollmentData,
   };
 }

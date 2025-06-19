@@ -29,6 +29,21 @@ export async function getUserSessionByEmail(email: string) {
   return session.sess as unknown as SessionData;
 }
 
+export async function getUserSessionsByEmail(email: string) {
+  email = email.toLowerCase();
+  const sessions = await prisma.sessions
+    .findMany({
+      where: {
+        sess: {
+          path: ['user', 'email'],
+          equals: email,
+        },
+      },
+    })
+    .then((sessions) => sessions.map((sess) => sess.sess as unknown as SessionData));
+  return sessions;
+}
+
 export async function getUserSessionById(sessionId: string) {
   const session = await prisma.sessions.findFirstOrThrow({
     where: {

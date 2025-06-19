@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { UserProfileAuthFactor } from '@jetstream/auth/types';
+import { LoginConfigurationUI, UserProfileAuthFactor } from '@jetstream/auth/types';
 import { Card, ScopedNotification } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
 import { Profile2faEmail } from './Profile2faEmail';
@@ -7,10 +7,11 @@ import { Profile2faOtp } from './Profile2faOtp';
 
 export interface Profile2faProps {
   authFactors: UserProfileAuthFactor[];
+  loginConfiguration: LoginConfigurationUI | null;
   onUpdate: (authFactors: UserProfileAuthFactor[]) => void;
 }
 
-export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, onUpdate }) => {
+export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, loginConfiguration, onUpdate }) => {
   const factorsByType = useMemo(() => {
     return {
       // 'email': authFactors.filter((factor) => factor.type === 'email'), // TODO:
@@ -22,6 +23,12 @@ export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, on
   const has2faEnabled = useMemo(() => {
     return authFactors.some(({ enabled }) => enabled);
   }, [authFactors]);
+
+  const canEnable2faOtp = !loginConfiguration || loginConfiguration.allowedMfaMethods.otp;
+  const canDisable2faOtp = !loginConfiguration || !loginConfiguration.requireMfa;
+
+  const canEnable2faEmail = !loginConfiguration || loginConfiguration.allowedMfaMethods.email;
+  const canDisable2faEmail = !loginConfiguration || !loginConfiguration.requireMfa;
 
   return (
     <Card
@@ -45,11 +52,15 @@ export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, on
         key={`otp-${factorsByType?.otp?.updatedAt}`}
         isConfigured={!!factorsByType.otp}
         isEnabled={!!factorsByType.otp?.enabled}
+        canEnable={canEnable2faOtp}
+        canDisabled={canDisable2faOtp}
         onUpdate={onUpdate}
       />
       <Profile2faEmail
         key={`otpEmail-${factorsByType?.otpEmail?.updatedAt}`}
         isEnabled={!!factorsByType.otpEmail?.enabled}
+        canEnable={canEnable2faEmail}
+        canDisabled={canDisable2faEmail}
         onUpdate={onUpdate}
       />
     </Card>

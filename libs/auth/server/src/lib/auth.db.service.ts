@@ -1,6 +1,7 @@
 import { ENV, logger, prisma } from '@jetstream/api-config';
 import {
   AuthenticatedUser,
+  AuthenticatedUserSchema,
   ExternalTokenSessionWithLocation,
   LoginActivityUserFacing,
   LoginConfiguration,
@@ -11,7 +12,10 @@ import {
   ProviderUser,
   SessionData,
   TokenSource,
+  TwoFactorType,
+  TwoFactorTypeOtp,
   TwoFactorTypeWithoutEmail,
+  UserProfileSession,
   UserSession,
   UserSessionAndExtTokensAndActivityWithLocation,
   UserSessionWithLocation,
@@ -26,6 +30,7 @@ import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
 import {
+  IdentityLinkingNotAllowed,
   InvalidAction,
   InvalidCredentials,
   InvalidOrExpiredResetToken,
@@ -39,7 +44,7 @@ import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, verifyPas
 const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
   max: 500,
   // 5 minutes
-  ttl: 300_000,
+  ttl: 1000 * 60 * 5,
 });
 
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -82,39 +87,51 @@ export async function pruneExpiredRecords() {
 }
 
 async function findUserByProviderId(provider: OauthProviderType, providerAccountId: string) {
-  return await prisma.user.findFirst({
-    select: userSelect,
-    where: {
-      identities: { some: { provider, providerAccountId } },
-    },
-  });
+  return await prisma.user
+    .findFirst({
+      select: userSelect,
+      where: {
+        identities: { some: { provider, providerAccountId } },
+      },
+    })
+    .then((user) => {
+      if (!user) {
+        return user;
+      }
+      return AuthenticatedUserSchema.parse(user);
+    });
 }
 
 async function findUsersByEmail(email: string) {
   email = email.toLowerCase();
-  return prisma.user.findMany({
-    select: userSelect,
-    where: { email },
-  });
+  return prisma.user
+    .findMany({
+      select: userSelect,
+      where: { email },
+    })
+    .then((user) => AuthenticatedUserSchema.array().parse(user));
 }
 
 /**
  * This should only be used for internal purposes, such as when a user is already authenticated
  */
 export async function findUserById_UNSAFE(id: string) {
-  return await prisma.user.findFirstOrThrow({
-    select: userSelect,
-    where: { id },
-  });
+  return await prisma.user
+    .findFirstOrThrow({
+      select: userSelect,
+      where: { id },
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
-export async function getLoginConfiguration(email: string): Promise<LoginConfiguration | null> {
+export async function getLoginConfiguration(email: string, skipCache = false): Promise<LoginConfiguration | null> {
   const domain = email?.split('@')[1];
+
   if (!domain) {
     return null;
   }
 
-  const cachedValue = LOGIN_CONFIGURATION_CACHE.get(domain);
+  const cachedValue = skipCache ? undefined : LOGIN_CONFIGURATION_CACHE.get(domain);
   if (cachedValue) {
     return cachedValue.value;
   }
@@ -126,6 +143,7 @@ export async function getLoginConfiguration(email: string): Promise<LoginConfigu
         allowedMfaMethods: true,
         allowedProviders: true,
         requireMfa: true,
+        allowIdentityLinking: true,
       },
       where: { domains: { has: domain } },
     })
@@ -140,11 +158,13 @@ export async function getLoginConfiguration(email: string): Promise<LoginConfigu
 }
 
 export async function setUserEmailVerified(id: string) {
-  return prisma.user.update({
-    select: userSelect,
-    data: { emailVerified: true },
-    where: { id },
-  });
+  return prisma.user
+    .update({
+      select: userSelect,
+      data: { emailVerified: true },
+      where: { id },
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
 export async function createRememberDevice({
@@ -289,7 +309,22 @@ export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainTex
   return getAuthFactors(userId);
 }
 
-export async function toggleEnableDisableAuthFactor(userId: string, type: TwoFactorTypeWithoutEmail, action: 'enable' | 'disable') {
+export async function toggleEnableDisableAuthFactor(
+  user: Pick<UserProfileSession, 'id' | 'email'>,
+  type: TwoFactorTypeWithoutEmail,
+  action: 'enable' | 'disable'
+) {
+  if (!user?.id || !user?.email) {
+    throw new Error('Invalid user');
+  }
+
+  const userId = user.id;
+
+  const loginConfiguration = await getLoginConfiguration(user.email, true);
+  if (action !== 'enable' && loginConfiguration?.requireMfa && loginConfiguration.allowedMfaMethods.has(type)) {
+    throw new InvalidAction(`Cannot disable ${type} factor when MFA is required`);
+  }
+
   await prisma.$transaction(async (tx) => {
     // When enabling, ensure all others are disabled
     if (action === 'enable') {
@@ -316,14 +351,20 @@ export async function toggleEnableDisableAuthFactor(userId: string, type: TwoFac
   return getAuthFactors(userId);
 }
 
-export async function deleteAuthFactor(userId: string, type: TwoFactorTypeWithoutEmail) {
-  if (!userId) {
-    throw new Error('Invalid userId');
+export async function deleteAuthFactor(user: Pick<UserProfileSession, 'id' | 'email'>, type: TwoFactorTypeWithoutEmail) {
+  if (!user?.id || !user?.email) {
+    throw new Error('Invalid user');
   }
+
+  const loginConfiguration = await getLoginConfiguration(user.email, true);
+  if (loginConfiguration?.requireMfa && loginConfiguration.allowedMfaMethods.has(type)) {
+    throw new InvalidAction(`Cannot delete ${type} factor when MFA is required`);
+  }
+
   await prisma.authFactors.delete({
-    where: { userId_type: { type, userId } },
+    where: { userId_type: { type, userId: user.id } },
   });
-  return getAuthFactors(userId);
+  return getAuthFactors(user.id);
 }
 
 export async function getAllSessions(userId: string, currentSessionId: string) {
@@ -547,11 +588,13 @@ export async function setPasswordForUser(id: string, password: string) {
     return { error: new Error('Cannot set password, another user with the same email address already has a password set') };
   }
 
-  return prisma.user.update({
-    select: userSelect,
-    data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
-    where: { id },
-  });
+  return prisma.user
+    .update({
+      select: userSelect,
+      data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
+      where: { id },
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
 export const generatePasswordResetToken = async (email: string) => {
@@ -645,11 +688,13 @@ export const removePasswordFromUser = async (id: string) => {
     return { error: new Error('Your password cannot be removed without an alternative login method, such as a social provider') };
   }
 
-  return prisma.user.update({
-    select: userSelect,
-    data: { password: null, passwordUpdatedAt: new Date() },
-    where: { id },
-  });
+  return prisma.user
+    .update({
+      select: userSelect,
+      data: { password: null, passwordUpdatedAt: new Date() },
+      where: { id },
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 };
 
 async function getUserAndVerifyPassword(email: string, password: string) {
@@ -667,10 +712,12 @@ async function getUserAndVerifyPassword(email: string, password: string) {
   if (await verifyPassword(password, UNSAFE_userWithPassword.password!)) {
     return {
       error: null,
-      user: await prisma.user.findFirstOrThrow({
-        select: userSelect,
-        where: { id: UNSAFE_userWithPassword.id },
-      }),
+      user: await prisma.user
+        .findFirstOrThrow({
+          select: userSelect,
+          where: { id: UNSAFE_userWithPassword.id },
+        })
+        .then((user) => AuthenticatedUserSchema.parse(user)),
     };
   }
   return { error: new InvalidCredentials('Incorrect email or password', { userId: UNSAFE_userWithPassword.id }) };
@@ -692,10 +739,12 @@ async function addIdentityToUser(userId: string, providerUser: ProviderUser, pro
       picture: providerUser.picture,
     },
   });
-  return prisma.user.findFirstOrThrow({
-    select: userSelect,
-    where: { id: userId },
-  });
+  return prisma.user
+    .findFirstOrThrow({
+      select: userSelect,
+      where: { id: userId },
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
 export async function removeIdentityFromUser(userId: string, provider: OauthProviderType, providerAccountId: string) {
@@ -723,51 +772,55 @@ export async function removeIdentityFromUser(userId: string, provider: OauthProv
     },
   });
 
-  return prisma.user.findFirstOrThrow({
-    select: userSelect,
-    where: { id: userId },
-  });
+  return prisma.user
+    .findFirstOrThrow({
+      select: userSelect,
+      where: { id: userId },
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
 async function createUserFromProvider(providerUser: ProviderUser, provider: OauthProviderType) {
   const email = providerUser.email?.toLowerCase();
-  return prisma.user.create({
-    select: userSelect,
-    data: {
-      email,
-      // TODO: do we really get any benefit from storing this userId like this?
-      // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
-      // TODO: this is nice as we can identify which identity is primary without joining the identity table - could solve in other ways
-      userId: `${provider}|${providerUser.id}`,
-      name: providerUser.name,
-      emailVerified: providerUser.emailVerified,
-      // picture: providerUser.picture,
-      lastLoggedIn: new Date(),
-      preferences: { create: { skipFrontdoorLogin: false } },
-      entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
-      identities: {
-        create: {
-          type: 'oauth',
-          provider: provider,
-          providerAccountId: providerUser.id,
-          email,
-          name: providerUser.name,
-          emailVerified: providerUser.emailVerified,
-          username: providerUser.username,
-          isPrimary: true,
-          familyName: providerUser.familyName,
-          givenName: providerUser.givenName,
-          picture: providerUser.picture,
+  return prisma.user
+    .create({
+      select: userSelect,
+      data: {
+        email,
+        // TODO: do we really get any benefit from storing this userId like this?
+        // TODO: only reason I can think of is user migration since the id is a UUID so we need to different identifier
+        // TODO: this is nice as we can identify which identity is primary without joining the identity table - could solve in other ways
+        userId: `${provider}|${providerUser.id}`,
+        name: providerUser.name,
+        emailVerified: providerUser.emailVerified,
+        // picture: providerUser.picture,
+        lastLoggedIn: new Date(),
+        preferences: { create: { skipFrontdoorLogin: false } },
+        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
+        identities: {
+          create: {
+            type: 'oauth',
+            provider: provider,
+            providerAccountId: providerUser.id,
+            email,
+            name: providerUser.name,
+            emailVerified: providerUser.emailVerified,
+            username: providerUser.username,
+            isPrimary: true,
+            familyName: providerUser.familyName,
+            givenName: providerUser.givenName,
+            picture: providerUser.picture,
+          },
+        },
+        authFactors: {
+          create: {
+            type: '2fa-email',
+            enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
+          },
         },
       },
-      authFactors: {
-        create: {
-          type: '2fa-email',
-          enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
-        },
-      },
-    },
-  });
+    })
+    .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
 async function updateIdentityAttributesFromProvider(userId: string, providerUser: ProviderUser, provider: OauthProviderType) {
@@ -862,34 +915,38 @@ async function createUserFromUserInfo(email: string, name: string, password: str
   const passwordHash = await hashPassword(password);
   return prisma.$transaction(async (tx) => {
     // Create initial user
-    const user = await tx.user.create({
-      select: userSelect,
-      data: {
-        email,
-        userId: `jetstream|${email}`, // this is temporary, we will update this after the user is created
-        name,
-        emailVerified: false,
-        password: passwordHash,
-        passwordUpdatedAt: new Date(),
-        lastLoggedIn: new Date(),
-        preferences: { create: { skipFrontdoorLogin: false } },
-        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
-        authFactors: {
-          create: {
-            type: '2fa-email',
-            enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
+    const user = await tx.user
+      .create({
+        select: userSelect,
+        data: {
+          email,
+          userId: `jetstream|${email}`, // this is temporary, we will update this after the user is created
+          name,
+          emailVerified: false,
+          password: passwordHash,
+          passwordUpdatedAt: new Date(),
+          lastLoggedIn: new Date(),
+          preferences: { create: { skipFrontdoorLogin: false } },
+          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
+          authFactors: {
+            create: {
+              type: '2fa-email',
+              enabled: ENV.JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE,
+            },
           },
         },
-      },
-    });
+      })
+      .then((user) => AuthenticatedUserSchema.parse(user));
 
     // FIXME: do we really need a userId? Should be able to drop after Auth0 migration
     // update userId to include the DB id as the second part of the userId instead of the email
-    return await tx.user.update({
-      data: { userId: `jetstream|${user.id}` },
-      where: { id: user.id },
-      select: userSelect,
-    });
+    return await tx.user
+      .update({
+        data: { userId: `jetstream|${user.id}` },
+        where: { id: user.id },
+        select: userSelect,
+      })
+      .then((user) => AuthenticatedUserSchema.parse(user));
   });
 }
 
@@ -918,10 +975,15 @@ export async function handleSignInOrRegistration(
   providerType: ProviderTypeOauth | ProviderTypeCredentials;
   provider: OauthProviderType | 'credentials';
   isNewUser: boolean;
+  mfaEnrollmentRequired:
+    | {
+        factor: TwoFactorTypeOtp;
+      }
+    | false;
   verificationRequired: {
     email: boolean;
     twoFactor: {
-      type: string;
+      type: TwoFactorType;
       enabled: boolean;
     }[];
   };
@@ -935,6 +997,7 @@ export async function handleSignInOrRegistration(
     let isNewUser = false;
     let user: AuthenticatedUser | null = null;
     let provider: OauthProviderType | 'credentials' = 'credentials';
+    let mfaEnrollmentRequired: { factor: TwoFactorTypeOtp } | false = false;
 
     /**
      * Flow for Oauth - we allow both login and registration in one flow
@@ -962,6 +1025,12 @@ export async function handleSignInOrRegistration(
             // return error - cannot link since email addresses are not verified
             throw new LoginWithExistingIdentity();
           }
+
+          const loginConfiguration = await getLoginConfiguration(usersWithEmail[0].email);
+          if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
+            throw new IdentityLinkingNotAllowed();
+          }
+
           // TODO: should we allow auto-linking accounts, or reject and make user login and link?
           user = await addIdentityToUser(usersWithEmail[0].id, providerUser, provider);
         }
@@ -1010,25 +1079,47 @@ export async function handleSignInOrRegistration(
       throw new InvalidCredentials('User not initialized');
     }
 
+    const loginConfiguration = await getLoginConfiguration(user.email);
+
+    if (loginConfiguration?.requireMfa) {
+      // if email is allowed, then we don't need to force enrollment - but we will force email verification
+      if (!loginConfiguration.allowedMfaMethods.has('2fa-email')) {
+        const isEnrolledInRequiredFactor = user.authFactors.find(({ enabled, type }) => enabled && type == '2fa-otp');
+        if (!isEnrolledInRequiredFactor) {
+          mfaEnrollmentRequired = {
+            factor: '2fa-otp',
+          };
+        }
+      }
+    }
+
     await setLastLoginDate(user.id);
+
+    const twoFactor = user.authFactors
+      .filter(({ enabled }) => enabled)
+      .sort((a, b) => {
+        const priority = {
+          '2fa-otp': 1,
+          '2fa-email': 2,
+          email: 3,
+        } as Record<string, number>;
+        return (priority[a.type] || 4) - (priority[b.type] || 4);
+      });
+
+    // if mfa is required, ensure it is included in verification
+    if (loginConfiguration?.requireMfa && !mfaEnrollmentRequired && !twoFactor.length) {
+      twoFactor.push({ enabled: true, type: '2fa-email' });
+    }
 
     return {
       user,
       isNewUser,
       providerType,
       provider,
+      mfaEnrollmentRequired,
       verificationRequired: {
         email: !user.emailVerified,
-        twoFactor: user.authFactors
-          .filter(({ enabled }) => enabled)
-          .sort((a, b) => {
-            const priority = {
-              '2fa-otp': 1,
-              '2fa-email': 2,
-              email: 3,
-            } as Record<string, number>;
-            return (priority[a.type] || 4) - (priority[b.type] || 4);
-          }),
+        twoFactor,
       },
     };
   } catch (ex) {
@@ -1058,7 +1149,9 @@ export async function linkIdentityToUser({
 }) {
   try {
     // Check for existing user
-    const existingUser = await prisma.user.findFirstOrThrow({ select: userSelect, where: { id: userId } });
+    const existingUser = await prisma.user
+      .findFirstOrThrow({ select: userSelect, where: { id: userId } })
+      .then((user) => AuthenticatedUserSchema.parse(user));
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {
       // TODO: is this the correct error message? some other user already has this identity linked

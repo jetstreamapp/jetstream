@@ -55,11 +55,12 @@ model AuthFactors {
 }
 
 model LoginConfiguration {
-  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  domains           String[]       @default([]) @db.VarChar(255)
-  requireMfa        Boolean        @default(false)
-  allowedMfaMethods AuthFactor[]   @default([otp, email])
-  allowedProviders  AuthProvider[] @default([credentials, google, salesforce])
+  id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  domains              String[]       @default([]) @db.VarChar(255)
+  requireMfa           Boolean        @default(false)
+  allowIdentityLinking Boolean        @default(true)
+  allowedMfaMethods    AuthFactor[]   @default([otp, email])
+  allowedProviders     AuthProvider[] @default([credentials, google, salesforce])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

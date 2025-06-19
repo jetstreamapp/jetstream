@@ -35,6 +35,7 @@ import {
   blockBotByUserAgentMiddleware,
   destroySessionIfPendingVerificationIsExpired,
   notFoundMiddleware,
+  redirectIfMfaEnrollmentRequiredMiddleware,
   redirectIfPendingVerificationMiddleware,
   setApplicationCookieMiddleware,
 } from './app/routes/route.middleware';
@@ -376,9 +377,14 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   if (environment.production || ENV.CI || ENV.JETSTREAM_CLIENT_URL.replace('/app', '') === ENV.JETSTREAM_SERVER_URL) {
     app.use(express.static(join(__dirname, '../jetstream')));
-    app.use('/app', redirectIfPendingVerificationMiddleware, (req: express.Request, res: express.Response) => {
-      res.sendFile(join(__dirname, '../jetstream/index.html'));
-    });
+    app.use(
+      '/app',
+      redirectIfPendingVerificationMiddleware,
+      redirectIfMfaEnrollmentRequiredMiddleware,
+      (req: express.Request, res: express.Response) => {
+        res.sendFile(join(__dirname, '../jetstream/index.html'));
+      }
+    );
   }
 
   /**

@@ -1,8 +1,9 @@
-import type { UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { LoginConfigurationUI, UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import {
   getFullUserProfile,
+  getLoginConfiguration,
   getUserProfile as getUserProfileUi,
   initPassword,
   initResetPassword,
@@ -45,6 +46,7 @@ export const Profile = () => {
   const [loadingError, setLoadingError] = useState(false);
   const setUserProfile = useSetRecoilState(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
+  const [loginConfiguration, setLoginConfiguration] = useState<LoginConfigurationUI | null>(null);
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const [editMode, setEditMode] = useState(false);
 
@@ -63,6 +65,7 @@ export const Profile = () => {
       try {
         setLoadingError(false);
         setFullUserProfile(await getFullUserProfile());
+        setLoginConfiguration(await getLoginConfiguration());
       } catch (ex) {
         rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
         setLoadingError(true);
@@ -190,6 +193,7 @@ export const Profile = () => {
                 fullUserProfile={fullUserProfile}
                 name={modifiedUser?.name || ''}
                 editMode={editMode}
+                loginConfiguration={loginConfiguration}
                 onEditMode={setEditMode}
                 onChange={handleProfileChange}
                 onSave={handleSave}
@@ -199,9 +203,17 @@ export const Profile = () => {
                 onRemovePassword={handleRemovePassword}
               />
 
-              <Profile2fa authFactors={fullUserProfile.authFactors} onUpdate={handleUpdatedAuthFactors} />
+              <Profile2fa
+                authFactors={fullUserProfile.authFactors}
+                loginConfiguration={loginConfiguration}
+                onUpdate={handleUpdatedAuthFactors}
+              />
 
-              <ProfileLinkedAccounts fullUserProfile={fullUserProfile} onUserProfilesChange={setFullUserProfile} />
+              <ProfileLinkedAccounts
+                fullUserProfile={fullUserProfile}
+                loginConfiguration={loginConfiguration}
+                onUserProfilesChange={setFullUserProfile}
+              />
             </GridCol>
 
             <GridCol className="slds-m-bottom_large" size={12} sizeMedium={6} sizeLarge={4}>

@@ -1,14 +1,14 @@
 import { css } from '@emotion/react';
-import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { Form, FormRow, FormRowItem, Input, ReadOnlyFormItem } from '@jetstream/ui';
-import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
-import { FunctionComponent, useMemo, useState } from 'react';
+import { FunctionComponent, useMemo } from 'react';
 import { ProfileUserPassword } from './ProfileUserPassword';
 
 export interface ProfileUserProfileProps {
   fullUserProfile: UserProfileUiWithIdentities;
   name: string;
   editMode: boolean;
+  loginConfiguration: LoginConfigurationUI | null;
   onEditMode: (value: true) => void;
   onChange: (value: { name: string }) => void;
   onSave: () => void;
@@ -22,6 +22,7 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
   fullUserProfile,
   name,
   editMode,
+  loginConfiguration,
   onEditMode,
   onChange,
   onSave,
@@ -36,8 +37,6 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
     () => fullUserProfile.identities.some((identity) => identity.isPrimary && identity.provider !== 'credentials'),
     [fullUserProfile.identities]
   );
-
-  const [avatarSrc, setAvatarSrc] = useState(fullUserProfile?.picture || Avatar);
 
   return (
     <div
@@ -76,12 +75,14 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
               {fullUserProfile.email}
             </ReadOnlyFormItem>
           </FormRowItem>
-          <ProfileUserPassword
-            fullUserProfile={fullUserProfile}
-            onResetPassword={onResetPassword}
-            onSetPassword={onSetPassword}
-            onRemovePassword={onRemovePassword}
-          />
+          {(!loginConfiguration || loginConfiguration.isPasswordAllowed) && (
+            <ProfileUserPassword
+              fullUserProfile={fullUserProfile}
+              onResetPassword={onResetPassword}
+              onSetPassword={onSetPassword}
+              onRemovePassword={onRemovePassword}
+            />
+          )}
         </FormRow>
         {editMode && (
           <FormRow className="slds-align_absolute-center slds-m-top_medium">

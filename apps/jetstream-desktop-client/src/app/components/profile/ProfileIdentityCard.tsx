@@ -74,11 +74,6 @@ export const ProfileIdentityCard: FunctionComponent<ProfileIdentityCardProps> = 
           <p className="slds-truncate" title={email}>
             {email}
           </p>
-          {omitUnlink && (
-            <p className="slds-text-color_weak slds-text-body_small">
-              You must set a password before unlinking the remaining social identity
-            </p>
-          )}
           {!omitUnlink && (
             <div>
               <button className="slds-button" onClick={confirmUnlink}>
