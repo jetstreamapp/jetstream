@@ -5,6 +5,7 @@ const sidebar = {
       label: 'Getting Started',
       items: [
         'getting-started/overview',
+        'getting-started/security',
         'getting-started/troubleshooting',
         'getting-started/organizations',
         'getting-started/feedback',

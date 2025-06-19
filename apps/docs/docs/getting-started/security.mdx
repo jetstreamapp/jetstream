@@ -1,0 +1,67 @@
+---
+id: security
+title: Security
+description: Jetstream is the most advanced toolkit for working with and administering Salesforce. We know that once you start using Jetstream, you'll wonder how you ever got on without it!
+keywords: [salesforce, salesforce admin, salesforce developer, salesforce automation, salesforce workbench]
+sidebar_label: Security
+slug: /security
+---
+
+import { JetstreamProLogo } from '@site/src/shared-components/JetstreamProLogo';
+
+Jetstream is designed with security and privacy in mind. We take the protection of your data seriously and implement industry-standard practices to ensure its safety.
+
+## Web Application Security
+
+When using the Jetstream web application, we employ the following security measures:
+
+- All data is encrypted in transit using TLS (Transport Layer Security) to protect against eavesdropping and tampering.
+- We use OAuth 2.0 for connecting to your Salesforce orgs, ensuring that your credentials are never stored or transmitted insecurely.
+- All access tokens and refresh tokens are encrypted and stored securely in our database.
+- We support multi-factor authentication and email verification to enhance account security.
+
+### Additional Security Features
+
+Upon request, we can provide additional security features for enterprise customers, including:
+
+- Restrict login to a specific provider (e.g. Google or Salesforce)
+  - _We currently don't offer Single-Sign-On via SAML or OIDC. However, if you require SSO to log in to your Google or Salesforce account and want to restrict logging in to that provider, this will ensure that users go through your existing SSO to gain access to Jetstream._
+- Require Multi-factor authentication (MFA) for all users in your domain, and specify which MFA options are available for your users (e.g. OTP using Authenticator App)
+- Prevent linking additional identities to your Jetstream Account
+  - _This will ensure that users can only login to Jetstream using the identity they were invited with, and cannot link additional identities (e.g. Google or Salesforce) to their account. This restriction applies to all users in your domain when enabled._
+
+## Browser Web Extension Security
+
+<JetstreamProLogo width="200px" />
+
+**The Chrome and Firefox extension is available for users on paid plans.**
+
+When using the Jetstream browser extension, you will need to login with your existing Jetstream account. The extension is designed to enhance your Salesforce experience while maintaining security:
+
+- Your Salesforce browser session is used for communicating with your org, **none of your Salesforce data passes through Jetstream's servers.**
+  - _Optionally, you can enable history syncing, which will store and sync some data, such as your query history, to your Jetstream account. This feature is opt-in and is disabled by default._
+
+## Desktop Application Security
+
+:::info
+
+Coming soon!
+
+:::
+
+<JetstreamProLogo width="200px" />
+
+**The desktop application will be available for users on paid plans.**
+
+When using the Jetstream desktop application:
+
+- The application communicates directly with your Salesforce orgs using the Salesforce API, **none of your Salesforce data passes through Jetstream's servers.**
+- We use OAuth 2.0 for connecting to your Salesforce orgs, ensuring that your credentials are never stored or transmitted insecurely.
+- All access tokens and refresh tokens are encrypted and stored securely on your computer.
+
+## Additional Resources
+
+- [Data Processing Agreement](https://getjetstream.app/dpa/)
+- [Data Sub-Processors](https://getjetstream.app/subprocessors/)
+- [Security and Privacy](https://getjetstream.app/privacy/)
+- [Terms of Service](https://getjetstream.app/terms-of-service/)
