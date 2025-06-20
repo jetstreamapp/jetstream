@@ -27,16 +27,20 @@ export class QueryPage {
     await this.page.waitForURL('**/query');
   }
 
-  async gotoResults(query: string) {
-    await this.setManualQuery(query, 'EXECUTE');
+  async gotoResults(query: string, isTooling = false) {
+    await this.setManualQuery(query, 'EXECUTE', isTooling);
   }
 
-  async setManualQuery(query: string, action?: 'EXECUTE' | 'RESTORE') {
+  async setManualQuery(query: string, action?: 'EXECUTE' | 'RESTORE', isTooling = false) {
     await this.page.getByRole('menuitem', { name: 'Query Records' }).click();
     await this.page.waitForURL('**/query');
     await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).first().click();
     const manualQueryPopover = this.page.getByTestId('manual-query');
     await manualQueryPopover.getByRole('textbox', { name: 'Editor content' }).fill(query);
+
+    if (isTooling) {
+      await manualQueryPopover.locator('#is-tooling-user-soql span').first().click();
+    }
 
     if (action === 'EXECUTE') {
       await Promise.all([
@@ -176,15 +180,15 @@ export class QueryPage {
     }
   }
 
-  async waitForQueryResults(query: string) {
-    const { queryResults } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query });
+  async waitForQueryResults(query: string, isTooling = false) {
+    const { queryResults } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query, isTooling });
     expect(queryResults.records.length).toBeGreaterThan(0);
     this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
     return queryResults;
   }
 
-  async confirmQueryRecords(query: string) {
-    const queryResults = await this.waitForQueryResults(query);
+  async confirmQueryRecords(query: string, isTooling = false) {
+    const queryResults = await this.waitForQueryResults(query, isTooling);
 
     // validate first 15 records - check that id is present
     for (const record of queryResults.records.slice(0, 15)) {

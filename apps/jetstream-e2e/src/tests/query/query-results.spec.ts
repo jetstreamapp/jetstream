@@ -46,6 +46,16 @@ test.describe('QUERY RESULTS', () => {
     await queryPage.waitForQueryResults(query3);
   });
 
+  test.skip('Query history should work for tooling queries', async ({ queryPage, page }) => {
+    const query = 'SELECT Id, FullName FROM CustomField LIMIT 1';
+    await queryPage.gotoResults(query, true);
+    expect(page.url()).toContain('/query/results');
+    await queryPage.waitForQueryResults(query, true);
+
+    await queryPage.performQueryHistoryAction(query, 'EXECUTE');
+    expect(page.url()).toContain('/query/results');
+  });
+
   test('restore should work from changes made on results page', async ({ queryPage, page }) => {
     // const query1 = `SELECT Id, BillingAddress, CreatedBy.Id, CreatedBy.Name, CreatedBy.IsActive, Type FROM Account`;
     // await queryPage.gotoResults(query1);
