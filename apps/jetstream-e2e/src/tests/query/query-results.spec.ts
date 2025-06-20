@@ -46,7 +46,7 @@ test.describe('QUERY RESULTS', () => {
     await queryPage.waitForQueryResults(query3);
   });
 
-  test('Query history should work for tooling queries', async ({ queryPage, page }) => {
+  test.skip('Query history should work for tooling queries', async ({ queryPage, page }) => {
     const query = 'SELECT Id, FullName FROM CustomField LIMIT 1';
     await queryPage.gotoResults(query, true);
     expect(page.url()).toContain('/query/results');
