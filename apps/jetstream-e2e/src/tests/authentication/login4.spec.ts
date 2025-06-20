@@ -4,45 +4,36 @@ import { AuthenticationPage } from '@jetstream/test/e2e-utils';
 import { expect, test } from '../../fixtures/fixtures';
 
 test.beforeAll(async () => {
-  await prisma.loginConfiguration.deleteMany({
-    where: {
-      domains: {
-        hasSome: ['playwright.getjetstream.app', 'test.getjetstream.app', 'test2.getjetstream.app', 'mfa-required.getjetstream.app'],
-      },
-    },
-  });
-  await prisma.loginConfiguration.createMany({
-    data: [
-      {
-        allowedMfaMethods: ['email'],
-        allowedProviders: ['salesforce'],
-        domains: ['test.getjetstream.app'],
-        requireMfa: false,
-      },
-      {
-        allowedMfaMethods: ['email'],
-        allowedProviders: ['salesforce'],
-        domains: ['test2.getjetstream.app'],
-        requireMfa: false,
-      },
-      {
-        allowedMfaMethods: ['otp'],
-        allowedProviders: ['credentials'],
-        domains: ['mfa-required.getjetstream.app'],
-        requireMfa: true,
-      },
-    ],
-  });
-});
-
-test.afterAll(async () => {
-  await prisma.loginConfiguration.deleteMany({
-    where: {
-      domains: {
-        hasSome: ['playwright.getjetstream.app', 'test.getjetstream.app', 'test2.getjetstream.app', 'mfa-required.getjetstream.app'],
-      },
-    },
-  });
+  for (const domain of ['playwright.getjetstream.app', 'test.getjetstream.app', 'test2.getjetstream.app']) {
+    const match = await prisma.loginConfiguration.findFirst({
+      where: { domains: { has: domain } },
+    });
+    if (!match) {
+      await prisma.loginConfiguration.create({
+        data: {
+          allowedMfaMethods: ['email'],
+          allowedProviders: ['salesforce'],
+          domains: [domain],
+          requireMfa: false,
+        },
+      });
+    }
+  }
+  for (const domain of ['mfa-required.getjetstream.app']) {
+    const match = await prisma.loginConfiguration.findFirst({
+      where: { domains: { has: domain } },
+    });
+    if (!match) {
+      await prisma.loginConfiguration.create({
+        data: {
+          allowedMfaMethods: ['otp'],
+          allowedProviders: ['credentials'],
+          domains: ['mfa-required.getjetstream.app'],
+          requireMfa: true,
+        },
+      });
+    }
+  }
 });
 
 test.beforeEach(async ({ page }) => {

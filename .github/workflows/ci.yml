@@ -188,48 +188,13 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          SHARD_INDEX=${{ matrix.shardIndex }} SHARD_TOTAL=${{ matrix.shardTotal }} yarn playwright:test:with-server
+          export SHARD_INDEX=${{ matrix.shardIndex }} && export SHARD_TOTAL=${{ matrix.shardTotal }} && yarn playwright:test:with-server
 
-      - name: Upload blob report to GitHub Actions Artifacts
-        if: ${{ !cancelled() }}
+      - name: Upload test results
+        if: always() # This ensures step will always run even if prior steps fail
         uses: actions/upload-artifact@v4
         with:
-          name: blob-report-${{ matrix.shardIndex }}
-          path: blob-report
-          retention-days: 1
-
-  merge-reports:
-    # Merge reports after playwright-tests, even if some shards have failed
-    if: ${{ !cancelled() }}
-    needs: [e2e]
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout [master]
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download blob reports from GitHub Actions Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-blob-reports
-          pattern: blob-report-*
-          merge-multiple: true
-
-      - name: Merge into HTML Report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
-
-      - name: Upload HTML report
-        uses: actions/upload-artifact@v4
-        with:
-          name: html-report--attempt-${{ github.run_attempt }}
+          name: playwright-report-${{ matrix.shardIndex }}
           path: |
             apps/jetstream-e2e/playwright-report
             test-results
-          retention-days: 14

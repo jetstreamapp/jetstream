@@ -28,7 +28,11 @@ export default defineConfig({
   maxFailures: 2,
   timeout: 120000,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [['html', { outputFolder: 'playwright-report', open: process.env.CI ? 'never' : 'on-failure' }]],
+  fullyParallel: true,
+  reporter: [
+    [process.env.CI ? 'list' : 'dot'],
+    ['html', { outputFolder: 'playwright-report', open: process.env.CI ? 'never' : 'on-failure' }],
+  ],
   use: {
     actionTimeout: THIRTY_SECONDS,
     navigationTimeout: THIRTY_SECONDS,

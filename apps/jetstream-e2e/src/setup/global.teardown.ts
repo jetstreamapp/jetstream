@@ -56,7 +56,9 @@ teardown('Delete database records', async ({ page, request }) => {
 
   results = await prisma.loginConfiguration.deleteMany({
     where: {
-      domains: { hasSome: ['example.com', 'test.getjetstream.app'] },
+      domains: {
+        hasSome: ['playwright.getjetstream.app', 'test.getjetstream.app', 'test2.getjetstream.app', 'mfa-required.getjetstream.app'],
+      },
     },
   });
   console.log(`Deleted ${results.count} loginConfiguration records`);
