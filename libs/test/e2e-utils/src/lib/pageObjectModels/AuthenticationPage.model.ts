@@ -150,9 +150,10 @@ export class AuthenticationPage {
     await verifyEmailLogEntryExists(email, 'Verify your email');
 
     // Get token from session
-    const { pendingVerification } = await getUserSessionByEmail(email);
+    const sessions = await getUserSessionsByEmail(email);
+    const pendingVerification = sessions.find((session) => session.pendingVerification?.length)?.pendingVerification || [];
 
-    await expect(pendingVerification || []).toHaveLength(1);
+    await expect(pendingVerification).toHaveLength(1);
 
     if (pendingVerification[0].type !== 'email') {
       throw new Error('Expected email verification');
@@ -180,9 +181,10 @@ export class AuthenticationPage {
     await verifyEmailLogEntryExists(email, 'Verify your email');
 
     // Get token from session
-    const { pendingVerification } = await getUserSessionByEmail(email);
+    const sessions = await getUserSessionsByEmail(email);
+    const pendingVerification = sessions.find((session) => session.pendingVerification?.length)?.pendingVerification || [];
 
-    await expect(pendingVerification || []).toHaveLength(1);
+    await expect(pendingVerification).toHaveLength(1);
 
     if (pendingVerification[0].type !== 'email') {
       throw new Error('Expected email verification');
@@ -285,8 +287,9 @@ export class AuthenticationPage {
     const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
 
     // Get token from session
-    const { pendingVerification } = await getUserSessionByEmail(email);
-    const pendingVerificationLength = (pendingVerification || []).length;
+    const sessions = await getUserSessionsByEmail(email);
+    const pendingVerification = sessions.find((session) => session.pendingVerification?.length)?.pendingVerification || [];
+    const pendingVerificationLength = pendingVerification.length;
 
     await expect(pendingVerificationLength).toBeGreaterThanOrEqual(1);
 
