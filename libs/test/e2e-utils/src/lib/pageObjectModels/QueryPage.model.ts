@@ -180,15 +180,15 @@ export class QueryPage {
     }
   }
 
-  async waitForQueryResults(query: string) {
-    const { queryResults } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query });
+  async waitForQueryResults(query: string, isTooling = false) {
+    const { queryResults } = await this.apiRequestUtils.makeRequest<QueryResults>('POST', `/api/query`, { query, isTooling });
     expect(queryResults.records.length).toBeGreaterThan(0);
     this.page.getByText(`Showing ${formatNumber(queryResults.records.length)} of ${formatNumber(queryResults.totalSize)} records`);
     return queryResults;
   }
 
-  async confirmQueryRecords(query: string) {
-    const queryResults = await this.waitForQueryResults(query);
+  async confirmQueryRecords(query: string, isTooling = false) {
+    const queryResults = await this.waitForQueryResults(query, isTooling);
 
     // validate first 15 records - check that id is present
     for (const record of queryResults.records.slice(0, 15)) {

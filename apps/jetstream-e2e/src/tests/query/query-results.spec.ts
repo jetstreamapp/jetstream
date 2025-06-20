@@ -47,10 +47,10 @@ test.describe('QUERY RESULTS', () => {
   });
 
   test('Query history should work for tooling queries', async ({ queryPage, page }) => {
-    const query = 'SELECT Id, Name, CreatedById, CreatedDate FROM ApexDebuggerSession';
+    const query = 'SELECT Id, FullName FROM CustomField LIMIT 1';
     await queryPage.gotoResults(query, true);
     expect(page.url()).toContain('/query/results');
-    await queryPage.waitForQueryResults(query);
+    await queryPage.waitForQueryResults(query, true);
 
     await queryPage.performQueryHistoryAction(query, 'EXECUTE');
     expect(page.url()).toContain('/query/results');
