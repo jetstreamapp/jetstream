@@ -22,6 +22,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(true);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
+  const [downloadPackageModalOpen, setDownloadPackageModalOpen] = useState<boolean>(false);
   const [file, setFile] = useState<ArrayBuffer>();
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
   const [deployResultsData, setDeployResultsData] = useState<Record<string, any[]>>();
@@ -44,6 +45,12 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
     setDownloadResultsModalOpen(true);
   }
 
+  function handleDownloadPackage(file: ArrayBuffer) {
+    setFile(file);
+    setConfigModalOpen(false);
+    setDownloadPackageModalOpen(true);
+  }
+
   return (
     <Fragment>
       {/* MODALS */}
@@ -55,6 +62,7 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           initialOptions={deployOptions}
           onClose={() => onClose()}
           onDeploy={handleDeploy}
+          onDownloadPackage={handleDownloadPackage}
         />
       )}
       {deployStatusModalOpen && deployOptions && file && (
@@ -81,6 +89,27 @@ export const DeleteMetadataModal: FunctionComponent<DeleteMetadataModalProps> = 
           allowedTypes={['xlsx']}
           data={deployResultsData}
           onModalClose={() => setDownloadResultsModalOpen(false)}
+          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          source="deploy_metadata_delete_modal"
+          trackEvent={trackEvent}
+        />
+      )}
+      {downloadPackageModalOpen && file && (
+        <FileDownloadModal
+          modalHeader="Download Destructive Package"
+          org={selectedOrg}
+          googleIntegrationEnabled={hasGoogleDriveAccess}
+          googleShowUpgradeToPro={googleShowUpgradeToPro}
+          google_apiKey={google_apiKey}
+          google_appId={google_appId}
+          google_clientId={google_clientId}
+          fileNameParts={['destructive-package']}
+          allowedTypes={['zip']}
+          data={file}
+          onModalClose={() => {
+            setDownloadPackageModalOpen(false);
+            setConfigModalOpen(true);
+          }}
           emitUploadToGoogleEvent={fromJetstreamEvents.emit}
           source="deploy_metadata_delete_modal"
           trackEvent={trackEvent}
