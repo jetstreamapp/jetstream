@@ -112,7 +112,7 @@ async function saveQueryHistoryItem(
     incrementRunCount?: boolean;
   } = {}
 ): Promise<QueryHistoryItem> {
-  const queryHistoryItem = await getOrInitQueryHistoryItem(org, soql, sObject);
+  const queryHistoryItem = await getOrInitQueryHistoryItem(org, soql, sObject, sObjectLabel, customLabel, isTooling);
 
   if (incrementRunCount) {
     queryHistoryItem.runCount++;
