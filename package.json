@@ -100,7 +100,7 @@
     "lint:all": "cross-env TZ=UTC nx run-many -t lint --output-style=stream --skip-nx-cache --quiet",
     "e2e": "nx e2e",
     "playwright:open": "yarn playwright open http://localhost:3333",
-    "playwright:test:with-server": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test'",
+    "playwright:test:with-server": "yarn start-server-and-test --expect 200 'yarn start:e2e' http://localhost:3333 'yarn playwright:test --shard=$SHARD_INDEX/$SHARD_TOTAL'",
     "playwright:test": "yarn playwright test src --config apps/jetstream-e2e/playwright.config.ts",
     "playwright:test:query-results": "yarn playwright test query-results.spec.ts --config apps/jetstream-e2e/playwright.config.ts --headed",
     "playwright:web-extension:test": "yarn playwright test src --config apps/jetstream-web-extension-e2e/playwright.config.ts --headed",
