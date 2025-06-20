@@ -249,8 +249,8 @@ export function getFlowsQuery(sobjects: string[]) {
         right: {
           left: {
             field: 'TriggerType',
-            operator: 'LIKE',
-            value: 'Record%',
+            operator: 'IN',
+            value: ['RecordBeforeSave', 'RecordBeforeDelete', 'RecordAfterSave'],
             literalType: 'STRING',
           },
         },
