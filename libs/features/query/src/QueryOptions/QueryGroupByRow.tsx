@@ -68,6 +68,9 @@ export const QueryGroupByRow: FunctionComponent<QueryOrderByProps> = ({
               itemLength: 10,
               showSelectionAsButton: true,
               onClear: () => onChange({ ...groupBy, function: null }),
+              errorMessage: 'This field requires a grouping function.',
+              // Datetime fields show up as non-groupable, but they can be groupable with a function
+              hasError: !groupBy.function && !selectedField?.meta.groupable,
             }}
             items={QUERY_FIELD_DATE_FUNCTIONS}
             selectedItemId={groupBy.function}
