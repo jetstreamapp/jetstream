@@ -102,7 +102,6 @@ test.describe('Login 4 - login configuration', () => {
       const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
       const page = await context.newPage();
       const authenticationPage = new AuthenticationPage(page);
-      await authenticationPage.fillOutLoginForm(email, password);
       await authenticationPage.loginAndVerifyTotp(email, password, secret, true);
       expect(page.url()).toContain('/app');
     });
