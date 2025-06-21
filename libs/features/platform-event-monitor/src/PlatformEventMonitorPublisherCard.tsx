@@ -233,5 +233,3 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
     </Card>
   );
 };
-
-export default PlatformEventMonitorPublisherCard;

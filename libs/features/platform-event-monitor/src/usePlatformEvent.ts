@@ -63,7 +63,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         setPlatformEventFetchError(null);
         const platformEvents = orderBy(
           (await describeGlobal(selectedOrg)).data.sobjects
-            .filter((obj) => (obj.name.endsWith('__e') || obj.name.endsWith('Event')) && !obj.queryable)
+            .filter((obj) => (obj.name.endsWith('__e') || obj.name.endsWith('Event') || obj.name.endsWith('EventStream')) && !obj.queryable)
             .map(({ name, label }): PlatformEventObject => {
               return {
                 name,
@@ -225,6 +225,17 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
     }
   }, [trackEvent]);
 
+  const clearAllEvents = useCallback(async (): Promise<void> => {
+    setMessagesByChannel((prevValue) => {
+      const newValue = { ...prevValue };
+      Object.keys(newValue).forEach((key) => {
+        newValue[key].messages = [];
+      });
+      return newValue;
+    });
+    trackEvent(ANALYTICS_KEYS.platform_event_clear_events, { user_initiated: true });
+  }, [trackEvent]);
+
   const prepareDownloadData = useCallback((messagesByChannel: MessagesByChannel): PlatformEventDownloadData => {
     const output: PlatformEventDownloadData = {
       headers: {},
@@ -254,6 +265,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
     messagesByChannel: debouncedMessagesByChannel,
     loadingPlatformEvents,
     clearAndUnsubscribeFromAll,
+    clearAllEvents,
     fetchPlatformEvents,
     prepareDownloadData,
     publish,

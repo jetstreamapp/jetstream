@@ -1,11 +1,14 @@
 import { css } from '@emotion/react';
+import { logger } from '@jetstream/shared/client-logger';
 import { orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
+import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
-import { RenderCellProps, RowHeightArgs } from 'react-data-grid';
+import { RenderCellProps, RowHeightArgs, SortColumn } from 'react-data-grid';
+import { z } from 'zod';
 import { MessagesByChannel } from './usePlatformEvent';
 
 type ContextEventAction = 'COPY_CELL' | 'COPY_EVENT' | 'COPY_EVENT_ALL';
@@ -15,6 +18,11 @@ const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextEventAction>[] = [
   { label: 'Copy event to clipboard', value: 'COPY_EVENT' },
   { label: 'Copy all events to clipboard', value: 'COPY_EVENT_ALL' },
 ];
+
+const sortColumnSchema = z.object({
+  columnKey: z.string(),
+  direction: z.enum(['ASC', 'DESC']),
+});
 
 export const WrappedTextFormatter: FunctionComponent<RenderCellProps<PlatformEventRow>> = ({ column, row }) => {
   const value = row[column.key as keyof PlatformEventRow];
@@ -46,15 +54,15 @@ const columns: ColumnWithFilter<PlatformEventRow>[] = [
     draggable: true,
   },
   {
-    name: 'UUID',
-    key: 'uuid',
-    width: 160,
-    draggable: true,
-  },
-  {
     name: 'Replay Id',
     key: 'replayId',
     width: 120,
+    draggable: true,
+  },
+  {
+    name: 'UUID',
+    key: 'uuid',
+    width: 160,
     draggable: true,
   },
 ];
@@ -89,6 +97,18 @@ export interface PlatformEventMonitorEventsProps {
 export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorEventsProps> = ({ messagesByChannel }) => {
   const [rows, setRows] = useState<PlatformEventRow[]>([]);
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());
+  const [initialSortColumns] = useState<SortColumn[]>(() => {
+    const sortColumns = localStorage.getItem(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS);
+    if (sortColumns) {
+      try {
+        return sortColumnSchema.array().parse(JSON.parse(sortColumns));
+      } catch (ex) {
+        logger.error('Failed to parse platform event sort order from localStorage', ex);
+        localStorage.removeItem(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS);
+      }
+    }
+    return [{ columnKey: 'replayId', direction: 'ASC' }];
+  });
 
   useEffect(() => {
     setExpandedGroupIds(new Set(rows.map(({ event }) => event)));
@@ -109,7 +129,6 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
     );
   }, [messagesByChannel]);
 
-  // item: ContextMenuItem, data: ContextMenuActionData<T>
   const handleContextMenuAction = useCallback(
     (item: ContextMenuItem<ContextEventAction>, data: ContextMenuActionData<PlatformEventRow>) => {
       switch (item.value) {
@@ -138,8 +157,10 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         expandedGroupIds={expandedGroupIds}
         onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
         rowHeight={getRowHeight}
+        initialSortColumns={initialSortColumns}
         contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
         contextMenuAction={(item, data) => handleContextMenuAction(item as ContextMenuItem<ContextEventAction>, data)}
+        onSortColumnsChange={(order) => localStorage.setItem(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS, JSON.stringify(order))}
       />
     </AutoFullHeightContainer>
   );
