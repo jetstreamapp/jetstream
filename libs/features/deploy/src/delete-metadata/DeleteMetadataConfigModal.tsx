@@ -5,7 +5,7 @@ import { DeployOptions, ListMetadataResult, SalesforceOrgUi } from '@jetstream/t
 import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import JSZip from 'jszip';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const hiddenOptions = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'performRetrieve', 'singlePackage']);
@@ -18,6 +18,7 @@ export interface DeleteMetadataConfigModalProps {
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
   onDeploy: (file: ArrayBuffer, deployOptions: DeployOptions) => void;
+  onDownloadPackage: (file: ArrayBuffer) => void;
 }
 
 export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigModalProps> = ({
@@ -28,6 +29,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
   onSelection,
   onClose,
   onDeploy,
+  onDownloadPackage,
 }) => {
   const rollbar = useRollbar();
   const modalBodyRef = useRef<HTMLDivElement>(null);
@@ -113,14 +115,22 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
         </div>
       }
       footer={
-        <Fragment>
-          <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
-            Cancel
-          </button>
-          <button className="slds-button slds-button_brand" onClick={() => handleDeploy()} disabled={!isConfigValid}>
-            {deployOptions.checkOnly ? 'Validate' : 'Deploy'}
-          </button>
-        </Fragment>
+        <Grid align="spread">
+          <div>
+            <button className="slds-button slds-button_neutral" onClick={() => file && onDownloadPackage(file)} disabled={!file}>
+              <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
+              Download Package
+            </button>
+          </div>
+          <div>
+            <button className="slds-button slds-button_neutral" onClick={() => onClose()}>
+              Cancel
+            </button>
+            <button className="slds-button slds-button_brand" onClick={() => handleDeploy()} disabled={!isConfigValid}>
+              {deployOptions.checkOnly ? 'Validate' : 'Deploy'}
+            </button>
+          </div>
+        </Grid>
       }
       size="lg"
       onClose={onClose}
