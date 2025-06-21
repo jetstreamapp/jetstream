@@ -170,7 +170,7 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
   );
   outputStateItems.groupByQueryFieldsState = unFlattenedListItemsById(
     groupByFlat(
-      allListItems.filter((item) => item.meta.groupable),
+      allListItems.filter((item) => item.meta?.groupable || item.meta?.type === 'datetime'),
       'id'
     )
   );

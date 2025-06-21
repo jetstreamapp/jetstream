@@ -205,7 +205,10 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
         let allFilterItems = getFlattenedListItemsById(prevItems);
         allFilterItems = {
           ...allFilterItems,
-          [item.id]: { ...allFilterItems[item.id], childItems: childFields.filter((field) => field.meta?.groupable) },
+          [item.id]: {
+            ...allFilterItems[item.id],
+            childItems: childFields.filter((field) => field.meta?.groupable || field.meta?.type === 'datetime'),
+          },
         };
         return unFlattenedListItemsById(allFilterItems);
       });

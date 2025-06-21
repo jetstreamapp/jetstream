@@ -80,7 +80,9 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           const fields = Object.values(tempQueryFieldsMap[BASE_KEY].fields).map((item) => item.metadata);
           setFilterFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.filterable))));
           setOrderByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.sortable))));
-          setGroupByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable))));
+          setGroupByFields(
+            getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable || field.type === 'datetime')))
+          );
 
           tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
           setChildRelationships(tempQueryFieldsMap[BASE_KEY].childRelationships || []);
