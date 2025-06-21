@@ -104,6 +104,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         return sortColumnSchema.array().parse(JSON.parse(sortColumns));
       } catch (ex) {
         logger.error('Failed to parse platform event sort order from localStorage', ex);
+        localStorage.removeItem(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS);
       }
     }
     return [{ columnKey: 'replayId', direction: 'ASC' }];
