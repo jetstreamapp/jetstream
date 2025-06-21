@@ -70,5 +70,3 @@ export const PlatformEventMonitorFetchEventStatus: FunctionComponent<PlatformEve
     </Card>
   );
 };
-
-export default PlatformEventMonitorFetchEventStatus;

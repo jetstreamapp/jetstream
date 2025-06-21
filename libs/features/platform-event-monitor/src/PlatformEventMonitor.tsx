@@ -6,19 +6,16 @@ import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
-import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import PlatformEventMonitorFetchEventStatus from './PlatformEventMonitorFetchEventStatus';
-import PlatformEventMonitorListenerCard from './PlatformEventMonitorListenerCard';
-import PlatformEventMonitorPublisherCard from './PlatformEventMonitorPublisherCard';
-import PlatformEventMonitorSubscribeNotAvailableCard from './PlatformEventMonitorSubscribeNotAvailableCard';
+import { PlatformEventMonitorFetchEventStatus } from './PlatformEventMonitorFetchEventStatus';
+import { PlatformEventMonitorListenerCard } from './PlatformEventMonitorListenerCard';
+import { PlatformEventMonitorPublisherCard } from './PlatformEventMonitorPublisherCard';
+import { PlatformEventMonitorSubscribeNotAvailableCard } from './PlatformEventMonitorSubscribeNotAvailableCard';
 import { PlatformEventObject } from './platform-event-monitor.types';
 import { PlatformEventDownloadData, usePlatformEvent } from './usePlatformEvent';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PlatformEventMonitorProps {}
-
-export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> = () => {
+export const PlatformEventMonitor = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const { trackEvent } = useAmplitude();
   const [chromeExtension] = useState(() => isBrowserExtension());
@@ -33,6 +30,7 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
     messagesByChannel,
     loadingPlatformEvents,
     clearAndUnsubscribeFromAll,
+    clearAllEvents,
     fetchPlatformEvents,
     prepareDownloadData,
     publish,
@@ -176,7 +174,8 @@ export const PlatformEventMonitor: FunctionComponent<PlatformEventMonitorProps> 
                 selectedSubscribeEvent={selectedSubscribeEvent}
                 messagesByChannel={messagesByChannel}
                 fetchPlatformEvents={fetchPlatformEvents}
-                onClear={() => clearAndUnsubscribeFromAll()}
+                onClearAll={() => clearAndUnsubscribeFromAll()}
+                onClearEvents={() => clearAllEvents()}
                 onDownload={handleDownload}
                 onSelectedSubscribeEvent={setSelectedSubscribeEvent}
                 subscribe={subscribe}

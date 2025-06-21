@@ -1,6 +1,6 @@
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef } from 'react';
-import { TreeDataGrid, TreeDataGridProps } from 'react-data-grid';
+import { SortColumn, TreeDataGrid, TreeDataGridProps } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { ContextMenu } from '../form/context-menu/ContextMenu';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';
@@ -30,6 +30,7 @@ interface DataTreePropsBase<T = RowWithKey, TContext = Record<string, any>>
   org?: SalesforceOrgUi;
   quickFilterText?: string | null;
   includeQuickFilter?: boolean;
+  initialSortColumns?: SortColumn[];
   context?: TContext;
   /** Must be stable to avoid constant re-renders */
   contextMenuItems?: ContextMenuItem[];
@@ -52,6 +53,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
       org,
       quickFilterText,
       includeQuickFilter,
+      initialSortColumns,
       context,
       contextMenuItems,
       contextMenuAction,
@@ -88,6 +90,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
       quickFilterText,
       includeQuickFilter,
       contextMenuItems,
+      initialSortColumns,
       ref,
       contextMenuAction,
       getRowKey,
@@ -115,7 +118,6 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
             renderers={renderers}
             sortColumns={sortColumns}
-            onSortColumnsChange={setSortColumns}
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
             rowKeyGetter={getRowKey}
             // @ts-expect-error Types are incorrect, but they are generic and difficult to get correct
@@ -124,6 +126,11 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
             onCellKeyDown={handleCellKeydown}
             onColumnsReorder={handleReorderColumns}
             {...rest}
+            onSortColumnsChange={(columns) => {
+              setSortColumns(columns);
+              // Allow subscriber to subscribe to changes as a side-effect
+              rest?.onSortColumnsChange?.(columns);
+            }}
           />
           {contextMenuProps && contextMenuItems && contextMenuAction && (
             <ContextMenu

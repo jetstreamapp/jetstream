@@ -21,5 +21,3 @@ export const PlatformEventMonitorSubscribeNotAvailableCard = () => {
     </Card>
   );
 };
-
-export default PlatformEventMonitorSubscribeNotAvailableCard;

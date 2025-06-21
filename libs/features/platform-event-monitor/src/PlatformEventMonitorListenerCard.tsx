@@ -1,12 +1,11 @@
 import { ListItem, ListItemGroup, Maybe } from '@jetstream/types';
 import { Card, Grid, Icon, Pill, Spinner, Tooltip, ViewDocsLink } from '@jetstream/ui';
-import { FunctionComponent } from 'react';
 import PlatformEventMonitorEvents from './PlatformEventMonitorEvents';
 import PlatformEventMonitorSubscribe from './PlatformEventMonitorSubscribe';
 import { PlatformEventObject } from './platform-event-monitor.types';
 import { MessagesByChannel } from './usePlatformEvent';
 
-export interface PlatformEventMonitorListenerCardListenerCard {
+export interface PlatformEventMonitorListenerCardListenerCardProps {
   loading: boolean;
   picklistKey: string | number;
   platformEventsList: ListItemGroup<string, PlatformEventObject>[];
@@ -14,14 +13,15 @@ export interface PlatformEventMonitorListenerCardListenerCard {
   selectedSubscribeEvent?: Maybe<string>;
   messagesByChannel: MessagesByChannel;
   fetchPlatformEvents: (clearCache?: boolean) => void;
-  onClear: () => void;
+  onClearAll: () => void;
+  onClearEvents: () => void;
   onDownload: () => void;
   onSelectedSubscribeEvent: (id: string) => void;
   subscribe: (platformEventName: string, replayId?: number) => Promise<any>;
   unsubscribe: (platformEventName: string) => Promise<any>;
 }
 
-export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMonitorListenerCardListenerCard> = ({
+export const PlatformEventMonitorListenerCard = ({
   loading,
   picklistKey,
   platformEventsList,
@@ -29,12 +29,13 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
   selectedSubscribeEvent,
   messagesByChannel,
   fetchPlatformEvents,
-  onClear,
+  onClearAll,
+  onClearEvents,
   onDownload,
   onSelectedSubscribeEvent,
   subscribe,
   unsubscribe,
-}) => {
+}: PlatformEventMonitorListenerCardListenerCardProps) => {
   const hasSubscriptions = Object.keys(messagesByChannel).length > 0;
   const hasEvents = hasSubscriptions && Object.values(messagesByChannel).some((channel) => channel.messages.length > 0);
 
@@ -56,9 +57,18 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
           </button>
           <Tooltip content={'Unsubscribe from all events and clear results.'}>
             <button
-              className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-container slds-m-right_x-small"
+              className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-container slds-m-right_xx-small"
               disabled={!hasSubscriptions}
-              onClick={() => onClear()}
+              onClick={() => onClearAll()}
+            >
+              <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+            </button>
+          </Tooltip>
+          <Tooltip content={'Clear current results and retain subscriptions.'}>
+            <button
+              className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-container slds-m-right_xx-small"
+              disabled={!hasSubscriptions}
+              onClick={() => onClearEvents()}
             >
               <Icon type="utility" icon="refresh" className="slds-button__icon" omitContainer />
             </button>
@@ -101,5 +111,3 @@ export const PlatformEventMonitorListenerCard: FunctionComponent<PlatformEventMo
     </Card>
   );
 };
-
-export default PlatformEventMonitorListenerCard;
