@@ -25,6 +25,7 @@ model User {
   lastLoggedIn        DateTime?
   createdAt           DateTime                @default(now()) @db.Timestamp(6)
   updatedAt           DateTime                @updatedAt
+  hasPasswordSet      Boolean                 @default(dbgenerated())
   preferences         UserPreference?
   salesforceOrgs      SalesforceOrg[]
   organizations       JetstreamOrganization[]
