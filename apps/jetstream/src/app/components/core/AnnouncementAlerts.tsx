@@ -1,3 +1,4 @@
+import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { Announcement } from '@jetstream/types';
 import { Alert } from '@jetstream/ui';
 import { useState } from 'react';
@@ -36,7 +37,7 @@ export function AnnouncementAlert({ announcement }: { announcement: Announcement
       leadingIcon="warning"
       allowClose
       onClose={() => {
-        localStorage.setItem(key, 'true');
+        setItemInLocalStorage(key, 'true');
         setDismissed(true);
       }}
     >

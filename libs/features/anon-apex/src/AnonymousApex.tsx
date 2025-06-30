@@ -3,7 +3,14 @@ import { useSetTraceFlag } from '@jetstream/connected-ui';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, INDEXED_DB, LOG_LEVELS, TITLES } from '@jetstream/shared/constants';
 import { anonymousApex } from '@jetstream/shared/data';
-import { useBrowserNotifications, useDebounce, useNonInitialEffect, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import {
+  setItemInLocalStorage,
+  useBrowserNotifications,
+  useDebounce,
+  useNonInitialEffect,
+  useRollbar,
+  useTitle,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { ApexHistoryItem, ListItem, SalesforceOrgUi } from '@jetstream/types';
@@ -94,7 +101,8 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   }, [textFilter, logRef.current]);
 
   useNonInitialEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY, debouncedApex);
+    // TODO: local storage allows a max of 6mb across all keys - so  it is possible this could cause issues
+    setItemInLocalStorage(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY, debouncedApex);
   }, [debouncedApex]);
 
   useNonInitialEffect(() => {

@@ -270,7 +270,6 @@ export const LoadRecordsBulkApiResults = ({
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
-        rollbar.error('Error preparing bulk api data', { queryErrors: preparedDataResponse?.queryErrors });
       } else {
         setStatus(STATUSES.UPLOADING);
         setPreparedData(preparedDataResponse);

@@ -9,6 +9,7 @@ import {
   formatNumber,
   hasModifierKey,
   isMKey,
+  setItemInSessionStorage,
   useBrowserNotifications,
   useGlobalEventHandler,
   useLocationState,
@@ -311,7 +312,7 @@ export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() 
       setSubqueryFields(getFlattenSubqueryFlattenedFieldMap(results.parsedQuery));
       // Matching ReactRouter state format
       window.history.replaceState({ state: { soql: soqlQuery, isTooling: tooling } }, '');
-      sessionStorage.setItem('query', JSON.stringify({ soql: soqlQuery, isTooling: tooling }));
+      setItemInSessionStorage('query', JSON.stringify({ soql: soqlQuery, isTooling: tooling }));
 
       setTotalRecordCount(results.queryResults.totalSize);
       setErrorMessage(null);

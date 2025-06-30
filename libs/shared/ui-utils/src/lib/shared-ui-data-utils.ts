@@ -341,3 +341,22 @@ export async function copyRecordsToClipboard(
     }
   }
 }
+
+/**
+ * Wrapper for localStorage.setItem with error handling
+ */
+export function setItemInLocalStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (ex) {
+    logger.error(`Error setting ${key} in localStorage`, ex);
+  }
+}
+
+export function setItemInSessionStorage(key: string, value: string) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch (ex) {
+    logger.error(`Error setting ${key} in sessionStorage`, ex);
+  }
+}
