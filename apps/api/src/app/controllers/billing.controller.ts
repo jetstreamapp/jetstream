@@ -2,6 +2,7 @@ import { ENV, logger } from '@jetstream/api-config';
 import { UserProfileUi } from '@jetstream/types';
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 import * as stripeService from '../services/stripe.service';
 import { redirect, sendJson } from '../utils/response.handlers';
@@ -11,29 +12,31 @@ export const routeDefinition = {
   webhook: {
     controllerFn: () => stripeWebhookHandler,
     validators: {
-      query: z.object({
-        priceId: z.string(),
-      }),
       hasSourceOrg: false,
     },
   },
   createCheckoutSession: {
     controllerFn: () => createCheckoutSessionHandler,
     validators: {
-      body: z.object({
-        priceId: z.string().regex(/^price_[\w\d]+$/),
-      }),
       hasSourceOrg: false,
+      body: z.object({
+        priceId: z
+          .string()
+          .regex(/^price_[\w\d]+$/)
+          .refine((val) => val === ENV.STRIPE_PRO_ANNUAL_PRICE_ID || val === ENV.STRIPE_PRO_MONTHLY_PRICE_ID, {
+            message: 'Invalid price ID',
+          }),
+      }),
     },
   },
   processCheckoutSuccess: {
     controllerFn: () => processCheckoutSuccessHandler,
     validators: {
+      hasSourceOrg: false,
       query: z.object({
         subscribeAction: z.string().optional(),
         sessionId: z.string().optional(),
       }),
-      hasSourceOrg: false,
     },
   },
   getSubscriptions: {
@@ -48,17 +51,41 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
-};
-
-const ensureStripeIsInitialized = () => {
-  if (!ENV.STRIPE_API_KEY) {
-    throw new Error('Stripe API Key is not set');
-  }
+  createTeamCheckoutSessionHandler: {
+    controllerFn: () => createTeamCheckoutSessionHandler,
+    validators: {
+      hasSourceOrg: false,
+      body: z.object({
+        priceId: z
+          .string()
+          .regex(/^price_[\w\d]+$/)
+          .refine((val) => val === ENV.STRIPE_TEAM_ANNUAL_PRICE_ID || val === ENV.STRIPE_TEAM_MONTHLY_PRICE_ID, {
+            message: 'Invalid price ID',
+          }),
+      }),
+    },
+  },
+  processTeamCheckoutSuccessHandler: {
+    controllerFn: () => processTeamCheckoutSuccessHandler,
+    validators: {
+      hasSourceOrg: false,
+      query: z.object({
+        subscribeAction: z.string().optional(),
+        sessionId: z.string().optional(),
+      }),
+    },
+  },
+  createTeamBillingPortalSession: {
+    controllerFn: () => createTeamBillingPortalSession,
+    validators: {
+      hasSourceOrg: false,
+    },
+  },
 };
 
 const stripeWebhookHandler = async (req: Request, res: Response) => {
   try {
-    ensureStripeIsInitialized();
+    stripeService.ensureStripeIsInitialized();
     const payload = req.body;
     const signature = req.get('stripe-signature');
     await stripeService.handleStripeWebhook({ payload, signature });
@@ -71,7 +98,7 @@ const stripeWebhookHandler = async (req: Request, res: Response) => {
 const createCheckoutSessionHandler = createRoute(
   routeDefinition.createCheckoutSession.validators,
   async ({ user: sessionUser, body }, req, res) => {
-    ensureStripeIsInitialized();
+    stripeService.ensureStripeIsInitialized();
     const { priceId } = body;
 
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
@@ -81,6 +108,7 @@ const createCheckoutSessionHandler = createRoute(
       priceId,
       customerId: user.billingAccount?.customerId,
       user,
+      type: 'USER',
     });
 
     redirect(res, sessions.url);
@@ -88,7 +116,7 @@ const createCheckoutSessionHandler = createRoute(
 );
 
 const processCheckoutSuccessHandler = createRoute(routeDefinition.processCheckoutSuccess.validators, async ({ user, query }, req, res) => {
-  ensureStripeIsInitialized();
+  stripeService.ensureStripeIsInitialized();
   const { subscribeAction, sessionId } = query;
 
   if (!subscribeAction || !sessionId) {
@@ -101,7 +129,7 @@ const processCheckoutSuccessHandler = createRoute(routeDefinition.processCheckou
 });
 
 const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, req, res) => {
-  ensureStripeIsInitialized();
+  stripeService.ensureStripeIsInitialized();
 
   const {
     success,
@@ -131,7 +159,7 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
 const createBillingPortalSession = createRoute(
   routeDefinition.createBillingPortalSession.validators,
   async ({ user: sessionUser }, req, res) => {
-    ensureStripeIsInitialized();
+    stripeService.ensureStripeIsInitialized();
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
 
     if (!user.billingAccount) {
@@ -140,6 +168,63 @@ const createBillingPortalSession = createRoute(
 
     const sessions = await stripeService.createBillingPortalSession({
       customerId: user.billingAccount?.customerId,
+    });
+
+    redirect(res, sessions.url);
+  }
+);
+
+const createTeamCheckoutSessionHandler = createRoute(
+  routeDefinition.createTeamCheckoutSessionHandler.validators,
+  async ({ user: sessionUser, body }, req, res) => {
+    const { priceId } = body;
+    stripeService.ensureStripeIsInitialized();
+
+    const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
+    const team = await teamDbService.findByUserId({ userId: sessionUser.id });
+
+    const sessions = await stripeService.createCheckoutSession({
+      mode: 'setup',
+      priceId,
+      customerId: user.billingAccount?.customerId,
+      user,
+      type: 'TEAM',
+      team,
+    });
+
+    redirect(res, sessions.url);
+  }
+);
+
+const processTeamCheckoutSuccessHandler = createRoute(
+  routeDefinition.processTeamCheckoutSuccessHandler.validators,
+  async ({ user, query }, req, res) => {
+    stripeService.ensureStripeIsInitialized();
+    const { subscribeAction, sessionId } = query;
+
+    if (!subscribeAction || !sessionId) {
+      // FIXME: figure out correct path
+      return redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/app/teams/billing`);
+    }
+
+    await stripeService.saveSubscriptionFromCompletedSession({ sessionId });
+
+    redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
+  }
+);
+
+const createTeamBillingPortalSession = createRoute(
+  routeDefinition.createTeamBillingPortalSession.validators,
+  async ({ user: sessionUser }, req, res) => {
+    stripeService.ensureStripeIsInitialized();
+    const team = await teamDbService.findByUserId({ userId: sessionUser.id });
+
+    if (!team.teamBillingAccount) {
+      throw new Error('Team does not have a billing account');
+    }
+
+    const sessions = await stripeService.createBillingPortalSession({
+      customerId: team.teamBillingAccount.customerId,
     });
 
     redirect(res, sessions.url);

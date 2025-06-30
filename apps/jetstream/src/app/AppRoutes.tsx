@@ -87,6 +87,8 @@ const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').the
 const PlatformEventMonitor = lazy(() =>
   import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
 );
+
+const TeamDashboard = lazy(() => import('@jetstream/feature/teams').then((module) => ({ default: module.TeamDashboard })));
 const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
@@ -274,6 +276,7 @@ export const AppRoutes = () => {
       />
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
       <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
+      <Route path={APP_ROUTES.TEAM_DASHBOARD.ROUTE} element={<TeamDashboard />} />
       <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
       <Route path={APP_ROUTES.BILLING.ROUTE} element={<Billing />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />

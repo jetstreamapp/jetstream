@@ -23,6 +23,7 @@ export * from './lib/file-download-modal/download-modal-utils';
 export * from './lib/file-download-modal/FileDownloadModal';
 export * from './lib/file-download-modal/FileFauxDownloadModal';
 export * from './lib/file-download-modal/RecordDownloadModal';
+export * from './lib/widgets/SessionLocationDisplay'
 export * from './lib/form/button/ButtonGroupContainer';
 export * from './lib/form/button/ButtonRowContainer';
 export * from './lib/form/button/ButtonRowItem';
@@ -143,6 +144,7 @@ export * from './lib/tree/Tree';
 export * from './lib/utils/ErrorBoundaryWithoutContent';
 export * from './lib/utils/OutsideClickHandler';
 export * from './lib/widgets/Breadcrumbs';
+export * from './lib/widgets/ConditionalPortal';
 export * from './lib/widgets/CopyToClipboard';
 export * from './lib/widgets/CopyToClipboardWithToolTip';
 export * from './lib/widgets/FeedbackLink';

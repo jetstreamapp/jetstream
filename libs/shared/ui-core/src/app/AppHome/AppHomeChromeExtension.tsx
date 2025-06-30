@@ -80,7 +80,7 @@ export const AppHomeChromeExtension = () => {
           {!hasExtensionAccess && (
             <>
               <p>
-                The Chrome extension <strong>requires a Pro</strong> subscription.{' '}
+                The browser extensions <strong>require a Pro</strong> subscription.{' '}
                 <Link
                   to="/settings/billing"
                   onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source: 'app_home' })}

@@ -22,6 +22,13 @@ export const ROUTES = {
     GITHUB_ISSUE: 'https://github.com/jetstreamapp/jetstream/issues',
     GITHUB_SPONSOR: 'https://github.com/sponsors/jetstreamapp',
   },
+  TEAM: {
+    _root_path: '/team/',
+    join: '/team/join/',
+    verify_invitation: ({ teamId, token, returnUrl }: { teamId: string; token: string; returnUrl: string }) =>
+      `/api/teams/${teamId}/invitations/${token}/verify?returnUrl=${encodeURIComponent(returnUrl)}`,
+    accept_invitation: ({ teamId, token }: { teamId: string; token: string }) => `/api/teams/${teamId}/invitations/${token}/accept`,
+  },
   AUTH: {
     _root_path: '/auth/',
     login: '/auth/login/',
@@ -60,4 +67,5 @@ export const SIGN_IN_ERRORS = {
   InvalidAccessToken: 'Your session is invalid, please sign in again.',
   MissingEntitlement: `You are not permitted to access this feature.`,
   ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
+  InvalidInvitationRequest: `Your invitation request is invalid.`,
 };
