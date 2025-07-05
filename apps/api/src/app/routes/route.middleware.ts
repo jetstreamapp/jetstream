@@ -323,7 +323,7 @@ export async function getOrgForRequest(
       callOptions,
       instanceUrl,
       refreshToken,
-      logging: ENV.ENVIRONMENT === 'development',
+      logging: ENV.LOG_LEVEL === 'trace',
       logger,
       sfdcClientId: ENV.SFDC_CONSUMER_KEY,
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
