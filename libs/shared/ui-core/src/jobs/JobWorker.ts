@@ -13,6 +13,7 @@ import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
   bulkApiAddBatchToJob,
   bulkApiCreateJob,
+  bulkApiGetRecords,
   deleteReportsById,
   queryMore,
   retrieveMetadataFromListMetadata,
@@ -20,6 +21,7 @@ import {
   retrieveMetadataFromPackagesNames,
   sobjectOperation,
 } from '@jetstream/shared/data';
+import { isBrowserExtension } from '@jetstream/shared/ui-utils';
 import {
   ensureArray,
   flattenRecords,
@@ -195,22 +197,29 @@ export class JobWorker {
               throw new Error(finalResults.batches[0].stateMessage);
             }
 
-            const results = {
-              done: true,
-              progress: 100,
-              mimeType: MIME_TYPES.CSV,
-              useBulkApi: true,
-              results: `${serverUrl}/static/bulk/${jobId}/${batchResult.id}/file?${getOrgUrlParams(org, {
-                type: 'result',
-                isQuery: 'true',
+            /**
+             * In the browser extension, we cannot stream the file, so we download the results it directly
+             */
+            if (isBrowserExtension()) {
+              downloadedRecords = await bulkApiGetRecords(org, jobId, batchResult.id, 'result', true);
+            } else {
+              const results = {
+                done: true,
+                progress: 100,
+                mimeType: MIME_TYPES.CSV,
+                useBulkApi: true,
+                results: `${serverUrl}/static/bulk/${jobId}/${batchResult.id}/file?${getOrgUrlParams(org, {
+                  type: 'result',
+                  isQuery: 'true',
+                  fileName,
+                })}`,
                 fileName,
-              })}`,
-              fileName,
-              fileFormat,
-              googleFolder,
-            };
-            this.replyToMessage(name, { job, results });
-            return;
+                fileFormat,
+                googleFolder,
+              };
+              this.replyToMessage(name, { job, results });
+              return;
+            }
           }
 
           switch (fileFormat) {
