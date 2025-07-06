@@ -79,7 +79,7 @@ function reducer(state: State, action: Action): State {
         };
 
         if (newRow.label.value) {
-          newRow.label = { ...newRow.label, value: `${newRow.label.value} copy` };
+          newRow.label = { ...newRow.label, value: `Copy ${newRow.label.value}` };
           newRow.fullName = { ...newRow.fullName, value: generateApiNameFromLabel(newRow.label.value as string) };
         }
 
