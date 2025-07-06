@@ -470,6 +470,9 @@ export async function query<T = any>(
   isTooling = false,
   includeDeletedRecords = false
 ): Promise<QueryResults<T>> {
+  if (!query) {
+    throw new Error('Query cannot be empty');
+  }
   return handleRequest(
     { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
     { org, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }
@@ -483,6 +486,9 @@ export async function queryWithCache<T = any>(
   skipRequestCache = false,
   includeDeletedRecords = false
 ): Promise<ApiResponse<QueryResults<T>>> {
+  if (!query) {
+    throw new Error('Query cannot be empty');
+  }
   return handleRequest(
     { method: 'POST', url: `/api/query`, params: { isTooling, includeDeletedRecords }, data: { query } },
     { org, useCache: true, skipRequestCache, useQueryParamsInCacheKey: true, useBodyInCacheKey: true }

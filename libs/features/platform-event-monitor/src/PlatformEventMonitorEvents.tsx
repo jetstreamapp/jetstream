@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { setItemInLocalStorage } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataTree } from '@jetstream/ui';
@@ -160,7 +161,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
         initialSortColumns={initialSortColumns}
         contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
         contextMenuAction={(item, data) => handleContextMenuAction(item as ContextMenuItem<ContextEventAction>, data)}
-        onSortColumnsChange={(order) => localStorage.setItem(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS, JSON.stringify(order))}
+        onSortColumnsChange={(order) => setItemInLocalStorage(STORAGE_KEYS.PLATFORM_EVENT_SORT_COLUMNS, JSON.stringify(order))}
       />
     </AutoFullHeightContainer>
   );

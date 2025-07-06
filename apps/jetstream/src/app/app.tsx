@@ -22,38 +22,40 @@ export const App = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   return (
-    <ConfirmationServiceProvider>
-      <RecoilRoot>
-        <RecoilNexus />
-        <Suspense fallback={<AppLoading />}>
-          <AppInitializer onAnnouncements={setAnnouncements}>
-            <OverlayProvider>
-              <DndProvider backend={HTML5Backend}>
-                <ModalContainer />
-                <AppStateResetOnOrgChange />
-                <AppToast />
-                <LogInitializer />
-                <NotificationsRequestModal loadDelay={10000} />
-                <DownloadFileStream />
-                <div>
-                  <div data-testid="header">
-                    <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
+    <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+      <ConfirmationServiceProvider>
+        <RecoilRoot>
+          <RecoilNexus />
+          <Suspense fallback={<AppLoading />}>
+            <AppInitializer onAnnouncements={setAnnouncements}>
+              <OverlayProvider>
+                <DndProvider backend={HTML5Backend}>
+                  <ModalContainer />
+                  <AppStateResetOnOrgChange />
+                  <AppToast />
+                  <LogInitializer />
+                  <NotificationsRequestModal loadDelay={10000} />
+                  <DownloadFileStream />
+                  <div>
+                    <div data-testid="header">
+                      <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />
+                    </div>
+                    <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                      <AnnouncementAlerts announcements={announcements} />
+                      <Suspense fallback={<AppLoading />}>
+                        <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                          <AppRoutes />
+                        </ErrorBoundary>
+                      </Suspense>
+                    </div>
                   </div>
-                  <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                    <AnnouncementAlerts announcements={announcements} />
-                    <Suspense fallback={<AppLoading />}>
-                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                        <AppRoutes />
-                      </ErrorBoundary>
-                    </Suspense>
-                  </div>
-                </div>
-              </DndProvider>
-            </OverlayProvider>
-          </AppInitializer>
-        </Suspense>
-      </RecoilRoot>
-    </ConfirmationServiceProvider>
+                </DndProvider>
+              </OverlayProvider>
+            </AppInitializer>
+          </Suspense>
+        </RecoilRoot>
+      </ConfirmationServiceProvider>
+    </ErrorBoundary>
   );
 };
 

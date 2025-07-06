@@ -84,6 +84,8 @@ export const HeaderNavbar = ({
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
 
+  const subscriptionLength = userProfile?.subscriptions?.length || 0;
+
   function handleUserMenuSelection(id: string) {
     switch (id) {
       case 'profile':
@@ -124,7 +126,7 @@ export const HeaderNavbar = ({
       return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
     }
 
-    if (userProfile.subscriptions.length === 0) {
+    if (subscriptionLength === 0) {
       return [
         <UpgradeToProButton trackEvent={trackEvent} source="navbar" />,
         <RecordSearchPopover />,
@@ -135,14 +137,14 @@ export const HeaderNavbar = ({
     }
 
     return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isChromeExtension, isDesktop, isBillingEnabled, userProfile.subscriptions.length, trackEvent]);
+  }, [isChromeExtension, isDesktop, isBillingEnabled, subscriptionLength, trackEvent]);
 
   return (
     <Fragment>
       {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
-        logo={isChromeExtension || isDesktop || userProfile.subscriptions?.length > 0 ? LogoPro : Logo}
+        logo={isChromeExtension || isDesktop || subscriptionLength > 0 ? LogoPro : Logo}
         logoCss={logoCss}
         orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
         userMenuItems={userMenuItems}

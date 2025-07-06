@@ -1,5 +1,5 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { query } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -21,7 +21,6 @@ export function useOrgPermissions(selectedOrg: Maybe<SalesforceOrgUi>) {
   const uniqueId = selectedOrg?.uniqueId;
   const connectionError = !!selectedOrg?.connectionError;
   const [hasMetadataAccess, setHasMetadataAccess] = useState(cachedResult);
-  const rollbar = useRollbar();
 
   const fetchOrgPermissions = useCallback(async () => {
     if (selectedOrg && !selectedOrg.connectionError) {
@@ -36,7 +35,7 @@ export function useOrgPermissions(selectedOrg: Maybe<SalesforceOrgUi>) {
           cachedResult = records[0].PermissionsModifyAllData || records[0].PermissionsModifyMetadata;
         }
       } catch (ex) {
-        rollbar.warn(`Error checking for org access: ${ex.message}`, ex);
+        logger.error('Error fetching org permissions', ex);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -95,7 +95,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       try {
         await controllerFn(data, req, res, next);
       } catch (ex) {
-        next(ex);
+        next(new UserFacingError(ex));
       }
     } catch (ex) {
       rollbarServer.error('Route Validation Error', req, {
