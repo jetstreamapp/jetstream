@@ -38,7 +38,6 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
         new TerserPlugin({
           parallel: true,
           minify: TerserPlugin.esbuildMinify,
-          // @ts-expect-error this is correct, not sure why it is complaining
         }).apply(compiler);
       },
     ],
