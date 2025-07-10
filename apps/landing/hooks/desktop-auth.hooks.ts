@@ -80,7 +80,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         status: 'error',
         errorMessage:
-          ERROR_MESSAGES[action.message] ?? Object.values(ERROR_MESSAGES).includes(action.message)
+          (ERROR_MESSAGES[action.message] ?? Object.values(ERROR_MESSAGES).includes(action.message))
             ? action.message
             : ERROR_MESSAGES.UNKNOWN_ERROR,
       };

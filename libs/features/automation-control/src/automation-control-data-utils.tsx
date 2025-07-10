@@ -151,7 +151,7 @@ export function fetchAutomationData(
   if (selectedTypes.has('ApexTrigger')) {
     requests.push(
       from(
-        getApexTriggersMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'ApexTrigger', records } as FetchSuccessPayload))
+        getApexTriggersMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'ApexTrigger', records }) as FetchSuccessPayload)
       ).pipe(
         catchError((error) => of({ type: 'ApexTrigger', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
       )
@@ -160,7 +160,7 @@ export function fetchAutomationData(
   if (selectedTypes.has('DuplicateRule')) {
     requests.push(
       from(
-        getDuplicateRules(selectedOrg, selectedSObjects).then((records) => ({ type: 'DuplicateRule', records } as FetchSuccessPayload))
+        getDuplicateRules(selectedOrg, selectedSObjects).then((records) => ({ type: 'DuplicateRule', records }) as FetchSuccessPayload)
       ).pipe(
         catchError((error) => of({ type: 'DuplicateRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
       )
@@ -170,7 +170,7 @@ export function fetchAutomationData(
     requests.push(
       from(
         getValidationRulesMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
-          (records) => ({ type: 'ValidationRule', records } as FetchSuccessPayload)
+          (records) => ({ type: 'ValidationRule', records }) as FetchSuccessPayload
         )
       ).pipe(
         catchError((error) =>
@@ -183,7 +183,7 @@ export function fetchAutomationData(
     requests.push(
       from(
         getWorkflowRulesMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
-          (records) => ({ type: 'WorkflowRule', records } as FetchSuccessPayload)
+          (records) => ({ type: 'WorkflowRule', records }) as FetchSuccessPayload
         )
       ).pipe(
         catchError((error) => of({ type: 'WorkflowRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
@@ -193,7 +193,7 @@ export function fetchAutomationData(
   if (selectedTypes.has('FlowRecordTriggered')) {
     requests.push(
       from(
-        getFlowsMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'FlowRecordTriggered', records } as FetchSuccessPayload))
+        getFlowsMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'FlowRecordTriggered', records }) as FetchSuccessPayload)
       ).pipe(
         catchError((error) =>
           of({ type: 'FlowRecordTriggered', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload)
@@ -205,7 +205,7 @@ export function fetchAutomationData(
     requests.push(
       from(
         getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
-          (records) => ({ type: 'FlowProcessBuilder', records } as FetchSuccessPayload)
+          (records) => ({ type: 'FlowProcessBuilder', records }) as FetchSuccessPayload
         )
       ).pipe(
         catchError((error) =>

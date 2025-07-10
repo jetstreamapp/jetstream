@@ -48,26 +48,26 @@ import { RenderCellProps, RenderSummaryCellProps } from 'react-data-grid';
 type PermissionTypeColumn<T> = T extends 'object'
   ? ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   : T extends 'field'
-  ? ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
-  : T extends 'tabVisibility'
-  ? ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
-  : never;
+    ? ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
+    : T extends 'tabVisibility'
+      ? ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
+      : never;
 
 type PermissionActionType<T> = T extends 'object'
   ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll'
   : T extends 'field'
-  ? 'Read' | 'Edit'
-  : T extends 'tabVisibility'
-  ? 'Available' | 'Visible'
-  : never;
+    ? 'Read' | 'Edit'
+    : T extends 'tabVisibility'
+      ? 'Available' | 'Visible'
+      : never;
 
 type PermissionActionAction<T> = T extends 'object'
   ? ObjectPermissionTypes
   : T extends 'field'
-  ? FieldPermissionTypes
-  : T extends 'tabVisibility'
-  ? TabVisibilityPermissionTypes
-  : never;
+    ? FieldPermissionTypes
+    : T extends 'tabVisibility'
+      ? TabVisibilityPermissionTypes
+      : never;
 
 function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObjectCell, permissionId: string, value: boolean) {
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };

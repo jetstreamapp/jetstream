@@ -109,8 +109,8 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     type,
     value,
   }:
-    | { type: 'STANDARD_CUSTOM'; value: typeof DEFAULT_VALUES['STANDARD_CUSTOM'] }
-    | { type: 'MANAGED'; value: typeof DEFAULT_VALUES['MANAGED'] }) {
+    | { type: 'STANDARD_CUSTOM'; value: (typeof DEFAULT_VALUES)['STANDARD_CUSTOM'] }
+    | { type: 'MANAGED'; value: (typeof DEFAULT_VALUES)['MANAGED'] }) {
     setSelectedFilters((prevValue) => ({
       ...prevValue,
       [type]: value,
@@ -165,7 +165,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.STANDARD_CUSTOM === value}
-                onChange={(value: typeof DEFAULT_VALUES['STANDARD_CUSTOM']) => handleRadioChange({ type: 'STANDARD_CUSTOM', value })}
+                onChange={(value: (typeof DEFAULT_VALUES)['STANDARD_CUSTOM']) => handleRadioChange({ type: 'STANDARD_CUSTOM', value })}
               />
             ))}
           </RadioGroup>
@@ -179,7 +179,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.MANAGED === value}
-                onChange={(value: typeof DEFAULT_VALUES['MANAGED']) => handleRadioChange({ type: 'MANAGED', value: value })}
+                onChange={(value: (typeof DEFAULT_VALUES)['MANAGED']) => handleRadioChange({ type: 'MANAGED', value: value })}
               />
             ))}
           </RadioGroup>

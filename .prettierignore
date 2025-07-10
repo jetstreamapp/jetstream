@@ -6,3 +6,8 @@
 
 /.nx/cache
 /.nx/workspace-data
+/libs/prisma/src/lib/generated/prisma
+apps/api/src/assets/js/monaco
+apps/jetstream-web-extension/src/assets/js/monaco
+apps/jetstream-desktop-client/public/monaco
+apps/jetstream-desktop-client/public/download-zip.sw.js
