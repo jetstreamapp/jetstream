@@ -44,7 +44,7 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
     runtimeChunk: false,
     splitChunks: {
       chunks(chunk) {
-        return chunk.name === 'app';
+        return chunk.name === 'app' || chunk.name === 'additionalSettings';
       },
     },
   };
