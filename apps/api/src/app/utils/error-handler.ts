@@ -24,7 +24,7 @@ export class UserFacingError extends Error {
     if (message instanceof ZodError) {
       const errorDetails = Object.values(
         message.flatten((issue) => ({
-          message: `Invalid request: '${issue.path.join('.')}' is ${issue.message}`,
+          message: `Data Validation error: '${issue.path.join('.')}' is invalid, ${issue.message}`,
           errorCode: issue.code,
         })).fieldErrors
       );

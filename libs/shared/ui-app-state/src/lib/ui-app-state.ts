@@ -1,7 +1,15 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
-import { getBrowserExtensionVersion, getOrgType, isBrowserExtension, isDesktop, parseCookie } from '@jetstream/shared/ui-utils';
+import {
+  getBrowserExtensionVersion,
+  getOrgType,
+  isBrowserExtension,
+  isDesktop,
+  parseCookie,
+  setItemInLocalStorage,
+  setItemInSessionStorage,
+} from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   Announcement,
@@ -135,8 +143,8 @@ function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
       sessionStorage.removeItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY);
       localStorage.removeItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY);
     } else {
-      sessionStorage.setItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY, id);
-      localStorage.setItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY, id);
+      setItemInSessionStorage(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY, id);
+      setItemInLocalStorage(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY, id);
     }
   } catch (ex) {
     logger.warn('could not save organization to localstorage', ex);

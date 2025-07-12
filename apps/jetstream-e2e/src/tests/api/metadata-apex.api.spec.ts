@@ -64,7 +64,7 @@ test.describe('API - Apex', () => {
 
     expect(missingApex.ok()).toBeFalsy();
     const missingApexBody = await missingApex.json();
-    expect(missingApexBody.message).toEqual(`Invalid request: 'apex' is Required`);
+    expect(missingApexBody.message).toEqual(`Data Validation error: 'apex' is invalid, Required`);
 
     expect(invalidLogLevel.ok()).toBeFalsy();
     expect((await invalidLogLevel.text()).includes(`logLevel`)).toBeTruthy();

@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
+import { logErrorToRollbar, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
 import { ComponentType, createElement, forwardRef, lazy } from 'react';
 
 export type PreloadableComponent<T extends ComponentType<unknown>> = T & {
@@ -94,13 +94,13 @@ const lazyRetry = <T extends ComponentType<unknown>>(
     // try to import the component
     componentImport()
       .then((component) => {
-        window.sessionStorage.setItem(`retry-${name}-refreshed`, 'false'); // success so reset the refresh
+        setItemInSessionStorage(`retry-${name}-refreshed`, 'false'); // success so reset the refresh
         resolve(component);
       })
       .catch((error) => {
         if (!hasRefreshed) {
           // not been refreshed yet
-          window.sessionStorage.setItem(`retry-${name}-refreshed`, 'true');
+          setItemInSessionStorage(`retry-${name}-refreshed`, 'true');
           return window.location.reload();
         }
         // Default error behavior as already tried refreshing

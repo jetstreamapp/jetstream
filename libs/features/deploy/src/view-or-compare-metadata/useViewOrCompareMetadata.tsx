@@ -1,6 +1,6 @@
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
@@ -220,10 +220,9 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
       } catch (ex) {
         notifyUser('There was an error obtaining metadata', { body: getErrorMessage(ex), tag: 'view-or-compare' });
         dispatch({ type: 'FETCH_ERROR', payload: { which, error: getErrorMessage(ex) } });
-        rollbar.error('Error fetching/comparing metadata', { whichOrg: which, ...getErrorMessageAndStackObj(ex) });
       }
     },
-    [notifyUser, rollbar, selectedMetadata]
+    [notifyUser, selectedMetadata]
   );
 
   return {

@@ -38,14 +38,13 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
         new TerserPlugin({
           parallel: true,
           minify: TerserPlugin.esbuildMinify,
-          // @ts-expect-error this is correct, not sure why it is complaining
         }).apply(compiler);
       },
     ],
     runtimeChunk: false,
     splitChunks: {
       chunks(chunk) {
-        return chunk.name === 'app';
+        return chunk.name === 'app' || chunk.name === 'additionalSettings';
       },
     },
   };

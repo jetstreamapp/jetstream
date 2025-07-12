@@ -211,7 +211,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       // Attempt to use response code from 3rd party request if we have it available
       const statusCode = err.apiRequestError?.status || status || 400;
       res.status(statusCode);
-      // TODO: should we log 400s? They happen a lot and are not necessarily errors we care about
       responseLogger.debug({ ...getExceptionLog(err, true), statusCode }, '[RESPONSE][ERROR]');
       return res.json({
         error: true,

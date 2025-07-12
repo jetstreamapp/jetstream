@@ -33,11 +33,11 @@ function reducer(state: State, action: Action): State {
           return { ...state, isValid: false, sobjectName: null };
         }
       }
-      return { ...state, isValid: true };
+      return { ...state, isValid: false };
     case 'FORMAT_SOQL':
       if (action.payload.soql) {
         try {
-          return { ...state, formattedSoql: formatQuery(action.payload.soql, { fieldMaxLineLength: 80 }) };
+          return { ...state, formattedSoql: formatQuery(action.payload.soql, { fieldMaxLineLength: 1 }) };
         } catch (ex) {
           return { ...state, isValid: false };
         }
