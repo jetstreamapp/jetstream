@@ -35,6 +35,7 @@ import { createRef, forwardRef, useCallback, useEffect, useImperativeHandle, use
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLocation } from 'react-router-dom';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
+import { QueryHistoryExportPopover } from './QueryHistoryExportPopover';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
 import QueryHistoryWhichOrg from './QueryHistoryWhichOrg';
 import QueryHistoryWhichType from './QueryHistoryWhichType';
@@ -260,7 +261,6 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'modal', isFavorite });
   }
 
-
   function handleSetWhichType(type: fromQueryHistoryState.QueryHistoryType) {
     setWhichType(type);
     setWhichOrg('ALL');
@@ -317,7 +317,10 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
           tagline={
             <Grid align="spread" verticalAlign="center">
               <QueryHistoryWhichOrg selectedOrg={selectedOrg} whichOrg={whichOrg} onChange={setWhichOrg} />
-              <QueryHistoryWhichType which={whichType} onChange={handleSetWhichType} />
+              <Grid>
+                <QueryHistoryWhichType which={whichType} onChange={handleSetWhichType} />
+                <QueryHistoryExportPopover selectedOrg={selectedOrg} whichType={whichType} />
+              </Grid>
             </Grid>
           }
           size="lg"
@@ -390,7 +393,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                     onSave={handleSaveFavorite}
                     onQueryUpdated={() => {
                       // Force refresh by incrementing the counter
-                      setRefreshCounter(prev => prev + 1);
+                      setRefreshCounter((prev) => prev + 1);
                     }}
                     startRestore={handleStartRestore}
                     endRestore={(fatalError, errors) => handleEndRestore(item, fatalError, errors)}

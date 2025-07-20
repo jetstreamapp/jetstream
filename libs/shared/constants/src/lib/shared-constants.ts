@@ -201,6 +201,7 @@ export const ANALYTICS_KEYS = {
   query_HistoryShowMore: 'query_HistoryShowMore',
   query_HistoryTypeChanged: 'query_HistoryTypeChanged',
   query_HistoryEditQueryOpened: 'query_HistoryEditQueryOpened',
+  query_HistoryExport: 'query_HistoryExport',
   query_LoadMore: 'query_LoadMore',
   query_ManualQueryOpened: 'query_ManualQueryOpened',
   query_ManualSoqlOpened: 'query_ManualSoqlOpened',

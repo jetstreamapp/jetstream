@@ -1,6 +1,6 @@
-import React, { FunctionComponent } from 'react';
 import uniqueId from 'lodash/uniqueId';
-/* eslint-disable-next-line */
+import { FunctionComponent } from 'react';
+
 export interface RadioProps {
   idPrefix?: string;
   id?: string;
