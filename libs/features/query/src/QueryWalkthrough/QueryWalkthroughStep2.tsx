@@ -1,11 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { Fragment, FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import PicklistImage from './images/jetstream-query-help-picklist.png';
 import RelationshipsImage from './images/jetstream-query-help-relationships.png';
 import SubqueryImage from './images/jetstream-query-help-subquery.png';
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryWalkthroughStep2Props {}
 
 const Item1: FunctionComponent = () => {
   return (
@@ -38,7 +34,7 @@ const Item3: FunctionComponent = () => {
   );
 };
 
-export const QueryWalkthroughStep2: FunctionComponent<QueryWalkthroughStep2Props> = () => {
+export const QueryWalkthroughStep2 = () => {
   return (
     <div>
       <p className="slds-text-heading_small">Tips and Tricks</p>

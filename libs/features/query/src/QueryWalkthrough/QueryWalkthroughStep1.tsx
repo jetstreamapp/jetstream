@@ -1,10 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FunctionComponent } from 'react';
-
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryWalkthroughStep1Props {}
-
-export const QueryWalkthroughStep1: FunctionComponent<QueryWalkthroughStep1Props> = () => {
+export const QueryWalkthroughStep1 = () => {
   return (
     <div>
       <p className="slds-text-heading_small">
