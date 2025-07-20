@@ -56,7 +56,7 @@ import { queryHistoryDb } from '@jetstream/ui/db';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
@@ -90,10 +90,7 @@ function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown
   return queryResult.totalSize < 0 ? queryResult.totalSize + 1 : queryResult.totalSize;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryResultsProps {}
-
-export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
+export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();

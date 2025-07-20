@@ -7,44 +7,13 @@ import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import RestoreQuery from '../QueryBuilder/RestoreQuery';
+import { SoqlValidIndicator } from '../utils/ValidQueryText';
 
 export interface ManualSoqlProps {
   className?: string;
   isTooling: boolean;
   generatedSoql: string;
 }
-
-const NoQuery = () => {
-  return <span className="slds-text-color_weak">Provide a valid query to continue</span>;
-};
-
-const ValidQuery = () => {
-  return (
-    <span className="slds-text-color_weak">
-      <Icon
-        type="utility"
-        icon="success"
-        description="Valid query"
-        className="slds-icon-text-success slds-icon_xx-small slds-m-right_xx-small"
-      />
-      <span className="slds-text-color_weak">Query is valid</span>
-    </span>
-  );
-};
-
-const InvalidQuery = () => {
-  return (
-    <span>
-      <Icon
-        type="utility"
-        icon="error"
-        description="Invalid query"
-        className="slds-icon-text-error slds-icon_xx-small slds-m-right_xx-small"
-      />
-      <span className="slds-text-color_weak">Query is invalid</span>
-    </span>
-  );
-};
 
 export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false, generatedSoql }) => {
   const isMounted = useRef(true);
@@ -69,15 +38,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   }, [isTooling]);
 
   useEffect(() => {
-    if (soql && isQueryValid(soql)) {
-      if (!queryIsValid) {
-        setQueryIsValid(true);
-      }
-    } else {
-      if (queryIsValid) {
-        setQueryIsValid(false);
-      }
-    }
+    setQueryIsValid(!!soql && isQueryValid(soql));
   }, [soql]);
 
   function handleStartRestore() {
@@ -188,11 +149,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
               />
             </Textarea>
             <Grid className="slds-m-top_xx-small">
-              <div>
-                {!soql && <NoQuery />}
-                {queryIsValid && <ValidQuery />}
-                {soql && !queryIsValid && <InvalidQuery />}
-              </div>
+              <SoqlValidIndicator soql={soql} queryIsValid={queryIsValid} />
               <GridCol extraProps={{ dir: 'rtl' }} bump="left">
                 <CheckboxToggle
                   id="is-tooling-user-soql"

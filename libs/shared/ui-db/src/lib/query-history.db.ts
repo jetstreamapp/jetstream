@@ -2,6 +2,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { describeSObject } from '@jetstream/shared/data';
 import { REGEX } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { parseQuery } from '@jetstreamapp/soql-parser-js';
+import { max } from 'date-fns/max';
 import { dexieDb, getHashedRecordKey, SyncableTables } from './ui-db';
 
 export const queryHistoryDb = {
@@ -10,6 +12,7 @@ export const queryHistoryDb = {
   saveQueryHistoryItem,
   setAsFavorite,
   updateCustomLabel,
+  updateSavedQuery,
   deleteAllQueryHistoryForOrgExceptFavorites,
   TEMP_deleteItem,
 };
@@ -52,6 +55,83 @@ async function updateCustomLabel(key: QueryHistoryItem['key'], customLabel: stri
   const updates: Partial<QueryHistoryItem> = { customLabel: customLabel || null };
   await dexieDb.query_history.update(key, updates);
   return await dexieDb.query_history.get(key);
+}
+
+async function updateSavedQuery(
+  org: SalesforceOrgUi,
+  oldItem: QueryHistoryItem,
+  newSoql: string,
+  newLabel: string,
+  isTooling: boolean
+): Promise<QueryHistoryItem> {
+  newSoql = newSoql.trim();
+  newLabel = newLabel.trim();
+
+  let sObject = parseQuery(newSoql).sObject || oldItem.sObject;
+
+  // Create new key for the updated query
+  const newKey = generateKey(org.uniqueId, sObject, newSoql);
+
+  // Check if the new query already exists
+  const existingNewItem = await dexieDb.query_history.get(newKey);
+
+  if (existingNewItem) {
+    // TODO: should probably use getOrInitQueryHistoryItem
+    // If the new query already exists, merge the metadata
+    const updatedItem: QueryHistoryItem = {
+      ...existingNewItem,
+      customLabel: newLabel === existingNewItem.label ? null : newLabel,
+      runCount: oldItem.runCount + existingNewItem.runCount,
+      isFavorite: true,
+      lastRun: max([oldItem.lastRun, existingNewItem.lastRun]),
+      updatedAt: new Date(),
+    };
+
+    await dexieDb.transaction('rw', dexieDb.query_history, async () => {
+      // Update the existing item with merged metadata
+      await dexieDb.query_history.put(updatedItem);
+
+      if (oldItem.key !== newKey) {
+        // Delete the old item
+        await dexieDb.query_history.delete(oldItem.key);
+      }
+    });
+
+    return updatedItem;
+  } else {
+    // If object changed, ensure sobject label gets updated
+    let sObjectLabel = oldItem.label;
+    if (sObject !== oldItem.sObject) {
+      const resultsWithCache = await describeSObject(org, sObject, isTooling);
+      const results = resultsWithCache.data;
+      sObject = results.name;
+      sObjectLabel = results.label;
+    }
+
+    // Create new item with updated SOQL but preserve metadata
+    const newItem: QueryHistoryItem = {
+      ...oldItem,
+      key: newKey,
+      hashedKey: await getHashedRecordKey(newKey),
+      sObject,
+      label: sObjectLabel,
+      customLabel: newLabel === sObjectLabel ? null : newLabel,
+      soql: newSoql,
+      updatedAt: new Date(),
+    };
+
+    await dexieDb.transaction('rw', dexieDb.query_history, async () => {
+      // Save the new item
+      await dexieDb.query_history.put(newItem);
+
+      if (oldItem.key !== newKey) {
+        // Delete the old item
+        await dexieDb.query_history.delete(oldItem.key);
+      }
+    });
+
+    return newItem;
+  }
 }
 
 async function getOrInitQueryHistoryItem(

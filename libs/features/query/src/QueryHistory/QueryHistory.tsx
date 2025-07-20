@@ -99,6 +99,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
 
   const [sqlFilterValue, setSqlFilterValue] = useState('');
   const [showingUpTo, setShowingUpTo] = useState(SHOWING_STEP);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const filterRecordsFn = useCallback(
     (item: QueryHistoryItem) => {
@@ -122,13 +123,13 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
   const queryHistory = useLiveQuery(
     // Since we want to sort by lastRun, we cannot use a normal where clause
     () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).limit(showingUpTo).toArray(),
-    [filterRecordsFn, showingUpTo],
+    [filterRecordsFn, showingUpTo, refreshCounter],
     [] as QueryHistoryItem[]
   );
 
   const totalRecordCount = useLiveQuery(
     () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).count(),
-    [filterRecordsFn, showingUpTo],
+    [filterRecordsFn, showingUpTo, refreshCounter],
     0
   );
 
@@ -259,18 +260,6 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     trackEvent(ANALYTICS_KEYS.query_HistorySaveQueryToggled, { location: 'modal', isFavorite });
   }
 
-  async function handleEdit(item: QueryHistoryItem, customLabel: string | null) {
-    try {
-      await queryHistoryDb.updateCustomLabel(item.key, customLabel);
-    } catch (ex) {
-      logger.warn('[ERROR] Could not update query history', ex);
-    }
-    trackEvent(ANALYTICS_KEYS.query_HistoryUpdateLabel, {
-      location: 'modal',
-      hadPriorCustomLabel: !!item.customLabel,
-      isReset: !customLabel,
-    });
-  }
 
   function handleSetWhichType(type: fromQueryHistoryState.QueryHistoryType) {
     setWhichType(type);
@@ -396,9 +385,13 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
                     key={item.key}
                     isOnSavedQueries={whichType === 'SAVED'}
                     item={item}
+                    selectedOrg={selectedOrg}
                     onExecute={handleExecute}
-                    onUpdate={handleEdit}
                     onSave={handleSaveFavorite}
+                    onQueryUpdated={() => {
+                      // Force refresh by incrementing the counter
+                      setRefreshCounter(prev => prev + 1);
+                    }}
                     startRestore={handleStartRestore}
                     endRestore={(fatalError, errors) => handleEndRestore(item, fatalError, errors)}
                   />
