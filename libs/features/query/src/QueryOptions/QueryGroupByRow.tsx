@@ -1,7 +1,7 @@
 import { Field, ListItem, QueryGroupByClause } from '@jetstream/types';
 import { ComboboxWithDrillInItems, ComboboxWithItems, FormRowButton, GridCol } from '@jetstream/ui';
+import { QUERY_FIELD_DATE_FUNCTIONS } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useMemo } from 'react';
-import { QUERY_FIELD_DATE_FUNCTIONS } from '../utils/query-filter.utils';
 
 export interface QueryOrderByProps {
   groupNumber: number;

@@ -4,11 +4,11 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { FieldWrapper, QueryFieldWithPolymorphic, QueryFields, SalesforceOrgUi } from '@jetstream/types';
 import { SobjectFieldList } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import { getSubqueryFieldBaseKey } from '../utils/query-fields-utils';
 
 export interface QueryChildFieldsProps {
   org: SalesforceOrgUi;

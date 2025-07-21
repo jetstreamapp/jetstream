@@ -4,10 +4,10 @@ import { getFilenameWithoutOrg, prepareCsvFile, saveFile } from '@jetstream/shar
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import { Icon, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
 import { dexieDb } from '@jetstream/ui/db';
 import isDate from 'lodash/isDate';
 import { FunctionComponent, useRef, useState } from 'react';
+import { useAmplitude } from '../..';
 
 type ExportScope = 'ALL' | 'CURRENT';
 type ExportType = 'ALL' | 'FAVORITES';

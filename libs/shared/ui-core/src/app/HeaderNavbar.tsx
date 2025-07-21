@@ -10,6 +10,7 @@ import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
 import { SelectedOrgReadOnly } from '../orgs/SelectedOrgReadOnly';
+import { QuickQueryPopover } from '../query/QuickQueryPopover';
 import { RecordSearchPopover } from '../record/RecordSearchPopover';
 import { UserSearchPopover } from '../record/UserSearchPopover';
 import HeaderDonatePopover from './HeaderDonatePopover';
@@ -119,16 +120,24 @@ export const HeaderNavbar = ({
 
   const rightHandMenuItems = useMemo(() => {
     if (isChromeExtension || isDesktop) {
-      return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+      return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
     }
 
     if (!isBillingEnabled) {
-      return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />, <HeaderDonatePopover />];
+      return [
+        <QuickQueryPopover />,
+        <RecordSearchPopover />,
+        <UserSearchPopover />,
+        <Jobs />,
+        <HeaderHelpPopover />,
+        <HeaderDonatePopover />,
+      ];
     }
 
     if (subscriptionLength === 0) {
       return [
         <UpgradeToProButton trackEvent={trackEvent} source="navbar" />,
+        <QuickQueryPopover />,
         <RecordSearchPopover />,
         <UserSearchPopover />,
         <Jobs />,
@@ -136,7 +145,7 @@ export const HeaderNavbar = ({
       ];
     }
 
-    return [<RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+    return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
   }, [isChromeExtension, isDesktop, isBillingEnabled, subscriptionLength, trackEvent]);
 
   return (

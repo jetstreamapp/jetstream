@@ -1,9 +1,9 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ExpressionType, ListItem, QueryFilterOperator } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
+import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { SetterOrUpdater } from 'recoil';
-import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '../utils/query-filter.utils';
 
 export interface QueryFilterProps {
   sobject: string;

@@ -1,6 +1,6 @@
 import { EmptyState } from '@jetstream/ui';
-import { fromQueryHistoryState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { fromQueryHistoryState } from '../..';
 
 export interface QueryHistoryEmptyStateProps {
   whichType: fromQueryHistoryState.QueryHistoryType;

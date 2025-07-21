@@ -1,13 +1,11 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { RestoreQuery, SoqlValidIndicator, useAmplitude } from '@jetstream/ui-core';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import RestoreQuery from '../QueryBuilder/RestoreQuery';
-import { SoqlValidIndicator } from '../utils/ValidQueryText';
 
 export interface ManualSoqlProps {
   className?: string;

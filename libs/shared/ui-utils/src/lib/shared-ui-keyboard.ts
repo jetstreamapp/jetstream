@@ -122,6 +122,10 @@ export function isCKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'c' || event.key === 'c' || event.keyCode === 67;
 }
 
+export function isEKey(event: KeyboardEvent<unknown>): boolean {
+  return event.key === 'e' || event.key === 'E' || event.keyCode === 69;
+}
+
 export function isHKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'h' || event.key === 'H' || event.keyCode === 72;
 }
@@ -149,18 +153,23 @@ export function isArrowKey(event: KeyboardEvent<unknown>): boolean {
 export function isArrowLeftKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'ArrowLeft' || event.keyCode === 37;
 }
+
 export function isArrowUpKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'ArrowUp' || event.keyCode === 38;
 }
+
 export function isArrowRightKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'ArrowRight' || event.keyCode === 39;
 }
+
 export function isArrowDownKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'ArrowDown' || event.keyCode === 40;
 }
+
 export function isHomeKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'Home' || event.keyCode === 36;
 }
+
 export function isEndKey(event: KeyboardEvent<unknown>): boolean {
   return event.key === 'End' || event.keyCode === 35;
 }
@@ -215,9 +224,11 @@ export function isTabKey(event: KeyboardEvent<unknown>): boolean {
 export function hasAltModifierKey(event: KeyboardEvent<unknown>): boolean {
   return event.altKey;
 }
+
 export function hasMetaModifierKey(event: KeyboardEvent<unknown>): boolean {
   return event.metaKey;
 }
+
 export function hasCtrlModifierKey(event: KeyboardEvent<unknown>): boolean {
   return event.ctrlKey;
 }

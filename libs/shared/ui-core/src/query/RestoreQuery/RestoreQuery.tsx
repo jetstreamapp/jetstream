@@ -1,8 +1,8 @@
 import { Icon, PopoverErrorButton, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
-import React, { ButtonHTMLAttributes, Fragment, FunctionComponent } from 'react';
-import { QueryRestoreErrors } from '../utils/query-restore-utils';
-import useQueryRestore from '../utils/useQueryRestore';
+import { ButtonHTMLAttributes, Fragment, FunctionComponent } from 'react';
+import { QueryRestoreErrors } from './query-restore-utils';
+import { useQueryRestore } from './useQueryRestore';
 
 interface RestoreQueryProps {
   soql: string;
@@ -39,5 +39,3 @@ export const RestoreQuery: FunctionComponent<RestoreQueryProps> = ({
     </Fragment>
   );
 };
-
-export default RestoreQuery;

@@ -1,8 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { fetchMetadataFromSoql } from '@jetstream/ui-core/shared';
 import { Query } from '@jetstreamapp/soql-parser-js';
 import { useCallback, useEffect, useState } from 'react';
-import { fetchMetadataFromSoql } from '../utils/query-soql-utils';
 
 /**
  * If query changes, fetch all metadata for all the fields in the query

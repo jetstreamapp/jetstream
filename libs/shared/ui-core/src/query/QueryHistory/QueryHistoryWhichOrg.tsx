@@ -1,6 +1,6 @@
 import { SalesforceOrgUi } from '@jetstream/types';
-import { OrgLabelBadge, fromQueryHistoryState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
+import { OrgLabelBadge, fromQueryHistoryState } from '../..';
 
 export interface QueryHistoryWhichOrgProps {
   selectedOrg: SalesforceOrgUi;
