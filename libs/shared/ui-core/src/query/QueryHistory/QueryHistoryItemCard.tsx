@@ -317,7 +317,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
               </Textarea>
               {isEditing && (
                 <>
-                  <SoqlValidIndicator soql={soql} queryIsValid={queryIsValid} />
+                  <SoqlValidIndicator soql={editedSoql} queryIsValid={queryIsValid} />
                   <div className="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
                     Note: Modifying the query will create a new entry in your history while preserving metadata like run count and creation
                     date.

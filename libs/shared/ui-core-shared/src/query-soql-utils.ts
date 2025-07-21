@@ -4,12 +4,12 @@ import { getFieldKey } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import {
-  OrderByFieldClause,
   Query,
   FieldType as QueryFieldType,
   WhereClause,
   isOrderByField,
   isValueCondition,
+  isValueFunctionCondition,
   isWhereOrHavingClauseWithRightCondition,
 } from '@jetstreamapp/soql-parser-js';
 import isString from 'lodash/isString';
@@ -152,11 +152,11 @@ function getFieldsFromAllPartsOfQuery(query: Query): ParsableFields {
 
   if (query.orderBy) {
     const orderBy = Array.isArray(query.orderBy) ? query.orderBy : [query.orderBy];
-    orderBy
-      .filter((clause) => isOrderByField(clause))
-      .forEach((orderBy) => {
-        parsableFields.fields.push((orderBy as OrderByFieldClause).field);
-      });
+    orderBy.forEach((orderBy) => {
+      if (isOrderByField(orderBy)) {
+        parsableFields.fields.push(orderBy.field);
+      }
+    });
   }
 
   return parsableFields;
@@ -207,10 +207,13 @@ function getParsableFieldsFromFilter(where: Maybe<WhereClause>, fields: string[]
   if (isValueCondition(where.left)) {
     fields.push(where.left.field?.toLowerCase());
   }
+  if (isValueFunctionCondition(where.left) && Array.isArray(where.left.fn.parameters) && isString(where.left.fn.parameters[0])) {
+    fields.push(where.left.fn.parameters[0].toLowerCase());
+  }
   if (isWhereOrHavingClauseWithRightCondition(where)) {
     getParsableFieldsFromFilter(where.right, fields);
   }
-  return fields;
+  return Array.from(new Set(fields));
 }
 
 /**
@@ -386,3 +389,14 @@ function getLowercaseFieldMapWithFullPath(metadata: Record<string, SoqlMetadataT
 
   return output;
 }
+
+export const __TEST_EXPORTS__ = {
+  getFieldsFromAllPartsOfQuery,
+  getParsableFields,
+  getParsableFieldsFromFilter,
+  fetchAllMetadata,
+  findRequiredRelationships,
+  fetchRecursiveMetadata,
+  getLowercaseFieldMap,
+  getLowercaseFieldMapWithFullPath,
+};

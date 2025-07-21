@@ -119,7 +119,7 @@ export function isAKey(event: KeyboardEvent<unknown>): boolean {
 }
 
 export function isCKey(event: KeyboardEvent<unknown>): boolean {
-  return event.key === 'c' || event.key === 'c' || event.keyCode === 67;
+  return event.key === 'c' || event.key === 'C' || event.keyCode === 67;
 }
 
 export function isEKey(event: KeyboardEvent<unknown>): boolean {

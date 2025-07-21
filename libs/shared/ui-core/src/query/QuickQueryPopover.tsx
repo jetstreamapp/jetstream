@@ -274,7 +274,7 @@ export const QuickQueryPopover = () => {
         buttonProps={{
           className:
             'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-          title: 'Query Search - ctrl/command + q',
+          title: 'Query Search - ctrl/command + e',
           disabled: !selectedOrg || !!selectedOrg.connectionError,
         }}
       >
