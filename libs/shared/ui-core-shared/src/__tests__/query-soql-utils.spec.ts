@@ -128,19 +128,19 @@ describe('getLowercaseFieldMapWithFullPath', () => {
     const metadata: Record<string, SoqlMetadataTree> = {
       Account: {
         key: 'Account',
-        parentField: { name: 'Account', relationshipName: null },
+        parentField: { name: 'Account', relationshipName: null } as any,
         fieldKey: 'Account',
         level: 0,
-        metadata: { name: 'Account', fields: [{ name: 'Id' }, { name: 'Name' }] },
-        lowercaseFieldMap: { id: { name: 'Id' }, name: { name: 'Name' } },
+        metadata: { name: 'Account', fields: [{ name: 'Id' }, { name: 'Name' }] } as any,
+        lowercaseFieldMap: { id: { name: 'Id' }, name: { name: 'Name' } } as any,
         children: [
           {
             key: 'Account.Owner',
-            parentField: { name: 'Owner', relationshipName: 'Owner' },
+            parentField: { name: 'Owner', relationshipName: 'Owner' } as any,
             fieldKey: 'Account.Owner',
             level: 1,
-            metadata: { name: 'User', fields: [{ name: 'Id' }, { name: 'Name' }] },
-            lowercaseFieldMap: { id: { name: 'Id' }, name: { name: 'Name' } },
+            metadata: { name: 'User', fields: [{ name: 'Id' }, { name: 'Name' }] } as any,
+            lowercaseFieldMap: { id: { name: 'Id' }, name: { name: 'Name' } } as any,
             children: [],
           },
         ],
