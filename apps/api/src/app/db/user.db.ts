@@ -73,6 +73,20 @@ const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPa
       customerId: true,
     },
   },
+  teamMemberships: {
+    where: {
+      status: 'ACTIVE',
+    },
+    select: {
+      role: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
   createdAt: true,
   updatedAt: true,
 });
@@ -105,6 +119,20 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
       subscriptionId: true,
       priceId: true,
       status: true,
+    },
+  },
+  teamMemberships: {
+    where: {
+      status: 'ACTIVE',
+    },
+    select: {
+      role: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   },
 });
@@ -147,6 +175,7 @@ export const findIdByUserIdUserFacing = ({
   userId: string;
   omitSubscriptions?: boolean;
 }): Promise<UserProfileUi> => {
+  // FIXME: we should be using zod to parse this
   return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => ({
     id: user.id,
     userId: user.userId,
@@ -171,6 +200,10 @@ export const findIdByUserIdUserFacing = ({
           priceId: subscription.priceId,
           status: subscription.status as UserProfileUi['subscriptions'][number]['status'],
         })),
+    teamMemberships: (user.teamMemberships ?? []).map((teamMembership) => ({
+      role: teamMembership.role as NonNullable<UserProfileUi['teamMemberships']>[number]['role'],
+      team: teamMembership.team,
+    })),
   }));
 };
 

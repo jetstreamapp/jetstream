@@ -202,8 +202,9 @@ function initSession(
   req.session.loginTime = new Date().getTime();
   req.session.provider = provider;
   req.session.user = user as UserProfileSession;
-  req.session.pendingMfaEnrollment = null;
-  req.session.pendingVerification = null;
+  req.session.pendingMfaEnrollment = undefined;
+  req.session.pendingVerification = undefined;
+  req.session.teamMembership = user.teamMemberships?.find((teamMembership) => teamMembership.teamId);
 
   if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
     req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
@@ -311,7 +312,10 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
         if (!req.session.user) {
           throw new InvalidSession('Cannot link account without an active session');
         }
-        const loginConfiguration = await getLoginConfiguration(req.session.user.email);
+
+        const loginConfiguration = req.session.teamMembership
+          ? await getLoginConfiguration({ teamId: req.session.teamMembership.teamId })
+          : await getLoginConfiguration({ email: req.session.user.email });
         if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
           throw new IdentityLinkingNotAllowed();
         }
@@ -358,6 +362,13 @@ const callback = createRoute(
   async ({ body, params, query, setCookie, clearCookie }, req, res, next) => {
     let provider: Provider | null = null;
     try {
+      const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+      const { returnUrl: returnUrlQuery } = query;
+
+      if (returnUrlQuery) {
+        setCookie(cookieConfig.returnUrl.name, returnUrlQuery, cookieConfig.returnUrl.options);
+      }
+
       const providers = listProviders();
 
       provider = providers[params.provider];
@@ -370,13 +381,15 @@ const callback = createRoute(
         pkceCodeVerifier,
         nonce,
         linkIdentity: linkIdentityCookie,
-        returnUrl,
+        returnUrl: returnUrlCookie,
         rememberDevice,
         redirectUrl: redirectUrlCookie,
       } = getCookieConfig(ENV.USE_SECURE_COOKIES);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const cookies = parseCookie(req.headers.cookie!);
       clearOauthCookies(res);
+
+      const returnUrl = returnUrlQuery || cookies[returnUrlCookie.name] || null;
 
       if (provider.type === 'oauth') {
         // oauth flow
@@ -389,10 +402,6 @@ const callback = createRoute(
 
         if (!userInfo.email) {
           throw new InvalidParameters('Missing email from OAuth provider');
-        }
-
-        if (!(await isProviderAllowed(userInfo.email, provider.provider))) {
-          throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
         }
 
         const providerUser = {
@@ -411,6 +420,14 @@ const callback = createRoute(
         // If user has an active session and user is linking an identity to an existing account
         // link and redirect to profile page
         if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
+          const providerAllowed = req.session.teamMembership
+            ? await isProviderAllowed({ teamId: req.session.teamMembership.teamId, provider: provider.provider })
+            : await isProviderAllowed({ email: userInfo.email, provider: provider.provider });
+
+          if (!providerAllowed) {
+            throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
+          }
+
           await linkIdentityToUser({
             userId: req.session.user.id,
             provider: provider.provider,
@@ -439,10 +456,6 @@ const callback = createRoute(
         }
         const { action, csrfToken, email, password } = body;
         await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
-
-        if (!(await isProviderAllowed(email, provider.provider))) {
-          throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for ${email}`);
-        }
 
         const sessionData =
           action === 'login'
@@ -522,11 +535,13 @@ const callback = createRoute(
           await sendWelcomeEmail(req.session.user.email);
         }
 
-        let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+        let redirectUrl = returnUrl || ENV.JETSTREAM_CLIENT_URL;
 
-        if (cookies[redirectUrlCookie.name]) {
+        if (!returnUrl && cookies[redirectUrlCookie.name]) {
           const redirectValue = cookies[redirectUrlCookie.name];
           redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+          clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
+        } else if (cookies[redirectUrlCookie.name]) {
           clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
         }
 

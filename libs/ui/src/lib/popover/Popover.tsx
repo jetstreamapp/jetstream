@@ -3,17 +3,10 @@ import { Popover as HeadlessPopover, PopoverButton, PopoverPanel } from '@headle
 import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { usePopper } from 'react-popper';
 import { Placement } from 'tippy.js';
+import { ConditionalPortal } from '../widgets/ConditionalPortal';
 import { Icon } from '../widgets/Icon';
-
-const ConditionalPortal = ({ omitPortal, portalRef, children }: { omitPortal: boolean; portalRef: Element; children: ReactNode }) => {
-  if (omitPortal) {
-    return children;
-  }
-  return createPortal(children as any, portalRef || document.body) as ReactNode;
-};
 
 export interface PopoverRef {
   toggle: () => void;
@@ -127,7 +120,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
           return (
             <Fragment>
               {open && (
-                <ConditionalPortal omitPortal={omitPortal} portalRef={portalRef}>
+                <ConditionalPortal usePortal={!omitPortal} portalRef={portalRef}>
                   <PopoverPanel
                     ref={setPopperElement as any}
                     data-testid={testId}

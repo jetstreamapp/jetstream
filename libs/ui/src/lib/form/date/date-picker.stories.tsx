@@ -1,6 +1,6 @@
 import { action } from '@storybook/addon-actions';
 import { boolean, text } from '@storybook/addon-knobs';
-import { addYears } from 'date-fns';
+import { addYears } from 'date-fns/addYears';
 import React from 'react';
 import DatePicker from './DatePicker';
 

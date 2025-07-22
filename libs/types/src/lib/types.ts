@@ -127,6 +127,13 @@ export interface UserProfileUi {
     priceId: string;
     status: 'ACTIVE' | 'CANCELED' | 'INCOMPLETE' | 'INCOMPLETE_EXPIRED' | 'PAST_DUE' | 'PAUSED' | 'TRIALING' | 'UNPAID';
   }[];
+  teamMemberships?: {
+    role: 'OWNER' | 'MEMBER';
+    team: {
+      id: string;
+      name: string;
+    };
+  }[];
 }
 
 export interface SalesforceUserInfo {

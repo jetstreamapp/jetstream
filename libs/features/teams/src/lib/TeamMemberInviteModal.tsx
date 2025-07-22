@@ -1,0 +1,114 @@
+import { css } from '@emotion/react';
+import { createInvitation } from '@jetstream/shared/data';
+import { Feature, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
+import { Input, Modal, Picklist, ScopedNotification, Spinner } from '@jetstream/ui';
+import { useState } from 'react';
+
+interface TeamMemberInviteModalProps {
+  teamId: string;
+  onClose: (invitations?: TeamInviteUserFacing[]) => void;
+}
+
+export function TeamMemberInviteModal({ teamId, onClose }: TeamMemberInviteModalProps) {
+  const [email, setEmail] = useState('');
+  const [invalidEmail, setInvalidEmail] = useState(false);
+  const [role, setRole] = useState<TeamMemberRole>('MEMBER');
+  const [features, setFeatures] = useState<Feature[]>(['ALL']);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleInvite = async () => {
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      const invitations = await createInvitation(teamId, { email, features, role });
+      onClose(invitations);
+    } catch {
+      setErrorMessage('There was an error sending the invitation, try again or contact support for assistance.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      header="Invite Team Member"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="slds-button slds-button_neutral" onClick={() => onClose()} disabled={loading}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="team-member-invite-form"
+            className="slds-button slds-button_brand slds-is-relative"
+            onClick={handleInvite}
+            disabled={!email || loading}
+          >
+            Send Invitation
+            {loading && <Spinner className="slds-spinner slds-spinner_small" />}
+          </button>
+        </>
+      }
+    >
+      <form
+        id="team-member-invite-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (invalidEmail || !email) {
+            setInvalidEmail(true);
+            return;
+          }
+          handleInvite();
+        }}
+        css={css`
+          min-height: 200px;
+        `}
+      >
+        {errorMessage && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
+
+        <Picklist
+          label="Role"
+          className="slds-button_last"
+          items={[
+            { id: 'MEMBER', value: 'ADMIN', label: 'Member' },
+            { id: 'BILLING', value: 'ADMIN', label: 'Billing' },
+            { id: 'ADMIN', value: 'ADMIN', label: 'Admin' },
+          ]}
+          selectedItemIds={[role]}
+          onChange={(role) => setRole(role[0].id as TeamMemberRole)}
+          disabled={loading}
+        />
+
+        <Input
+          label="Email Address"
+          isRequired
+          hasError={invalidEmail}
+          errorMessageId="email-error"
+          errorMessage="Please enter a valid email address"
+        >
+          <input
+            className="slds-input"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            disabled={loading}
+            maxLength={255}
+            type="email"
+            placeholder="Enter email address"
+            onBlur={() => setInvalidEmail(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))}
+            onFocus={() => setInvalidEmail(false)}
+            aria-invalid={invalidEmail}
+            aria-describedby={invalidEmail ? 'email-error' : undefined}
+            name="email"
+            autoComplete="none"
+            required
+          />
+        </Input>
+
+        {/* TODO: allow choosing specific features */}
+      </form>
+    </Modal>
+  );
+}

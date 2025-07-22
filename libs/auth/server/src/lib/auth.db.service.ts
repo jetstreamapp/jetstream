@@ -19,10 +19,11 @@ import {
   UserSession,
   UserSessionAndExtTokensAndActivityWithLocation,
   UserSessionWithLocation,
+  UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
-import { Prisma } from '@jetstream/prisma';
+import { getSessionsForUserIds, Prisma } from '@jetstream/prisma';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
-import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
@@ -59,6 +60,13 @@ const userSelect = Prisma.validator<Prisma.UserSelect>()({
       type: true,
       enabled: true,
       secret: false,
+    },
+  },
+  teamMemberships: {
+    select: {
+      teamId: true,
+      role: true,
+      status: true,
     },
   },
 });
@@ -124,37 +132,69 @@ export async function findUserById_UNSAFE(id: string) {
     .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
-export async function getLoginConfiguration(email: string, skipCache = false): Promise<LoginConfiguration | null> {
-  const domain = email?.split('@')[1];
+export async function getLoginConfiguration(
+  options: { email: string; skipCache?: boolean } | { teamId: string; skipCache?: false }
+): Promise<LoginConfiguration | null> {
+  const { skipCache = false } = options;
 
-  if (!domain) {
-    return null;
+  if ('teamId' in options) {
+    const { teamId } = options;
+    return prisma.team
+      .findFirst({
+        select: {
+          loginConfig: {
+            select: {
+              id: true,
+              allowedMfaMethods: true,
+              allowedProviders: true,
+              requireMfa: true,
+              allowIdentityLinking: true,
+            },
+          },
+        },
+        where: { id: teamId },
+      })
+      .then((team) => {
+        const config = team?.loginConfig;
+        if (!config) {
+          return null;
+        }
+        const value = LoginConfigurationSchema.parse(config);
+        return value;
+      });
+  } else {
+    const { email } = options;
+    const domain = email?.split('@')[1];
+
+    if (!domain) {
+      return null;
+    }
+
+    const cachedValue = skipCache ? undefined : LOGIN_CONFIGURATION_CACHE.get(domain);
+    if (cachedValue) {
+      return cachedValue.value;
+    }
+
+    return prisma.loginConfiguration
+      .findFirst({
+        select: {
+          id: true,
+          allowedMfaMethods: true,
+          allowedProviders: true,
+          requireMfa: true,
+          allowIdentityLinking: true,
+        },
+        where: { domains: { has: domain }, team: { none: {} } },
+      })
+      .then((config) => {
+        if (!config) {
+          return null;
+        }
+        const value = LoginConfigurationSchema.parse(config);
+        LOGIN_CONFIGURATION_CACHE.set(domain, { value });
+        return value;
+      });
   }
-
-  const cachedValue = skipCache ? undefined : LOGIN_CONFIGURATION_CACHE.get(domain);
-  if (cachedValue) {
-    return cachedValue.value;
-  }
-
-  return prisma.loginConfiguration
-    .findFirst({
-      select: {
-        id: true,
-        allowedMfaMethods: true,
-        allowedProviders: true,
-        requireMfa: true,
-        allowIdentityLinking: true,
-      },
-      where: { domains: { has: domain } },
-    })
-    .then((config) => {
-      if (!config) {
-        return null;
-      }
-      const value = LoginConfigurationSchema.parse(config);
-      LOGIN_CONFIGURATION_CACHE.set(domain, { value });
-      return value;
-    });
 }
 
 export async function setUserEmailVerified(id: string) {
@@ -320,7 +360,7 @@ export async function toggleEnableDisableAuthFactor(
 
   const userId = user.id;
 
-  const loginConfiguration = await getLoginConfiguration(user.email, true);
+  const loginConfiguration = await getLoginConfiguration({ email: user.email, skipCache: true });
   if (action !== 'enable' && loginConfiguration?.requireMfa && loginConfiguration.allowedMfaMethods.has(type)) {
     throw new InvalidAction(`Cannot disable ${type} factor when MFA is required`);
   }
@@ -356,7 +396,7 @@ export async function deleteAuthFactor(user: Pick<UserProfileSession, 'id' | 'em
     throw new Error('Invalid user');
   }
 
-  const loginConfiguration = await getLoginConfiguration(user.email, true);
+  const loginConfiguration = await getLoginConfiguration({ email: user.email, skipCache: true });
   if (loginConfiguration?.requireMfa && loginConfiguration.allowedMfaMethods.has(type)) {
     throw new InvalidAction(`Cannot delete ${type} factor when MFA is required`);
   }
@@ -401,20 +441,7 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
         },
       },
     })
-    .then((sessions) =>
-      sessions.map((session): UserSession => {
-        const { sid, sess, expire } = session;
-        const { ipAddress, loginTime, provider, userAgent } = sess as unknown as SessionData;
-        return {
-          sessionId: sid,
-          expires: expire.toISOString(),
-          userAgent,
-          ipAddress,
-          loginTime: new Date(loginTime).toISOString(),
-          provider,
-        };
-      })
-    );
+    .then((sessions) => sessions.map(convertSessionToUserSession));
 
   // Fetch location data and add to each session
   if (!omitLocationData && sessions.length > 0) {
@@ -422,6 +449,62 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
       return await lookupGeoLocationFromIpAddresses(sessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
         locationInfo.map(
           ({ location }, i): UserSessionWithLocation => ({
+            ...sessions[i],
+            location,
+          })
+        )
+      );
+    } catch (ex) {
+      logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
+    }
+  }
+
+  return sessions;
+}
+
+/**
+ * Return all user sessions for a team, including location data if available.
+ */
+export async function getTeamUserSessions(teamId: string, omitLocationData?: boolean): Promise<UserSessionWithLocationAndUser[]> {
+  if (!teamId) {
+    throw new Error('Invalid teamId');
+  }
+
+  const users = await prisma.teamMember
+    .findMany({
+      where: { teamId },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+    .then((teamMember) => teamMember.map(({ user }) => user));
+
+  const usersById = groupByFlat(users, 'id');
+  const userIds = users.map(({ id }) => id);
+
+  const sessions: UserSessionWithLocationAndUser[] = await prisma.$queryRawTyped(getSessionsForUserIds(userIds)).then((sessions) =>
+    sessions.map((session) => {
+      const userSessionWithLocation = convertSessionToUserSession(session);
+      return {
+        ...userSessionWithLocation,
+        user: usersById[userSessionWithLocation.userId],
+      };
+    })
+  );
+
+  // Fetch location data and add to each session
+  if (!omitLocationData && sessions.length > 0) {
+    try {
+      return await lookupGeoLocationFromIpAddresses(sessions.map(({ ipAddress }) => ipAddress)).then((locationInfo) =>
+        locationInfo.map(
+          ({ location }, i): UserSessionWithLocationAndUser => ({
             ...sessions[i],
             location,
           })
@@ -497,6 +580,61 @@ export async function getUserActivity(userId: string) {
       },
       where: { userId, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
       take: 25,
+      orderBy: { createdAt: 'desc' },
+    })
+    .then((records) =>
+      records.map((record) => ({
+        ...record,
+        action: actionDisplayName[record.action] || record.action,
+        method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
+        createdAt: record.createdAt.toISOString(),
+      }))
+    );
+
+  try {
+    // mutate records to add location property if there is an associated ip address
+    const activityWithIpAddress = recentActivity.filter((item) => item.ipAddress);
+    await lookupGeoLocationFromIpAddresses(activityWithIpAddress.map(({ ipAddress }) => ipAddress) as string[]).then((locationInfo) => {
+      activityWithIpAddress.forEach((activityWithIpAddress, i) => {
+        activityWithIpAddress.location = locationInfo[i].location;
+      });
+    });
+  } catch (ex) {
+    logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for recent activity');
+  }
+
+  return recentActivity;
+}
+
+export async function getTeamUserActivity(teamId: string) {
+  if (!teamId) {
+    throw new Error('Invalid teamId');
+  }
+
+  const userIds = await prisma.teamMember
+    .findMany({ where: { teamId }, select: { userId: true } })
+    .then((teamMember) => teamMember.map(({ userId }) => userId));
+
+  const recentActivity: LoginActivityUserFacing[] = await prisma.loginActivity
+    .findMany({
+      select: {
+        action: true,
+        createdAt: true,
+        errorMessage: true,
+        ipAddress: true,
+        method: true,
+        success: true,
+        userAgent: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      where: { userId: { in: userIds }, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
+      take: 250,
       orderBy: { createdAt: 'desc' },
     })
     .then((records) =>
@@ -696,6 +834,20 @@ export const removePasswordFromUser = async (id: string) => {
     })
     .then((user) => AuthenticatedUserSchema.parse(user));
 };
+
+function convertSessionToUserSession(session: { sid: string; sess: unknown; expire: Date }): UserSession {
+  const { sid, sess, expire } = session;
+  const { ipAddress, loginTime, provider, userAgent, user } = sess as unknown as SessionData;
+  return {
+    userId: user.id,
+    sessionId: sid,
+    expires: expire.toISOString(),
+    userAgent,
+    ipAddress,
+    loginTime: new Date(loginTime).toISOString(),
+    provider,
+  };
+}
 
 async function getUserAndVerifyPassword(email: string, password: string) {
   email = email.toLowerCase();
@@ -999,6 +1151,15 @@ export async function handleSignInOrRegistration(
     let provider: OauthProviderType | 'credentials' = 'credentials';
     let mfaEnrollmentRequired: { factor: TwoFactorTypeOtp } | false = false;
 
+    // FIXME: we need to validate isProviderAllowed here (we used to do in the controller)
+    //     const providerAllowed = req.session.teamMembership
+    //   ? await isProviderAllowed({ teamId: req.session.teamMembership.teamId, provider: provider.provider })
+    //   : await isProviderAllowed({ email: userInfo.email, provider: provider.provider });
+
+    // if (!providerAllowed) {
+    //   throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
+    // }
+
     /**
      * Flow for Oauth - we allow both login and registration in one flow
      *
@@ -1013,6 +1174,12 @@ export async function handleSignInOrRegistration(
       // Check for existing user
       user = await findUserByProviderId(provider, providerUser.id);
       if (!user) {
+        // FIXME:
+        /**
+         * 1. see if new user can be auto-added to team based on domain
+         * 2. ensure provider is allowed, based on team membership or email domain
+         */
+
         const usersWithEmail = await findUsersByEmail(providerUser.email);
         if (usersWithEmail.length > 1) {
           // throw error or return error?
@@ -1026,7 +1193,7 @@ export async function handleSignInOrRegistration(
             throw new LoginWithExistingIdentity();
           }
 
-          const loginConfiguration = await getLoginConfiguration(usersWithEmail[0].email);
+          const loginConfiguration = await getLoginConfiguration({ email: usersWithEmail[0].email });
           if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
             throw new IdentityLinkingNotAllowed();
           }
@@ -1079,7 +1246,7 @@ export async function handleSignInOrRegistration(
       throw new InvalidCredentials('User not initialized');
     }
 
-    const loginConfiguration = await getLoginConfiguration(user.email);
+    const loginConfiguration = await getLoginConfiguration({ email: user.email });
 
     if (loginConfiguration?.requireMfa) {
       // if email is allowed, then we don't need to force enrollment - but we will force email verification

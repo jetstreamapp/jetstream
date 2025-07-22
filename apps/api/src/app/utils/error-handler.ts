@@ -57,6 +57,8 @@ export class UserFacingError extends Error {
       this.additionalData = additionalData;
     }
 
+    // FIXME: handle prisma errors here, we don't want to expose them to the user
+
     this.status = initStatus(message, 400);
 
     if (message instanceof ApiRequestError) {

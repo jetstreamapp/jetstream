@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
+  LoginActivityUserFacing,
   LoginConfigurationUI,
   Providers,
   TwoFactorTypeWithoutEmail,
   UserProfileAuthFactor,
   UserProfileUiWithIdentities,
   UserSessionAndExtTokensAndActivityWithLocation,
+  UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
@@ -50,6 +52,10 @@ import {
   StripeUserFacingCustomer,
   SyncRecord,
   SyncRecordOperation,
+  TeamInvitationRequest,
+  TeamInviteUserFacing,
+  TeamLoginConfigRequest,
+  TeamUserFacing,
   UserProfileUi,
 } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
@@ -96,6 +102,38 @@ export async function checkHeartbeat(): Promise<{ version: string; announcements
     logger.warn('Unable to parse announcements');
   }
   return heartbeat;
+}
+
+export async function getTeam(): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'GET', url: '/api/teams' }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamUserSessions(teamId: string): Promise<UserSessionWithLocationAndUser[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sessions` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamAuthActivity(teamId: string): Promise<LoginActivityUserFacing[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/auth-activity` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamLoginConfiguration(teamId: string, data: TeamLoginConfigRequest): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/login-configuration`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getInvitations(teamId: string): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/invitations` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function createInvitation(teamId: string, data: TeamInvitationRequest): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/invitations`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateInvitation(teamId: string, invitationId: string): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/invitations/${invitationId}` }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getUserProfile(): Promise<UserProfileUi> {
