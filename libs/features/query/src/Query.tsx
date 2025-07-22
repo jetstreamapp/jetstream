@@ -2,17 +2,13 @@ import { TITLES } from '@jetstream/shared/constants';
 import { useLocationState, useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { Spinner } from '@jetstream/ui';
-import { StateDebugObserver, fromQueryState } from '@jetstream/ui-core';
+import { StateDebugObserver, fromQueryState, useQueryRestore } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilValue, useResetRecoilState } from 'recoil';
-import useQueryRestore from './utils/useQueryRestore';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryProps {}
-
-export const Query: FunctionComponent<QueryProps> = () => {
+export const Query = () => {
   useTitle(TITLES.QUERY);
   const location = useLocation();
   const locationState = useLocationState<{ soql?: string }>();

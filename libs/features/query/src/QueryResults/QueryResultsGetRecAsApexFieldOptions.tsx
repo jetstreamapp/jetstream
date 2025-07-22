@@ -51,7 +51,6 @@ export const QueryResultsGetRecAsApexFieldOptions: FunctionComponent<QueryResult
         })
         .map((field) => field.name)
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldMetadata, nulls, readOnly, system, defaultOnCreate, booleanIfFalse]);
 
   useNonInitialEffect(() => {

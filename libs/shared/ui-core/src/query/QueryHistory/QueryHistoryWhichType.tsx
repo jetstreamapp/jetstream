@@ -1,6 +1,6 @@
 import { Icon, RadioButton, RadioGroup } from '@jetstream/ui';
-import { fromQueryHistoryState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
+import { fromQueryHistoryState } from '../..';
 
 export interface QueryHistoryWhichTypeProps {
   which: fromQueryHistoryState.QueryHistoryType;

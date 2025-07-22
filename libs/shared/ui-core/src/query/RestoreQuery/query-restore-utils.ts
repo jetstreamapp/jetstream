@@ -25,7 +25,21 @@ import {
   QueryOrderByClause,
   SalesforceOrgUi,
 } from '@jetstream/types';
-import { fromQueryState } from '@jetstream/ui-core';
+import {
+  BASE_FIELD_SEPARATOR,
+  CHILD_FIELD_SEPARATOR,
+  ensureFieldSelectItemsIncludesSelectionsFromRestore,
+  fetchMetadataFromSoql,
+  getFieldResourceTypes,
+  getFieldSelectItems,
+  getQueryFieldBaseKey,
+  getQueryFieldKey,
+  getSubqueryFieldBaseKey,
+  getTypeFromMetadata,
+  initQueryFieldStateItem,
+  SoqlFetchMetadataOutput,
+  SoqlMetadataTree,
+} from '@jetstream/ui-core/shared';
 import {
   Condition,
   DateLiteral,
@@ -44,21 +58,7 @@ import {
   WhereClause,
 } from '@jetstreamapp/soql-parser-js';
 import isString from 'lodash/isString';
-import {
-  BASE_FIELD_SEPARATOR,
-  CHILD_FIELD_SEPARATOR,
-  getQueryFieldBaseKey,
-  getQueryFieldKey,
-  getSubqueryFieldBaseKey,
-  initQueryFieldStateItem,
-} from './query-fields-utils';
-import {
-  ensureFieldSelectItemsIncludesSelectionsFromRestore,
-  getFieldResourceTypes,
-  getFieldSelectItems,
-  getTypeFromMetadata,
-} from './query-filter.utils';
-import { fetchMetadataFromSoql, SoqlFetchMetadataOutput, SoqlMetadataTree } from './query-soql-utils';
+import { fromQueryState } from '../..';
 
 export interface QueryRestoreErrors {
   missingFields: string[];

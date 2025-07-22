@@ -43,12 +43,15 @@ import {
   useConfirmation,
 } from '@jetstream/ui';
 import {
+  QueryHistory,
+  QueryHistoryRef,
   ViewEditCloneRecord,
   fromJetstreamEvents,
   fromQueryHistoryState,
   fromQueryState,
   isAsyncJob,
   useAmplitude,
+  useQueryRestore,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -56,13 +59,11 @@ import { queryHistoryDb } from '@jetstream/ui/db';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import isString from 'lodash/isString';
-import React, { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
-import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
-import useQueryRestore from '../utils/useQueryRestore';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
 import QueryResultsCopyToClipboard from './QueryResultsCopyToClipboard';
 import QueryResultsDownloadButton from './QueryResultsDownloadButton';
@@ -90,10 +91,7 @@ function getTotalRecordCount(queryResult: QueryResult<unknown>, records: unknown
   return queryResult.totalSize < 0 ? queryResult.totalSize + 1 : queryResult.totalSize;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryResultsProps {}
-
-export const QueryResults: FunctionComponent<QueryResultsProps> = React.memo(() => {
+export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();

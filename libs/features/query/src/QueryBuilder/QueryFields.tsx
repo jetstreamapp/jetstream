@@ -4,16 +4,16 @@ import { multiWordObjectFilter } from '@jetstream/shared/utils';
 import { FieldWrapper, Maybe, QueryFieldWithPolymorphic, QueryFields } from '@jetstream/types';
 import { AutoFullHeightContainer, SobjectFieldList } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import isEmpty from 'lodash/isEmpty';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import {
   getQueryFieldBaseKey,
   getQueryFieldKey,
   getSelectedFieldsFromQueryFields,
   initQueryFieldStateItem,
-} from '../utils/query-fields-utils';
+} from '@jetstream/ui-core/shared';
+import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import isEmpty from 'lodash/isEmpty';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export interface QueryFieldsProps {
   selectedSObject: Maybe<string>;

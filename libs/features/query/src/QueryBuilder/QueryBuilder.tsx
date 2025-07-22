@@ -31,12 +31,11 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import { fromQueryHistoryState, fromQueryState, useAmplitude } from '@jetstream/ui-core';
+import { fromQueryHistoryState, fromQueryState, QueryHistory, QueryHistoryRef, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
-import QueryHistory, { QueryHistoryRef } from '../QueryHistory/QueryHistory';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
 import QueryCount from '../QueryOptions/QueryCount';
@@ -64,19 +63,14 @@ const METADATA_QUERY_ID = 'metadata';
 const METADATA_QUERY_TITLE = 'Query Metadata Records';
 const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', description: 'Metadata Query' };
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface QueryBuilderProps {}
-
-export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
+export const QueryBuilder = () => {
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>();
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const queryFieldsMap = useRecoilValue(fromQueryState.queryFieldsMapState);
   const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);
-  const isRestore = useRecoilValue(fromQueryState.isRestore);
   const soql = useRecoilValue(fromQueryState.querySoqlState);
 
   const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
@@ -163,11 +157,6 @@ export const QueryBuilder: FunctionComponent<QueryBuilderProps> = () => {
       resetState(false);
       setSelectedSObject(sobject);
     }
-  }
-
-  function handleQueryTypeChange(id: string) {
-    setIsTooling(id === METADATA_QUERY_ID);
-    trackEvent(ANALYTICS_KEYS.query_MetadataQueryToggled, { changedTo: id });
   }
 
   /**

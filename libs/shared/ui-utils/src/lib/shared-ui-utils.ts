@@ -384,6 +384,10 @@ export function getFilename(org: SalesforceOrgUi, parts: string[]) {
   return `${parts.join('-')}-${org.username}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
 }
 
+export function getFilenameWithoutOrg(parts: string[]) {
+  return `${parts.join('-')}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function saveFile(content: any, filename: string, type: MimeType) {
   const blob = new Blob([content], { type });

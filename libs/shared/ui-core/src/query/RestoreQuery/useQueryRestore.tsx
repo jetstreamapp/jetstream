@@ -3,12 +3,12 @@ import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
-import { fromQueryState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Query, parseQuery } from '@jetstreamapp/soql-parser-js';
 import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
+import { fromQueryState } from '../..';
 import { QueryRestoreErrors, UserFacingRestoreError, restoreQuery } from './query-restore-utils';
 
 const ERROR_MESSAGES = {
@@ -176,5 +176,3 @@ export const useQueryRestore = (
 
   return [restore, errorMessage];
 };
-
-export default useQueryRestore;
