@@ -7,6 +7,7 @@
     }
   },
   "git": {
+    "changelog": "git log --pretty=format:\"* %s (%h)\" $(git describe --tags --abbrev=0 --match='web-ext-v*' 2>/dev/null || echo '')...${to}",
     "tagAnnotation": "Release web extension ${version}",
     "commitMessage": "chore: release web extension ${version}",
     "tag": true,

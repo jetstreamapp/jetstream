@@ -22,9 +22,9 @@
       "configurations": {
         "development": {
           "fileReplacements": [],
-          "optimization": false,
+          "optimization": true,
           "outputHashing": "none",
-          "sourceMap": false,
+          "sourceMap": true,
           "namedChunks": false,
           "extractLicenses": false,
           "vendorChunk": false

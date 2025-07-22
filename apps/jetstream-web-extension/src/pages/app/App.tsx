@@ -12,6 +12,7 @@ import { LoadRecordsMultiObject } from '@jetstream/feature/load-records-multi-ob
 import { ManagePermissions, ManagePermissionsEditor, ManagePermissionsSelection } from '@jetstream/feature/manage-permissions';
 import { PlatformEventMonitor } from '@jetstream/feature/platform-event-monitor';
 import { Query, QueryBuilder, QueryResults } from '@jetstream/feature/query';
+import { RecordTypeManagerSelection } from '@jetstream/feature/record-type-manager';
 import { SalesforceApi } from '@jetstream/feature/salesforce-api';
 import { SObjectExport } from '@jetstream/feature/sobject-export';
 import { MassUpdateRecords, MassUpdateRecordsDeployment, MassUpdateRecordsSelection } from '@jetstream/feature/update-records';
@@ -95,7 +96,7 @@ export function App() {
                 <Route path="*" element={<Navigate to=".." />} />
               </Route>
               <Route path={APP_ROUTES.FORMULA_EVALUATOR.ROUTE} element={<FormulaEvaluator />} />
-              <Route path={APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE} element={<FormulaEvaluator />} />
+              <Route path={APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE} element={<RecordTypeManagerSelection />} />
               <Route path={APP_ROUTES.LOAD_MASS_UPDATE.ROUTE} element={<MassUpdateRecords />}>
                 <Route index element={<MassUpdateRecordsSelection />} />
                 <Route path="deployment" element={<MassUpdateRecordsDeployment />} />

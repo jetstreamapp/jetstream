@@ -1,6 +1,7 @@
 import { prisma } from '@jetstream/api-config';
 import { TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
+import { addDays } from 'date-fns';
 
 export type TokenTypeAuthToken = 'AUTH_TOKEN';
 export type TokenType = TokenTypeAuthToken;
@@ -29,11 +30,28 @@ const SELECT = Prisma.validator<Prisma.WebExtensionTokenSelect>()({
   updatedAt: true,
 });
 
-export const findByUserIdAndDeviceId = async ({ userId, deviceId, type }: { userId: string; deviceId: string; type: TokenType }) => {
+export const findByUserIdAndDeviceId = async ({
+  userId,
+  deviceId,
+  type,
+  expiresAtBufferDays = 0,
+}: {
+  userId: string;
+  deviceId: string;
+  type: TokenType;
+  /**
+   * Optional buffer in days to check for token expiration.
+   * e.g. only return token if it is valid for at least this many days.
+   * This is useful to avoid returning tokens that are about to expire and instead auto-refresh them.
+   * Defaults to 0, meaning it will only return tokens that are not expired.
+   */
+  expiresAtBufferDays?: number;
+}) => {
+  const expiresAt = addDays(new Date(), expiresAtBufferDays);
   return await prisma.webExtensionToken.findUnique({
     where: {
       type_userId_deviceId: { type, userId, deviceId },
-      expiresAt: { lt: new Date() },
+      expiresAt: { gt: expiresAt },
     },
     select: SELECT,
   });

@@ -2,7 +2,7 @@ import { ENV } from '@jetstream/api-config';
 import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { addDays, fromUnixTime, isAfter } from 'date-fns';
+import { fromUnixTime } from 'date-fns';
 import { z } from 'zod';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import * as userSyncDbService from '../db/data-sync.db';
@@ -75,6 +75,10 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
   next();
 });
 
+/**
+ * This issues access tokens or returns existing access tokens
+ * This route is called after the user is already authenticated through normal means
+ */
 const initSession = createRoute(routeDefinition.initSession.validators, async ({ query, user }, req, res, next) => {
   const { deviceId } = query;
 
@@ -91,12 +95,17 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   let accessToken = '';
 
   const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
-  let storedRefreshToken = await webExtDb.findByUserIdAndDeviceId({ userId: user.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+  const existingRecord = await webExtDb.findByUserIdAndDeviceId({
+    userId: user.id,
+    deviceId,
+    type: webExtDb.TOKEN_TYPE_AUTH,
+    expiresAtBufferDays: externalAuthService.TOKEN_AUTO_REFRESH_DAYS,
+  });
 
-  // if token is expiring within 7 days, issue a new token
-  if (!storedRefreshToken || isAfter(storedRefreshToken.expiresAt, addDays(new Date(), -externalAuthService.TOKEN_AUTO_REFRESH_DAYS))) {
+  // issue a new token if one does not exist withing the auto-refresh buffer
+  if (!existingRecord) {
     accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
-    storedRefreshToken = await webExtDb.create(user.id, {
+    await webExtDb.create(user.id, {
       type: 'AUTH_TOKEN',
       source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
       token: accessToken,
@@ -106,7 +115,8 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
       expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
     });
   } else {
-    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
+    // return existing token since it is still valid
+    accessToken = existingRecord.token;
   }
 
   sendJson(res, { accessToken });
