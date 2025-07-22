@@ -1,4 +1,5 @@
-import { hasModifierKey, isEKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { hasModifierKey, hasShiftModifierKey, isEKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
 import {
   CheckboxToggle,
@@ -10,6 +11,7 @@ import {
   PopoverRef,
   Spinner,
   Textarea,
+  Tooltip,
   getModifierKey,
 } from '@jetstream/ui';
 import { selectedOrgState } from '@jetstream/ui/app-state';
@@ -21,12 +23,14 @@ import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRecoilValue } from 'recoil';
+import { useAmplitude } from '../analytics';
 import { QueryHistoryModal } from './QueryHistory/QueryHistoryModal';
 import { useQueryRestore } from './RestoreQuery/useQueryRestore';
 
 const NUM_HISTORY_ITEMS = 50;
 
 export const QuickQueryPopover = () => {
+  const { trackEvent } = useAmplitude();
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>();
   const navigate = useNavigate();
@@ -68,6 +72,7 @@ export const QuickQueryPopover = () => {
       event.stopPropagation();
       event.preventDefault();
       popoverRef.current?.open();
+      trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });
     }
   }, []);
 
@@ -80,25 +85,40 @@ export const QuickQueryPopover = () => {
   function handleOpenQueryHistory() {
     popoverRef.current?.close();
     setQueryHistoryModalOpen(true);
+    trackEvent(ANALYTICS_KEYS.query_HistoryModalOpened, { source: 'quick_query', type: 'HISTORY' });
   }
 
-  function handleRestore() {
-    restore(soql, isTooling);
+  function handleRestore(soqlOverride?: string, isToolingOverride?: boolean, skipTracking = false) {
+    restore(soqlOverride || soql, isToolingOverride ?? isTooling);
+    if (!skipTracking) {
+      trackEvent(ANALYTICS_KEYS.quick_query_Restore, { method: 'button', location: 'popover' });
+    }
   }
 
-  function handleExecute(soqlOverride?: string) {
+  function handleExecute(soqlOverride?: string, isToolingOverride?: boolean, skipTracking = false) {
     popoverRef.current?.close();
     navigate('/query/results', {
       state: {
-        isTooling,
+        isTooling: isToolingOverride ?? isTooling,
         soql: soqlOverride || soql,
       },
     });
+    if (!skipTracking) {
+      trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'button', location: 'popover' });
+    }
   }
 
-  function handleSelectRecentQuery(query: QueryHistoryItem) {
+  function handleSelectRecentQuery(event: React.MouseEvent, query: QueryHistoryItem) {
+    event.stopPropagation();
     setSoql(query.soql);
     setIsTooling(query.isTooling);
+    if (hasModifierKey(event as any)) {
+      handleExecute(query.soql, query.isTooling);
+      trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'recent_query' });
+    } else if (hasShiftModifierKey(event as any)) {
+      handleRestore(query.soql, query.isTooling);
+      trackEvent(ANALYTICS_KEYS.quick_query_Restore, { method: 'keyboard', location: 'recent_query' });
+    }
   }
 
   const handleEditorMount: OnMount = (currEditor, monaco) => {
@@ -114,6 +134,7 @@ export const QuickQueryPopover = () => {
       keybindings: [monaco?.KeyMod.CtrlCmd | monaco?.KeyCode.Enter],
       run: () => {
         handleExecute(currEditor.getValue());
+        trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'editor' });
       },
     });
     editorRef.current.addAction({
@@ -123,6 +144,7 @@ export const QuickQueryPopover = () => {
       contextMenuGroupId: '9_cutcopypaste',
       run: (currEditor) => {
         setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
+        trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'editor-shortcut' });
       },
     });
   };
@@ -155,7 +177,31 @@ export const QuickQueryPopover = () => {
               {!!queryHistory?.length && (
                 <Fragment>
                   <Grid className="slds-m-bottom_x-small" align="spread">
-                    <h2 className="slds-text-heading_small slds-grow">Recent Queries</h2>
+                    <Grid verticalAlign="center">
+                      <h2 className="slds-text-heading_small slds-grow">Recent Queries</h2>
+                      <Tooltip
+                        content={
+                          <>
+                            <p>Keyboard shortcuts:</p>
+                            <Grid className="slds-m-vertical_small">
+                              <KeyboardShortcut inverse keys={[getModifierKey(), 'click']} />
+                              to execute
+                            </Grid>
+                            <Grid>
+                              <KeyboardShortcut inverse keys={['shift', 'click']} />
+                              to restore
+                            </Grid>
+                          </>
+                        }
+                      >
+                        <Icon
+                          icon="info"
+                          type="utility"
+                          containerClassname="slds-icon_container slds-icon-utility-info slds-m-left_x-small"
+                          className="slds-icon slds-icon-text-default slds-icon_x-small"
+                        />
+                      </Tooltip>
+                    </Grid>
                     <button
                       className="slds-button slds-button_reset slds-text-link"
                       onClick={handleOpenQueryHistory}
@@ -169,7 +215,7 @@ export const QuickQueryPopover = () => {
                       <li
                         key={query.key}
                         className="slds-item slds-text-link cursor-pointer slds-p-around_small"
-                        onClick={() => handleSelectRecentQuery(query)}
+                        onClick={(event) => handleSelectRecentQuery(event, query)}
                         style={{ cursor: 'pointer' }}
                       >
                         <div
@@ -208,7 +254,10 @@ export const QuickQueryPopover = () => {
                         className="slds-button slds-text-link_reset slds-text-link"
                         title="Format soql query"
                         disabled={!queryIsValid}
-                        onClick={handleFormat}
+                        onClick={() => {
+                          handleFormat();
+                          trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'popover' });
+                        }}
                       >
                         format
                       </button>
@@ -257,7 +306,7 @@ export const QuickQueryPopover = () => {
                 <button
                   className="slds-button slds-button_neutral slds-m-right_x-small"
                   disabled={!queryIsValid || isRestoring}
-                  onClick={handleRestore}
+                  onClick={() => handleRestore()}
                 >
                   <Icon type="utility" icon="task" className="slds-button__icon slds-button__icon_left" />
                   Restore
@@ -276,6 +325,9 @@ export const QuickQueryPopover = () => {
             'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
           title: 'Query Search - ctrl/command + e',
           disabled: !selectedOrg || !!selectedOrg.connectionError,
+          onClick: () => {
+            trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });
+          },
         }}
       >
         <Icon type="utility" icon="search" className="slds-button__icon slds-global-header__icon" omitContainer />

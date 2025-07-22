@@ -68,7 +68,6 @@ export const QueryBuilder = () => {
   const navigate = useNavigate();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>();
-  const isRestoringRef = useRef(false);
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);
@@ -148,13 +147,13 @@ export const QueryBuilder = () => {
 
   function handleSobjectsChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);
-    if (!sobjects && !isRestoringRef.current) {
+    if (!sobjects) {
       resetState();
     }
   }
 
   function handleSelectedSObject(sobject: DescribeGlobalSObjectResult | null) {
-    if (sobject?.name !== selectedSObject?.name && !isRestoringRef.current) {
+    if (sobject?.name !== selectedSObject?.name) {
       resetState(false);
       setSelectedSObject(sobject);
     }
@@ -257,9 +256,7 @@ export const QueryBuilder = () => {
 
   useNonInitialEffect(() => {
     setPageTitle(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
-    if (!isRestoringRef.current) {
-      resetState();
-    }
+    resetState();
   }, [isTooling, resetState]);
 
   function handleOpenHistory(type: fromQueryHistoryState.QueryHistoryType) {

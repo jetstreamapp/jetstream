@@ -210,6 +210,11 @@ export const ANALYTICS_KEYS = {
   query_UpdateRecordsInline: 'query_UpdateRecordsInline',
   query_ResetPage: 'query_ResetPage',
   query_InlineEditSave: 'query_InlineEditSave',
+  /** QUICK QUERY */
+  quick_query_Open: 'quick_query_Open',
+  quick_query_Execute: 'quick_query_Execute',
+  quick_query_Restore: 'quick_query_Restore',
+  quick_query_Format: 'quick_query_Format',
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
   attachment_ModalOpened: 'attachment_ModalOpened',
