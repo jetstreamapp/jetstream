@@ -7,6 +7,7 @@
     }
   },
   "git": {
+    "changelog": "git log --pretty=format:\"* %s (%h)\" $(git describe --tags --abbrev=0 --match='desktop-v*' 2>/dev/null || echo '')...${to}",
     "tagAnnotation": "Release desktop ${version}",
     "commitMessage": "chore: release desktop ${version}",
     "tag": true,
