@@ -473,6 +473,9 @@ export const SOBJECT_NAME_FIELD_MAP = {
   JournalReason: 'ApiName',
   KnowledgeArticle: 'Title',
   KnowledgeArticleVersion: 'Title',
+  Knowledge__kav: 'Title',
+  // This object does not have a Name field
+  Knowledge__ka: '',
   LeadConvertSettings: 'DeveloperName',
   LeadStatus: 'ApiName',
   Lens: 'MasterLabel',

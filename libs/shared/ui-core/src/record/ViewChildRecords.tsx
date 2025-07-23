@@ -54,6 +54,10 @@ function getRows(childRelationships: ChildRelationship[], record: SalesforceReco
     .filter(Boolean);
 }
 
+// These objects are disallowed because they require specific WHERE clause filters
+// that are not available in this context.
+const DISALLOWED_OBJECTS = new Set(['NetworkUserHistoryRecent']);
+
 interface ChildRecordRow {
   _groupByLabel: string; // sobject + relationship name
   _record: any; // original record
@@ -184,46 +188,48 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         const fields = ['Id', 'Name', 'CreatedDate', 'CreatedById', 'LastModifiedDate', 'LastModifiedById'].concat(
           Array.from(new Set(Object.values(SOBJECT_NAME_FIELD_MAP)))
         );
-        const entityParticleQueries = splitArrayToMaxSize(Array.from(new Set(childRelationships.map((item) => item.childSObject))), 50).map(
-          (childRelationshipObjects) =>
-            composeQuery({
-              sObject: 'EntityDefinition',
-              fields: [
-                getField('Id'),
-                getField('QualifiedApiName'),
-                getField({
-                  subquery: {
-                    relationshipName: 'Fields',
-                    fields: [getField('Id'), getField('QualifiedApiName')],
-                    where: {
-                      left: {
-                        field: 'QualifiedApiName',
-                        operator: 'IN',
-                        value: fields,
-                        literalType: 'STRING',
-                      },
+        const entityParticleQueries = splitArrayToMaxSize(
+          Array.from(new Set(childRelationships.map((item) => item.childSObject).filter((sobject) => !DISALLOWED_OBJECTS.has(sobject)))),
+          50
+        ).map((childRelationshipObjects) =>
+          composeQuery({
+            sObject: 'EntityDefinition',
+            fields: [
+              getField('Id'),
+              getField('QualifiedApiName'),
+              getField({
+                subquery: {
+                  relationshipName: 'Fields',
+                  fields: [getField('Id'), getField('QualifiedApiName')],
+                  where: {
+                    left: {
+                      field: 'QualifiedApiName',
+                      operator: 'IN',
+                      value: fields,
+                      literalType: 'STRING',
                     },
                   },
-                }),
-              ],
-              where: {
-                left: {
-                  field: 'QualifiedApiName',
-                  operator: 'IN',
-                  value: childRelationshipObjects,
-                  literalType: 'STRING',
                 },
-                operator: 'AND',
-                right: {
-                  left: {
-                    field: 'IsQueryable',
-                    operator: '=',
-                    value: 'true',
-                    literalType: 'BOOLEAN',
-                  },
+              }),
+            ],
+            where: {
+              left: {
+                field: 'QualifiedApiName',
+                operator: 'IN',
+                value: childRelationshipObjects,
+                literalType: 'STRING',
+              },
+              operator: 'AND',
+              right: {
+                left: {
+                  field: 'IsQueryable',
+                  operator: '=',
+                  value: 'true',
+                  literalType: 'BOOLEAN',
                 },
               },
-            })
+            },
+          })
         );
 
         const entityQueryResults = await queryAllFromList<{
@@ -262,7 +268,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           try {
             const query = composeQuery({
               sObject: sobjectName,
-              fields: [getField('Id'), getField(SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'), ...subquery],
+              fields: [getField('Id'), getField(SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'), ...subquery].filter(Boolean),
               where: {
                 left: {
                   field: 'Id',
