@@ -91,18 +91,14 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     /**
      * Allows a parent component to open or close
      */
-    useImperativeHandle<unknown, PopoverRef>(
-      ref,
-      () => {
-        return {
-          toggle: () => referenceElement && referenceElement.click(),
-          open: () => !popperElement && referenceElement && referenceElement.click(),
-          close: () => closeElement && closeElement.click(),
-          isOpen: () => !!popperElement,
-        };
-      },
-      [referenceElement, popperElement, closeElement]
-    );
+    useImperativeHandle<unknown, PopoverRef>(ref, () => {
+      return {
+        toggle: () => referenceElement && referenceElement.click(),
+        open: () => !popperElement && referenceElement && referenceElement.click(),
+        close: () => closeElement && closeElement.click(),
+        isOpen: () => !!popperElement,
+      };
+    }, [referenceElement, popperElement, closeElement]);
 
     const checkIfStateChanged = useCallback(
       (open: boolean) => {

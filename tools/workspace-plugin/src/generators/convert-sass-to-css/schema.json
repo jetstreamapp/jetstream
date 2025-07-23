@@ -16,8 +16,5 @@
       "description": "Input filename with full path"
     }
   },
-  "required": [
-    "name",
-    "filename"
-  ]
+  "required": ["name", "filename"]
 }

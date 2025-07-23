@@ -27,21 +27,21 @@ interface CreateOrUpdateEventBase {
   deletedAt?: null | never;
 }
 interface CreateOrUpdateEventQueryHistory extends CreateOrUpdateEventBase {
-  keyPrefix: typeof SyncableTables['query_history']['keyPrefix'];
+  keyPrefix: (typeof SyncableTables)['query_history']['keyPrefix'];
   fullRecord: QueryHistoryItem;
 }
 interface CreateOrUpdateEventLoadSavedMapping extends CreateOrUpdateEventBase {
-  keyPrefix: typeof SyncableTables['load_saved_mapping']['keyPrefix'];
+  keyPrefix: (typeof SyncableTables)['load_saved_mapping']['keyPrefix'];
   fullRecord: LoadSavedMappingItem;
 }
 
 interface CreateOrUpdateEventRecentHistoryItem extends CreateOrUpdateEventBase {
-  keyPrefix: typeof SyncableTables['recent_history_item']['keyPrefix'];
+  keyPrefix: (typeof SyncableTables)['recent_history_item']['keyPrefix'];
   fullRecord: RecentHistoryItem;
 }
 
 interface CreateOrUpdateEventApiRequestHistory extends CreateOrUpdateEventBase {
-  keyPrefix: typeof SyncableTables['api_request_history']['keyPrefix'];
+  keyPrefix: (typeof SyncableTables)['api_request_history']['keyPrefix'];
   fullRecord: RecentHistoryItem;
 }
 
@@ -66,8 +66,8 @@ const BACKOFF_DELAY_INCREMENT_MS = 10_000; // 10 seconds
 const MAX_BACKOFF_DELAY_MS = 60 * 60 * 1_000; // 1 hour
 let retryCount = 0;
 
-function getKeyPrefix(key: string): typeof SyncableTables[keyof typeof SyncableTables]['keyPrefix'] {
-  return key.split('_')[0] as typeof SyncableTables[keyof typeof SyncableTables]['keyPrefix'];
+function getKeyPrefix(key: string): (typeof SyncableTables)[keyof typeof SyncableTables]['keyPrefix'] {
+  return key.split('_')[0] as (typeof SyncableTables)[keyof typeof SyncableTables]['keyPrefix'];
 }
 
 /**
@@ -426,7 +426,7 @@ function enrichDataTypesForApiRequestHistory(data: Record<string, unknown>) {
 async function getAllSyncableRecordsById(ids: string[]): Promise<Record<string, any>> {
   const records = await Promise.all(
     Object.values(SyncableTables).map((syncableTable) => {
-      const keys = ids.filter((id) => id.startsWith(syncableTable.keyPrefix)) as typeof syncableTable['keyPrefix'][];
+      const keys = ids.filter((id) => id.startsWith(syncableTable.keyPrefix)) as (typeof syncableTable)['keyPrefix'][];
       if (keys.length) {
         return dexieDb[syncableTable.name].bulkGet(keys as any).then((records) => records.filter(Boolean));
       }

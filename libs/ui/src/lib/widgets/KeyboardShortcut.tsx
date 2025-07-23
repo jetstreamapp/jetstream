@@ -33,8 +33,21 @@ export function KeyboardShortcut({ keys, preContent, postContent, separator = '+
               box-shadow: inset 0 -1px 0 0 ${accentColor};
               color: rgba(24, 24, 27, 1);
               display: inline-flex;
-              font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans,
-                sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+              font-family:
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                Segoe UI,
+                Roboto,
+                Helvetica Neue,
+                Arial,
+                Noto Sans,
+                sans-serif,
+                Apple Color Emoji,
+                Segoe UI Emoji,
+                Segoe UI Symbol,
+                Noto Color Emoji;
               font-size: 0.75rem;
               height: 1.25rem;
               justify-content: center;

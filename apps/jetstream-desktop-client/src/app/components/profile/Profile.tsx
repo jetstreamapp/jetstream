@@ -162,7 +162,7 @@ export const Profile = () => {
   }
 
   function handleProfileChange(modified: { name: string }) {
-    setModifiedUser((priorValue) => ({ ...fullUserProfile, ...priorValue, ...modified } as UserProfileUiWithIdentities));
+    setModifiedUser((priorValue) => ({ ...fullUserProfile, ...priorValue, ...modified }) as UserProfileUiWithIdentities);
   }
 
   return (
