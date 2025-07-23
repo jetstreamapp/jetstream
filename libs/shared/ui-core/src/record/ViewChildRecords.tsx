@@ -54,7 +54,8 @@ function getRows(childRelationships: ChildRelationship[], record: SalesforceReco
     .filter(Boolean);
 }
 
-// these objects are
+// These objects are disallowed because they require specific WHERE clause filters
+// that are not available in this context.
 const DISALLOWED_OBJECTS = new Set(['NetworkUserHistoryRecent']);
 
 interface ChildRecordRow {
