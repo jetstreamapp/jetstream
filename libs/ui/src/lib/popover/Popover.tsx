@@ -1,6 +1,7 @@
 import { css, SerializedStyles } from '@emotion/react';
+import { JSX } from '@emotion/react/jsx-runtime';
 import { Popover as HeadlessPopover, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
+import { FullWidth, Maybe, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -8,7 +9,15 @@ import { usePopper } from 'react-popper';
 import { Placement } from 'tippy.js';
 import { Icon } from '../widgets/Icon';
 
-const ConditionalPortal = ({ omitPortal, portalRef, children }: { omitPortal: boolean; portalRef: Element; children: ReactNode }) => {
+const ConditionalPortal = ({
+  omitPortal,
+  portalRef,
+  children,
+}: {
+  omitPortal: boolean;
+  portalRef: Maybe<Element>;
+  children: ReactNode;
+}) => {
   if (omitPortal) {
     return children;
   }
@@ -34,7 +43,7 @@ export interface PopoverProps {
   bodyStyle?: SerializedStyles;
   placement?: Placement;
   content: ReactNode;
-  header?: JSX.Element;
+  header?: React.ReactNode;
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
   buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
@@ -43,7 +52,7 @@ export interface PopoverProps {
   size?: SmallMediumLarge | sizeXLarge | FullWidth;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
   omitPortal?: boolean;
-  portalRef?: Element;
+  portalRef?: Maybe<Element>;
   children: ReactNode;
   onChange?: (isOpen: boolean) => void;
 }

@@ -1,12 +1,11 @@
-import { css } from '@emotion/react';
+import classNames from 'classnames';
 import { FunctionComponent } from 'react';
 import Icon from './Icon';
 import Tooltip from './Tooltip';
-import classNames from 'classnames';
 
 export interface HelpTextProps {
   id: string;
-  content: string | JSX.Element;
+  content: string | React.ReactNode;
   className?: string;
 }
 

@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import Icon from '../widgets/Icon';
@@ -11,7 +12,7 @@ export interface PopoverErrorButtonProps {
   listHeader?: string | null;
   errors: string | string[];
   omitPortal?: boolean;
-  portalRef?: Element;
+  portalRef?: Maybe<Element>;
 }
 
 export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({

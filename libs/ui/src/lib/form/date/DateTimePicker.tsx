@@ -1,27 +1,27 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 
+import { IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
-import { IconType } from '@jetstream/icon-factory';
 
 export interface InputProps {
   id?: string;
   className?: string;
   label?: string;
   labelHelp?: string | null;
-  helpText?: JSX.Element | string;
+  helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;
   errorMessageId?: string;
-  errorMessage?: JSX.Element | string;
+  errorMessage?: React.ReactNode | string;
   iconLeft?: string;
   iconLeftType?: IconType;
   iconRight?: string;
   iconRightType?: IconType;
-  leftAddon?: JSX.Element | string;
-  rightAddon?: JSX.Element | string;
+  leftAddon?: React.ReactNode | string;
+  rightAddon?: React.ReactNode | string;
   clearButton?: boolean;
   onClear?: () => void;
   children?: React.ReactNode;

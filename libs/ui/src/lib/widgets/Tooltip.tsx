@@ -7,7 +7,7 @@ export interface TooltipProps {
   /** @deprecated This is not used in the component */
   id?: string;
   className?: string;
-  content: Maybe<string | JSX.Element>;
+  content: Maybe<string | React.ReactNode>;
   /**
    * number controls hide delay in ms
    * array controls show and hide delay, [openDelay, closeDelay]

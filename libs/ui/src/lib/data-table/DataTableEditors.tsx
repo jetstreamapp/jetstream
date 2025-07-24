@@ -290,7 +290,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
   }: RenderEditCellProps<TRow, TSummaryRow>) {
     const currValue = row[column.key as keyof TRow] as unknown as string;
     const { org } = useContext(DataTableGenericContext) as { org: SalesforceOrgUi; defaultApiVersion: string };
-    const nameField = useRef<{ sobject: string; nameField: string }>();
+    const nameField = useRef<{ sobject: string; nameField: string }>(null);
     const [records, setRecords] = useState<ListItem<string, any>[]>([]);
     const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>('text');

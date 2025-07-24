@@ -32,7 +32,7 @@ const NUM_HISTORY_ITEMS = 50;
 export const QuickQueryPopover = () => {
   const { trackEvent } = useAmplitude();
   const popoverRef = useRef<PopoverRef>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const navigate = useNavigate();
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 

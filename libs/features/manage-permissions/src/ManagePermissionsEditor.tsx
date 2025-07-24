@@ -104,8 +104,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>();
-  const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>();
+  const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>(null);
+  const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const [loading, setLoading] = useState(false);

@@ -22,7 +22,7 @@ export interface PlatformEventDownloadData {
 
 export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }) {
   const isMounted = useRef(true);
-  const cometD = useRef<CometD>();
+  const cometD = useRef<CometD>(null);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
   const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
@@ -46,7 +46,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
       return () => {
         if (cometD.current) {
           platformEventUtils.disconnect(cometD.current);
-          cometD.current = undefined;
+          cometD.current = null;
           trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: false });
         }
       };

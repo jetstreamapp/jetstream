@@ -93,8 +93,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
 
-  const picklistWorksheetLayoutRef = useRef<PicklistRef>();
-  const picklistHeaderOptionRef = useRef<PicklistRef>();
+  const picklistWorksheetLayoutRef = useRef<PicklistRef>(null);
+  const picklistHeaderOptionRef = useRef<PicklistRef>(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

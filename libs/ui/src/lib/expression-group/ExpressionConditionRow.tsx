@@ -176,7 +176,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
 
   return (
     <li
-      ref={preview}
+      ref={preview as any}
       className={classNames('slds-expression__row', {
         'slds-expression__row_group': isNumber(group),
         'slds-border_top': row > 1 && wrap,
@@ -193,7 +193,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         <Grid gutters guttersSize="xx-small" wrap={wrap} verticalAlign="end">
           {showDragHandles && (
             <button
-              ref={drag}
+              ref={drag as any}
               css={css`
                 cursor: grab;
               `}

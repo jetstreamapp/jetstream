@@ -1,5 +1,5 @@
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
 import { Fragment, useEffect } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -21,7 +21,7 @@ function getDefaultPermissions(): CreateObjectPermissions {
 export interface CreateNewObjectPermissionsProps {
   selectedOrg: SalesforceOrgUi;
   loading: boolean;
-  portalRef?: Element;
+  portalRef?: Maybe<Element>;
 }
 
 export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: CreateNewObjectPermissionsProps) => {

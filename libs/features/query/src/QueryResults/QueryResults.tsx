@@ -95,7 +95,7 @@ export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
-  const queryHistoryRef = useRef<QueryHistoryRef>();
+  const queryHistoryRef = useRef<QueryHistoryRef>(null);
   const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);

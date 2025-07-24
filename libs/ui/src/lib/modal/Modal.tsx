@@ -13,9 +13,9 @@ export interface ModalProps {
   className?: string;
   classStyles?: SerializedStyles;
   hide?: boolean; // used to hide the modal without destroying contents
-  header?: Maybe<string | JSX.Element>;
-  tagline?: Maybe<string | JSX.Element>;
-  footer?: JSX.Element;
+  header?: Maybe<string | React.ReactNode>;
+  tagline?: Maybe<string | React.ReactNode>;
+  footer?: React.ReactNode;
   directionalFooter?: boolean;
   containerClassName?: string;
   footerClassName?: string;

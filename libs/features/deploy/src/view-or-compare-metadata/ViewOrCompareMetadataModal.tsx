@@ -30,8 +30,8 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   const [chromeExtension] = useState(() => isBrowserExtension());
   const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
-  const diffEditorRef = useRef<editor.IStandaloneDiffEditor>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const diffEditorRef = useRef<editor.IStandaloneDiffEditor>(null);
   const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi | null>(null);
 
   const [activeFile, setActiveFile] = useState<TreeItems<FileItemMetadata> | null>(null);

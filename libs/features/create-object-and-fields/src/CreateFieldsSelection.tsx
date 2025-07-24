@@ -30,7 +30,7 @@ const HEIGHT_BUFFER = 170;
 export interface CreateFieldsSelectionProps {}
 
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
-  const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>();
+  const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>(null);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
 
   const [profiles, setProfiles] = useRecoilState(fromCreateFieldsState.profilesState);

@@ -1,19 +1,19 @@
-import isString from 'lodash/isString';
-import escapeRegExp from 'lodash/escapeRegExp';
-import React, { ReactNode, useEffect, useState } from 'react';
 import { REGEX } from '@jetstream/shared/utils';
+import escapeRegExp from 'lodash/escapeRegExp';
+import isString from 'lodash/isString';
+import React, { ReactNode, useEffect, useState } from 'react';
 
 // inspired by: https://stackoverflow.com/questions/29652862/highlight-text-using-reactjs
 /**
  * Add spans and highlight classes around text based on search term
  *
- * @param {string} text If JSX.Element, no action will be taken
+ * @param {string} text If React.ReactNode, no action will be taken
  * @param searchTerm text to match against
  * @param [ignoreHighlight] if true, no highlighting will be performed
  * @returns highlighted react node
  */
 export function useHighlightedText(
-  text: string | JSX.Element | ReactNode,
+  text: string | React.ReactNode | ReactNode,
   searchTerm?: string,
   options?: { className?: string; ignoreHighlight?: boolean }
 ) {

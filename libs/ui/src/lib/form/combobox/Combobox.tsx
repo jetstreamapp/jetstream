@@ -211,7 +211,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
             divContainerEl,
             entireContainerEl,
             popoverRef,
-          };
+          } as ReturnType<ComboboxPropsRef['getRefs']>;
         },
         close: () => {
           setTimeout(() => {

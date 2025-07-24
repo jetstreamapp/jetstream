@@ -186,7 +186,7 @@ export const selectTrialRunSizeError = selector<string | null>({
   },
 });
 
-export const selectBulkApiModeLabel = selector<string | JSX.Element>({
+export const selectBulkApiModeLabel = selector<string | React.ReactNode>({
   key: 'load.selectBulkApiModeLabel',
   get: ({ get }) => {
     const inputFileDataLength = get(inputFileDataState)?.length || 0;
@@ -194,7 +194,7 @@ export const selectBulkApiModeLabel = selector<string | JSX.Element>({
   },
 });
 
-export const selectBatchApiModeLabel = selector<string | JSX.Element>({
+export const selectBatchApiModeLabel = selector<string | React.ReactNode>({
   key: 'load.selectBatchApiModeLabel',
   get: ({ get }) => {
     const inputFileDataLength = get(inputFileDataState)?.length || 0;

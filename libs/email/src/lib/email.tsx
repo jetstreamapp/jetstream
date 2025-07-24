@@ -1,9 +1,8 @@
-import type { EmotionJSX } from '@emotion/react/types/jsx-namespace';
 import { ENV, logger, sendEmail } from '@jetstream/api-config';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { render } from '@react-email/render';
-import React from 'react';
+import React, { JSX } from 'react';
 import {
   AuthenticationChangeConfirmationEmail,
   AuthenticationChangeConfirmationEmailProps,
@@ -21,7 +20,7 @@ import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
  * Is there any benefit of sending these via mailgun instead of just SMTP directly?
  */
 
-function renderComponent(component: EmotionJSX.Element) {
+function renderComponent(component: JSX.Element) {
   return Promise.all([render(component, { plainText: false }), render(component, { plainText: true })]);
 }
 

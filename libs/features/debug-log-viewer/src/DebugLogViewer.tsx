@@ -41,7 +41,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   useTitle(TITLES.DEBUG_LOGS);
   const isMounted = useRef(true);
   const logCache = useRef<Record<string, string>>({});
-  const logRef = useRef<editor.IStandaloneCodeEditor>();
+  const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);

@@ -38,9 +38,9 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
   const [{ defaultApiVersion, serverUrl }] = useRecoilState(applicationCookieState);
   const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
 
-  const modalRef = useRef();
+  const modalRef = useRef(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef<TabsRef>();
+  const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState('permissions');
 
   const apiNameWithoutNamespace = useRecoilValue(fromCreateObjectState.apiNameState);

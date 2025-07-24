@@ -67,7 +67,7 @@ export const QueryBuilder = () => {
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
   const [{ serverUrl }] = useRecoilState(applicationCookieState);
-  const queryHistoryRef = useRef<QueryHistoryRef>();
+  const queryHistoryRef = useRef<QueryHistoryRef>(null);
 
   const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
   const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);

@@ -11,7 +11,7 @@ export interface ReadonlyListProps {
   getContent: (item: any) => {
     key: string;
     id?: string;
-    heading?: Maybe<string | JSX.Element>;
+    heading?: Maybe<string | React.ReactNode>;
     subheading?: Maybe<string>;
   };
 }

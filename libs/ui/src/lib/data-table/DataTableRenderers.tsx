@@ -10,7 +10,7 @@ import { parseISO } from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import { Fragment, FunctionComponent, MutableRefObject, memo, useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, MutableRefObject, ReactNode, memo, useContext, useEffect, useRef, useState } from 'react';
 import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, useRowSelection } from 'react-data-grid';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
@@ -470,7 +470,7 @@ export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: Heade
 
 // CELL RENDERERS
 /** Generic cell renderer when the type of data is unknown */
-export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
+export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;
 
   if (!row) {
@@ -490,7 +490,7 @@ export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
   return <div className="slds-truncate">{value}</div>;
 }
 
-export function SelectFormatter<T>(props: RenderCellProps<T>) {
+export function SelectFormatter<T>(props: RenderCellProps<T>): ReactNode {
   const { column, row } = props;
   const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
 
@@ -506,7 +506,7 @@ export function SelectFormatter<T>(props: RenderCellProps<T>) {
   );
 }
 
-export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: RenderCellProps<T>) {
+export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: RenderCellProps<T>): ReactNode {
   if (!row) {
     return <div />;
   }
@@ -518,7 +518,7 @@ export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column,
   return <div>{value}</div>;
 }
 
-export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, unknown>> = ({ column, row }) => {
+export const ComplexDataRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
   const value = row[column.key];
   const [isActive, setIsActive] = useState(false);
   const [jsonValue] = useState(JSON.stringify(value || '', null, 2));
@@ -562,7 +562,7 @@ export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, 
   );
 };
 
-export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row }) => {
+export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
   const { onRecordAction, portalRefForFilters } = useContext(DataTableGenericContext) as {
     onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
     portalRefForFilters?: MutableRefObject<HTMLElement>;
@@ -583,7 +583,7 @@ export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = 
   );
 };
 
-export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
+export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;
 
   if (!row) {
@@ -603,7 +603,7 @@ export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey
   return GenericRenderer(RenderCellProps);
 }
 
-export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
+export const ActionRenderer = ({ row }: { row: any }): ReactNode => {
   if (!isFunction(row?._action)) {
     return null;
   }
@@ -651,7 +651,7 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   );
 };
 
-export const BooleanRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row }) => {
+export const BooleanRenderer = ({ column, row }: RenderCellProps<any, unknown>): ReactNode => {
   const value = row[column.key];
   return (
     <Checkbox
@@ -665,7 +665,7 @@ export const BooleanRenderer: FunctionComponent<RenderCellProps<any, unknown>> =
   );
 };
 
-export const ErrorMessageRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
+export const ErrorMessageRenderer = ({ row }: { row: any }): ReactNode => {
   if (!row?._saveError) {
     return null;
   }

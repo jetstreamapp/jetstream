@@ -110,12 +110,12 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
   onPrevYear,
   onNextYear,
 }) => {
-  const lastFocusedElement = useRef<HTMLElement>();
+  const lastFocusedElement = useRef<HTMLElement>(null);
   const [dateGrid, setDateGrid] = useState<DateGridDate[][]>([]);
-  const elRefs = useRef<RefObject<HTMLTableDataCellElement>[][]>([]);
+  const elRefs = useRef<RefObject<HTMLTableCellElement | null>[][]>([]);
 
   if (elRefs.current.length !== dateGrid.length) {
-    const refs: RefObject<HTMLTableDataCellElement>[][] = [];
+    const refs: RefObject<HTMLTableCellElement | null>[][] = [];
     dateGrid.forEach((week, i) => {
       refs[i] = elRefs[i] || [];
       week.forEach((day, k) => {
@@ -220,7 +220,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
    * page up/down toggle months
    * modifier+up/down toggle years
    */
-  function handleKeyUp(day: DateGridDate, weekIdx: number, dayIdx: number, event: KeyboardEvent<HTMLTableDataCellElement>) {
+  function handleKeyUp(day: DateGridDate, weekIdx: number, dayIdx: number, event: KeyboardEvent<HTMLTableCellElement>) {
     event.preventDefault();
     event.stopPropagation();
     // keydown happened elsewhere, so ignore keypress events since the user would not intend enter to submit prior to grid being visible

@@ -11,7 +11,7 @@ export interface ExpressionProps {
   title?: string;
   actionHelpText?: string;
   actionLabel: string;
-  ancillaryOptions?: JSX.Element;
+  ancillaryOptions?: React.ReactNode;
   onActionChange: (value: AndOr) => void;
   onAddCondition: () => void;
   onAddGroup: () => void;
@@ -57,7 +57,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
         className={classNames({
           'drop-zone-border': isOver && canDrop,
         })}
-        ref={drop}
+        ref={drop as any}
       >
         <ExpressionActionDropDown
           label={actionLabel}

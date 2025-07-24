@@ -1650,7 +1650,7 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
  * @returns
  */
 export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
-  element: Maybe<React.RefObject<T>>,
+  element: Maybe<React.RefObject<T | null>>,
   backOff = 0,
   attempt = 0,
   maxAttempts = 3

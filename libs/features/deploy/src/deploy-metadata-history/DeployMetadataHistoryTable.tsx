@@ -71,7 +71,7 @@ const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 export interface DeployMetadataHistoryTableProps {
   items: SalesforceDeployHistoryItem[];
   orgsById: Record<string, SalesforceOrgUi>;
-  modalRef: React.RefObject<HTMLDivElement>;
+  modalRef: React.RefObject<HTMLDivElement | null>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;
 }

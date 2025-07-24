@@ -23,7 +23,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   fieldErrorMessage,
   onSelectedRecord,
 }) => {
-  const nameField = useRef<{ selectedSObject: string; nameField: string }>();
+  const nameField = useRef<{ selectedSObject: string; nameField: string }>(null);
   const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);

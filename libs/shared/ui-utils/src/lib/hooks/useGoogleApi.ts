@@ -47,7 +47,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
       }
     | null
     | undefined
-  >();
+  >(null);
   const tokenExpiration = useRef<Maybe<Date>>(_tokenExpiration);
   const [currentTokenExpiration, setCurrentTokenExpiration] = useState<Maybe<Date>>(tokenExpiration.current);
   const [gapiScriptLoaded, gapiScriptLoadError] = useInjectScriptGapi();

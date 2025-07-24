@@ -12,7 +12,7 @@ const ICON_URL = '/assets/images/jetstream-icon-white-bg.png';
  * @returns
  */
 export function useBrowserNotifications(serverUrl: string, isFocused?: () => boolean) {
-  const notification = useRef<Notification>();
+  const notification = useRef<Notification>(null);
 
   const visibilitychange = useCallback((event: Event) => {
     if (notification.current && !document.hidden) {

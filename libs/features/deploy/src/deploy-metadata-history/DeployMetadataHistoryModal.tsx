@@ -33,7 +33,7 @@ interface DeployMetadataHistoryModalProps {
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const modalRef = useRef(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);

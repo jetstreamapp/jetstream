@@ -29,7 +29,7 @@ export interface ManagePermissionsEditorTabVisibilityTableProps {
 
 export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
-    const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>();
+    const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({

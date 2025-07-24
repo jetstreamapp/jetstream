@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, Maybe, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
 import ReadOnlyFormElement from '../form/readonly-form-element/ReadOnlyFormElement';
@@ -21,7 +21,7 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
-  portalRef?: Element;
+  portalRef?: Maybe<Element>;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 

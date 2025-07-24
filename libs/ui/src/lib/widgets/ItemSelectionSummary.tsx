@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
+import { Maybe } from '@jetstream/types';
 import { FunctionComponent, useRef } from 'react';
 import Popover, { PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
@@ -8,7 +9,7 @@ import Icon from '../widgets/Icon';
 export interface ItemSelectionSummaryProps {
   label?: string;
   items: { value: string; label: string }[];
-  portalRef?: Element;
+  portalRef?: Maybe<Element>;
   disabled?: boolean;
   onClearItem: (item: string) => void;
   onClearAll: () => void;

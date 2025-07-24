@@ -69,7 +69,7 @@ export interface FormulaEvaluatorProps {}
 export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => {
   useTitle(TITLES.FORMULA_EVALUATOR);
   const isMounted = useRef(true);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
   const { trackEvent } = useAmplitude();

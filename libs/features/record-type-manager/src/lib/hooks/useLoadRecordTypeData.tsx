@@ -8,7 +8,7 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { RecordTypePicklistConfiguration, SobjectWithPicklistValues } from '../types/record-types.types';
-import { recordTypeReducer, RecordTypeReducerFn } from '../utils/record-types.reducer';
+import { recordTypeReducer } from '../utils/record-types.reducer';
 import { repairAndEnrichMetadata } from '../utils/record-types.utils';
 
 const ignoredPicklistFields = new Set(['CleanStatus', 'ContactSource', 'CurrencyIsoCode']);
@@ -45,7 +45,7 @@ export function useLoadRecordTypeData() {
       errorsByRecordType: configurationErrorsByRecordType,
     },
     dispatch,
-  ] = useReducer<RecordTypeReducerFn>(recordTypeReducer, {
+  ] = useReducer(recordTypeReducer, {
     allValues: [],
     modifiedValues: [],
   });

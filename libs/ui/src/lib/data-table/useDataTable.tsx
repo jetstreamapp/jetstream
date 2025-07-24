@@ -11,9 +11,9 @@ import isObject from 'lodash/isObject';
 import uniqueId from 'lodash/uniqueId';
 import { useCallback, useEffect, useImperativeHandle, useMemo, useReducer, useState } from 'react';
 import {
-  CellClickArgs,
   CellKeyDownArgs,
   CellKeyboardEvent,
+  CellMouseArgs,
   CellMouseEvent,
   RenderSortStatusProps,
   Renderers,
@@ -228,7 +228,7 @@ export function useDataTable<T = RowWithKey>({
   }
 
   const handleCellContextMenu = useCallback(
-    ({ row, column }: CellClickArgs<T, unknown>, event: CellMouseEvent) => {
+    ({ row, column }: CellMouseArgs<T, unknown>, event: CellMouseEvent) => {
       event.preventGridDefault();
       // Do not show the default context menu
       event.preventDefault();
