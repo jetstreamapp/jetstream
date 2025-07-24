@@ -61,7 +61,8 @@ import classNames from 'classnames';
 import isString from 'lodash/isString';
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { filter } from 'rxjs/operators';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
@@ -96,10 +97,10 @@ export const QueryResults = React.memo(() => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
-  const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
-  const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
+  const previousSoql = useAtomValue(fromQueryState.querySoqlState);
+  const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
-  const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
+  const [isTooling, setIsTooling] = useAtom(fromQueryState.isTooling);
   const location = useLocation();
   const locationState = useLocationState<{
     soql: string;
@@ -121,12 +122,10 @@ export const QueryResults = React.memo(() => {
   const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
-  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(
-    fromAppState.applicationCookieState
-  );
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const skipFrontdoorLogin = useRecoilValue(fromAppState.selectSkipFrontdoorAuth);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents

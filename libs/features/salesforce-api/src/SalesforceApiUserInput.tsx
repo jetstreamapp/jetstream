@@ -3,7 +3,8 @@ import { HttpMethod, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { FunctionComponent, KeyboardEvent } from 'react';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 function getDefaultUrl(defaultApiVersion: string) {
   return `/services/${defaultApiVersion}`;
@@ -36,7 +37,7 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
   onMethodChange,
   onAltEnter,
 }) => {
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
 
   function handleKeyUp(event: KeyboardEvent<HTMLElement>) {
     if (onAltEnter && hasModifierKey(event) && isEnterKey(event)) {

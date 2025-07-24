@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Grid } from '@jetstream/ui';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
 import * as fromApexState from './apex.state';
 
 const PREV_APEX_KEY = '_prev_';
@@ -14,7 +14,7 @@ export interface AnonymousApexHistoryProps {
 }
 
 export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> = ({ className, onHistorySelected }) => {
-  const historyItems = useRecoilValue(fromApexState.selectApexHistoryState);
+  const historyItems = useAtomValue(fromApexState.selectApexHistoryState);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {

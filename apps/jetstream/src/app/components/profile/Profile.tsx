@@ -26,8 +26,8 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { userProfileState } from '@jetstream/ui/app-state';
+import { useSetAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
-import { useSetRecoilState } from 'recoil';
 import { Profile2fa } from './2fa/Profile2fa';
 import { ProfileLinkedAccounts } from './ProfileLinkedAccounts';
 import { ProfileUserProfile } from './ProfileUserProfile';
@@ -44,7 +44,7 @@ export const Profile = () => {
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
-  const setUserProfile = useSetRecoilState(userProfileState);
+  const setUserProfile = useSetAtom(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [loginConfiguration, setLoginConfiguration] = useState<LoginConfigurationUI | null>(null);
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();

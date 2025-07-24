@@ -5,7 +5,8 @@ import { StateDebugObserver, fromDeployMetadataState } from '@jetstream/ui-core'
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DeployMetadataProps {}
@@ -13,16 +14,16 @@ export interface DeployMetadataProps {}
 export const DeployMetadata: FunctionComponent<DeployMetadataProps> = () => {
   useTitle(TITLES.DEPLOY_METADATA);
   const location = useLocation();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const hasSelectionsMade = useRecoilValue<boolean>(fromDeployMetadataState.hasSelectionsMadeSelector);
-  const resetMetadataItemsState = useResetRecoilState(fromDeployMetadataState.metadataItemsState);
-  const resetMetadataItemsMapState = useResetRecoilState(fromDeployMetadataState.metadataItemsMapState);
-  const resetSelectedMetadataItemsState = useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
-  const resetUsersList = useResetRecoilState(fromDeployMetadataState.usersList);
-  const resetMetadataSelectionTypeState = useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState);
-  const resetSelectedUsersState = useResetRecoilState(fromDeployMetadataState.selectedUsersState);
-  const resetChangesetPackage = useResetRecoilState(fromDeployMetadataState.changesetPackage);
-  const resetChangesetPackages = useResetRecoilState(fromDeployMetadataState.changesetPackages);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const hasSelectionsMade = useAtomValue<boolean>(fromDeployMetadataState.hasSelectionsMadeSelector);
+  const resetMetadataItemsState = useResetAtom(fromDeployMetadataState.metadataItemsState);
+  const resetMetadataItemsMapState = useResetAtom(fromDeployMetadataState.metadataItemsMapState);
+  const resetSelectedMetadataItemsState = useResetAtom(fromDeployMetadataState.selectedMetadataItemsState);
+  const resetUsersList = useResetAtom(fromDeployMetadataState.usersList);
+  const resetMetadataSelectionTypeState = useResetAtom(fromDeployMetadataState.metadataSelectionTypeState);
+  const resetSelectedUsersState = useResetAtom(fromDeployMetadataState.selectedUsersState);
+  const resetChangesetPackage = useResetAtom(fromDeployMetadataState.changesetPackage);
+  const resetChangesetPackages = useResetAtom(fromDeployMetadataState.changesetPackages);
 
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 

@@ -1,6 +1,8 @@
 import { SalesforceOrgUi } from '@jetstream/types';
+import { useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useResetRecoilState, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { CreateNewObjectModal } from './CreateNewObjectModal';
 import * as fromCreateObjectState from './create-object-state';
 
@@ -17,31 +19,31 @@ export const CreateNewObject: FunctionComponent<CreateNewObjectProps> = ({
   initialSelectedPermissionSets = [],
   onClose,
 }) => {
-  const setSelectedProfiles = useSetRecoilState(fromCreateObjectState.selectedProfilesState);
-  const setSelectedPermissionSets = useSetRecoilState(fromCreateObjectState.selectedPermissionSetsState);
+  const setSelectedProfiles = useSetAtom(fromCreateObjectState.selectedProfilesState);
+  const setSelectedPermissionSets = useSetAtom(fromCreateObjectState.selectedPermissionSetsState);
 
-  const resetLabelState = useResetRecoilState(fromCreateObjectState.labelState);
-  const resetPluralLabelState = useResetRecoilState(fromCreateObjectState.pluralLabelState);
-  const resetStartsWithState = useResetRecoilState(fromCreateObjectState.startsWithState);
-  const resetApiNameState = useResetRecoilState(fromCreateObjectState.apiNameState);
-  const resetDescriptionState = useResetRecoilState(fromCreateObjectState.descriptionState);
-  const resetRecordNameState = useResetRecoilState(fromCreateObjectState.recordNameState);
-  const resetDataTypeState = useResetRecoilState(fromCreateObjectState.dataTypeState);
-  const resetDisplayFormatState = useResetRecoilState(fromCreateObjectState.displayFormatState);
-  const resetStartingNumberState = useResetRecoilState(fromCreateObjectState.startingNumberState);
-  const resetAllowReportsState = useResetRecoilState(fromCreateObjectState.allowReportsState);
-  const resetAllowActivitiesState = useResetRecoilState(fromCreateObjectState.allowActivitiesState);
-  const resetTrackFieldHistoryState = useResetRecoilState(fromCreateObjectState.trackFieldHistoryState);
-  const resetAllowInChatterGroupsState = useResetRecoilState(fromCreateObjectState.allowInChatterGroupsState);
-  const resetAllowSharingBulkStreamingState = useResetRecoilState(fromCreateObjectState.allowSharingBulkStreamingState);
-  const resetAllowSearchState = useResetRecoilState(fromCreateObjectState.allowSearchState);
-  const resetCreateTabState = useResetRecoilState(fromCreateObjectState.createTabState);
-  const resetSelectedTabIconState = useResetRecoilState(fromCreateObjectState.selectedTabIconState);
-  const resetProfilesState = useResetRecoilState(fromCreateObjectState.profilesState);
-  const resetPermissionSetsState = useResetRecoilState(fromCreateObjectState.permissionSetsState);
-  const resetSelectedProfilesState = useResetRecoilState(fromCreateObjectState.selectedProfilesState);
-  const resetSelectedPermissionSetsState = useResetRecoilState(fromCreateObjectState.selectedPermissionSetsState);
-  const resetObjectPermissionsState = useResetRecoilState(fromCreateObjectState.objectPermissionsState);
+  const resetLabelState = useResetAtom(fromCreateObjectState.labelState);
+  const resetPluralLabelState = useResetAtom(fromCreateObjectState.pluralLabelState);
+  const resetStartsWithState = useResetAtom(fromCreateObjectState.startsWithState);
+  const resetApiNameState = useResetAtom(fromCreateObjectState.apiNameState);
+  const resetDescriptionState = useResetAtom(fromCreateObjectState.descriptionState);
+  const resetRecordNameState = useResetAtom(fromCreateObjectState.recordNameState);
+  const resetDataTypeState = useResetAtom(fromCreateObjectState.dataTypeState);
+  const resetDisplayFormatState = useResetAtom(fromCreateObjectState.displayFormatState);
+  const resetStartingNumberState = useResetAtom(fromCreateObjectState.startingNumberState);
+  const resetAllowReportsState = useResetAtom(fromCreateObjectState.allowReportsState);
+  const resetAllowActivitiesState = useResetAtom(fromCreateObjectState.allowActivitiesState);
+  const resetTrackFieldHistoryState = useResetAtom(fromCreateObjectState.trackFieldHistoryState);
+  const resetAllowInChatterGroupsState = useResetAtom(fromCreateObjectState.allowInChatterGroupsState);
+  const resetAllowSharingBulkStreamingState = useResetAtom(fromCreateObjectState.allowSharingBulkStreamingState);
+  const resetAllowSearchState = useResetAtom(fromCreateObjectState.allowSearchState);
+  const resetCreateTabState = useResetAtom(fromCreateObjectState.createTabState);
+  const resetSelectedTabIconState = useResetAtom(fromCreateObjectState.selectedTabIconState);
+  const resetProfilesState = useResetAtom(fromCreateObjectState.profilesState);
+  const resetPermissionSetsState = useResetAtom(fromCreateObjectState.permissionSetsState);
+  const resetSelectedProfilesState = useResetAtom(fromCreateObjectState.selectedProfilesState);
+  const resetSelectedPermissionSetsState = useResetAtom(fromCreateObjectState.selectedPermissionSetsState);
+  const resetObjectPermissionsState = useResetAtom(fromCreateObjectState.objectPermissionsState);
 
   const [modalOpen, setModalOpen] = useState(false);
 

@@ -41,7 +41,8 @@ import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromP
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
@@ -102,11 +103,11 @@ export interface ManagePermissionsEditorProps {}
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -114,23 +115,23 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [fileDownloadModalOpen, setFileDownloadModalOpen] = useState<boolean>(false);
   const [fileDownloadData, setFileDownloadData] = useState<ArrayBuffer | null>(null);
 
-  const selectedProfiles = useRecoilValue(fromPermissionsState.selectedProfilesPermSetState);
-  const selectedPermissionSets = useRecoilValue(fromPermissionsState.selectedPermissionSetsState);
-  const selectedSObjects = useRecoilValue(fromPermissionsState.selectedSObjectsState);
+  const selectedProfiles = useAtomValue(fromPermissionsState.selectedProfilesPermSetState);
+  const selectedPermissionSets = useAtomValue(fromPermissionsState.selectedPermissionSetsState);
+  const selectedSObjects = useAtomValue(fromPermissionsState.selectedSObjectsState);
 
-  const profilesById = useRecoilValue(fromPermissionsState.profilesByIdSelector);
-  const permissionSetsById = useRecoilValue(fromPermissionsState.permissionSetsByIdSelector);
-  const [fieldsByObject, setFieldsByObject] = useRecoilState(fromPermissionsState.fieldsByObject);
-  const [fieldsByKey, setFieldsByKey] = useRecoilState(fromPermissionsState.fieldsByKey);
-  const [objectPermissionMap, setObjectPermissionMap] = useRecoilState(fromPermissionsState.objectPermissionMap);
-  const [fieldPermissionMap, setFieldPermissionMap] = useRecoilState(fromPermissionsState.fieldPermissionMap);
-  const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
+  const profilesById = useAtomValue(fromPermissionsState.profilesByIdSelector);
+  const permissionSetsById = useAtomValue(fromPermissionsState.permissionSetsByIdSelector);
+  const [fieldsByObject, setFieldsByObject] = useAtom(fromPermissionsState.fieldsByObject);
+  const [fieldsByKey, setFieldsByKey] = useAtom(fromPermissionsState.fieldsByKey);
+  const [objectPermissionMap, setObjectPermissionMap] = useAtom(fromPermissionsState.objectPermissionMap);
+  const [fieldPermissionMap, setFieldPermissionMap] = useAtom(fromPermissionsState.fieldPermissionMap);
+  const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
-  const resetTabVisibilityPermissionMap = useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
+  const resetFieldsByObject = useResetAtom(fromPermissionsState.fieldsByObject);
+  const resetFieldsByKey = useResetAtom(fromPermissionsState.fieldsByKey);
+  const resetObjectPermissionMap = useResetAtom(fromPermissionsState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
+  const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
   const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 

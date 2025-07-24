@@ -39,7 +39,8 @@ import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
 
 // Lazy import
@@ -73,21 +74,21 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [formulaValue, setFormulaValue] = useRecoilState(fromFormulaState.formulaValueState);
-  const [selectedSObject, setSelectedSobject] = useRecoilState(fromFormulaState.selectedSObjectState);
-  const [selectedUserId, setSelectedUserId] = useRecoilState(fromFormulaState.selectedUserState);
-  const [selectedField, setSelectedField] = useRecoilState(fromFormulaState.selectedFieldState);
-  const [sourceType, setSourceType] = useRecoilState(fromFormulaState.sourceTypeState);
-  const [recordId, setRecordId] = useRecoilState(fromFormulaState.recordIdState);
-  const [numberNullBehavior, setNumberNullBehavior] = useRecoilState(fromFormulaState.numberNullBehaviorState);
-  const [bannerDismissed, setBannerDismissed] = useRecoilState(fromFormulaState.bannerDismissedState);
+  const [formulaValue, setFormulaValue] = useAtom(fromFormulaState.formulaValueState);
+  const [selectedSObject, setSelectedSobject] = useAtom(fromFormulaState.selectedSObjectState);
+  const [selectedUserId, setSelectedUserId] = useAtom(fromFormulaState.selectedUserState);
+  const [selectedField, setSelectedField] = useAtom(fromFormulaState.selectedFieldState);
+  const [sourceType, setSourceType] = useAtom(fromFormulaState.sourceTypeState);
+  const [recordId, setRecordId] = useAtom(fromFormulaState.recordIdState);
+  const [numberNullBehavior, setNumberNullBehavior] = useAtom(fromFormulaState.numberNullBehaviorState);
+  const [bannerDismissed, setBannerDismissed] = useAtom(fromFormulaState.bannerDismissedState);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
 
   const [results, setResults] = useState<{ formulaFields: formulon.FormulaData; parsedFormula: formulon.FormulaResult } | null>(null);
 

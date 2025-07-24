@@ -18,8 +18,8 @@ import {
 } from '@jetstream/ui';
 import { ConfirmPageChange, DeployMetadataProgressSummary, DeployMetadataResultsTables, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { CreateNewObjectForm } from './CreateNewObjectForm';
 import CreateNewObjectPermissions from './CreateNewObjectPermissions';
 import CreateNewObjectPermissionsResult from './CreateNewObjectPermissionsResult';
@@ -35,22 +35,22 @@ export interface CreateNewObjectModalProps {
 
 export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> = ({ selectedOrg, onClose }) => {
   const { trackEvent } = useAmplitude();
-  const [{ defaultApiVersion, serverUrl }] = useRecoilState(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
   const modalRef = useRef(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState('permissions');
 
-  const apiNameWithoutNamespace = useRecoilValue(fromCreateObjectState.apiNameState);
-  const createTab = useRecoilValue(fromCreateObjectState.createTabState);
-  const selectedTabIcon = useRecoilValue(fromCreateObjectState.selectedTabIconState);
-  const objectPermissions = useRecoilValue(fromCreateObjectState.objectPermissionsState);
-  const selectedPermissionSets = useRecoilValue(fromCreateObjectState.selectedPermissionSetsState);
-  const selectedProfiles = useRecoilValue(fromCreateObjectState.selectedProfilesState);
-  const payload = useRecoilValue(fromCreateObjectState.payloadSelector);
-  const { objectConfigIsValid, permissionsAreValid, allValid } = useRecoilValue(fromCreateObjectState.isFormValidSelector);
+  const apiNameWithoutNamespace = useAtomValue(fromCreateObjectState.apiNameState);
+  const createTab = useAtomValue(fromCreateObjectState.createTabState);
+  const selectedTabIcon = useAtomValue(fromCreateObjectState.selectedTabIconState);
+  const objectPermissions = useAtomValue(fromCreateObjectState.objectPermissionsState);
+  const selectedPermissionSets = useAtomValue(fromCreateObjectState.selectedPermissionSetsState);
+  const selectedProfiles = useAtomValue(fromCreateObjectState.selectedProfilesState);
+  const payload = useAtomValue(fromCreateObjectState.payloadSelector);
+  const { objectConfigIsValid, permissionsAreValid, allValid } = useAtomValue(fromCreateObjectState.isFormValidSelector);
 
   const apiName = `${selectedOrg.orgNamespacePrefix ? `${selectedOrg.orgNamespacePrefix}__` : ''}${apiNameWithoutNamespace}`;
 

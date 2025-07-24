@@ -24,7 +24,8 @@ import { applicationCookieState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useRef } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { filter } from 'rxjs/operators';
 import { fromJetstreamEvents } from '../jetstream-events';
 import Job from './Job';
@@ -43,12 +44,12 @@ export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const rollbar = useRollbar();
-  const setJobs = useSetRecoilState(jobsState);
-  const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
-  const [jobs, setJobsArr] = useRecoilState(selectJobs);
-  const activeJobCount = useRecoilValue(selectActiveJobCount);
+  const setJobs = useSetAtom(jobsState);
+  const [jobsUnread, setJobsUnread] = useAtom(jobsUnreadState);
+  const [jobs, setJobsArr] = useAtom(selectJobs);
+  const activeJobCount = useAtomValue(selectActiveJobCount);
   const newJobsToProcess = useObservable(
     fromJetstreamEvents.getObservable('newJob').pipe(filter((ev) => Array.isArray(ev) && ev.length > 0))
   ) as AsyncJobNew[];

@@ -11,7 +11,8 @@ import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { apiRequestHistoryDb } from '@jetstream/ui/db';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { SalesforceApiRequest } from './SalesforceApiRequest';
 import { SalesforceApiResponse } from './SalesforceApiResponse';
 
@@ -21,10 +22,10 @@ export interface SalesforceApiProps {}
 export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   useTitle(TITLES.API_EXPLORER);
   const isMounted = useRef(true);
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
   const [loading, setLoading] = useState(false);

@@ -5,7 +5,8 @@ import { ApplicationCookie } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import isBoolean from 'lodash/isBoolean';
 import { useEffect } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
 
@@ -31,10 +32,10 @@ function init(appCookie: ApplicationCookie, version: string) {
 }
 
 export function useAmplitude(optOut?: boolean) {
-  const appCookie = useRecoilValue(fromAppState.applicationCookieState);
-  const userProfile = useRecoilValue(fromAppState.userProfileState);
-  const { version } = useRecoilValue(fromAppState.appVersionState);
-  const userPreferences = useRecoilValue(fromAppState.selectUserPreferenceState);
+  const appCookie = useAtomValue(fromAppState.applicationCookieState);
+  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const { version } = useAtomValue(fromAppState.appVersionState);
+  const userPreferences = useAtomValue(fromAppState.selectUserPreferenceState);
 
   useEffect(() => {
     if (isBoolean(optOut)) {

@@ -26,7 +26,8 @@ import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
@@ -52,9 +53,9 @@ export interface DeployMetadataDeploymentProps {}
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
   const {
     loadListMetadata,
     loadListMetadataItem,
@@ -70,14 +71,14 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   // used for manifest or package download
   const [activeDownloadType, setActiveDownloadType] = useState<'manifest' | 'package' | null>(null);
 
-  const listMetadataQueries = useRecoilValue(fromDeployMetadataState.listMetadataQueriesSelector);
-  const userSelection = useRecoilValue(fromDeployMetadataState.userSelectionState);
-  const selectedUsers = useRecoilValue(fromDeployMetadataState.selectedUsersState);
-  const dateRangeSelection = useRecoilValue(fromDeployMetadataState.dateRangeSelectionState);
-  const dateRangeStartState = useRecoilValue(fromDeployMetadataState.dateRangeStartState);
-  const dateRangeEndState = useRecoilValue(fromDeployMetadataState.dateRangeEndState);
-  const includeManagedPackageItems = useRecoilValue(fromDeployMetadataState.includeManagedPackageItems);
-  const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
+  const listMetadataQueries = useAtomValue(fromDeployMetadataState.listMetadataQueriesSelector);
+  const userSelection = useAtomValue(fromDeployMetadataState.userSelectionState);
+  const selectedUsers = useAtomValue(fromDeployMetadataState.selectedUsersState);
+  const dateRangeSelection = useAtomValue(fromDeployMetadataState.dateRangeSelectionState);
+  const dateRangeStartState = useAtomValue(fromDeployMetadataState.dateRangeStartState);
+  const dateRangeEndState = useAtomValue(fromDeployMetadataState.dateRangeEndState);
+  const includeManagedPackageItems = useAtomValue(fromDeployMetadataState.includeManagedPackageItems);
+  const amplitudeSubmissionSelector = useAtomValue(fromDeployMetadataState.amplitudeSubmissionSelector);
 
   const [exportData, setExportData] = useState<Record<string, any> | null>(null);
   const [rows, setRows] = useState<DeployMetadataTableRow[]>();

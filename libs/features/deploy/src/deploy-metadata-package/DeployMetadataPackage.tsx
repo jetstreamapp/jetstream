@@ -5,7 +5,8 @@ import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeployMetadataPackageConfigModal from './DeployMetadataPackageConfigModal';
 import DeployMetadataPackageStatusModal from './DeployMetadataPackageStatusModal';
@@ -17,8 +18,8 @@ export interface DeployMetadataPackageProps {
 
 export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedOrg }: DeployMetadataPackageProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initialSelectedOrg);
   const [configModalOpen, setConfigModalOpen] = useState<boolean>(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);

@@ -32,8 +32,8 @@ import {
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { LastCreatedRecord } from './LastCreatedRecord';
 
 const HEIGHT_BUFFER = 160;
@@ -43,8 +43,8 @@ export const CreateRecords = () => {
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
 
-  const { defaultApiVersion } = useRecoilValue(applicationCookieState);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const { defaultApiVersion } = useAtomValue(applicationCookieState);
+  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
   const [key, setKey] = useState(() => new Date().getTime());
 
   const [loading, setLoading] = useState<boolean>(false);

@@ -16,9 +16,11 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';
@@ -72,24 +74,24 @@ export interface CreateFieldsProps {}
 
 export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
 
-  const profiles = useRecoilValue(fromCreateFieldsState.profilesState);
-  const permissionSets = useRecoilValue(fromCreateFieldsState.permissionSetsState);
+  const profiles = useAtomValue(fromCreateFieldsState.profilesState);
+  const permissionSets = useAtomValue(fromCreateFieldsState.permissionSetsState);
 
-  const selectedProfiles = useRecoilValue(fromCreateFieldsState.selectedProfilesPermSetState);
-  const selectedPermissionSets = useRecoilValue(fromCreateFieldsState.selectedPermissionSetsState);
-  const selectedSObjects = useRecoilValue(fromCreateFieldsState.selectedSObjectsState);
+  const selectedProfiles = useAtomValue(fromCreateFieldsState.selectedProfilesPermSetState);
+  const selectedPermissionSets = useAtomValue(fromCreateFieldsState.selectedPermissionSetsState);
+  const selectedSObjects = useAtomValue(fromCreateFieldsState.selectedSObjectsState);
 
-  const profilesAndPermSetsById = useRecoilValue(fromCreateFieldsState.profilesAndPermSetsByIdSelector);
+  const profilesAndPermSetsById = useAtomValue(fromCreateFieldsState.profilesAndPermSetsByIdSelector);
 
-  const resetProfilesState = useResetRecoilState(fromCreateFieldsState.profilesState);
-  const resetSelectedProfilesPermSetState = useResetRecoilState(fromCreateFieldsState.selectedProfilesPermSetState);
-  const resetPermissionSetsState = useResetRecoilState(fromCreateFieldsState.permissionSetsState);
-  const resetSelectedPermissionSetsState = useResetRecoilState(fromCreateFieldsState.selectedPermissionSetsState);
-  const resetSObjectsState = useResetRecoilState(fromCreateFieldsState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromCreateFieldsState.selectedSObjectsState);
-  const resetFieldRowsState = useResetRecoilState(fromCreateFieldsState.fieldRowsState);
+  const resetProfilesState = useResetAtom(fromCreateFieldsState.profilesState);
+  const resetSelectedProfilesPermSetState = useResetAtom(fromCreateFieldsState.selectedProfilesPermSetState);
+  const resetPermissionSetsState = useResetAtom(fromCreateFieldsState.permissionSetsState);
+  const resetSelectedPermissionSetsState = useResetAtom(fromCreateFieldsState.selectedPermissionSetsState);
+  const resetSObjectsState = useResetAtom(fromCreateFieldsState.sObjectsState);
+  const resetSelectedSObjectsState = useResetAtom(fromCreateFieldsState.selectedSObjectsState);
+  const resetFieldRowsState = useResetAtom(fromCreateFieldsState.fieldRowsState);
 
   const { rows, allValid, addRow, importRows, cloneRow, removeRow, changeRow, touchRow, resetRows, picklistOptionChanged } =
     useFieldValues();

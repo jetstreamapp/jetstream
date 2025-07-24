@@ -6,30 +6,31 @@ import { StateDebugObserver, fromQueryState, useQueryRestore } from '@jetstream/
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export const Query = () => {
   useTitle(TITLES.QUERY);
   const location = useLocation();
   const locationState = useLocationState<{ soql?: string }>();
   const navigate = useNavigate();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const querySoqlState = useRecoilValue(fromQueryState.querySoqlState);
-  const isTooling = useRecoilValue(fromQueryState.isTooling);
-  const resetSobjects = useResetRecoilState(fromQueryState.sObjectsState);
-  const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
-  const resetSObjectFilterTerm = useResetRecoilState(fromQueryState.sObjectFilterTerm);
-  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
-  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
-  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
-  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
-  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
-  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
-  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
-  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
-  const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const querySoqlState = useAtomValue(fromQueryState.querySoqlState);
+  const isTooling = useAtomValue(fromQueryState.isTooling);
+  const resetSobjects = useResetAtom(fromQueryState.sObjectsState);
+  const resetSelectedSObject = useResetAtom(fromQueryState.selectedSObjectState);
+  const resetSObjectFilterTerm = useResetAtom(fromQueryState.sObjectFilterTerm);
+  const resetQueryFieldsKey = useResetAtom(fromQueryState.queryFieldsKey);
+  const resetQueryFieldsMapState = useResetAtom(fromQueryState.queryFieldsMapState);
+  const resetSelectedQueryFieldsState = useResetAtom(fromQueryState.selectedQueryFieldsState);
+  const resetSelectedSubqueryFieldsState = useResetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetAtom(fromQueryState.queryHavingState);
+  const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
+  const resetQueryGroupByState = useResetAtom(fromQueryState.queryGroupByState);
+  const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
+  const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
 
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 

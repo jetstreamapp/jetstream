@@ -1,13 +1,14 @@
 import { CommonUser } from '@jetstream/types';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
 import isBoolean from 'lodash/isBoolean';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export function useMetadataSelection() {
-  const [metadataSelectionType, setMetadataSelectionType] = useRecoilState<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
-  const [metadataItems, setMetadataItems] = useRecoilState(fromDeployMetadataState.metadataItemsState);
-  const [metadataItemsMap, setMetadataItemsMap] = useRecoilState(fromDeployMetadataState.metadataItemsMapState);
-  const [selectedMetadataItems, setSelectedMetadataItems] = useRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
+  const [metadataSelectionType, setMetadataSelectionType] = useAtom<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
+  const [metadataItems, setMetadataItems] = useAtom(fromDeployMetadataState.metadataItemsState);
+  const [metadataItemsMap, setMetadataItemsMap] = useAtom(fromDeployMetadataState.metadataItemsMapState);
+  const [selectedMetadataItems, setSelectedMetadataItems] = useAtom(fromDeployMetadataState.selectedMetadataItemsState);
 
   function handleMetadataSelection(items: string[], options: { selectAllValue?: boolean; clearSelection?: boolean } = {}) {
     const { selectAllValue, clearSelection } = options;

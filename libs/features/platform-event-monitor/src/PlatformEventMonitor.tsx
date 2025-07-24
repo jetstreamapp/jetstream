@@ -7,7 +7,8 @@ import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { PlatformEventMonitorFetchEventStatus } from './PlatformEventMonitorFetchEventStatus';
 import { PlatformEventMonitorListenerCard } from './PlatformEventMonitorListenerCard';
 import { PlatformEventMonitorPublisherCard } from './PlatformEventMonitorPublisherCard';
@@ -19,10 +20,10 @@ export const PlatformEventMonitor = () => {
   useTitle(TITLES.PLATFORM_EVENTS);
   const { trackEvent } = useAmplitude();
   const [chromeExtension] = useState(() => isBrowserExtension());
-  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const isMounted = useRef(true);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
   const {
     hasPlatformEvents,
     platformEventFetchError,

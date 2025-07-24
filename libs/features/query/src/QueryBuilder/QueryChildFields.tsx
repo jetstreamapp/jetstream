@@ -8,7 +8,8 @@ import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export interface QueryChildFieldsProps {
   org: SalesforceOrgUi;
@@ -27,9 +28,9 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
   parentRelationshipName,
   onSelectionChanged,
 }) => {
-  const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
+  const [queryFieldsMap, setQueryFieldsMap] = useAtom(fromQueryState.queryFieldsMapState);
   const [baseKey, setBaseKey] = useState<string>(getSubqueryFieldBaseKey(selectedSObject, parentRelationshipName));
-  const selectedOrg = useRecoilValue(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   // Fetch fields for base object if the selected object changes
   useEffect(() => {

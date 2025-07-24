@@ -35,7 +35,8 @@ import { fromQueryHistoryState, fromQueryState, QueryHistory, QueryHistoryRef, u
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
 import QueryCount from '../QueryOptions/QueryCount';
@@ -66,43 +67,43 @@ const METADATA_QUERY_ICON: IconObj = { type: 'standard', icon: 'settings', descr
 export const QueryBuilder = () => {
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
 
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const childRelationships = useRecoilValue(fromQueryState.queryChildRelationships);
-  const soql = useRecoilValue(fromQueryState.querySoqlState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const childRelationships = useAtomValue(fromQueryState.queryChildRelationships);
+  const soql = useAtomValue(fromQueryState.querySoqlState);
 
-  const [sobjects, setSobjects] = useRecoilState(fromQueryState.sObjectsState);
-  const [sObjectFilterTerm, setSObjectFilterTerm] = useRecoilState(fromQueryState.sObjectFilterTerm);
-  const [selectedSObject, setSelectedSObject] = useRecoilState(fromQueryState.selectedSObjectState);
-  const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
-  const [selectedFields, setSelectedFields] = useRecoilState(fromQueryState.selectedQueryFieldsState);
-  const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  const [filterFields, setFilterFields] = useRecoilState(fromQueryState.filterQueryFieldsState);
-  const [orderByFields, setOrderByFields] = useRecoilState(fromQueryState.orderByQueryFieldsState);
-  const setGroupByFields = useSetRecoilState(fromQueryState.groupByQueryFieldsState);
-  const queryKey = useRecoilValue(fromQueryState.selectQueryKeyState);
-  const [queryFilters, setQueryFilters] = useRecoilState(fromQueryState.queryFiltersState);
+  const [sobjects, setSobjects] = useAtom(fromQueryState.sObjectsState);
+  const [sObjectFilterTerm, setSObjectFilterTerm] = useAtom(fromQueryState.sObjectFilterTerm);
+  const [selectedSObject, setSelectedSObject] = useAtom(fromQueryState.selectedSObjectState);
+  const [isTooling, setIsTooling] = useAtom(fromQueryState.isTooling);
+  const [selectedFields, setSelectedFields] = useAtom(fromQueryState.selectedQueryFieldsState);
+  const [selectedSubqueryFieldsState, setSelectedSubqueryFieldsState] = useAtom(fromQueryState.selectedSubqueryFieldsState);
+  const [filterFields, setFilterFields] = useAtom(fromQueryState.filterQueryFieldsState);
+  const [orderByFields, setOrderByFields] = useAtom(fromQueryState.orderByQueryFieldsState);
+  const setGroupByFields = useSetAtom(fromQueryState.groupByQueryFieldsState);
+  const queryKey = useAtomValue(fromQueryState.selectQueryKeyState);
+  const [queryFilters, setQueryFilters] = useAtom(fromQueryState.queryFiltersState);
 
-  const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
-  const resetFilterQueryFieldsState = useResetRecoilState(fromQueryState.filterQueryFieldsState);
-  const resetOrderByQueryFieldsState = useResetRecoilState(fromQueryState.orderByQueryFieldsState);
-  const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
-  const resetSObjectFilterTerm = useResetRecoilState(fromQueryState.sObjectFilterTerm);
-  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
-  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
-  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
-  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
-  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
-  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
-  const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
-  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
-  const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
-  const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
-  const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
+  const resetSelectedQueryFieldsState = useResetAtom(fromQueryState.selectedQueryFieldsState);
+  const resetFilterQueryFieldsState = useResetAtom(fromQueryState.filterQueryFieldsState);
+  const resetOrderByQueryFieldsState = useResetAtom(fromQueryState.orderByQueryFieldsState);
+  const resetSelectedSObject = useResetAtom(fromQueryState.selectedSObjectState);
+  const resetSObjectFilterTerm = useResetAtom(fromQueryState.sObjectFilterTerm);
+  const resetQueryFieldsMapState = useResetAtom(fromQueryState.queryFieldsMapState);
+  const resetQueryFieldsKey = useResetAtom(fromQueryState.queryFieldsKey);
+  const resetSelectedSubqueryFieldsState = useResetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetAtom(fromQueryState.queryHavingState);
+  const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
+  const resetQueryGroupByState = useResetAtom(fromQueryState.queryGroupByState);
+  const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
+  const resetQueryLimit = useResetAtom(fromQueryState.queryLimit);
+  const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
+  const resetQueryChildRelationships = useResetAtom(fromQueryState.queryChildRelationships);
+  const resetQueryIncludeDeletedRecordsState = useResetAtom(fromQueryState.queryIncludeDeletedRecordsState);
 
   const [pageTitle, setPageTitle] = useState(isTooling ? METADATA_QUERY_TITLE : SOBJECT_QUERY_TITLE);
 

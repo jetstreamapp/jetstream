@@ -1,12 +1,13 @@
 import { fromQueryState } from '@jetstream/ui-core';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export interface TabTitleActivityIndicatorProps {
   type: 'standard' | 'advanced';
 }
 
 export const TabTitleActivityIndicator = ({ type }: TabTitleActivityIndicatorProps) => {
-  const dirtySections = useRecoilValue(fromQueryState.hasQueryOptionsConfigured);
+  const dirtySections = useAtomValue(fromQueryState.hasQueryOptionsConfigured);
 
   if (type === 'standard' && dirtySections.standard) {
     return <span className="slds-m-left_xx-small">({dirtySections.standard})</span>;

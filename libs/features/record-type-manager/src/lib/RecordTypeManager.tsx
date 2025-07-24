@@ -6,20 +6,21 @@ import { StateDebugObserver, fromRecordTypeManagerState } from '@jetstream/ui-co
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export interface RecordTypeManagerProps {}
 
 export const RecordTypeManager: FunctionComponent<RecordTypeManagerProps> = () => {
   useTitle(TITLES.MANAGE_PERMISSIONS);
   const location = useLocation();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const resetRecordTypes = useResetRecoilState(fromRecordTypeManagerState.recordTypesState);
-  const resetSelectedRecordTypes = useResetRecoilState(fromRecordTypeManagerState.selectedRecordTypeIds);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const resetRecordTypes = useResetAtom(fromRecordTypeManagerState.recordTypesState);
+  const resetSelectedRecordTypes = useResetAtom(fromRecordTypeManagerState.selectedRecordTypeIds);
 
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
-  const hasSelectionsMade = useRecoilValue(fromRecordTypeManagerState.hasSelectionsMade);
+  const hasSelectionsMade = useAtomValue(fromRecordTypeManagerState.hasSelectionsMade);
 
   // reset everything if the selected org changes
   useEffect(() => {

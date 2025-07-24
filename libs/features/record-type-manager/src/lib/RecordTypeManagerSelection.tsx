@@ -17,17 +17,18 @@ import { RequireMetadataApiBanner, fromRecordTypeManagerState } from '@jetstream
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { getListItemFromRecordTypeMetadata } from './utils/record-types.utils';
 
 const HEIGHT_BUFFER = 170;
 
 export function RecordTypeManagerSelection() {
-  const selectedOrg = useRecoilValue(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
-  const [recordTypes, setRecordTypes] = useRecoilState(fromRecordTypeManagerState.recordTypesState);
-  const [selectedRecordTypeIds, setSelectedRecordTypeIds] = useRecoilState(fromRecordTypeManagerState.selectedRecordTypeIds);
-  const hasSelectionsMade = useRecoilValue(fromRecordTypeManagerState.hasSelectionsMade);
+  const [recordTypes, setRecordTypes] = useAtom(fromRecordTypeManagerState.recordTypesState);
+  const [selectedRecordTypeIds, setSelectedRecordTypeIds] = useAtom(fromRecordTypeManagerState.selectedRecordTypeIds);
+  const hasSelectionsMade = useAtomValue(fromRecordTypeManagerState.hasSelectionsMade);
 
   const { loadListMetadata, loading, listMetadataItems, hasError } = useListMetadata(selectedOrg);
 

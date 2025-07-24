@@ -2,7 +2,8 @@ import { fromQueryState } from '@jetstream/ui-core';
 import { composeSoqlQuery } from '@jetstream/ui-core/shared';
 import { GroupByFieldClause, GroupByFnClause, Query } from '@jetstreamapp/soql-parser-js';
 import { FunctionComponent, useEffect } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 /**
  * This component ensures that the entire state tree is not re-rendered each time some query element needs to be modified
@@ -10,16 +11,16 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
  */
 
 export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
-  const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
-  const selectedFields = useRecoilValue(fromQueryState.selectQueryField);
-  const filters = useRecoilValue(fromQueryState.queryFiltersState);
-  const havingClauses = useRecoilValue(fromQueryState.queryHavingState);
-  const groupByClauses = useRecoilValue(fromQueryState.selectQueryGroupByBy);
-  const orderByClauses = useRecoilValue(fromQueryState.selectQueryOrderBy);
-  const queryLimit = useRecoilValue(fromQueryState.selectQueryLimit);
-  const queryLimitSkip = useRecoilValue(fromQueryState.selectQueryLimitSkip);
-  const [soql, setSoql] = useRecoilState(fromQueryState.querySoqlState);
-  const setSoqlCount = useSetRecoilState(fromQueryState.querySoqlCountState);
+  const selectedSObject = useAtomValue(fromQueryState.selectedSObjectState);
+  const selectedFields = useAtomValue(fromQueryState.selectQueryField);
+  const filters = useAtomValue(fromQueryState.queryFiltersState);
+  const havingClauses = useAtomValue(fromQueryState.queryHavingState);
+  const groupByClauses = useAtomValue(fromQueryState.selectQueryGroupByBy);
+  const orderByClauses = useAtomValue(fromQueryState.selectQueryOrderBy);
+  const queryLimit = useAtomValue(fromQueryState.selectQueryLimit);
+  const queryLimitSkip = useAtomValue(fromQueryState.selectQueryLimitSkip);
+  const [soql, setSoql] = useAtom(fromQueryState.querySoqlState);
+  const setSoqlCount = useSetAtom(fromQueryState.querySoqlCountState);
 
   useEffect(() => {
     if (!!selectedSObject && selectedFields?.length > 0) {

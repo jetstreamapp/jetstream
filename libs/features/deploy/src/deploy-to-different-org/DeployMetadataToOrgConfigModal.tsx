@@ -5,7 +5,8 @@ import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
 import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const DISABLED_OPTIONS = new Set<keyof DeployOptions>(['allowMissingFiles', 'autoUpdatePackage', 'purgeOnDelete', 'singlePackage']);
@@ -33,7 +34,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
 }) => {
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
-  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
+  const orgs = useAtomValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi | undefined>(initialSelectedDestinationOrg);
   const [isConfigValid, setIsConfigValid] = useState(true);
   const [deployOptions, setDeployOptions] = useState<DeployOptions>(

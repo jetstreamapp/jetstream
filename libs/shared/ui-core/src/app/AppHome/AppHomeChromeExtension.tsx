@@ -5,14 +5,15 @@ import { Badge, Icon } from '@jetstream/ui';
 import { userProfileEntitlementState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../../analytics';
 
 const CURRENT_TIME = new Date().getTime();
 
 export const AppHomeChromeExtension = () => {
   const { trackEvent } = useAmplitude();
-  const hasExtensionAccess = useRecoilValue(userProfileEntitlementState('chromeExtension'));
+  const hasExtensionAccess = useAtomValue(userProfileEntitlementState('chromeExtension'));
 
   return (
     <div

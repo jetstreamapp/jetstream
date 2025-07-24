@@ -18,9 +18,9 @@ import {
 import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { AutomationMetadataType } from './automation-control-types';
 
 const HEIGHT_BUFFER = 170;
@@ -47,14 +47,14 @@ export const AutomationControlSelection: FunctionComponent<AutomationControlSele
   useTitle(TITLES.AUTOMATION_CONTROL);
   const rollbar = useRollbar();
 
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
 
-  const hasSelectionsMade = useRecoilValue(fromAutomationControlState.hasSelectionsMade);
-  const [sobjects, setSobjects] = useRecoilState(fromAutomationControlState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromAutomationControlState.selectedSObjectsState);
+  const hasSelectionsMade = useAtomValue(fromAutomationControlState.hasSelectionsMade);
+  const [sobjects, setSobjects] = useAtom(fromAutomationControlState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useAtom(fromAutomationControlState.selectedSObjectsState);
 
-  const automationTypes = useRecoilValue(fromAutomationControlState.automationTypes);
-  const [selectedAutomationTypes, setSelectedAutomationTypes] = useRecoilState(fromAutomationControlState.selectedAutomationTypes);
+  const automationTypes = useAtomValue(fromAutomationControlState.automationTypes);
+  const [selectedAutomationTypes, setSelectedAutomationTypes] = useAtom(fromAutomationControlState.selectedAutomationTypes);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);

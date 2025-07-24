@@ -3,7 +3,8 @@ import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/typ
 import { Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import React, { Fragment, FunctionComponent, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import QueryOrderByRow from './QueryOrderByRow';
 
 export interface QueryOrderByContainerProps {
@@ -25,7 +26,7 @@ const nulls: ListItem<FirstLast | null>[] = [
 
 export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps> = React.memo(
   ({ sobject, fields, onLoadRelatedFields }) => {
-    const [orderByClauses, setOrderByClauses] = useRecoilState(fromQueryState.queryOrderByState);
+    const [orderByClauses, setOrderByClauses] = useAtom(fromQueryState.queryOrderByState);
     const [nextKey, setNextKey] = useState(1);
 
     function handleUpdate(orderby: QueryOrderByClause) {

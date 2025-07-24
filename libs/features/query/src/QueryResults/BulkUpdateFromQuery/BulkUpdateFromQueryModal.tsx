@@ -101,10 +101,10 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
   const [isSecondModalOpen, setIsSecondModalOpen] = useState(false);
-  const [deployResults, setDeployResults] = useRecoilState(deployResultsState);
+  const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
-  const resetDeployResults = useResetRecoilState(deployResultsState);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const resetDeployResults = useResetAtom(deployResultsState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const targetedRecordCount = useMemo(() => {
     if (downloadRecordsValue === RADIO_ALL_BROWSER || downloadRecordsValue === RADIO_ALL_SERVER) {
       return totalRecordCount;

@@ -6,7 +6,8 @@ import { fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { Fragment, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export interface QueryResultsDownloadButtonProps {
   selectedOrg: SalesforceOrgUi;
@@ -40,10 +41,10 @@ export const QueryResultsDownloadButton = ({
   totalRecordCount,
 }: QueryResultsDownloadButtonProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId, serverUrl } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId, serverUrl } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isDownloadModalOpen, setModalOpen] = useState<boolean>(false);
-  const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
+  const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
 
   function handleDidDownload(fileFormat: FileExtCsvXLSXJsonGSheet, whichFields: 'all' | 'specified', includeSubquery: boolean) {
     trackEvent(ANALYTICS_KEYS.query_DownloadResults, {

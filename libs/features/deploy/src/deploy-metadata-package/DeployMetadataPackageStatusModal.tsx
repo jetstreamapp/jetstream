@@ -3,7 +3,8 @@ import { DeployOptions, DeployResult, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import DeployMetadataStatusModal from '../utils/DeployMetadataStatusModal';
 import { getDeploymentStatusUrl } from '../utils/deploy-metadata.utils';
 import { getStatusValue, useDeployMetadataPackage } from '../utils/useDeployMetadataPackage';
@@ -28,8 +29,8 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   onClose,
   onDownload,
 }) => {
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataPackage(
     destinationOrg,

@@ -9,8 +9,6 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import ModalContainer from 'react-modal-promise';
 import { MemoryRouter } from 'react-router-dom';
-import { RecoilRoot } from 'recoil';
-import RecoilNexus from 'recoil-nexus';
 import { environment } from '../environments/environment';
 import '../main.scss';
 import { browserExtensionAxiosAdapter } from '../utils/extension-axios-adapter';
@@ -26,22 +24,19 @@ AxiosAdapterConfig.adapter = browserExtensionAxiosAdapter;
 export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWithoutSalesforceOrg?: boolean; children: ReactNode }) {
   return (
     <ConfirmationServiceProvider>
-      <RecoilRoot>
-        <RecoilNexus />
-        <Suspense fallback={<AppLoading />}>
-          <MemoryRouter>
-            <AppInitializer allowWithoutSalesforceOrg={allowWithoutSalesforceOrg}>
-              <OverlayProvider>
-                <DndProvider backend={HTML5Backend}>
-                  <ModalContainer />
-                  <AppToast />
-                  {children}
-                </DndProvider>
-              </OverlayProvider>
-            </AppInitializer>
-          </MemoryRouter>
-        </Suspense>
-      </RecoilRoot>
+      <Suspense fallback={<AppLoading />}>
+        <MemoryRouter>
+          <AppInitializer allowWithoutSalesforceOrg={allowWithoutSalesforceOrg}>
+            <OverlayProvider>
+              <DndProvider backend={HTML5Backend}>
+                <ModalContainer />
+                <AppToast />
+                {children}
+              </DndProvider>
+            </OverlayProvider>
+          </AppInitializer>
+        </MemoryRouter>
+      </Suspense>
     </ConfirmationServiceProvider>
   );
 }

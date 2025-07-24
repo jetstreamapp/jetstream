@@ -22,7 +22,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import { QueryHistoryModal } from './QueryHistory/QueryHistoryModal';
 import { useQueryRestore } from './RestoreQuery/useQueryRestore';
@@ -34,7 +35,7 @@ export const QuickQueryPopover = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const navigate = useNavigate();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
 
   const [soql, setSoql] = useState<string>('');
   const [queryIsValid, setQueryIsValid] = useState(false);

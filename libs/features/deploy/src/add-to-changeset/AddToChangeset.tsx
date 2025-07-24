@@ -5,7 +5,8 @@ import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jet
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import AddToChangesetConfigModal from './AddToChangesetConfigModal';
 import AddToChangesetStatusModal from './AddToChangesetStatusModal';
@@ -19,8 +20,8 @@ export interface AddToChangesetProps {
 
 export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }: AddToChangesetProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -30,8 +31,8 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
   const [changesetPackageDescription, setChangesetPackageDescription] = useState<string | null>(null);
   const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet | null | undefined>(null);
 
-  const [changesetPackage, setChangesetPackage] = useRecoilState(fromDeployMetadataState.changesetPackage);
-  const [changesetPackages, setChangesetPackages] = useRecoilState(fromDeployMetadataState.changesetPackages);
+  const [changesetPackage, setChangesetPackage] = useAtom(fromDeployMetadataState.changesetPackage);
+  const [changesetPackages, setChangesetPackages] = useAtom(fromDeployMetadataState.changesetPackages);
 
   const [selectedMetadata, setSelectedMetadata] = useState<Record<string, ListMetadataResult[]>>({});
 

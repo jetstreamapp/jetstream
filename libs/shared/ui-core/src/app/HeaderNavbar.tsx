@@ -5,7 +5,8 @@ import { Header, Navbar, NavbarItem, NavbarMenuItems, UpgradeToProButton } from 
 import { applicationCookieState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
@@ -79,9 +80,9 @@ export const HeaderNavbar = ({
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
-  const userProfile = useRecoilValue(userProfileState);
-  const applicationState = useRecoilValue(applicationCookieState);
-  const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
+  const userProfile = useAtomValue(userProfileState);
+  const applicationState = useAtomValue(applicationCookieState);
+  const { deniedNotifications } = useAtomValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
 

@@ -16,7 +16,8 @@ import { selectedOrgState } from '@jetstream/ui/app-state';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 const HEIGHT_BUFFER = 170;
@@ -41,13 +42,13 @@ const updateDeploymentResultsState =
   };
 
 export const MassUpdateRecordsDeployment = () => {
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const rows = useRecoilValue(fromMassUpdateState.rowsState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const rows = useAtomValue(fromMassUpdateState.rowsState);
   const [loading, setLoading] = useState(false);
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
-  const setDeploymentState = useSetRecoilState(fromMassUpdateState.rowsMapState);
+  const setDeploymentState = useSetAtom(fromMassUpdateState.rowsMapState);
   const getRows = useRecoilCallback(
     ({ snapshot }) =>
       () => {

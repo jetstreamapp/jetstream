@@ -76,9 +76,6 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
  * Retry loading a chunk to avoid chunk load error for out of date code
  * This wraps the react lazy function and will throw if a refresh fails to load a chunk a second time
  *
- * TODO: Review all pages of app and figure out if we can save users work.
- * e.x. dump recoil into local storage and reload/remove it on refresh (would require recoil-nexus)
- *
  * {@link https://www.codemzy.com/blog/fix-chunkloaderror-react}
  *
  * @param componentImport

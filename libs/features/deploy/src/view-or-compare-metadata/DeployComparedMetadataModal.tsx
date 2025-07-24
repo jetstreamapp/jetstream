@@ -5,7 +5,8 @@ import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import DeployMetadataToOrgConfigModal from '../deploy-to-different-org/DeployMetadataToOrgConfigModal';
 import DeployMetadataToOrgStatusModal from '../deploy-to-different-org/DeployMetadataToOrgStatusModal';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
@@ -20,8 +21,8 @@ export interface DeployComparedMetadataModalProps {
 
 export const DeployComparedMetadataModal = ({ sourceOrg, targetOrg, items, onClose }: DeployComparedMetadataModalProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [mode, setMode] = useState<'SELECTION' | 'DEPLOY_CONFIG' | 'DEPLOY'>('SELECTION');
   const [selectedItems, setSelectedFiles] = useState<Set<string>>(
     () => new Set(items.flatMap((parent) => parent.items.filter((item) => !item.sourceAndTargetMatch).map((item) => item.filename)))

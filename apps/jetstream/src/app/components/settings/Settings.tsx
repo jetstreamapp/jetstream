@@ -4,7 +4,6 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
@@ -19,12 +18,11 @@ import {
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, userProfileState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
 import LoggerConfig from './LoggerConfig';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
-
 const HEIGHT_BUFFER = 170;
 
 export const Settings = () => {
@@ -34,16 +32,16 @@ export const Settings = () => {
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
-  const setUserProfile = useSetRecoilState(userProfileState);
+  const setUserProfile = useSetAtom(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
   // TODO: Give option to disable
-  const recordSyncEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
 
   useEffect(() => {
     isMounted.current = true;

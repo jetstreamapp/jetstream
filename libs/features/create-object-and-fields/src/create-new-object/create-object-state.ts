@@ -1,6 +1,6 @@
 import { REGEX } from '@jetstream/shared/utils';
 import { ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
-import { atom, selector } from 'recoil';
+import { atom } from 'jotai';
 import { CreateObjectPayload, ObjectPermissionState } from './create-object-types';
 
 export const labelState = atom({ key: 'create-object.labelState', default: '' });

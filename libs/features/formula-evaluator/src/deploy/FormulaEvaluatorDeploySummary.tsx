@@ -6,7 +6,8 @@ import { CreateFieldsResults, FieldPermissionRecord, FieldValues, LayoutResult }
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 type DeployedItem = { id: string; label: string };
 
@@ -31,8 +32,8 @@ export function FormulaEvaluatorDeploySummary({
   deployed,
   results,
 }: FormulaEvaluatorDeploySummaryProps) {
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   let flsResults: Record<string, FieldPermissionRecord> = {};
   let layoutResults: Record<string, LayoutResult> = {};
 

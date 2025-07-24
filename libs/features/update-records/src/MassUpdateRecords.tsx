@@ -5,18 +5,19 @@ import { StateDebugObserver } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import * as fromMassUpdateState from './mass-update-records.state';
 
 export const MassUpdateRecords: FunctionComponent = () => {
   useTitle(TITLES.MASS_UPDATE_RECORDS);
   const location = useLocation();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const resetRowMapState = useResetRecoilState(fromMassUpdateState.rowsMapState);
-  const resetSObjectsState = useResetRecoilState(fromMassUpdateState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromMassUpdateState.selectedSObjectsState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const resetRowMapState = useResetAtom(fromMassUpdateState.rowsMapState);
+  const resetSObjectsState = useResetAtom(fromMassUpdateState.sObjectsState);
+  const resetSelectedSObjectsState = useResetAtom(fromMassUpdateState.selectedSObjectsState);
 
-  const isConfigured = useRecoilValue(fromMassUpdateState.isConfigured);
+  const isConfigured = useAtomValue(fromMassUpdateState.isConfigured);
 
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 

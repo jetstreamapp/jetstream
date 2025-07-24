@@ -32,7 +32,8 @@ import {
 import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useCallback, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import OrganizationCard from './OrganizationCard';
 import { OrganizationCardNoOrganization } from './OrganizationCardNoOrganization';
 import { OrganizationModal } from './OrganizationModal';
@@ -41,15 +42,15 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
   useTitle(TITLES.ORGANIZATIONS);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const [allOrgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const orgsWithoutOrganization = useRecoilValue(fromAppState.salesforceOrgsWithoutOrganizationSelector);
-  const [activeOrganizationId, setActiveOrganizationId] = useRecoilState(fromAppState.jetstreamActiveOrganizationState);
-  const setOrganizationsFromDb = useSetRecoilState(fromAppState.jetstreamOrganizationsState);
-  const [organizations, setOrganizations] = useRecoilState(fromAppState.jetstreamOrganizationsWithOrgsSelector);
-  const setSelectedOrganization = useSetRecoilState(fromAppState.jetstreamActiveOrganizationState);
-  const selectedOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const orgsWithoutOrganization = useAtomValue(fromAppState.salesforceOrgsWithoutOrganizationSelector);
+  const [activeOrganizationId, setActiveOrganizationId] = useAtom(fromAppState.jetstreamActiveOrganizationState);
+  const setOrganizationsFromDb = useSetAtom(fromAppState.jetstreamOrganizationsState);
+  const [organizations, setOrganizations] = useAtom(fromAppState.jetstreamOrganizationsWithOrgsSelector);
+  const setSelectedOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
+  const selectedOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
   const [isModalOpen, setIsModalOption] = useState(false);
 
   const { handleAddOrg } = useUpdateOrgs();

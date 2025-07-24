@@ -32,11 +32,11 @@ import {
 import { useAmplitude } from '@jetstream/ui-core';
 import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
@@ -63,9 +63,9 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
   const [resultsStatus, setResultsStatus] = useState<{ hasResults: boolean; success: boolean; label: string | null }>({
@@ -74,7 +74,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     label: null,
   });
   const [loading, setLoading] = useState(false);
-  const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
+  const [historyItems, setHistoryItems] = useAtom(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
   const monaco = useMonaco();
 

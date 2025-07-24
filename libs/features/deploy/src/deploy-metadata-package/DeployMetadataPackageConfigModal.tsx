@@ -9,7 +9,8 @@ import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsState } from '@jetstream/ui/app-state';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const PACKAGE_XML = /^package\.xml$/;
@@ -43,7 +44,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   onDeploy,
 }) => {
   const rollbar = useRollbar();
-  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
+  const orgs = useAtomValue<SalesforceOrgUi[]>(salesforceOrgsState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<Maybe<ArrayBuffer>>(initialFile);
   const modalBodyRef = useRef<HTMLDivElement>(null);

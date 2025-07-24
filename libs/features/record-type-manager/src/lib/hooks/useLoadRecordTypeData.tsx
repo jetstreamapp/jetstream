@@ -6,7 +6,8 @@ import { DescribeSObjectResult, ReadMetadataRecordType, ReadMetadataRecordTypeEx
 import { fromRecordTypeManagerState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { RecordTypePicklistConfiguration, SobjectWithPicklistValues } from '../types/record-types.types';
 import { recordTypeReducer } from '../utils/record-types.reducer';
 import { repairAndEnrichMetadata } from '../utils/record-types.utils';
@@ -26,8 +27,8 @@ const ignoredPicklistSuffix = ['StateCode', 'CountryCode', 'GeocodeAccuracy', 'S
 export function useLoadRecordTypeData() {
   const isMounted = useRef(true);
 
-  const selectedOrg = useRecoilValue(selectedOrgState);
-  const selectedRecordTypes = useRecoilValue(fromRecordTypeManagerState.selectedRecordTypes);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const selectedRecordTypes = useAtomValue(fromRecordTypeManagerState.selectedRecordTypes);
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);

@@ -5,7 +5,8 @@ import { Badge } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryOrderByTitleSummaryProps {}
@@ -19,7 +20,7 @@ function getOrderByText(orderBy: QueryOrderByClause) {
 }
 
 export const QueryOrderByTitleSummary: FunctionComponent<QueryOrderByTitleSummaryProps> = () => {
-  const orderByClauses = useRecoilValue(fromQueryState.queryOrderByState);
+  const orderByClauses = useAtomValue(fromQueryState.queryOrderByState);
   const beyondDisplayLimit = orderByClauses.length > 3;
 
   return (

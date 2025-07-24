@@ -2,7 +2,8 @@ import { ListItem, QueryGroupByClause } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { Fragment, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import QueryGroupByRow from './QueryGroupByRow';
 
 export interface QueryGroupByContainerProps {
@@ -12,7 +13,7 @@ export interface QueryGroupByContainerProps {
 }
 
 export const QueryGroupByContainer = ({ sobject, fields, onLoadRelatedFields }: QueryGroupByContainerProps) => {
-  const [groupByClauses, setGroupByClauses] = useRecoilState(fromQueryState.queryGroupByState);
+  const [groupByClauses, setGroupByClauses] = useAtom(fromQueryState.queryGroupByState);
   const [nextKey, setNextKey] = useState(1);
 
   function handleUpdate(groupBy: QueryGroupByClause) {

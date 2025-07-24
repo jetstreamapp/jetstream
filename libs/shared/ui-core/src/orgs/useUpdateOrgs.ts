@@ -14,7 +14,8 @@ import { apiRequestHistoryDb, queryHistoryDb, queryHistoryObjectDb, recentHistor
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { Observable } from 'rxjs';
 import { fromJetstreamEvents } from '..';
 
@@ -52,10 +53,10 @@ async function deleteAllHistoryRecords(org: SalesforceOrgUi) {
 }
 
 export function useUpdateOrgs() {
-  const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const actionInProgress = useRecoilValue(fromAppState.actionInProgressState);
-  const setJetstreamOrganizations = useSetRecoilState(fromAppState.jetstreamOrganizationsState);
+  const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const actionInProgress = useAtomValue(fromAppState.actionInProgressState);
+  const setJetstreamOrganizations = useSetAtom(fromAppState.jetstreamOrganizationsState);
   const [orgLoading, setOrgLoading] = useState(false);
 
   // subscribe to org changes from other places in the application

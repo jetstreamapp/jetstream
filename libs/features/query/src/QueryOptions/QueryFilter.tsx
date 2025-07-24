@@ -3,14 +3,13 @@ import { ExpressionType, ListItem, QueryFilterOperator } from '@jetstream/types'
 import { ExpressionContainer } from '@jetstream/ui';
 import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { SetterOrUpdater } from 'recoil';
 
 export interface QueryFilterProps {
   sobject: string;
   fields: ListItem[];
   filtersOrHaving: ExpressionType;
   isHavingClause?: boolean;
-  setFiltersOrHaving: SetterOrUpdater<ExpressionType>;
+  setFiltersOrHaving: (value: ExpressionType) => ExpressionType;
   onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 

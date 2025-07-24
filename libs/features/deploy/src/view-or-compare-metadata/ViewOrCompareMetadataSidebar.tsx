@@ -3,7 +3,8 @@ import { RadioButton, RadioGroup, ScopedNotification, Spinner, Tree, TreeItems }
 import { OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { FunctionComponent } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { FileItemMetadata } from './viewOrCompareMetadataTypes';
 
 export interface ViewOrCompareMetadataSidebarProps {
@@ -35,7 +36,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
   onSelectedFile,
   onTargetOrgChange,
 }) => {
-  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
+  const orgs = useAtomValue<SalesforceOrgUi[]>(salesforceOrgsOmitSelectedState);
 
   function handleSelectedFile(item: TreeItems<FileItemMetadata>) {
     if (item.meta) {

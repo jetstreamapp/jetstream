@@ -19,7 +19,8 @@ import {
 } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import { getSearchUserSoql } from './record-utils';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
@@ -55,9 +56,9 @@ export const UserSearchPopover: FunctionComponent = () => {
   const currentSearchRef = useRef<number>(0);
   const popoverRef = useRef<PopoverRef>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [{ defaultApiVersion, serverUrl }] = useRecoilState(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
   const { trackEvent } = useAmplitude();
 
   const [loading, setLoading] = useState(false);

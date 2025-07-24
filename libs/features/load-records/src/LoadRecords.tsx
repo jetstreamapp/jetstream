@@ -29,7 +29,8 @@ import { applicationCookieState, googleDriveAccessState, selectedOrgState, selec
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import startCase from 'lodash/startCase';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
@@ -56,39 +57,39 @@ export const LoadRecords = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
     [google_apiKey, google_appId, google_clientId]
   );
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const orgType = useRecoilValue(selectedOrgType);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const orgType = useAtomValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
-  const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromLoadRecordsState.priorSelectedOrg);
-  const [sobjects, setSobjects] = useRecoilState(fromLoadRecordsState.sObjectsState);
-  const [selectedSObject, setSelectedSObject] = useRecoilState(fromLoadRecordsState.selectedSObjectState);
-  const isCustomMetadataObject = useRecoilValue(fromLoadRecordsState.isCustomMetadataObject);
-  const [loadType, setLoadType] = useRecoilState(fromLoadRecordsState.loadTypeState);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useAtom(fromLoadRecordsState.priorSelectedOrg);
+  const [sobjects, setSobjects] = useAtom(fromLoadRecordsState.sObjectsState);
+  const [selectedSObject, setSelectedSObject] = useAtom(fromLoadRecordsState.selectedSObjectState);
+  const isCustomMetadataObject = useAtomValue(fromLoadRecordsState.isCustomMetadataObject);
+  const [loadType, setLoadType] = useAtom(fromLoadRecordsState.loadTypeState);
   const [fields, setFields] = useState<FieldWithRelatedEntities[]>([]);
   const [mappableFields, setMappableFields] = useState<FieldWithRelatedEntities[]>([]);
   const [externalIdFields, setExternalIdFields] = useState<FieldWithRelatedEntities[]>([]);
   const [externalId, setExternalId] = useState<string>('');
-  const [inputFileData, setInputFileData] = useRecoilState(fromLoadRecordsState.inputFileDataState);
-  const [inputFileHeader, setInputFileHeader] = useRecoilState(fromLoadRecordsState.inputFileHeaderState);
-  const [inputFilename, setInputFilename] = useRecoilState(fromLoadRecordsState.inputFilenameState);
-  const [inputFilenameType, setInputFilenameType] = useRecoilState(fromLoadRecordsState.inputFilenameTypeState);
+  const [inputFileData, setInputFileData] = useAtom(fromLoadRecordsState.inputFileDataState);
+  const [inputFileHeader, setInputFileHeader] = useAtom(fromLoadRecordsState.inputFileHeaderState);
+  const [inputFilename, setInputFilename] = useAtom(fromLoadRecordsState.inputFilenameState);
+  const [inputFilenameType, setInputFilenameType] = useAtom(fromLoadRecordsState.inputFilenameTypeState);
 
-  const [inputZipFileData, setInputZipFileData] = useRecoilState(fromLoadRecordsState.inputZipFileDataState);
-  const [inputZipFilename, setInputZipFilename] = useRecoilState(fromLoadRecordsState.inputZipFilenameState);
-  const allowBinaryAttachment = useRecoilValue(fromLoadRecordsState.selectAllowBinaryAttachment);
-  const binaryAttachmentBodyField = useRecoilValue(fromLoadRecordsState.selectBinaryAttachmentBodyField);
+  const [inputZipFileData, setInputZipFileData] = useAtom(fromLoadRecordsState.inputZipFileDataState);
+  const [inputZipFilename, setInputZipFilename] = useAtom(fromLoadRecordsState.inputZipFilenameState);
+  const allowBinaryAttachment = useAtomValue(fromLoadRecordsState.selectAllowBinaryAttachment);
+  const binaryAttachmentBodyField = useAtomValue(fromLoadRecordsState.selectBinaryAttachmentBodyField);
 
-  const [fieldMapping, setFieldMapping] = useRecoilState(fromLoadRecordsState.fieldMappingState);
+  const [fieldMapping, setFieldMapping] = useAtom(fromLoadRecordsState.fieldMappingState);
 
-  const setApiMode = useSetRecoilState(fromLoadRecordsState.apiModeState);
-  const setBatchSize = useSetRecoilState(fromLoadRecordsState.batchSizeState);
-  const setSerialMode = useSetRecoilState(fromLoadRecordsState.serialModeState);
+  const setApiMode = useSetAtom(fromLoadRecordsState.apiModeState);
+  const setBatchSize = useSetAtom(fromLoadRecordsState.batchSizeState);
+  const setSerialMode = useSetAtom(fromLoadRecordsState.serialModeState);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingFields, setLoadingFields] = useState<boolean>(false);
@@ -101,23 +102,23 @@ export const LoadRecords = () => {
   const [hasNextStep, setHasNextStep] = useState<boolean>(true);
   const [loadSummaryText, setLoadSummaryText] = useState<string>('');
 
-  const resetLoadExistingRecordCount = useResetRecoilState(fromLoadRecordsState.loadExistingRecordCount);
-  const resetSelectedSObjectState = useResetRecoilState(fromLoadRecordsState.selectedSObjectState);
-  const resetLoadTypeState = useResetRecoilState(fromLoadRecordsState.loadTypeState);
-  const resetInputFileDataState = useResetRecoilState(fromLoadRecordsState.inputFileDataState);
-  const resetInputFileHeaderState = useResetRecoilState(fromLoadRecordsState.inputFileHeaderState);
-  const resetInputFilenameState = useResetRecoilState(fromLoadRecordsState.inputFilenameState);
-  const resetFieldMappingState = useResetRecoilState(fromLoadRecordsState.fieldMappingState);
-  const resetFieldMappingTypeState = useResetRecoilState(fromLoadRecordsState.inputFilenameTypeState);
-  const resetInputZipFileData = useResetRecoilState(fromLoadRecordsState.inputZipFileDataState);
-  const resetInputZipFilename = useResetRecoilState(fromLoadRecordsState.inputZipFilenameState);
+  const resetLoadExistingRecordCount = useResetAtom(fromLoadRecordsState.loadExistingRecordCount);
+  const resetSelectedSObjectState = useResetAtom(fromLoadRecordsState.selectedSObjectState);
+  const resetLoadTypeState = useResetAtom(fromLoadRecordsState.loadTypeState);
+  const resetInputFileDataState = useResetAtom(fromLoadRecordsState.inputFileDataState);
+  const resetInputFileHeaderState = useResetAtom(fromLoadRecordsState.inputFileHeaderState);
+  const resetInputFilenameState = useResetAtom(fromLoadRecordsState.inputFilenameState);
+  const resetFieldMappingState = useResetAtom(fromLoadRecordsState.fieldMappingState);
+  const resetFieldMappingTypeState = useResetAtom(fromLoadRecordsState.inputFilenameTypeState);
+  const resetInputZipFileData = useResetAtom(fromLoadRecordsState.inputZipFileDataState);
+  const resetInputZipFilename = useResetAtom(fromLoadRecordsState.inputZipFilenameState);
 
-  const resetApiModeState = useResetRecoilState(fromLoadRecordsState.apiModeState);
-  const resetBatchSizeState = useResetRecoilState(fromLoadRecordsState.batchSizeState);
-  const resetInsertNullsState = useResetRecoilState(fromLoadRecordsState.insertNullsState);
-  const resetSerialModeState = useResetRecoilState(fromLoadRecordsState.serialModeState);
-  const resetTrialRunState = useResetRecoilState(fromLoadRecordsState.trialRunState);
-  const resetTrialRunSizeState = useResetRecoilState(fromLoadRecordsState.trialRunSizeState);
+  const resetApiModeState = useResetAtom(fromLoadRecordsState.apiModeState);
+  const resetBatchSizeState = useResetAtom(fromLoadRecordsState.batchSizeState);
+  const resetInsertNullsState = useResetAtom(fromLoadRecordsState.insertNullsState);
+  const resetSerialModeState = useResetAtom(fromLoadRecordsState.serialModeState);
+  const resetTrialRunState = useResetAtom(fromLoadRecordsState.trialRunState);
+  const resetTrialRunSizeState = useResetAtom(fromLoadRecordsState.trialRunSizeState);
 
   useEffect(() => {
     isMounted.current = true;

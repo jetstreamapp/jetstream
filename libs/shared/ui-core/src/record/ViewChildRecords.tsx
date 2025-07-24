@@ -23,7 +23,8 @@ import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/a
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 
 function getRowId(row: SalesforceRecord<ChildRecordRow>): string {
@@ -90,8 +91,8 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
 }) => {
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [loading, setLoading] = useState<boolean>(true);
   const [rows, setRows] = useState<SalesforceRecord<ChildRecordRow>[]>([]);
   const [expandedGroupIds, setExpandedGroupIds] = useState(new Set<any>());

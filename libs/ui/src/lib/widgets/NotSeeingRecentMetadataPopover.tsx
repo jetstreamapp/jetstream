@@ -3,7 +3,8 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { FunctionComponent, useRef } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import Popover, { PopoverProps, PopoverRef } from '../popover/Popover';
 import Icon from './Icon';
 import SalesforceLogin from './SalesforceLogin';
@@ -57,8 +58,8 @@ export const NotSeeingRecentMetadataPopover: FunctionComponent<NotSeeingRecentMe
   popoverProps,
   onReload,
 }) => {
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
   const popoverRef = useRef<PopoverRef>(null);
 

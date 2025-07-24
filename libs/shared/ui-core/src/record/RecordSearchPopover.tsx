@@ -17,7 +17,8 @@ import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-stat
 import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 
 type RecentRecordMap = Record<string, RecentRecord[]>;
@@ -32,8 +33,8 @@ const NUM_HISTORY_ITEMS = 10;
 export const RecordSearchPopover: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const retainRecordId = useRef<boolean>(false);
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
+  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
 
   const [loading, setLoading] = useState<boolean>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

@@ -22,7 +22,8 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 type Action =
@@ -298,8 +299,8 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
   const rollbar = useRollbar();
   const currentSelectedObjects = useRef(new Set<string>());
 
-  const rows = useRecoilValue(fromMassUpdateState.rowsState);
-  const [_rowsMap, setRowsMap] = useRecoilState(fromMassUpdateState.rowsMapState);
+  const rows = useAtomValue(fromMassUpdateState.rowsState);
+  const [_rowsMap, setRowsMap] = useAtom(fromMassUpdateState.rowsMapState);
 
   const [{ allRowsValid, rowsMap }, dispatch] = useReducer(reducer, {
     rowsMap: _rowsMap,

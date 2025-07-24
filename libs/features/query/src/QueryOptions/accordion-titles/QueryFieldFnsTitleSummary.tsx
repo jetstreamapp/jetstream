@@ -3,13 +3,14 @@ import { Badge } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryFieldFnsTitleSummaryProps {}
 
 export const QueryFieldFnsTitleSummary: FunctionComponent<QueryFieldFnsTitleSummaryProps> = () => {
-  const fieldFilterFns = useRecoilValue(fromQueryState.fieldFilterFunctions);
+  const fieldFilterFns = useAtomValue(fromQueryState.fieldFilterFunctions);
   const beyondDisplayLimit = fieldFilterFns.length > 3;
 
   return (

@@ -8,8 +8,6 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ErrorBoundary } from 'react-error-boundary';
 import ModalContainer from 'react-modal-promise';
-import { RecoilRoot } from 'recoil';
-import RecoilNexus from 'recoil-nexus';
 import { AppRoutes } from './AppRoutes';
 import { AnnouncementAlerts } from './components/core/AnnouncementAlerts';
 import AppInitializer from './components/core/AppInitializer';
@@ -25,53 +23,50 @@ export const App = () => {
 
   return (
     <ConfirmationServiceProvider>
-      <RecoilRoot>
-        <RecoilNexus />
-        <Suspense fallback={<AppLoading />}>
-          <Login>
-            {({ onLogout, authInfo }) => (
-              <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
-                <OverlayProvider>
-                  <DndProvider backend={HTML5Backend}>
-                    <ModalContainer />
-                    <AppStateResetOnOrgChange />
-                    <AppToast />
-                    <LogInitializer />
-                    <NotificationsRequestModal loadDelay={10000} />
-                    <DownloadFileStream />
-                    <div>
-                      <div
-                        css={css`
-                          app-region: drag;
+      <Suspense fallback={<AppLoading />}>
+        <Login>
+          {({ onLogout, authInfo }) => (
+            <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
+              <OverlayProvider>
+                <DndProvider backend={HTML5Backend}>
+                  <ModalContainer />
+                  <AppStateResetOnOrgChange />
+                  <AppToast />
+                  <LogInitializer />
+                  <NotificationsRequestModal loadDelay={10000} />
+                  <DownloadFileStream />
+                  <div>
+                    <div
+                      css={css`
+                        app-region: drag;
+                      `}
+                      data-testid="header"
+                    >
+                      <HeaderNavbar
+                        logoCss={css`
+                          background-image: none !important;
                         `}
-                        data-testid="header"
-                      >
-                        <HeaderNavbar
-                          logoCss={css`
-                            background-image: none !important;
-                          `}
-                          isDesktop
-                          isBillingEnabled={false}
-                          onAddOrgHandlerFn={addDesktopOrg}
-                          onLogoutHandlerFn={onLogout}
-                        />
-                      </div>
-                      <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                        <AnnouncementAlerts announcements={announcements} />
-                        <Suspense fallback={<AppLoading />}>
-                          <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                            <AppRoutes />
-                          </ErrorBoundary>
-                        </Suspense>
-                      </div>
+                        isDesktop
+                        isBillingEnabled={false}
+                        onAddOrgHandlerFn={addDesktopOrg}
+                        onLogoutHandlerFn={onLogout}
+                      />
                     </div>
-                  </DndProvider>
-                </OverlayProvider>
-              </AppInitializer>
-            )}
-          </Login>
-        </Suspense>
-      </RecoilRoot>
+                    <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                      <AnnouncementAlerts announcements={announcements} />
+                      <Suspense fallback={<AppLoading />}>
+                        <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                          <AppRoutes />
+                        </ErrorBoundary>
+                      </Suspense>
+                    </div>
+                  </div>
+                </DndProvider>
+              </OverlayProvider>
+            </AppInitializer>
+          )}
+        </Login>
+      </Suspense>
     </ConfirmationServiceProvider>
   );
 };

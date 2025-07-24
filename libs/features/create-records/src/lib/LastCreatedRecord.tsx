@@ -3,8 +3,8 @@ import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, RecordLookupPopover } from '@jetstream/ui';
 import { useAmplitude, ViewEditCloneRecord } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useState } from 'react';
-import { useRecoilValue } from 'recoil';
 
 interface LastCreatedRecordProps {
   selectedOrg: SalesforceOrgUi;
@@ -14,8 +14,8 @@ interface LastCreatedRecordProps {
 export function LastCreatedRecord({ selectedOrg, recordId }: LastCreatedRecordProps) {
   const { trackEvent } = useAmplitude();
 
-  const { defaultApiVersion, serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { defaultApiVersion, serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
   const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
     action: CloneEditView;

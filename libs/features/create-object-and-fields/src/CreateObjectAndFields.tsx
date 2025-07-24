@@ -3,9 +3,11 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { StateDebugObserver } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import * as fromCreateFieldsState from './create-fields.state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -14,17 +16,17 @@ export interface CreateObjectAndFieldsProps {}
 export const CreateObjectAndFields: FunctionComponent<CreateObjectAndFieldsProps> = () => {
   useTitle(TITLES.CREATE_OBJ_FIELD);
   const location = useLocation();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const resetProfilesState = useResetRecoilState(fromCreateFieldsState.profilesState);
-  const resetSelectedProfilesPermSetState = useResetRecoilState(fromCreateFieldsState.selectedProfilesPermSetState);
-  const resetPermissionSetsState = useResetRecoilState(fromCreateFieldsState.permissionSetsState);
-  const resetSelectedPermissionSetsState = useResetRecoilState(fromCreateFieldsState.selectedPermissionSetsState);
-  const resetSObjectsState = useResetRecoilState(fromCreateFieldsState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromCreateFieldsState.selectedSObjectsState);
-  const resetFieldRowsState = useResetRecoilState(fromCreateFieldsState.fieldRowsState);
+  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const resetProfilesState = useResetAtom(fromCreateFieldsState.profilesState);
+  const resetSelectedProfilesPermSetState = useResetAtom(fromCreateFieldsState.selectedProfilesPermSetState);
+  const resetPermissionSetsState = useResetAtom(fromCreateFieldsState.permissionSetsState);
+  const resetSelectedPermissionSetsState = useResetAtom(fromCreateFieldsState.selectedPermissionSetsState);
+  const resetSObjectsState = useResetAtom(fromCreateFieldsState.sObjectsState);
+  const resetSelectedSObjectsState = useResetAtom(fromCreateFieldsState.selectedSObjectsState);
+  const resetFieldRowsState = useResetAtom(fromCreateFieldsState.fieldRowsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
-  const hasSelectionsMade = useRecoilValue(fromCreateFieldsState.hasSelectionsMade);
+  const hasSelectionsMade = useAtomValue(fromCreateFieldsState.hasSelectionsMade);
 
   // reset everything if the selected org changes
   useEffect(() => {

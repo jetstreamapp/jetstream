@@ -2,7 +2,8 @@ import { YesNo } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const INCL_MANAGED_PACKAGE_RADIO_BUTTONS: RadioButtonItem<YesNo>[] = [
@@ -32,9 +33,7 @@ export const ManagedPackageSelection: FunctionComponent<ManagedPackageSelectionP
   requireConfirmSelection,
   onSubmit,
 }) => {
-  const [_includeManagedPackageItems, _setIncludeManagedPackageItems] = useRecoilState<YesNo>(
-    fromDeployMetadataState.includeManagedPackageItems
-  );
+  const [_includeManagedPackageItems, _setIncludeManagedPackageItems] = useAtom<YesNo>(fromDeployMetadataState.includeManagedPackageItems);
 
   const [includeManagedPackageItems, setIncludeManagedPackageItems] = useState(_includeManagedPackageItems);
 

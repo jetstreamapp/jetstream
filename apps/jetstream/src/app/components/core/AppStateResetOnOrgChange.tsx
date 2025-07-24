@@ -1,4 +1,3 @@
-import { SalesforceOrgUi } from '@jetstream/types';
 import {
   fromAutomationControlState,
   fromDeployMetadataState,
@@ -8,63 +7,65 @@ import {
   fromQueryState,
 } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { Resetter, useRecoilValue, useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export const AppStateResetOnOrgChange = () => {
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
-  const resetFns: Resetter[] = [
+  const resetFns = [
     // QUERY
-    useResetRecoilState(fromQueryState.sObjectsState),
-    useResetRecoilState(fromQueryState.selectedSObjectState),
-    useResetRecoilState(fromQueryState.queryFieldsKey),
-    useResetRecoilState(fromQueryState.queryChildRelationships),
-    useResetRecoilState(fromQueryState.queryFieldsMapState),
-    useResetRecoilState(fromQueryState.selectedQueryFieldsState),
-    useResetRecoilState(fromQueryState.selectedSubqueryFieldsState),
-    useResetRecoilState(fromQueryState.filterQueryFieldsState),
-    useResetRecoilState(fromQueryState.orderByQueryFieldsState),
-    useResetRecoilState(fromQueryState.queryFiltersState),
-    useResetRecoilState(fromQueryState.queryLimit),
-    useResetRecoilState(fromQueryState.queryLimitSkip),
-    useResetRecoilState(fromQueryState.queryOrderByState),
-    useResetRecoilState(fromQueryState.querySoqlState),
+    useResetAtom(fromQueryState.sObjectsState),
+    useResetAtom(fromQueryState.selectedSObjectState),
+    useResetAtom(fromQueryState.queryFieldsKey),
+    useResetAtom(fromQueryState.queryChildRelationships),
+    useResetAtom(fromQueryState.queryFieldsMapState),
+    useResetAtom(fromQueryState.selectedQueryFieldsState),
+    useResetAtom(fromQueryState.selectedSubqueryFieldsState),
+    useResetAtom(fromQueryState.filterQueryFieldsState),
+    useResetAtom(fromQueryState.orderByQueryFieldsState),
+    useResetAtom(fromQueryState.queryFiltersState),
+    useResetAtom(fromQueryState.queryLimit),
+    useResetAtom(fromQueryState.queryLimitSkip),
+    useResetAtom(fromQueryState.queryOrderByState),
+    useResetAtom(fromQueryState.querySoqlState),
     // LOAD
-    useResetRecoilState(fromLoadRecordsState.sObjectsState),
-    useResetRecoilState(fromLoadRecordsState.selectedSObjectState),
-    useResetRecoilState(fromLoadRecordsState.fieldMappingState),
+    useResetAtom(fromLoadRecordsState.sObjectsState),
+    useResetAtom(fromLoadRecordsState.selectedSObjectState),
+    useResetAtom(fromLoadRecordsState.fieldMappingState),
     // AUTOMATION-CONTROL
-    useResetRecoilState(fromAutomationControlState.sObjectsState),
+    useResetAtom(fromAutomationControlState.sObjectsState),
     // Manage Permissions
-    useResetRecoilState(fromPermissionsState.profilesState),
-    useResetRecoilState(fromPermissionsState.selectedProfilesPermSetState),
-    useResetRecoilState(fromPermissionsState.permissionSetsState),
-    useResetRecoilState(fromPermissionsState.selectedPermissionSetsState),
-    useResetRecoilState(fromPermissionsState.sObjectsState),
-    useResetRecoilState(fromPermissionsState.selectedSObjectsState),
-    useResetRecoilState(fromPermissionsState.fieldsByObject),
-    useResetRecoilState(fromPermissionsState.fieldsByKey),
-    useResetRecoilState(fromPermissionsState.objectPermissionMap),
-    useResetRecoilState(fromPermissionsState.fieldPermissionMap),
-    useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap),
+    useResetAtom(fromPermissionsState.profilesState),
+    useResetAtom(fromPermissionsState.selectedProfilesPermSetState),
+    useResetAtom(fromPermissionsState.permissionSetsState),
+    useResetAtom(fromPermissionsState.selectedPermissionSetsState),
+    useResetAtom(fromPermissionsState.sObjectsState),
+    useResetAtom(fromPermissionsState.selectedSObjectsState),
+    useResetAtom(fromPermissionsState.fieldsByObject),
+    useResetAtom(fromPermissionsState.fieldsByKey),
+    useResetAtom(fromPermissionsState.objectPermissionMap),
+    useResetAtom(fromPermissionsState.fieldPermissionMap),
+    useResetAtom(fromPermissionsState.tabVisibilityPermissionMap),
     // Deploy
-    useResetRecoilState(fromDeployMetadataState.metadataItemsState),
-    useResetRecoilState(fromDeployMetadataState.metadataItemsMapState),
-    useResetRecoilState(fromDeployMetadataState.selectedMetadataItemsState),
-    useResetRecoilState(fromDeployMetadataState.usersList),
-    useResetRecoilState(fromDeployMetadataState.metadataSelectionTypeState),
-    useResetRecoilState(fromDeployMetadataState.changesetPackage),
-    useResetRecoilState(fromDeployMetadataState.changesetPackages),
+    useResetAtom(fromDeployMetadataState.metadataItemsState),
+    useResetAtom(fromDeployMetadataState.metadataItemsMapState),
+    useResetAtom(fromDeployMetadataState.selectedMetadataItemsState),
+    useResetAtom(fromDeployMetadataState.usersList),
+    useResetAtom(fromDeployMetadataState.metadataSelectionTypeState),
+    useResetAtom(fromDeployMetadataState.changesetPackage),
+    useResetAtom(fromDeployMetadataState.changesetPackages),
     // Formula
-    useResetRecoilState(fromFormulaState.sourceTypeState),
-    useResetRecoilState(fromFormulaState.selectedSObjectState),
-    useResetRecoilState(fromFormulaState.selectedFieldState),
-    useResetRecoilState(fromFormulaState.recordIdState),
-    useResetRecoilState(fromFormulaState.formulaValueState),
-    useResetRecoilState(fromFormulaState.numberNullBehaviorState),
-    useResetRecoilState(fromFormulaState.bannerDismissedState),
+    useResetAtom(fromFormulaState.sourceTypeState),
+    useResetAtom(fromFormulaState.selectedSObjectState),
+    useResetAtom(fromFormulaState.selectedFieldState),
+    useResetAtom(fromFormulaState.recordIdState),
+    useResetAtom(fromFormulaState.formulaValueState),
+    useResetAtom(fromFormulaState.numberNullBehaviorState),
+    useResetAtom(fromFormulaState.bannerDismissedState),
   ];
 
   useEffect(() => {

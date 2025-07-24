@@ -1,12 +1,14 @@
 import { UserProfileUi } from '@jetstream/types';
-import { atom, selector } from 'recoil';
-import { setRecoil } from 'recoil-nexus';
+import { atom, createStore } from 'jotai';
 import browser from 'webextension-polyfill';
 import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
 
+export const extensionStateStore = createStore();
+
 browser.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' || namespace === 'sync') {
-    setRecoil(chromeStorageState, (prevValue) => {
+    extensionStateStore.set(chromeStorageState, async (_prevValue) => {
+      const prevValue = await _prevValue;
       const newState: ChromeStorageState = {
         ...prevValue,
         local: {
@@ -58,27 +60,14 @@ async function initAuthState(): Promise<ChromeStorageState> {
   };
 }
 
-export const chromeStorageState = atom<ChromeStorageState>({
-  key: 'chromeStorageState',
-  default: initAuthState(),
-});
+export const chromeStorageState = atom<Promise<ChromeStorageState> | ChromeStorageState>(initAuthState());
 
-export const chromeSyncStorage = selector({
-  key: 'chromeSyncStorage',
-  get: ({ get }) => get(chromeStorageState).sync,
-});
+export const chromeSyncStorage = atom(async (get) => (await get(chromeStorageState)).sync);
 
-export const chromeLocalStorage = selector({
-  key: 'chromeLocalStorage',
-  get: ({ get }) => get(chromeStorageState).local,
-});
+export const chromeLocalStorage = atom(async (get) => (await get(chromeStorageState)).local);
 
-export const chromeStorageOptions = selector({
-  key: 'chromeStorageOptions',
-  get: ({ get }) => get(chromeStorageState).local.options,
-});
+export const chromeStorageOptions = atom(async (get) => (await get(chromeStorageState)).local.options);
 
-export const UserProfileState = selector({
-  key: 'UserProfileState',
-  get: ({ get }) => get(chromeStorageState).sync?.authTokens?.userProfile as UserProfileUi | undefined,
-});
+export const UserProfileState = atom(
+  async (get) => (await get(chromeStorageState)).sync?.authTokens?.userProfile as UserProfileUi | undefined
+);

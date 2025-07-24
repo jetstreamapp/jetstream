@@ -3,7 +3,8 @@ import { ListItem, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { Grid, GridCol, Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { QueryFieldFunctionRow } from './QueryFieldFunctionRow';
 
 export interface QueryFieldFunctionProps {
@@ -13,7 +14,7 @@ export interface QueryFieldFunctionProps {
 
 export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFieldFunctionProps) => {
   const [functionFields, setFunctionFields] = useState<ListItem<string, QueryFieldWithPolymorphic>[]>([]);
-  const [fieldFilterFunctions, setFieldFilterFunctions] = useRecoilState(fromQueryState.fieldFilterFunctions);
+  const [fieldFilterFunctions, setFieldFilterFunctions] = useAtom(fromQueryState.fieldFilterFunctions);
 
   useEffect(() => {
     setFunctionFields(

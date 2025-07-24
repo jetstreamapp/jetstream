@@ -6,8 +6,8 @@ import { GlobalValueSetRequest, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, Grid, GridCol, Input, Modal, ScopedNotification, Spinner, Textarea } from '@jetstream/ui';
 import { createGlobalPicklist, generateApiNameFromLabel, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
 
 interface PicklistData {
   label: string;
@@ -56,7 +56,7 @@ export interface CreateNewGlobalPicklistModalProps {
 export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPicklistModalProps> = ({ selectedOrg, onCreated }) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const [isOpen, setIsOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

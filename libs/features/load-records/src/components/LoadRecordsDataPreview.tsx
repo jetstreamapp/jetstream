@@ -11,7 +11,8 @@ import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
 const MAX_COLUMNS_TO_KEEP_SET_FILTER = 2000;
@@ -82,9 +83,9 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   loadType,
 }) => {
   const isMounted = useRef(true);
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
-  const [totalRecordCount, setTotalRecordCount] = useRecoilState(fromLoadRecordsState.loadExistingRecordCount);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
+  const [totalRecordCount, setTotalRecordCount] = useAtom(fromLoadRecordsState.loadExistingRecordCount);
   const [omitTotalRecordCount, setOmitTotalRecordCount] = useState(true);
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
   const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);

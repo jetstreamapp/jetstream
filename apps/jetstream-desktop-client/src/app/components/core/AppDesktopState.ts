@@ -1,6 +1,6 @@
 import { DesktopUserPreferences } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
-import { atom } from 'recoil';
+import { atom } from 'jotai';
 
 async function fetchPreferences(): Promise<DesktopUserPreferences> {
   const preferences: DesktopUserPreferences = window.electronAPI
@@ -14,7 +14,4 @@ async function fetchPreferences(): Promise<DesktopUserPreferences> {
   return preferences;
 }
 
-export const desktopUserPreferences = atom<DesktopUserPreferences>({
-  key: 'desktopUserPreferences',
-  default: fetchPreferences(),
-});
+export const desktopUserPreferences = atom<Promise<DesktopUserPreferences>>(() => fetchPreferences());

@@ -7,7 +7,8 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { fromQueryState } from '@jetstream/ui-core';
 import isNumber from 'lodash/isNumber';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export interface QueryCountProps {
   org: SalesforceOrgUi;
@@ -16,10 +17,10 @@ export interface QueryCountProps {
 export const QueryCount = ({ org }: QueryCountProps) => {
   const isMounted = useRef(true);
   const currentReq = useRef(0);
-  const selectedSObject = useRecoilValue(fromQueryState.selectedSObjectState);
-  const isTooling = useRecoilValue(fromQueryState.isTooling);
-  const includeDeleted = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
-  const querySoqlCount = useRecoilValue(fromQueryState.querySoqlCountState);
+  const selectedSObject = useAtomValue(fromQueryState.selectedSObjectState);
+  const isTooling = useAtomValue(fromQueryState.isTooling);
+  const includeDeleted = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
+  const querySoqlCount = useAtomValue(fromQueryState.querySoqlCountState);
   const debouncedQuerySoqlCount = useDebounce(querySoqlCount);
   const [recordCount, setRecordCount] = useState<number | null>(null);
 

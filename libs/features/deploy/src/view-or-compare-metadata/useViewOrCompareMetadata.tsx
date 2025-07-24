@@ -7,7 +7,8 @@ import { applicationCookieState } from '@jetstream/ui/app-state';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { useRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { FileItemMetadata, FileListItem, FilePropertiesWithContent, OrgType } from './viewOrCompareMetadataTypes';
 import { buildTree, populateFileContents } from './viewOrCompareMetadataUtils';
 
@@ -180,7 +181,7 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
     targetLastChecked: null,
     files: [],
   });
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const rollbar = useRollbar();
 

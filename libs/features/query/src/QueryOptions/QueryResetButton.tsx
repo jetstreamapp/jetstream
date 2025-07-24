@@ -5,7 +5,8 @@ import { Icon } from '@jetstream/ui';
 import { fromQueryState, useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import { useResetRecoilState } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 
 export interface QueryResetButtonProps {
   className?: string;
@@ -15,23 +16,23 @@ export const QueryResetButton: FunctionComponent<QueryResetButtonProps> = ({ cla
   const { trackEvent } = useAmplitude();
 
   const resetFns = [
-    useResetRecoilState(fromQueryState.sObjectsState),
-    useResetRecoilState(fromQueryState.selectedSObjectState),
-    useResetRecoilState(fromQueryState.queryFieldsKey),
-    useResetRecoilState(fromQueryState.queryChildRelationships),
-    useResetRecoilState(fromQueryState.queryFieldsMapState),
-    useResetRecoilState(fromQueryState.selectedQueryFieldsState),
-    useResetRecoilState(fromQueryState.selectedSubqueryFieldsState),
-    useResetRecoilState(fromQueryState.filterQueryFieldsState),
-    useResetRecoilState(fromQueryState.orderByQueryFieldsState),
-    useResetRecoilState(fromQueryState.queryFiltersState),
-    useResetRecoilState(fromQueryState.queryHavingState),
-    useResetRecoilState(fromQueryState.fieldFilterFunctions),
-    useResetRecoilState(fromQueryState.queryGroupByState),
-    useResetRecoilState(fromQueryState.queryOrderByState),
-    useResetRecoilState(fromQueryState.queryLimit),
-    useResetRecoilState(fromQueryState.queryLimitSkip),
-    useResetRecoilState(fromQueryState.querySoqlState),
+    useResetAtom(fromQueryState.sObjectsState),
+    useResetAtom(fromQueryState.selectedSObjectState),
+    useResetAtom(fromQueryState.queryFieldsKey),
+    useResetAtom(fromQueryState.queryChildRelationships),
+    useResetAtom(fromQueryState.queryFieldsMapState),
+    useResetAtom(fromQueryState.selectedQueryFieldsState),
+    useResetAtom(fromQueryState.selectedSubqueryFieldsState),
+    useResetAtom(fromQueryState.filterQueryFieldsState),
+    useResetAtom(fromQueryState.orderByQueryFieldsState),
+    useResetAtom(fromQueryState.queryFiltersState),
+    useResetAtom(fromQueryState.queryHavingState),
+    useResetAtom(fromQueryState.fieldFilterFunctions),
+    useResetAtom(fromQueryState.queryGroupByState),
+    useResetAtom(fromQueryState.queryOrderByState),
+    useResetAtom(fromQueryState.queryLimit),
+    useResetAtom(fromQueryState.queryLimitSkip),
+    useResetAtom(fromQueryState.querySoqlState),
   ];
 
   function resetQuery() {

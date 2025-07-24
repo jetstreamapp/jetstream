@@ -21,7 +21,8 @@ import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';
@@ -34,8 +35,8 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const modalRef = useRef<HTMLDivElement>(null);
-  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);
   const [downloadPackageModalState, setDownloadPackageModalState] = useState<{
     open: boolean;
@@ -67,7 +68,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   const [historyItems, setHistoryItems] = useState<SalesforceDeployHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setError] = useState<string | null>(null);
-  const orgsById = useRecoilValue(fromAppState.salesforceOrgsById);
+  const orgsById = useAtomValue(fromAppState.salesforceOrgsById);
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
