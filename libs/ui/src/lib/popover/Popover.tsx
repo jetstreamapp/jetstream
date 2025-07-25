@@ -1,34 +1,29 @@
 import { css, SerializedStyles } from '@emotion/react';
 import { JSX } from '@emotion/react/jsx-runtime';
-import { Popover as HeadlessPopover, PopoverButton, PopoverPanel } from '@headlessui/react';
+import {
+  arrow,
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  shift,
+  useClick,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+  type Placement,
+} from '@floating-ui/react';
 import { FullWidth, Maybe, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { CSSProperties, forwardRef, Fragment, MouseEvent, ReactNode, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { usePopper } from 'react-popper';
-import { Placement } from 'tippy.js';
+import { createElement, CSSProperties, forwardRef, MouseEvent, ReactNode, useCallback, useImperativeHandle, useState } from 'react';
 import { Icon } from '../widgets/Icon';
-
-const ConditionalPortal = ({
-  omitPortal,
-  portalRef,
-  children,
-}: {
-  omitPortal: boolean;
-  portalRef: Maybe<Element>;
-  children: ReactNode;
-}) => {
-  if (omitPortal) {
-    return children;
-  }
-  return createPortal(children as any, portalRef || document.body) as ReactNode;
-};
 
 export interface PopoverRef {
   toggle: () => void;
   open: () => void;
   close: () => void;
-  isOpen: () => void;
+  isOpen: () => boolean;
 }
 
 // TODO: add PopoverHeader and PopoverFooter components
@@ -46,13 +41,13 @@ export interface PopoverProps {
   header?: React.ReactNode;
   footer?: JSX.Element;
   panelStyle?: CSSProperties;
-  buttonProps: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
+  buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
   panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
   size?: SmallMediumLarge | sizeXLarge | FullWidth;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
   omitPortal?: boolean;
-  portalRef?: Maybe<Element>;
+  portalRef?: Maybe<HTMLElement>;
   children: ReactNode;
   onChange?: (isOpen: boolean) => void;
 }
@@ -67,7 +62,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       closeBtnClassName,
       bodyClassName = 'slds-popover__body',
       bodyStyle,
-      placement = 'auto',
+      placement,
       content,
       header,
       footer,
@@ -78,24 +73,47 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       children,
       size,
       omitPortal = false,
-      portalRef = document.body,
+      portalRef,
       onChange,
     }: PopoverProps,
     ref
   ) => {
-    const isOpen = useRef<boolean>(false);
-    const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(null);
-    const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
+    const [isOpen, setIsOpen] = useState(false);
     const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
-    const [closeElement, setCloseElement] = useState<HTMLElement | null>(null);
 
-    const { styles, attributes } = usePopper(referenceElement, popperElement, {
+    const {
+      refs,
+      floatingStyles,
+      placement: currentPlacement,
+      middlewareData,
+      context,
+    } = useFloating({
+      open: isOpen,
+      onOpenChange: (open) => {
+        setIsOpen(open);
+        if (onChange) {
+          onChange(open);
+        }
+      },
       placement,
-      modifiers: [
-        { name: 'arrow', options: { element: arrowElement } },
-        { name: 'offset', options: { offset: [0, 12] } },
+      middleware: [
+        offset(12),
+        flip(),
+        shift({ padding: 8 }),
+        arrow({
+          element: arrowElement,
+        }),
       ],
+      whileElementsMounted: autoUpdate,
     });
+
+    const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+
+    const click = useClick(context);
+    const dismiss = useDismiss(context);
+    const role = useRole(context);
+
+    const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
 
     /**
      * Allows a parent component to open or close
@@ -104,171 +122,173 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       ref,
       () => {
         return {
-          toggle: () => referenceElement && referenceElement.click(),
-          open: () => !popperElement && referenceElement && referenceElement.click(),
-          close: () => closeElement && closeElement.click(),
-          isOpen: () => !!popperElement,
+          toggle: () => setIsOpen((prev) => !prev),
+          open: () => setIsOpen(true),
+          close: () => setIsOpen(false),
+          isOpen: () => isOpen,
         };
       },
-      [referenceElement, popperElement, closeElement]
+      [isOpen]
     );
 
-    const checkIfStateChanged = useCallback(
-      (open: boolean) => {
-        if (open !== isOpen.current) {
-          isOpen.current = open;
-          if (onChange) {
-            setTimeout(() => onChange(open));
-          }
-        }
+    const handleClose = useCallback(() => {
+      setIsOpen(false);
+    }, []);
+
+    const ConditionalWrapper = omitPortal ? ({ children }: { children: ReactNode }) => children : FloatingPortal;
+    const wrapperProps = omitPortal ? {} : { root: portalRef };
+
+    const { as: TriggerElement = 'button', ...restButtonProps } = buttonProps || {};
+
+    const mergedButtonProps = {
+      ...getReferenceProps(),
+      ...restButtonProps,
+      onClick: (ev: React.MouseEvent<HTMLElement>) => {
+        // Call floating-ui's onClick first
+        const referenceProps = getReferenceProps();
+        'onClick' in referenceProps && typeof referenceProps.onClick === 'function' && referenceProps.onClick?.(ev);
+        // Then call any custom onClick from buttonProps
+        'onClick' in restButtonProps && typeof restButtonProps.onClick === 'function' && restButtonProps.onClick?.(ev as any);
       },
-      [onChange]
-    );
+      style: buttonStyle,
+    };
+
+    const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;
 
     return (
-      <HeadlessPopover
-        className={classNames('slds-is-relative', classname)}
-        as="span"
-        onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}
-      >
-        {({ open }) => {
-          checkIfStateChanged(open);
-          return (
-            <Fragment>
-              {open && (
-                <ConditionalPortal omitPortal={omitPortal} portalRef={portalRef}>
-                  <PopoverPanel
-                    ref={setPopperElement as any}
-                    data-testid={testId}
-                    style={{ ...styles.popper, ...panelStyle }}
-                    {...attributes.popper}
-                    className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
-                    as="section"
-                    static
-                    css={css`
-                      &[data-popper-placement^='right'] {
-                        .popover-arrow {
-                          left: -0.5rem;
-                          &::after {
-                            box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
-                          }
-                        }
-                      }
+      <span className={classNames('slds-is-relative', classname)} onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}>
+        {createElement(TriggerElement, { ref: refs.setReference, ...triggerProps }, children)}
+        {isOpen && (
+          <ConditionalWrapper {...wrapperProps}>
+            {/* Does not allow text selection if this is enabled */}
+            {/* <FloatingFocusManager context={context} modal={false}> */}
+            <section
+              ref={refs.setFloating}
+              data-testid={testId}
+              style={{ ...floatingStyles, ...panelStyle }}
+              {...getFloatingProps()}
+              className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
+              css={css`
+                &[data-placement^='right'] {
+                  .popover-arrow {
+                    left: -0.5rem;
+                    &::after {
+                      box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
+                    }
+                  }
+                }
 
-                      &[data-popper-placement^='left'] {
-                        .popover-arrow {
-                          right: -0.5rem;
-                          &::after {
-                            box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
-                          }
-                        }
-                      }
+                &[data-placement^='left'] {
+                  .popover-arrow {
+                    right: -0.5rem;
+                    &::after {
+                      box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
+                    }
+                  }
+                }
 
-                      &[data-popper-placement^='top'] {
-                        .popover-arrow {
-                          bottom: -0.5rem;
-                          &::after {
-                            box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
-                          }
-                          ${footer?.props?.className?.includes('slds-popover__footer') &&
-                          !containerClassName?.includes('_error') &&
-                          !containerClassName?.includes('_warning') &&
-                          !containerClassName?.includes('_walkthrough') &&
-                          `&::before {
-                            background-color: #f3f2f2;
-                          }`}
-                        }
-                      }
+                &[data-placement^='top'] {
+                  .popover-arrow {
+                    bottom: -0.5rem;
+                    &::after {
+                      box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
+                    }
+                    ${footer?.props?.className?.includes('slds-popover__footer') &&
+                    !containerClassName?.includes('_error') &&
+                    !containerClassName?.includes('_warning') &&
+                    !containerClassName?.includes('_walkthrough') &&
+                    `&::before {
+                        background-color: #f3f2f2;
+                      }`}
+                  }
+                }
 
-                      &[data-popper-placement^='bottom'] {
-                        .popover-arrow {
-                          top: -0.5rem;
-                          &::after {
-                            box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
-                          }
-                          ${containerClassName?.includes('_error') &&
-                          `&::before {
-                            background-color: #ba0517;
-                          }`}
-                          ${containerClassName?.includes('_warning') &&
-                          `&::before {
-                            background-color: #fe9339;
-                          }`}
-                          ${containerClassName?.includes('_walkthrough') &&
-                          `&::before {
-                            background-color: #032d60;
-                          }`}
-                        }
-                      }
-                    `}
-                    {...panelProps}
-                  >
-                    {/* FIXME: adding any type of focus lock/trap etc.. causes all selection in the popover to stop working */}
-                    {/* <FocusScope contain restoreFocus autoFocus> */}
-                    {/* CLOSE BUTTON */}
-                    <PopoverButton
-                      ref={setCloseElement}
-                      className={classNames(
-                        'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
-                        {
-                          'slds-button_icon-inverse': inverseIcons,
-                        },
-                        closeBtnClassName
-                      )}
-                      title="Close dialog"
-                    >
-                      <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
-                      <span className="slds-assistive-text">Close dialog</span>
-                    </PopoverButton>
-                    {/* CONTENT */}
-                    {header}
-                    <div css={bodyStyle} className={bodyClassName}>
-                      {content}
-                    </div>
-                    {footer}
-                    {/* ARROW */}
-                    <div
-                      css={css`
-                        position: absolute;
-                        width: 1rem;
-                        height: 1rem;
-                        background: inherit;
-                        visibility: hidden;
-                        &::before {
-                          visibility: visible;
-                          content: '';
-                          transform: rotate(45deg);
-                          position: absolute;
-                          width: 1rem;
-                          height: 1rem;
-                          background: inherit;
-                        }
-                        &::after {
-                          visibility: visible;
-                          content: '';
-                          transform: rotate(45deg);
-                          position: absolute;
-                          width: 1rem;
-                          height: 1rem;
-                          /* background-color: inherit; */
-                        }
-                      `}
-                      className="popover-arrow"
-                      ref={setArrowElement}
-                      style={styles.arrow}
-                    ></div>
-                    {/* </FocusScope> */}
-                  </PopoverPanel>
-                </ConditionalPortal>
-              )}
-
-              <PopoverButton ref={setReferenceElement} {...(buttonProps as typeof PopoverButton)} style={buttonStyle}>
-                {children}
-              </PopoverButton>
-            </Fragment>
-          );
-        }}
-      </HeadlessPopover>
+                &[data-placement^='bottom'] {
+                  .popover-arrow {
+                    top: -0.5rem;
+                    &::after {
+                      box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
+                    }
+                    ${containerClassName?.includes('_error') &&
+                    `&::before {
+                        background-color: #ba0517;
+                      }`}
+                    ${containerClassName?.includes('_warning') &&
+                    `&::before {
+                        background-color: #fe9339;
+                      }`}
+                      ${containerClassName?.includes('_walkthrough') &&
+                    `&::before {
+                        background-color: #032d60;
+                      }`}
+                  }
+                }
+              `}
+              data-placement={currentPlacement}
+              {...panelProps}
+            >
+              {/* CLOSE BUTTON */}
+              <button
+                className={classNames(
+                  'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
+                  {
+                    'slds-button_icon-inverse': inverseIcons,
+                  },
+                  closeBtnClassName
+                )}
+                title="Close dialog"
+                onClick={handleClose}
+                type="button"
+              >
+                <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
+                <span className="slds-assistive-text">Close dialog</span>
+              </button>
+              {/* CONTENT */}
+              {header}
+              <div css={bodyStyle} className={bodyClassName}>
+                {content}
+              </div>
+              {footer}
+              {/* ARROW */}
+              <div
+                css={css`
+                  position: absolute;
+                  width: 1rem;
+                  height: 1rem;
+                  background: inherit;
+                  visibility: hidden;
+                  &::before {
+                    visibility: visible;
+                    content: '';
+                    transform: rotate(45deg);
+                    position: absolute;
+                    width: 1rem;
+                    height: 1rem;
+                    background: inherit;
+                  }
+                  &::after {
+                    visibility: visible;
+                    content: '';
+                    transform: rotate(45deg);
+                    position: absolute;
+                    width: 1rem;
+                    height: 1rem;
+                    /* background-color: inherit; */
+                  }
+                `}
+                className="popover-arrow"
+                ref={setArrowElement}
+                style={{
+                  position: 'absolute',
+                  left: arrowX != null ? `${arrowX}px` : '',
+                  top: arrowY != null ? `${arrowY}px` : '',
+                }}
+              ></div>
+            </section>
+            {/* </FloatingFocusManager> */}
+          </ConditionalWrapper>
+        )}
+      </span>
     );
   }
 );

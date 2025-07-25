@@ -57,7 +57,7 @@ import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
-import { Placement as tippyPlacement } from 'tippy.js';
+import type { Placement } from '@floating-ui/react';
 import * as XLSX from 'xlsx';
 
 initXlsx(XLSX);
@@ -408,7 +408,7 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }
 
-export function convertTippyPlacementToSlds(placement: tippyPlacement): PositionAll | null {
+export function convertFloatingUiPlacementToSlds(placement: Placement): PositionAll | null {
   switch (placement) {
     case 'left':
       return 'right';
