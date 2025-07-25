@@ -349,7 +349,7 @@
     "filesize": "^10.1.1",
     "find-my-way": "^4.3.3",
     "fluent-json-schema": "^3.0.1",
-    "form-data": "^4.0.0",
+    "form-data": "^4.0.4",
     "formulon": "^6.25.3",
     "fs-extra": "^9.0.1",
     "fuse.js": "^7.0.0",
