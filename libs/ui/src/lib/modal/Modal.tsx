@@ -8,6 +8,7 @@ import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import { forwardRef, KeyboardEvent, MutableRefObject, ReactNode, useRef, useState } from 'react';
 import Icon from '../widgets/Icon';
+import { PortalProvider } from './PortalContext';
 
 export interface ModalProps {
   className?: string;
@@ -102,70 +103,72 @@ export const Modal = forwardRef<any, ModalProps>(
     }
 
     return (
-      <OverlayContainer
-        // ensure children under overlay do not know this even was clicked if not handled by anything inside modal
-        onContextMenu={(ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-        }}
-      >
-        <FocusScope contain restoreFocus autoFocus>
-          <section
-            {...overlayProps}
-            {...dialogProps}
-            {...modalProps}
-            ref={ref}
-            role="dialog"
-            tabIndex={-1}
-            className={classNames('slds-modal', { 'slds-slide-up-open': !hide }, getSizeClass(size))}
-            aria-modal="true"
-            aria-describedby={modalId}
-            onKeyUp={handleKeyUp}
-            css={css`
-              ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
-            `}
-          >
-            <div className={classNames('slds-modal__container', containerClassName)}>
-              <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
-                <button
-                  className="slds-button slds-button_icon slds-modal__close"
-                  title="Close"
-                  disabled={closeDisabled}
-                  onClick={() => onClose()}
-                >
-                  <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
-                  <span className="slds-assistive-text">Close</span>
-                </button>
-                <h2 className="slds-modal__title slds-hyphenate" {...titleProps}>
-                  {header}
-                </h2>
-                {tagline && <div className="slds-m-top_x-small">{tagline}</div>}
-              </header>
-              <div id={modalId} className={classNames('slds-modal__content', className || 'slds-p-around_medium')} css={classStyles}>
-                {children}
+      <PortalProvider portalRoot={providedRef && 'current' in providedRef && providedRef.current}>
+        <OverlayContainer
+          // ensure children under overlay do not know this even was clicked if not handled by anything inside modal
+          onContextMenu={(ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+          }}
+        >
+          <FocusScope contain restoreFocus autoFocus>
+            <section
+              {...overlayProps}
+              {...dialogProps}
+              {...modalProps}
+              ref={ref}
+              role="dialog"
+              tabIndex={-1}
+              className={classNames('slds-modal', { 'slds-slide-up-open': !hide }, getSizeClass(size))}
+              aria-modal="true"
+              aria-describedby={modalId}
+              onKeyUp={handleKeyUp}
+              css={css`
+                ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
+              `}
+            >
+              <div className={classNames('slds-modal__container', containerClassName)}>
+                <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
+                  <button
+                    className="slds-button slds-button_icon slds-modal__close"
+                    title="Close"
+                    disabled={closeDisabled}
+                    onClick={() => onClose()}
+                  >
+                    <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
+                    <span className="slds-assistive-text">Close</span>
+                  </button>
+                  <h2 className="slds-modal__title slds-hyphenate" {...titleProps}>
+                    {header}
+                  </h2>
+                  {tagline && <div className="slds-m-top_x-small">{tagline}</div>}
+                </header>
+                <div id={modalId} className={classNames('slds-modal__content', className || 'slds-p-around_medium')} css={classStyles}>
+                  {children}
+                </div>
+                {footer && (
+                  <footer
+                    className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter }, footerClassName)}
+                  >
+                    {footer}
+                  </footer>
+                )}
               </div>
-              {footer && (
-                <footer
-                  className={classNames('slds-modal__footer', { 'slds-modal__footer_directional': directionalFooter }, footerClassName)}
-                >
-                  {footer}
-                </footer>
-              )}
-            </div>
-          </section>
-        </FocusScope>
-        {!hide && (
-          <button
-            className="slds-backdrop slds-backdrop_open"
-            css={css`
-              ${overrideZIndex ? `z-index: ${overrideZIndex - 1}` : ''}
-            `}
-            {...underlayProps}
-          >
-            <span className="sr-only">Close Modal</span>
-          </button>
-        )}
-      </OverlayContainer>
+            </section>
+          </FocusScope>
+          {!hide && (
+            <button
+              className="slds-backdrop slds-backdrop_open"
+              css={css`
+                ${overrideZIndex ? `z-index: ${overrideZIndex - 1}` : ''}
+              `}
+              {...underlayProps}
+            >
+              <span className="sr-only">Close Modal</span>
+            </button>
+          )}
+        </OverlayContainer>
+      </PortalProvider>
     );
   }
 );
