@@ -29,9 +29,10 @@ import {
 } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { Query } from '@jetstreamapp/soql-parser-js';
+import { useAtom } from 'jotai';
+import { atomWithReset, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 
 const MAX_BATCH_SIZE = 10000;
@@ -53,17 +54,14 @@ function checkIfValid(fieldConfig: MetadataRowConfiguration[]) {
 }
 
 // These are stored in state to allow stable access from a callback to poll results
-export const deployResultsState = atom<DeployResults>({
-  key: 'mass-update-records.deployResultsFromQueryState',
-  default: {
-    done: false,
-    processingStartTime: convertDateToLocale(new Date()),
-    processingEndTime: null,
-    processingErrors: [],
-    records: [],
-    batchIdToIndex: {},
-    status: 'Not Started',
-  },
+export const deployResultsState = atomWithReset<DeployResults>({
+  done: false,
+  processingStartTime: convertDateToLocale(new Date()),
+  processingEndTime: null,
+  processingErrors: [],
+  records: [],
+  batchIdToIndex: {},
+  status: 'Not Started',
 });
 
 export interface BulkUpdateFromQueryModalProps {
@@ -115,18 +113,14 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     return selectedRecords.length;
   }, [downloadRecordsValue, filteredRecords.length, selectedRecords.length, totalRecordCount]);
   // this allows the pollResults to have a stable data source for updated data
-  const getDeploymentResults = useRecoilCallback(
-    ({ snapshot }) =>
-      () => {
-        return [
-          {
-            deployResults: snapshot.getLoadable(deployResultsState).getValue(),
-            sobject,
-          },
-        ];
+  const getDeploymentResults = useCallback(() => {
+    return [
+      {
+        deployResults,
+        sobject,
       },
-    [sobject]
-  );
+    ];
+  }, [deployResults, sobject]);
 
   const handleDeployResults = useCallback((sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
     setDeployResults(deployResults);

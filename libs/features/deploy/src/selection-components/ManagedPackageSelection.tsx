@@ -1,9 +1,8 @@
 import { YesNo } from '@jetstream/types';
 import { Grid } from '@jetstream/ui';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const INCL_MANAGED_PACKAGE_RADIO_BUTTONS: RadioButtonItem<YesNo>[] = [

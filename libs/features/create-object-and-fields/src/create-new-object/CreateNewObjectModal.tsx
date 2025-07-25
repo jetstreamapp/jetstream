@@ -73,7 +73,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
       allowInChatterGroups: payload.allowInChatterGroups,
       allowSharingBulkStreaming: payload.enableBulkApi,
       allowSearch: payload.enableSearch,
-      createTab: createTab,
+      createTab,
       selectedProfiles: selectedProfiles.length,
       selectedPermissionSets: selectedPermissionSets.length,
     });

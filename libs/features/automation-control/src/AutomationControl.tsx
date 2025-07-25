@@ -3,15 +3,11 @@ import { useTitle } from '@jetstream/shared/ui-utils';
 import { fromAutomationControlState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
-import { Fragment, FunctionComponent, useEffect } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { Fragment, useEffect } from 'react';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlProps {}
-
-export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
+export const AutomationControl = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
   const navigate = useNavigate();
   const location = useLocation();

@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
-import { FieldWithRelatedEntities, LocalOrGoogle, SalesforceOrgUi, Step } from '@jetstream/types';
+import { FieldWithRelatedEntities, LocalOrGoogle, Step } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Grid,
@@ -27,10 +27,10 @@ import {
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
-import startCase from 'lodash/startCase';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import startCase from 'lodash/startCase';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LoadRecordsDataPreview from './components/LoadRecordsDataPreview';
 import LoadRecordsProgress from './components/LoadRecordsProgress';
 import LoadRecordsFieldMapping from './steps/FieldMapping';
@@ -63,7 +63,7 @@ export const LoadRecords = () => {
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
     [google_apiKey, google_appId, google_clientId]
   );
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
   // TODO: probably need this to know when to reset state
   const [priorSelectedOrg, setPriorSelectedOrg] = useAtom(fromLoadRecordsState.priorSelectedOrg);

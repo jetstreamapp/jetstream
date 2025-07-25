@@ -14,4 +14,4 @@ async function fetchPreferences(): Promise<DesktopUserPreferences> {
   return preferences;
 }
 
-export const desktopUserPreferences = atom<Promise<DesktopUserPreferences>>(() => fetchPreferences());
+export const desktopUserPreferences = atom<Promise<DesktopUserPreferences> | DesktopUserPreferences>(fetchPreferences());

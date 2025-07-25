@@ -4,9 +4,8 @@ import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState, useAmplitude } from '@jetstream/ui-core';
 import classNames from 'classnames';
-import { FunctionComponent } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent } from 'react';
 
 export interface QueryResetButtonProps {
   className?: string;

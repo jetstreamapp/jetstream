@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
@@ -14,10 +13,9 @@ import {
 } from '@jetstream/ui';
 import { fromDeployMetadataState, RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import './DeployMetadataSelection.scss';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
@@ -34,7 +32,7 @@ export interface DeployMetadataSelectionProps {}
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const amplitudeSubmissionSelector = useAtomValue(fromDeployMetadataState.amplitudeSubmissionSelector);
   const metadataItems = useAtomValue(fromDeployMetadataState.metadataItemsState);
   const hasSelectionsMade = useAtomValue(fromDeployMetadataState.hasSelectionsMadeSelector);

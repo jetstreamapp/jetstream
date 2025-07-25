@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { MIME_TYPES, TITLES } from '@jetstream/shared/constants';
 import { fetchActiveLog, saveFile, useNonInitialEffect, useObservable, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ApexLogWithViewed, SalesforceOrgUi } from '@jetstream/types';
+import { ApexLogWithViewed } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Card,
@@ -21,11 +21,10 @@ import { applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } fro
 import Editor from '@monaco-editor/react';
 import classNames from 'classnames';
 import { formatDate } from 'date-fns/format';
+import { useAtom, useAtomValue } from 'jotai';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { filter } from 'rxjs/operators';
 import DebugLogViewerFilter from './DebugLogViewerFilter';
 import DebugLogViewerTable from './DebugLogViewerTable';
@@ -45,7 +44,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [showLogsFromAllUsers, setShowLogsFromAllUsers] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
   const [activeLogId, setActiveLogId] = useState<string | null>(null);

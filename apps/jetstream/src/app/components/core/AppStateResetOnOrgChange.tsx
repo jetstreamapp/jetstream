@@ -8,9 +8,8 @@ import {
 } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { useEffect, useState } from 'react';
 
 export const AppStateResetOnOrgChange = () => {
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);

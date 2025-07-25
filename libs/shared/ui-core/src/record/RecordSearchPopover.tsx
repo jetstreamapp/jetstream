@@ -11,14 +11,13 @@ import {
   useGlobalEventHandler,
   useObservable,
 } from '@jetstream/shared/ui-utils';
-import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView } from '@jetstream/types';
 import { Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner, getModifierKey } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import uniqBy from 'lodash/uniqBy';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 
 type RecentRecordMap = Record<string, RecentRecord[]>;
@@ -34,7 +33,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const retainRecordId = useRef<boolean>(false);
   const [{ defaultApiVersion }] = useAtom(applicationCookieState);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const [loading, setLoading] = useState<boolean>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

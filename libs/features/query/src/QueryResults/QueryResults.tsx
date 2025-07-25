@@ -23,7 +23,6 @@ import {
   QueryResults as IQueryResults,
   Maybe,
   QueryResult,
-  SalesforceOrgUi,
   SalesforceRecord,
   SobjectCollectionResponse,
 } from '@jetstream/types';
@@ -58,11 +57,10 @@ import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
+import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { filter } from 'rxjs/operators';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
@@ -122,7 +120,7 @@ export const QueryResults = React.memo(() => {
   const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);

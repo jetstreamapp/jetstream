@@ -46,11 +46,10 @@ import {
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import Editor from '@monaco-editor/react';
+import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';

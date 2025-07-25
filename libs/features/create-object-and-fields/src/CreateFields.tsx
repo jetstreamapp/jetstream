@@ -1,7 +1,7 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { groupByFlat, pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   BadgePopover,
@@ -16,11 +16,10 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import CreateFieldsDeployModal from './CreateFieldsDeployModal';
 import CreateFieldsImportExport from './CreateFieldsImportExport';
 import CreateFieldsRow from './CreateFieldsRow';
@@ -74,7 +73,7 @@ export interface CreateFieldsProps {}
 
 export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const profiles = useAtomValue(fromCreateFieldsState.profilesState);
   const permissionSets = useAtomValue(fromCreateFieldsState.permissionSetsState);

@@ -3,9 +3,8 @@ import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/ut
 import { ChildRelationship, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import QueryChildFields from './QueryChildFields';
 
 export interface QuerySubquerySObjectsProps {

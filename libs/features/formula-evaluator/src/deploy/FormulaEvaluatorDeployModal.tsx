@@ -14,9 +14,8 @@ import {
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import FormulaEvaluatorDeploySummary from './FormulaEvaluatorDeploySummary';
 import FormulaEvaluatorFields from './FormulaEvaluatorFields';
 import FormulaEvaluatorPageLayouts from './FormulaEvaluatorPageLayouts';

@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, hasShiftModifierKey, isEKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { QueryHistoryItem } from '@jetstream/types';
 import {
   CheckboxToggle,
   Grid,
@@ -19,11 +19,10 @@ import { dexieDb } from '@jetstream/ui/db';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import { QueryHistoryModal } from './QueryHistory/QueryHistoryModal';
 import { useQueryRestore } from './RestoreQuery/useQueryRestore';
@@ -35,7 +34,7 @@ export const QuickQueryPopover = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const navigate = useNavigate();
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const [soql, setSoql] = useState<string>('');
   const [queryIsValid, setQueryIsValid] = useState(false);

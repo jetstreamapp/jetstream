@@ -3,7 +3,7 @@ import { ListMetadataResultItem, useListMetadata } from '@jetstream/connected-ui
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard, formatNumber, isBrowserExtension } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
-import { DeployMetadataTableRow, ListMetadataResult, SalesforceOrgUi, SidePanelType } from '@jetstream/types';
+import { DeployMetadataTableRow, ListMetadataResult, SidePanelType } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
@@ -24,10 +24,9 @@ import { formatISO as formatISODate } from 'date-fns/formatISO';
 import { isAfter } from 'date-fns/isAfter';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import DeployMetadataDeploymentSidePanel from './DeployMetadataDeploymentSidePanel';
 import DeployMetadataDeploymentTable from './DeployMetadataDeploymentTable';
 import DeployMetadataLastRefreshedPopover from './DeployMetadataLastRefreshedPopover';
@@ -55,7 +54,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
   const { trackEvent } = useAmplitude();
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const {
     loadListMetadata,
     loadListMetadataItem,

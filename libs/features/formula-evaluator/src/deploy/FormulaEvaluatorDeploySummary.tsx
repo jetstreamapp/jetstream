@@ -4,10 +4,9 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { CreateFieldsResults, FieldPermissionRecord, FieldValues, LayoutResult } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 type DeployedItem = { id: string; label: string };
 

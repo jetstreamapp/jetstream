@@ -4,9 +4,8 @@ import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
+import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { fromJetstreamEvents, OrgsDropdown } from '..';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
@@ -23,8 +22,8 @@ export interface OrgSelectionRequiredProps {
 
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ onAddOrgHandlerFn, children }) => {
   const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
-  const selectedOrg = useAtomValue<SalesforceOrgUi | undefined>(fromAppState.selectedOrgStateWithoutPlaceholder);
-  const hasConfiguredOrg = useAtomValue<boolean>(fromAppState.hasConfiguredOrgState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const hasConfiguredOrg = useAtomValue(fromAppState.hasConfiguredOrgState);
   const jetstreamOrganizations = useAtomValue(fromAppState.jetstreamOrganizationsState);
   const hasOrganizationsConfigured = useAtomValue(fromAppState.jetstreamOrganizationsExistsSelector);
   const setActiveOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
@@ -44,7 +43,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       }
       setLoadingRetry(true);
       await checkOrgHealth(selectedOrg);
-      setOrgs(await getOrgs());
+      setOrgs(getOrgs());
       fireToast({ type: 'success', message: 'Your org is now valid! 🎉' });
     } catch (ex) {
       fireToast({ type: 'error', message: 'Unable to connect to your org, reconnect to Salesforce to keep using this org.' });

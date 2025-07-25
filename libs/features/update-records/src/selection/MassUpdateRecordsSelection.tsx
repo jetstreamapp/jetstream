@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -15,10 +14,10 @@ import {
 import { filterMassUpdateSobject } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
-import { FunctionComponent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import * as fromMassUpdateState from '../mass-update-records.state';
 import MassUpdateRecordsObjects from './MassUpdateRecordsObjects';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
@@ -29,7 +28,7 @@ const HEIGHT_BUFFER = 170;
 export interface MassUpdateRecordsSelectionProps {}
 
 export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSelectionProps> = () => {
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [sobjects, setSobjects] = useAtom(fromMassUpdateState.sObjectsState);
   const [selectedSObjects, setSelectedSObjects] = useAtom(fromMassUpdateState.selectedSObjectsState);
   const resetRowMapState = useResetAtom(fromMassUpdateState.rowsMapState);

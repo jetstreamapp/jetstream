@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@j
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, SalesforceOrgUi } from '@jetstream/types';
+import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -24,9 +24,8 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
@@ -43,7 +42,7 @@ export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
 
   const [inputFilename, setInputFilename] = useState<string | null>(null);

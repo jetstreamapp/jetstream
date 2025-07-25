@@ -1,14 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Query, parseQuery } from '@jetstreamapp/soql-parser-js';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { fromQueryState } from '../..';
 import { QueryRestoreErrors, UserFacingRestoreError, restoreQuery } from './query-restore-utils';
 
@@ -38,7 +38,7 @@ export const useQueryRestore = (
 
   const isMounted = useRef(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const org = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const org = useAtomValue(selectedOrgState);
   // we should compare setting here vs in a selector - any difference in performance?
 
   const setIsRestore = useSetAtom(fromQueryState.isRestore);

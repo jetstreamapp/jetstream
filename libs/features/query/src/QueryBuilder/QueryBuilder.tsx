@@ -16,7 +16,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -33,10 +33,10 @@ import {
 } from '@jetstream/ui';
 import { fromQueryHistoryState, fromQueryState, QueryHistory, QueryHistoryRef, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, useCallback, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { Fragment, useCallback, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ManualSoql from '../QueryOptions/ManualSoql';
 import QueryBuilderAdvancedOptions from '../QueryOptions/QueryBuilderAdvancedOptions';
 import QueryCount from '../QueryOptions/QueryCount';
@@ -70,7 +70,7 @@ export const QueryBuilder = () => {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
 
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const childRelationships = useAtomValue(fromQueryState.queryChildRelationships);
   const soql = useAtomValue(fromQueryState.querySoqlState);
 

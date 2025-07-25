@@ -1,9 +1,8 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { setItemInLocalStorage, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
 import { selectedOrgIdState, STORAGE_KEYS } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export const OrgPersistence: FunctionComponent = () => {
   const [selectedOrgId] = useAtom(selectedOrgIdState);

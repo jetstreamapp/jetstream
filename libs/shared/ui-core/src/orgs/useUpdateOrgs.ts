@@ -11,11 +11,10 @@ import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { apiRequestHistoryDb, queryHistoryDb, queryHistoryObjectDb, recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { Observable } from 'rxjs';
 import { fromJetstreamEvents } from '..';
 
@@ -71,7 +70,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrgs = useCallback(async () => {
     try {
-      setOrgs(await getOrgs());
+      setOrgs(getOrgs());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }
@@ -80,7 +79,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrganizations = useCallback(async () => {
     try {
-      setJetstreamOrganizations(await getJetstreamOrganizations());
+      setJetstreamOrganizations(getJetstreamOrganizations());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }
@@ -91,7 +90,7 @@ export function useUpdateOrgs() {
    * This is not in a useCallback because it caused an infinite loop since orgs changes a lot and is a dependency
    */
   const handleAddOrg = useCallback((org: SalesforceOrgUi, switchActiveOrg: boolean) => {
-    setOrgs((prevOrgs) => uniqBy(orderBy([org, ...prevOrgs], 'username'), 'uniqueId'));
+    setOrgs(async (prevOrgs) => uniqBy(orderBy([org, ...(await prevOrgs)], 'username'), 'uniqueId'));
     if (switchActiveOrg) {
       setSelectedOrgId(org.uniqueId);
     }
@@ -117,7 +116,7 @@ export function useUpdateOrgs() {
     try {
       setOrgLoading(true);
       await updateOrg(org, updatedOrg);
-      setOrgs(await getOrgs());
+      setOrgs(getOrgs());
     } catch (ex) {
       logger.warn('Error updating org', ex);
     } finally {

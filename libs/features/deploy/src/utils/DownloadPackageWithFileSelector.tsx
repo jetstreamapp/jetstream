@@ -14,10 +14,9 @@ import {
 import { FileFauxDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import { Fragment, FunctionComponent } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export interface DownloadPackageWithFileSelectorProps {
   type: 'manifest' | 'package';

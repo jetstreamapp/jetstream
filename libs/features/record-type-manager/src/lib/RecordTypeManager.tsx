@@ -1,20 +1,19 @@
 /* eslint-disable @typescript-eslint/no-empty-interface, @typescript-eslint/no-empty-object-type */
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { StateDebugObserver, fromRecordTypeManagerState } from '@jetstream/ui-core';
+import { fromRecordTypeManagerState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent, useEffect, useState } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 export interface RecordTypeManagerProps {}
 
 export const RecordTypeManager: FunctionComponent<RecordTypeManagerProps> = () => {
   useTitle(TITLES.MANAGE_PERMISSIONS);
   const location = useLocation();
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const resetRecordTypes = useResetAtom(fromRecordTypeManagerState.recordTypesState);
   const resetSelectedRecordTypes = useResetAtom(fromRecordTypeManagerState.selectedRecordTypeIds);
 
@@ -37,19 +36,5 @@ export const RecordTypeManager: FunctionComponent<RecordTypeManagerProps> = () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
 
-  return (
-    <Fragment>
-      <StateDebugObserver
-        name="RECORD TYPES SNAPSHOT"
-        atoms={[
-          ['recordTypesState', fromRecordTypeManagerState.recordTypesState],
-          ['selectedRecordTypeIds', fromRecordTypeManagerState.selectedRecordTypeIds],
-          ['hasSelectionsMade', fromRecordTypeManagerState.hasSelectionsMade],
-          ['recordTypesByFullName', fromRecordTypeManagerState.recordTypesByFullName],
-          ['selectedRecordTypes', fromRecordTypeManagerState.selectedRecordTypes],
-        ]}
-      />
-      {location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}
-    </Fragment>
-  );
+  return location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />;
 };

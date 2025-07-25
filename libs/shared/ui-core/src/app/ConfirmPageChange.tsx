@@ -1,8 +1,7 @@
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import * as fromAppState from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { usePrompt } from './PromptNavigation';
 
 export interface ConfirmPageChangeProps {

@@ -16,6 +16,7 @@ import {
 } from '@jetstream/ui';
 import { JetstreamProLogo, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { environment } from '../../../environments/environment';

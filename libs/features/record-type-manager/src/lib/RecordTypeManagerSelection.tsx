@@ -15,10 +15,9 @@ import {
 } from '@jetstream/ui';
 import { RequireMetadataApiBanner, fromRecordTypeManagerState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { getListItemFromRecordTypeMetadata } from './utils/record-types.utils';
 
 const HEIGHT_BUFFER = 170;

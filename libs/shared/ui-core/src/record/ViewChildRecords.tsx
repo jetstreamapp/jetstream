@@ -21,10 +21,9 @@ import {
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
+import { useAtomValue } from 'jotai';
 import groupBy from 'lodash/groupBy';
 import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 
 function getRowId(row: SalesforceRecord<ChildRecordRow>): string {

@@ -7,12 +7,11 @@ import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, Salesforc
 import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
 import { ErrorBoundaryFallback, fromLoadRecordsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
 const MAX_COLUMNS_TO_KEEP_SET_FILTER = 2000;

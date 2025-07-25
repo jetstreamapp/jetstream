@@ -4,9 +4,8 @@ import { pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstrea
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DeployMetadataStatus, DeployOptions, DeployResult, SalesforceDeployHistoryType, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 
 /**

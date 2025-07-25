@@ -2,13 +2,12 @@ import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { isBrowserExtension, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ListItem, ListItemGroup, SalesforceOrgUi } from '@jetstream/types';
+import { ListItem, ListItemGroup } from '@jetstream/types';
 import { AutoFullHeightContainer, FileDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { PlatformEventMonitorFetchEventStatus } from './PlatformEventMonitorFetchEventStatus';
 import { PlatformEventMonitorListenerCard } from './PlatformEventMonitorListenerCard';
 import { PlatformEventMonitorPublisherCard } from './PlatformEventMonitorPublisherCard';
@@ -23,7 +22,7 @@ export const PlatformEventMonitor = () => {
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const isMounted = useRef(true);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const {
     hasPlatformEvents,
     platformEventFetchError,

@@ -27,9 +27,8 @@ import {
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
 import { LoadRecordsResultsModal, fromJetstreamEvents, getFieldHeaderFromMapping, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { loadBatchApiData, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 

@@ -13,9 +13,8 @@ import {
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { RecordTypePicklistSummary, ViewMode } from '../types/record-types.types';
 import { prepareRecordTypeMetadataPackage } from '../utils/record-types.utils';
 import { DeploymentSummary } from './DeploymentModalSummary';

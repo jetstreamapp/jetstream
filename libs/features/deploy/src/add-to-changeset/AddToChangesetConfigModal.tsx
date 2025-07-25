@@ -4,9 +4,8 @@ import { ChangeSet, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from 
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useChangesetList } from '../utils/useChangesetList';
 
 export interface AddToChangesetConfigModalProps {

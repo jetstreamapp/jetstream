@@ -3,10 +3,9 @@ import { truncate } from '@jetstream/shared/utils';
 import { ExpressionConditionType } from '@jetstream/types';
 import { Badge, isExpressionConditionType } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export interface QueryFilterTitleSummaryProps {
   isHavingClause?: boolean;

@@ -92,17 +92,17 @@ export async function initNewApexHistoryItem(org: SalesforceOrgUi, apex: string)
   return { ...historyItems, [newItem.key]: newItem };
 }
 
-export const apexHistoryState = atom(initApexHistory());
+export const apexHistoryState = atom<Promise<Record<string, ApexHistoryItem>> | Record<string, ApexHistoryItem>>(initApexHistory());
 
 export const apexHistoryWhichOrg = atom<'ALL' | 'SELECTED'>('SELECTED');
 
 /**
  * Returns based on selected org and either all items or saved items
  */
-const selectApexHistoryItems = atom(async (get) => {
+const selectApexHistoryItems = atom((get) => {
   const whichOrg = get(apexHistoryWhichOrg);
-  const apexHistoryItems = await get(apexHistoryState);
-  const selectedOrg = await get(selectedOrgState);
+  const apexHistoryItems = get(apexHistoryState) as Record<string, ApexHistoryItem>;
+  const selectedOrg = get(selectedOrgState) as SalesforceOrgUi;
   if (!selectedOrg || !apexHistoryItems) {
     return [];
   }
@@ -115,7 +115,7 @@ const selectApexHistoryItems = atom(async (get) => {
   });
 });
 
-export const selectApexHistoryState = atom(async (get) => {
-  const apexHistoryItems = await get(selectApexHistoryItems);
+export const selectApexHistoryState = atom((get) => {
+  const apexHistoryItems = get(selectApexHistoryItems);
   return orderBy<ApexHistoryItem>(apexHistoryItems, ['lastRun'], ['desc']);
 });

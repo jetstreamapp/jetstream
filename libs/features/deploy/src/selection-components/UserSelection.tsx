@@ -3,9 +3,8 @@ import { NOOP } from '@jetstream/shared/utils';
 import { AllUser, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, List } from '@jetstream/ui';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import DeployMetadataUserList from '../DeployMetadataUserList';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 

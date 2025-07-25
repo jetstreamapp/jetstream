@@ -1,10 +1,10 @@
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import { ConnectedSobjectList } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { FunctionComponent } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent } from 'react';
 
 export interface QuerySObjectsProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -20,7 +20,7 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = ({
   setSobjects,
   setSelectedSObject,
 }) => {
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const resetSelectedSubqueryFieldsState = useResetAtom(fromQueryState.selectedSubqueryFieldsState);
   const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
   const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);

@@ -8,10 +8,9 @@ import { fireToast } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { CometD } from 'cometd';
+import { useAtom } from 'jotai';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
 import * as platformEventUtils from './platform-event-monitor.utils';
 

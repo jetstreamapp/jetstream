@@ -1,8 +1,7 @@
 import { CheckboxToggle } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IncludeDeletedRecordsToggleProps {

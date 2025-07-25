@@ -21,9 +21,8 @@ import {
   isValidRow,
   useAmplitude,
 } from '@jetstream/ui-core';
+import { useAtom, useAtomValue } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import * as fromMassUpdateState from '../mass-update-records.state';
 
 type Action =

@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -19,7 +19,6 @@ import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
-import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
 import { AutomationMetadataType } from './automation-control-types';
 
@@ -40,14 +39,10 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult |
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlSelectionProps {}
-
-export const AutomationControlSelection: FunctionComponent<AutomationControlSelectionProps> = () => {
+export const AutomationControlSelection = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
-  const rollbar = useRollbar();
 
-  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const hasSelectionsMade = useAtomValue(fromAutomationControlState.hasSelectionsMade);
   const [sobjects, setSobjects] = useAtom(fromAutomationControlState.sObjectsState);

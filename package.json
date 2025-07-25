@@ -397,7 +397,6 @@
     "regenerator-runtime": "0.13.7",
     "rollbar": "^2.26.4",
     "rxjs": "^7.8.1",
-    "slack-notify": "^0.1.7",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "split.js": "^1.6.5",

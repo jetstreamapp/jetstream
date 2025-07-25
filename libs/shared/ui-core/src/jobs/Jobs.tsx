@@ -22,10 +22,9 @@ import {
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useRef } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { filter } from 'rxjs/operators';
 import { fromJetstreamEvents } from '../jetstream-events';
 import Job from './Job';

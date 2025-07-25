@@ -1,9 +1,9 @@
 import { ListItem, QueryFieldWithPolymorphic, UiSection } from '@jetstream/types';
 import { Accordion, ScopedNotification } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
-import { useEffect } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { useEffect } from 'react';
 import QueryFieldFunction from './QueryFieldFunction';
 import QueryFilter from './QueryFilter';
 import QueryGroupByContainer from './QueryGroupBy';

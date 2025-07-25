@@ -1,9 +1,8 @@
 import { fromQueryState } from '@jetstream/ui-core';
 import { composeSoqlQuery } from '@jetstream/ui-core/shared';
 import { GroupByFieldClause, GroupByFnClause, Query } from '@jetstreamapp/soql-parser-js';
-import { FunctionComponent, useEffect } from 'react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent, useEffect } from 'react';
 
 /**
  * This component ensures that the entire state tree is not re-rendered each time some query element needs to be modified

@@ -1,8 +1,7 @@
 import { SalesforceOrgUi } from '@jetstream/types';
 import { useSetAtom } from 'jotai';
-import { Fragment, FunctionComponent, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { Fragment, FunctionComponent, useState } from 'react';
 import { CreateNewObjectModal } from './CreateNewObjectModal';
 import * as fromCreateObjectState from './create-object-state';
 

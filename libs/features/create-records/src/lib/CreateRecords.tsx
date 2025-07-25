@@ -13,7 +13,6 @@ import {
   ListItem,
   PicklistFieldValues,
   RecordResult,
-  SalesforceOrgUi,
   SalesforceRecord,
 } from '@jetstream/types';
 import {
@@ -32,7 +31,7 @@ import {
 import { RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { EditFromErrors, handleEditFormErrorResponse, transformEditForm, validateEditForm } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { LastCreatedRecord } from './LastCreatedRecord';
 
@@ -44,7 +43,7 @@ export const CreateRecords = () => {
   const { trackEvent } = useAmplitude();
 
   const { defaultApiVersion } = useAtomValue(applicationCookieState);
-  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [key, setKey] = useState(() => new Date().getTime());
 
   const [loading, setLoading] = useState<boolean>(false);

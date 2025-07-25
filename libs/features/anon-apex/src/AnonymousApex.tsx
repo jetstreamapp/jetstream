@@ -13,7 +13,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ApexHistoryItem, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ApexHistoryItem, ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -65,7 +65,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   const rollbar = useRollbar();
   const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
-  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
   const [resultsStatus, setResultsStatus] = useState<{ hasResults: boolean; success: boolean; label: string | null }>({

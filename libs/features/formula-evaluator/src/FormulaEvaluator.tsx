@@ -5,7 +5,7 @@ import { clearCacheForOrg } from '@jetstream/shared/data';
 import { hasModifierKey, isEnterKey, useGlobalEventHandler, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
   Alert,
   AutoFullHeightContainer,
@@ -37,10 +37,9 @@ import {
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import * as formulon from 'formulon';
+import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
 
 // Lazy import
@@ -74,7 +73,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
   const sobjectComboRef = useRef<SobjectComboboxRef>(null);
   const fieldsComboRef = useRef<SobjectFieldComboboxRef>(null);
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [loading, setLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string | null>(null);

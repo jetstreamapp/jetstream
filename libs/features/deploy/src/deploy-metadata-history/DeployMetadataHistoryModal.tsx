@@ -20,9 +20,8 @@ import {
 import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';

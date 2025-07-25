@@ -6,9 +6,8 @@ import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/u
 import { BulkJobBatchInfo, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { formatDate } from 'date-fns/format';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';

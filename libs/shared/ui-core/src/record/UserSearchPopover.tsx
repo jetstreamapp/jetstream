@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
 import { hasModifierKey, isUKey, useDebounce, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { CloneEditView, QueryResults, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, QueryResults } from '@jetstream/types';
 import {
   CopyToClipboard,
   getModifierKey,
@@ -18,9 +18,8 @@ import {
   SearchInput,
 } from '@jetstream/ui';
 import { applicationCookieState, selectedOrgState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../analytics';
 import { getSearchUserSoql } from './record-utils';
 import { ViewEditCloneRecord } from './ViewEditCloneRecord';
@@ -58,7 +57,7 @@ export const UserSearchPopover: FunctionComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const { trackEvent } = useAmplitude();
 
   const [loading, setLoading] = useState(false);

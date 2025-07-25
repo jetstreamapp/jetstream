@@ -2,14 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import {
-  FileExtAllTypes,
-  ListMetadataResult,
-  Maybe,
-  MimeType,
-  RetrievePackageFromListMetadataJob,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -29,8 +22,8 @@ import {
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { useAtom, useAtomValue } from 'jotai';
-import { FunctionComponent, useState } from 'react';
+import { useAtomValue } from 'jotai';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
@@ -50,14 +43,11 @@ import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlEditorProps {}
-
-export const AutomationControlEditor: FunctionComponent<AutomationControlEditorProps> = () => {
+export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
   const { trackEvent } = useAmplitude();
 
-  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);

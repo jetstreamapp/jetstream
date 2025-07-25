@@ -5,9 +5,8 @@ import { DownloadFromServerOpts, Icon, RecordDownloadModal } from '@jetstream/ui
 import { fromJetstreamEvents, fromQueryState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
+import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export interface QueryResultsDownloadButtonProps {
   selectedOrg: SalesforceOrgUi;

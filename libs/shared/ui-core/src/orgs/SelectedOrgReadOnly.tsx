@@ -1,9 +1,8 @@
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useOrgPermissions } from '..';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';

@@ -6,10 +6,9 @@ import { SobjectFieldList } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { getSubqueryFieldBaseKey } from '@jetstream/ui-core/shared';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export interface QueryChildFieldsProps {
   org: SalesforceOrgUi;

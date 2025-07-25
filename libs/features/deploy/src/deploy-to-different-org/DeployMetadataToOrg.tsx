@@ -3,9 +3,8 @@ import { DeployMetadataTableRow, DeployOptions, DeployResult, ListMetadataResult
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeployMetadataToOrgConfigModal from './DeployMetadataToOrgConfigModal';
 import DeployMetadataToOrgStatusModal from './DeployMetadataToOrgStatusModal';

@@ -23,6 +23,7 @@ import type {
   UserProfileUi,
 } from '@jetstream/types';
 import { atom, useAtom, useSetAtom } from 'jotai';
+import { atomFamily, unwrap } from 'jotai/utils';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 
@@ -180,49 +181,57 @@ export const appVersionState = atom<Promise<{ version: string; announcements?: A
 export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
 
 export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fetchUserProfile());
+/**
+ * This is for internal use for derived state to avoid async issues.
+ * Use `userProfileState` for components.
+ */
+export const userProfileSyncState = unwrap(userProfileState, (prev) => prev ?? DEFAULT_PROFILE);
 
-export const userProfileEntitlementState = (entitlement: keyof UserProfileUi['entitlements']) =>
-  atom(async (get) => {
-    const userProfile = await get(userProfileState);
+export const userProfileEntitlementState = atomFamily((entitlement: keyof UserProfileUi['entitlements']) =>
+  atom((get) => {
+    const userProfile = get(userProfileSyncState);
     return userProfile?.entitlements?.[entitlement] ?? false;
-  });
+  })
+);
 
-export const googleDriveAccessState = atom(async (get) => {
+export const googleDriveAccessState = atom((get) => {
   const isChromeExtension = get(isBrowserExtensionState);
-  const hasGoogleDriveAccess = await get(userProfileEntitlementState('googleDrive'));
+  const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
   return {
     hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && hasGoogleDriveAccess,
     googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !hasGoogleDriveAccess,
   };
 });
 
-export const jetstreamOrganizationsState = atom<Promise<JetstreamOrganization[]>>(fetchJetstreamOrganizations());
+export const jetstreamOrganizationsAsyncState = atom<Promise<JetstreamOrganization[]> | JetstreamOrganization[]>(
+  fetchJetstreamOrganizations()
+);
+// Unwrapped value to simplify derived state
+export const jetstreamOrganizationsState = unwrap(jetstreamOrganizationsAsyncState, (prev) => prev ?? []);
 
 // Combine orgs with organizations
 export const jetstreamOrganizationsWithOrgsSelector = atom(
-  async (get) => {
-    const orgsById = await get(salesforceOrgsById);
-    const organizations = await get(jetstreamOrganizationsState);
+  (get) => {
+    const orgsById = get(salesforceOrgsById);
+    const organizations = get(jetstreamOrganizationsState);
     return organizations.map((organization) => ({
       ...organization,
       orgs: organization.orgs.map(({ uniqueId }) => orgsById[uniqueId]).filter(Boolean),
     }));
   },
-  async (get, set, newValue: JetstreamOrganizationWithOrgs[]) => {
-    await set(
+  (get, set, newValue: JetstreamOrganizationWithOrgs[]) => {
+    set(
       jetstreamOrganizationsState,
-      Promise.resolve(
-        newValue.map((organization) => ({
-          ...organization,
-          orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
-        }))
-      )
+      newValue.map((organization) => ({
+        ...organization,
+        orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
+      }))
     );
   }
 );
 
-export const jetstreamOrganizationsExistsSelector = atom(async (get) => {
-  const organizations = await get(jetstreamOrganizationsState);
+export const jetstreamOrganizationsExistsSelector = atom((get) => {
+  const organizations = get(jetstreamOrganizationsState);
   return organizations.length > 0;
 });
 
@@ -236,32 +245,34 @@ export const jetstreamActiveOrganizationState = atom(
   }
 );
 
-export const jetstreamActiveOrganizationSelector = atom<Promise<Maybe<JetstreamOrganizationWithOrgs>>>(async (get) => {
-  const organizations = await get(jetstreamOrganizationsWithOrgsSelector);
+export const jetstreamActiveOrganizationSelector = atom((get) => {
+  const organizations = get(jetstreamOrganizationsWithOrgsSelector);
   const selectedItemId = get(jetstreamActiveOrganizationState);
   return organizations.find((org) => org.id === selectedItemId);
 });
 
-export const salesforceOrgsState = atom<Promise<SalesforceOrgUi[]> | SalesforceOrgUi[]>(getOrgsFromStorage());
+export const salesforceOrgsAsyncState = atom(getOrgsFromStorage());
+// Unwrapped value to simplify derived state
+export const salesforceOrgsState = unwrap(salesforceOrgsAsyncState, (prev) => prev ?? []);
 
-export const salesforceOrgsForOrganizationSelector = atom(async (get) => {
-  const salesforceOrgs = await get(salesforceOrgsState);
+export const salesforceOrgsForOrganizationSelector = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
   const selectedOrganizationId = get(jetstreamActiveOrganizationState) || null;
   return salesforceOrgs.filter((org) => (org.jetstreamOrganizationId || null) === selectedOrganizationId);
 });
 
 export const selectedOrgIdState = atom<Maybe<string>>(getSelectedOrgFromStorage());
 
-export const salesforceOrgsWithoutOrganizationSelector = atom(async (get) => {
-  const orgs = await get(salesforceOrgsState);
+export const salesforceOrgsWithoutOrganizationSelector = atom((get) => {
+  const orgs = get(salesforceOrgsState);
   return orderObjectsBy(
     orgs.filter((org) => !org.jetstreamOrganizationId),
     'label'
   );
 });
 
-export const selectedOrgStateWithoutPlaceholder = atom(async (get) => {
-  const salesforceOrgs = await get(salesforceOrgsState);
+export const selectedOrgStateWithoutPlaceholder = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
   const selectedOrgId = get(selectedOrgIdState);
   if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
     return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
@@ -274,7 +285,7 @@ export const selectedOrgStateWithoutPlaceholder = atom(async (get) => {
  * it is expected that any component with an org required
  * will be wrapped in an <OrgSelectionRequired> component to guard against this
  */
-export const selectedOrgState = atom(async (get) => {
+export const selectedOrgState = atom((get) => {
   const PLACEHOLDER: SalesforceOrgUi = {
     uniqueId: '',
     label: '',
@@ -288,12 +299,12 @@ export const selectedOrgState = atom(async (get) => {
     username: '',
     displayName: '',
   };
-  const org = await get(selectedOrgStateWithoutPlaceholder);
+  const org = get(selectedOrgStateWithoutPlaceholder);
   return org || PLACEHOLDER;
 });
 
-export const salesforceOrgsOmitSelectedState = atom(async (get) => {
-  const salesforceOrgs = await get(salesforceOrgsState);
+export const salesforceOrgsOmitSelectedState = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
   const selectedOrgId = get(selectedOrgIdState);
   if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
     return salesforceOrgs.filter((org) => org.uniqueId !== selectedOrgId);
@@ -301,26 +312,27 @@ export const salesforceOrgsOmitSelectedState = atom(async (get) => {
   return salesforceOrgs;
 });
 
-export const selectSkipFrontdoorAuth = atom(async (get) => {
+export const selectSkipFrontdoorAuth = atom((get) => {
   if (isBrowserExtension()) {
     return true;
   }
-  const userProfile = await get(userProfileState);
-  return userProfile?.preferences?.skipFrontdoorLogin || false;
+  const userProfile = get(userProfileSyncState);
+  console.log(userProfile?.preferences);
+  return userProfile?.preferences?.skipFrontdoorLogin ?? false;
 });
 
-export const salesforceOrgsById = atom(async (get) => {
-  const salesforceOrgs = (await get(salesforceOrgsState)) || [];
+export const salesforceOrgsById = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState) || [];
   return groupByFlat(salesforceOrgs, 'uniqueId');
 });
 
-export const hasConfiguredOrgState = atom(async (get) => {
-  const salesforceOrgs = await get(salesforceOrgsState);
+export const hasConfiguredOrgState = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
   return salesforceOrgs?.length > 0 || false;
 });
 
-export const selectedOrgType = atom<Promise<Maybe<SalesforceOrgUiType>>>(async (get) => {
-  const org = await get(selectedOrgStateWithoutPlaceholder);
+export const selectedOrgType = atom<Maybe<SalesforceOrgUiType>>((get) => {
+  const org = get(selectedOrgStateWithoutPlaceholder);
   return getOrgType(org);
 });
 

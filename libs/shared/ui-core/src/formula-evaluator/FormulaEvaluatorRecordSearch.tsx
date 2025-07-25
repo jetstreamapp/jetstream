@@ -4,9 +4,8 @@ import { describeSObject, query } from '@jetstream/shared/data';
 import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { ViewEditCloneRecord } from '../record/ViewEditCloneRecord';
 
 export interface FormulaEvaluatorRecordSearchProps {

@@ -4,9 +4,8 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Badge, Icon } from '@jetstream/ui';
 import { userProfileEntitlementState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { Link } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '../../analytics';
 
 const CURRENT_TIME = new Date().getTime();

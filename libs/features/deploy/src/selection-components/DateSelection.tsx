@@ -5,9 +5,8 @@ import { fromDeployMetadataState } from '@jetstream/ui-core';
 import { addDays } from 'date-fns/addDays';
 import { isAfter } from 'date-fns/isAfter';
 import { isSameDay } from 'date-fns/isSameDay';
+import { useAtom } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const DATE_RANGE_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [

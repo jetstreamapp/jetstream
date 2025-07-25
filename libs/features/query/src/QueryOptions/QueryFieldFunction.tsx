@@ -2,9 +2,8 @@ import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
 import { ListItem, QueryFieldWithPolymorphic } from '@jetstream/types';
 import { Grid, GridCol, Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import { useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { QueryFieldFunctionRow } from './QueryFieldFunctionRow';
 
 export interface QueryFieldFunctionProps {

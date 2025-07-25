@@ -8,6 +8,7 @@ import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
 import { Subject } from 'rxjs';

@@ -5,9 +5,8 @@ import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useAmplitude } from '..';
 
 type OrgType = 'prod' | 'sandbox' | 'pre-release' | 'custom';

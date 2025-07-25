@@ -3,9 +3,8 @@ import { DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from
 import { FileDownloadModal } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeleteMetadataConfigModal from './DeleteMetadataConfigModal';
 import DeleteMetadataStatusModal from './DeleteMetadataStatusModal';

@@ -1,8 +1,7 @@
 import { CommonUser } from '@jetstream/types';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export function useMetadataSelection() {
   const [metadataSelectionType, setMetadataSelectionType] = useAtom<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);

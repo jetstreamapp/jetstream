@@ -1,20 +1,17 @@
 import { TITLES } from '@jetstream/shared/constants';
-import { useLocationState, useTitle } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import { Spinner } from '@jetstream/ui';
-import { StateDebugObserver, fromQueryState, useQueryRestore } from '@jetstream/ui-core';
+import { fromQueryState, useQueryRestore } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 
 export const Query = () => {
   useTitle(TITLES.QUERY);
   const location = useLocation();
-  const locationState = useLocationState<{ soql?: string }>();
-  const navigate = useNavigate();
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const querySoqlState = useAtomValue(fromQueryState.querySoqlState);
   const isTooling = useAtomValue(fromQueryState.isTooling);
   const resetSobjects = useResetAtom(fromQueryState.sObjectsState);
@@ -80,31 +77,8 @@ export const Query = () => {
     }
   }, [errorMessage, isRestoring]);
 
-  if (location.pathname.endsWith('/editor') && !querySoqlState && !locationState?.soql) {
-    navigate('..');
-  }
-
   return (
     <Fragment>
-      <StateDebugObserver
-        name="QUERY SNAPSHOT"
-        atoms={[
-          ['selectedSObjectState', fromQueryState.selectedSObjectState],
-          ['queryFieldsKey', fromQueryState.queryFieldsKey],
-          ['queryFieldsMapState', fromQueryState.queryFieldsMapState],
-          ['selectedQueryFieldsState', fromQueryState.selectedQueryFieldsState],
-          ['selectedSubqueryFieldsState', fromQueryState.selectedSubqueryFieldsState],
-          ['queryFiltersState', fromQueryState.queryFiltersState],
-          ['filterQueryFieldsState', fromQueryState.filterQueryFieldsState],
-          ['queryHavingState', fromQueryState.queryHavingState],
-          ['fieldFilterFunctions', fromQueryState.fieldFilterFunctions],
-          ['queryGroupByState', fromQueryState.queryGroupByState],
-          ['selectQueryKeyState', fromQueryState.selectQueryKeyState],
-          ['queryLimit', fromQueryState.queryLimit],
-          ['queryLimitSkip', fromQueryState.queryLimitSkip],
-          ['queryOrderByState', fromQueryState.queryOrderByState],
-        ]}
-      />
       {isRestoring && <Spinner />}
       <Outlet />
     </Fragment>

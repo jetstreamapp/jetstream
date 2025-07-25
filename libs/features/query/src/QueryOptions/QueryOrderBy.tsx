@@ -2,9 +2,8 @@
 import { AscDesc, FirstLast, ListItem, QueryOrderByClause } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import React, { Fragment, FunctionComponent, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import QueryOrderByRow from './QueryOrderByRow';
 
 export interface QueryOrderByContainerProps {

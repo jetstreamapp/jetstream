@@ -1,9 +1,8 @@
 import { ListItem, QueryGroupByClause } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import QueryGroupByRow from './QueryGroupByRow';
 
 export interface QueryGroupByContainerProps {

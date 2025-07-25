@@ -3,10 +3,9 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CommonUser, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Grid, ReadonlyList } from '@jetstream/ui';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const METADATA_TYPES_RADIO_BUTTONS: RadioButtonItem<CommonUser>[] = [

@@ -19,7 +19,6 @@ import {
   PermissionTableSummaryRow,
   PermissionTableTabVisibilityCell,
   PermissionTableTabVisibilityCellPermission,
-  SalesforceOrgUi,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecordForSave,
 } from '@jetstream/types';
@@ -39,10 +38,10 @@ import {
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTable';
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
@@ -107,7 +106,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const managePermissionsEditorObjectTableRef = useRef<ManagePermissionsEditorTableRef>(null);
   const managePermissionsEditorFieldTableRef = useRef<ManagePermissionsEditorTableRef>(null);
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);

@@ -62,12 +62,12 @@ async function initAuthState(): Promise<ChromeStorageState> {
 
 export const chromeStorageState = atom<Promise<ChromeStorageState> | ChromeStorageState>(initAuthState());
 
-export const chromeSyncStorage = atom(async (get) => (await get(chromeStorageState)).sync);
+export const chromeSyncStorage = atom((get) => (get(chromeStorageState) as ChromeStorageState).sync);
 
-export const chromeLocalStorage = atom(async (get) => (await get(chromeStorageState)).local);
+export const chromeLocalStorage = atom((get) => (get(chromeStorageState) as ChromeStorageState).local);
 
-export const chromeStorageOptions = atom(async (get) => (await get(chromeStorageState)).local.options);
+export const chromeStorageOptions = atom((get) => (get(chromeStorageState) as ChromeStorageState).local.options);
 
 export const UserProfileState = atom(
-  async (get) => (await get(chromeStorageState)).sync?.authTokens?.userProfile as UserProfileUi | undefined
+  (get) => (get(chromeStorageState) as ChromeStorageState).sync?.authTokens?.userProfile as UserProfileUi | undefined
 );

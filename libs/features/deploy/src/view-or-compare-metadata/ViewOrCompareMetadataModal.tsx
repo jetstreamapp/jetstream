@@ -8,10 +8,9 @@ import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems }
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import Editor, { DiffEditor } from '@monaco-editor/react';
+import { useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { DeployComparedMetadataModal } from './DeployComparedMetadataModal';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';

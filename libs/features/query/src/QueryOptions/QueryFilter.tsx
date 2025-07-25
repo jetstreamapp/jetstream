@@ -9,7 +9,7 @@ export interface QueryFilterProps {
   fields: ListItem[];
   filtersOrHaving: ExpressionType;
   isHavingClause?: boolean;
-  setFiltersOrHaving: (value: ExpressionType) => ExpressionType;
+  setFiltersOrHaving: (value: ExpressionType) => void;
   onLoadRelatedFields: (item: ListItem) => Promise<ListItem[]>;
 }
 

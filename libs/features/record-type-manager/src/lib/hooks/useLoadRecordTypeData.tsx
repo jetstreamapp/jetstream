@@ -5,9 +5,8 @@ import { groupByFlat, orderValues, splitArrayToMaxSize } from '@jetstream/shared
 import { DescribeSObjectResult, ReadMetadataRecordType, ReadMetadataRecordTypeExtended } from '@jetstream/types';
 import { fromRecordTypeManagerState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { RecordTypePicklistConfiguration, SobjectWithPicklistValues } from '../types/record-types.types';
 import { recordTypeReducer } from '../utils/record-types.reducer';
 import { repairAndEnrichMetadata } from '../utils/record-types.utils';

@@ -1,8 +1,7 @@
 import { Alert } from '@jetstream/ui';
 import * as fromAppState from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { useOrgPermissions } from '../orgs/useOrgPermissions';
 
 interface RequireMetadataApiBannerProps {

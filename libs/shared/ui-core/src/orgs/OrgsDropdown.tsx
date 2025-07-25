@@ -3,9 +3,8 @@ import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import AddOrg from './AddOrg';

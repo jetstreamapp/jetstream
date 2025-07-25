@@ -5,10 +5,9 @@ import { formatNumber, useDebounce } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 export interface QueryCountProps {
   org: SalesforceOrgUi;

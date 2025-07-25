@@ -1,6 +1,5 @@
 import { fromQueryState } from '@jetstream/ui-core';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
+import { useAtomValue } from 'jotai';
 
 export interface TabTitleActivityIndicatorProps {
   type: 'standard' | 'advanced';

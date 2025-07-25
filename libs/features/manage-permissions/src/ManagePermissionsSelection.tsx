@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -17,10 +17,10 @@ import {
 import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
-import { FunctionComponent, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAtom, useAtomValue } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -29,7 +29,7 @@ const HEIGHT_BUFFER = 170;
 export interface ManagePermissionsSelectionProps {}
 
 export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
-  const selectedOrg = useAtomValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const [profiles, setProfiles] = useAtom(fromPermissionsState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useAtom(fromPermissionsState.selectedProfilesPermSetState);

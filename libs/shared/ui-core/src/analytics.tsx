@@ -3,10 +3,9 @@ import * as amplitude from '@amplitude/analytics-browser';
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
 import { useEffect } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
 

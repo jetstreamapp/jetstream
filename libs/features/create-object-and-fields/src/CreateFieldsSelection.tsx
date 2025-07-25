@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -31,7 +31,7 @@ export interface CreateFieldsSelectionProps {}
 
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
   const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>(null);
-  const selectedOrg = useAtom<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const [profiles, setProfiles] = useAtom(fromCreateFieldsState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useAtom(fromCreateFieldsState.selectedProfilesPermSetState);

@@ -2,9 +2,8 @@ import { hasModifierKey, isEnterKey } from '@jetstream/shared/ui-utils';
 import { HttpMethod, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { FunctionComponent, KeyboardEvent } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 
 function getDefaultUrl(defaultApiVersion: string) {
   return `/services/${defaultApiVersion}`;

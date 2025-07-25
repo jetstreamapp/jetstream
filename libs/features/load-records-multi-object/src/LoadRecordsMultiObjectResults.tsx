@@ -4,9 +4,8 @@ import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@j
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useResetAtom } from 'jotai/utils';
 import LoadRecordsMultiObjectResultsTable from './LoadRecordsMultiObjectResultsTable';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useDownloadResults from './useDownloadResults';
