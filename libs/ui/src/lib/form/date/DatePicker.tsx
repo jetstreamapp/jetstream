@@ -73,7 +73,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
   initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
   const inputRef = useRef<HTMLInputElement>(null);
-  const [popoverRef, setPopoverRef] = useState<HTMLDivElement | null>(null);
+  const [popoverRef, setPopoverRef] = useState<HTMLElement | null>(null);
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));

@@ -1,8 +1,6 @@
 import { css } from '@emotion/react';
-import type { Placement } from '@popperjs/core';
-import { HTMLAttributes, ReactNode, forwardRef, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { usePopper } from 'react-popper';
+import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
+import { HTMLAttributes, ReactNode, forwardRef, useEffect } from 'react';
 
 export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   className?: string;
@@ -12,10 +10,6 @@ export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElemen
   usePortal?: boolean;
   /** Load content into dom even if not open */
   isEager?: boolean;
-  /** Popper.js offset {@link https://popper.js.org/docs/v2/tutorial/#offset} */
-  offset?: number[];
-  /** Popper.js offset {@link https://popper.js.org/docs/v2/utils/detect-overflow/#placement} */
-  placement?: Placement;
   /** Min width in CSS unit */
   minWidth?: string;
   /** Max width in CSS unit. If provided classname includes "_fluid", no max width wil be set */
@@ -26,39 +20,32 @@ export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElemen
 /**
  * Generic popover container used for dropdown menus, date pickers, etc.
  */
-export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps>(
+export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
   (
-    {
-      className,
-      isOpen,
-      referenceElement,
-      usePortal = false,
-      isEager = false,
-      placement = 'bottom-start',
-      offset = [0, 1.75],
-      minWidth = '15rem',
-      maxWidth = '20rem',
-      children,
-      ...rest
-    },
+    { className, isOpen, referenceElement, usePortal = false, isEager = false, minWidth = '15rem', maxWidth = '20rem', children, ...rest },
     ref
   ) => {
-    const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
-    const { styles, attributes, update } = usePopper(referenceElement, popperElement, {
-      placement,
-      modifiers: [{ name: 'offset', options: { offset: offset as any } }],
+    const { refs, floatingStyles, update } = useFloating({
+      open: isOpen,
+      placement: 'bottom-start',
+      middleware: [offset(1.75), flip(), shift({ padding: 8 })],
+      whileElementsMounted: autoUpdate,
+      elements: {
+        reference: referenceElement,
+      },
     });
 
     useEffect(() => {
       if (!ref) {
         return;
       }
-      if (popperElement && typeof ref === 'function') {
-        ref(popperElement);
-      } else if (popperElement && typeof ref !== 'function') {
-        ref.current = popperElement;
+      const floatingElement = refs.floating.current;
+      if (floatingElement && typeof ref === 'function') {
+        ref(floatingElement);
+      } else if (floatingElement && typeof ref !== 'function') {
+        ref.current = floatingElement;
       }
-    }, [popperElement, ref]);
+    }, [refs.floating, ref]);
 
     // Ensure positioning is updated when the popover is opened - mostly impacts isEager popovers
     useEffect(() => {
@@ -75,9 +62,9 @@ export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps
     const content = (
       <div
         {...rest}
-        ref={setPopperElement}
+        ref={refs.setFloating}
         className={className}
-        // Selectively picked from `slds-dropdown` - removed margin as that must be set via popper offset
+        // Selectively picked from `slds-dropdown` - removed margin as that must be set via popover offset
         css={css`
           z-index: 7000;
           ${className?.includes('_fluid') ? `min-width: ${minWidth};` : `min-width: ${minWidth}; max-width: ${maxWidth};`}
@@ -89,14 +76,13 @@ export const PopoverContainer = forwardRef<HTMLDivElement, PopoverContainerProps
           color: #181818;
           display: ${isOpen ? 'block' : 'none'};
         `}
-        style={{ ...styles.popper }}
-        {...attributes.popper}
+        style={floatingStyles}
       >
         {childrenToRender}
       </div>
     );
 
-    return usePortal ? (createPortal(content, document.body) as ReactNode) : content;
+    return usePortal ? <FloatingPortal>{content}</FloatingPortal> : content;
   }
 );
 

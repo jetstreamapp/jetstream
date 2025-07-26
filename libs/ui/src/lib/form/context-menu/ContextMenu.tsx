@@ -1,5 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 import { css } from '@emotion/react';
+import { FloatingPortal, autoUpdate, flip, offset, shift, useDismiss, useFloating, useInteractions, useRole } from '@floating-ui/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import {
   KeyBuffer,
@@ -16,8 +17,6 @@ import { FocusScope } from '@react-aria/focus';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
-import { usePopper } from 'react-popper';
-import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
 
 export interface ContextMenuProps {
@@ -31,7 +30,7 @@ export interface ContextMenuProps {
 
 /**
  * ContextMenu - this is a dropdown-like menu except it is used for context menus.
- * It is a popper component that is positioned relative to the parentElement.
+ * It is a popover component that is positioned relative to the parentElement.
  */
 export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement, actionText = 'action', items, onClose, onSelected }) => {
   const keyBuffer = useRef(new KeyBuffer());
@@ -41,12 +40,29 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
   const ulContainerEl = useRef<HTMLUListElement>(null);
   const elRefs = useRef<RefObject<HTMLAnchorElement>[]>([]);
 
-  const [popperElement, setPopperElement] = useState<HTMLElement | null>(null);
+  const [isOpen] = useState(true);
 
-  const { styles, attributes } = usePopper(parentElement, popperElement, {
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: (open) => {
+      if (!open) {
+        onClose();
+      }
+    },
     placement: 'bottom-start',
-    modifiers: [{ name: 'offset', options: { offset: [0, 0] } }],
+    middleware: [offset(0), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+    elements: {
+      reference: parentElement,
+    },
   });
+
+  const dismiss = useDismiss(context, {
+    outsidePressEvent: 'mousedown',
+  });
+  const role = useRole(context, { role: 'menu' });
+
+  const { getFloatingProps } = useInteractions([dismiss, role]);
 
   // init array to hold element refs for each item in list
   if (elRefs.current.length !== items.length) {
@@ -143,10 +159,10 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
   }
 
   return (
-    <OutsideClickHandler onOutsideClick={() => onClose()}>
+    <FloatingPortal>
       <FocusScope contain restoreFocus autoFocus>
         <div
-          ref={setPopperElement}
+          ref={refs.setFloating}
           // Selectively picked from `slds-dropdown slds-dropdown_small`
           css={css`
             z-index: 7000;
@@ -160,8 +176,8 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
             box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
             color: #181818;
           `}
-          style={{ ...styles.popper }}
-          {...attributes.popper}
+          style={floatingStyles}
+          {...getFloatingProps()}
         >
           <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
             {items.map((item, i) => (
@@ -204,6 +220,6 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
           </ul>
         </div>
       </FocusScope>
-    </OutsideClickHandler>
+    </FloatingPortal>
   );
 };
