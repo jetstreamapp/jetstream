@@ -209,7 +209,11 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
               <div>
                 {onRecordAction && sobjectName && (
                   <>
-                    <button className="slds-button slds-button_neutral" onClick={() => onRecordAction('view', recordId, sobjectName)}>
+                    <button
+                      autoFocus
+                      className="slds-button slds-button_neutral"
+                      onClick={() => onRecordAction('view', recordId, sobjectName)}
+                    >
                       <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
                       View Record
                     </button>

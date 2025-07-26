@@ -1,6 +1,6 @@
 import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
-import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isTabKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderObjectsBy, orderValues } from '@jetstream/shared/utils';
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
@@ -197,28 +197,127 @@ export function useDataTable<T = RowWithKey>({
   }
 
   /**
+   * Handle Enter key on IdLinkRenderer - clicks the button inside
+   */
+  function handleIdLinkRendererKeydown(event: CellKeyboardEvent): boolean {
+    if (isEnterKey(event)) {
+      (event.target as HTMLElement)?.querySelector('button')?.click();
+      event.preventGridDefault();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Handle Tab navigation within ActionRenderer cells
+   * Using keyboard navigation with tab key, focus on each button in the action cell forwards or backwards.
+   * the arrow keys can be used without this inner cell navigation.
+   */
+  function handleActionRendererTabNavigation(event: CellKeyboardEvent): boolean {
+    if (!isTabKey(event)) {
+      return false;
+    }
+
+    const element = event.target as HTMLElement;
+    const cell = element.closest('.rdg-cell') as HTMLElement;
+
+    if (!cell) {
+      return false;
+    }
+
+    // Check if the current focused element is a button inside the cell
+    const isButtonFocused = element.tagName === 'BUTTON' && cell.contains(element);
+    const buttons = Array.from(cell.querySelectorAll('button'));
+    const currentButtonIndex = buttons.indexOf(element as HTMLButtonElement);
+
+    if (event.shiftKey) {
+      // Handle shift+tab (backwards navigation)
+      if (!isButtonFocused) {
+        // We're entering the cell from the right, focus the last button
+        event.preventGridDefault();
+        const lastButton = buttons[buttons.length - 1] as HTMLButtonElement;
+        if (lastButton) {
+          setTimeout(() => lastButton.focus(), 0);
+        }
+        return true;
+      } else if (currentButtonIndex > 0) {
+        // We're on a button but not the first, prevent default to stay in cell
+        event.preventGridDefault();
+        return true;
+      }
+      // If on first button, let grid handle navigation to previous cell
+    } else {
+      // Handle regular tab (forward navigation)
+      if (!isButtonFocused) {
+        // We're entering the cell from the left, focus the first button
+        event.preventGridDefault();
+        const firstButton = buttons[0] as HTMLButtonElement;
+        if (firstButton) {
+          setTimeout(() => firstButton.focus(), 0);
+        }
+        return true;
+      } else if (currentButtonIndex < buttons.length - 1) {
+        // We're on a button but not the last, prevent default to stay in cell
+        event.preventGridDefault();
+        return true;
+      }
+      // If on last button, let grid handle navigation to next cell
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle custom copy to clipboard
+   */
+  function handleCustomCopyToClipboard(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent): boolean {
+    if (hasCtrlOrMeta(event) && isCKey(event)) {
+      const column = args.column as ColumnWithFilter<unknown>;
+      let value = args.row[column.key];
+
+      if (isArray(value) || isObject(value)) {
+        value = JSON.stringify(value);
+      }
+
+      if (!isNil(value) && copyToClipboard(value)) {
+        // Flash the cell to indicate copy success
+        const cell = (event.target as HTMLElement).closest('.rdg-cell');
+        if (cell) {
+          cell.classList.add('copied');
+          setTimeout(() => {
+            cell.classList.remove('copied');
+          }, 1000);
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * For columns that have edit mode, by default any keypress will enable edit mode which breaks things like ctrl+c to copy.
    * Aside from some specific use-cases, we disable the event from being handled by the grid.
    */
   function handleCellKeydown(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent) {
     try {
-      /** Events allowed to be handled by the editor */
-      if (isArrowKey(event) || isEnterKey(event) || (hasCtrlOrMeta(event) && isVKey(event))) {
+      // Handle renderer-specific keyboard interactions
+      if (args.column.renderCell?.name === 'IdLinkRenderer' && handleIdLinkRendererKeydown(event)) {
         return;
       }
 
-      /** Custom copy to clipboard */
-      if (hasCtrlOrMeta(event) && isCKey(event)) {
-        const column = args.column as ColumnWithFilter<unknown>;
-        let value = args.row[column.key];
-
-        if (isArray(value) || isObject(value)) {
-          value = JSON.stringify(value);
-        }
-
-        !isNil(value) && copyToClipboard(value);
+      if (args.column.renderCell?.name === 'ActionRenderer' && handleActionRendererTabNavigation(event)) {
+        return;
       }
 
+      // Allow certain keys to be handled by the grid
+      if (isArrowKey(event) || isEnterKey(event) || isTabKey(event) || (hasCtrlOrMeta(event) && isVKey(event))) {
+        return;
+      }
+
+      // Handle custom copy to clipboard
+      handleCustomCopyToClipboard(args, event);
+
+      // Prevent all other keys from triggering edit mode
       event.preventGridDefault();
     } catch (ex) {
       logger.warn('handleCellKeydown Error', ex);
@@ -229,6 +328,13 @@ export function useDataTable<T = RowWithKey>({
 
   const handleCellContextMenu = useCallback(
     ({ row, column }: CellMouseArgs<T, unknown>, event: CellMouseEvent) => {
+      // Avoid showing the custom context menu if Ctrl, or Meta is pressed
+      if (event.ctrlKey || event.metaKey) {
+        return;
+      }
+      if (!event.currentTarget.contains(event.target as Node)) {
+        return;
+      }
       event.preventGridDefault();
       // Do not show the default context menu
       event.preventDefault();

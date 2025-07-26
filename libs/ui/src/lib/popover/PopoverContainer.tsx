@@ -25,7 +25,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     { className, isOpen, referenceElement, usePortal = false, isEager = false, minWidth = '15rem', maxWidth = '20rem', children, ...rest },
     ref
   ) => {
-    const { refs, floatingStyles, update } = useFloating({
+    const { refs, floatingStyles, context, update } = useFloating({
       open: isOpen,
       placement: 'bottom-start',
       middleware: [offset(1.75), flip(), shift({ padding: 8 })],

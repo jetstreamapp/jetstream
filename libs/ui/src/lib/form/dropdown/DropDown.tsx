@@ -25,7 +25,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import Icon from '../../widgets/Icon';
 
 export interface DropDownProps {
@@ -167,91 +166,89 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   }
 
   return (
-    <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
-      <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}>
-        <button
-          data-testid={testId}
-          className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
-          aria-haspopup="true"
-          aria-expanded={isOpen}
-          title={actionText}
-          onClick={() => setIsOpen(!isOpen)}
-          disabled={disabled}
-        >
-          {buttonContent ? (
-            buttonContent
-          ) : (
-            <Fragment>
-              {leadingIcon && <Icon type={leadingIcon.type} icon={leadingIcon.icon} className="slds-button__icon" omitContainer />}
-              <Icon
-                type="utility"
-                icon="down"
-                className={classNames('slds-button__icon', {
-                  'slds-button__icon_hint slds-button__icon_small': !leadingIcon,
-                  'slds-button__icon_x-small': !!leadingIcon,
-                })}
-                omitContainer={!!leadingIcon}
-                description={actionText}
-              />
-              {description && <span className="slds-assistive-text">{description}</span>}
-            </Fragment>
-          )}
-        </button>
-        {isOpen && (
-          <div
-            className={classNames(
-              'slds-dropdown',
-              {
-                'slds-dropdown_left': position === 'left',
-                'slds-dropdown_right': position === 'right',
-              },
-              scrollLengthClass,
-              dropDownClassName
-            )}
-          >
-            <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
-              {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
-                <Fragment key={id}>
-                  {subheader && (
-                    <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
-                      <span>{subheader}</span>
-                    </li>
-                  )}
-                  <li className="slds-dropdown__item" role="presentation">
-                    <a
-                      ref={elRefs.current[i]}
-                      role="menuitem"
-                      tabIndex={0}
-                      onKeyDown={handleKeyDown}
-                      onClick={(event) => !disabled && handleSelection(event, id, metadata)}
-                      aria-disabled={disabled}
-                    >
-                      {isString(value) ? (
-                        <span className="slds-truncate" title={title || value}>
-                          {icon && (
-                            <Icon
-                              type={icon.type as IconType}
-                              icon={icon.icon as IconName}
-                              description={icon.description}
-                              omitContainer
-                              className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                            />
-                          )}
-                          {value}
-                        </span>
-                      ) : (
-                        value
-                      )}
-                    </a>
-                  </li>
-                  {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
-                </Fragment>
-              ))}
-            </ul>
-          </div>
+    <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}>
+      <button
+        data-testid={testId}
+        className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+        title={actionText}
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
+      >
+        {buttonContent ? (
+          buttonContent
+        ) : (
+          <Fragment>
+            {leadingIcon && <Icon type={leadingIcon.type} icon={leadingIcon.icon} className="slds-button__icon" omitContainer />}
+            <Icon
+              type="utility"
+              icon="down"
+              className={classNames('slds-button__icon', {
+                'slds-button__icon_hint slds-button__icon_small': !leadingIcon,
+                'slds-button__icon_x-small': !!leadingIcon,
+              })}
+              omitContainer={!!leadingIcon}
+              description={actionText}
+            />
+            {description && <span className="slds-assistive-text">{description}</span>}
+          </Fragment>
         )}
-      </div>
-    </OutsideClickHandler>
+      </button>
+      {isOpen && (
+        <div
+          className={classNames(
+            'slds-dropdown',
+            {
+              'slds-dropdown_left': position === 'left',
+              'slds-dropdown_right': position === 'right',
+            },
+            scrollLengthClass,
+            dropDownClassName
+          )}
+        >
+          <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
+            {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
+              <Fragment key={id}>
+                {subheader && (
+                  <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
+                    <span>{subheader}</span>
+                  </li>
+                )}
+                <li className="slds-dropdown__item" role="presentation">
+                  <a
+                    ref={elRefs.current[i]}
+                    role="menuitem"
+                    tabIndex={0}
+                    onKeyDown={handleKeyDown}
+                    onClick={(event) => !disabled && handleSelection(event, id, metadata)}
+                    aria-disabled={disabled}
+                  >
+                    {isString(value) ? (
+                      <span className="slds-truncate" title={title || value}>
+                        {icon && (
+                          <Icon
+                            type={icon.type as IconType}
+                            icon={icon.icon as IconName}
+                            description={icon.description}
+                            omitContainer
+                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                          />
+                        )}
+                        {value}
+                      </span>
+                    ) : (
+                      value
+                    )}
+                  </a>
+                </li>
+                {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
+              </Fragment>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 };
 

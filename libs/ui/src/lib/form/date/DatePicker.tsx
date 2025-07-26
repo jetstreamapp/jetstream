@@ -13,7 +13,6 @@ import { startOfDay } from 'date-fns/startOfDay';
 import contains from 'document.contains';
 import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import PopoverContainer from '../../popover/PopoverContainer';
-import OutsideClickHandler from '../../utils/OutsideClickHandler';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import DatePickerPopup from './DatePickerPopup';
@@ -166,91 +165,84 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
   }
 
   return (
-    <OutsideClickHandler
-      additionalParentRef={popoverRef}
-      display={containerDisplay}
-      className="slds-combobox_container"
-      onOutsideClick={() => handleToggleOpen(false)}
+    <div
+      className={classNames(
+        'slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click',
+        { 'slds-is-open': isOpen, 'slds-has-error': hasError },
+        className
+      )}
     >
-      <div
-        className={classNames(
-          'slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click',
-          { 'slds-is-open': isOpen, 'slds-has-error': hasError },
-          className
+      <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
+        {isRequired && (
+          <abbr className="slds-required" title="required">
+            *{' '}
+          </abbr>
         )}
-      >
-        <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>
-          {isRequired && (
-            <abbr className="slds-required" title="required">
-              *{' '}
-            </abbr>
-          )}
-          {label}
-        </label>
-        {!hideLabel && labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
-        <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
-          <input
-            ref={inputRef}
-            aria-describedby={errorMessageId}
-            type="text"
-            autoComplete="false"
-            id={id}
-            placeholder=""
-            className="slds-input"
-            value={value}
-            onChange={onValueChange}
-            onBlur={handleBlur}
-            readOnly={readOnly}
-            onClick={() => {
-              if (!isOpen) {
-                handleToggleOpen(true);
-              }
-            }}
-            onKeyUp={(event: KeyboardEvent<HTMLInputElement>) => {
-              if (isOpen && event.keyCode === 27) {
-                handleToggleOpen(false);
-              }
-            }}
-            disabled={disabled}
-            {...inputProps}
-          />
-          <button
-            className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
-            title="Select a date"
-            onClick={() => handleToggleOpen(!isOpen)}
-            disabled={disabled}
-          >
-            {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
-          </button>
-        </div>
-        <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
-        <PopoverContainer
-          ref={setPopoverRef}
-          isOpen={isOpen}
-          className={`slds-datepicker`}
-          referenceElement={inputRef.current}
-          usePortal={usePortal}
+        {label}
+      </label>
+      {!hideLabel && labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+      <div className="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
+        <input
+          ref={inputRef}
+          aria-describedby={errorMessageId}
+          type="text"
+          autoComplete="false"
+          id={id}
+          placeholder=""
+          className="slds-input"
+          value={value}
+          onChange={onValueChange}
+          onBlur={handleBlur}
+          readOnly={readOnly}
+          onClick={() => {
+            if (!isOpen) {
+              handleToggleOpen(true);
+            }
+          }}
+          onKeyUp={(event: KeyboardEvent<HTMLInputElement>) => {
+            if (isOpen && event.keyCode === 27) {
+              handleToggleOpen(false);
+            }
+          }}
+          disabled={disabled}
+          {...inputProps}
+        />
+        <button
+          className="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+          title="Select a date"
+          onClick={() => handleToggleOpen(!isOpen)}
+          disabled={disabled}
         >
-          <DatePickerPopup
-            initialSelectedDate={selectedDate}
-            initialVisibleDate={initialVisibleDate || selectedDate}
-            availableYears={availableYears}
-            minAvailableDate={minAvailableDate}
-            maxAvailableDate={maxAvailableDate}
-            dropDownPosition={dropDownPosition}
-            onClose={() => handleToggleOpen(false)}
-            onSelection={handleDateSelection}
-            onClear={handleClear}
-          />
-        </PopoverContainer>
-        {helpText && <div className="slds-form-element__help">{helpText}</div>}
-        {hasError && errorMessage && (
-          <div className="slds-form-element__help" id={errorMessageId}>
-            {errorMessage}
-          </div>
-        )}
+          {!readOnly && <Icon type="utility" icon="event" className="slds-button__icon" omitContainer description="Select a date" />}
+        </button>
       </div>
-    </OutsideClickHandler>
+      <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
+      <PopoverContainer
+        ref={setPopoverRef}
+        isOpen={isOpen}
+        className={`slds-datepicker`}
+        referenceElement={inputRef.current}
+        usePortal={usePortal}
+      >
+        <DatePickerPopup
+          initialSelectedDate={selectedDate}
+          initialVisibleDate={initialVisibleDate || selectedDate}
+          availableYears={availableYears}
+          minAvailableDate={minAvailableDate}
+          maxAvailableDate={maxAvailableDate}
+          dropDownPosition={dropDownPosition}
+          onClose={() => handleToggleOpen(false)}
+          onSelection={handleDateSelection}
+          onClear={handleClear}
+        />
+      </PopoverContainer>
+      {helpText && <div className="slds-form-element__help">{helpText}</div>}
+      {hasError && errorMessage && (
+        <div className="slds-form-element__help" id={errorMessageId}>
+          {errorMessage}
+        </div>
+      )}
+    </div>
   );
 };
 

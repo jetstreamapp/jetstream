@@ -621,36 +621,36 @@ export const ActionRenderer = ({ row }: { row: any }): ReactNode => {
       <ErrorMessageRenderer row={row} />
       <Tooltip content="View full record">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'view')}>
-          <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View Record" />
         </button>
       </Tooltip>
       <Tooltip content="Edit">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'edit')}>
-          <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
         </button>
       </Tooltip>
       <Tooltip content="Clone">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'clone')}>
-          <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
         </button>
       </Tooltip>
       {isDeleted && (
         <Tooltip content="Restore from Recycle Bin">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'undelete')}>
-            <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer />
+            <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer title="Restore from Recycle Bin" />
           </button>
         </Tooltip>
       )}
       {!isDeleted && (
         <Tooltip content="Delete">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'delete')}>
-            <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+            <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer title="Delete Record" />
           </button>
         </Tooltip>
       )}
       <Tooltip content="Turn Into Apex">
         <button className="slds-button slds-button_icon" onClick={() => row._action(row, 'apex')}>
-          <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer title="Turn Into Apex" />
         </button>
       </Tooltip>
     </Fragment>

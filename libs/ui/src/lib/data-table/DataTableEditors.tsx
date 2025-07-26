@@ -17,7 +17,6 @@ import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
 import PopoverContainer from '../popover/PopoverContainer';
 import Tabs from '../tabs/Tabs';
-import OutsideClickHandler from '../utils/OutsideClickHandler';
 import { DataTableGenericContext } from './data-table-context';
 import { getRowId } from './data-table-utils';
 
@@ -55,28 +54,26 @@ function DataTableEditorPopover({
   }, [colIdx, rowIdx, rows]);
 
   return (
-    <OutsideClickHandler additionalParentRef={popoverRef.current} onOutsideClick={() => onClose()}>
-      <PopoverContainer
-        ref={popoverRef}
-        isOpen
-        referenceElement={referenceElement as any}
-        className="slds-popover slds-popover slds-popover_edit"
-        role="dialog"
-        offset={[0, -28.5]}
-        usePortal
-        onKeyDown={(event) => {
-          if (isEscapeKey(event)) {
-            onClose();
-          }
-        }}
-      >
-        {referenceElement && (
-          <FocusScope contain restoreFocus autoFocus>
-            <div className="slds-p-around_x-small">{children}</div>
-          </FocusScope>
-        )}
-      </PopoverContainer>
-    </OutsideClickHandler>
+    <PopoverContainer
+      ref={popoverRef}
+      isOpen
+      referenceElement={referenceElement as any}
+      className="slds-popover slds-popover slds-popover_edit"
+      role="dialog"
+      // offset={[0, -28.5]}
+      usePortal
+      onKeyDown={(event) => {
+        if (isEscapeKey(event)) {
+          onClose();
+        }
+      }}
+    >
+      {referenceElement && (
+        <FocusScope contain restoreFocus autoFocus>
+          <div className="slds-p-around_x-small">{children}</div>
+        </FocusScope>
+      )}
+    </PopoverContainer>
   );
 }
 

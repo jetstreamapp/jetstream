@@ -17,7 +17,9 @@ import { FocusScope } from '@react-aria/focus';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
+import Grid from '../../grid/Grid';
 import Icon from '../../widgets/Icon';
+import { KeyboardShortcut, getModifierKey } from '../../widgets/KeyboardShortcut';
 
 export interface ContextMenuProps {
   actionText?: string;
@@ -170,7 +172,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
             max-width: 20rem;
             border: 1px solid #e5e5e5;
             border-radius: 0.25rem;
-            padding: 0.25rem 0;
+            padding: 0.25rem 0 0;
             font-size: 0.75rem;
             background: #fff;
             box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
@@ -218,6 +220,9 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
               </Fragment>
             ))}
           </ul>
+          <Grid className="slds-popover__footer">
+            <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'right-click']} /> to skip this menu
+          </Grid>
         </div>
       </FocusScope>
     </FloatingPortal>
