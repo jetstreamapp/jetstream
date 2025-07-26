@@ -1154,6 +1154,7 @@ export async function linkIdentityToUser({
       .then((user) => AuthenticatedUserSchema.parse(user));
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {
+      // FIXME: This error is never presented to the user, it silently fails
       // TODO: is this the correct error message? some other user already has this identity linked
       throw new LoginWithExistingIdentity('Provider identity already linked to another user');
     } else if (existingProviderUser) {

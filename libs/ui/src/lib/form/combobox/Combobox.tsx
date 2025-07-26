@@ -37,10 +37,10 @@ import { ComboboxListItem } from './ComboboxListItem';
 export interface ComboboxPropsRef {
   clearInputText(): void;
   getRefs(): {
-    inputEl: React.RefObject<HTMLInputElement>;
-    divContainerEl: React.RefObject<HTMLDivElement>;
-    entireContainerEl: React.RefObject<HTMLDivElement>;
-    popoverRef: React.RefObject<HTMLDivElement>;
+    inputEl: React.RefObject<HTMLInputElement | null>;
+    divContainerEl: React.RefObject<HTMLDivElement | null>;
+    entireContainerEl: React.RefObject<HTMLDivElement | null>;
+    popoverRef: React.RefObject<HTMLDivElement | null>;
   };
   close(): void;
 }
@@ -211,7 +211,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
             divContainerEl,
             entireContainerEl,
             popoverRef,
-          } as ReturnType<ComboboxPropsRef['getRefs']>;
+          };
         },
         close: () => {
           setTimeout(() => {

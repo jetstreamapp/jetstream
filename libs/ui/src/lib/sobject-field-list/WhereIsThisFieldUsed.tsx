@@ -29,8 +29,6 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
   const [exportData, setExportData] = useState<{ 'Reference Type': string; 'Reference Label': string; Namespace: string }[]>([]);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
-  const hasGoogleDriveAccess2 = true;
-  const googleShowUpgradeToPro2 = true;
 
   const { loadDependencies, loading, items, hasLoaded, hasError, errorMessage } = useWhereIsThisUsed(org, sobject, fieldName);
 

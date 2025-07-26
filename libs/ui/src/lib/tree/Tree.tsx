@@ -7,7 +7,7 @@ import TreeItem from './TreeItem';
 
 export interface TreeItems<T = any> {
   id: string;
-  label: string | React.ReactNode | React.ReactNode;
+  label: string | React.ReactNode;
   title?: string;
   meta?: T;
   treeItems?: TreeItems[];

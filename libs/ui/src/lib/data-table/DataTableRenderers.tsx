@@ -335,6 +335,7 @@ export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }
         <>
           <Checkbox
             id={`${columnKey}-select-all`}
+            checkboxClassName="slds-p-left_xx-small"
             label="(Select All)"
             indeterminate={indeterminate}
             checked={allItemsSelected}
@@ -361,7 +362,7 @@ export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }
                 >
                   <Checkbox
                     id={`${columnKey}-${virtualItem.key}`}
-                    checkboxClassName="slds-truncate white-space-nowrap"
+                    checkboxClassName="slds-truncate white-space-nowrap slds-p-left_xx-small"
                     label={visibleItems[virtualItem.index]}
                     checked={selectedValues.has(visibleItems[virtualItem.index])}
                     onChange={(checked) => handleChange(visibleItems[virtualItem.index], checked)}
