@@ -9,7 +9,7 @@ import Icon from '../widgets/Icon';
 export interface ItemSelectionSummaryProps {
   label?: string;
   items: { value: string; label: string }[];
-  portalRef?: Maybe<Element>;
+  portalRef?: Maybe<HTMLElement>;
   disabled?: boolean;
   onClearItem: (item: string) => void;
   onClearAll: () => void;

@@ -21,7 +21,7 @@ function getDefaultPermissions(): CreateObjectPermissions {
 export interface CreateNewObjectPermissionsProps {
   selectedOrg: SalesforceOrgUi;
   loading: boolean;
-  portalRef?: Maybe<Element>;
+  portalRef?: Maybe<HTMLElement>;
 }
 
 export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: CreateNewObjectPermissionsProps) => {

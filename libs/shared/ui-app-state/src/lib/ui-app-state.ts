@@ -251,7 +251,7 @@ export const jetstreamActiveOrganizationSelector = atom((get) => {
   return organizations.find((org) => org.id === selectedItemId);
 });
 
-export const salesforceOrgsAsyncState = atom(getOrgsFromStorage());
+export const salesforceOrgsAsyncState = atom<Promise<SalesforceOrgUi[]> | SalesforceOrgUi[]>(getOrgsFromStorage());
 // Unwrapped value to simplify derived state
 export const salesforceOrgsState = unwrap(salesforceOrgsAsyncState, (prev) => prev ?? []);
 
@@ -317,7 +317,6 @@ export const selectSkipFrontdoorAuth = atom((get) => {
     return true;
   }
   const userProfile = get(userProfileSyncState);
-  console.log(userProfile?.preferences);
   return userProfile?.preferences?.skipFrontdoorLogin ?? false;
 });
 

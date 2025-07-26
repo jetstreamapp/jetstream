@@ -19,6 +19,7 @@ import Picklist from '../form/picklist/Picklist';
 import SearchInput from '../form/search-input/SearchInput';
 import TimePicker from '../form/time-picker/TimePicker';
 import Modal from '../modal/Modal';
+import { usePortalContext } from '../modal/PortalContext';
 import Popover, { PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
@@ -141,9 +142,12 @@ interface HeaderFilterProps {
 }
 
 export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) => {
+  const [active, setActive] = useState(false);
   const popoverRef = useRef<PopoverRef>(null);
 
-  const [active, setActive] = useState(false);
+  // Detect if we're in a modal by checking for PortalContext
+  const { isInPortal, portalRoot } = usePortalContext();
+  const portalRef = isInPortal && portalRoot ? portalRoot : portalRefForFilters?.current;
 
   useEffect(() => {
     setActive(filters?.some((filter) => isFilterActive(filter, (filterSetValues[columnKey] || []).length)));
@@ -191,7 +195,8 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalR
     >
       <Popover
         ref={popoverRef}
-        portalRef={portalRefForFilters?.current}
+        portalRef={portalRef}
+        omitPortal={isInPortal && !portalRoot}
         header={
           <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
             <h2 className="slds-text-heading_small">Filter</h2>

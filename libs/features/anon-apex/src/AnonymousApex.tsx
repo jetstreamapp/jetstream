@@ -260,7 +260,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                   />
                 </div>
                 <Tooltip
-                  delay={[300, null]}
+                  delay={300}
                   content={
                     <div className="slds-p-bottom_small">
                       <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

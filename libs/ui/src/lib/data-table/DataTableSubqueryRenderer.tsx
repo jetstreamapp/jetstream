@@ -279,7 +279,6 @@ function ModalDataTable({
           onClose={handleCloseModal}
           footerClassName="slds-is-relative"
           overrideZIndex={1001}
-          additionalOverlayProps={{ shouldCloseOnInteractOutside: () => false }}
           footer={
             <Grid
               align="spread"

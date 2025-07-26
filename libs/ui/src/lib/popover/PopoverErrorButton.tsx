@@ -12,7 +12,7 @@ export interface PopoverErrorButtonProps {
   listHeader?: string | null;
   errors: string | string[];
   omitPortal?: boolean;
-  portalRef?: Maybe<Element>;
+  portalRef?: Maybe<HTMLElement>;
 }
 
 export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({

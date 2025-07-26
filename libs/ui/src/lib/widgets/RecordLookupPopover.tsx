@@ -21,7 +21,7 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
-  portalRef?: Maybe<Element>;
+  portalRef?: Maybe<HTMLElement>;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 

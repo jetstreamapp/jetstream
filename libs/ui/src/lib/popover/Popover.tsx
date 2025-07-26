@@ -16,7 +16,8 @@ import {
 } from '@floating-ui/react';
 import { FullWidth, Maybe, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, forwardRef, MouseEvent, ReactNode, useCallback, useImperativeHandle, useState } from 'react';
+import { createElement, CSSProperties, forwardRef, ReactNode, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
 
 export interface PopoverRef {
@@ -78,6 +79,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     }: PopoverProps,
     ref
   ) => {
+    const { isInPortal } = usePortalContext();
     const [isOpen, setIsOpen] = useState(false);
     const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
@@ -110,7 +112,10 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
 
     const click = useClick(context);
-    const dismiss = useDismiss(context);
+    const dismiss = useDismiss(context, {
+      outsidePressEvent: 'mousedown',
+      ancestorScroll: false,
+    });
     const role = useRole(context);
 
     const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
@@ -135,6 +140,34 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       setIsOpen(false);
     }, []);
 
+    /**
+     * Popovers used in modals did not close when clicking outside of them.
+     * This is a manual solution to ensure that the popover closes when clicking outside of it.
+     */
+    useEffect(() => {
+      if (!isOpen || !isInPortal) {
+        return;
+      }
+
+      const handleOutsideClick = (event: MouseEvent) => {
+        const target = event.target as Element;
+        const popoverElement = refs.floating.current;
+        const referenceElement = refs.domReference.current;
+
+        // If click is outside both popover and its trigger
+        if (popoverElement && referenceElement && !popoverElement.contains(target) && !referenceElement.contains(target)) {
+          setIsOpen(false);
+        }
+      };
+
+      // Use capture phase to ensure we catch the event before modal
+      document.addEventListener('mousedown', handleOutsideClick, true);
+
+      return () => {
+        document.removeEventListener('mousedown', handleOutsideClick, true);
+      };
+    }, [isOpen, refs.floating, refs.domReference, isInPortal]);
+
     const ConditionalWrapper = omitPortal ? ({ children }: { children: ReactNode }) => children : FloatingPortal;
     const wrapperProps = omitPortal ? {} : { root: portalRef };
 
@@ -156,7 +189,7 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
     const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;
 
     return (
-      <span className={classNames('slds-is-relative', classname)} onClick={(ev: MouseEvent<HTMLSpanElement>) => ev.stopPropagation()}>
+      <span className={classNames('slds-is-relative', classname)}>
         {createElement(TriggerElement, { ref: refs.setReference, ...triggerProps }, children)}
         {isOpen && (
           <ConditionalWrapper {...wrapperProps}>
