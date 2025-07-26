@@ -245,7 +245,7 @@ function getQueryResultColumn({
     cellClass: (row: any) => {
       const classes = ['slds-truncate'];
       if (row._touchedColumns instanceof Set && (row._touchedColumns as Set<string>).has(field) && row[field] !== row._record?.[field]) {
-        classes.push('edited');
+        classes.push('slds-is-edited');
         if (row._saveError) {
           classes.push('active-item-error');
         }

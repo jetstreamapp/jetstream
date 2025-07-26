@@ -11,10 +11,10 @@ import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { apiRequestHistoryDb, queryHistoryDb, queryHistoryObjectDb, recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import orderBy from 'lodash/orderBy';
 import uniqBy from 'lodash/uniqBy';
 import { useCallback, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { Observable } from 'rxjs';
 import { fromJetstreamEvents } from '..';
 
@@ -52,10 +52,10 @@ async function deleteAllHistoryRecords(org: SalesforceOrgUi) {
 }
 
 export function useUpdateOrgs() {
-  const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const actionInProgress = useRecoilValue(fromAppState.actionInProgressState);
-  const setJetstreamOrganizations = useSetRecoilState(fromAppState.jetstreamOrganizationsState);
+  const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const actionInProgress = useAtomValue(fromAppState.actionInProgressState);
+  const setJetstreamOrganizations = useSetAtom(fromAppState.jetstreamOrganizationsState);
   const [orgLoading, setOrgLoading] = useState(false);
 
   // subscribe to org changes from other places in the application
@@ -70,7 +70,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrgs = useCallback(async () => {
     try {
-      setOrgs(await getOrgs());
+      setOrgs(getOrgs());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }
@@ -79,7 +79,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrganizations = useCallback(async () => {
     try {
-      setJetstreamOrganizations(await getJetstreamOrganizations());
+      setJetstreamOrganizations(getJetstreamOrganizations());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }
@@ -90,7 +90,7 @@ export function useUpdateOrgs() {
    * This is not in a useCallback because it caused an infinite loop since orgs changes a lot and is a dependency
    */
   const handleAddOrg = useCallback((org: SalesforceOrgUi, switchActiveOrg: boolean) => {
-    setOrgs((prevOrgs) => uniqBy(orderBy([org, ...prevOrgs], 'username'), 'uniqueId'));
+    setOrgs(async (prevOrgs) => uniqBy(orderBy([org, ...(await prevOrgs)], 'username'), 'uniqueId'));
     if (switchActiveOrg) {
       setSelectedOrgId(org.uniqueId);
     }
@@ -116,7 +116,7 @@ export function useUpdateOrgs() {
     try {
       setOrgLoading(true);
       await updateOrg(org, updatedOrg);
-      setOrgs(await getOrgs());
+      setOrgs(getOrgs());
     } catch (ex) {
       logger.warn('Error updating org', ex);
     } finally {

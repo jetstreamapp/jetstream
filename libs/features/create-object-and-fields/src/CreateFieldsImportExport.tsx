@@ -24,8 +24,8 @@ import {
   useAmplitude,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { CREATE_FIELDS_EXAMPLE_TEMPLATE } from './create-fields-import-example';
 
 export interface CreateFieldsImportExportProps {
@@ -36,8 +36,8 @@ export interface CreateFieldsImportExportProps {
 
 export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: CreateFieldsImportExportProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const popoverRef = useRef<PopoverRef>(null);
   const [exportData, setExportData] = useState<any[]>(rows);
   const [exportModalOpen, setExportModalOpen] = useState(false);

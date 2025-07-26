@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -18,9 +18,8 @@ import {
 import { RequireMetadataApiBanner, fromAutomationControlState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
-import { FunctionComponent } from 'react';
+import { useAtom, useAtomValue } from 'jotai';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { AutomationMetadataType } from './automation-control-types';
 
 const HEIGHT_BUFFER = 170;
@@ -40,21 +39,17 @@ export function filterPermissionsSobjects(sobject: DescribeGlobalSObjectResult |
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlSelectionProps {}
-
-export const AutomationControlSelection: FunctionComponent<AutomationControlSelectionProps> = () => {
+export const AutomationControlSelection = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
-  const rollbar = useRollbar();
 
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
-  const hasSelectionsMade = useRecoilValue(fromAutomationControlState.hasSelectionsMade);
-  const [sobjects, setSobjects] = useRecoilState(fromAutomationControlState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromAutomationControlState.selectedSObjectsState);
+  const hasSelectionsMade = useAtomValue(fromAutomationControlState.hasSelectionsMade);
+  const [sobjects, setSobjects] = useAtom(fromAutomationControlState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useAtom(fromAutomationControlState.selectedSObjectsState);
 
-  const automationTypes = useRecoilValue(fromAutomationControlState.automationTypes);
-  const [selectedAutomationTypes, setSelectedAutomationTypes] = useRecoilState(fromAutomationControlState.selectedAutomationTypes);
+  const automationTypes = useAtomValue(fromAutomationControlState.automationTypes);
+  const [selectedAutomationTypes, setSelectedAutomationTypes] = useAtom(fromAutomationControlState.selectedAutomationTypes);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);

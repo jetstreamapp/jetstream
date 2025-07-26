@@ -20,7 +20,7 @@ export interface SoqlTextareaProps {
 
 export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
   ({ soql, isTooling, selectedOrg, selectedSObject, onOpenHistory }) => {
-    const editorRef = useRef<editor.IStandaloneCodeEditor>();
+    const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
 
     const handleEditorMount: OnMount = (currEditor, monaco) => {
       editorRef.current = currEditor;

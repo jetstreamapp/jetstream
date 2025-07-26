@@ -22,8 +22,8 @@ export const MassUpdateRecordTransformationText: FunctionComponent<MassUpdateRec
   }
   const { option, alternateField, staticValue, criteria, whereClause } = transformationOptions;
   let title = '';
-  let objectAndField: JSX.Element;
-  let updateCriteria: Maybe<JSX.Element>;
+  let objectAndField: React.ReactNode;
+  let updateCriteria: Maybe<React.ReactNode>;
   const isBoolean = selectedFieldMetadata?.type === 'boolean';
   switch (option) {
     case 'staticValue':

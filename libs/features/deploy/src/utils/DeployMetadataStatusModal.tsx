@@ -72,7 +72,7 @@ export const DeployMetadataStatusModal: FunctionComponent<DeployMetadataStatusMo
   const isDone = results?.done;
   const { trackEvent } = useAmplitude();
   const [hasErrors, setHasErrors] = useState(false);
-  const tabsRef = useRef<TabsRef>();
+  const tabsRef = useRef<TabsRef>(null);
   // when errors are encountered for the first time, focus the errors tab
   useEffect(() => {
     const componentFailures = results?.details?.componentFailures;

@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { ApexLogWithViewed } from '@jetstream/types';
 import { AutoFullHeightContainer, ColumnWithFilter, DataTable, Icon, setColumnFromType } from '@jetstream/ui';
-import { FunctionComponent, useEffect, useRef } from 'react';
-import { CellClickArgs, RenderCellProps } from 'react-data-grid';
+import { FunctionComponent, ReactNode, useEffect, useRef } from 'react';
+import { CellMouseArgs, RenderCellProps } from 'react-data-grid';
 
-export const LogViewedRenderer: FunctionComponent<RenderCellProps<ApexLogWithViewed>> = ({ row }) => {
+export const LogViewedRenderer = ({ row }: RenderCellProps<ApexLogWithViewed>): ReactNode => {
   if (row?.viewed) {
     return (
       <Icon
@@ -95,7 +95,7 @@ export const DebugLogViewerTable: FunctionComponent<DebugLogViewerTableProps> = 
     };
   }, []);
 
-  function handleSelectionChanged({ row }: CellClickArgs<ApexLogWithViewed>) {
+  function handleSelectionChanged({ row }: CellMouseArgs<ApexLogWithViewed>) {
     if (row) {
       onRowSelection(row);
     }

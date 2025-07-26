@@ -47,7 +47,7 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
   const [systemErrorMessage, setSystemErrorMessage] = useState<string | null>(null);
   const [id] = useState(uniqueId('image-selector'));
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const inputRef = useRef<HTMLInputElement>();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [loadedImages, setLoadedImages] = useState<ImageWithUpload[]>([]);
 

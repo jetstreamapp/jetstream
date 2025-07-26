@@ -4,8 +4,8 @@ import { logger } from '@jetstream/shared/client-logger';
 import { Grid } from '@jetstream/ui';
 import { AppLoading, JetstreamLogoInverse } from '@jetstream/ui-core';
 import { DEFAULT_PROFILE, fromAppState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
 
 // 12 hours in milliseconds
 const CHECK_AUTH_TIMER_INTERVAL = 12 * 60 * 60 * 1000;
@@ -19,7 +19,7 @@ export function Login({ children }: LoginProps) {
   // TODO: show loading indicator while logging in via browser
   const [loggingIn, setLoggingIn] = useState(false);
   const [authInfo, setAuthInfo] = useState<DesktopAuthInfo>();
-  const [userProfile, setUserProfile] = useRecoilState(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
 
   const authenticationEventHandler = useCallback(
     (response: AuthenticatePayload) => {

@@ -12,7 +12,7 @@ export interface PageHeaderTitleProps {
   label: string;
   docsPath?: string;
   metaLabel?: string;
-  titleDropDown?: JSX.Element;
+  titleDropDown?: React.ReactNode;
   children?: React.ReactNode;
 }
 

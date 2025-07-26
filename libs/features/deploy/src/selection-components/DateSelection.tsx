@@ -5,8 +5,8 @@ import { fromDeployMetadataState } from '@jetstream/ui-core';
 import { addDays } from 'date-fns/addDays';
 import { isAfter } from 'date-fns/isAfter';
 import { isSameDay } from 'date-fns/isSameDay';
+import { useAtom } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const DATE_RANGE_RADIO_BUTTONS: RadioButtonItem<AllUser>[] = [
@@ -38,9 +38,9 @@ export const DateSelection: FunctionComponent<DateSelectionProps | DateSelection
   const [maxDate] = useState(() => addDays(new Date(), 1));
   const [isValid, setIsValid] = useState(true);
 
-  const [_dateRangeSelection, _setDateRangeSelection] = useRecoilState<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
-  const [_dateRangeStart, _setDateRangeStart] = useRecoilState<Date | null>(fromDeployMetadataState.dateRangeStartState);
-  const [_dateRangeEnd, _setDateRangeEnd] = useRecoilState<Date | null>(fromDeployMetadataState.dateRangeEndState);
+  const [_dateRangeSelection, _setDateRangeSelection] = useAtom<AllUser>(fromDeployMetadataState.dateRangeSelectionState);
+  const [_dateRangeStart, _setDateRangeStart] = useAtom<Date | null>(fromDeployMetadataState.dateRangeStartState);
+  const [_dateRangeEnd, _setDateRangeEnd] = useAtom<Date | null>(fromDeployMetadataState.dateRangeEndState);
 
   const [dateRangeSelection, setDateRangeSelection] = useState(_dateRangeSelection);
   const [dateRangeStart, setDateRangeStart] = useState(_dateRangeStart);

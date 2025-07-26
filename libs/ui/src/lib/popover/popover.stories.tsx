@@ -97,7 +97,7 @@ const ScrollableContainerTemplate: Story<PopoverProps> = ({ children, ...args })
 );
 
 const TemplateWithOutsideControl: Story<PopoverProps> = ({ children, ...args }) => {
-  const ref = useRef<PopoverRef>();
+  const ref = useRef<PopoverRef>(null);
 
   return (
     <div

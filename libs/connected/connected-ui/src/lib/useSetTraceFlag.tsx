@@ -75,7 +75,7 @@ function reducer(state: State, action: Action): State {
 
 export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT_EXTEND_TRACE_BY_HOURS) {
   const isMounted = useRef(true);
-  const expirationTimeout = useRef<number>();
+  const expirationTimeout = useRef<number>(null);
 
   const [{ hasLoaded, loading, errorMessage, status, userTrace, debugLevels, activeDebugLevel, expirationDate }, dispatch] = useReducer(
     reducer,
@@ -90,15 +90,64 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
     isMounted.current = true;
     return () => {
       isMounted.current = false;
-      clearTimeout(expirationTimeout.current);
+      expirationTimeout.current && clearTimeout(expirationTimeout.current);
     };
   }, []);
+
+  /**
+   * Sets a timeout to extend the user trace if the user is still on the page when the
+   */
+  const extendExpirationBeforeExpire = useCallback(
+    (expirationDate: Date, activeDebugLevelId: string, userTrace: UserTrace) => {
+      if (expirationTimeout.current) {
+        clearTimeout(expirationTimeout.current);
+      }
+
+      // get milliseconds until we are close to expiring - ensure that it is at least 1 hour in the future
+      const needToRefreshTrace = Math.max(
+        60000,
+        differenceInMilliseconds(addMinutes(expirationDate, BUFFER_TO_EXTEND_MINUTES * -1), new Date())
+      );
+
+      logger.log('[APEX LOG][REFRESH TRACE MS]', needToRefreshTrace);
+
+      expirationTimeout.current = window.setTimeout(async () => {
+        logger.log('[APEX LOG][REFRESHING TRACE]');
+        if (isMounted.current) {
+          try {
+            dispatch({ type: 'LOADING' });
+            const results = await createOrExtendDebugTrace(org, extendTraceHours, activeDebugLevelId, userTrace);
+            if (isMounted.current) {
+              dispatch({
+                type: 'EXTENDED_TRACE',
+                payload: {
+                  userTrace: results.trace,
+                  expirationDate: results.expirationDate,
+                },
+              });
+            }
+          } catch (ex) {
+            // could not extend
+            logger.warn('[APEX LOG][TRACE EXTEND ERROR]', ex.message);
+            logger.warn(ex);
+            if (isMounted.current) {
+              dispatch({ type: 'LOADING', payload: { loading: false } });
+            }
+          }
+        }
+      }, needToRefreshTrace);
+      return () => {
+        expirationTimeout.current && clearTimeout(expirationTimeout.current);
+      };
+    },
+    [org, extendTraceHours]
+  );
 
   useEffect(() => {
     if (expirationDate && activeDebugLevel?.Id && userTrace) {
       extendExpirationBeforeExpire(expirationDate, activeDebugLevel.Id, userTrace);
     }
-  }, [expirationDate, activeDebugLevel, userTrace]);
+  }, [expirationDate, activeDebugLevel, userTrace, extendExpirationBeforeExpire]);
 
   /**
    * Change debug log level and update trace to use new level
@@ -187,55 +236,6 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
     dispatch({ type: 'INIT' });
     init(true);
   }, [init]);
-
-  /**
-   * Sets a timeout to extend the user trace if the user is still on the page when the
-   */
-  const extendExpirationBeforeExpire = useCallback(
-    (expirationDate: Date, activeDebugLevelId: string, userTrace: UserTrace) => {
-      if (expirationTimeout.current) {
-        clearTimeout(expirationTimeout.current);
-      }
-
-      // get milliseconds until we are close to expiring - ensure that it is at least 1 hour in the future
-      const needToRefreshTrace = Math.max(
-        60000,
-        differenceInMilliseconds(addMinutes(expirationDate, BUFFER_TO_EXTEND_MINUTES * -1), new Date())
-      );
-
-      logger.log('[APEX LOG][REFRESH TRACE MS]', needToRefreshTrace);
-
-      expirationTimeout.current = window.setTimeout(async () => {
-        logger.log('[APEX LOG][REFRESHING TRACE]');
-        if (isMounted.current) {
-          try {
-            dispatch({ type: 'LOADING' });
-            const results = await createOrExtendDebugTrace(org, extendTraceHours, activeDebugLevelId, userTrace);
-            if (isMounted.current) {
-              dispatch({
-                type: 'EXTENDED_TRACE',
-                payload: {
-                  userTrace: results.trace,
-                  expirationDate: results.expirationDate,
-                },
-              });
-            }
-          } catch (ex) {
-            // could not extend
-            logger.warn('[APEX LOG][TRACE EXTEND ERROR]', ex.message);
-            logger.warn(ex);
-            if (isMounted.current) {
-              dispatch({ type: 'LOADING', payload: { loading: false } });
-            }
-          }
-        }
-      }, needToRefreshTrace);
-      return () => {
-        clearTimeout(expirationTimeout.current);
-      };
-    },
-    [org, extendTraceHours]
-  );
 
   return { changeLogLevel, hasLoaded, loading, errorMessage, status, userTrace, activeDebugLevel, debugLevels, expirationDate };
 }

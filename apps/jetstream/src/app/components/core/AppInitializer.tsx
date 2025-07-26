@@ -8,9 +8,9 @@ import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -37,13 +37,13 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
-  const userProfile = useRecoilValue(fromAppState.userProfileState);
-  const { version, announcements } = useRecoilValue(fromAppState.appVersionState);
-  const appCookie = useRecoilValue(fromAppState.applicationCookieState);
-  const [orgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
+  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const { version, announcements } = useAtomValue(fromAppState.appVersionState);
+  const appCookie = useAtomValue(fromAppState.applicationCookieState);
+  const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
 
-  const recordSyncEntitlementEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEntitlementEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
 
   useEffect(() => {

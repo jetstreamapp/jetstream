@@ -22,7 +22,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   userInitiated = false,
   onClose,
 }) => {
-  const composerRef = useRef<DockedComposerRef>();
+  const composerRef = useRef<DockedComposerRef>(null);
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const [isDismissed, setIsDismissed] = useState(true);
   const { trackEvent } = useAmplitude();
@@ -30,7 +30,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   // ask user for notification permissions on load
   useEffect(() => {
     if (window.Notification) {
-      if (userInitiated || (!userPreferences.deniedNotifications && window.Notification.permission === 'default')) {
+      if (userInitiated || (!userPreferences?.deniedNotifications && window.Notification.permission === 'default')) {
         setTimeout(() => setIsDismissed(false), loadDelay);
         trackEvent(ANALYTICS_KEYS.notifications_modal_opened, { userInitiated, currentPermission: window.Notification.permission });
       }

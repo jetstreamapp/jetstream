@@ -17,9 +17,9 @@ import {
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 
 const EMPTY_COLOR = '_none_';
 
@@ -109,8 +109,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   onRemoveOrg,
   onUpdateOrg,
 }) => {
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [orgLabel, setOrgLabel] = useState(org.label || org.username);
   const [orgColor, setOrgColor] = useState(org.color || EMPTY_COLOR);
   const [removeOrgActive, setRemoveOrgActive] = useState(false);

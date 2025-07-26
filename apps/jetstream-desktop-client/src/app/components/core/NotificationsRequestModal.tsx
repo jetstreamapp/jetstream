@@ -22,7 +22,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
   userInitiated = false,
   onClose,
 }) => {
-  const composerRef = useRef<DockedComposerRef>();
+  const composerRef = useRef<DockedComposerRef>(null);
   const [userPreferences, setUserPreferences] = useUserPreferenceState();
   const [isDismissed, setIsDismissed] = useState(true);
   const { trackEvent } = useAmplitude();

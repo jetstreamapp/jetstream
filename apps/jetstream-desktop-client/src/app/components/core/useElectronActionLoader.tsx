@@ -3,18 +3,18 @@ import { logger } from '@jetstream/shared/client-logger';
 import { parseFile } from '@jetstream/shared/ui-utils';
 import { fireToast, XlsxSheetSelectionModalPromise } from '@jetstream/ui';
 import { fromLoadRecordsState } from '@jetstream/ui-core';
+import { useSetAtom } from 'jotai';
 import { useCallback, useEffect } from 'react';
-import { useSetRecoilState } from 'recoil';
 
 const onParsedMultipleWorkbooks = async (worksheets: string[]): Promise<string> => {
   return await XlsxSheetSelectionModalPromise({ worksheets });
 };
 
 export const useElectronActionLoader = () => {
-  const setInputFileData = useSetRecoilState(fromLoadRecordsState.inputFileDataState);
-  const setInputFileHeader = useSetRecoilState(fromLoadRecordsState.inputFileHeaderState);
-  const setInputFilename = useSetRecoilState(fromLoadRecordsState.inputFilenameState);
-  const setInputFilenameType = useSetRecoilState(fromLoadRecordsState.inputFilenameTypeState);
+  const setInputFileData = useSetAtom(fromLoadRecordsState.inputFileDataState);
+  const setInputFileHeader = useSetAtom(fromLoadRecordsState.inputFileHeaderState);
+  const setInputFilename = useSetAtom(fromLoadRecordsState.inputFilenameState);
+  const setInputFilenameType = useSetAtom(fromLoadRecordsState.inputFilenameTypeState);
 
   const handleElectronAction = useCallback(
     async ({ action, payload }: DesktopAction) => {

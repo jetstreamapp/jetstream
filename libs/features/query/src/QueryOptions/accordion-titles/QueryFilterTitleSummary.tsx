@@ -3,9 +3,9 @@ import { truncate } from '@jetstream/shared/utils';
 import { ExpressionConditionType } from '@jetstream/types';
 import { Badge, isExpressionConditionType } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilValue } from 'recoil';
 
 export interface QueryFilterTitleSummaryProps {
   isHavingClause?: boolean;
@@ -102,8 +102,8 @@ function getFilterLabel(row: ExpressionConditionType) {
 }
 
 export const QueryFilterTitleSummary = ({ isHavingClause = false }: QueryFilterTitleSummaryProps) => {
-  const filtersState = useRecoilValue(fromQueryState.queryFiltersState);
-  const having = useRecoilValue(fromQueryState.queryHavingState);
+  const filtersState = useAtomValue(fromQueryState.queryFiltersState);
+  const having = useAtomValue(fromQueryState.queryHavingState);
   const filters = isHavingClause ? having : filtersState;
 
   const configuredFilters = filters.rows

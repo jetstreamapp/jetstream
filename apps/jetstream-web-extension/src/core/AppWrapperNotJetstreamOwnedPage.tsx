@@ -2,8 +2,6 @@ import { enableLogger } from '@jetstream/shared/client-logger';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
 import localforage from 'localforage';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
-import { RecoilRoot } from 'recoil';
-import RecoilNexus from 'recoil-nexus';
 import { environment } from '../environments/environment';
 import '../main.scss';
 import { LOCAL_DRIVER_NAME, localDriver } from '../utils/web-extension-localforage-driver';
@@ -47,10 +45,5 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
     return null;
   }
 
-  return (
-    <RecoilRoot>
-      <RecoilNexus />
-      <Suspense fallback={'Loading...'}>{children}</Suspense>
-    </RecoilRoot>
-  );
+  return <Suspense fallback={'Loading...'}>{children}</Suspense>;
 }

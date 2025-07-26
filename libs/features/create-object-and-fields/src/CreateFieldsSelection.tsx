@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -18,9 +18,9 @@ import {
 import { RequireMetadataApiBanner, filterCreateFieldsSobjects } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import * as fromCreateFieldsState from './create-fields.state';
 import CreateNewObject from './create-new-object/CreateNewObject';
 
@@ -30,21 +30,21 @@ const HEIGHT_BUFFER = 170;
 export interface CreateFieldsSelectionProps {}
 
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {
-  const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const sobjectListRef = useRef<ConnectedSobjectListMultiSelectRef>(null);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
-  const [profiles, setProfiles] = useRecoilState(fromCreateFieldsState.profilesState);
-  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromCreateFieldsState.selectedProfilesPermSetState);
+  const [profiles, setProfiles] = useAtom(fromCreateFieldsState.profilesState);
+  const [selectedProfiles, setSelectedProfiles] = useAtom(fromCreateFieldsState.selectedProfilesPermSetState);
 
-  const [permissionSets, setPermissionSets] = useRecoilState(fromCreateFieldsState.permissionSetsState);
-  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromCreateFieldsState.selectedPermissionSetsState);
+  const [permissionSets, setPermissionSets] = useAtom(fromCreateFieldsState.permissionSetsState);
+  const [selectedPermissionSets, setSelectedPermissionSets] = useAtom(fromCreateFieldsState.selectedPermissionSetsState);
 
-  const [sobjects, setSobjects] = useRecoilState(fromCreateFieldsState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromCreateFieldsState.selectedSObjectsState);
+  const [sobjects, setSobjects] = useAtom(fromCreateFieldsState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useAtom(fromCreateFieldsState.selectedSObjectsState);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
-  const hasSelectionsMade = useRecoilValue(fromCreateFieldsState.hasSelectionsMade);
+  const hasSelectionsMade = useAtomValue(fromCreateFieldsState.hasSelectionsMade);
 
   // Run only on first render
   useEffect(() => {

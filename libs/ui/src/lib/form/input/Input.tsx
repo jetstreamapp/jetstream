@@ -14,7 +14,7 @@ export interface InputProps {
   label?: string;
   labelClassName?: string;
   hideLabel?: boolean;
-  labelHelp?: string | JSX.Element | null;
+  labelHelp?: string | React.ReactNode | null;
   helpText?: React.ReactNode | string;
   hasError?: boolean;
   isRequired?: boolean;

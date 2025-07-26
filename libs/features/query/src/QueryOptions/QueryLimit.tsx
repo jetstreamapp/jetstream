@@ -3,8 +3,8 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { REGEX } from '@jetstream/shared/utils';
 import { Input } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom, useAtomValue } from 'jotai';
 import React, { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryLimitProps {}
@@ -14,9 +14,9 @@ function sanitize(value: string) {
 }
 
 export const QueryLimit: FunctionComponent<QueryLimitProps> = React.memo(() => {
-  const hasLimitOverride = useRecoilValue(fromQueryState.selectQueryLimitHasOverride);
-  const [queryLimitState, setQueryLimitState] = useRecoilState(fromQueryState.queryLimit);
-  const [queryLimitSkipState, setQueryLimitSkipState] = useRecoilState(fromQueryState.queryLimitSkip);
+  const hasLimitOverride = useAtomValue(fromQueryState.selectQueryLimitHasOverride);
+  const [queryLimitState, setQueryLimitState] = useAtom(fromQueryState.queryLimit);
+  const [queryLimitSkipState, setQueryLimitSkipState] = useAtom(fromQueryState.queryLimitSkip);
 
   // const [queryLimitPriorValue, setQueryLimitPriorValue] = useState(queryLimitState);
   const [queryLimit, setQueryLimit] = useState(queryLimitState);

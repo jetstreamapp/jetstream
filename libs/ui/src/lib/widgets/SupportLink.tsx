@@ -6,7 +6,7 @@ import Icon from './Icon';
 
 export interface SupportLinkProps extends GridProps {
   className?: string;
-  label?: string | JSX.Element;
+  label?: string | React.ReactNode;
   iconClass?: string;
 }
 

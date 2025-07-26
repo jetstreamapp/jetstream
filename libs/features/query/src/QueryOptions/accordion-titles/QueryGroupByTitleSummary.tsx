@@ -1,15 +1,15 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Badge } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilValue } from 'recoil';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryGroupByTitleSummaryProps {}
 
 export const QueryGroupByTitleSummary: FunctionComponent<QueryGroupByTitleSummaryProps> = () => {
-  const groupByClauses = useRecoilValue(fromQueryState.queryGroupByState);
+  const groupByClauses = useAtomValue(fromQueryState.queryGroupByState);
   const beyondDisplayLimit = groupByClauses.length > 3;
 
   return (

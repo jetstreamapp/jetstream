@@ -22,9 +22,10 @@ import type {
   UserProfilePreferences,
   UserProfileUi,
 } from '@jetstream/types';
+import { atom, useAtom, useSetAtom } from 'jotai';
+import { atomFamily, unwrap } from 'jotai/utils';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
-import { atom, DefaultValue, selector, selectorFamily, useRecoilValue, useSetRecoilState } from 'recoil';
 
 // FIXME: browser extension should be able to obtain all of this information after logging in
 export const DEFAULT_PROFILE: UserProfileUi = {
@@ -169,147 +170,114 @@ async function fetchUserProfile(): Promise<UserProfileUi> {
   return await getUserProfile();
 }
 
-const userPreferenceState = atom<UserProfilePreferences>({
-  key: 'userPreferenceState',
-  default: getUserPreferences(),
+const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPreferences());
+
+export const actionInProgressState = atom<boolean>(false);
+
+export const applicationCookieState = atom<ApplicationCookie>(getAppCookie());
+
+export const appVersionState = atom<Promise<{ version: string; announcements?: Announcement[] }>>(fetchAppVersion());
+
+export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
+
+export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fetchUserProfile());
+/**
+ * This is for internal use for derived state to avoid async issues.
+ * Use `userProfileState` for components.
+ */
+export const userProfileSyncState = unwrap(userProfileState, (prev) => prev ?? DEFAULT_PROFILE);
+
+export const userProfileEntitlementState = atomFamily((entitlement: keyof UserProfileUi['entitlements']) =>
+  atom((get) => {
+    const userProfile = get(userProfileSyncState);
+    return userProfile?.entitlements?.[entitlement] ?? false;
+  })
+);
+
+export const googleDriveAccessState = atom((get) => {
+  const isChromeExtension = get(isBrowserExtensionState);
+  const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
+  return {
+    hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && hasGoogleDriveAccess,
+    googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !hasGoogleDriveAccess,
+  };
 });
 
-export const actionInProgressState = atom<boolean>({
-  key: 'actionInProgressState',
-  default: false,
-});
-
-export const applicationCookieState = atom<ApplicationCookie>({
-  key: 'applicationCookieState',
-  default: getAppCookie(),
-});
-
-export const appVersionState = atom<{ version: string; announcements?: Announcement[] }>({
-  key: 'appVersionState',
-  default: fetchAppVersion(),
-});
-
-export const isBrowserExtensionState = selector<boolean>({
-  key: 'isBrowserExtensionState',
-  get: () => isBrowserExtension(),
-});
-
-export const userProfileState = atom<UserProfileUi>({
-  key: 'userProfileState',
-  default: fetchUserProfile(),
-});
-
-export const userProfileEntitlementState = selectorFamily({
-  key: 'userProfileEntitlementState',
-  get:
-    (entitlement: keyof UserProfileUi['entitlements']) =>
-    ({ get }) => {
-      const userProfile = get(userProfileState);
-      return userProfile?.entitlements?.[entitlement] ?? false;
-    },
-});
-
-export const googleDriveAccessState = selector({
-  key: 'googleDriveAccessState',
-  get: ({ get }) => {
-    const isChromeExtension = get(isBrowserExtensionState);
-    const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
-    return {
-      hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && hasGoogleDriveAccess,
-      googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !hasGoogleDriveAccess,
-    };
-  },
-});
-
-export const jetstreamOrganizationsState = atom<JetstreamOrganization[]>({
-  key: 'jetstreamOrganizationsState',
-  default: fetchJetstreamOrganizations(),
-});
+export const jetstreamOrganizationsAsyncState = atom<Promise<JetstreamOrganization[]> | JetstreamOrganization[]>(
+  fetchJetstreamOrganizations()
+);
+// Unwrapped value to simplify derived state
+export const jetstreamOrganizationsState = unwrap(jetstreamOrganizationsAsyncState, (prev) => prev ?? []);
 
 // Combine orgs with organizations
-export const jetstreamOrganizationsWithOrgsSelector = selector<JetstreamOrganizationWithOrgs[]>({
-  key: 'jetstreamOrganizationsWithOrgsSelector',
-  get: ({ get }) => {
+export const jetstreamOrganizationsWithOrgsSelector = atom(
+  (get) => {
     const orgsById = get(salesforceOrgsById);
-    return get(jetstreamOrganizationsState).map((organization) => ({
+    const organizations = get(jetstreamOrganizationsState);
+    return organizations.map((organization) => ({
       ...organization,
       orgs: organization.orgs.map(({ uniqueId }) => orgsById[uniqueId]).filter(Boolean),
     }));
   },
-  set: ({ set }, newValue) => {
-    if (newValue instanceof DefaultValue) {
-      return set(jetstreamOrganizationsState, newValue);
-    } else {
-      return set(
-        jetstreamOrganizationsState,
-        newValue.map((organization) => ({
-          ...organization,
-          orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
-        }))
-      );
-    }
-  },
-});
-
-export const jetstreamOrganizationsExistsSelector = selector<boolean>({
-  key: 'jetstreamOrganizationsExistsSelector',
-  get: ({ get }) => get(jetstreamOrganizationsState).length > 0,
-});
-
-export const jetstreamActiveOrganizationState = atom<Maybe<string>>({
-  key: 'jetstreamActiveOrganizationState',
-  default: getSelectedJetstreamOrganizationFromStorage(),
-  effects: [({ onSet }) => onSet((newID) => setSelectedJetstreamOrganizationFromStorage(newID))],
-});
-
-export const jetstreamActiveOrganizationSelector = selector<Maybe<JetstreamOrganizationWithOrgs>>({
-  key: 'jetstreamActiveOrganizationSelector',
-  get: ({ get }) => {
-    const organizations = get(jetstreamOrganizationsWithOrgsSelector);
-    const selectedItemId = get(jetstreamActiveOrganizationState);
-    return organizations.find((org) => org.id === selectedItemId);
-  },
-});
-
-export const salesforceOrgsState = atom<SalesforceOrgUi[]>({
-  key: 'salesforceOrgsState',
-  default: getOrgsFromStorage(),
-});
-
-export const salesforceOrgsForOrganizationSelector = selector({
-  key: 'salesforceOrgsForOrganizationSelector',
-  get: ({ get }) => {
-    const salesforceOrgs = get(salesforceOrgsState);
-    const selectedOrganizationId = get(jetstreamActiveOrganizationState) || null;
-    return salesforceOrgs.filter((org) => (org.jetstreamOrganizationId || null) === selectedOrganizationId);
-  },
-});
-
-export const selectedOrgIdState = atom<Maybe<string>>({
-  key: 'selectedOrgIdState',
-  default: getSelectedOrgFromStorage(),
-});
-
-export const salesforceOrgsWithoutOrganizationSelector = selector({
-  key: 'salesforceOrgsWithoutOrganizationSelector',
-  get: ({ get }) => {
-    return orderObjectsBy(
-      get(salesforceOrgsState).filter((org) => !org.jetstreamOrganizationId),
-      'label'
+  (get, set, newValue: JetstreamOrganizationWithOrgs[]) => {
+    set(
+      jetstreamOrganizationsState,
+      newValue.map((organization) => ({
+        ...organization,
+        orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
+      }))
     );
-  },
+  }
+);
+
+export const jetstreamOrganizationsExistsSelector = atom((get) => {
+  const organizations = get(jetstreamOrganizationsState);
+  return organizations.length > 0;
 });
 
-export const selectedOrgStateWithoutPlaceholder = selector({
-  key: 'selectedOrgStateWithoutPlaceholder',
-  get: ({ get }) => {
-    const salesforceOrgs = get(salesforceOrgsState);
-    const selectedOrgId = get(selectedOrgIdState);
-    if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
-      return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
-    }
-    return undefined;
-  },
+const _baseJetstreamActiveOrganizationState = atom<Maybe<string>>(getSelectedJetstreamOrganizationFromStorage());
+
+export const jetstreamActiveOrganizationState = atom(
+  (get) => get(_baseJetstreamActiveOrganizationState),
+  (get, set, newValue: Maybe<string>) => {
+    set(_baseJetstreamActiveOrganizationState, newValue);
+    setSelectedJetstreamOrganizationFromStorage(newValue);
+  }
+);
+
+export const jetstreamActiveOrganizationSelector = atom((get) => {
+  const organizations = get(jetstreamOrganizationsWithOrgsSelector);
+  const selectedItemId = get(jetstreamActiveOrganizationState);
+  return organizations.find((org) => org.id === selectedItemId);
+});
+
+export const salesforceOrgsAsyncState = atom<Promise<SalesforceOrgUi[]> | SalesforceOrgUi[]>(getOrgsFromStorage());
+// Unwrapped value to simplify derived state
+export const salesforceOrgsState = unwrap(salesforceOrgsAsyncState, (prev) => prev ?? []);
+
+export const salesforceOrgsForOrganizationSelector = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
+  const selectedOrganizationId = get(jetstreamActiveOrganizationState) || null;
+  return salesforceOrgs.filter((org) => (org.jetstreamOrganizationId || null) === selectedOrganizationId);
+});
+
+export const selectedOrgIdState = atom<Maybe<string>>(getSelectedOrgFromStorage());
+
+export const salesforceOrgsWithoutOrganizationSelector = atom((get) => {
+  const orgs = get(salesforceOrgsState);
+  return orderObjectsBy(
+    orgs.filter((org) => !org.jetstreamOrganizationId),
+    'label'
+  );
+});
+
+export const selectedOrgStateWithoutPlaceholder = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
+  const selectedOrgId = get(selectedOrgIdState);
+  if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
+    return salesforceOrgs.find((org) => org.uniqueId === selectedOrgId);
+  }
+  return undefined;
 });
 
 /**
@@ -317,84 +285,67 @@ export const selectedOrgStateWithoutPlaceholder = selector({
  * it is expected that any component with an org required
  * will be wrapped in an <OrgSelectionRequired> component to guard against this
  */
-export const selectedOrgState = selector({
-  key: 'selectedOrgState',
-  get: ({ get }) => {
-    const PLACEHOLDER: SalesforceOrgUi = {
-      uniqueId: '',
-      label: '',
-      filterText: '',
-      accessToken: '',
-      instanceUrl: '',
-      loginUrl: '',
-      userId: '',
-      email: '',
-      organizationId: '',
-      username: '',
-      displayName: '',
-    };
-    return get(selectedOrgStateWithoutPlaceholder) || PLACEHOLDER;
-  },
+export const selectedOrgState = atom((get) => {
+  const PLACEHOLDER: SalesforceOrgUi = {
+    uniqueId: '',
+    label: '',
+    filterText: '',
+    accessToken: '',
+    instanceUrl: '',
+    loginUrl: '',
+    userId: '',
+    email: '',
+    organizationId: '',
+    username: '',
+    displayName: '',
+  };
+  const org = get(selectedOrgStateWithoutPlaceholder);
+  return org || PLACEHOLDER;
 });
 
-export const salesforceOrgsOmitSelectedState = selector({
-  key: 'salesforceOrgsOmitSelectedState',
-  get: ({ get }) => {
-    const salesforceOrgs = get(salesforceOrgsState);
-    const selectedOrgId = get(selectedOrgIdState);
-    if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
-      return salesforceOrgs.filter((org) => org.uniqueId !== selectedOrgId);
-    }
-    return salesforceOrgs;
-  },
+export const salesforceOrgsOmitSelectedState = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
+  const selectedOrgId = get(selectedOrgIdState);
+  if (isString(selectedOrgId) && Array.isArray(salesforceOrgs)) {
+    return salesforceOrgs.filter((org) => org.uniqueId !== selectedOrgId);
+  }
+  return salesforceOrgs;
 });
 
-export const selectSkipFrontdoorAuth = selector({
-  key: 'selectSkipFrontdoorAuth',
-  get: ({ get }) => {
-    if (isBrowserExtension()) {
-      return true;
-    }
-    const userProfile = get(userProfileState);
-    return userProfile?.preferences?.skipFrontdoorLogin || false;
-  },
+export const selectSkipFrontdoorAuth = atom((get) => {
+  if (isBrowserExtension()) {
+    return true;
+  }
+  const userProfile = get(userProfileSyncState);
+  return userProfile?.preferences?.skipFrontdoorLogin ?? false;
 });
 
-export const salesforceOrgsById = selector({
-  key: 'salesforceOrgsById',
-  get: ({ get }) => {
-    const salesforceOrgs = get(salesforceOrgsState) || [];
-    return groupByFlat(salesforceOrgs, 'uniqueId');
-  },
+export const salesforceOrgsById = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState) || [];
+  return groupByFlat(salesforceOrgs, 'uniqueId');
 });
 
-export const hasConfiguredOrgState = selector({
-  key: 'hasConfiguredOrgState',
-  get: ({ get }) => {
-    const salesforceOrgs = get(salesforceOrgsState);
-    return salesforceOrgs?.length > 0 || false;
-  },
+export const hasConfiguredOrgState = atom((get) => {
+  const salesforceOrgs = get(salesforceOrgsState);
+  return salesforceOrgs?.length > 0 || false;
 });
 
-export const selectedOrgType = selector<Maybe<SalesforceOrgUiType>>({
-  key: 'selectedOrgType',
-  get: ({ get }) => getOrgType(get(selectedOrgStateWithoutPlaceholder)),
+export const selectedOrgType = atom<Maybe<SalesforceOrgUiType>>((get) => {
+  const org = get(selectedOrgStateWithoutPlaceholder);
+  return getOrgType(org);
 });
 
-export const selectUserPreferenceState = selector<UserProfilePreferences>({
-  key: 'selectUserPreferenceState',
-  get: ({ get }) => {
-    const userPreferences = get(userPreferenceState);
-    return userPreferences;
-  },
+export const selectUserPreferenceState = atom<Promise<UserProfilePreferences>>(async (get) => {
+  const userPreferences = await get(userPreferenceState);
+  return userPreferences;
 });
 
-export const useUserPreferenceState = (): [UserProfilePreferences, (pref: UserProfilePreferences) => void] => {
-  const userPreference = useRecoilValue(selectUserPreferenceState);
-  const setUserPreferenceState = useSetRecoilState(userPreferenceState);
+export const useUserPreferenceState = (): [UserProfilePreferences | undefined, (pref: UserProfilePreferences) => void] => {
+  const [userPreference] = useAtom(selectUserPreferenceState);
+  const setUserPreferenceState = useSetAtom(userPreferenceState);
 
   async function setUserPreferences(_userPreference: UserProfilePreferences) {
-    setUserPreferenceState(_userPreference);
+    setUserPreferenceState(Promise.resolve(_userPreference));
     try {
       localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, _userPreference);
     } catch (ex) {

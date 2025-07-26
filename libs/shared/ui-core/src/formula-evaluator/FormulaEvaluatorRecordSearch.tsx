@@ -4,8 +4,8 @@ import { describeSObject, query } from '@jetstream/shared/data';
 import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
 import { ViewEditCloneRecord } from '../record/ViewEditCloneRecord';
 
 export interface FormulaEvaluatorRecordSearchProps {
@@ -23,8 +23,8 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   fieldErrorMessage,
   onSelectedRecord,
 }) => {
-  const nameField = useRef<{ selectedSObject: string; nameField: string }>();
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const nameField = useRef<{ selectedSObject: string; nameField: string }>(null);
+  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
   const [viewRecordModalOpen, setViewRecordModalOpen] = useState<boolean>();

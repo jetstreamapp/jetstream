@@ -71,7 +71,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   executeQuery,
   onOpenHistory,
 }) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [userSoql, setUserSoql] = useState<string>(soql);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
   const [{ formattedSoql, isValid, sobjectName }, dispatch] = useReducer(reducer, {

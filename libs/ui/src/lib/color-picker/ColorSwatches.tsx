@@ -104,7 +104,11 @@ export const ColorSwatches = ({ className, items = [], selectedItem, onSelection
             href="#"
             role="menuitem"
             tabIndex={i === 0 ? 0 : -1}
-            ref={(el) => Array.isArray(elRefs.current) && el && (elRefs.current[i] = el)}
+            ref={(el) => {
+              if (Array.isArray(elRefs.current) && el) {
+                elRefs.current[i] = el;
+              }
+            }}
             onKeyUp={handleKeyUp}
             onClick={(ev) => {
               ev.preventDefault();

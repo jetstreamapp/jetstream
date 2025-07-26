@@ -8,9 +8,9 @@ import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems }
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import Editor, { DiffEditor } from '@monaco-editor/react';
+import { useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { DeployComparedMetadataModal } from './DeployComparedMetadataModal';
 import ViewOrCompareMetadataEditorSummary from './ViewOrCompareMetadataEditorSummary';
 import ViewOrCompareMetadataModalFooter from './ViewOrCompareMetadataModalFooter';
@@ -28,10 +28,10 @@ export interface ViewOrCompareMetadataModalProps {
 export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClose }: ViewOrCompareMetadataModalProps) => {
   const { trackEvent } = useAmplitude();
   const [chromeExtension] = useState(() => isBrowserExtension());
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
-  const diffEditorRef = useRef<editor.IStandaloneDiffEditor>();
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const diffEditorRef = useRef<editor.IStandaloneDiffEditor>(null);
   const [targetOrg, setTargetOrg] = useState<SalesforceOrgUi | null>(null);
 
   const [activeFile, setActiveFile] = useState<TreeItems<FileItemMetadata> | null>(null);

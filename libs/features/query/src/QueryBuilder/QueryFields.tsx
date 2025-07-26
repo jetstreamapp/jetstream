@@ -11,9 +11,9 @@ import {
   initQueryFieldStateItem,
 } from '@jetstream/ui-core/shared';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import isEmpty from 'lodash/isEmpty';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 
 export interface QueryFieldsProps {
   selectedSObject: Maybe<string>;
@@ -22,17 +22,17 @@ export interface QueryFieldsProps {
 }
 
 export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ selectedSObject, isTooling, onSelectionChanged }) => {
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
   const _selectedSObject = useRef(selectedSObject);
-  const [queryFieldsMap, setQueryFieldsMap] = useRecoilState(fromQueryState.queryFieldsMapState);
-  const [queryFieldsKey, setQueryFieldsKey] = useRecoilState(fromQueryState.queryFieldsKey);
-  const setFilterFields = useSetRecoilState(fromQueryState.filterQueryFieldsState);
-  const setOrderByFields = useSetRecoilState(fromQueryState.orderByQueryFieldsState);
-  const setGroupByFields = useSetRecoilState(fromQueryState.groupByQueryFieldsState);
-  const setChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
+  const [queryFieldsMap, setQueryFieldsMap] = useAtom(fromQueryState.queryFieldsMapState);
+  const [queryFieldsKey, setQueryFieldsKey] = useAtom(fromQueryState.queryFieldsKey);
+  const setFilterFields = useSetAtom(fromQueryState.filterQueryFieldsState);
+  const setOrderByFields = useSetAtom(fromQueryState.orderByQueryFieldsState);
+  const setGroupByFields = useSetAtom(fromQueryState.groupByQueryFieldsState);
+  const setChildRelationships = useSetAtom(fromQueryState.queryChildRelationships);
   const [baseKey, setBaseKey] = useState<string>(`${selectedSObject}|`);
-  const selectedOrg = useRecoilValue(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   useEffect(() => {
     isMounted.current = true;

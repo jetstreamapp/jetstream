@@ -8,9 +8,9 @@ import { fireToast } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { CometD } from 'cometd';
+import { useAtom } from 'jotai';
 import orderBy from 'lodash/orderBy';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
 import { EventMessageUnsuccessful, PlatformEventObject } from './platform-event-monitor.types';
 import * as platformEventUtils from './platform-event-monitor.utils';
 
@@ -22,10 +22,10 @@ export interface PlatformEventDownloadData {
 
 export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi }) {
   const isMounted = useRef(true);
-  const cometD = useRef<CometD>();
+  const cometD = useRef<CometD>(null);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const [platformEvents, setPlatformEvents] = useState<PlatformEventObject[]>([]);
   const [loadingPlatformEvents, setPlatformLoadingEvents] = useState<boolean>(false);
   const [hasPlatformEvents, setHasPlatformEvents] = useState(true);
@@ -46,7 +46,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
       return () => {
         if (cometD.current) {
           platformEventUtils.disconnect(cometD.current);
-          cometD.current = undefined;
+          cometD.current = null;
           trackEvent(ANALYTICS_KEYS.platform_event_unsubscribe, { user_initiated: false });
         }
       };

@@ -85,8 +85,8 @@ export const SalesforceApiRequest: FunctionComponent<SalesforceApiRequestProps> 
   selectedOrg,
   onSubmit,
 }) => {
-  const headerRef = useRef<editor.IStandaloneCodeEditor>();
-  const bodyRef = useRef<editor.IStandaloneCodeEditor>();
+  const headerRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const bodyRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [url, setUrl] = useState(() => getDefaultUrl(selectedOrg, defaultApiVersion));
   const [method, setMethod] = useState<HttpMethod>(_priorRequest?.method || 'GET');
   const [headers, setHeaders] = useState(() => _priorRequest?.headers || JSON.stringify(DEFAULT_HEADERS, null, 2));

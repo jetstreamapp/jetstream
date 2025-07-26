@@ -1,16 +1,16 @@
+import { OverlayProvider } from '@react-aria/overlays';
 import { Fragment, FunctionComponent } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
 import Modal, { ModalProps } from './Modal';
-import { OverlayProvider } from '@react-aria/overlays';
 
 type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | 'closeOnBackdropClick'> & InstanceProps<boolean, never>;
 
 export interface ConfirmationModalProps extends CommonModalProps {
   isOpen: boolean;
   instanceId: any;
-  content: string | JSX.Element;
-  confirm?: string | JSX.Element;
-  cancel?: string | JSX.Element;
+  content: string | React.ReactNode;
+  confirm?: string | React.ReactNode;
+  cancel?: string | React.ReactNode;
   onResolve: (result: boolean) => void;
 }
 const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({

@@ -5,7 +5,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, ListItem, Maybe } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -28,9 +28,9 @@ import {
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import {
   ExportHeaderOption,
   ExportOptions,
@@ -88,13 +88,13 @@ export interface SObjectExportProps {}
 
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const rollbar = useRollbar();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
-  const picklistWorksheetLayoutRef = useRef<PicklistRef>();
-  const picklistHeaderOptionRef = useRef<PicklistRef>();
+  const picklistWorksheetLayoutRef = useRef<PicklistRef>(null);
+  const picklistHeaderOptionRef = useRef<PicklistRef>(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

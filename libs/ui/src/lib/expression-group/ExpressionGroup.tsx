@@ -33,7 +33,7 @@ export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.me
 
     return (
       <li
-        ref={drop}
+        ref={drop as any}
         className={classNames('slds-expression__group', {
           'drop-zone-border': isOver && canDrop,
         })}

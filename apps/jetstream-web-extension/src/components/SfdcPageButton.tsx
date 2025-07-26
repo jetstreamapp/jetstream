@@ -8,8 +8,8 @@ import { useInterval } from '@jetstream/shared/ui-utils';
 import type { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, OutsideClickHandler, Tabs } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
 import browser from 'webextension-polyfill';
 import '../sfdc-styles-shim.scss';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
@@ -98,8 +98,8 @@ function getActionLink(sfHost: string, pageLink: PageLink, objectName?: string) 
 
 export function SfdcPageButton() {
   const currentPathname = useRef<string>(location.pathname);
-  const options = useRecoilValue(chromeStorageOptions);
-  const { authTokens, buttonPosition } = useRecoilValue(chromeSyncStorage);
+  const options = useAtomValue(chromeStorageOptions);
+  const { authTokens, buttonPosition } = useAtomValue(chromeSyncStorage);
   const [isOnSalesforcePage] = useState(
     () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('visualforce.com')
   );
@@ -110,8 +110,8 @@ export function SfdcPageButton() {
   const [objectName, setObjectName] = useState(() => getRecordPageObject(location.pathname));
   const [org, setOrg] = useState<SalesforceOrgUi | null>(null);
 
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
 
   useEffect(() => {
     try {

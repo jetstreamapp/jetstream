@@ -4,8 +4,8 @@ import { ChangeSet, InputReadFileContent, ListItem, SalesforceOrgUi } from '@jet
 import { FileSelector, Grid, GridCol, Modal, Picklist, Spinner, Textarea } from '@jetstream/ui';
 import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { useChangesetList } from '../utils/useChangesetList';
 
 // TODO: this is used in two places, move to constants
@@ -24,7 +24,7 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
   onDownloadFromManifest,
   onDownloadFromPackageNames,
 }) => {
-  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
+  const orgs = useAtomValue(salesforceOrgsState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<string | null>(null);
   const [filename, setFileName] = useState<string | null>(null);

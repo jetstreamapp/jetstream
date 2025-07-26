@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { copyRecordsToClipboard, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import FileDownloadModal from '../file-download-modal/FileDownloadModal';
 import EmptyState from '../illustrations/EmptyState';
 import ReadonlyList from '../list/ReadonlyList';
@@ -27,8 +27,8 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
   const [fieldName] = useState(() => field.replace(CUSTOM_FIELD_SUFFIX, ''));
   const [isFieldEligible] = useState(() => CUSTOM_FIELD_SUFFIX.test(field));
   const [exportData, setExportData] = useState<{ 'Reference Type': string; 'Reference Label': string; Namespace: string }[]>([]);
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
   const { loadDependencies, loading, items, hasLoaded, hasError, errorMessage } = useWhereIsThisUsed(org, sobject, fieldName);
 

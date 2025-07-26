@@ -3,8 +3,8 @@ import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent } from 'react';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import AddOrg from './AddOrg';
@@ -30,16 +30,16 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   omitAddOrgsButton,
   onAddOrgHandlerFn,
 }) => {
-  const allOrgs = useRecoilValue(fromAppState.salesforceOrgsState);
-  const orgs = useRecoilValue(fromAppState.salesforceOrgsForOrganizationSelector);
-  const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const allOrgs = useAtomValue(fromAppState.salesforceOrgsState);
+  const orgs = useAtomValue(fromAppState.salesforceOrgsForOrganizationSelector);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const orgType = useRecoilValue(fromAppState.selectedOrgType);
-  const jetstreamOrganizations = useRecoilValue(fromAppState.jetstreamOrganizationsState);
-  const hasOrganizationsConfigured = useRecoilValue(fromAppState.jetstreamOrganizationsExistsSelector);
-  const setActiveOrganization = useSetRecoilState(fromAppState.jetstreamActiveOrganizationState);
-  const activeOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const orgType = useAtomValue(fromAppState.selectedOrgType);
+  const jetstreamOrganizations = useAtomValue(fromAppState.jetstreamOrganizationsState);
+  const hasOrganizationsConfigured = useAtomValue(fromAppState.jetstreamOrganizationsExistsSelector);
+  const setActiveOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
+  const activeOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
 
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
 

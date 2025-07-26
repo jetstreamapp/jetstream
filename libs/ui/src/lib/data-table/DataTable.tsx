@@ -1,6 +1,6 @@
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef } from 'react';
-import DataGrid, { DataGridProps, SortColumn } from 'react-data-grid';
+import { DataGrid, DataGridProps, SortColumn } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { ContextMenu } from '../form/context-menu/ContextMenu';
 import { DataTableFilterContext, DataTableGenericContext } from './data-table-context';

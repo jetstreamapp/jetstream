@@ -4,8 +4,8 @@ import { FileExtAllTypes, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@j
 import { Badge, FileDownloadModal, Grid, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import LoadRecordsMultiObjectResultsTable from './LoadRecordsMultiObjectResultsTable';
 import { LoadMultiObjectRequestWithResult } from './load-records-multi-object-types';
 import useDownloadResults from './useDownloadResults';
@@ -28,8 +28,8 @@ export const LoadRecordsMultiObjectResults = ({
   onLoadStarted,
 }: LoadRecordsMultiObjectResultsProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const { downloadRequests, downloadResults, handleCloseDownloadModal, downloadModalData } = useDownloadResults();
   const [numGroups, setNumGroups] = useState(0);
   const [totalRecordCount, setTotalRecordCount] = useState(0);

@@ -120,7 +120,7 @@ export function getRecommendedApiMode(numRecords: number, hasBinaryAttachment: b
   return !hasBinaryAttachment && numRecords > BATCH_RECOMMENDED_THRESHOLD ? 'BULK' : 'BATCH';
 }
 
-export function getLabelWithOptionalRecommended(label: string, recommended: boolean, required: boolean): string | JSX.Element {
+export function getLabelWithOptionalRecommended(label: string, recommended: boolean, required: boolean): string | React.ReactNode {
   if (!recommended && !required) {
     return label;
   }

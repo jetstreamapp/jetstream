@@ -26,7 +26,7 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
 
   return (
     <div
-      ref={dragRef}
+      ref={dragRef as any}
       data-testid={`salesforce-organization-${org.label}`}
       style={{ opacity }}
       css={css`

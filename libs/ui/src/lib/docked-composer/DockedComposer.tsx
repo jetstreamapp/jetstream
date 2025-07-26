@@ -12,12 +12,12 @@ export interface DockedComposerRef {
 export interface DockedComposerProps {
   id?: string;
   label: string;
-  iconOverride?: JSX.Element;
+  iconOverride?: React.ReactNode;
   initOpenState?: boolean;
   allowMinimize?: boolean;
   // allowMaximize?: boolean;
   allowClose?: boolean;
-  footer?: JSX.Element;
+  footer?: React.ReactNode;
   onClose?: () => void;
   children?: React.ReactNode;
 }

@@ -8,10 +8,10 @@ import { ScopedNotification } from '@jetstream/ui';
 import { AppLoading } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
+import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { chromeLocalStorage, chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
@@ -33,15 +33,15 @@ export interface AppInitializerProps {
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWithoutSalesforceOrg, children }) => {
   const location = useLocation();
 
-  const { authTokens, extIdentifier } = useRecoilValue(chromeSyncStorage);
-  const { options } = useRecoilValue(chromeLocalStorage);
-  const chromeUserProfile = useRecoilValue(UserProfileState);
-  const { serverUrl } = useRecoilValue(fromAppState.applicationCookieState);
-  const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
+  const { authTokens, extIdentifier } = useAtomValue(chromeSyncStorage);
+  const { options } = useAtomValue(chromeLocalStorage);
+  const chromeUserProfile = useAtomValue(UserProfileState);
+  const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
+  const setUserProfile = useSetAtom(fromAppState.userProfileState);
 
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const setSalesforceOrgs = useSetRecoilState(fromAppState.salesforceOrgsState);
-  const selectedOrg = useRecoilValue(fromAppState.selectedOrgState);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
   const [fatalError, setFatalError] = useState<string>();
 

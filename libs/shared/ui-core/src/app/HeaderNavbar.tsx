@@ -3,9 +3,9 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems, UpgradeToProButton } from '@jetstream/ui';
 import { applicationCookieState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
 import Jobs from '../jobs/Jobs';
 import OrgsDropdown from '../orgs/OrgsDropdown';
@@ -79,9 +79,9 @@ export const HeaderNavbar = ({
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
-  const userProfile = useRecoilValue(userProfileState);
-  const applicationState = useRecoilValue(applicationCookieState);
-  const { deniedNotifications } = useRecoilValue(selectUserPreferenceState);
+  const userProfile = useAtomValue(userProfileState);
+  const applicationState = useAtomValue(applicationCookieState);
+  const { deniedNotifications } = useAtomValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
 

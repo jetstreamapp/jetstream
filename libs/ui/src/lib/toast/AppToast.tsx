@@ -11,7 +11,7 @@ const DEFAULT_DURATION = 5000;
 
 export interface AppToastMessage {
   type: InfoSuccessWarningError;
-  message: string | React.ReactNode | JSX.Element;
+  message: string | React.ReactNode;
   duration?: number; // <= 0 to keep until user closes
 }
 

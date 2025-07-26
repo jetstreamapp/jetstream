@@ -15,8 +15,8 @@ import {
   Spinner,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -45,9 +45,9 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   onDownload,
   onClose,
 }) => {
-  const { serverUrl, defaultApiVersion } = useRecoilValue(applicationCookieState);
-  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
-  const modalRef = useRef();
+  const { serverUrl, defaultApiVersion } = useAtomValue(applicationCookieState);
+  const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
+  const modalRef = useRef(null);
   const [columns, setColumns] = useState<ColumnWithFilter<any>[] | null>(null);
   // Store each row as key and the index as a value to use as a unique id for the row
   const [rowsMap, setRowsMap] = useState<WeakMap<any, string>>(() => new WeakMap(rows.map((row, i) => [row, `id-${i}`])));

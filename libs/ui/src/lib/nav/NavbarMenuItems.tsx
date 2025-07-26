@@ -10,7 +10,7 @@ export type NabarMenuItem = NabarMenuItemLink | NabarMenuItemAction;
 interface NabarMenuItemBase {
   id: string;
   heading?: string;
-  label: string | JSX.Element;
+  label: string | React.ReactNode;
   title: string;
 }
 

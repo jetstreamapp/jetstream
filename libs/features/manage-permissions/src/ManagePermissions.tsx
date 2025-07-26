@@ -1,11 +1,11 @@
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
-import { StateDebugObserver, fromPermissionsState } from '@jetstream/ui-core';
+import { fromPermissionsState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
+import { FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ManagePermissionsProps {}
@@ -13,21 +13,21 @@ export interface ManagePermissionsProps {}
 export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {
   useTitle(TITLES.MANAGE_PERMISSIONS);
   const location = useLocation();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const resetProfilesState = useResetRecoilState(fromPermissionsState.profilesState);
-  const resetSelectedProfilesPermSetState = useResetRecoilState(fromPermissionsState.selectedProfilesPermSetState);
-  const resetPermissionSetsState = useResetRecoilState(fromPermissionsState.permissionSetsState);
-  const resetSelectedPermissionSetsState = useResetRecoilState(fromPermissionsState.selectedPermissionSetsState);
-  const resetSObjectsState = useResetRecoilState(fromPermissionsState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromPermissionsState.selectedSObjectsState);
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
-  const resetTabVisibilityPermissionMap = useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const resetProfilesState = useResetAtom(fromPermissionsState.profilesState);
+  const resetSelectedProfilesPermSetState = useResetAtom(fromPermissionsState.selectedProfilesPermSetState);
+  const resetPermissionSetsState = useResetAtom(fromPermissionsState.permissionSetsState);
+  const resetSelectedPermissionSetsState = useResetAtom(fromPermissionsState.selectedPermissionSetsState);
+  const resetSObjectsState = useResetAtom(fromPermissionsState.sObjectsState);
+  const resetSelectedSObjectsState = useResetAtom(fromPermissionsState.selectedSObjectsState);
+  const resetFieldsByObject = useResetAtom(fromPermissionsState.fieldsByObject);
+  const resetFieldsByKey = useResetAtom(fromPermissionsState.fieldsByKey);
+  const resetObjectPermissionMap = useResetAtom(fromPermissionsState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
+  const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
-  const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
+  const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
 
   // reset everything if the selected org changes
   useEffect(() => {
@@ -62,27 +62,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg, priorSelectedOrg]);
 
-  return (
-    <Fragment>
-      <StateDebugObserver
-        name="PERMISSION SNAPSHOT"
-        atoms={[
-          ['sObjectsState', fromPermissionsState.sObjectsState],
-          ['selectedSObjectsState', fromPermissionsState.selectedSObjectsState],
-          ['profilesState', fromPermissionsState.profilesState],
-          ['selectedProfilesPermSetState', fromPermissionsState.selectedProfilesPermSetState],
-          ['permissionSetsState', fromPermissionsState.permissionSetsState],
-          ['selectedPermissionSetsState', fromPermissionsState.selectedPermissionSetsState],
-          ['fieldsByObject', fromPermissionsState.fieldsByObject],
-          ['fieldsByKey', fromPermissionsState.fieldsByKey],
-          ['objectPermissionMap', fromPermissionsState.objectPermissionMap],
-          ['fieldPermissionMap', fromPermissionsState.fieldPermissionMap],
-          ['tabVisibilityPermissionMap', fromPermissionsState.tabVisibilityPermissionMap],
-        ]}
-      />
-      {location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />}
-    </Fragment>
-  );
+  return location.pathname.endsWith('/editor') && !hasSelectionsMade ? <Navigate to="." /> : <Outlet />;
 };
 
 export default ManagePermissions;

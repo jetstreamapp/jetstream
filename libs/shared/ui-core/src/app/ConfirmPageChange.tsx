@@ -1,7 +1,7 @@
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import * as fromAppState from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
 import { usePrompt } from './PromptNavigation';
 
 export interface ConfirmPageChangeProps {
@@ -14,7 +14,7 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
   message = 'You have work in progress, are you sure you want to leave this page?',
 }) => {
   // the store tracks this to allow various places (e.x. org dropdown) to know that actions are in progress
-  const [actionInProgressState, setActionInProgressState] = useRecoilState<boolean>(fromAppState.actionInProgressState);
+  const [actionInProgressState, setActionInProgressState] = useAtom<boolean>(fromAppState.actionInProgressState);
   // give prompt before page refresh or browser tab being closed
   const beforeUnload = useCallback(
     (event: BeforeUnloadEvent) => {

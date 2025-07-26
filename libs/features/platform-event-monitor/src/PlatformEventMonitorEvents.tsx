@@ -7,7 +7,7 @@ import { AutoFullHeightContainer, ColumnWithFilter, ContextMenuActionData, DataT
 import { STORAGE_KEYS } from '@jetstream/ui/app-state';
 import copyToClipboard from 'copy-to-clipboard';
 import groupBy from 'lodash/groupBy';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, ReactNode, useCallback, useEffect, useState } from 'react';
 import { RenderCellProps, RowHeightArgs, SortColumn } from 'react-data-grid';
 import { z } from 'zod';
 import { MessagesByChannel } from './usePlatformEvent';
@@ -25,7 +25,7 @@ const sortColumnSchema = z.object({
   direction: z.enum(['ASC', 'DESC']),
 });
 
-export const WrappedTextFormatter: FunctionComponent<RenderCellProps<PlatformEventRow>> = ({ column, row }) => {
+export const WrappedTextFormatter = ({ column, row }: RenderCellProps<PlatformEventRow>): ReactNode => {
   const value = row[column.key as keyof PlatformEventRow];
   return (
     <p

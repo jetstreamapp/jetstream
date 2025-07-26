@@ -87,7 +87,7 @@ export function buildTree(
   return orderObjectsBy(result, 'id');
 }
 
-function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): string | JSX.Element {
+function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): string | React.ReactNode {
   if (meta?.source && meta?.targetHasLoaded) {
     let tooltip = 'Source and Target org are the same';
     if (!meta.sourceAndTargetMatch) {

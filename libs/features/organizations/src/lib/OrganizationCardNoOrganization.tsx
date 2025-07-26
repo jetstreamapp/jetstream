@@ -52,7 +52,7 @@ export function OrganizationCardNoOrganization({
       `}
     >
       <Card
-        ref={dropRef}
+        ref={dropRef as any}
         testId={`organization-card-empty`}
         css={css`
           ${isActive

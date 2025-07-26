@@ -24,10 +24,10 @@ const copyToClipboardMsg = (
 function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
   let copyToClipboardValue: string | undefined = undefined;
   if (field.metadata.type === 'picklist' || field.metadata.type === 'multipicklist') {
-    let tooltipContent: JSX.Element | undefined = undefined;
+    let tooltipContent: React.ReactNode | undefined = undefined;
     if (Array.isArray(field.metadata.picklistValues) && field.metadata.picklistValues.length > 0) {
       copyToClipboardValue = field.metadata.picklistValues?.map((picklist) => picklist.value).join('\n');
-      let values: (string | JSX.Element)[] = field.metadata.picklistValues?.map((picklist) => picklist.label || picklist.value) || [];
+      let values: (string | React.ReactNode)[] = field.metadata.picklistValues?.map((picklist) => picklist.label || picklist.value) || [];
       if (values.length > 10) {
         values = values.slice(0, 10);
         values.push(<div className="slds-text-color_inverse-weak">Too many values to show</div>);

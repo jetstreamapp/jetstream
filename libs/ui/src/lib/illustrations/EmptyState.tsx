@@ -4,7 +4,7 @@ import NoContentIllustration from '../illustrations/NoContentIllustration';
 
 export interface EmptyStateProps {
   omitIllustration?: boolean;
-  illustration?: JSX.Element;
+  illustration?: React.ReactNode;
   size?: 'small' | 'large';
   headline?: string;
   subHeading?: string;

@@ -46,7 +46,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = currentItem;
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
-  const timerRef = useRef<any>();
+  const timerRef = useRef<any>(null);
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 
   const [isRemoving, setIsRemoving] = useState(false);

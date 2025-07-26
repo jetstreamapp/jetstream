@@ -76,4 +76,3 @@ export * as fromPermissionsState from './state-management/manage-permissions.sta
 export * as fromQueryHistoryState from './state-management/query-history.state';
 export * as fromQueryState from './state-management/query.state';
 export * as fromRecordTypeManagerState from './state-management/record-type-manager.state';
-export { StateDebugObserver } from './StateDebugObserver';

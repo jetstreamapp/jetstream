@@ -24,8 +24,8 @@ import {
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { ChangeEvent, Fragment, useCallback, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsCustomMetadataResultsTable from '../components/load-results/LoadRecordsCustomMetadataResultsTable';
 
@@ -61,9 +61,9 @@ export const PerformLoadCustomMetadata = ({
 }: PerformLoadCustomMetadataProps) => {
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);

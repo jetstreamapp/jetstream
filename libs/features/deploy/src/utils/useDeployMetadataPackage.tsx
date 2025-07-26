@@ -4,8 +4,8 @@ import { pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstrea
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { DeployMetadataStatus, DeployOptions, DeployResult, SalesforceDeployHistoryType, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { useRecoilState } from 'recoil';
 import { getNotificationMessageBody, saveHistory } from './deploy-metadata.utils';
 
 /**
@@ -86,7 +86,7 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
     results: null,
   });
 
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
 

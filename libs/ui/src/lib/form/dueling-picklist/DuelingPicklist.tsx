@@ -49,8 +49,8 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
   initialSelectedItems,
   onChange,
 }) => {
-  const columnLeftRef = useRef<DuelingPicklistColumnRef>();
-  const columnRightRef = useRef<DuelingPicklistColumnRef>();
+  const columnLeftRef = useRef<DuelingPicklistColumnRef>(null);
+  const columnRightRef = useRef<DuelingPicklistColumnRef>(null);
   const [selectedItems, setSelectedItems] = useState(new Set(initialSelectedItems || []));
   const [itemsByValue, setItemsByValue] = useState<Record<string, DuelingPicklistItem>>(groupByFlat(items, 'value'));
   const [itemsLeft, setListLeft] = useState<DuelingPicklistItem[]>(() => items.filter((item) => !selectedItems.has(item.value)));

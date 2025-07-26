@@ -16,7 +16,7 @@ export interface ManualSoqlProps {
 export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTooling = false, generatedSoql }) => {
   const isMounted = useRef(true);
   const popoverRef = useRef<PopoverRef>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const [soql, setSoql] = useState<string>('');
@@ -104,7 +104,6 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
         ref={popoverRef}
         testId="manual-query"
         size="x-large"
-        placement="auto-end"
         onChange={handlePopoverChange}
         content={
           <Fragment>

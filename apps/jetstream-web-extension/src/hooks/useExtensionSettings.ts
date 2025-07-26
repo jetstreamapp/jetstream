@@ -1,13 +1,13 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import browser from 'webextension-polyfill';
 import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 
 export const useExtensionSettings = () => {
-  const { authTokens } = useRecoilValue(chromeSyncStorage);
-  const options = useRecoilValue(chromeStorageOptions);
+  const { authTokens } = useAtomValue(chromeSyncStorage);
+  const options = useAtomValue(chromeStorageOptions);
   const [enabled, setEnabled] = useState(options.enabled);
   const [recordSyncEnabled, setRecordSyncEnabled] = useState(options.recordSyncEnabled);
   const [authError, setAuthError] = useState<string | null>(null);

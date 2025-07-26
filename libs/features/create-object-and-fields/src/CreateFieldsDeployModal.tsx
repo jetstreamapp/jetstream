@@ -12,8 +12,8 @@ import {
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import CreateFieldsDeployModalRow from './CreateFieldsDeployModalRow';
 
 export interface CreateFieldsDeployModalProps {
@@ -36,8 +36,8 @@ export const CreateFieldsDeployModal = ({
   onClose,
 }: CreateFieldsDeployModalProps) => {
   const { trackEvent } = useAmplitude();
-  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const {
     loading: loadingLayouts,
     error: loadingLayoutsError,

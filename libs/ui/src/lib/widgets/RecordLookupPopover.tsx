@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, Maybe, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
 import ReadOnlyFormElement from '../form/readonly-form-element/ReadOnlyFormElement';
@@ -21,7 +21,7 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
-  portalRef?: Element;
+  portalRef?: Maybe<HTMLElement>;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 
@@ -209,7 +209,11 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
               <div>
                 {onRecordAction && sobjectName && (
                   <>
-                    <button className="slds-button slds-button_neutral" onClick={() => onRecordAction('view', recordId, sobjectName)}>
+                    <button
+                      autoFocus
+                      className="slds-button slds-button_neutral"
+                      onClick={() => onRecordAction('view', recordId, sobjectName)}
+                    >
                       <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
                       View Record
                     </button>

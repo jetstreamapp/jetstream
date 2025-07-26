@@ -5,13 +5,13 @@ import { manualRequest } from '@jetstream/shared/data';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest, SalesforceOrgUi } from '@jetstream/types';
+import { ManualRequestPayload, ManualRequestResponse, Maybe, SalesforceApiHistoryRequest } from '@jetstream/types';
 import { AutoFullHeightContainer } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
 import { apiRequestHistoryDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { SalesforceApiRequest } from './SalesforceApiRequest';
 import { SalesforceApiResponse } from './SalesforceApiResponse';
 
@@ -21,10 +21,10 @@ export interface SalesforceApiProps {}
 export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
   useTitle(TITLES.API_EXPLORER);
   const isMounted = useRef(true);
-  const [{ defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [request, setRequest] = useState<Maybe<SalesforceApiHistoryRequest>>();
   const [results, setResults] = useState<Maybe<ManualRequestResponse>>(null);
   const [loading, setLoading] = useState(false);

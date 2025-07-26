@@ -14,8 +14,8 @@ import {
   useCreateFields,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import FormulaEvaluatorDeploySummary from './FormulaEvaluatorDeploySummary';
 import FormulaEvaluatorFields from './FormulaEvaluatorFields';
 import FormulaEvaluatorPageLayouts from './FormulaEvaluatorPageLayouts';
@@ -41,8 +41,8 @@ export const FormulaEvaluatorDeployModal = ({
   onClose,
 }: FormulaEvaluatorDeployModalProps) => {
   const { trackEvent } = useAmplitude();
-  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { defaultApiVersion, serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [fieldValid, setIsFieldValid] = useState(!!selectedField);
   const [sObjects] = useState([sobject]);
 

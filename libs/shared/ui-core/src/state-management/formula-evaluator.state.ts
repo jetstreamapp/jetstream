@@ -1,42 +1,19 @@
 import { DescribeGlobalSObjectResult, Field, NullNumberBehavior } from '@jetstream/types';
-import { atom } from 'recoil';
+import { atom } from 'jotai';
+import { atomWithReset } from 'jotai/utils';
 
-export const sourceTypeState = atom<'NEW' | 'EXISTING'>({
-  key: 'formula.sourceTypeState',
-  default: 'NEW',
-});
+export const sourceTypeState = atomWithReset<'NEW' | 'EXISTING'>('NEW');
 
-export const selectedSObjectState = atom<DescribeGlobalSObjectResult | null>({
-  key: 'formula.selectedSObjectState',
-  default: null,
-});
+export const selectedSObjectState = atomWithReset<DescribeGlobalSObjectResult | null>(null);
 
-export const selectedUserState = atom<string | null>({
-  key: 'formula.selectedUserState',
-  default: null,
-});
+export const selectedUserState = atom<string | null>(null);
 
-export const selectedFieldState = atom<Field | null>({
-  key: 'formula.selectedFieldState',
-  default: null,
-});
+export const selectedFieldState = atomWithReset<Field | null>(null);
 
-export const recordIdState = atom<string>({
-  key: 'formula.recordIdState',
-  default: '',
-});
+export const recordIdState = atomWithReset<string>('');
 
-export const formulaValueState = atom<string>({
-  key: 'formula.formulaValueState',
-  default: '',
-});
+export const formulaValueState = atomWithReset<string>('');
 
-export const numberNullBehaviorState = atom<NullNumberBehavior>({
-  key: 'formula.numberNullBehaviorState',
-  default: 'BLANK',
-});
+export const numberNullBehaviorState = atomWithReset<NullNumberBehavior>('BLANK');
 
-export const bannerDismissedState = atom<boolean>({
-  key: 'formula.bannerDismissedState',
-  default: false,
-});
+export const bannerDismissedState = atomWithReset<boolean>(false);

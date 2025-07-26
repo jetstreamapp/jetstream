@@ -44,7 +44,7 @@ export interface DeployMetadataResultsTablesProps {
 
 export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResultsTablesProps> = ({ results }) => {
   const [hasErrors, setHasErrors] = useState(false);
-  const tabsRef = useRef<TabsRef>();
+  const tabsRef = useRef<TabsRef>(null);
 
   // remove package.xml empty placeholder
   const componentSuccesses = orderObjectsBy(

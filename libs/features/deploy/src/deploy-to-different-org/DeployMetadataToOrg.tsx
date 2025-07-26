@@ -3,8 +3,8 @@ import { DeployMetadataTableRow, DeployOptions, DeployResult, ListMetadataResult
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
 import DeployMetadataToOrgConfigModal from './DeployMetadataToOrgConfigModal';
 import DeployMetadataToOrgStatusModal from './DeployMetadataToOrgStatusModal';
@@ -17,8 +17,8 @@ export interface DeployMetadataToOrgProps {
 
 export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: DeployMetadataToOrgProps) => {
   const { trackEvent } = useAmplitude();
-  const { google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
