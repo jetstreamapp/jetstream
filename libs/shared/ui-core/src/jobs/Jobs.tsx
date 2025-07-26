@@ -41,7 +41,6 @@ const jobsWorker = new WorkerAdapter();
 
 export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
   const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const rollbar = useRollbar();
@@ -578,31 +577,26 @@ export const Jobs: FunctionComponent = () => {
           </ul>
         </div>
       }
-      // NOTE: this is non-standard because we require the extra container
       buttonProps={{
-        className: 'slds-dropdown-trigger slds-dropdown-trigger_click cursor-pointer',
-        as: 'div',
-      }}
-    >
-      <button
-        ref={buttonRef}
-        className={classNames(
+        className: classNames(
           'slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
           { 'slds-incoming-notification': activeJobCount || jobsUnread }
-        )}
-        title={`${activeJobCount} active job(s)`}
-        aria-live="assertive"
-        aria-atomic="true"
-      >
-        <Icon type="utility" icon="notification" className="slds-button__icon slds-global-header__icon" omitContainer />
-        <span className="slds-assistive-text">{`${activeJobCount} active job(s)`}</span>
-      </button>
-      {/* Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed */}
-      {(activeJobCount || jobsUnread) && (
-        <span aria-hidden="true" className="slds-notification-badge slds-incoming-notification slds-show-notification">
-          {activeJobCount ? activeJobCount : ' '}
-        </span>
-      )}
+        ),
+        title: `${activeJobCount} active job(s)`,
+        'aria-live': 'assertive',
+        'aria-atomic': 'true',
+      }}
+      // Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed
+      triggerAfterContent={
+        (activeJobCount || jobsUnread) && (
+          <span aria-hidden="true" className="slds-notification-badge slds-incoming-notification slds-show-notification">
+            {activeJobCount ? activeJobCount : ' '}
+          </span>
+        )
+      }
+    >
+      <Icon type="utility" icon="notification" className="slds-button__icon slds-global-header__icon" omitContainer />
+      <span className="slds-assistive-text">{`${activeJobCount} active job(s)`}</span>
     </Popover>
   );
 };

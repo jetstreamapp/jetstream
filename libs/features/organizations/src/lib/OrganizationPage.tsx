@@ -72,9 +72,9 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
       }
       try {
         // Optimistic update UI - update all state prior to DB actions and revert if error
-        setOrgs(async (_orgs) => {
-          const orgs = await _orgs;
-          return orgs.map((org) => {
+
+        setOrgs(
+          allOrgs.map((org) => {
             if (org.uniqueId !== sfdcOrgUniqueId) {
               return org;
             }
@@ -82,8 +82,8 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
               ...org,
               jetstreamOrganizationId: action === 'add' ? jetstreamOrganizationId : null,
             };
-          });
-        });
+          })
+        );
 
         setOrganizations(
           organizations.map((org) => {
@@ -167,8 +167,8 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
     ) {
       await deleteJetstreamOrganization(organization.id);
       setOrganizationsFromDb(getJetstreamOrganizations());
-      setOrgs(async (orgs) =>
-        (await orgs).map((org) => {
+      setOrgs(
+        allOrgs.map((org) => {
           if (org.jetstreamOrganizationId !== organization.id) {
             return org;
           }

@@ -17,6 +17,7 @@ import {
 import { FullWidth, Maybe, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
 import { createElement, CSSProperties, forwardRef, ReactNode, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { Tooltip, TooltipProps } from '../..';
 import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
 
@@ -45,10 +46,19 @@ export interface PopoverProps {
   buttonProps?: React.HTMLProps<HTMLButtonElement> & { as?: string; 'data-testid'?: string };
   panelProps?: Omit<React.HTMLProps<HTMLDivElement>, 'children' | 'className' | 'as' | 'refName' | 'onKeyDown'>;
   buttonStyle?: CSSProperties;
+  /**
+   * If provided, there will be a tooltip on the popover trigger button.
+   */
+  tooltipProps?: TooltipProps;
   size?: SmallMediumLarge | sizeXLarge | FullWidth;
   /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
   omitPortal?: boolean;
   portalRef?: Maybe<HTMLElement>;
+  /**
+   * Additional content to render after the popover content.
+   * This is useful for adding elements like a close button or additional actions.
+   */
+  triggerAfterContent?: ReactNode;
   children: ReactNode;
   onChange?: (isOpen: boolean) => void;
 }
@@ -71,6 +81,8 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
       buttonProps,
       panelProps,
       buttonStyle,
+      tooltipProps,
+      triggerAfterContent,
       children,
       size,
       omitPortal = false,
@@ -188,9 +200,12 @@ export const Popover = forwardRef<PopoverRef, PopoverProps>(
 
     const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;
 
+    const triggerElement = createElement(TriggerElement, { ref: refs.setReference, ...triggerProps }, children);
+
     return (
       <span className={classNames('slds-is-relative', classname)}>
-        {createElement(TriggerElement, { ref: refs.setReference, ...triggerProps }, children)}
+        {tooltipProps ? <Tooltip {...tooltipProps}>{triggerElement}</Tooltip> : triggerElement}
+        {triggerAfterContent}
         {isOpen && (
           <ConditionalWrapper {...wrapperProps}>
             {/* Does not allow text selection if this is enabled */}

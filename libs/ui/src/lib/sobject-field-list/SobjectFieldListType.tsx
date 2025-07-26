@@ -1,6 +1,6 @@
 import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import Badge from '../badge/Badge';
 import Icon from '../widgets/Icon';
 import Tooltip from '../widgets/Tooltip';
@@ -11,17 +11,24 @@ export interface SobjectFieldListTypeProps {
   field: FieldWrapper;
 }
 
-function copy(value: string) {
-  copyToClipboard(value);
-}
+function Content({ field, org }: SobjectFieldListTypeProps) {
+  const [isCopied, setIsCopied] = useState(false);
 
-const copyToClipboardMsg = (
-  <em className="slds-m-top_x-small">
-    <small>click to copy to clipboard</small>
-  </em>
-);
+  function copy(value: string) {
+    if (copyToClipboard(value)) {
+      setIsCopied(true);
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+    }
+  }
 
-function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
+  const copyToClipboardMsg = (
+    <em className="slds-m-top_x-small" style={{ display: 'block', minWidth: '125px' }}>
+      <small>{isCopied ? 'Copied!' : 'Click to copy to clipboard'}</small>
+    </em>
+  );
+
   let copyToClipboardValue: string | undefined = undefined;
   if (field.metadata.type === 'picklist' || field.metadata.type === 'multipicklist') {
     let tooltipContent: React.ReactNode | undefined = undefined;
@@ -99,7 +106,7 @@ function getContent(field: FieldWrapper, org: SalesforceOrgUi) {
 export const SobjectFieldListType: FunctionComponent<SobjectFieldListTypeProps> = ({ field, org }) => {
   return (
     <Badge className="slds-truncate" title={field.type}>
-      {getContent(field, org)}
+      <Content field={field} org={org} />
     </Badge>
   );
 };

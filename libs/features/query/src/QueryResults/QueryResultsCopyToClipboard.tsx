@@ -91,7 +91,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     <Fragment>
       <ButtonGroupContainer>
         <Tooltip
-          delay={1000}
+          openDelay={1000}
           content="This will copy in a format compatible with a spreadsheet program, such as Excel or Google Sheets. Use the dropdown for additional options."
         >
           <button

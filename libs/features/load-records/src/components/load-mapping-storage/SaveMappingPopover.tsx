@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FieldMapping, LoadSavedMappingItem } from '@jetstream/types';
-import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification, Tooltip } from '@jetstream/ui';
+import { Grid, Icon, Input, Popover, PopoverRef, ScopedNotification } from '@jetstream/ui';
 import { dexieDb, getHashedRecordKey } from '@jetstream/ui/db';
 import { formatISO } from 'date-fns/formatISO';
 import omit from 'lodash/omit';
@@ -113,16 +113,12 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
         </form>
       }
       buttonProps={{
-        className: '',
-        as: 'div',
+        className: 'slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_neutral slds-button_first',
       }}
+      tooltipProps={{ content: 'Save field mapping', openDelay: 500 }}
     >
-      <Tooltip content={'Save field mapping'}>
-        <button className="slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_neutral slds-button_first">
-          <Icon type="utility" icon="save" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Save
-        </button>
-      </Tooltip>
+      <Icon type="utility" icon="save" className="slds-button__icon slds-button__icon_left" omitContainer />
+      Save
     </Popover>
   );
 };

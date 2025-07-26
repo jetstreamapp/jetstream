@@ -14,7 +14,7 @@ export interface UpgradeToProButtonProps {
 export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }: UpgradeToProButtonProps) => {
   return (
     <Tooltip
-      delay={1000}
+      openDelay={1000}
       content={
         <div className="slds-p-bottom_small">
           Upgrade to get access to the Browser Extensions, Google Drive integration, and Query History Sync

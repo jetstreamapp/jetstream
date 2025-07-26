@@ -25,19 +25,17 @@ export interface TooltipProps {
    * number controls hide delay in ms
    * array controls show and hide delay, [openDelay, closeDelay]
    */
-  delay?: number | [number, number];
+  openDelay?: number;
+  closeDelay?: number;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   children?: React.ReactNode;
 }
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, delay, onClick, children }) => {
+export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, openDelay, closeDelay, onClick, children }) => {
   const { portalRoot } = usePortalContext();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const arrowRef = useRef(null);
-
-  const openDelay = Array.isArray(delay) ? delay[0] : delay;
-  const closeDelay = Array.isArray(delay) ? delay[1] : delay;
 
   const { refs, floatingStyles, context, placement, middlewareData } = useFloating({
     open,

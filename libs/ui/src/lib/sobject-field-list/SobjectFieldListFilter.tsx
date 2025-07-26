@@ -99,6 +99,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
       ref={popoverRef}
       size="large"
       placement="right"
+      tooltipProps={{ content: 'Open filters menu', openDelay: 500 }}
       content={
         <Fragment>
           <SobjectFieldListFilterSection
@@ -163,7 +164,6 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className: classNames('slds-button slds-button_icon', {
           'slds-text-color_brand': !!filterSelectedCount,
         }),
-        title: 'open filters menu',
       }}
     >
       <Icon type="utility" icon="filterList" description="Open filters menu" className="slds-button__icon" omitContainer />

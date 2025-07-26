@@ -23,7 +23,7 @@ export const ExecuteQueryButton: FunctionComponent<ExecuteQueryButtonProps> = ({
     <>
       {soql && selectedSObject && (
         <Tooltip
-          delay={300}
+          openDelay={300}
           content={
             <div className="slds-p-bottom_small">
               <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

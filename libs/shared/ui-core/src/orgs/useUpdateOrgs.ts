@@ -70,7 +70,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrgs = useCallback(async () => {
     try {
-      setOrgs(getOrgs());
+      setOrgs(await getOrgs());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }
@@ -79,7 +79,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrganizations = useCallback(async () => {
     try {
-      setJetstreamOrganizations(getJetstreamOrganizations());
+      setJetstreamOrganizations(await getJetstreamOrganizations());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }
@@ -90,7 +90,7 @@ export function useUpdateOrgs() {
    * This is not in a useCallback because it caused an infinite loop since orgs changes a lot and is a dependency
    */
   const handleAddOrg = useCallback((org: SalesforceOrgUi, switchActiveOrg: boolean) => {
-    setOrgs(async (prevOrgs) => uniqBy(orderBy([org, ...(await prevOrgs)], 'username'), 'uniqueId'));
+    setOrgs(uniqBy(orderBy([org, ...orgs], 'username'), 'uniqueId'));
     if (switchActiveOrg) {
       setSelectedOrgId(org.uniqueId);
     }
@@ -116,7 +116,7 @@ export function useUpdateOrgs() {
     try {
       setOrgLoading(true);
       await updateOrg(org, updatedOrg);
-      setOrgs(getOrgs());
+      setOrgs(await getOrgs());
     } catch (ex) {
       logger.warn('Error updating org', ex);
     } finally {
