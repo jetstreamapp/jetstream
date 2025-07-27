@@ -22,7 +22,7 @@ import {
 } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import Icon from '../widgets/Icon';
-import { configIdLinkRenderer } from './DataTableRenderers';
+import { configIdLinkRenderer, dataTableRenderFnMap } from './DataTableRenderers';
 import './data-table-styles.scss';
 import { ColumnWithFilter, ContextMenuActionData, DataTableFilter, DataTableRef, FILTER_SET_TYPES, RowWithKey } from './data-table-types';
 import { EMPTY_FIELD, NON_DATA_COLUMN_KEYS, filterRecord, getSearchTextByRow, isFilterActive, resetFilter } from './data-table-utils';
@@ -301,11 +301,11 @@ export function useDataTable<T = RowWithKey>({
   function handleCellKeydown(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent) {
     try {
       // Handle renderer-specific keyboard interactions
-      if (args.column.renderCell?.prototype?.displayName === 'IdLinkRenderer' && handleIdLinkRendererKeydown(event)) {
+      if (dataTableRenderFnMap.get(args.column.renderCell) === 'IdLinkRenderer' && handleIdLinkRendererKeydown(event)) {
         return;
       }
 
-      if (args.column.renderCell?.prototype?.displayName === 'ActionRenderer' && handleActionRendererTabNavigation(event)) {
+      if (dataTableRenderFnMap.get(args.column.renderCell) === 'ActionRenderer' && handleActionRendererTabNavigation(event)) {
         return;
       }
 
