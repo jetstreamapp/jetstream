@@ -8,6 +8,7 @@ import {
   shift,
   useDismiss,
   useFloating,
+  useFocus,
   useHover,
   useInteractions,
   useRole,
@@ -72,10 +73,11 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({
       close: closeDelay,
     },
   });
+  const focus = useFocus(context);
   const role = useRole(context, { role: ariaRole });
   const dismiss = useDismiss(context);
 
-  const { getReferenceProps, getFloatingProps } = useInteractions([hover, role, dismiss]);
+  const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, role, dismiss]);
 
   useEffect(() => {
     if (open) {
@@ -179,7 +181,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({
 
   return (
     <>
-      <span ref={refs.setReference} className={className} onClick={onClick} {...getReferenceProps()}>
+      <span ref={refs.setReference} className={className} onClick={onClick} style={{ display: 'inline-block' }} {...getReferenceProps()}>
         {children}
       </span>
       {tooltipContent && <FloatingPortal root={portalRoot}>{tooltipContent}</FloatingPortal>}
