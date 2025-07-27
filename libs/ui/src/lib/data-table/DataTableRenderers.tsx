@@ -571,6 +571,9 @@ export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unkn
     />
   );
 };
+IdLinkRenderer.prototype = {
+  displayName: 'IdLinkRenderer',
+};
 
 export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;
@@ -638,6 +641,9 @@ export const ActionRenderer = ({ row }: { row: any }): ReactNode => {
       </Tooltip>
     </Fragment>
   );
+};
+ActionRenderer.prototype = {
+  displayName: 'ActionRenderer',
 };
 
 export const BooleanRenderer = ({ column, row }: RenderCellProps<any, unknown>): ReactNode => {

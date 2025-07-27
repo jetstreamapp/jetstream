@@ -301,11 +301,11 @@ export function useDataTable<T = RowWithKey>({
   function handleCellKeydown(args: CellKeyDownArgs<T, unknown>, event: CellKeyboardEvent) {
     try {
       // Handle renderer-specific keyboard interactions
-      if (args.column.renderCell?.name === 'IdLinkRenderer' && handleIdLinkRendererKeydown(event)) {
+      if (args.column.renderCell?.prototype?.displayName === 'IdLinkRenderer' && handleIdLinkRendererKeydown(event)) {
         return;
       }
 
-      if (args.column.renderCell?.name === 'ActionRenderer' && handleActionRendererTabNavigation(event)) {
+      if (args.column.renderCell?.prototype?.displayName === 'ActionRenderer' && handleActionRendererTabNavigation(event)) {
         return;
       }
 
