@@ -35,7 +35,6 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
   externalId,
 }) => {
   const isMounted = useRef(true);
-  const modalRef = useRef(null);
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
   const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +85,6 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
 
       {isOpen && (
         <Modal
-          ref={modalRef}
           size="lg"
           header="Duplicate Records"
           closeOnBackdropClick

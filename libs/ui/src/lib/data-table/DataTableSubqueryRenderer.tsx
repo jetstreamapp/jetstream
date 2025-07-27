@@ -228,7 +228,6 @@ function ModalDataTable({
   handleRowAction,
   setSelectedRows,
 }: ModalDataTableProps) {
-  const modalRef = useRef(null);
   const { records, done, totalSize } = queryResults;
 
   const { fields: _fields, rows } = useMemo(() => {
@@ -271,7 +270,6 @@ function ModalDataTable({
     <>
       {isActive && (
         <Modal
-          ref={modalRef}
           size="lg"
           header={columnKey}
           tagline={modalTagline}
@@ -336,7 +334,6 @@ function ModalDataTable({
                 rowHeight={28.5}
                 selectedRows={selectedRows}
                 onSelectedRowsChange={setSelectedRows as any}
-                context={{ portalRefForFilters: modalRef }}
                 contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
                 contextMenuAction={handleContextMenuAction}
                 onReorderColumns={handleColumnReorder}

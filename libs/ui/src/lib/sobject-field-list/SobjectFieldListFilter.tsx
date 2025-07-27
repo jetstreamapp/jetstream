@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent, MouseEvent, useEffect, useId, useRef, useState } from 'react';
 import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { Popover, PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
 export type All = 'all';

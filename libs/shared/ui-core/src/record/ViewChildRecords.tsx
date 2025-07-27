@@ -5,7 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
 import { queryAll, queryAllFromList, queryAllWithCache } from '@jetstream/shared/data';
 import { groupByFlat, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { ChildRelationship, Maybe, QueryResult, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
+import { ChildRelationship, QueryResult, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
@@ -23,7 +23,7 @@ import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/a
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import { useAtomValue } from 'jotai';
 import groupBy from 'lodash/groupBy';
-import { FunctionComponent, MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAmplitude } from '../analytics';
 
 function getRowId(row: SalesforceRecord<ChildRecordRow>): string {
@@ -75,7 +75,6 @@ export interface ViewChildRecordsProps {
   parentRecordId: string;
   initialData?: SalesforceRecord;
   childRelationships: ChildRelationship[];
-  modalRef?: MutableRefObject<Maybe<HTMLDivElement>>;
   onChildrenData?: (parentRecordId: string, record: SalesforceRecord) => void;
 }
 
@@ -85,7 +84,6 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
   parentRecordId,
   initialData,
   childRelationships,
-  modalRef,
   onChildrenData,
 }) => {
   const { trackEvent } = useAmplitude();
@@ -332,7 +330,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
     <>
       {!!fetchErrors.length && (
         <ScopedNotification theme="warning">
-          There was an error fetching some child records. <PopoverErrorButton errors={fetchErrors} omitPortal />
+          There was an error fetching some child records. <PopoverErrorButton errors={fetchErrors} />
         </ScopedNotification>
       )}
       <Grid
@@ -364,7 +362,6 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           rowGrouper={groupBy}
           expandedGroupIds={expandedGroupIds}
           onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-          context={{ portalRefForFilters: modalRef }}
         />
       </AutoFullHeightContainer>
     </>

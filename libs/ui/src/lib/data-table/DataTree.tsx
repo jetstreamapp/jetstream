@@ -106,7 +106,6 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
           value={{
             filterSetValues,
             filters,
-            portalRefForFilters: context?.portalRefForFilters,
             updateFilter,
           }}
         >

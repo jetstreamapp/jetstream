@@ -1,13 +1,13 @@
 import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { CloneEditView, Maybe, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
 import ReadOnlyFormElement from '../form/readonly-form-element/ReadOnlyFormElement';
 import Grid from '../grid/Grid';
 import GridCol from '../grid/GridCol';
-import Popover from '../popover/Popover';
+import { Popover } from '../popover/Popover';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import Icon from './Icon';
 import { KeyboardShortcut } from './KeyboardShortcut';
@@ -21,7 +21,6 @@ export interface RecordLookupPopoverProps {
   skipFrontDoorAuth?: boolean;
   returnUrl?: string;
   isTooling?: boolean;
-  portalRef?: Maybe<HTMLElement>;
   onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
 }
 
@@ -32,7 +31,6 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
   skipFrontDoorAuth,
   returnUrl,
   isTooling,
-  portalRef,
   onRecordAction,
 }) => {
   const isMounted = useRef(true);
@@ -119,7 +117,6 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
       panelProps={{
         onDoubleClick: (event) => event.stopPropagation(),
       }}
-      portalRef={portalRef}
       content={
         <div>
           <SalesforceLogin serverUrl={serverUrl} org={org} returnUrl={returnUrl} skipFrontDoorAuth={skipFrontDoorAuth}>

@@ -1,5 +1,5 @@
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
 import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, useEffect } from 'react';
@@ -21,10 +21,9 @@ function getDefaultPermissions(): CreateObjectPermissions {
 export interface CreateNewObjectPermissionsProps {
   selectedOrg: SalesforceOrgUi;
   loading: boolean;
-  portalRef?: Maybe<HTMLElement>;
 }
 
-export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: CreateNewObjectPermissionsProps) => {
+export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewObjectPermissionsProps) => {
   const [profiles, setProfiles] = useAtom(fromCreateObjectState.profilesState);
   const [selectedProfiles, setSelectedProfiles] = useAtom(fromCreateObjectState.selectedProfilesState);
 
@@ -128,7 +127,6 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
           allowRefresh
           lastRefreshed={profilesAndPermSetsData.lastRefreshed}
           loading={profilesAndPermSetsData.loading}
-          portalRef={portalRef}
           disabled={loading}
           onSelected={setSelectedProfiles}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
@@ -149,7 +147,6 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
           lastRefreshed={profilesAndPermSetsData.lastRefreshed}
           selectedItems={selectedPermissionSets}
           loading={profilesAndPermSetsData.loading}
-          portalRef={portalRef}
           disabled={loading}
           onSelected={setSelectedPermissionSets}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}

@@ -282,8 +282,13 @@ module.exports = [
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
-          args: 'none',
-          ignoreRestSiblings: true,
+          args: 'all',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true, // Allows unused props when using rest spread
         },
       ],
       'no-useless-constructor': 'off',
@@ -310,7 +315,18 @@ module.exports = [
       '@typescript-eslint/no-empty-object-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-parameter-properties': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true, // Allows unused props when using rest spread
+        },
+      ],
     },
   },
   {

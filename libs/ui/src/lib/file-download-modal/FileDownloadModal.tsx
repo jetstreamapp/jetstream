@@ -299,7 +299,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           {alternateDownloadButton}
         </Fragment>
       }
-      skipAutoFocus
       hide={isGooglePickerVisible}
       onClose={() => onModalClose(true)}
     >

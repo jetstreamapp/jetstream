@@ -10,7 +10,7 @@ import { parseISO } from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import { Fragment, MutableRefObject, ReactNode, memo, useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, ReactNode, memo, useContext, useEffect, useRef, useState } from 'react';
 import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, useRowSelection } from 'react-data-grid';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
@@ -19,8 +19,7 @@ import Picklist from '../form/picklist/Picklist';
 import SearchInput from '../form/search-input/SearchInput';
 import TimePicker from '../form/time-picker/TimePicker';
 import Modal from '../modal/Modal';
-import { usePortalContext } from '../modal/PortalContext';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { Popover, PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import RecordLookupPopover from '../widgets/RecordLookupPopover';
@@ -90,7 +89,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     }
   ) => React.ReactElement;
 }) {
-  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);
 
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
 
@@ -104,7 +103,6 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
             columnKey: column.key,
             filters: filters[column.key],
             filterSetValues,
-            portalRefForFilters,
             updateFilter,
           })}
         </div>
@@ -118,17 +116,11 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
  * This can be used on summary rows as well to solve for headers that span multiple columns
  */
 export function SummaryFilterRenderer({ columnKey, label }: { columnKey: string; label: string }) {
-  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);
   return (
     <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
       <div className="slds-truncate">{label}</div>
-      <HeaderFilter
-        columnKey={columnKey}
-        filters={filters[columnKey]}
-        filterSetValues={filterSetValues}
-        portalRefForFilters={portalRefForFilters}
-        updateFilter={updateFilter}
-      />
+      <HeaderFilter columnKey={columnKey} filters={filters[columnKey]} filterSetValues={filterSetValues} updateFilter={updateFilter} />
     </div>
   );
 }
@@ -137,17 +129,12 @@ interface HeaderFilterProps {
   columnKey: string;
   filters: DataTableFilter[];
   filterSetValues: Record<string, string[]>;
-  portalRefForFilters: MutableRefObject<HTMLElement>;
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) => {
+export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, updateFilter }: HeaderFilterProps) => {
   const [active, setActive] = useState(false);
   const popoverRef = useRef<PopoverRef>(null);
-
-  // Detect if we're in a modal by checking for PortalContext
-  const { isInPortal, portalRoot } = usePortalContext();
-  const portalRef = isInPortal && portalRoot ? portalRoot : portalRefForFilters?.current;
 
   useEffect(() => {
     setActive(filters?.some((filter) => isFilterActive(filter, (filterSetValues[columnKey] || []).length)));
@@ -195,8 +182,6 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalR
     >
       <Popover
         ref={popoverRef}
-        portalRef={portalRef}
-        omitPortal={isInPortal && !portalRoot}
         header={
           <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
             <h2 className="slds-text-heading_small">Filter</h2>
@@ -569,9 +554,8 @@ export const ComplexDataRenderer = ({ column, row }: RenderCellProps<RowWithKey,
 };
 
 export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
-  const { onRecordAction, portalRefForFilters } = useContext(DataTableGenericContext) as {
+  const { onRecordAction } = useContext(DataTableGenericContext) as {
     onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
-    portalRefForFilters?: MutableRefObject<HTMLElement>;
   };
   const recordId = row[column.key];
   const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId, _skipFrontdoorLogin);
@@ -583,7 +567,6 @@ export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unkn
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}
-      portalRef={portalRefForFilters?.current}
       onRecordAction={onRecordAction}
     />
   );
@@ -619,36 +602,36 @@ export const ActionRenderer = ({ row }: { row: any }): ReactNode => {
   return (
     <Fragment>
       <ErrorMessageRenderer row={row} />
-      <Tooltip content="View full record">
+      <Tooltip ariaRole="label" content="View full record">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'view')}>
           <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View Record" />
         </button>
       </Tooltip>
-      <Tooltip content="Edit">
+      <Tooltip ariaRole="label" content="Edit">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'edit')}>
           <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
         </button>
       </Tooltip>
-      <Tooltip content="Clone">
+      <Tooltip ariaRole="label" content="Clone">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'clone')}>
           <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
         </button>
       </Tooltip>
       {isDeleted && (
-        <Tooltip content="Restore from Recycle Bin">
+        <Tooltip ariaRole="label" content="Restore from Recycle Bin">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'undelete')}>
             <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer title="Restore from Recycle Bin" />
           </button>
         </Tooltip>
       )}
       {!isDeleted && (
-        <Tooltip content="Delete">
+        <Tooltip ariaRole="label" content="Delete">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'delete')}>
             <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer title="Delete Record" />
           </button>
         </Tooltip>
       )}
-      <Tooltip content="Turn Into Apex">
+      <Tooltip ariaRole="label" content="Turn Into Apex">
         <button className="slds-button slds-button_icon" onClick={() => row._action(row, 'apex')}>
           <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer title="Turn Into Apex" />
         </button>

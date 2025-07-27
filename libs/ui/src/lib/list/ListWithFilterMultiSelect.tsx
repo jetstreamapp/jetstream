@@ -32,7 +32,6 @@ export interface ListWithFilterMultiSelectProps {
   allowRefresh?: boolean;
   lastRefreshed?: Maybe<string>;
   autoFillContainerProps?: AutoFullHeightContainerProps;
-  portalRef?: Maybe<HTMLElement>;
   onSelected: (items: string[]) => void;
   errorReattempt?: () => void;
   onRefresh?: () => void;
@@ -53,7 +52,6 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   allowRefresh,
   lastRefreshed,
   autoFillContainerProps,
-  portalRef,
   onSelected,
   errorReattempt,
   onRefresh = NOOP,
@@ -189,7 +187,6 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
                   />
                   <ItemSelectionSummary
                     items={items.filter((item) => selectedItemsSet.has(item.id)).map((item) => ({ label: item.label, value: item.id }))}
-                    portalRef={portalRef}
                     disabled={disabled}
                     onClearAll={() => onSelected([])}
                     onClearItem={handleSelection}

@@ -1,9 +1,8 @@
 import { css } from '@emotion/react';
-import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { FunctionComponent, useEffect, useRef } from 'react';
 import Icon from '../widgets/Icon';
-import Popover, { PopoverRef } from './Popover';
+import { Popover, PopoverRef } from './Popover';
 
 export interface PopoverErrorButtonProps {
   className?: string;
@@ -11,8 +10,6 @@ export interface PopoverErrorButtonProps {
   header?: string;
   listHeader?: string | null;
   errors: string | string[];
-  omitPortal?: boolean;
-  portalRef?: Maybe<HTMLElement>;
 }
 
 export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
@@ -21,8 +18,6 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
   header = 'We hit a snag.',
   listHeader = 'Review the following errors',
   errors,
-  omitPortal,
-  portalRef,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
 
@@ -46,8 +41,6 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
         ref={popoverRef}
         containerClassName="slds-popover_error"
         inverseIcons
-        omitPortal={omitPortal}
-        portalRef={portalRef}
         header={
           <header className="slds-popover__header">
             <div className="slds-media slds-media_center slds-has-flexi-truncate">

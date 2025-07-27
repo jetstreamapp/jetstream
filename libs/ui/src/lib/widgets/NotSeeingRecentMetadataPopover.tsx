@@ -4,7 +4,7 @@ import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/a
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { FunctionComponent, useRef } from 'react';
-import Popover, { PopoverProps, PopoverRef } from '../popover/Popover';
+import { Popover, PopoverProps, PopoverRef } from '../popover/Popover';
 import Icon from './Icon';
 import SalesforceLogin from './SalesforceLogin';
 import Spinner from './Spinner';

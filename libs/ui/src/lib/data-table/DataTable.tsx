@@ -109,7 +109,6 @@ export const DataTable = forwardRef<any, DataTableProps<any>>(
           value={{
             filterSetValues,
             filters,
-            portalRefForFilters: context?.portalRefForFilters,
             updateFilter,
           }}
         >

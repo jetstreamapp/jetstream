@@ -14,9 +14,9 @@ import {
   useRole,
   type Placement,
 } from '@floating-ui/react';
-import { FullWidth, Maybe, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
+import { FullWidth, sizeXLarge, SmallMediumLarge } from '@jetstream/types';
 import classNames from 'classnames';
-import { createElement, CSSProperties, forwardRef, ReactNode, useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { createElement, CSSProperties, ReactNode, RefObject, useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { Tooltip, TooltipProps } from '../..';
 import { usePortalContext } from '../modal/PortalContext';
 import { Icon } from '../widgets/Icon';
@@ -31,6 +31,7 @@ export interface PopoverRef {
 // TODO: add PopoverHeader and PopoverFooter components
 // https://www.lightningdesignsystem.com/components/popovers
 export interface PopoverProps {
+  ref?: RefObject<PopoverRef | null>;
   testId?: string;
   inverseIcons?: boolean;
   classname?: string;
@@ -51,9 +52,6 @@ export interface PopoverProps {
    */
   tooltipProps?: TooltipProps;
   size?: SmallMediumLarge | sizeXLarge | FullWidth;
-  /** By default, the popover is displayed in a portal, but this can be skipped by setting this to true */
-  omitPortal?: boolean;
-  portalRef?: Maybe<HTMLElement>;
   /**
    * Additional content to render after the popover content.
    * This is useful for adding elements like a close button or additional actions.
@@ -63,282 +61,267 @@ export interface PopoverProps {
   onChange?: (isOpen: boolean) => void;
 }
 
-export const Popover = forwardRef<PopoverRef, PopoverProps>(
-  (
-    {
-      testId,
-      classname,
-      inverseIcons,
-      containerClassName,
-      closeBtnClassName,
-      bodyClassName = 'slds-popover__body',
-      bodyStyle,
-      placement,
-      content,
-      header,
-      footer,
-      panelStyle,
-      buttonProps,
-      panelProps,
-      buttonStyle,
-      tooltipProps,
-      triggerAfterContent,
-      children,
-      size,
-      omitPortal = false,
-      portalRef,
-      onChange,
-    }: PopoverProps,
-    ref
-  ) => {
-    const { isInPortal } = usePortalContext();
-    const [isOpen, setIsOpen] = useState(false);
-    const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+export const Popover = ({
+  ref,
+  testId,
+  classname,
+  inverseIcons,
+  containerClassName,
+  closeBtnClassName,
+  bodyClassName = 'slds-popover__body',
+  bodyStyle,
+  placement,
+  content,
+  header,
+  footer,
+  panelStyle,
+  buttonProps,
+  panelProps,
+  buttonStyle,
+  tooltipProps,
+  triggerAfterContent,
+  children,
+  size,
+  onChange,
+}: PopoverProps) => {
+  const { isInPortal, portalRoot } = usePortalContext();
+  const [isOpen, setIsOpen] = useState(false);
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
-    const {
-      refs,
-      floatingStyles,
-      placement: currentPlacement,
-      middlewareData,
-      context,
-    } = useFloating({
-      open: isOpen,
-      onOpenChange: (open) => {
-        setIsOpen(open);
-        if (onChange) {
-          onChange(open);
-        }
-      },
-      placement,
-      middleware: [
-        offset(12),
-        flip(),
-        shift({ padding: 8 }),
-        arrow({
-          element: arrowElement,
-        }),
-      ],
-      whileElementsMounted: autoUpdate,
-    });
-
-    const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
-
-    const click = useClick(context);
-    const dismiss = useDismiss(context, {
-      outsidePressEvent: 'mousedown',
-      ancestorScroll: false,
-    });
-    const role = useRole(context);
-
-    const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
-
-    /**
-     * Allows a parent component to open or close
-     */
-    useImperativeHandle<unknown, PopoverRef>(
-      ref,
-      () => {
-        return {
-          toggle: () => setIsOpen((prev) => !prev),
-          open: () => setIsOpen(true),
-          close: () => setIsOpen(false),
-          isOpen: () => isOpen,
-        };
-      },
-      [isOpen]
-    );
-
-    const handleClose = useCallback(() => {
-      setIsOpen(false);
-    }, []);
-
-    /**
-     * Popovers used in modals did not close when clicking outside of them.
-     * This is a manual solution to ensure that the popover closes when clicking outside of it.
-     */
-    useEffect(() => {
-      if (!isOpen || !isInPortal) {
-        return;
+  const {
+    refs,
+    floatingStyles,
+    placement: currentPlacement,
+    middlewareData,
+    context,
+  } = useFloating({
+    open: isOpen,
+    onOpenChange: (open) => {
+      setIsOpen(open);
+      if (onChange) {
+        onChange(open);
       }
+    },
+    placement,
+    middleware: [
+      offset(12),
+      flip(),
+      shift({ padding: 8 }),
+      arrow({
+        element: arrowElement,
+      }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
 
-      const handleOutsideClick = (event: MouseEvent) => {
-        const target = event.target as Element;
-        const popoverElement = refs.floating.current;
-        const referenceElement = refs.domReference.current;
+  const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
 
-        // If click is outside both popover and its trigger
-        if (popoverElement && referenceElement && !popoverElement.contains(target) && !referenceElement.contains(target)) {
-          setIsOpen(false);
-        }
+  const click = useClick(context);
+  const dismiss = useDismiss(context, {
+    outsidePressEvent: 'mousedown',
+    ancestorScroll: false,
+  });
+  const role = useRole(context);
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
+
+  /**
+   * Allows a parent component to open or close
+   */
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        toggle: () => setIsOpen((prev) => !prev),
+        open: () => setIsOpen(true),
+        close: () => setIsOpen(false),
+        isOpen: () => isOpen,
       };
+    },
+    [isOpen]
+  );
 
-      // Use capture phase to ensure we catch the event before modal
-      document.addEventListener('mousedown', handleOutsideClick, true);
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
 
-      return () => {
-        document.removeEventListener('mousedown', handleOutsideClick, true);
-      };
-    }, [isOpen, refs.floating, refs.domReference, isInPortal]);
+  /**
+   * Popovers used in modals did not close when clicking outside of them.
+   * This is a manual solution to ensure that the popover closes when clicking outside of it.
+   */
+  useEffect(() => {
+    if (!isOpen || !isInPortal) {
+      return;
+    }
 
-    const ConditionalWrapper = omitPortal ? ({ children }: { children: ReactNode }) => children : FloatingPortal;
-    const wrapperProps = omitPortal ? {} : { root: portalRef };
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const popoverElement = refs.floating.current;
+      const referenceElement = refs.domReference.current;
 
-    const { as: TriggerElement = 'button', ...restButtonProps } = buttonProps || {};
-
-    const mergedButtonProps = {
-      ...getReferenceProps(),
-      ...restButtonProps,
-      onClick: (ev: React.MouseEvent<HTMLElement>) => {
-        // Call floating-ui's onClick first
-        const referenceProps = getReferenceProps();
-        'onClick' in referenceProps && typeof referenceProps.onClick === 'function' && referenceProps.onClick?.(ev);
-        // Then call any custom onClick from buttonProps
-        'onClick' in restButtonProps && typeof restButtonProps.onClick === 'function' && restButtonProps.onClick?.(ev as any);
-      },
-      style: buttonStyle,
+      // If click is outside both popover and its trigger
+      if (popoverElement && referenceElement && !popoverElement.contains(target) && !referenceElement.contains(target)) {
+        setIsOpen(false);
+      }
     };
 
-    const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;
+    // Use capture phase to ensure we catch the event before modal
+    document.addEventListener('mousedown', handleOutsideClick, true);
 
-    const triggerElement = createElement(TriggerElement, { ref: refs.setReference, ...triggerProps }, children);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick, true);
+    };
+  }, [isOpen, refs.floating, refs.domReference, isInPortal]);
 
-    return (
-      <span className={classNames('slds-is-relative', classname)}>
-        {tooltipProps ? <Tooltip {...tooltipProps}>{triggerElement}</Tooltip> : triggerElement}
-        {triggerAfterContent}
-        {isOpen && (
-          <ConditionalWrapper {...wrapperProps}>
-            {/* Does not allow text selection if this is enabled */}
-            {/* <FloatingFocusManager context={context} modal={false}> */}
-            <section
-              ref={refs.setFloating}
-              data-testid={testId}
-              style={{ ...floatingStyles, ...panelStyle }}
-              {...getFloatingProps()}
-              className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
-              css={css`
-                &[data-placement^='right'] {
-                  .popover-arrow {
-                    left: -0.5rem;
-                    &::after {
-                      box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
-                    }
+  const { as: TriggerElement = 'button', ...restButtonProps } = buttonProps || {};
+
+  const mergedButtonProps = {
+    ...getReferenceProps(),
+    ...restButtonProps,
+    onClick: (ev: React.MouseEvent<HTMLElement>) => {
+      // Call floating-ui's onClick first
+      const referenceProps = getReferenceProps();
+      'onClick' in referenceProps && typeof referenceProps.onClick === 'function' && referenceProps.onClick?.(ev);
+      // Then call any custom onClick from buttonProps
+      'onClick' in restButtonProps && typeof restButtonProps.onClick === 'function' && restButtonProps.onClick?.(ev as any);
+    },
+    style: buttonStyle,
+  };
+
+  const triggerProps = TriggerElement === 'button' ? { ...mergedButtonProps, type: 'button' as const } : mergedButtonProps;
+
+  const triggerElement = createElement(TriggerElement, { ref: refs.setReference, ...triggerProps }, children);
+
+  return (
+    <span className={classNames('slds-is-relative', classname)}>
+      {tooltipProps ? <Tooltip {...tooltipProps}>{triggerElement}</Tooltip> : triggerElement}
+      {triggerAfterContent}
+      {isOpen && (
+        <FloatingPortal root={portalRoot}>
+          <section
+            ref={refs.setFloating}
+            data-testid={testId}
+            style={{ ...floatingStyles, ...panelStyle }}
+            {...getFloatingProps()}
+            className={classNames('slds-popover', size ? `slds-popover_${size}` : undefined, containerClassName)}
+            css={css`
+              &[data-placement^='right'] {
+                .popover-arrow {
+                  left: -0.5rem;
+                  &::after {
+                    box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
                   }
                 }
+              }
 
-                &[data-placement^='left'] {
-                  .popover-arrow {
-                    right: -0.5rem;
-                    &::after {
-                      box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
-                    }
+              &[data-placement^='left'] {
+                .popover-arrow {
+                  right: -0.5rem;
+                  &::after {
+                    box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
                   }
                 }
+              }
 
-                &[data-placement^='top'] {
-                  .popover-arrow {
-                    bottom: -0.5rem;
-                    &::after {
-                      box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
-                    }
-                    ${footer?.props?.className?.includes('slds-popover__footer') &&
-                    !containerClassName?.includes('_error') &&
-                    !containerClassName?.includes('_warning') &&
-                    !containerClassName?.includes('_walkthrough') &&
-                    `&::before {
-                        background-color: #f3f2f2;
-                      }`}
+              &[data-placement^='top'] {
+                .popover-arrow {
+                  bottom: -0.5rem;
+                  &::after {
+                    box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
                   }
+                  ${footer?.props?.className?.includes('slds-popover__footer') &&
+                  !containerClassName?.includes('_error') &&
+                  !containerClassName?.includes('_warning') &&
+                  !containerClassName?.includes('_walkthrough') &&
+                  `&::before {
+              background-color: #f3f2f2;
+            }`}
                 }
+              }
 
-                &[data-placement^='bottom'] {
-                  .popover-arrow {
-                    top: -0.5rem;
-                    &::after {
-                      box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
-                    }
-                    ${containerClassName?.includes('_error') &&
-                    `&::before {
-                        background-color: #ba0517;
-                      }`}
-                    ${containerClassName?.includes('_warning') &&
-                    `&::before {
-                        background-color: #fe9339;
-                      }`}
-                      ${containerClassName?.includes('_walkthrough') &&
-                    `&::before {
-                        background-color: #032d60;
-                      }`}
+              &[data-placement^='bottom'] {
+                .popover-arrow {
+                  top: -0.5rem;
+                  &::after {
+                    box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
                   }
+                  ${containerClassName?.includes('_error') &&
+                  `&::before {
+              background-color: #ba0517;
+            }`}
+                  ${containerClassName?.includes('_warning') &&
+                  `&::before {
+              background-color: #fe9339;
+            }`}
+            ${containerClassName?.includes('_walkthrough') &&
+                  `&::before {
+              background-color: #032d60;
+            }`}
                 }
-              `}
-              data-placement={currentPlacement}
-              {...panelProps}
+              }
+            `}
+            data-placement={currentPlacement}
+            {...panelProps}
+          >
+            {/* CLOSE BUTTON */}
+            <button
+              className={classNames(
+                'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
+                {
+                  'slds-button_icon-inverse': inverseIcons,
+                },
+                closeBtnClassName
+              )}
+              title="Close dialog"
+              onClick={handleClose}
+              type="button"
             >
-              {/* CLOSE BUTTON */}
-              <button
-                className={classNames(
-                  'slds-button slds-button_icon slds-button_icon-small slds-float_right slds-popover__close',
-                  {
-                    'slds-button_icon-inverse': inverseIcons,
-                  },
-                  closeBtnClassName
-                )}
-                title="Close dialog"
-                onClick={handleClose}
-                type="button"
-              >
-                <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
-                <span className="slds-assistive-text">Close dialog</span>
-              </button>
-              {/* CONTENT */}
-              {header}
-              <div css={bodyStyle} className={bodyClassName}>
-                {content}
-              </div>
-              {footer}
-              {/* ARROW */}
-              <div
-                css={css`
+              <Icon type="utility" icon="close" className="slds-button__icon" omitContainer />
+              <span className="slds-assistive-text">Close dialog</span>
+            </button>
+            {/* CONTENT */}
+            {header}
+            <div css={bodyStyle} className={bodyClassName}>
+              {content}
+            </div>
+            {footer}
+            {/* ARROW */}
+            <div
+              css={css`
+                position: absolute;
+                width: 1rem;
+                height: 1rem;
+                background: inherit;
+                visibility: hidden;
+                &::before {
+                  visibility: visible;
+                  content: '';
+                  transform: rotate(45deg);
                   position: absolute;
                   width: 1rem;
                   height: 1rem;
                   background: inherit;
-                  visibility: hidden;
-                  &::before {
-                    visibility: visible;
-                    content: '';
-                    transform: rotate(45deg);
-                    position: absolute;
-                    width: 1rem;
-                    height: 1rem;
-                    background: inherit;
-                  }
-                  &::after {
-                    visibility: visible;
-                    content: '';
-                    transform: rotate(45deg);
-                    position: absolute;
-                    width: 1rem;
-                    height: 1rem;
-                    /* background-color: inherit; */
-                  }
-                `}
-                className="popover-arrow"
-                ref={setArrowElement}
-                style={{
-                  position: 'absolute',
-                  left: arrowX != null ? `${arrowX}px` : '',
-                  top: arrowY != null ? `${arrowY}px` : '',
-                }}
-              ></div>
-            </section>
-            {/* </FloatingFocusManager> */}
-          </ConditionalWrapper>
-        )}
-      </span>
-    );
-  }
-);
-
-export default Popover;
+                }
+                &::after {
+                  visibility: visible;
+                  content: '';
+                  transform: rotate(45deg);
+                  position: absolute;
+                  width: 1rem;
+                  height: 1rem;
+                }
+              `}
+              className="popover-arrow"
+              ref={setArrowElement}
+              style={{
+                position: 'absolute',
+                left: arrowX != null ? `${arrowX}px` : '',
+                top: arrowY != null ? `${arrowY}px` : '',
+              }}
+            ></div>
+          </section>
+        </FloatingPortal>
+      )}
+    </span>
+  );
+};

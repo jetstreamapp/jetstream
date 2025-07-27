@@ -21,7 +21,7 @@ import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';
@@ -33,7 +33,6 @@ interface DeployMetadataHistoryModalProps {
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const modalRef = useRef<HTMLDivElement>(null);
   const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);
@@ -252,7 +251,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       )}
       {isOpen && (
         <Modal
-          ref={modalRef}
           classStyles={css`
             min-height: 70vh;
             max-height: 70vh;
@@ -292,7 +290,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
                 <DeployMetadataHistoryTable
                   items={historyItems}
                   orgsById={orgsById}
-                  modalRef={modalRef}
                   onDownload={handleDownload}
                   onView={handleViewModalOpen}
                 />

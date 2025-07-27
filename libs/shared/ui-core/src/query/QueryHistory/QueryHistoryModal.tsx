@@ -193,7 +193,6 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
 
   return (
     <Modal
-      ref={ref}
       header="Query History"
       className="slds-grow"
       tagline={
@@ -206,7 +205,6 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
         </Grid>
       }
       size="lg"
-      skipAutoFocus
       onClose={() => onclose()}
     >
       {isRestoring && <Spinner />}

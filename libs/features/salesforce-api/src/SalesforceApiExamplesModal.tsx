@@ -18,7 +18,6 @@ export interface SalesforceApiExamplesModalProps {
 export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamplesModalProps> = ({ onExecute }) => {
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const modalRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [requests, setRequests] = useState<SalesforceApiRequest[]>([]);
@@ -103,7 +102,6 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
       </button>
       {isOpen && (
         <Modal
-          ref={modalRef}
           header="Sample API Requests"
           footer={
             <Grid align="spread" verticalAlign="center">
@@ -138,7 +136,6 @@ export const SalesforceApiExamplesModal: FunctionComponent<SalesforceApiExamples
                 rowGrouper={groupBy}
                 expandedGroupIds={expandedGroupIds}
                 onExpandedGroupIdsChange={(items) => setExpandedGroupIds(items)}
-                context={{ portalRefForFilters: modalRef }}
               />
             </AutoFullHeightContainer>
           </div>

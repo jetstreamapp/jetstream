@@ -38,7 +38,6 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
   const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
-  const modalRef = useRef(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState('permissions');
@@ -119,7 +118,6 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
         closeOnBackdropClick={false}
         closeDisabled={loading}
         header="Create Object"
-        ref={modalRef}
         footer={
           <Grid align="end">
             <div>
@@ -133,7 +131,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
               )}
               {activeTab === 'results' && (
                 <button className="slds-button slds-button_brand" form="create-object-form" type="submit" disabled={loading || !allValid}>
-                  Create Object
+                  Upsert Object
                 </button>
               )}
             </div>
@@ -171,7 +169,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                     </Grid>
                   ),
                   titleText: 'Permissions',
-                  content: <CreateNewObjectPermissions selectedOrg={selectedOrg} loading={loading} portalRef={modalRef.current} />,
+                  content: <CreateNewObjectPermissions selectedOrg={selectedOrg} loading={loading} />,
                 },
                 {
                   id: 'field',
@@ -220,7 +218,11 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                             <EmptyState headline="Go back and correct your configuration" illustration={<NoPreviewIllustration />} />
                           )}
                           {allValid && (
-                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />} />
+                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />}>
+                              <button className="slds-button slds-button_brand" form="create-object-form" type="submit">
+                                Upsert Object
+                              </button>
+                            </EmptyState>
                           )}
                         </GridCol>
                       )}
@@ -271,7 +273,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                             />
                           </GridCol>
 
-                          <GridCol className="slds-scrollable_x">
+                          <GridCol className="slds-scrollable_x" size={12} sizeLarge={10}>
                             <DeployMetadataResultsTables results={results} />
                           </GridCol>
                         </>

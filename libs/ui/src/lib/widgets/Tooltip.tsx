@@ -27,11 +27,23 @@ export interface TooltipProps {
    */
   openDelay?: number;
   closeDelay?: number;
+  /**
+   * Can be provided to change the role from "tooltip" to "label" if the content does not have a label or describing attribute, such as an icon
+   */
+  ariaRole?: 'tooltip' | 'label';
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   children?: React.ReactNode;
 }
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, openDelay, closeDelay, onClick, children }) => {
+export const Tooltip: FunctionComponent<TooltipProps> = ({
+  className,
+  content,
+  openDelay,
+  closeDelay,
+  ariaRole = 'tooltip',
+  onClick,
+  children,
+}) => {
   const { portalRoot } = usePortalContext();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -60,7 +72,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, o
       close: closeDelay,
     },
   });
-  const role = useRole(context, { role: 'tooltip' });
+  const role = useRole(context, { role: ariaRole });
   const dismiss = useDismiss(context);
 
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, role, dismiss]);
@@ -170,10 +182,7 @@ export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, o
       <span ref={refs.setReference} className={className} onClick={onClick} {...getReferenceProps()}>
         {children}
       </span>
-      {/* FIXME: fix deprecation */}
-      {tooltipContent && (
-        <FloatingPortal root={portalRoot as null | React.MutableRefObject<HTMLElement | null>}>{tooltipContent}</FloatingPortal>
-      )}
+      {tooltipContent && <FloatingPortal root={portalRoot}>{tooltipContent}</FloatingPortal>}
     </>
   );
 };

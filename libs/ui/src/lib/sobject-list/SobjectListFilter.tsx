@@ -8,7 +8,7 @@ import Checkbox from '../form/checkbox/Checkbox';
 import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Grid from '../grid/Grid';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { Popover, PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
 export const TOGGLE_FILTER_TYPE_ITEMS = {
