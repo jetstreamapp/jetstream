@@ -16,6 +16,7 @@ const items: DropDownItem[] = [
   },
 ];
 
+// TODO: Add support for external sessions (API returns it, but we need to present it)
 export const ProfileSessions = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string>();
   const [sessions, setSessions] = useState<UserSessionWithLocation[]>([]);
@@ -53,7 +54,7 @@ export const ProfileSessions = () => {
         })
       ) {
         setIsLoading(true);
-        const response = await revokeUserSession(sessionId);
+        const response = await revokeUserSession(sessionId, 'SESSION');
         setCurrentSessionId(response.currentSessionId);
         setSessions(response.sessions);
       }

@@ -1,3 +1,4 @@
+import type { Placement } from '@floating-ui/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import {
@@ -57,7 +58,6 @@ import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 import numeral from 'numeral';
 import { UnparseConfig, parse as parseCsv, unparse, unparse as unparseCsv } from 'papaparse';
-import type { Placement } from '@floating-ui/react';
 import * as XLSX from 'xlsx';
 
 initXlsx(XLSX);
@@ -380,7 +380,7 @@ export function getMaxWidthFromColumnContent(data: string[][], skipRows: Set<num
   return output.map((width): XLSX.ColInfo => ({ width: width + 2 }));
 }
 
-export function getFilename(org: SalesforceOrgUi, parts: string[]) {
+export function getFilename(org: Pick<SalesforceOrgUi, 'username'>, parts: string[]) {
   return `${parts.join('-')}-${org.username}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
 }
 
