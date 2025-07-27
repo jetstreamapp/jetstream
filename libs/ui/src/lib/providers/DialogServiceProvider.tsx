@@ -36,7 +36,7 @@ export const ConfirmationServiceProvider: FunctionComponent<ConfirmationServiceP
   const awaitingPromiseRef = useRef<{
     resolve: (data: ConfirmationDialogServiceProviderOptions['data']) => void;
     reject: () => void;
-  }>(null);
+  } | null>(null);
 
   const openConfirmation = useCallback((options: ConfirmationDialogServiceProviderOptions) => {
     setConfirmationState(options);
