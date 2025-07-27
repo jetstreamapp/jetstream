@@ -274,7 +274,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
             </ButtonGroupContainer>
             <SearchInput id="field-filter" className="slds-size_1-of-2" placeholder="Filter fields from file" onChange={setSearchTerm} />
             <NotSeeingRecentMetadataPopover
-              popoverProps={{ omitPortal: true, placement: 'top-start' }}
+              popoverProps={{ placement: 'top-start' }}
               header="Missing Fields?"
               label="Not seeing all fields?"
               refreshButtonLabel="Reload Fields"

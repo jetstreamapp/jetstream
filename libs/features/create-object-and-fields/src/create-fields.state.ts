@@ -1,6 +1,7 @@
 import { DescribeGlobalSObjectResult, ListItem, PermissionSetNoProfileRecord, PermissionSetWithProfileRecord } from '@jetstream/types';
 import { FieldValues, getInitialValues } from '@jetstream/ui-core';
-import { atom, selector } from 'recoil';
+import { atom } from 'jotai';
+import { atomWithReset } from 'jotai/utils';
 
 let key = 0;
 
@@ -8,58 +9,33 @@ export function getNextKey() {
   return key++;
 }
 
-export const sObjectsState = atom<DescribeGlobalSObjectResult[] | null>({
-  key: 'create-fields.sObjectsState',
-  default: null,
-});
+export const sObjectsState = atomWithReset<DescribeGlobalSObjectResult[] | null>(null);
 
-export const selectedSObjectsState = atom<string[]>({
-  key: 'create-fields.selectedSObjectsState',
-  default: [],
-});
+export const selectedSObjectsState = atomWithReset<string[]>([]);
 
-export const profilesState = atom<ListItem<string, PermissionSetWithProfileRecord>[] | null>({
-  key: 'create-fields.profilesState',
-  default: null,
-});
+export const profilesState = atomWithReset<ListItem<string, PermissionSetWithProfileRecord>[] | null>(null);
 
 // permission set id of profile
-export const selectedProfilesPermSetState = atom<string[]>({
-  key: 'create-fields.selectedProfilesPermSetState',
-  default: [],
-});
+export const selectedProfilesPermSetState = atomWithReset<string[]>([]);
 
-export const permissionSetsState = atom<ListItem<string, PermissionSetNoProfileRecord>[] | null>({
-  key: 'create-fields.permissionSetsState',
-  default: null,
-});
+export const permissionSetsState = atomWithReset<ListItem<string, PermissionSetNoProfileRecord>[] | null>(null);
 
-export const selectedPermissionSetsState = atom<string[]>({
-  key: 'create-fields.selectedPermissionSetsState',
-  default: [],
-});
+export const selectedPermissionSetsState = atomWithReset<string[]>([]);
 
-export const fieldRowsState = atom<FieldValues[]>({
-  key: 'create-fields.fieldRowsState',
-  default: [getInitialValues(getNextKey())],
-});
+export const fieldRowsState = atomWithReset<FieldValues[]>([getInitialValues(getNextKey())]);
 
 /**
  * Returns true if all selections have been made
  */
-export const hasSelectionsMade = selector({
-  key: 'create-fields.hasSelectionsMade',
-  get: ({ get }) => {
-    if (!get(selectedSObjectsState)?.length) {
-      return false;
-    }
-    return true;
-  },
+export const hasSelectionsMade = atom((get) => {
+  if (!get(selectedSObjectsState)?.length) {
+    return false;
+  }
+  return true;
 });
 
-export const profilesAndPermSetsByIdSelector = selector<Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>>({
-  key: 'create-fields.profilesAndPermSetsByIdSelector',
-  get: ({ get }) => {
+export const profilesAndPermSetsByIdSelector = atom<Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>>(
+  (get) => {
     const profiles = get(profilesState);
     const permSets = get(permissionSetsState);
     const output: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord> = {};
@@ -80,5 +56,5 @@ export const profilesAndPermSetsByIdSelector = selector<Record<string, Permissio
       }, output);
     }
     return output;
-  },
-});
+  }
+);

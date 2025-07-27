@@ -2,25 +2,23 @@ import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { fromAutomationControlState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
-import { Fragment, FunctionComponent, useEffect } from 'react';
+import { useAtom, useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
+import { Fragment, useEffect } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlProps {}
-
-export const AutomationControl: FunctionComponent<AutomationControlProps> = () => {
+export const AutomationControl = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedOrg = useRecoilValue(selectedOrgState);
-  const [priorSelectedOrg, setPriorSelectedOrg] = useRecoilState(fromAutomationControlState.priorSelectedOrg);
-  const resetSObjectsState = useResetRecoilState(fromAutomationControlState.sObjectsState);
-  const resetSelectedSObjectsState = useResetRecoilState(fromAutomationControlState.selectedSObjectsState);
-  const resetAutomationTypes = useResetRecoilState(fromAutomationControlState.automationTypes);
-  const resetSelectedAutomationTypes = useResetRecoilState(fromAutomationControlState.selectedAutomationTypes);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const [priorSelectedOrg, setPriorSelectedOrg] = useAtom(fromAutomationControlState.priorSelectedOrg);
+  const resetSObjectsState = useResetAtom(fromAutomationControlState.sObjectsState);
+  const resetSelectedSObjectsState = useResetAtom(fromAutomationControlState.selectedSObjectsState);
+  const resetAutomationTypes = useResetAtom(fromAutomationControlState.automationTypes);
+  const resetSelectedAutomationTypes = useResetAtom(fromAutomationControlState.selectedAutomationTypes);
 
-  const hasSelectionsMade = useRecoilValue(fromAutomationControlState.hasSelectionsMade);
+  const hasSelectionsMade = useAtomValue(fromAutomationControlState.hasSelectionsMade);
 
   // reset everything if the selected org changes
   useEffect(() => {

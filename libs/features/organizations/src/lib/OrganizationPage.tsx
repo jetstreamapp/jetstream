@@ -31,8 +31,8 @@ import {
 } from '@jetstream/ui';
 import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import OrganizationCard from './OrganizationCard';
 import { OrganizationCardNoOrganization } from './OrganizationCardNoOrganization';
 import { OrganizationModal } from './OrganizationModal';
@@ -41,15 +41,15 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
   useTitle(TITLES.ORGANIZATIONS);
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
-  const [allOrgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const orgsWithoutOrganization = useRecoilValue(fromAppState.salesforceOrgsWithoutOrganizationSelector);
-  const [activeOrganizationId, setActiveOrganizationId] = useRecoilState(fromAppState.jetstreamActiveOrganizationState);
-  const setOrganizationsFromDb = useSetRecoilState(fromAppState.jetstreamOrganizationsState);
-  const [organizations, setOrganizations] = useRecoilState(fromAppState.jetstreamOrganizationsWithOrgsSelector);
-  const setSelectedOrganization = useSetRecoilState(fromAppState.jetstreamActiveOrganizationState);
-  const selectedOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const orgsWithoutOrganization = useAtomValue(fromAppState.salesforceOrgsWithoutOrganizationSelector);
+  const [activeOrganizationId, setActiveOrganizationId] = useAtom(fromAppState.jetstreamActiveOrganizationState);
+  const setOrganizationsFromDb = useSetAtom(fromAppState.jetstreamOrganizationsState);
+  const [organizations, setOrganizations] = useAtom(fromAppState.jetstreamOrganizationsWithOrgsSelector);
+  const setSelectedOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
+  const selectedOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
   const [isModalOpen, setIsModalOption] = useState(false);
 
   const { handleAddOrg } = useUpdateOrgs();
@@ -72,8 +72,9 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
       }
       try {
         // Optimistic update UI - update all state prior to DB actions and revert if error
-        setOrgs((orgs) =>
-          orgs.map((org) => {
+
+        setOrgs(
+          allOrgs.map((org) => {
             if (org.uniqueId !== sfdcOrgUniqueId) {
               return org;
             }
@@ -83,8 +84,9 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
             };
           })
         );
-        setOrganizations((prevOrganizations) => {
-          return prevOrganizations.map((org) => {
+
+        setOrganizations(
+          organizations.map((org) => {
             if (org.id === jetstreamOrganizationId) {
               if (action === 'add') {
                 return {
@@ -98,11 +100,13 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
               };
             }
             return org;
-          });
-        });
+          })
+        );
+
         if (sfdcOrgUniqueId === selectedOrg?.uniqueId) {
           setSelectedOrgId(null);
         }
+
         await addSfdcOrgToOrganization({
           jetstreamOrganizationId: action === 'add' ? jetstreamOrganizationId : null,
           sfdcOrgUniqueId,
@@ -144,7 +148,8 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
       trackEvent(ANALYTICS_KEYS.organizations_updated, { count: organizations.length });
       createdOrg = await createJetstreamOrganization(organization);
     }
-    setOrganizationsFromDb((prevOrganizations) => {
+    setOrganizationsFromDb(async (_prevOrganizations) => {
+      const prevOrganizations = await _prevOrganizations;
       const orgIndex = prevOrganizations.findIndex((org) => org.id === createdOrg.id);
       if (orgIndex === -1) {
         return [...prevOrganizations, createdOrg];
@@ -161,9 +166,9 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
       })
     ) {
       await deleteJetstreamOrganization(organization.id);
-      setOrganizationsFromDb(await getJetstreamOrganizations());
-      setOrgs((orgs) =>
-        orgs.map((org) => {
+      setOrganizationsFromDb(getJetstreamOrganizations());
+      setOrgs(
+        allOrgs.map((org) => {
           if (org.jetstreamOrganizationId !== organization.id) {
             return org;
           }

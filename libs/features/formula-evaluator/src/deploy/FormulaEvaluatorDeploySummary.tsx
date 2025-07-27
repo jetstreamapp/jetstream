@@ -4,9 +4,9 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, SalesforceLogin, ScopedNotification, Tooltip } from '@jetstream/ui';
 import { CreateFieldsResults, FieldPermissionRecord, FieldValues, LayoutResult } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import { ReactElement } from 'react';
-import { useRecoilValue } from 'recoil';
 
 type DeployedItem = { id: string; label: string };
 
@@ -31,8 +31,8 @@ export function FormulaEvaluatorDeploySummary({
   deployed,
   results,
 }: FormulaEvaluatorDeploySummaryProps) {
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   let flsResults: Record<string, FieldPermissionRecord> = {};
   let layoutResults: Record<string, LayoutResult> = {};
 

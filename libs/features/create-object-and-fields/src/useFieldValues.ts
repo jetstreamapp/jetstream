@@ -9,8 +9,8 @@ import {
   generateApiNameFromLabel,
   getInitialValues,
 } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useReducer } from 'react';
-import { useRecoilState } from 'recoil';
 import * as fromCreateFieldsState from './create-fields.state';
 
 type Action =
@@ -146,7 +146,7 @@ function reducer(state: State, action: Action): State {
 }
 
 export function useFieldValues() {
-  const [rowsState, setRowsState] = useRecoilState(fromCreateFieldsState.fieldRowsState);
+  const [rowsState, setRowsState] = useAtom(fromCreateFieldsState.fieldRowsState);
   const [{ allValid, rows }, dispatch] = useReducer(reducer, {
     rows: rowsState,
     allValid: false,

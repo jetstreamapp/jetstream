@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, hasShiftModifierKey, isEKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { QueryHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { QueryHistoryItem } from '@jetstream/types';
 import {
   CheckboxToggle,
   Grid,
@@ -19,10 +19,10 @@ import { dexieDb } from '@jetstream/ui/db';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
 import { QueryHistoryModal } from './QueryHistory/QueryHistoryModal';
 import { useQueryRestore } from './RestoreQuery/useQueryRestore';
@@ -32,9 +32,9 @@ const NUM_HISTORY_ITEMS = 50;
 export const QuickQueryPopover = () => {
   const { trackEvent } = useAmplitude();
   const popoverRef = useRef<PopoverRef>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor>();
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const navigate = useNavigate();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
   const [soql, setSoql] = useState<string>('');
   const [queryIsValid, setQueryIsValid] = useState(false);
@@ -163,7 +163,6 @@ export const QuickQueryPopover = () => {
       <Popover
         ref={popoverRef}
         size="x-large"
-        placement="auto-end"
         header={
           <header className="slds-popover__header slds-grid">
             <h2 className="slds-text-heading_small">Query Records</h2>

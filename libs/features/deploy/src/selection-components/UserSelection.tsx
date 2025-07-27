@@ -3,8 +3,8 @@ import { NOOP } from '@jetstream/shared/utils';
 import { AllUser, ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, List } from '@jetstream/ui';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
 import DeployMetadataUserList from '../DeployMetadataUserList';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
@@ -42,9 +42,9 @@ export const UserSelection: FunctionComponent<UserSelectionProps | UserSelection
   requireConfirmSelection,
   onSubmit,
 }) => {
-  const [_userSelection, _setUserSelection] = useRecoilState<AllUser>(fromDeployMetadataState.userSelectionState);
-  const [_usersList, _setUsersList] = useRecoilState(fromDeployMetadataState.usersList);
-  const [_selectedUsers, _setSelectedUsers] = useRecoilState(fromDeployMetadataState.selectedUsersState);
+  const [_userSelection, _setUserSelection] = useAtom<AllUser>(fromDeployMetadataState.userSelectionState);
+  const [_usersList, _setUsersList] = useAtom(fromDeployMetadataState.usersList);
+  const [_selectedUsers, _setSelectedUsers] = useAtom(fromDeployMetadataState.selectedUsersState);
 
   const [userSelection, setUserSelection] = useState(_userSelection);
   const [usersList, setUsersList] = useState(_usersList);

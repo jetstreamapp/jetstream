@@ -75,6 +75,12 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
               ev.stopPropagation();
               ev.preventDefault();
             }}
+            onKeyDown={(ev) => {
+              // Stop keyboard events from propagating to parent list
+              if (['ArrowUp', 'ArrowDown', 'Enter', ' '].includes(ev.key)) {
+                ev.stopPropagation();
+              }
+            }}
           >
             <ComboboxWithItems
               comboboxProps={{

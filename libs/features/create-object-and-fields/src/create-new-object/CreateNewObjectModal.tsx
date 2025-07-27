@@ -18,8 +18,8 @@ import {
 } from '@jetstream/ui';
 import { ConfirmPageChange, DeployMetadataProgressSummary, DeployMetadataResultsTables, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { CreateNewObjectForm } from './CreateNewObjectForm';
 import CreateNewObjectPermissions from './CreateNewObjectPermissions';
 import CreateNewObjectPermissionsResult from './CreateNewObjectPermissionsResult';
@@ -35,22 +35,21 @@ export interface CreateNewObjectModalProps {
 
 export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> = ({ selectedOrg, onClose }) => {
   const { trackEvent } = useAmplitude();
-  const [{ defaultApiVersion, serverUrl }] = useRecoilState(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
-  const modalRef = useRef();
   const modalBodyRef = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef<TabsRef>();
+  const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState('permissions');
 
-  const apiNameWithoutNamespace = useRecoilValue(fromCreateObjectState.apiNameState);
-  const createTab = useRecoilValue(fromCreateObjectState.createTabState);
-  const selectedTabIcon = useRecoilValue(fromCreateObjectState.selectedTabIconState);
-  const objectPermissions = useRecoilValue(fromCreateObjectState.objectPermissionsState);
-  const selectedPermissionSets = useRecoilValue(fromCreateObjectState.selectedPermissionSetsState);
-  const selectedProfiles = useRecoilValue(fromCreateObjectState.selectedProfilesState);
-  const payload = useRecoilValue(fromCreateObjectState.payloadSelector);
-  const { objectConfigIsValid, permissionsAreValid, allValid } = useRecoilValue(fromCreateObjectState.isFormValidSelector);
+  const apiNameWithoutNamespace = useAtomValue(fromCreateObjectState.apiNameState);
+  const createTab = useAtomValue(fromCreateObjectState.createTabState);
+  const selectedTabIcon = useAtomValue(fromCreateObjectState.selectedTabIconState);
+  const objectPermissions = useAtomValue(fromCreateObjectState.objectPermissionsState);
+  const selectedPermissionSets = useAtomValue(fromCreateObjectState.selectedPermissionSetsState);
+  const selectedProfiles = useAtomValue(fromCreateObjectState.selectedProfilesState);
+  const payload = useAtomValue(fromCreateObjectState.payloadSelector);
+  const { objectConfigIsValid, permissionsAreValid, allValid } = useAtomValue(fromCreateObjectState.isFormValidSelector);
 
   const apiName = `${selectedOrg.orgNamespacePrefix ? `${selectedOrg.orgNamespacePrefix}__` : ''}${apiNameWithoutNamespace}`;
 
@@ -73,7 +72,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
       allowInChatterGroups: payload.allowInChatterGroups,
       allowSharingBulkStreaming: payload.enableBulkApi,
       allowSearch: payload.enableSearch,
-      createTab: createTab,
+      createTab,
       selectedProfiles: selectedProfiles.length,
       selectedPermissionSets: selectedPermissionSets.length,
     });
@@ -119,7 +118,6 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
         closeOnBackdropClick={false}
         closeDisabled={loading}
         header="Create Object"
-        ref={modalRef}
         footer={
           <Grid align="end">
             <div>
@@ -133,7 +131,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
               )}
               {activeTab === 'results' && (
                 <button className="slds-button slds-button_brand" form="create-object-form" type="submit" disabled={loading || !allValid}>
-                  Create Object
+                  Upsert Object
                 </button>
               )}
             </div>
@@ -171,7 +169,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                     </Grid>
                   ),
                   titleText: 'Permissions',
-                  content: <CreateNewObjectPermissions selectedOrg={selectedOrg} loading={loading} portalRef={modalRef.current} />,
+                  content: <CreateNewObjectPermissions selectedOrg={selectedOrg} loading={loading} />,
                 },
                 {
                   id: 'field',
@@ -220,7 +218,11 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                             <EmptyState headline="Go back and correct your configuration" illustration={<NoPreviewIllustration />} />
                           )}
                           {allValid && (
-                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />} />
+                            <EmptyState headline="Start your deployment to see results" illustration={<PreviewIllustration />}>
+                              <button className="slds-button slds-button_brand" form="create-object-form" type="submit">
+                                Upsert Object
+                              </button>
+                            </EmptyState>
                           )}
                         </GridCol>
                       )}
@@ -271,7 +273,7 @@ export const CreateNewObjectModal: FunctionComponent<CreateNewObjectModalProps> 
                             />
                           </GridCol>
 
-                          <GridCol className="slds-scrollable_x">
+                          <GridCol className="slds-scrollable_x" size={12} sizeLarge={10}>
                             <DeployMetadataResultsTables results={results} />
                           </GridCol>
                         </>

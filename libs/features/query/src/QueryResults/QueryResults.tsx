@@ -23,7 +23,6 @@ import {
   QueryResults as IQueryResults,
   Maybe,
   QueryResult,
-  SalesforceOrgUi,
   SalesforceRecord,
   SobjectCollectionResponse,
 } from '@jetstream/types';
@@ -58,10 +57,10 @@ import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { queryHistoryDb } from '@jetstream/ui/db';
 import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
+import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
 import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { filter } from 'rxjs/operators';
 import IncludeDeletedRecordsToggle from '../QueryOptions/IncludeDeletedRecords';
 import QueryResultsAttachmentDownload, { FILE_DOWNLOAD_FIELD_MAP } from './QueryResultsAttachmentDownload';
@@ -95,11 +94,11 @@ export const QueryResults = React.memo(() => {
   const isMounted = useRef(true);
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
-  const queryHistoryRef = useRef<QueryHistoryRef>();
-  const previousSoql = useRecoilValue(fromQueryState.querySoqlState);
-  const includeDeletedRecords = useRecoilValue(fromQueryState.queryIncludeDeletedRecordsState);
+  const queryHistoryRef = useRef<QueryHistoryRef>(null);
+  const previousSoql = useAtomValue(fromQueryState.querySoqlState);
+  const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
-  const [isTooling, setIsTooling] = useRecoilState(fromQueryState.isTooling);
+  const [isTooling, setIsTooling] = useAtom(fromQueryState.isTooling);
   const location = useLocation();
   const locationState = useLocationState<{
     soql: string;
@@ -121,12 +120,10 @@ export const QueryResults = React.memo(() => {
   const [selectedRows, setSelectedRows] = useState<SalesforceRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
-  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(
-    fromAppState.applicationCookieState
-  );
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const skipFrontdoorLogin = useRecoilValue(fromAppState.selectSkipFrontdoorAuth);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);
   const [totalRecordCount, setTotalRecordCount] = useState<number | null>(null);
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents

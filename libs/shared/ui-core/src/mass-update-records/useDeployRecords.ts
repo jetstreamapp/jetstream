@@ -6,8 +6,8 @@ import { delay, getErrorMessage, splitArrayToMaxSize } from '@jetstream/shared/u
 import { BulkJobBatchInfo, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { formatDate } from 'date-fns/format';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useRef } from 'react';
-import { useRecoilState } from 'recoil';
 import { useAmplitude } from '../analytics';
 import { DeployResults, MetadataRow, MetadataRowConfiguration } from './mass-update-records.types';
 import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } from './mass-update-records.utils';
@@ -17,7 +17,7 @@ export function useDeployRecords(
   onDeployResults: (sobject: string, deployResults: DeployResults, fatalError?: boolean) => void,
   source: 'STAND-ALONE' | 'QUERY' = 'STAND-ALONE'
 ) {
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const rollbar = useRollbar();

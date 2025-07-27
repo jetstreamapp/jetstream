@@ -67,12 +67,19 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
         ))}
       </ul>
       {providers && csrfToken && (
-        <Grid>
+        <Grid wrap>
           {loginConfiguration && loginConfiguration.isGoogleAllowed && (
-            <form action={`${providers.google.signinUrl}?${searchParams}`} method="POST">
+            <form
+              className="w-100"
+              css={css`
+                max-width: 33rem;
+              `}
+              action={`${providers.google.signinUrl}?${searchParams}`}
+              method="POST"
+            >
               <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="callbackUrl" value={providers.google.callbackUrl} />
-              <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-m-right_small">
+              <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-m-right_smal slds-button_stretch">
                 <img
                   src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
                   alt="Google"
@@ -87,10 +94,17 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
             </form>
           )}
           {loginConfiguration && loginConfiguration.isSalesforceAllowed && (
-            <form action={`${providers.salesforce.signinUrl}?${searchParams}`} method="POST">
+            <form
+              className="w-100"
+              css={css`
+                max-width: 33rem;
+              `}
+              action={`${providers.salesforce.signinUrl}?${searchParams}`}
+              method="POST"
+            >
               <input type="hidden" name="csrfToken" value={csrfToken} />
               <input type="hidden" name="callbackUrl" value={providers.salesforce.callbackUrl} />
-              <button type="submit" className="slds-button slds-button_neutral slds-m-top_small">
+              <button type="submit" className="slds-button slds-button_neutral slds-m-top_small slds-button_stretch">
                 <img
                   src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
                   alt="Salesforce"

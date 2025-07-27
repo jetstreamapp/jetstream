@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ConnectedSobjectListMultiSelect,
@@ -17,9 +17,10 @@ import {
 import { RequireMetadataApiBanner, fromPermissionsState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
@@ -28,26 +29,26 @@ const HEIGHT_BUFFER = 170;
 export interface ManagePermissionsSelectionProps {}
 
 export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const selectedOrg = useAtomValue(selectedOrgState);
 
-  const [profiles, setProfiles] = useRecoilState(fromPermissionsState.profilesState);
-  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromPermissionsState.selectedProfilesPermSetState);
+  const [profiles, setProfiles] = useAtom(fromPermissionsState.profilesState);
+  const [selectedProfiles, setSelectedProfiles] = useAtom(fromPermissionsState.selectedProfilesPermSetState);
 
-  const [permissionSets, setPermissionSets] = useRecoilState(fromPermissionsState.permissionSetsState);
-  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromPermissionsState.selectedPermissionSetsState);
+  const [permissionSets, setPermissionSets] = useAtom(fromPermissionsState.permissionSetsState);
+  const [selectedPermissionSets, setSelectedPermissionSets] = useAtom(fromPermissionsState.selectedPermissionSetsState);
 
-  const [sobjects, setSobjects] = useRecoilState(fromPermissionsState.sObjectsState);
-  const [selectedSObjects, setSelectedSObjects] = useRecoilState(fromPermissionsState.selectedSObjectsState);
+  const [sobjects, setSobjects] = useAtom(fromPermissionsState.sObjectsState);
+  const [selectedSObjects, setSelectedSObjects] = useAtom(fromPermissionsState.selectedSObjectsState);
 
-  const resetFieldsByObject = useResetRecoilState(fromPermissionsState.fieldsByObject);
-  const resetFieldsByKey = useResetRecoilState(fromPermissionsState.fieldsByKey);
-  const resetObjectPermissionMap = useResetRecoilState(fromPermissionsState.objectPermissionMap);
-  const resetFieldPermissionMap = useResetRecoilState(fromPermissionsState.fieldPermissionMap);
-  const resetTabVisibilityPermissionMap = useResetRecoilState(fromPermissionsState.tabVisibilityPermissionMap);
+  const resetFieldsByObject = useResetAtom(fromPermissionsState.fieldsByObject);
+  const resetFieldsByKey = useResetAtom(fromPermissionsState.fieldsByKey);
+  const resetObjectPermissionMap = useResetAtom(fromPermissionsState.objectPermissionMap);
+  const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
+  const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
-  const hasSelectionsMade = useRecoilValue(fromPermissionsState.hasSelectionsMade);
+  const hasSelectionsMade = useAtomValue(fromPermissionsState.hasSelectionsMade);
 
   // Run only on first render
   useEffect(() => {

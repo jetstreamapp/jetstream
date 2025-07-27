@@ -13,8 +13,8 @@ import {
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { RecordTypePicklistSummary, ViewMode } from '../types/record-types.types';
 import { prepareRecordTypeMetadataPackage } from '../utils/record-types.utils';
 import { DeploymentSummary } from './DeploymentModalSummary';
@@ -29,8 +29,8 @@ interface DeploymentModalProps {
 export function DeploymentModal({ modifiedValues, recordTypeMetadataByFullName, viewMode, onClose }: DeploymentModalProps) {
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
-  const { defaultApiVersion: apiVersion, serverUrl } = useRecoilValue(applicationCookieState);
-  const selectedOrg = useRecoilValue(selectedOrgState);
+  const { defaultApiVersion: apiVersion, serverUrl } = useAtomValue(applicationCookieState);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [inProgress, setInProgress] = useState(false);
   const [prepareError, setPrepareError] = useState(false);
 

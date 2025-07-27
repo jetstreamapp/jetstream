@@ -6,11 +6,11 @@ import Icon from '../widgets/Icon';
 export interface ScopedNotificationProps {
   className?: string;
   theme: ScopedNotificationTypes;
-  icon?: JSX.Element;
+  icon?: React.ReactNode;
   children?: React.ReactNode;
 }
 
-function getIcon(theme: ScopedNotificationTypes, icon?: JSX.Element) {
+function getIcon(theme: ScopedNotificationTypes, icon?: React.ReactNode) {
   if (icon) {
     return icon;
   }

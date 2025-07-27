@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import uniqueId from 'lodash/uniqueId';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, ReactNode } from 'react';
 import { CalculatedColumn, RenderCellProps } from 'react-data-grid';
 import { isTableRow, isTableRowChild, isTableRowItem } from './automation-control-data-utils';
 import { DeploymentItemRow, DeploymentItemStatus, MetadataCompositeResponseError, TableRowOrItemOrChild } from './automation-control-types';
@@ -112,7 +112,7 @@ export const LoadingAndActiveRenderer: FunctionComponent<{
   }
 };
 
-export const AdditionalDetailRenderer: FunctionComponent<RenderCellProps<TableRowOrItemOrChild, unknown>> = ({ row }) => {
+export const AdditionalDetailRenderer = ({ row }: RenderCellProps<TableRowOrItemOrChild, unknown>): ReactNode => {
   if (!isTableRow(row) && Array.isArray(row.additionalData) && row.additionalData.length > 0) {
     return (
       <Grid vertical className="slds-line-height_reset">
@@ -140,7 +140,7 @@ export const AdditionalDetailRenderer: FunctionComponent<RenderCellProps<TableRo
   return null;
 };
 
-export const BooleanAndVersionRenderer: FunctionComponent<RenderCellProps<DeploymentItemRow, unknown>> = ({ column, row }) => {
+export const BooleanAndVersionRenderer = ({ column, row }: RenderCellProps<DeploymentItemRow, unknown>): ReactNode => {
   const metadata = row;
   const type = metadata.type;
   const value = metadata[column.key as keyof TableRowOrItemOrChild];
@@ -190,7 +190,7 @@ function getErrorMessageContentString(deployError: Maybe<MetadataCompositeRespon
   }
 }
 
-export const AutomationDeployStatusRenderer: FunctionComponent<RenderCellProps<DeploymentItemRow, unknown>> = ({ row }) => {
+export const AutomationDeployStatusRenderer = ({ row }: RenderCellProps<DeploymentItemRow, unknown>): ReactNode => {
   const { status, deploy } = row;
   const { deployError } = deploy;
   const isLoading = loadingStatuses.includes(status);

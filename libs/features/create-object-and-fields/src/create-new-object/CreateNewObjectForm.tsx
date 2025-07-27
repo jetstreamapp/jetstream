@@ -1,6 +1,6 @@
 import { Checkbox, ComboboxWithItems, Grid, GridCol, Input, RadioButton, RadioGroup, TabIconList, Textarea } from '@jetstream/ui';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
 import * as fromCreateObjectState from './create-object-state';
 import { generateApiNameFromLabel } from './create-object-utils';
 
@@ -9,24 +9,24 @@ export interface CreateNewObjectFormProps {
 }
 
 export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = ({ loading }) => {
-  const [label, setLabel] = useRecoilState(fromCreateObjectState.labelState);
-  const [pluralLabel, setPluralLabel] = useRecoilState(fromCreateObjectState.pluralLabelState);
-  const [startsWith, setStartsWith] = useRecoilState(fromCreateObjectState.startsWithState);
-  const [apiName, setApiName] = useRecoilState(fromCreateObjectState.apiNameState);
-  const [description, setDescription] = useRecoilState(fromCreateObjectState.descriptionState);
-  const [recordName, setRecordName] = useRecoilState(fromCreateObjectState.recordNameState);
-  const [dataType, setDataType] = useRecoilState(fromCreateObjectState.dataTypeState);
-  const [displayFormat, setDisplayFormat] = useRecoilState(fromCreateObjectState.displayFormatState);
-  const [startingNumber, setStartingNumber] = useRecoilState(fromCreateObjectState.startingNumberState);
-  const [allowReports, setAllowReports] = useRecoilState(fromCreateObjectState.allowReportsState);
-  const [allowActivities, setAllowActivities] = useRecoilState(fromCreateObjectState.allowActivitiesState);
-  const [trackFieldHistory, setTrackFieldHistory] = useRecoilState(fromCreateObjectState.trackFieldHistoryState);
-  const [allowInChatterGroups, setAllowInChatterGroups] = useRecoilState(fromCreateObjectState.allowInChatterGroupsState);
-  const [allowSharingBulkStreaming, setAllowSharingBulkStreaming] = useRecoilState(fromCreateObjectState.allowSharingBulkStreamingState);
-  const [allowSearch, setAllowSearch] = useRecoilState(fromCreateObjectState.allowSearchState);
+  const [label, setLabel] = useAtom(fromCreateObjectState.labelState);
+  const [pluralLabel, setPluralLabel] = useAtom(fromCreateObjectState.pluralLabelState);
+  const [startsWith, setStartsWith] = useAtom(fromCreateObjectState.startsWithState);
+  const [apiName, setApiName] = useAtom(fromCreateObjectState.apiNameState);
+  const [description, setDescription] = useAtom(fromCreateObjectState.descriptionState);
+  const [recordName, setRecordName] = useAtom(fromCreateObjectState.recordNameState);
+  const [dataType, setDataType] = useAtom(fromCreateObjectState.dataTypeState);
+  const [displayFormat, setDisplayFormat] = useAtom(fromCreateObjectState.displayFormatState);
+  const [startingNumber, setStartingNumber] = useAtom(fromCreateObjectState.startingNumberState);
+  const [allowReports, setAllowReports] = useAtom(fromCreateObjectState.allowReportsState);
+  const [allowActivities, setAllowActivities] = useAtom(fromCreateObjectState.allowActivitiesState);
+  const [trackFieldHistory, setTrackFieldHistory] = useAtom(fromCreateObjectState.trackFieldHistoryState);
+  const [allowInChatterGroups, setAllowInChatterGroups] = useAtom(fromCreateObjectState.allowInChatterGroupsState);
+  const [allowSharingBulkStreaming, setAllowSharingBulkStreaming] = useAtom(fromCreateObjectState.allowSharingBulkStreamingState);
+  const [allowSearch, setAllowSearch] = useAtom(fromCreateObjectState.allowSearchState);
 
-  const [createTab, setCreateTab] = useRecoilState(fromCreateObjectState.createTabState);
-  const [selectedTabIcon, setSelectedTabIcon] = useRecoilState(fromCreateObjectState.selectedTabIconState);
+  const [createTab, setCreateTab] = useAtom(fromCreateObjectState.createTabState);
+  const [selectedTabIcon, setSelectedTabIcon] = useAtom(fromCreateObjectState.selectedTabIconState);
 
   useEffect(() => {
     setApiName(generateApiNameFromLabel(label));

@@ -6,7 +6,7 @@ export interface NavbarItemProps {
   className?: string;
   path: string;
   search?: string;
-  label: string | JSX.Element;
+  label: string | React.ReactNode;
   title: string;
 }
 

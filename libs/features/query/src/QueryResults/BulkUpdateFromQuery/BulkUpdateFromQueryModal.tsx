@@ -27,11 +27,11 @@ import {
   fetchRecordsWithRequiredFields,
   useDeployRecords,
 } from '@jetstream/ui-core';
-import { applicationCookieState } from '@jetstream/ui/app-state';
 import { Query } from '@jetstreamapp/soql-parser-js';
+import { useAtom } from 'jotai';
+import { atomWithReset, useAtomCallback, useResetAtom } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
 import { ChangeEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
-import { atom, useRecoilCallback, useRecoilState, useResetRecoilState } from 'recoil';
 import BulkUpdateFromQueryRecordSelection from './BulkUpdateFromQueryRecordSelection';
 
 const MAX_BATCH_SIZE = 10000;
@@ -53,17 +53,14 @@ function checkIfValid(fieldConfig: MetadataRowConfiguration[]) {
 }
 
 // These are stored in state to allow stable access from a callback to poll results
-export const deployResultsState = atom<DeployResults>({
-  key: 'mass-update-records.deployResultsFromQueryState',
-  default: {
-    done: false,
-    processingStartTime: convertDateToLocale(new Date()),
-    processingEndTime: null,
-    processingErrors: [],
-    records: [],
-    batchIdToIndex: {},
-    status: 'Not Started',
-  },
+export const deployResultsState = atomWithReset<DeployResults>({
+  done: false,
+  processingStartTime: convertDateToLocale(new Date()),
+  processingEndTime: null,
+  processingErrors: [],
+  records: [],
+  batchIdToIndex: {},
+  status: 'Not Started',
 });
 
 export interface BulkUpdateFromQueryModalProps {
@@ -101,10 +98,10 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
   const [isSecondModalOpen, setIsSecondModalOpen] = useState(false);
-  const [deployResults, setDeployResults] = useRecoilState(deployResultsState);
+  const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
-  const resetDeployResults = useResetRecoilState(deployResultsState);
-  const [{ serverUrl }] = useRecoilState(applicationCookieState);
+  const resetDeployResults = useResetAtom(deployResultsState);
+
   const targetedRecordCount = useMemo(() => {
     if (downloadRecordsValue === RADIO_ALL_BROWSER || downloadRecordsValue === RADIO_ALL_SERVER) {
       return totalRecordCount;
@@ -114,26 +111,19 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
     }
     return selectedRecords.length;
   }, [downloadRecordsValue, filteredRecords.length, selectedRecords.length, totalRecordCount]);
-  // this allows the pollResults to have a stable data source for updated data
-  const getDeploymentResults = useRecoilCallback(
-    ({ snapshot }) =>
-      () => {
-        return [
-          {
-            deployResults: snapshot.getLoadable(deployResultsState).getValue(),
-            sobject,
-          },
-        ];
-      },
-    [sobject]
-  );
 
-  const handleDeployResults = useCallback((sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
-    setDeployResults(deployResults);
-    if (fatalError) {
-      setErrorMessage('An error occurred while processing your request. Please try again.');
-    }
-  }, []);
+  // this allows the pollResults to have a stable data source for updated data
+  const getDeploymentResults = useAtomCallback(useCallback((get) => [{ deployResults: get(deployResultsState), sobject }], [sobject]));
+
+  const handleDeployResults = useCallback(
+    (sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
+      setDeployResults(deployResults);
+      if (fatalError) {
+        setErrorMessage('An error occurred while processing your request. Please try again.');
+      }
+    },
+    [setDeployResults]
+  );
 
   const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
 

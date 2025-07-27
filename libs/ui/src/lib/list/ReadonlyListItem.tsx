@@ -4,7 +4,7 @@ import isString from 'lodash/isString';
 import { memo } from 'react';
 
 export interface ReadonlyListItemProps {
-  heading?: Maybe<string | JSX.Element>;
+  heading?: Maybe<string | React.ReactNode>;
   subheading?: Maybe<string>;
   subheadingPlaceholder?: boolean;
 }

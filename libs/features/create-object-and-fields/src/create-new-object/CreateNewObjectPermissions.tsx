@@ -1,8 +1,8 @@
 import { useNonInitialEffect, useProfilesAndPermSets } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import { EmptyState, Grid, GridCol, ListWithFilterMultiSelect, Radio, RadioGroup } from '@jetstream/ui';
+import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, useEffect } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import { CreateNewObjectPermissionsCheckboxes } from './CreateNewObjectPermissionsCheckboxes';
 import * as fromCreateObjectState from './create-object-state';
 import { CreateObjectPermissions, ObjectPermissionGranularState } from './create-object-types';
@@ -21,19 +21,18 @@ function getDefaultPermissions(): CreateObjectPermissions {
 export interface CreateNewObjectPermissionsProps {
   selectedOrg: SalesforceOrgUi;
   loading: boolean;
-  portalRef?: Element;
 }
 
-export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: CreateNewObjectPermissionsProps) => {
-  const [profiles, setProfiles] = useRecoilState(fromCreateObjectState.profilesState);
-  const [selectedProfiles, setSelectedProfiles] = useRecoilState(fromCreateObjectState.selectedProfilesState);
+export const CreateNewObjectPermissions = ({ selectedOrg, loading }: CreateNewObjectPermissionsProps) => {
+  const [profiles, setProfiles] = useAtom(fromCreateObjectState.profilesState);
+  const [selectedProfiles, setSelectedProfiles] = useAtom(fromCreateObjectState.selectedProfilesState);
 
-  const [permissionSets, setPermissionSets] = useRecoilState(fromCreateObjectState.permissionSetsState);
-  const [selectedPermissionSets, setSelectedPermissionSets] = useRecoilState(fromCreateObjectState.selectedPermissionSetsState);
+  const [permissionSets, setPermissionSets] = useAtom(fromCreateObjectState.permissionSetsState);
+  const [selectedPermissionSets, setSelectedPermissionSets] = useAtom(fromCreateObjectState.selectedPermissionSetsState);
 
-  const [objectPermissionsState, setObjectPermissionsState] = useRecoilState(fromCreateObjectState.objectPermissionsState);
+  const [objectPermissionsState, setObjectPermissionsState] = useAtom(fromCreateObjectState.objectPermissionsState);
 
-  const selectedProfilesPermSets = useRecoilValue(fromCreateObjectState.selectedProfileAndPermLesWithLabelSelector);
+  const selectedProfilesPermSets = useAtomValue(fromCreateObjectState.selectedProfileAndPermLesWithLabelSelector);
 
   const profilesAndPermSetsData = useProfilesAndPermSets(selectedOrg, profiles, permissionSets);
 
@@ -128,7 +127,6 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
           allowRefresh
           lastRefreshed={profilesAndPermSetsData.lastRefreshed}
           loading={profilesAndPermSetsData.loading}
-          portalRef={portalRef}
           disabled={loading}
           onSelected={setSelectedProfiles}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}
@@ -149,7 +147,6 @@ export const CreateNewObjectPermissions = ({ selectedOrg, loading, portalRef }: 
           lastRefreshed={profilesAndPermSetsData.lastRefreshed}
           selectedItems={selectedPermissionSets}
           loading={profilesAndPermSetsData.loading}
-          portalRef={portalRef}
           disabled={loading}
           onSelected={setSelectedPermissionSets}
           errorReattempt={profilesAndPermSetsData.fetchMetadata}

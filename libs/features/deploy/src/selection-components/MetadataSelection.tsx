@@ -3,9 +3,9 @@ import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CommonUser, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Grid, ReadonlyList } from '@jetstream/ui';
 import { fromDeployMetadataState } from '@jetstream/ui-core';
+import { useAtom } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import { useRecoilState } from 'recoil';
 import { RadioButtonItem, RadioButtonSelection } from './RadioButtonSelection';
 
 const METADATA_TYPES_RADIO_BUTTONS: RadioButtonItem<CommonUser>[] = [
@@ -40,12 +40,10 @@ export const MetadataSelection: FunctionComponent<MetadataSelectionProps | Metad
   onSubmit,
 }) => {
   /** Store may get updated in tandem with local changes, but if requireConfirmSelection, then store will only get commits on submission */
-  const [_metadataSelectionType, _setMetadataSelectionType] = useRecoilState<CommonUser>(
-    fromDeployMetadataState.metadataSelectionTypeState
-  );
-  const [_metadataItems, _setMetadataItems] = useRecoilState(fromDeployMetadataState.metadataItemsState);
-  const [_metadataItemsMap, _setMetadataItemsMap] = useRecoilState(fromDeployMetadataState.metadataItemsMapState);
-  const [_selectedMetadataItems, _setSelectedMetadataItems] = useRecoilState(fromDeployMetadataState.selectedMetadataItemsState);
+  const [_metadataSelectionType, _setMetadataSelectionType] = useAtom<CommonUser>(fromDeployMetadataState.metadataSelectionTypeState);
+  const [_metadataItems, _setMetadataItems] = useAtom(fromDeployMetadataState.metadataItemsState);
+  const [_metadataItemsMap, _setMetadataItemsMap] = useAtom(fromDeployMetadataState.metadataItemsMapState);
+  const [_selectedMetadataItems, _setSelectedMetadataItems] = useAtom(fromDeployMetadataState.selectedMetadataItemsState);
 
   const [metadataSelectionType, setMetadataSelectionType] = useState(_metadataSelectionType);
   const [metadataItems, setMetadataItems] = useState(_metadataItems);

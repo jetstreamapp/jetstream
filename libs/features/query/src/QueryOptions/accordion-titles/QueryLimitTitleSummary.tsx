@@ -2,17 +2,17 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useRecoilValue } from 'recoil';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryLimitTitleSummaryProps {}
 
 export const QueryLimitTitleSummary: FunctionComponent<QueryLimitTitleSummaryProps> = () => {
-  const limit = useRecoilValue(fromQueryState.queryLimit);
-  const limitOverride = useRecoilValue(fromQueryState.selectQueryLimitHasOverride);
-  const skip = useRecoilValue(fromQueryState.queryLimitSkip);
+  const limit = useAtomValue(fromQueryState.queryLimit);
+  const limitOverride = useAtomValue(fromQueryState.selectQueryLimitHasOverride);
+  const skip = useAtomValue(fromQueryState.queryLimitSkip);
 
   return (
     <ErrorBoundary fallbackRender={() => <Fragment />}>

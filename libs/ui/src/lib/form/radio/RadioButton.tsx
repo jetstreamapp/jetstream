@@ -1,12 +1,12 @@
-import React, { FunctionComponent } from 'react';
-import uniqueId from 'lodash/uniqueId';
 import classNames from 'classnames';
+import uniqueId from 'lodash/uniqueId';
+import React, { FunctionComponent } from 'react';
 
 export interface RadioButtonProps {
   id?: string;
   className?: string;
   name: string;
-  label: string | JSX.Element;
+  label: string | React.ReactNode;
   checked: boolean;
   value: string;
   disabled?: boolean;

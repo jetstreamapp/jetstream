@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ButtonGroupContainer,
@@ -14,9 +13,9 @@ import {
 } from '@jetstream/ui';
 import { fromDeployMetadataState, RequireMetadataApiBanner, useAmplitude } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
 import './DeployMetadataSelection.scss';
 import DeployMetadataHistoryModal from './deploy-metadata-history/DeployMetadataHistoryModal';
 import DeployMetadataPackage from './deploy-metadata-package/DeployMetadataPackage';
@@ -33,11 +32,11 @@ export interface DeployMetadataSelectionProps {}
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const amplitudeSubmissionSelector = useRecoilValue(fromDeployMetadataState.amplitudeSubmissionSelector);
-  const metadataItems = useRecoilValue(fromDeployMetadataState.metadataItemsState);
-  const hasSelectionsMade = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeSelector);
-  const hasSelectionsMadeMessage = useRecoilValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const amplitudeSubmissionSelector = useAtomValue(fromDeployMetadataState.amplitudeSubmissionSelector);
+  const metadataItems = useAtomValue(fromDeployMetadataState.metadataItemsState);
+  const hasSelectionsMade = useAtomValue(fromDeployMetadataState.hasSelectionsMadeSelector);
+  const hasSelectionsMadeMessage = useAtomValue(fromDeployMetadataState.hasSelectionsMadeMessageSelector);
 
   function trackContinue() {
     trackEvent(ANALYTICS_KEYS.deploy_configuration, { page: 'initial-selection', ...amplitudeSubmissionSelector });

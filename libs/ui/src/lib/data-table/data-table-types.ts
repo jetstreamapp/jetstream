@@ -89,8 +89,6 @@ export interface SalesforceQueryColumnDefinition<TRow, TSummaryRow = unknown> {
 export interface FilterContextProps {
   filterSetValues: Record<string, string[]>;
   filters: Record<string, DataTableFilter[]>;
-  /** Reference to element to attach portal to in table filters, needed when table is shown in a modal */
-  portalRefForFilters?: any; // TODO: add types
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 

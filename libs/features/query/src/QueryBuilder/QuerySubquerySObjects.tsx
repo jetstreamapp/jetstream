@@ -3,8 +3,8 @@ import { multiWordObjectFilter, pluralizeFromNumber } from '@jetstream/shared/ut
 import { ChildRelationship, QueryFieldWithPolymorphic, SalesforceOrgUi } from '@jetstream/types';
 import { Accordion, Badge, DesertIllustration, EmptyState, Grid, GridCol, SearchInput } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, ReactNode, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import QueryChildFields from './QueryChildFields';
 
 export interface QuerySubquerySObjectsProps {
@@ -25,7 +25,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   const [visibleChildRelationships, setVisibleChildRelationships] = useState<ChildRelationship[]>(childRelationships);
   const [childRelationshipContent, setChildRelationshipContent] = useState<Record<string, ReactNode | ChildRelationship>>({});
   const [textFilter, setTextFilter] = useState<string>('');
-  const selectedFieldState = useRecoilValue(fromQueryState.selectedSubqueryFieldsState);
+  const selectedFieldState = useAtomValue(fromQueryState.selectedSubqueryFieldsState);
 
   useNonInitialEffect(() => {
     setVisibleChildRelationships(childRelationships);

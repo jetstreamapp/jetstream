@@ -3,9 +3,9 @@ import * as amplitude from '@amplitude/analytics-browser';
 import { logger } from '@jetstream/shared/client-logger';
 import { ApplicationCookie } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
 import { useEffect } from 'react';
-import { useRecoilValue } from 'recoil';
 
 const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
 
@@ -31,10 +31,10 @@ function init(appCookie: ApplicationCookie, version: string) {
 }
 
 export function useAmplitude(optOut?: boolean) {
-  const appCookie = useRecoilValue(fromAppState.applicationCookieState);
-  const userProfile = useRecoilValue(fromAppState.userProfileState);
-  const { version } = useRecoilValue(fromAppState.appVersionState);
-  const userPreferences = useRecoilValue(fromAppState.selectUserPreferenceState);
+  const appCookie = useAtomValue(fromAppState.applicationCookieState);
+  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const { version } = useAtomValue(fromAppState.appVersionState);
+  const userPreferences = useAtomValue(fromAppState.selectUserPreferenceState);
 
   useEffect(() => {
     if (isBoolean(optOut)) {

@@ -339,7 +339,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
             <Fragment>
               {errorMessage && (
                 <span className="slds-text-align_left d-inline-block">
-                  <PopoverErrorButton errors={errorMessage} omitPortal />
+                  <PopoverErrorButton errors={errorMessage} />
                 </span>
               )}
               <button className="slds-button slds-button_neutral" onClick={() => handleModalClose(true)}>

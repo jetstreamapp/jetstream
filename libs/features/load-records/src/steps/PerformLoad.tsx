@@ -4,9 +4,9 @@ import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FieldMapping, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioButton, RadioGroup } from '@jetstream/ui';
 import { ConfirmPageChange, fromLoadRecordsState, getMaxBatchSize, useAmplitude } from '@jetstream/ui-core';
+import { useAtom, useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
 import { ChangeEvent, FunctionComponent, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
@@ -51,21 +51,21 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const [loadNumber, setLoadNumber] = useState<number>(0);
   const [loadNumberTrialRun, setLoadNumberTrialRun] = useState<number>(0);
 
-  const [apiMode, setApiMode] = useRecoilState(fromLoadRecordsState.apiModeState);
-  const [batchSize, setBatchSize] = useRecoilState(fromLoadRecordsState.batchSizeState);
-  const [insertNulls, setInsertNulls] = useRecoilState(fromLoadRecordsState.insertNullsState);
-  const [serialMode, setSerialMode] = useRecoilState(fromLoadRecordsState.serialModeState);
-  const [trialRun, setTrialRun] = useRecoilState(fromLoadRecordsState.trialRunState);
-  const [trialRunSize, setTrialRunSize] = useRecoilState(fromLoadRecordsState.trialRunSizeState);
-  const [dateFormat, setDateFormat] = useRecoilState(fromLoadRecordsState.dateFormatState);
+  const [apiMode, setApiMode] = useAtom(fromLoadRecordsState.apiModeState);
+  const [batchSize, setBatchSize] = useAtom(fromLoadRecordsState.batchSizeState);
+  const [insertNulls, setInsertNulls] = useAtom(fromLoadRecordsState.insertNullsState);
+  const [serialMode, setSerialMode] = useAtom(fromLoadRecordsState.serialModeState);
+  const [trialRun, setTrialRun] = useAtom(fromLoadRecordsState.trialRunState);
+  const [trialRunSize, setTrialRunSize] = useAtom(fromLoadRecordsState.trialRunSizeState);
+  const [dateFormat, setDateFormat] = useAtom(fromLoadRecordsState.dateFormatState);
   /** Only show date hint if the user has a mapped date/datetime field */
-  const hasDateFieldMapped = useRecoilValue(fromLoadRecordsState.selectHasDateFieldMapped);
+  const hasDateFieldMapped = useAtomValue(fromLoadRecordsState.selectHasDateFieldMapped);
 
-  const batchSizeError = useRecoilValue(fromLoadRecordsState.selectBatchSizeError);
-  const batchApiLimitError = useRecoilValue(fromLoadRecordsState.selectBatchApiLimitError);
-  const trialRunSizeError = useRecoilValue(fromLoadRecordsState.selectTrialRunSizeError);
-  const bulkApiModeLabel = useRecoilValue(fromLoadRecordsState.selectBulkApiModeLabel);
-  const batchApiModeLabel = useRecoilValue(fromLoadRecordsState.selectBatchApiModeLabel);
+  const batchSizeError = useAtomValue(fromLoadRecordsState.selectBatchSizeError);
+  const batchApiLimitError = useAtomValue(fromLoadRecordsState.selectBatchApiLimitError);
+  const trialRunSizeError = useAtomValue(fromLoadRecordsState.selectTrialRunSizeError);
+  const bulkApiModeLabel = useAtomValue(fromLoadRecordsState.selectBulkApiModeLabel);
+  const batchApiModeLabel = useAtomValue(fromLoadRecordsState.selectBatchApiModeLabel);
 
   const loadTypeLabel = startCase(loadType.toLowerCase());
   const [assignmentRuleId, setAssignmentRuleId] = useState<Maybe<string>>(null);

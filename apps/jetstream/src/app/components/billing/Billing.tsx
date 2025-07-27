@@ -16,9 +16,9 @@ import {
 } from '@jetstream/ui';
 import { JetstreamProLogo, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useSetRecoilState } from 'recoil';
 import { environment } from '../../../environments/environment';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
 import BillingPlanCard from './BillingPlanCard';
@@ -29,7 +29,7 @@ export const Billing = () => {
   useTitle(TITLES.SETTINGS);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
+  const setUserProfile = useSetAtom(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(environment.STRIPE_PRO_MONTHLY_PRICE_ID);

@@ -7,9 +7,9 @@ import { addDays } from 'date-fns/addDays';
 import { formatDate } from 'date-fns/format';
 import { isBefore } from 'date-fns/isBefore';
 import { startOfDay } from 'date-fns/startOfDay';
+import { atom } from 'jotai';
 import localforage from 'localforage';
 import orderBy from 'lodash/orderBy';
-import { atom, selector } from 'recoil';
 
 let didRunCleanup = false;
 
@@ -92,42 +92,30 @@ export async function initNewApexHistoryItem(org: SalesforceOrgUi, apex: string)
   return { ...historyItems, [newItem.key]: newItem };
 }
 
-export const apexHistoryState = atom<Record<string, ApexHistoryItem>>({
-  key: 'apexHistory.apexHistoryState',
-  default: initApexHistory(),
-});
+export const apexHistoryState = atom<Promise<Record<string, ApexHistoryItem>> | Record<string, ApexHistoryItem>>(initApexHistory());
 
-export const apexHistoryWhichOrg = atom<'ALL' | 'SELECTED'>({
-  key: 'apexHistory.apexHistoryWhichOrg',
-  default: 'SELECTED',
-});
+export const apexHistoryWhichOrg = atom<'ALL' | 'SELECTED'>('SELECTED');
 
 /**
  * Returns based on selected org and either all items or saved items
  */
-const selectApexHistoryItems = selector({
-  key: 'apexHistory.selectApexHistoryItems',
-  get: ({ get }) => {
-    const whichOrg = get(apexHistoryWhichOrg);
-    const apexHistoryItems = get(apexHistoryState);
-    const selectedOrg = get(selectedOrgState);
-    if (!selectedOrg || !apexHistoryItems) {
-      return [];
-    }
+const selectApexHistoryItems = atom((get) => {
+  const whichOrg = get(apexHistoryWhichOrg);
+  const apexHistoryItems = get(apexHistoryState) as Record<string, ApexHistoryItem>;
+  const selectedOrg = get(selectedOrgState) as SalesforceOrgUi;
+  if (!selectedOrg || !apexHistoryItems) {
+    return [];
+  }
 
-    return Object.values(apexHistoryItems).filter((item) => {
-      if (whichOrg === 'SELECTED' && item.org !== selectedOrg.uniqueId) {
-        return false;
-      }
-      return true;
-    });
-  },
+  return Object.values(apexHistoryItems).filter((item) => {
+    if (whichOrg === 'SELECTED' && item.org !== selectedOrg.uniqueId) {
+      return false;
+    }
+    return true;
+  });
 });
 
-export const selectApexHistoryState = selector({
-  key: 'apexHistory.selectApexHistoryState',
-  get: ({ get }) => {
-    const apexHistoryItems = get(selectApexHistoryItems);
-    return orderBy<ApexHistoryItem>(apexHistoryItems, ['lastRun'], ['desc']);
-  },
+export const selectApexHistoryState = atom((get) => {
+  const apexHistoryItems = get(selectApexHistoryItems);
+  return orderBy<ApexHistoryItem>(apexHistoryItems, ['lastRun'], ['desc']);
 });

@@ -71,22 +71,12 @@ const getRowId = ({ key }: SalesforceDeployHistoryItem) => key;
 export interface DeployMetadataHistoryTableProps {
   items: SalesforceDeployHistoryItem[];
   orgsById: Record<string, SalesforceOrgUi>;
-  modalRef: React.RefObject<HTMLDivElement>;
   onView: (item: SalesforceDeployHistoryItem) => void;
   onDownload: (item: SalesforceDeployHistoryItem) => void;
 }
 
-export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({
-  items,
-  orgsById,
-  modalRef,
-  onView,
-  onDownload,
-}) => {
-  const context: DeployHistoryTableContext = useMemo(
-    () => ({ orgsById, portalRefForFilters: modalRef, onView, onDownload }),
-    [orgsById, modalRef, onView, onDownload]
-  );
+export const DeployMetadataHistoryTable: FunctionComponent<DeployMetadataHistoryTableProps> = ({ items, orgsById, onView, onDownload }) => {
+  const context: DeployHistoryTableContext = useMemo(() => ({ orgsById, onView, onDownload }), [orgsById, onView, onDownload]);
   const getRowHeightFn = useMemo(() => getRowHeight(orgsById), [orgsById]);
   return <DataTable columns={COLUMNS} data={items} getRowKey={getRowId} context={context} rowHeight={getRowHeightFn} />;
 };

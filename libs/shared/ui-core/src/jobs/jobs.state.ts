@@ -1,22 +1,15 @@
 import { AsyncJob, AsyncJobStatus } from '@jetstream/types';
-import { atom, selector } from 'recoil';
+import { atom } from 'jotai';
 
 const activeStatuses: AsyncJobStatus[] = ['pending', 'in-progress'];
 
-export const jobsState = atom<Record<string, AsyncJob<unknown>>>({
-  key: 'jobs.jobsState',
-  default: {},
-});
+export const jobsState = atom<Record<string, AsyncJob<unknown>>>({});
 
-export const jobsUnreadState = atom<boolean>({
-  key: 'jobs.jobsUnreadState',
-  default: false,
-});
+export const jobsUnreadState = atom<boolean>(false);
 
-export const selectJobs = selector({
-  key: 'jobs.selectJobs',
-  get: ({ get }) => Object.values(get(jobsState)),
-  set: ({ get, set }, newJobs) => {
+export const selectJobs = atom(
+  (get) => Object.values(get(jobsState)),
+  (get, set, newJobs: AsyncJob<unknown>[]) => {
     if (!Array.isArray(newJobs)) {
       return;
     }
@@ -27,10 +20,7 @@ export const selectJobs = selector({
         return newJobObj;
       }, {})
     );
-  },
-});
+  }
+);
 
-export const selectActiveJobCount = selector({
-  key: 'jobs.selectActiveJobCount',
-  get: ({ get }) => get(selectJobs).filter((job) => activeStatuses.includes(job.status)).length,
-});
+export const selectActiveJobCount = atom((get) => get(selectJobs).filter((job) => activeStatuses.includes(job.status)).length);

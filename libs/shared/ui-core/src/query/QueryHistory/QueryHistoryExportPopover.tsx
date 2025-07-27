@@ -84,7 +84,6 @@ export const QueryHistoryExportPopover: FunctionComponent<QueryHistoryExportPopo
   return (
     <Popover
       ref={popoverRef}
-      omitPortal
       placement="bottom-end"
       footer={
         <footer className="slds-popover__footer">

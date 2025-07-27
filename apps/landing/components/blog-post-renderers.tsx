@@ -36,7 +36,7 @@ const wrapHeadingWithAnchor = (type: 'heading-1' | 'heading-2' | 'heading-3' | '
   return (node, children) => {
     const text = getNodeText(children) as string;
     let slug = '';
-    let anchor: JSX.Element | null = null;
+    let anchor: React.ReactNode | null = null;
     if (isString(text)) {
       slug = text.toLowerCase().replace(NON_URL_CHARACTERS, '-');
     }

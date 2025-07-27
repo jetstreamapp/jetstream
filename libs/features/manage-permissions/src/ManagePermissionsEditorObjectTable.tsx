@@ -29,7 +29,7 @@ export interface ManagePermissionsEditorObjectTableProps {
 
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
   ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
-    const tableRef = useRef<DataTableRef<PermissionTableObjectCell>>();
+    const tableRef = useRef<DataTableRef<PermissionTableObjectCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
 
     useImperativeHandle<any, ManagePermissionsEditorTableRef>(ref, () => ({

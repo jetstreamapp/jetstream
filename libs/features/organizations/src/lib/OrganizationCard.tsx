@@ -66,7 +66,7 @@ export function OrganizationCard({
       `}
     >
       <Card
-        ref={dropRef}
+        ref={dropRef as any}
         testId={`organization-card-${organization.name}`}
         css={css`
           ${isActive

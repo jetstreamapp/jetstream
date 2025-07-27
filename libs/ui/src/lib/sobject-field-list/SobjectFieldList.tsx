@@ -13,6 +13,7 @@ import List from '../list/List';
 import Icon from '../widgets/Icon';
 import SalesforceLogin from '../widgets/SalesforceLogin';
 import Spinner from '../widgets/Spinner';
+import Tooltip from '../widgets/Tooltip';
 import { DEFAULT_FILTER_TYPES, FilterTypes, SobjectFieldListFilter } from './SobjectFieldListFilter';
 import SobjectFieldListItem from './SobjectFieldListItem';
 import { filterFieldsFn, getBgColor } from './sobject-field-list-utils';
@@ -223,34 +224,33 @@ export const SobjectFieldList: FunctionComponent<SobjectFieldListProps> = ({
             </div>
             <div>
               {!isTooling && (
-                <SalesforceLogin
-                  serverUrl={serverUrl}
-                  org={org}
-                  skipFrontDoorAuth
-                  returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
-                  omitIcon
-                  title={`View object in Salesforce setup`}
-                >
-                  <Icon
-                    css={css`
-                      &:hover {
-                        fill: #005fb2;
-                      }
-                    `}
-                    type="utility"
-                    icon="new_window"
-                    className="slds-icon slds-icon-text-default slds-icon_xx-small"
-                    omitContainer
-                  />
-                </SalesforceLogin>
+                <Tooltip content="View object in Salesforce setup" openDelay={500}>
+                  <SalesforceLogin
+                    serverUrl={serverUrl}
+                    org={org}
+                    skipFrontDoorAuth
+                    returnUrl={`/lightning/setup/ObjectManager/${sobject}/Details/view`}
+                    omitIcon
+                  >
+                    <Icon
+                      css={css`
+                        &:hover {
+                          fill: #005fb2;
+                        }
+                      `}
+                      type="utility"
+                      icon="new_window"
+                      className="slds-icon slds-icon-text-default slds-icon_xx-small"
+                      omitContainer
+                    />
+                  </SalesforceLogin>
+                </Tooltip>
               )}
-              <button
-                className="slds-button slds-button_icon slds-button_icon-container"
-                title="Download metadata for object"
-                onClick={handleDownloadMetadata}
-              >
-                <Icon type="utility" icon="download" className="slds-button__icon" omitContainer />
-              </button>
+              <Tooltip content="Download metadata for object" openDelay={500}>
+                <button className="slds-button slds-button_icon slds-m-horizontal_xx-small" onClick={handleDownloadMetadata}>
+                  <Icon type="utility" icon="download" className="slds-button__icon" omitContainer />
+                </button>
+              </Tooltip>
               <SobjectFieldListFilter selectedItems={activeFilters} onChange={handleFilterChange} />
             </div>
           </Grid>

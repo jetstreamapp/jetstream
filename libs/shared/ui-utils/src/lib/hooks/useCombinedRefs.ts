@@ -9,7 +9,7 @@ import { useEffect, useRef } from 'react';
  * @param refs
  * @returns
  */
-export function useCombinedRefs<T extends HTMLElement>(...refs: (React.ForwardedRef<T> | React.MutableRefObject<T>)[]) {
+export function useCombinedRefs<T extends HTMLElement>(...refs: (React.ForwardedRef<T> | React.RefObject<T>)[]) {
   const targetRef = useRef<T>(null);
 
   useEffect(() => {

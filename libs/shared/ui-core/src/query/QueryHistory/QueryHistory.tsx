@@ -73,6 +73,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
     <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
       <ButtonGroupContainer>
         <Tooltip
+          ariaRole="label"
           content={
             <div className="slds-p-bottom_small">
               View query history
@@ -93,6 +94,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
           </button>
         </Tooltip>
         <Tooltip
+          ariaRole="label"
           content={
             <div className="slds-p-bottom_small">
               View saved queries

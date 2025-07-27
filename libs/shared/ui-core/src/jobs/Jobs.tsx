@@ -22,9 +22,9 @@ import {
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import uniqueId from 'lodash/uniqueId';
 import { FunctionComponent, useCallback, useEffect, useRef } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { filter } from 'rxjs/operators';
 import { fromJetstreamEvents } from '../jetstream-events';
 import Job from './Job';
@@ -41,14 +41,13 @@ const jobsWorker = new WorkerAdapter();
 
 export const Jobs: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = useRef<boolean>(false);
-  const [{ serverUrl, defaultApiVersion }] = useRecoilState(applicationCookieState);
+  const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const rollbar = useRollbar();
-  const setJobs = useSetRecoilState(jobsState);
-  const [jobsUnread, setJobsUnread] = useRecoilState(jobsUnreadState);
-  const [jobs, setJobsArr] = useRecoilState(selectJobs);
-  const activeJobCount = useRecoilValue(selectActiveJobCount);
+  const setJobs = useSetAtom(jobsState);
+  const [jobsUnread, setJobsUnread] = useAtom(jobsUnreadState);
+  const [jobs, setJobsArr] = useAtom(selectJobs);
+  const activeJobCount = useAtomValue(selectActiveJobCount);
   const newJobsToProcess = useObservable(
     fromJetstreamEvents.getObservable('newJob').pipe(filter((ev) => Array.isArray(ev) && ev.length > 0))
   ) as AsyncJobNew[];
@@ -578,31 +577,26 @@ export const Jobs: FunctionComponent = () => {
           </ul>
         </div>
       }
-      // NOTE: this is non-standard because we require the extra container
       buttonProps={{
-        className: 'slds-dropdown-trigger slds-dropdown-trigger_click cursor-pointer',
-        as: 'div',
-      }}
-    >
-      <button
-        ref={buttonRef}
-        className={classNames(
+        className: classNames(
           'slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
           { 'slds-incoming-notification': activeJobCount || jobsUnread }
-        )}
-        title={`${activeJobCount} active job(s)`}
-        aria-live="assertive"
-        aria-atomic="true"
-      >
-        <Icon type="utility" icon="notification" className="slds-button__icon slds-global-header__icon" omitContainer />
-        <span className="slds-assistive-text">{`${activeJobCount} active job(s)`}</span>
-      </button>
-      {/* Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed */}
-      {(activeJobCount || jobsUnread) && (
-        <span aria-hidden="true" className="slds-notification-badge slds-incoming-notification slds-show-notification">
-          {activeJobCount ? activeJobCount : ' '}
-        </span>
-      )}
+        ),
+        title: `${activeJobCount} active job(s)`,
+        'aria-live': 'assertive',
+        'aria-atomic': 'true',
+      }}
+      // Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed
+      triggerAfterContent={
+        (activeJobCount || jobsUnread) && (
+          <span aria-hidden="true" className="slds-notification-badge slds-incoming-notification slds-show-notification">
+            {activeJobCount ? activeJobCount : ' '}
+          </span>
+        )
+      }
+    >
+      <Icon type="utility" icon="notification" className="slds-button__icon slds-global-header__icon" omitContainer />
+      <span className="slds-assistive-text">{`${activeJobCount} active job(s)`}</span>
     </Popover>
   );
 };

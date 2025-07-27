@@ -35,8 +35,8 @@ function setViewLabel(view: google.picker.DocsView | google.picker.DocsUploadVie
 }
 
 export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
-  const picker = useRef<google.picker.PickerBuilder>();
-  const pickerInstance = useRef<google.picker.Picker>();
+  const picker = useRef<google.picker.PickerBuilder>(null);
+  const pickerInstance = useRef<google.picker.Picker>(null);
   const { error, getToken, loading } = useGoogleApi(apiConfig);
   const [callBackInfo, setCallBackInfo] = useState<google.picker.ResponseObject>();
   const [isVisible, setIsVisible] = useState(false);

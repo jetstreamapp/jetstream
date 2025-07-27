@@ -46,10 +46,10 @@ import {
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import Editor from '@monaco-editor/react';
+import { useAtomValue } from 'jotai';
 import isNumber from 'lodash/isNumber';
 import isObject from 'lodash/isObject';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
@@ -138,15 +138,14 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 }) => {
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
-  const modalRef = useRef(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const rollbar = useRollbar();
   // If user was ever in view mode, clicking cancel will take back to view instead of close
   const hasEverBeenInViewMode = useRef(false);
   hasEverBeenInViewMode.current = action === 'view' || hasEverBeenInViewMode.current;
 
-  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
   // User can drill in to related records, this allows us to go back up the chain via Breadcrumbs
   const [recordId, setRecordId] = useState(initialRecordId);
@@ -510,7 +509,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           parentRecordId={recordId}
           childRelationships={childRelationships || []}
           initialData={recordWithChildrenQueries[recordId]}
-          modalRef={modalRef}
           onChildrenData={(parentRecordId, record) =>
             setRecordWithChildrenQueries((priorData) => ({ ...priorData, [parentRecordId]: record }))
           }
@@ -544,7 +542,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
 
       {!downloadModalData.open && (
         <Modal
-          ref={modalRef}
           header={modalTitle}
           tagline={
             <div>
@@ -574,7 +571,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 <div>
                   {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                     <span className="slds-text-align_left d-inline-block">
-                      <PopoverErrorButton className="slds-m-right_small" errors={formErrors.generalErrors} omitPortal />
+                      <PopoverErrorButton className="slds-m-right_small" errors={formErrors.generalErrors} />
                     </span>
                   )}
                   <div className="slds-float_left">
@@ -601,7 +598,6 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     <div className="slds-text-align_left d-inline-block">
                       <NotSeeingRecentMetadataPopover
                         className="slds-m-left_small"
-                        popoverProps={{ omitPortal: true, placement: 'top-start' }}
                         header="Missing Fields?"
                         label="Not seeing all fields?"
                         refreshButtonLabel="Reload Fields"
@@ -667,7 +663,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                   <div>
                     {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                       <span className="slds-text-align_left d-inline-block">
-                        <PopoverErrorButton errors={formErrors.generalErrors} omitPortal />
+                        <PopoverErrorButton errors={formErrors.generalErrors} />
                       </span>
                     )}
                     <button

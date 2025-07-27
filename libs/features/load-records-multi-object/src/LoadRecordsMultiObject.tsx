@@ -2,7 +2,7 @@ import { ANALYTICS_KEYS, DATE_FORMATS, INPUT_ACCEPT_FILETYPES, TITLES } from '@j
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, initXlsx, useNonInitialEffect, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle, SalesforceOrgUi } from '@jetstream/types';
+import { InputReadFileContent, InputReadGoogleSheet, LocalOrGoogle } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Checkbox,
@@ -24,8 +24,8 @@ import {
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState, selectedOrgType } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import * as XLSX from 'xlsx';
 import LoadRecordsMultiObjectErrors from './LoadRecordsMultiObjectErrors';
 import LoadRecordsMultiObjectResults from './LoadRecordsMultiObjectResults';
@@ -42,14 +42,14 @@ export const LoadRecordsMultiObject = () => {
   useTitle(TITLES.LOAD);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const orgType = useRecoilValue(selectedOrgType);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const orgType = useAtomValue(selectedOrgType);
 
   const [inputFilename, setInputFilename] = useState<string | null>(null);
   const [inputFileType, setInputFileType] = useState<LocalOrGoogle>();
   const [inputFileData, setInputFileData] = useState<XLSX.WorkBook>();
-  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
     [google_apiKey, google_appId, google_clientId]

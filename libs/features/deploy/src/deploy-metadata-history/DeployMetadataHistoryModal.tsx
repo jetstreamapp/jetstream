@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, isHKey, useGlobalEventHandler, useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { SalesforceDeployHistoryItem, SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceDeployHistoryItem, SalesforceDeploymentHistoryOrg, SalesforceOrgUi } from '@jetstream/types';
 import {
   EmptyState,
   FileDownloadModal,
@@ -20,11 +20,29 @@ import {
 import { ConfirmPageChange, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
+import { useAtomValue } from 'jotai';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { getDeployResultsExcelData, getHistory, getHistoryItemFile } from '../utils/deploy-metadata.utils';
 import DeployMetadataHistoryTable from './DeployMetadataHistoryTable';
 import DeployMetadataHistoryViewResults from './DeployMetadataHistoryViewResults';
+
+// If the org was deleted or is not available, then stub out what we can
+function getPlaceholderOrg(org: SalesforceDeploymentHistoryOrg) {
+  const [orgId, userId] = org.uniqueId.split('-');
+  return {
+    uniqueId: org.uniqueId,
+    label: org.label,
+    filterText: '',
+    accessToken: '',
+    instanceUrl: 'https://login.salesforce.com',
+    loginUrl: 'https://login.salesforce.com',
+    userId: userId,
+    email: '',
+    organizationId: orgId,
+    username: org.label,
+    displayName: org.label,
+  };
+}
 
 interface DeployMetadataHistoryModalProps {
   className?: string;
@@ -33,9 +51,8 @@ interface DeployMetadataHistoryModalProps {
 export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryModalProps) => {
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const modalRef = useRef(null);
-  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(fromAppState.applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [isOpen, setIsOpen] = useState(false);
   const [downloadPackageModalState, setDownloadPackageModalState] = useState<{
     open: boolean;
@@ -67,7 +84,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
   const [historyItems, setHistoryItems] = useState<SalesforceDeployHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setError] = useState<string | null>(null);
-  const orgsById = useRecoilValue(fromAppState.salesforceOrgsById);
+  const orgsById = useAtomValue(fromAppState.salesforceOrgsById);
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
@@ -116,7 +133,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       const file = await getHistoryItemFile(item);
       setDownloadPackageModalState({
         open: true,
-        org: orgsById[item.destinationOrg.uniqueId],
+        org: orgsById[item.destinationOrg.uniqueId] || getPlaceholderOrg(item.destinationOrg),
         data: file,
       });
       trackEvent(ANALYTICS_KEYS.deploy_history_download_package, { type: item.type, status: item.status });
@@ -139,7 +156,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       logger.log('[DEPLOY HISTORY] Selected Item to view', { item });
       setViewItemModalState({
         open: true,
-        org: orgsById[item.destinationOrg.uniqueId],
+        org: orgsById[item.destinationOrg.uniqueId] || getPlaceholderOrg(item.destinationOrg),
         item,
       });
       trackEvent(ANALYTICS_KEYS.deploy_history_view_details, { type: item.type, status: item.status });
@@ -252,7 +269,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       )}
       {isOpen && (
         <Modal
-          ref={modalRef}
           classStyles={css`
             min-height: 70vh;
             max-height: 70vh;
@@ -292,7 +308,6 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
                 <DeployMetadataHistoryTable
                   items={historyItems}
                   orgsById={orgsById}
-                  modalRef={modalRef}
                   onDownload={handleDownload}
                   onView={handleViewModalOpen}
                 />

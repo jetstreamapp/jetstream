@@ -3,14 +3,13 @@ import { DesktopUserPreferences } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { desktopUserPreferences } from '../core/AppDesktopState';
 import LoggerConfig from './LoggerConfig';
 
@@ -21,15 +20,15 @@ export const Settings = () => {
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
-  const setUserProfile = useSetRecoilState(fromAppState.userProfileState);
-  const [preferences, setPreferences] = useRecoilState(desktopUserPreferences);
+  const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const [preferences, setPreferences] = useAtom(desktopUserPreferences);
   const [modifiedPreferences, setModifiedPreferences] = useState<DesktopUserPreferences>(() => ({ ...preferences }));
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(fromAppState.selectedOrgState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
 
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
-  const recordSyncEnabled = useRecoilValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
 
   useEffect(() => {
     isMounted.current = true;

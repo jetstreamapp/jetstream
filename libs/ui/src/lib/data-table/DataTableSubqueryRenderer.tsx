@@ -2,7 +2,7 @@ import { queryMore } from '@jetstream/shared/data';
 import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
 import { ContextMenuItem, Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
-import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RenderCellProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
 import Grid from '../grid/Grid';
@@ -21,7 +21,7 @@ import {
   getSubqueryModalTagline,
 } from './data-table-utils';
 
-export const SubqueryRenderer: FunctionComponent<RenderCellProps<RowWithKey, unknown>> = ({ column, row, onRowChange }) => {
+export const SubqueryRenderer = ({ column, row, onRowChange }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
   const isMounted = useRef(true);
   const [isActive, setIsActive] = useState(false);
   const [modalTagline, setModalTagline] = useState<Maybe<string>>(null);
@@ -228,7 +228,6 @@ function ModalDataTable({
   handleRowAction,
   setSelectedRows,
 }: ModalDataTableProps) {
-  const modalRef = useRef();
   const { records, done, totalSize } = queryResults;
 
   const { fields: _fields, rows } = useMemo(() => {
@@ -271,7 +270,6 @@ function ModalDataTable({
     <>
       {isActive && (
         <Modal
-          ref={modalRef}
           size="lg"
           header={columnKey}
           tagline={modalTagline}
@@ -279,7 +277,6 @@ function ModalDataTable({
           onClose={handleCloseModal}
           footerClassName="slds-is-relative"
           overrideZIndex={1001}
-          additionalOverlayProps={{ shouldCloseOnInteractOutside: () => false }}
           footer={
             <Grid
               align="spread"
@@ -337,7 +334,6 @@ function ModalDataTable({
                 rowHeight={28.5}
                 selectedRows={selectedRows}
                 onSelectedRowsChange={setSelectedRows as any}
-                context={{ portalRefForFilters: modalRef }}
                 contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
                 contextMenuAction={handleContextMenuAction}
                 onReorderColumns={handleColumnReorder}

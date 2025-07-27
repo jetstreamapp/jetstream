@@ -1,12 +1,15 @@
 import { UserProfileUi } from '@jetstream/types';
-import { atom, selector } from 'recoil';
-import { setRecoil } from 'recoil-nexus';
+import { atom, createStore } from 'jotai';
+import { loadable, unwrap } from 'jotai/utils';
 import browser from 'webextension-polyfill';
 import { ChromeStorageState, DEFAULT_BUTTON_POSITION } from './extension.types';
 
+export const extensionStateStore = createStore();
+
 browser.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' || namespace === 'sync') {
-    setRecoil(chromeStorageState, (prevValue) => {
+    extensionStateStore.set(chromeStorageState, async (_prevValue) => {
+      const prevValue = await _prevValue;
       const newState: ChromeStorageState = {
         ...prevValue,
         local: {
@@ -58,27 +61,26 @@ async function initAuthState(): Promise<ChromeStorageState> {
   };
 }
 
-export const chromeStorageState = atom<ChromeStorageState>({
-  key: 'chromeStorageState',
-  default: initAuthState(),
+export const chromeStorageAsyncState = atom<Promise<ChromeStorageState> | ChromeStorageState>(initAuthState());
+export const chromeStorageLoadable = loadable(chromeStorageAsyncState);
+export const chromeStorageLoading = atom((get) => {
+  const storage = get(chromeStorageLoadable);
+  return storage.state === 'loading' || storage.state !== 'hasData';
 });
 
-export const chromeSyncStorage = selector({
-  key: 'chromeSyncStorage',
-  get: ({ get }) => get(chromeStorageState).sync,
-});
+export const chromeStorageState = unwrap(
+  chromeStorageAsyncState,
+  (prev) =>
+    prev ?? {
+      sync: { extIdentifier: null, authTokens: null, buttonPosition: DEFAULT_BUTTON_POSITION },
+      local: { options: { enabled: true, recordSyncEnabled: false } },
+    }
+);
 
-export const chromeLocalStorage = selector({
-  key: 'chromeLocalStorage',
-  get: ({ get }) => get(chromeStorageState).local,
-});
+export const chromeSyncStorage = atom((get) => get(chromeStorageState).sync);
 
-export const chromeStorageOptions = selector({
-  key: 'chromeStorageOptions',
-  get: ({ get }) => get(chromeStorageState).local.options,
-});
+export const chromeLocalStorage = atom((get) => get(chromeStorageState).local);
 
-export const UserProfileState = selector({
-  key: 'UserProfileState',
-  get: ({ get }) => get(chromeStorageState).sync?.authTokens?.userProfile as UserProfileUi | undefined,
-});
+export const chromeStorageOptions = atom((get) => get(chromeStorageState).local.options);
+
+export const UserProfileState = atom((get) => get(chromeStorageState)?.sync?.authTokens?.userProfile as UserProfileUi | undefined);

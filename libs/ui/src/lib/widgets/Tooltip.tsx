@@ -1,156 +1,191 @@
 import { css } from '@emotion/react';
+import {
+  arrow,
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useFocus,
+  useHover,
+  useInteractions,
+  useRole,
+} from '@floating-ui/react';
 import { Maybe } from '@jetstream/types';
-import Tippy, { TippyProps } from '@tippyjs/react';
-import { FunctionComponent, MouseEvent, useRef, useState } from 'react';
+import { FunctionComponent, MouseEvent, useEffect, useRef, useState } from 'react';
+import { usePortalContext } from '../modal/PortalContext';
 
 export interface TooltipProps {
   /** @deprecated This is not used in the component */
   id?: string;
   className?: string;
-  content: Maybe<string | JSX.Element>;
+  content: Maybe<string | React.ReactNode>;
   /**
    * number controls hide delay in ms
    * array controls show and hide delay, [openDelay, closeDelay]
    */
-  delay?: TippyProps['delay'];
+  openDelay?: number;
+  closeDelay?: number;
+  /**
+   * Can be provided to change the role from "tooltip" to "label" if the content does not have a label or describing attribute, such as an icon
+   */
+  ariaRole?: 'tooltip' | 'label';
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   children?: React.ReactNode;
 }
 
-type LazyTippyProps = TippyProps;
-
-const LazyTippy = (props: LazyTippyProps) => {
+export const Tooltip: FunctionComponent<TooltipProps> = ({
+  className,
+  content,
+  openDelay,
+  closeDelay,
+  ariaRole = 'tooltip',
+  onClick,
+  children,
+}) => {
+  const { portalRoot } = usePortalContext();
+  const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const arrowRef = useRef(null);
 
-  const lazyPlugin = {
-    fn: () => ({
-      onMount: () => setMounted(true),
-      onHidden: () => setMounted(false),
-    }),
-  };
+  const { refs, floatingStyles, context, placement, middlewareData } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    placement: 'top',
+    middleware: [
+      offset(8),
+      flip(),
+      shift({ padding: 8 }),
+      arrow({
+        element: arrowRef,
+      }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
 
-  const computedProps = { ...props };
-  computedProps.plugins = [lazyPlugin, ...(props.plugins || [])];
+  const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
 
-  if (props.render) {
-    const render = props.render; // let TypeScript safely derive that render is not undefined
-    computedProps.render = (...args) => (mounted ? render(...args) : '');
-  } else {
-    computedProps.content = mounted ? props.content : '';
-  }
+  const hover = useHover(context, {
+    delay: {
+      open: openDelay,
+      close: closeDelay,
+    },
+  });
+  const focus = useFocus(context);
+  const role = useRole(context, { role: ariaRole });
+  const dismiss = useDismiss(context);
 
-  return <Tippy {...computedProps} />;
-};
+  const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, role, dismiss]);
 
-export const Tooltip: FunctionComponent<TooltipProps> = ({ className, content, delay, onClick, children }) => {
-  const containerRef = useRef<HTMLSpanElement>(null);
-  const [visible, setVisible] = useState(false);
-  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        setMounted(false);
+      }, closeDelay || 0);
+      return () => clearTimeout(timer);
+    }
+  }, [open, closeDelay]);
+
+  const shouldShow = open && content;
+
+  const tooltipContent = mounted && !!content && shouldShow && (
+    <div
+      ref={refs.setFloating}
+      className="slds-popover slds-popover_tooltip"
+      style={floatingStyles}
+      {...getFloatingProps()}
+      css={css`
+        width: max-content;
+        &[data-placement^='right'] {
+          .popover-arrow {
+            left: -0.5rem;
+            &::after {
+              box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
+            }
+          }
+        }
+
+        &[data-placement^='left'] {
+          .popover-arrow {
+            right: -0.5rem;
+            &::after {
+              box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
+            }
+          }
+        }
+
+        &[data-placement^='top'] {
+          .popover-arrow {
+            bottom: -0.5rem;
+            &::after {
+              box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
+            }
+          }
+        }
+
+        &[data-placement^='bottom'] {
+          .popover-arrow {
+            top: -0.5rem;
+            &::after {
+              box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
+            }
+          }
+        }
+      `}
+      data-placement={placement}
+    >
+      <div className="slds-popover__body">{content}</div>
+      <div
+        className="popover-arrow"
+        ref={arrowRef}
+        style={{
+          position: 'absolute',
+          left: arrowX != null ? `${arrowX}px` : '',
+          top: arrowY != null ? `${arrowY}px` : '',
+        }}
+        css={css`
+          width: 1rem;
+          height: 1rem;
+          background: inherit;
+          visibility: hidden;
+          &::before {
+            visibility: visible;
+            content: '';
+            transform: rotate(45deg);
+            position: absolute;
+            width: 1rem;
+            height: 1rem;
+            background: inherit;
+          }
+          &::after {
+            visibility: visible;
+            content: '';
+            transform: rotate(45deg);
+            position: absolute;
+            width: 1rem;
+            height: 1rem;
+            background-color: inherit;
+          }
+        `}
+      ></div>
+    </div>
+  );
 
   return (
-    <LazyTippy
-      onHide={() => setVisible(false)}
-      onShow={() => {
-        content && setVisible(true);
-      }}
-      hideOnClick={false}
-      delay={delay}
-      allowHTML
-      popperOptions={{
-        modifiers: [
-          {
-            name: 'arrow',
-            options: {
-              element: arrowElement,
-            },
-          },
-        ],
-      }}
-      render={(attrs) => {
-        return (
-          <div
-            className="slds-popover slds-popover_tooltip"
-            tabIndex={-1}
-            role="tooltip"
-            {...attrs}
-            css={css`
-              ${visible ? '' : 'display: none;'}
-
-              &[data-placement^='right'] {
-                .popover-arrow {
-                  left: -0.5rem;
-                  &::after {
-                    box-shadow: -1px 1px 2px 0 rgb(0 0 0 / 16%);
-                  }
-                }
-              }
-
-              &[data-placement^='left'] {
-                .popover-arrow {
-                  right: -0.5rem;
-                  &::after {
-                    box-shadow: 1px -1px 2px 0 rgb(0 0 0 / 16%);
-                  }
-                }
-              }
-
-              &[data-placement^='top'] {
-                .popover-arrow {
-                  bottom: -0.5rem;
-                  &::after {
-                    box-shadow: 2px 2px 4px 0 rgb(0 0 0 / 16%);
-                  }
-                }
-              }
-
-              &[data-placement^='bottom'] {
-                .popover-arrow {
-                  top: -0.5rem;
-                  &::after {
-                    box-shadow: -1px -1px 0 0 rgb(0 0 0 / 16%);
-                  }
-                }
-              }
-            `}
-          >
-            <div className="slds-popover__body">{content}</div>
-            <div
-              className="popover-arrow"
-              css={css`
-                position: absolute;
-                width: 1rem;
-                height: 1rem;
-                background: inherit;
-                visibility: hidden;
-                &::before {
-                  visibility: visible;
-                  content: '';
-                  transform: rotate(45deg);
-                  position: absolute;
-                  width: 1rem;
-                  height: 1rem;
-                  background: inherit;
-                }
-                &::after {
-                  visibility: visible;
-                  content: '';
-                  transform: rotate(45deg);
-                  position: absolute;
-                  width: 1rem;
-                  height: 1rem;
-                  background-color: inherit;
-                }
-              `}
-              ref={setArrowElement}
-            ></div>
-          </div>
-        );
-      }}
-    >
-      <span ref={containerRef} className={className} onClick={onClick}>
+    <>
+      <span ref={refs.setReference} className={className} onClick={onClick} style={{ display: 'inline-block' }} {...getReferenceProps()}>
         {children}
       </span>
-    </LazyTippy>
+      {tooltipContent && <FloatingPortal root={portalRoot}>{tooltipContent}</FloatingPortal>}
+    </>
   );
 };
 

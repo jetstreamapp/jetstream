@@ -6,8 +6,8 @@ import { decodeHtmlEntity, pluralizeFromNumber } from '@jetstream/shared/utils';
 import { BulkJobBatchInfo, BulkJobResultRecord, DownloadAction, DownloadType, SalesforceOrgUi } from '@jetstream/types';
 import { Card, FileDownloadModal, Grid, SalesforceLogin, ScopedNotification, Spinner, SupportLink } from '@jetstream/ui';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { useAmplitude } from '../analytics';
 import ConfirmPageChange from '../app/ConfirmPageChange';
 import { fromJetstreamEvents } from '../jetstream-events';
@@ -51,9 +51,9 @@ export const MassUpdateRecordsDeploymentRow = ({
   const { trackEvent } = useAmplitude();
   const [downloadModalData, setDownloadModalData] = useState<DownloadModalData>({ open: false, data: [], header: [], fileNameParts: [] });
   const [resultsModalData, setResultsModalData] = useState<ViewModalData>({ open: false, data: [], header: [], type: 'results' });
-  const { serverUrl, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
   const { done, processingErrors, status, jobInfo, processingEndTime, processingStartTime } = deployResults;
 

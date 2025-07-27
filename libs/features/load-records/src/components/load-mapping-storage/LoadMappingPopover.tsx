@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { LoadSavedMappingItem } from '@jetstream/types';
-import { BadgeNotification, EmptyState, fireToast, Icon, Popover, PopoverRef, Tooltip } from '@jetstream/ui';
+import { BadgeNotification, EmptyState, fireToast, Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { STATIC_MAPPING_PREFIX } from '@jetstream/ui-core';
 import { dexieDb } from '@jetstream/ui/db';
 import classNames from 'classnames';
@@ -95,21 +95,15 @@ export const LoadMappingPopover: FunctionComponent<LoadMappingPopoverProps> = ({
         </>
       }
       buttonProps={{
-        className: 'slds-dropdown-trigger slds-dropdown-trigger_click cursor-pointer',
-        as: 'div',
+        className: classNames('slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_neutral slds-button_last', {
+          'slds-incoming-notification': savedMappingsForObject?.length,
+        }),
       }}
+      tooltipProps={{ content: 'Load field mapping', openDelay: 500 }}
+      triggerAfterContent={hasSavedMappings && <BadgeNotification>{savedMappingsForObject.length}</BadgeNotification>}
     >
-      <Tooltip content={'Load field mapping'}>
-        <button
-          className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_neutral slds-button_last', {
-            'slds-incoming-notification': savedMappingsForObject?.length,
-          })}
-        >
-          <Icon type="utility" icon="open" className="slds-button__icon slds-button__icon_left" omitContainer />
-          Load
-        </button>
-        {hasSavedMappings && <BadgeNotification>{savedMappingsForObject.length}</BadgeNotification>}
-      </Tooltip>
+      <Icon type="utility" icon="open" className="slds-button__icon slds-button__icon_left" omitContainer />
+      Load
     </Popover>
   );
 };

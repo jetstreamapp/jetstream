@@ -13,7 +13,7 @@ import {
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { ApexHistoryItem, ListItem, SalesforceOrgUi } from '@jetstream/types';
+import { ApexHistoryItem, ListItem } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -32,11 +32,11 @@ import {
 import { useAmplitude } from '@jetstream/ui-core';
 import { STORAGE_KEYS, applicationCookieState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import escapeRegExp from 'lodash/escapeRegExp';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 import AnonymousApexFilter from './AnonymousApexFilter';
 import AnonymousApexHistory from './AnonymousApexHistory';
 import * as fromApexState from './apex.state';
@@ -59,13 +59,13 @@ export interface AnonymousApexProps {}
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
   useTitle(TITLES.ANON_APEX);
   const isMounted = useRef(true);
-  const apexRef = useRef<editor.IStandaloneCodeEditor>();
-  const logRef = useRef<editor.IStandaloneCodeEditor>();
+  const apexRef = useRef<editor.IStandaloneCodeEditor>(null);
+  const logRef = useRef<editor.IStandaloneCodeEditor>(null);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
+  const selectedOrg = useAtomValue(selectedOrgState);
   const [apex, setApex] = useState(() => localStorage.getItem(STORAGE_KEYS.ANONYMOUS_APEX_STORAGE_KEY) || '');
   const [results, setResults] = useState('');
   const [resultsStatus, setResultsStatus] = useState<{ hasResults: boolean; success: boolean; label: string | null }>({
@@ -74,7 +74,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
     label: null,
   });
   const [loading, setLoading] = useState(false);
-  const [historyItems, setHistoryItems] = useRecoilState(fromApexState.apexHistoryState);
+  const [historyItems, setHistoryItems] = useAtom(fromApexState.apexHistoryState);
   const debouncedApex = useDebounce(apex, 1000);
   const monaco = useMonaco();
 
@@ -260,7 +260,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
                   />
                 </div>
                 <Tooltip
-                  delay={[300, null]}
+                  openDelay={300}
                   content={
                     <div className="slds-p-bottom_small">
                       <KeyboardShortcut inverse keys={[getModifierKey(), 'enter']} />

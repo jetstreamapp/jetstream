@@ -6,8 +6,8 @@ import Modal from '../modal/Modal';
 export interface ConfirmationDialogProps {
   submitDisabled?: boolean;
   isOpen: boolean;
-  header?: Maybe<string | JSX.Element>;
-  tagline?: Maybe<string | JSX.Element>;
+  header?: Maybe<string | React.ReactNode>;
+  tagline?: Maybe<string | React.ReactNode>;
   cancelText?: Maybe<string>;
   confirmText?: Maybe<string>;
   onCancel?: () => void;
@@ -17,8 +17,8 @@ export interface ConfirmationDialogProps {
 
 export interface ConfirmationDialogServiceProviderOptions {
   submitDisabled?: boolean;
-  header?: Maybe<string | JSX.Element>;
-  tagline?: Maybe<string | JSX.Element>;
+  header?: Maybe<string | React.ReactNode>;
+  tagline?: Maybe<string | React.ReactNode>;
   content: React.ReactNode;
   cancelText?: Maybe<string>;
   confirmText?: Maybe<string>;

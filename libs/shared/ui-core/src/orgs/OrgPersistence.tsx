@@ -1,11 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { setItemInLocalStorage, setItemInSessionStorage } from '@jetstream/shared/ui-utils';
 import { selectedOrgIdState, STORAGE_KEYS } from '@jetstream/ui/app-state';
+import { useAtom } from 'jotai';
 import { FunctionComponent, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
 
 export const OrgPersistence: FunctionComponent = () => {
-  const [selectedOrgId] = useRecoilState(selectedOrgIdState);
+  const [selectedOrgId] = useAtom(selectedOrgIdState);
 
   useEffect(() => {
     try {

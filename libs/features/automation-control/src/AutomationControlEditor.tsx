@@ -2,14 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import {
-  FileExtAllTypes,
-  ListMetadataResult,
-  Maybe,
-  MimeType,
-  RetrievePackageFromListMetadataJob,
-  SalesforceOrgUi,
-} from '@jetstream/types';
+import { FileExtAllTypes, ListMetadataResult, Maybe, MimeType, RetrievePackageFromListMetadataJob } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Badge,
@@ -29,9 +22,9 @@ import {
 import { RequireMetadataApiBanner, fromAutomationControlState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth, selectedOrgState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { FunctionComponent, useState } from 'react';
+import { useAtomValue } from 'jotai';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRecoilValue } from 'recoil';
 import AutomationControlEditorReviewModal from './AutomationControlEditorReviewModal';
 import AutomationControlEditorTable from './AutomationControlEditorTable';
 import AutomationControlLastRefreshedPopover from './AutomationControlLastRefreshedPopover';
@@ -50,20 +43,17 @@ import { useAutomationControlData } from './useAutomationControlData';
 
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface AutomationControlEditorProps {}
-
-export const AutomationControlEditor: FunctionComponent<AutomationControlEditorProps> = () => {
+export const AutomationControlEditor = () => {
   useTitle(TITLES.AUTOMATION_CONTROL);
   const { trackEvent } = useAmplitude();
 
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useRecoilValue(applicationCookieState);
-  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useRecoilValue(googleDriveAccessState);
-  const skipFrontdoorLogin = useRecoilValue(selectSkipFrontdoorAuth);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
+  const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
+  const skipFrontdoorLogin = useAtomValue(selectSkipFrontdoorAuth);
 
-  const selectedSObjects = useRecoilValue(fromAutomationControlState.selectedSObjectsState);
-  const selectedAutomationTypes = useRecoilValue(fromAutomationControlState.selectedAutomationTypes);
+  const selectedSObjects = useAtomValue(fromAutomationControlState.selectedSObjectsState);
+  const selectedAutomationTypes = useAtomValue(fromAutomationControlState.selectedAutomationTypes);
 
   const [dirtyRows, setDirtyRows] = useState<TableRowItem[]>([]);
   const [saveModalOpen, setSaveModalOpen] = useState(false);

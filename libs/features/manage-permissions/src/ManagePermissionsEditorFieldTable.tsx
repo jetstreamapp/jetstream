@@ -39,7 +39,7 @@ export interface ManagePermissionsEditorFieldTableProps {
 
 export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissionsEditorFieldTableProps>(
   ({ columns, rows, totalCount, onFilter, onDirtyRows, onBulkUpdate }, ref) => {
-    const tableRef = useRef<DataTableRef<PermissionTableFieldCell>>();
+    const tableRef = useRef<DataTableRef<PermissionTableFieldCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
 

@@ -1,16 +1,16 @@
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
-import { useRecoilValue } from 'recoil';
 import { useOrgPermissions } from '..';
 import OrgInfoPopover from './OrgInfoPopover';
 import OrgPersistence from './OrgPersistence';
 
 export const SelectedOrgReadOnly = () => {
-  const actionInProgress = useRecoilValue(fromAppState.actionInProgressState);
-  const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
-  const orgType = useRecoilValue(fromAppState.selectedOrgType);
+  const actionInProgress = useAtomValue(fromAppState.actionInProgressState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const orgType = useAtomValue(fromAppState.selectedOrgType);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
 
   return (

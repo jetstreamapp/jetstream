@@ -10,7 +10,7 @@ import { parseISO } from 'date-fns/parseISO';
 import isBoolean from 'lodash/isBoolean';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import { Fragment, FunctionComponent, MutableRefObject, memo, useContext, useEffect, useRef, useState } from 'react';
+import { Fragment, ReactNode, memo, useContext, useEffect, useRef, useState } from 'react';
 import { RenderCellProps, RenderGroupCellProps, RenderHeaderCellProps, useRowSelection } from 'react-data-grid';
 import Checkbox from '../form/checkbox/Checkbox';
 import DatePicker from '../form/date/DatePicker';
@@ -19,7 +19,7 @@ import Picklist from '../form/picklist/Picklist';
 import SearchInput from '../form/search-input/SearchInput';
 import TimePicker from '../form/time-picker/TimePicker';
 import Modal from '../modal/Modal';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { Popover, PopoverRef } from '../popover/Popover';
 import CopyToClipboard from '../widgets/CopyToClipboard';
 import Icon from '../widgets/Icon';
 import RecordLookupPopover from '../widgets/RecordLookupPopover';
@@ -89,7 +89,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     }
   ) => React.ReactElement;
 }) {
-  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);
 
   const iconName: IconName = sortDirection === 'ASC' ? 'arrowup' : 'arrowdown';
 
@@ -103,7 +103,6 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
             columnKey: column.key,
             filters: filters[column.key],
             filterSetValues,
-            portalRefForFilters,
             updateFilter,
           })}
         </div>
@@ -117,17 +116,11 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
  * This can be used on summary rows as well to solve for headers that span multiple columns
  */
 export function SummaryFilterRenderer({ columnKey, label }: { columnKey: string; label: string }) {
-  const { filters, filterSetValues, portalRefForFilters, updateFilter } = useContext(DataTableFilterContext);
+  const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);
   return (
     <div className="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
       <div className="slds-truncate">{label}</div>
-      <HeaderFilter
-        columnKey={columnKey}
-        filters={filters[columnKey]}
-        filterSetValues={filterSetValues}
-        portalRefForFilters={portalRefForFilters}
-        updateFilter={updateFilter}
-      />
+      <HeaderFilter columnKey={columnKey} filters={filters[columnKey]} filterSetValues={filterSetValues} updateFilter={updateFilter} />
     </div>
   );
 }
@@ -136,14 +129,12 @@ interface HeaderFilterProps {
   columnKey: string;
   filters: DataTableFilter[];
   filterSetValues: Record<string, string[]>;
-  portalRefForFilters: MutableRefObject<HTMLElement>;
   updateFilter: (column: string, filter: DataTableFilter) => void;
 }
 
-export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalRefForFilters, updateFilter }: HeaderFilterProps) => {
-  const popoverRef = useRef<PopoverRef>(null);
-
+export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, updateFilter }: HeaderFilterProps) => {
   const [active, setActive] = useState(false);
+  const popoverRef = useRef<PopoverRef>(null);
 
   useEffect(() => {
     setActive(filters?.some((filter) => isFilterActive(filter, (filterSetValues[columnKey] || []).length)));
@@ -191,7 +182,6 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, portalR
     >
       <Popover
         ref={popoverRef}
-        portalRef={portalRefForFilters?.current}
         header={
           <header className="slds-popover__header" onPointerDown={(ev) => ev.stopPropagation()}>
             <h2 className="slds-text-heading_small">Filter</h2>
@@ -330,6 +320,7 @@ export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }
         <>
           <Checkbox
             id={`${columnKey}-select-all`}
+            checkboxClassName="slds-p-left_xx-small"
             label="(Select All)"
             indeterminate={indeterminate}
             checked={allItemsSelected}
@@ -356,7 +347,7 @@ export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }
                 >
                   <Checkbox
                     id={`${columnKey}-${virtualItem.key}`}
-                    checkboxClassName="slds-truncate white-space-nowrap"
+                    checkboxClassName="slds-truncate white-space-nowrap slds-p-left_xx-small"
                     label={visibleItems[virtualItem.index]}
                     checked={selectedValues.has(visibleItems[virtualItem.index])}
                     onChange={(checked) => handleChange(visibleItems[virtualItem.index], checked)}
@@ -470,7 +461,7 @@ export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: Heade
 
 // CELL RENDERERS
 /** Generic cell renderer when the type of data is unknown */
-export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
+export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;
 
   if (!row) {
@@ -490,7 +481,7 @@ export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
   return <div className="slds-truncate">{value}</div>;
 }
 
-export function SelectFormatter<T>(props: RenderCellProps<T>) {
+export function SelectFormatter<T>(props: RenderCellProps<T>): ReactNode {
   const { column, row } = props;
   const { isRowSelectionDisabled, isRowSelected, onRowSelectionChange } = useRowSelection();
 
@@ -506,7 +497,7 @@ export function SelectFormatter<T>(props: RenderCellProps<T>) {
   );
 }
 
-export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: RenderCellProps<T>) {
+export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: RenderCellProps<T>): ReactNode {
   if (!row) {
     return <div />;
   }
@@ -518,7 +509,7 @@ export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column,
   return <div>{value}</div>;
 }
 
-export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, unknown>> = ({ column, row }) => {
+export const ComplexDataRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
   const value = row[column.key];
   const [isActive, setIsActive] = useState(false);
   const [jsonValue] = useState(JSON.stringify(value || '', null, 2));
@@ -562,10 +553,9 @@ export const ComplexDataRenderer: FunctionComponent<RenderCellProps<RowWithKey, 
   );
 };
 
-export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row }) => {
-  const { onRecordAction, portalRefForFilters } = useContext(DataTableGenericContext) as {
+export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
+  const { onRecordAction } = useContext(DataTableGenericContext) as {
     onRecordAction?: (action: CloneEditView, recordId: string, sobjectName: string) => void;
-    portalRefForFilters?: MutableRefObject<HTMLElement>;
   };
   const recordId = row[column.key];
   const { skipFrontDoorAuth, url } = getSfdcRetUrl(row, recordId, _skipFrontdoorLogin);
@@ -577,13 +567,12 @@ export const IdLinkRenderer: FunctionComponent<RenderCellProps<any, unknown>> = 
       skipFrontDoorAuth={skipFrontDoorAuth}
       returnUrl={url}
       isTooling={false}
-      portalRef={portalRefForFilters?.current}
       onRecordAction={onRecordAction}
     />
   );
 };
 
-export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>) {
+export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;
 
   if (!row) {
@@ -603,7 +592,7 @@ export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey
   return GenericRenderer(RenderCellProps);
 }
 
-export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
+export const ActionRenderer = ({ row }: { row: any }): ReactNode => {
   if (!isFunction(row?._action)) {
     return null;
   }
@@ -613,45 +602,45 @@ export const ActionRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
   return (
     <Fragment>
       <ErrorMessageRenderer row={row} />
-      <Tooltip content="View full record">
+      <Tooltip ariaRole="label" content="View full record">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'view')}>
-          <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="preview" className="slds-button__icon" omitContainer title="View Record" />
         </button>
       </Tooltip>
-      <Tooltip content="Edit">
+      <Tooltip ariaRole="label" content="Edit">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'edit')}>
-          <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="edit" className="slds-button__icon" omitContainer title="Edit Record" />
         </button>
       </Tooltip>
-      <Tooltip content="Clone">
+      <Tooltip ariaRole="label" content="Clone">
         <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'clone')}>
-          <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="copy" className="slds-button__icon" omitContainer title="Clone Record" />
         </button>
       </Tooltip>
       {isDeleted && (
-        <Tooltip content="Restore from Recycle Bin">
+        <Tooltip ariaRole="label" content="Restore from Recycle Bin">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'undelete')}>
-            <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer />
+            <Icon type="utility" icon="undelete" className="slds-button__icon" omitContainer title="Restore from Recycle Bin" />
           </button>
         </Tooltip>
       )}
       {!isDeleted && (
-        <Tooltip content="Delete">
+        <Tooltip ariaRole="label" content="Delete">
           <button className="slds-button slds-button_icon slds-m-right_xx-small" onClick={() => row._action(row, 'delete')}>
-            <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+            <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer title="Delete Record" />
           </button>
         </Tooltip>
       )}
-      <Tooltip content="Turn Into Apex">
+      <Tooltip ariaRole="label" content="Turn Into Apex">
         <button className="slds-button slds-button_icon" onClick={() => row._action(row, 'apex')}>
-          <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer />
+          <Icon type="utility" icon="apex" className="slds-button__icon" omitContainer title="Turn Into Apex" />
         </button>
       </Tooltip>
     </Fragment>
   );
 };
 
-export const BooleanRenderer: FunctionComponent<RenderCellProps<any, unknown>> = ({ column, row }) => {
+export const BooleanRenderer = ({ column, row }: RenderCellProps<any, unknown>): ReactNode => {
   const value = row[column.key];
   return (
     <Checkbox
@@ -665,7 +654,7 @@ export const BooleanRenderer: FunctionComponent<RenderCellProps<any, unknown>> =
   );
 };
 
-export const ErrorMessageRenderer: FunctionComponent<{ row: any }> = ({ row }) => {
+export const ErrorMessageRenderer = ({ row }: { row: any }): ReactNode => {
   if (!row?._saveError) {
     return null;
   }

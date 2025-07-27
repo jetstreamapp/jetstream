@@ -1,8 +1,9 @@
 import { ListItem, QueryFieldWithPolymorphic, UiSection } from '@jetstream/types';
 import { Accordion, ScopedNotification } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom, useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { useEffect } from 'react';
-import { useRecoilState, useRecoilValue, useResetRecoilState } from 'recoil';
 import QueryFieldFunction from './QueryFieldFunction';
 import QueryFilter from './QueryFilter';
 import QueryGroupByContainer from './QueryGroupBy';
@@ -27,13 +28,13 @@ export const QueryBuilderAdvancedOptions = ({
   initialOpenIds = [],
   onLoadRelatedFields,
 }: QueryBuilderAdvancedOptionsProps) => {
-  const queryKey = useRecoilValue(fromQueryState.selectQueryKeyState);
-  const hasGroupByClause = useRecoilValue(fromQueryState.hasGroupByConfigured);
-  const groupByFields = useRecoilValue(fromQueryState.groupByQueryFieldsState);
-  const hasGroupByConfigured = useRecoilValue(fromQueryState.hasGroupByConfigured);
-  const hasHavingConfigured = useRecoilValue(fromQueryState.hasHavingConfigured);
-  const resetQueryHaving = useResetRecoilState(fromQueryState.queryHavingState);
-  const [queryHaving, setQueryHaving] = useRecoilState(fromQueryState.queryHavingState);
+  const queryKey = useAtomValue(fromQueryState.selectQueryKeyState);
+  const hasGroupByClause = useAtomValue(fromQueryState.hasGroupByConfigured);
+  const groupByFields = useAtomValue(fromQueryState.groupByQueryFieldsState);
+  const hasGroupByConfigured = useAtomValue(fromQueryState.hasGroupByConfigured);
+  const hasHavingConfigured = useAtomValue(fromQueryState.hasHavingConfigured);
+  const resetQueryHaving = useResetAtom(fromQueryState.queryHavingState);
+  const [queryHaving, setQueryHaving] = useAtom(fromQueryState.queryHavingState);
 
   useEffect(() => {
     if (!hasGroupByConfigured && hasHavingConfigured) {

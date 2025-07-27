@@ -1,35 +1,33 @@
 import { TITLES } from '@jetstream/shared/constants';
-import { useLocationState, useTitle } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { useTitle } from '@jetstream/shared/ui-utils';
 import { Spinner } from '@jetstream/ui';
-import { StateDebugObserver, fromQueryState, useQueryRestore } from '@jetstream/ui-core';
+import { fromQueryState, useQueryRestore } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
+import { Outlet, useLocation } from 'react-router-dom';
 
 export const Query = () => {
   useTitle(TITLES.QUERY);
   const location = useLocation();
-  const locationState = useLocationState<{ soql?: string }>();
-  const navigate = useNavigate();
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const querySoqlState = useRecoilValue(fromQueryState.querySoqlState);
-  const isTooling = useRecoilValue(fromQueryState.isTooling);
-  const resetSobjects = useResetRecoilState(fromQueryState.sObjectsState);
-  const resetSelectedSObject = useResetRecoilState(fromQueryState.selectedSObjectState);
-  const resetSObjectFilterTerm = useResetRecoilState(fromQueryState.sObjectFilterTerm);
-  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
-  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  const resetSelectedQueryFieldsState = useResetRecoilState(fromQueryState.selectedQueryFieldsState);
-  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
-  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
-  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
-  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
-  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
-  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
-  const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const querySoqlState = useAtomValue(fromQueryState.querySoqlState);
+  const isTooling = useAtomValue(fromQueryState.isTooling);
+  const resetSobjects = useResetAtom(fromQueryState.sObjectsState);
+  const resetSelectedSObject = useResetAtom(fromQueryState.selectedSObjectState);
+  const resetSObjectFilterTerm = useResetAtom(fromQueryState.sObjectFilterTerm);
+  const resetQueryFieldsKey = useResetAtom(fromQueryState.queryFieldsKey);
+  const resetQueryFieldsMapState = useResetAtom(fromQueryState.queryFieldsMapState);
+  const resetSelectedQueryFieldsState = useResetAtom(fromQueryState.selectedQueryFieldsState);
+  const resetSelectedSubqueryFieldsState = useResetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetAtom(fromQueryState.queryHavingState);
+  const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
+  const resetQueryGroupByState = useResetAtom(fromQueryState.queryGroupByState);
+  const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
+  const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
 
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
 
@@ -79,31 +77,8 @@ export const Query = () => {
     }
   }, [errorMessage, isRestoring]);
 
-  if (location.pathname.endsWith('/editor') && !querySoqlState && !locationState?.soql) {
-    navigate('..');
-  }
-
   return (
     <Fragment>
-      <StateDebugObserver
-        name="QUERY SNAPSHOT"
-        atoms={[
-          ['selectedSObjectState', fromQueryState.selectedSObjectState],
-          ['queryFieldsKey', fromQueryState.queryFieldsKey],
-          ['queryFieldsMapState', fromQueryState.queryFieldsMapState],
-          ['selectedQueryFieldsState', fromQueryState.selectedQueryFieldsState],
-          ['selectedSubqueryFieldsState', fromQueryState.selectedSubqueryFieldsState],
-          ['queryFiltersState', fromQueryState.queryFiltersState],
-          ['filterQueryFieldsState', fromQueryState.filterQueryFieldsState],
-          ['queryHavingState', fromQueryState.queryHavingState],
-          ['fieldFilterFunctions', fromQueryState.fieldFilterFunctions],
-          ['queryGroupByState', fromQueryState.queryGroupByState],
-          ['selectQueryKeyState', fromQueryState.selectQueryKeyState],
-          ['queryLimit', fromQueryState.queryLimit],
-          ['queryLimitSkip', fromQueryState.queryLimitSkip],
-          ['queryOrderByState', fromQueryState.queryOrderByState],
-        ]}
-      />
       {isRestoring && <Spinner />}
       <Outlet />
     </Fragment>

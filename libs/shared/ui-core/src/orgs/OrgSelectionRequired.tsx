@@ -4,8 +4,8 @@ import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { fromJetstreamEvents, OrgsDropdown } from '..';
 import AddOrg from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
@@ -21,14 +21,14 @@ export interface OrgSelectionRequiredProps {
 }
 
 export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> = ({ onAddOrgHandlerFn, children }) => {
-  const [allOrgs, setOrgs] = useRecoilState(fromAppState.salesforceOrgsState);
-  const selectedOrg = useRecoilValue<SalesforceOrgUi | undefined>(fromAppState.selectedOrgStateWithoutPlaceholder);
-  const hasConfiguredOrg = useRecoilValue<boolean>(fromAppState.hasConfiguredOrgState);
-  const jetstreamOrganizations = useRecoilValue(fromAppState.jetstreamOrganizationsState);
-  const hasOrganizationsConfigured = useRecoilValue(fromAppState.jetstreamOrganizationsExistsSelector);
-  const setActiveOrganization = useSetRecoilState(fromAppState.jetstreamActiveOrganizationState);
-  const activeOrganization = useRecoilValue(fromAppState.jetstreamActiveOrganizationSelector);
-  const setSelectedOrgId = useSetRecoilState(fromAppState.selectedOrgIdState);
+  const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const hasConfiguredOrg = useAtomValue(fromAppState.hasConfiguredOrgState);
+  const jetstreamOrganizations = useAtomValue(fromAppState.jetstreamOrganizationsState);
+  const hasOrganizationsConfigured = useAtomValue(fromAppState.jetstreamOrganizationsExistsSelector);
+  const setActiveOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
+  const activeOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
 
   const [loadingRetry, setLoadingRetry] = useState(false);
 
@@ -43,7 +43,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
       }
       setLoadingRetry(true);
       await checkOrgHealth(selectedOrg);
-      setOrgs(await getOrgs());
+      setOrgs(getOrgs());
       fireToast({ type: 'success', message: 'Your org is now valid! 🎉' });
     } catch (ex) {
       fireToast({ type: 'error', message: 'Unable to connect to your org, reconnect to Salesforce to keep using this org.' });

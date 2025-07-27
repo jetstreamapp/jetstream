@@ -6,7 +6,7 @@ export interface ExpressionActionDropDownProps {
   label: string;
   helpText?: string;
   value: AndOr;
-  ancillaryOptions?: JSX.Element;
+  ancillaryOptions?: React.ReactNode;
   onChange: (value: AndOr) => void;
 }
 

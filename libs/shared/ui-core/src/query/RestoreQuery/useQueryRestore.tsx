@@ -1,13 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Maybe } from '@jetstream/types';
 import { fireToast } from '@jetstream/ui';
 import { selectedOrgState } from '@jetstream/ui/app-state';
 import { Query, parseQuery } from '@jetstreamapp/soql-parser-js';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import isString from 'lodash/isString';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
 import { fromQueryState } from '../..';
 import { QueryRestoreErrors, UserFacingRestoreError, restoreQuery } from './query-restore-utils';
 
@@ -37,39 +38,39 @@ export const useQueryRestore = (
 
   const isMounted = useRef(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const org = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
+  const org = useAtomValue(selectedOrgState);
   // we should compare setting here vs in a selector - any difference in performance?
 
-  const setIsRestore = useSetRecoilState(fromQueryState.isRestore);
-  const setIsTooling = useSetRecoilState(fromQueryState.isTooling);
-  const setSObjectsState = useSetRecoilState(fromQueryState.sObjectsState);
-  const setSelectedSObjectState = useSetRecoilState(fromQueryState.selectedSObjectState);
-  const setQueryFieldsKey = useSetRecoilState(fromQueryState.queryFieldsKey);
-  const setQueryChildRelationships = useSetRecoilState(fromQueryState.queryChildRelationships);
-  const setQueryFieldsMapState = useSetRecoilState(fromQueryState.queryFieldsMapState);
-  const setSelectedQueryFieldsState = useSetRecoilState(fromQueryState.selectedQueryFieldsState);
-  const setSelectedSubqueryFieldsState = useSetRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  const setFilterQueryFieldsState = useSetRecoilState(fromQueryState.filterQueryFieldsState);
-  const setQueryRestoreKeyState = useSetRecoilState(fromQueryState.queryRestoreKeyState);
-  const setQueryFiltersState = useSetRecoilState(fromQueryState.queryFiltersState);
-  const setQueryHavingState = useSetRecoilState(fromQueryState.queryHavingState);
-  const setOrderByQueryFieldsState = useSetRecoilState(fromQueryState.orderByQueryFieldsState);
-  const setFieldFilterFunctions = useSetRecoilState(fromQueryState.fieldFilterFunctions);
-  const setGroupByQueryFieldsState = useSetRecoilState(fromQueryState.groupByQueryFieldsState);
-  const setQueryGroupByState = useSetRecoilState(fromQueryState.queryGroupByState);
-  const setQueryOrderByState = useSetRecoilState(fromQueryState.queryOrderByState);
-  const setQueryLimit = useSetRecoilState(fromQueryState.queryLimit);
-  const setQueryLimitSkip = useSetRecoilState(fromQueryState.queryLimitSkip);
+  const setIsRestore = useSetAtom(fromQueryState.isRestore);
+  const setIsTooling = useSetAtom(fromQueryState.isTooling);
+  const setSObjectsState = useSetAtom(fromQueryState.sObjectsState);
+  const setSelectedSObjectState = useSetAtom(fromQueryState.selectedSObjectState);
+  const setQueryFieldsKey = useSetAtom(fromQueryState.queryFieldsKey);
+  const setQueryChildRelationships = useSetAtom(fromQueryState.queryChildRelationships);
+  const setQueryFieldsMapState = useSetAtom(fromQueryState.queryFieldsMapState);
+  const setSelectedQueryFieldsState = useSetAtom(fromQueryState.selectedQueryFieldsState);
+  const setSelectedSubqueryFieldsState = useSetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const setFilterQueryFieldsState = useSetAtom(fromQueryState.filterQueryFieldsState);
+  const setQueryRestoreKeyState = useSetAtom(fromQueryState.queryRestoreKeyState);
+  const setQueryFiltersState = useSetAtom(fromQueryState.queryFiltersState);
+  const setQueryHavingState = useSetAtom(fromQueryState.queryHavingState);
+  const setOrderByQueryFieldsState = useSetAtom(fromQueryState.orderByQueryFieldsState);
+  const setFieldFilterFunctions = useSetAtom(fromQueryState.fieldFilterFunctions);
+  const setGroupByQueryFieldsState = useSetAtom(fromQueryState.groupByQueryFieldsState);
+  const setQueryGroupByState = useSetAtom(fromQueryState.queryGroupByState);
+  const setQueryOrderByState = useSetAtom(fromQueryState.queryOrderByState);
+  const setQueryLimit = useSetAtom(fromQueryState.queryLimit);
+  const setQueryLimitSkip = useSetAtom(fromQueryState.queryLimitSkip);
 
-  const resetSelectedSObjectState = useResetRecoilState(fromQueryState.selectedSObjectState);
+  const resetSelectedSObjectState = useResetAtom(fromQueryState.selectedSObjectState);
 
-  const resetFieldFilterFunctions = useResetRecoilState(fromQueryState.fieldFilterFunctions);
-  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
-  const resetQueryHavingState = useResetRecoilState(fromQueryState.queryHavingState);
-  const resetQueryGroupByState = useResetRecoilState(fromQueryState.queryGroupByState);
-  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
-  const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
-  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
+  const resetFieldFilterFunctions = useResetAtom(fromQueryState.fieldFilterFunctions);
+  const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
+  const resetQueryHavingState = useResetAtom(fromQueryState.queryHavingState);
+  const resetQueryGroupByState = useResetAtom(fromQueryState.queryGroupByState);
+  const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
+  const resetQueryLimit = useResetAtom(fromQueryState.queryLimit);
+  const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
 
   useEffect(() => {
     isMounted.current = true;

@@ -7,9 +7,9 @@ import { DeployOptions, InputReadFileContent, Maybe, SalesforceOrgUi } from '@je
 import { FileSelector, Grid, GridCol, Modal } from '@jetstream/ui';
 import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import JSZip from 'jszip';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 
 const PACKAGE_XML = /^package\.xml$/;
@@ -43,7 +43,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
   onDeploy,
 }) => {
   const rollbar = useRollbar();
-  const orgs = useRecoilValue<SalesforceOrgUi[]>(salesforceOrgsState);
+  const orgs = useAtomValue(salesforceOrgsState);
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>(initiallySelectedOrg);
   const [file, setFile] = useState<Maybe<ArrayBuffer>>(initialFile);
   const modalBodyRef = useRef<HTMLDivElement>(null);

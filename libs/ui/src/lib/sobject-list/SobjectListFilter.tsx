@@ -8,7 +8,7 @@ import Checkbox from '../form/checkbox/Checkbox';
 import RadioButton from '../form/radio/RadioButton';
 import RadioGroup from '../form/radio/RadioGroup';
 import Grid from '../grid/Grid';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { Popover, PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
 export const TOGGLE_FILTER_TYPE_ITEMS = {
@@ -147,6 +147,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     <Popover
       ref={popoverRef}
       placement="right"
+      tooltipProps={{ content: 'Open filters menu', openDelay: 300 }}
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Filter Objects">
@@ -217,7 +218,6 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
         className: classNames('slds-m-left_xx-small slds-button slds-button_icon', {
           'slds-text-color_brand': hasFiltersApplied,
         }),
-        title: 'open filters menu',
       }}
     >
       <Icon

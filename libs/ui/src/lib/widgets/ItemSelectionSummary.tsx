@@ -2,13 +2,12 @@ import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeIfMultiple } from '@jetstream/shared/utils';
 import { FunctionComponent, useRef } from 'react';
-import Popover, { PopoverRef } from '../popover/Popover';
+import { Popover, PopoverRef } from '../popover/Popover';
 import Icon from '../widgets/Icon';
 
 export interface ItemSelectionSummaryProps {
   label?: string;
   items: { value: string; label: string }[];
-  portalRef?: Element;
   disabled?: boolean;
   onClearItem: (item: string) => void;
   onClearAll: () => void;
@@ -17,7 +16,6 @@ export interface ItemSelectionSummaryProps {
 export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> = ({
   label = 'item',
   items = [],
-  portalRef,
   disabled = false,
   onClearItem,
   onClearAll,
@@ -45,7 +43,6 @@ export const ItemSelectionSummary: FunctionComponent<ItemSelectionSummaryProps> 
       <Popover
         ref={popoverRef}
         placement="bottom-end"
-        portalRef={portalRef}
         header={
           <header className="slds-popover__header">
             <h2 className="slds-text-heading_small" title="Selected Items">

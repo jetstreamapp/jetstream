@@ -43,7 +43,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
   ({ id, selectedOrg, selectedSObjects = [], allValues, field, valueState, disabled = false, rows, onChange, onBlur }, ref) => {
     const { value, touched, errorMessage } = valueState;
     const isMounted = useRef(true);
-    const editorRef = useRef<editor.IStandaloneCodeEditor>();
+    const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
     const { trackEvent } = useAmplitude();
 
     const [isOpen, setIsOpen] = useState(false);

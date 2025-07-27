@@ -1,7 +1,7 @@
 import { CheckboxToggle } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
+import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IncludeDeletedRecordsToggleProps {
@@ -9,8 +9,8 @@ export interface IncludeDeletedRecordsToggleProps {
 }
 
 export const IncludeDeletedRecordsToggle: FunctionComponent<IncludeDeletedRecordsToggleProps> = ({ containerClassname }) => {
-  const [includeDeletedRecords, setIncludeDeletedRecords] = useRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
-  const isTooling = useRecoilValue(fromQueryState.isTooling);
+  const [includeDeletedRecords, setIncludeDeletedRecords] = useAtom(fromQueryState.queryIncludeDeletedRecordsState);
+  const isTooling = useAtomValue(fromQueryState.isTooling);
 
   return (
     <CheckboxToggle

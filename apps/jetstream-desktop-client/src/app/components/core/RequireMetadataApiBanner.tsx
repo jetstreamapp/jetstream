@@ -1,8 +1,8 @@
 import { Alert } from '@jetstream/ui';
 import { useOrgPermissions } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useState } from 'react';
-import { useRecoilValue } from 'recoil';
 
 interface RequireMetadataApiBannerProps {
   /**
@@ -12,7 +12,7 @@ interface RequireMetadataApiBannerProps {
 }
 
 export function RequireMetadataApiBanner({ hasPartialAccess }: RequireMetadataApiBannerProps) {
-  const selectedOrg = useRecoilValue(fromAppState.selectedOrgStateWithoutPlaceholder);
+  const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
   const [dismissed, setDismissed] = useState(false);
 

@@ -8,7 +8,7 @@ export interface SectionProps {
   contentClassName?: string;
   id: string;
   initialExpanded?: boolean;
-  label: string | JSX.Element;
+  label: string | React.ReactNode;
   title?: string;
   removeFromDomOnCollapse?: boolean;
   noBorder?: boolean;

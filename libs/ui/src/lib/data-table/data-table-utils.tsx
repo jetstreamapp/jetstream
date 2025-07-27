@@ -99,14 +99,8 @@ export function getColumnsForGenericTable(
       renderCell: TextOrIdLinkRenderer,
       renderHeaderCell: (props) => (
         <FilterRenderer {...props}>
-          {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
-            <HeaderFilter
-              columnKey={column.key}
-              filters={filters}
-              filterSetValues={filterSetValues}
-              portalRefForFilters={portalRefForFilters}
-              updateFilter={updateFilter}
-            />
+          {({ filters, filterSetValues, updateFilter }) => (
+            <HeaderFilter columnKey={column.key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
           )}
         </FilterRenderer>
       ),
@@ -245,7 +239,7 @@ function getQueryResultColumn({
     cellClass: (row: any) => {
       const classes = ['slds-truncate'];
       if (row._touchedColumns instanceof Set && (row._touchedColumns as Set<string>).has(field) && row[field] !== row._record?.[field]) {
-        classes.push('edited');
+        classes.push('slds-is-edited');
         if (row._saveError) {
           classes.push('active-item-error');
         }
@@ -259,14 +253,8 @@ function getQueryResultColumn({
     filters: ['TEXT', 'SET'],
     renderHeaderCell: (props) => (
       <FilterRenderer {...props}>
-        {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
-          <HeaderFilter
-            columnKey={column.key}
-            filters={filters}
-            filterSetValues={filterSetValues}
-            portalRefForFilters={portalRefForFilters}
-            updateFilter={updateFilter}
-          />
+        {({ filters, filterSetValues, updateFilter }) => (
+          <HeaderFilter columnKey={column.key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
         )}
       </FilterRenderer>
     ),
@@ -329,14 +317,8 @@ export function setColumnFromType<T>(key: string, fieldType: ColumnType, default
   const column: Partial<Mutable<ColumnWithFilter<T>>> = { ...defaultProps };
   column.renderHeaderCell = (props) => (
     <FilterRenderer {...props}>
-      {({ filters, filterSetValues, portalRefForFilters, updateFilter }) => (
-        <HeaderFilter
-          columnKey={key}
-          filters={filters}
-          filterSetValues={filterSetValues}
-          portalRefForFilters={portalRefForFilters}
-          updateFilter={updateFilter}
-        />
+      {({ filters, filterSetValues, updateFilter }) => (
+        <HeaderFilter columnKey={key} filters={filters} filterSetValues={filterSetValues} updateFilter={updateFilter} />
       )}
     </FilterRenderer>
   );

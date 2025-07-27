@@ -4,8 +4,8 @@ import { ChangeSet, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from 
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
 import { useChangesetList } from '../utils/useChangesetList';
 
 export interface AddToChangesetConfigModalProps {
@@ -32,8 +32,8 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   onDeploy,
 }) => {
   const modalBodyRef = useRef<HTMLDivElement>(null);
-  const { serverUrl } = useRecoilValue(applicationCookieState);
-  const skipFrontDoorAuth = useRecoilValue(selectSkipFrontdoorAuth);
+  const { serverUrl } = useAtomValue(applicationCookieState);
+  const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [changesetEntryType, setChangesetEntryType] = useState<'list' | 'manual'>('list');
   const [changesetPackage, setChangesetPackage] = useState<string>(initialPackage || '');
   const [changesetDescription, setChangesetDescription] = useState<string>(initialDescription || '');

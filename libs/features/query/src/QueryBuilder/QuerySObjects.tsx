@@ -1,9 +1,10 @@
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import { ConnectedSobjectList } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
+import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent } from 'react';
-import { useRecoilValue, useResetRecoilState } from 'recoil';
 
 export interface QuerySObjectsProps {
   sobjects: DescribeGlobalSObjectResult[];
@@ -19,17 +20,17 @@ export const QuerySObjects: FunctionComponent<QuerySObjectsProps> = ({
   setSobjects,
   setSelectedSObject,
 }) => {
-  const selectedOrg = useRecoilValue<SalesforceOrgUi>(selectedOrgState);
-  const resetSelectedSubqueryFieldsState = useResetRecoilState(fromQueryState.selectedSubqueryFieldsState);
-  const resetQueryFiltersState = useResetRecoilState(fromQueryState.queryFiltersState);
-  const resetQueryOrderByState = useResetRecoilState(fromQueryState.queryOrderByState);
-  const resetQueryLimit = useResetRecoilState(fromQueryState.queryLimit);
-  const resetQueryLimitSkip = useResetRecoilState(fromQueryState.queryLimitSkip);
-  const resetQuerySoqlState = useResetRecoilState(fromQueryState.querySoqlState);
-  const resetQueryChildRelationships = useResetRecoilState(fromQueryState.queryChildRelationships);
-  const resetQueryFieldsMapState = useResetRecoilState(fromQueryState.queryFieldsMapState);
-  const resetQueryFieldsKey = useResetRecoilState(fromQueryState.queryFieldsKey);
-  const resetQueryIncludeDeletedRecordsState = useResetRecoilState(fromQueryState.queryIncludeDeletedRecordsState);
+  const selectedOrg = useAtomValue(selectedOrgState);
+  const resetSelectedSubqueryFieldsState = useResetAtom(fromQueryState.selectedSubqueryFieldsState);
+  const resetQueryFiltersState = useResetAtom(fromQueryState.queryFiltersState);
+  const resetQueryOrderByState = useResetAtom(fromQueryState.queryOrderByState);
+  const resetQueryLimit = useResetAtom(fromQueryState.queryLimit);
+  const resetQueryLimitSkip = useResetAtom(fromQueryState.queryLimitSkip);
+  const resetQuerySoqlState = useResetAtom(fromQueryState.querySoqlState);
+  const resetQueryChildRelationships = useResetAtom(fromQueryState.queryChildRelationships);
+  const resetQueryFieldsMapState = useResetAtom(fromQueryState.queryFieldsMapState);
+  const resetQueryFieldsKey = useResetAtom(fromQueryState.queryFieldsKey);
+  const resetQueryIncludeDeletedRecordsState = useResetAtom(fromQueryState.queryIncludeDeletedRecordsState);
 
   function handleSobjectChange(sobjects: DescribeGlobalSObjectResult[] | null) {
     setSobjects(sobjects);

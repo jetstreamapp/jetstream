@@ -154,7 +154,10 @@ export const findIdByUserIdUserFacing = ({
     name: user.name,
     emailVerified: user.emailVerified,
     picture: user.picture,
-    preferences: { skipFrontdoorLogin: false, recordSyncEnabled: true },
+    preferences: {
+      skipFrontdoorLogin: user.preferences?.skipFrontdoorLogin ?? false,
+      recordSyncEnabled: user.preferences?.recordSyncEnabled ?? false,
+    },
     billingAccount: user.billingAccount,
     entitlements: {
       chromeExtension: user.entitlements?.chromeExtension ?? true,
