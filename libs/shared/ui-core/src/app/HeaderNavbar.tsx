@@ -2,7 +2,7 @@ import { SerializedStyles } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, NavbarItem, NavbarMenuItems, UpgradeToProButton } from '@jetstream/ui';
-import { applicationCookieState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
+import { applicationCookieState, hasPaidPlanState, selectUserPreferenceState, userProfileState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +52,11 @@ function getMenuItems({
   }
   menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
 
-  if (isBillingEnabled) {
+  if (userProfile.teamMembership && userProfile.teamMembership.role === 'ADMIN') {
+    menu.push({ id: 'team-dashboard', value: 'Team Dashboard', icon: { type: 'utility', icon: 'people' } });
+  }
+
+  if (isBillingEnabled && userProfile.teamMembership?.role !== 'MEMBER') {
     menu.push({ id: 'billing', value: 'Billing & Subscription', subheader: 'Billing', icon: { type: 'utility', icon: 'billing' } });
   }
 
@@ -80,17 +84,19 @@ export const HeaderNavbar = ({
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
   const userProfile = useAtomValue(userProfileState);
+  const hasPaidPlan = useAtomValue(hasPaidPlanState);
   const applicationState = useAtomValue(applicationCookieState);
   const { deniedNotifications } = useAtomValue(selectUserPreferenceState);
   const [enableNotifications, setEnableNotifications] = useState(false);
   const [userMenuItems, setUserMenuItems] = useState<DropDownItem[]>([]);
 
-  const subscriptionLength = userProfile?.subscriptions?.length || 0;
-
   function handleUserMenuSelection(id: string) {
     switch (id) {
       case 'profile':
         navigate(APP_ROUTES.PROFILE.ROUTE);
+        break;
+      case 'team-dashboard':
+        navigate(APP_ROUTES.TEAM_DASHBOARD.ROUTE);
         break;
       case 'billing':
         navigate(APP_ROUTES.BILLING.ROUTE);
@@ -134,7 +140,7 @@ export const HeaderNavbar = ({
       ];
     }
 
-    if (subscriptionLength === 0) {
+    if (!hasPaidPlan) {
       return [
         <UpgradeToProButton trackEvent={trackEvent} source="navbar" />,
         <QuickQueryPopover />,
@@ -146,14 +152,14 @@ export const HeaderNavbar = ({
     }
 
     return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isChromeExtension, isDesktop, isBillingEnabled, subscriptionLength, trackEvent]);
+  }, [isChromeExtension, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent]);
 
   return (
     <Fragment>
       {enableNotifications && <NotificationsRequestModal userInitiated onClose={handleNotificationMenuClosed} />}
       <Header
         userProfile={userProfile}
-        logo={isChromeExtension || isDesktop || subscriptionLength > 0 ? LogoPro : Logo}
+        logo={isChromeExtension || isDesktop || hasPaidPlan ? LogoPro : Logo}
         logoCss={logoCss}
         orgs={isChromeExtension ? <SelectedOrgReadOnly /> : <OrgsDropdown onAddOrgHandlerFn={onAddOrgHandlerFn} />}
         userMenuItems={userMenuItems}

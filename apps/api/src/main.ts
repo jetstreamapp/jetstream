@@ -25,7 +25,9 @@ import {
   desktopAppRoutes,
   oauthRoutes,
   platformEventRoutes,
+  redirectRoutes,
   staticAuthenticatedRoutes,
+  teamRoutes,
   testRoutes,
   webExtensionRoutes,
   webhookRoutes,
@@ -344,7 +346,9 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(destroySessionIfPendingVerificationIsExpired);
 
   app.use('/healthz', healthCheck);
+  app.use('/redirect', redirectRoutes);
   app.use('/api/auth', authRoutes);
+  app.use('/api/teams', teamRoutes);
   app.use('/api', apiRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path

@@ -26,7 +26,7 @@ import BillingPlanCard from './BillingPlanCard';
 const HEIGHT_BUFFER = 170;
 
 export const Billing = () => {
-  useTitle(TITLES.SETTINGS);
+  useTitle(TITLES.BILLING);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const setUserProfile = useSetAtom(fromAppState.userProfileState);

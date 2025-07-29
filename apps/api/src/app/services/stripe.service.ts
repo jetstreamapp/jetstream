@@ -1,5 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { UserProfile } from '@jetstream/auth/types';
+import { Team, UserProfile } from '@jetstream/auth/types';
 import { sendWelcomeToProEmail } from '@jetstream/email';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { EntitlementsAccess, StripeUserFacingCustomer, StripeUserFacingSubscriptionItem } from '@jetstream/types';
@@ -7,9 +7,16 @@ import { formatISO, fromUnixTime } from 'date-fns';
 import { isString } from 'lodash';
 import Stripe from 'stripe';
 import * as subscriptionDbService from '../db/subscription.db';
+import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 
 const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY) : ({} as Stripe);
+
+export const ensureStripeIsInitialized = () => {
+  if (!ENV.STRIPE_API_KEY) {
+    throw new Error('Stripe API Key is not set');
+  }
+};
 
 export const activeSubscriptionStatuses = new Set(['active', 'trialing', 'incomplete']);
 
@@ -144,7 +151,15 @@ export async function createCustomer(user: UserProfile) {
   return await stripe.customers.create({
     email: user.email,
     name: user.name,
-    metadata: { userId: user.id },
+    metadata: { userId: user.id, teamId: null, type: 'USER' },
+  });
+}
+
+export async function createTeamCustomer(user: UserProfile, team: Team) {
+  return await stripe.customers.create({
+    email: user.email,
+    name: team.name,
+    metadata: { userId: user.id, teamId: team.id, type: 'TEAM' },
   });
 }
 
@@ -279,11 +294,12 @@ export async function saveOrUpdateSubscription({
     return;
   }
 
-  let { userId } = customer.metadata;
+  // eslint-disable-next-line prefer-const
+  let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
 
   // customer does not have Jetstream id attached - update Stripe to ensure data integrity (if possible)
-  if (!userId) {
+  if (!userId && type === 'USER') {
     const billingAccount = await userDbService.findBillingAccountByCustomerId({ customerId: customer.id });
     if (!billingAccount) {
       logger.error(
@@ -297,23 +313,31 @@ export async function saveOrUpdateSubscription({
     }
     userId = billingAccount.userId;
     await stripe.customers.update(customer.id, { metadata: { userId } });
-  } else {
+  } else if (userId && type === 'USER') {
     // For new subscriptions, create a billing account if it does not exist
-    await userDbService.createBillingAccountIfNotExists({ userId: userId, customerId: customer.id });
+    await userDbService.createBillingAccountIfNotExists({ userId, customerId: customer.id });
+  } else if (teamId && type === 'TEAM') {
+    // For new subscriptions, create a billing account if it does not exist
+    await teamDbService.createTeamBillingAccountIfNotExists({ teamId, customerId: customer.id });
+  } else {
+    logger.error({ customerId: customer.id, userId, teamId, type }, 'Unable to save subscriptions - userId or teamId is required');
+    return;
   }
 
-  await subscriptionDbService.updateSubscriptionStateForCustomer({
-    userId,
-    customerId: customer.id,
-    subscriptions: filterInactiveSubscriptions(subscriptions),
-  });
-
-  if (sendWelcomeEmail) {
-    userDbService.findById(userId).then((user) => {
-      sendWelcomeToProEmail(user.email).catch((error) => {
-        logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending welcome to pro email');
-      });
+  if (type === 'USER') {
+    await subscriptionDbService.updateSubscriptionStateForCustomer({
+      userId,
+      customerId: customer.id,
+      subscriptions: filterInactiveSubscriptions(subscriptions),
     });
+
+    if (sendWelcomeEmail) {
+      userDbService.findById(userId).then((user) => {
+        sendWelcomeToProEmail(user.email).catch((error) => {
+          logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending welcome to pro email');
+        });
+      });
+    }
   }
 }
 
@@ -375,18 +399,50 @@ export async function createCheckoutSession({
   mode = 'subscription',
   priceId,
   user,
+  type,
+  team,
 }: {
   user: UserProfile;
   priceId: string;
   mode: Stripe.Checkout.SessionCreateParams.Mode;
   customerId?: string;
-}) {
+} & (
+  | {
+      team?: never;
+      type: 'USER';
+    }
+  | {
+      team: Team;
+      type: 'TEAM';
+    }
+)) {
+  let successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`;
+  let cancelUrl = `${ENV.JETSTREAM_CLIENT_URL}/settings/billing?subscribeAction=canceled`;
   if (!customerId) {
-    const customer = await createCustomer(user);
-    customerId = customer.id;
+    if (type === 'USER') {
+      const customer = await createCustomer(user);
+      customerId = customer.id;
+    } else if (type === 'TEAM') {
+      if (!team) {
+        throw new Error('Team is required for team checkout session');
+      }
+      const customer = await createTeamCustomer(user, team);
+      customerId = customer.id;
+      // FIXME: specify correct URLs for team checkout session
+      successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/teams/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`;
+      cancelUrl = `${ENV.JETSTREAM_CLIENT_URL}/teams/billing?subscribeAction=canceled`;
+    } else {
+      throw new Error('Invalid type for checkout session, must be USER or TEAM');
+    }
   }
 
-  await userDbService.createBillingAccountIfNotExists({ userId: user.id, customerId });
+  if (type === 'USER') {
+    await userDbService.createBillingAccountIfNotExists({ userId: user.id, customerId });
+  } else if (type === 'TEAM' && team) {
+    teamDbService.createTeamBillingAccountIfNotExists({ teamId: team.id, customerId });
+  } else {
+    throw new Error('Invalid type for checkout session, must be USER or TEAM');
+  }
 
   const session = await stripe.checkout.sessions.create({
     line_items: [
@@ -397,8 +453,8 @@ export async function createCheckoutSession({
     ],
     allow_promotion_codes: true,
     mode,
-    success_url: `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${ENV.JETSTREAM_CLIENT_URL}/settings/billing?subscribeAction=canceled`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
     automatic_tax: { enabled: false },
     client_reference_id: user.id,
     currency: 'usd',
@@ -420,10 +476,16 @@ export async function createCheckoutSession({
 /**
  * CREATE BILLING PORTAL SESSION
  */
-export async function createBillingPortalSession({ customerId }: { customerId: string }) {
+export async function createBillingPortalSession({
+  customerId,
+  returnUrl = `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`,
+}: {
+  customerId: string;
+  returnUrl?: string;
+}) {
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`,
+    return_url: returnUrl,
   });
   return session;
 }

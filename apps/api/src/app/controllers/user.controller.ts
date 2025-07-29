@@ -285,7 +285,7 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
 });
 
 const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfiguration.validators, async ({ user }, req, res) => {
-  const loginConfiguration = await getLoginConfiguration(user.email).then((response): LoginConfigurationUI => {
+  const loginConfiguration = await getLoginConfiguration({ email: user.email }).then((response): LoginConfigurationUI => {
     if (!response) {
       return {
         isPasswordAllowed: true,

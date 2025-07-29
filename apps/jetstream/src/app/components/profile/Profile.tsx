@@ -38,7 +38,7 @@ import { useSessionData } from './useSessionData';
 const HEIGHT_BUFFER = 170;
 
 export const Profile = () => {
-  useTitle(TITLES.SETTINGS);
+  useTitle(TITLES.PROFILE);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();

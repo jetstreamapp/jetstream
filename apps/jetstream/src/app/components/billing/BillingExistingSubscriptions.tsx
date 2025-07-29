@@ -41,7 +41,26 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
             priceDescription="Billed Annually"
             onChange={setSelectedPlan}
           />
-          {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
+          <BillingPlanCard
+            descriptionTitle="Team - Monthly"
+            description="Includes 5 users, $35/month per additional user."
+            checked={selectedPlan === environment.STRIPE_TEAM_MONTHLY_PRICE_ID}
+            disabled={selectedPlan !== environment.STRIPE_TEAM_MONTHLY_PRICE_ID}
+            value={environment.STRIPE_TEAM_MONTHLY_PRICE_ID}
+            price="$150"
+            priceDescription="Billed Monthly"
+            onChange={setSelectedPlan}
+          />
+          <BillingPlanCard
+            descriptionTitle="Team - Annual"
+            description="Includes 5 users, $35/month per additional user, billed annually."
+            checked={selectedPlan === environment.STRIPE_TEAM_ANNUAL_PRICE_ID}
+            disabled={selectedPlan !== environment.STRIPE_TEAM_ANNUAL_PRICE_ID}
+            value={environment.STRIPE_TEAM_ANNUAL_PRICE_ID}
+            price="$1,500"
+            priceDescription="Billed Annually"
+            onChange={setSelectedPlan}
+          />
         </div>
         <form method="POST" action="/api/billing/portal" target="_blank" className="slds-m-bottom_x-small">
           <p className="slds-text-body_small">

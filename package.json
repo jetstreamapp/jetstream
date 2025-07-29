@@ -13,7 +13,7 @@
     "yarn": ">=1.22 <2"
   },
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --sql",
     "init:project": "zx ./scripts/init-project.mjs",
     "nx": "nx",
     "start": "nx serve",
@@ -169,8 +169,9 @@
     "@tailwindcss/aspect-ratio": "^0.4.0",
     "@tailwindcss/forms": "^0.5.2",
     "@tailwindcss/typography": "^0.5.4",
+    "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "^5.11.9",
-    "@testing-library/react": "15.0.6",
+    "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "^13.0.7",
     "@types/archiver": "^6.0.3",
     "@types/chrome": "^0.0.268",
@@ -355,7 +356,6 @@
     "helmet": "^4.1.1",
     "jose": "^5.9.3",
     "jotai": "^2.12.5",
-    "jotai-recoil-adapter": "^0.4.0",
     "jszip": "^3.10.1",
     "jwks-rsa": "^3.1.0",
     "jwt-decode": "^4.0.0",
