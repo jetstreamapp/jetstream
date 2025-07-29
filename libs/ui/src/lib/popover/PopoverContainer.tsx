@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { FloatingPortal, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/react';
 import { HTMLAttributes, ReactNode, forwardRef, useEffect } from 'react';
+import { usePortalContext } from '../modal/PortalContext';
 
 export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   className?: string;
@@ -25,6 +26,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     { className, isOpen, referenceElement, usePortal = false, isEager = false, minWidth = '15rem', maxWidth = '20rem', children, ...rest },
     ref
   ) => {
+    const { portalRoot } = usePortalContext();
     const { refs, floatingStyles, context, update } = useFloating({
       open: isOpen,
       placement: 'bottom-start',

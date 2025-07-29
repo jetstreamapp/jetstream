@@ -1,6 +1,15 @@
-import { Dialog, DialogBackdrop, TransitionChild } from '@headlessui/react';
+import {
+  FloatingFocusManager,
+  FloatingOverlay,
+  FloatingPortal,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+  useTransitionStyles,
+} from '@floating-ui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { Fragment } from 'react';
+import { useEffect } from 'react';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -17,43 +26,90 @@ export const Modal = ({
   children,
   onClose,
 }: ModalProps) => {
+  const { refs, context } = useFloating({
+    open: isOpen,
+    onOpenChange: (open) => {
+      if (!open) {
+        onClose();
+      }
+    },
+  });
+
+  const dismiss = useDismiss(context, {
+    outsidePress: true,
+  });
+  const role = useRole(context, { role: 'dialog' });
+
+  const { getFloatingProps } = useInteractions([dismiss, role]);
+
+  // Transition styles for the modal content
+  const { isMounted, styles: transitionStyles } = useTransitionStyles(context, {
+    duration: {
+      open: 300,
+      close: 200,
+    },
+    initial: {
+      opacity: 0,
+      transform: 'translateY(1rem) scale(0.95)',
+    },
+    open: {
+      opacity: 1,
+      transform: 'translateY(0) scale(1)',
+    },
+    close: {
+      opacity: 0,
+      transform: 'translateY(1rem) scale(0.95)',
+    },
+  });
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  if (!isMounted) return null;
+
   return (
-    <Dialog as="div" className="fixed z-10 inset-0 overflow-y-auto" open={isOpen} onClose={() => onClose()}>
-      <DialogBackdrop
-        transition
-        className="fixed inset-0 bg-gray-500/75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
-        onClick={() => onClose()}
-      />
-      <div className={className}>
-        {/* This element is to trick the browser into centering the modal contents. */}
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-          &#8203;
-        </span>
-        <TransitionChild
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-          enterTo="opacity-100 translate-y-0 sm:scale-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-          leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        >
-          <div className={bodyClassName}>
-            <div className="hidden sm:block absolute top-0 right-0 pt-2 pr-2">
-              <button
-                type="button"
-                className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                onClick={() => onClose()}
-              >
-                <span className="sr-only">Close</span>
-                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-              </button>
+    <FloatingPortal>
+      <FloatingOverlay
+        className="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 data-open:opacity-100"
+        style={{ opacity: isOpen ? 1 : 0 }}
+        lockScroll
+      >
+        <div className={className}>
+          {/* This element is to trick the browser into centering the modal contents. */}
+          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
+            &#8203;
+          </span>
+          <FloatingFocusManager context={context} modal returnFocus>
+            <div
+              ref={refs.setFloating}
+              className={bodyClassName}
+              style={transitionStyles}
+              {...getFloatingProps()}
+            >
+              <div className="hidden sm:block absolute top-0 right-0 pt-2 pr-2">
+                <button
+                  type="button"
+                  className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={() => onClose()}
+                >
+                  <span className="sr-only">Close</span>
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
+              </div>
+              {children}
             </div>
-            {children}
-          </div>
-        </TransitionChild>
-      </div>
-    </Dialog>
+          </FloatingFocusManager>
+        </div>
+      </FloatingOverlay>
+    </FloatingPortal>
   );
 };
 

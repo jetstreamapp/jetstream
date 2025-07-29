@@ -13,7 +13,6 @@ import {
   selectMenuItemFromKeyboard,
 } from '@jetstream/shared/ui-utils';
 import { ContextMenuItem } from '@jetstream/types';
-import { FocusScope } from '@react-aria/focus';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, KeyboardEvent, RefObject, createRef, useEffect, useRef, useState } from 'react';
@@ -162,69 +161,67 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
 
   return (
     <FloatingPortal>
-      <FocusScope contain restoreFocus autoFocus>
-        <div
-          ref={refs.setFloating}
-          // Selectively picked from `slds-dropdown slds-dropdown_small`
-          css={css`
-            z-index: 7000;
-            min-width: 15rem;
-            max-width: 20rem;
-            border: 1px solid #e5e5e5;
-            border-radius: 0.25rem;
-            padding: 0.25rem 0 0;
-            font-size: 0.75rem;
-            background: #fff;
-            box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
-            color: #181818;
-          `}
-          style={floatingStyles}
-          {...getFloatingProps()}
-        >
-          <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
-            {items.map((item, i) => (
-              <Fragment key={item.value}>
-                {item.subheader && (
-                  <li className="slds-dropdown__header slds-truncate" title={item.subheader} role="separator">
-                    <span>{item.subheader}</span>
-                  </li>
-                )}
-                <li className="slds-dropdown__item" role="presentation">
-                  <a
-                    ref={elRefs.current[i]}
-                    role="menuitem"
-                    tabIndex={0}
-                    onKeyDown={handleKeyDown}
-                    onClick={(event) => !item.disabled && handleSelection(event, item)}
-                    aria-disabled={item.disabled}
-                  >
-                    {isString(item.label) ? (
-                      <span className="slds-truncate" title={item.title || item.label}>
-                        {item.icon && (
-                          <Icon
-                            type={item.icon.type as IconType}
-                            icon={item.icon.icon as IconName}
-                            description={item.icon.description}
-                            omitContainer
-                            className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                          />
-                        )}
-                        {item.label}
-                      </span>
-                    ) : (
-                      item.label
-                    )}
-                  </a>
+      <div
+        ref={refs.setFloating}
+        // Selectively picked from `slds-dropdown slds-dropdown_small`
+        css={css`
+          z-index: 7000;
+          min-width: 15rem;
+          max-width: 20rem;
+          border: 1px solid #e5e5e5;
+          border-radius: 0.25rem;
+          padding: 0.25rem 0 0;
+          font-size: 0.75rem;
+          background: #fff;
+          box-shadow: 0 2px 3px 0 rgb(0 0 0 / 16%);
+          color: #181818;
+        `}
+        style={floatingStyles}
+        {...getFloatingProps()}
+      >
+        <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
+          {items.map((item, i) => (
+            <Fragment key={item.value}>
+              {item.subheader && (
+                <li className="slds-dropdown__header slds-truncate" title={item.subheader} role="separator">
+                  <span>{item.subheader}</span>
                 </li>
-                {item.trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
-              </Fragment>
-            ))}
-          </ul>
-          <Grid className="slds-popover__footer">
-            <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'right-click']} /> to skip this menu
-          </Grid>
-        </div>
-      </FocusScope>
+              )}
+              <li className="slds-dropdown__item" role="presentation">
+                <a
+                  ref={elRefs.current[i]}
+                  role="menuitem"
+                  tabIndex={0}
+                  onKeyDown={handleKeyDown}
+                  onClick={(event) => !item.disabled && handleSelection(event, item)}
+                  aria-disabled={item.disabled}
+                >
+                  {isString(item.label) ? (
+                    <span className="slds-truncate" title={item.title || item.label}>
+                      {item.icon && (
+                        <Icon
+                          type={item.icon.type as IconType}
+                          icon={item.icon.icon as IconName}
+                          description={item.icon.description}
+                          omitContainer
+                          className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                        />
+                      )}
+                      {item.label}
+                    </span>
+                  ) : (
+                    item.label
+                  )}
+                </a>
+              </li>
+              {item.trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
+            </Fragment>
+          ))}
+        </ul>
+        <Grid className="slds-popover__footer">
+          <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'right-click']} /> to skip this menu
+        </Grid>
+      </div>
     </FloatingPortal>
   );
 };
