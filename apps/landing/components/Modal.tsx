@@ -9,7 +9,6 @@ import {
   useTransitionStyles,
 } from '@floating-ui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useEffect } from 'react';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -62,38 +61,18 @@ export const Modal = ({
     },
   });
 
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
-  }, [isOpen]);
-
   if (!isMounted) return null;
 
   return (
     <FloatingPortal>
-      <FloatingOverlay
-        className="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 data-open:opacity-100"
-        style={{ opacity: isOpen ? 1 : 0 }}
-        lockScroll
-      >
+      <FloatingOverlay className="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 data-open:opacity-100" lockScroll>
         <div className={className}>
           {/* This element is to trick the browser into centering the modal contents. */}
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
             &#8203;
           </span>
           <FloatingFocusManager context={context} modal returnFocus>
-            <div
-              ref={refs.setFloating}
-              className={bodyClassName}
-              style={transitionStyles}
-              {...getFloatingProps()}
-            >
+            <div ref={refs.setFloating} className={bodyClassName} style={transitionStyles} {...getFloatingProps()}>
               <div className="hidden sm:block absolute top-0 right-0 pt-2 pr-2">
                 <button
                   type="button"

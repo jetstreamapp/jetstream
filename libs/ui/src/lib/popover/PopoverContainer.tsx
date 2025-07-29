@@ -84,7 +84,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
       </div>
     );
 
-    return usePortal ? <FloatingPortal>{content}</FloatingPortal> : content;
+    return usePortal ? <FloatingPortal root={portalRoot}>{content}</FloatingPortal> : content;
   }
 );
 
