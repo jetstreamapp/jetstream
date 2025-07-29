@@ -2,7 +2,6 @@ import { css } from '@emotion/react';
 import { Announcement } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
 import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
-import { OverlayProvider } from '@react-aria/overlays';
 import { Suspense, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -27,42 +26,40 @@ export const App = () => {
         <Login>
           {({ onLogout, authInfo }) => (
             <AppInitializer authInfo={authInfo} onAnnouncements={setAnnouncements}>
-              <OverlayProvider>
-                <DndProvider backend={HTML5Backend}>
-                  <ModalContainer />
-                  <AppStateResetOnOrgChange />
-                  <AppToast />
-                  <LogInitializer />
-                  <NotificationsRequestModal loadDelay={10000} />
-                  <DownloadFileStream />
-                  <div>
-                    <div
-                      css={css`
-                        app-region: drag;
+              <DndProvider backend={HTML5Backend}>
+                <ModalContainer />
+                <AppStateResetOnOrgChange />
+                <AppToast />
+                <LogInitializer />
+                <NotificationsRequestModal loadDelay={10000} />
+                <DownloadFileStream />
+                <div>
+                  <div
+                    css={css`
+                      app-region: drag;
+                    `}
+                    data-testid="header"
+                  >
+                    <HeaderNavbar
+                      logoCss={css`
+                        background-image: none !important;
                       `}
-                      data-testid="header"
-                    >
-                      <HeaderNavbar
-                        logoCss={css`
-                          background-image: none !important;
-                        `}
-                        isDesktop
-                        isBillingEnabled={false}
-                        onAddOrgHandlerFn={addDesktopOrg}
-                        onLogoutHandlerFn={onLogout}
-                      />
-                    </div>
-                    <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
-                      <AnnouncementAlerts announcements={announcements} />
-                      <Suspense fallback={<AppLoading />}>
-                        <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                          <AppRoutes />
-                        </ErrorBoundary>
-                      </Suspense>
-                    </div>
+                      isDesktop
+                      isBillingEnabled={false}
+                      onAddOrgHandlerFn={addDesktopOrg}
+                      onLogoutHandlerFn={onLogout}
+                    />
                   </div>
-                </DndProvider>
-              </OverlayProvider>
+                  <div className="app-container slds-p-horizontal_xx-small slds-p-vertical_xx-small" data-testid="content">
+                    <AnnouncementAlerts announcements={announcements} />
+                    <Suspense fallback={<AppLoading />}>
+                      <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
+                        <AppRoutes />
+                      </ErrorBoundary>
+                    </Suspense>
+                  </div>
+                </div>
+              </DndProvider>
             </AppInitializer>
           )}
         </Login>

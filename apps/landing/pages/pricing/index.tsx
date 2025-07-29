@@ -1,4 +1,3 @@
-import { Radio, RadioGroup } from '@headlessui/react';
 import { CheckIcon } from '@heroicons/react/20/solid';
 import classNames from 'classnames';
 import Link from 'next/link';
@@ -85,17 +84,22 @@ export default function Page() {
         </p>
         <div className="mt-16 flex justify-center">
           <fieldset aria-label="Payment frequency">
-            <RadioGroup
-              value={frequency}
-              onChange={setFrequency}
-              className="grid grid-cols-2 gap-x-1 rounded-full bg-white/5 p-1 text-center text-xs/5 font-semibold text-white"
-            >
+            <div className="grid grid-cols-2 gap-x-1 rounded-full bg-white/5 p-1 text-center text-xs/5 font-semibold text-white">
               {frequencies.map((option) => (
-                <Radio key={option.value} value={option} className="cursor-pointer rounded-full px-2.5 py-1 aria-checked:bg-cyan-500">
+                <button
+                  key={option.value}
+                  onClick={() => setFrequency(option)}
+                  className={classNames(
+                    'cursor-pointer rounded-full px-2.5 py-1 transition-colors',
+                    frequency.value === option.value ? 'bg-cyan-500' : 'hover:bg-white/10'
+                  )}
+                  role="radio"
+                  aria-checked={frequency.value === option.value}
+                >
                   {option.label}
-                </Radio>
+                </button>
               ))}
-            </RadioGroup>
+            </div>
           </fieldset>
         </div>
         <div className="isolate mx-auto mt-10 grid max-w-md grid-cols-1 gap-8 lg:mx-0 lg:max-w-none lg:grid-cols-3">

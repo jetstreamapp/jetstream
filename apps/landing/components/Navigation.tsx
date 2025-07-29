@@ -1,8 +1,20 @@
-import { Popover, PopoverButton, Transition } from '@headlessui/react';
+import {
+  FloatingFocusManager,
+  FloatingPortal,
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+  useTransitionStyles,
+} from '@floating-ui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/20/solid';
 import classNames from 'classnames';
 import Link from 'next/link';
-import { Fragment } from 'react';
+import { useState } from 'react';
 import { useUserProfile } from '../hooks/auth.hooks';
 import { ENVIRONMENT, ROUTES } from '../utils/environment';
 
@@ -22,8 +34,44 @@ export interface NavigationProps {
 }
 
 export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: NavigationProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { refs, floatingStyles, context } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    placement: 'bottom-end',
+    middleware: [offset(8), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  });
+
+  const dismiss = useDismiss(context, {
+    outsidePress: true,
+  });
+  const role = useRole(context, { role: 'menu' });
+
+  const { getReferenceProps, getFloatingProps } = useInteractions([dismiss, role]);
+
+  const { isMounted, styles: transitionStyles } = useTransitionStyles(context, {
+    duration: {
+      open: 150,
+      close: 100,
+    },
+    initial: {
+      opacity: 0,
+      transform: 'scale(0.95)',
+    },
+    open: {
+      opacity: 1,
+      transform: 'scale(1)',
+    },
+    close: {
+      opacity: 0,
+      transform: 'scale(0.95)',
+    },
+  });
+
   return (
-    <Popover as="header" className={classNames(className, 'relative')}>
+    <header className={classNames(className, 'relative')}>
       <div className={classNames('py-6', { 'bg-gray-900': inverse, 'bg-white': !inverse })}>
         <nav className="relative max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6" aria-label="Global">
           <div className="flex items-center flex-1">
@@ -41,7 +89,9 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                 />
               </Link>
               <div className="-mr-2 flex items-center md:hidden">
-                <PopoverButton
+                <button
+                  ref={refs.setReference}
+                  {...getReferenceProps()}
                   className={classNames(
                     'rounded-md p-2 inline-flex items-center justify-center focus:outline-none focus:ring-2 focus-ring-inset focus:ring-white',
                     {
@@ -49,10 +99,11 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                       'bg-white  text-gray-400 hover:text-gray-500 hover:bg-gray-100': !inverse,
                     }
                   )}
+                  onClick={() => setIsOpen(!isOpen)}
                 >
                   <span className="sr-only">Open main menu</span>
                   <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-                </PopoverButton>
+                </button>
               </div>
             </div>
             <div className="hidden space-x-8 md:flex md:ml-10">
@@ -129,32 +180,34 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
         </nav>
       </div>
 
-      <Transition
-        as={Fragment}
-        enter="duration-150 ease-out"
-        enterFrom="opacity-0 scale-95"
-        enterTo="opacity-100 scale-100"
-        leave="duration-100 ease-in"
-        leaveFrom="opacity-100 scale-100"
-        leaveTo="opacity-0 scale-95"
-      >
-        <Popover.Panel focus className="absolute top-0 inset-x-0 p-2 transition transform origin-top md:hidden">
-          <div className="rounded-lg shadow-md bg-white ring-1 ring-black ring-opacity-5 overflow-hidden">
-            <div className="px-5 pt-4 flex items-center justify-between">
-              <div>
-                <img
-                  className="h-8 w-auto"
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1634608986/public/jetstream-icon-bare.svg"
-                  alt="Jetstream logo"
-                />
-              </div>
-              <div className="-mr-2">
-                <PopoverButton className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-600">
-                  <span className="sr-only">Close menu</span>
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </PopoverButton>
-              </div>
-            </div>
+      {isMounted && (
+        <FloatingPortal>
+          <FloatingFocusManager context={context} modal={false} returnFocus={false}>
+            <div
+              ref={refs.setFloating}
+              style={{ ...floatingStyles, ...transitionStyles }}
+              {...getFloatingProps()}
+              className="absolute top-0 inset-x-0 p-2 transition transform origin-top md:hidden"
+            >
+              <div className="rounded-lg shadow-md bg-white ring-1 ring-black ring-opacity-5 overflow-hidden">
+                <div className="px-5 pt-4 flex items-center justify-between">
+                  <div>
+                    <img
+                      className="h-8 w-auto"
+                      src="https://res.cloudinary.com/getjetstream/image/upload/v1634608986/public/jetstream-icon-bare.svg"
+                      alt="Jetstream logo"
+                    />
+                  </div>
+                  <div className="-mr-2">
+                    <button
+                      className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-600"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <span className="sr-only">Close menu</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
             <div className="pt-5 pb-6">
               <div className="px-2 space-y-1">
                 {navigation
@@ -203,9 +256,11 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
               </div>
             </div>
           </div>
-        </Popover.Panel>
-      </Transition>
-    </Popover>
+            </div>
+          </FloatingFocusManager>
+        </FloatingPortal>
+      )}
+    </header>
   );
 };
 
