@@ -52,7 +52,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
   },
-  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>
+  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
+  /**
+   * If provided, this callback will be called instead of calling next(error) when an error occurs.
+   */
+  onErrorHandler?: (error: unknown, req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => void
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     try {
@@ -113,7 +117,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         },
       });
       req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
-      next(new UserFacingError(ex));
+      if (typeof onErrorHandler === 'function') {
+        return onErrorHandler(ex, req, res, next);
+      } else {
+        next(new UserFacingError(ex));
+      }
     }
   };
 }

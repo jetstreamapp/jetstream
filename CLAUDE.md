@@ -14,7 +14,7 @@ Jetstream is a comprehensive Salesforce management platform that helps users wor
 
 ## Key Technologies
 
-**Frontend**: React 18, TypeScript, Vite, Recoil (state), Emotion (styling), Monaco Editor, Salesforce Lightning Design System (SLDS)
+**Frontend**: React 18, TypeScript, Vite, jotai (state), Emotion (styling), Monaco Editor, Salesforce Lightning Design System (SLDS)
 **Backend**: Node.js 22+, Express, Prisma ORM, PostgreSQL, Socket.io, JWT auth
 **Build**: Nx monorepo, Jest (testing), Playwright (E2E), ESLint, Prettier
 
@@ -120,7 +120,7 @@ yarn nx affected:test  # Test affected projects
 
 - **Authentication**: Set `EXAMPLE_USER_OVERRIDE=true` in `.env` to skip auth locally (visit `/app` directly)
 - **Database**: Uses PostgreSQL with Prisma ORM. Migrations in `prisma/migrations/`
-- **State Management**: Frontend uses Recoil for global state
+- **State Management**: Frontend uses jotai for global state
 - **Styling**: Emotion CSS-in-JS with Salesforce Lightning Design System
 - **Real-time**: Socket.io for platform events and real-time updates
 - **Job Queue**: Bull/pg-boss for background job processing

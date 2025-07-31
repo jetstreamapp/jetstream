@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import type { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { Form, FormRow, FormRowItem, Input, ReadOnlyFormItem } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { ProfileUserPassword } from './ProfileUserPassword';
 
 export interface ProfileUserProfileProps {
@@ -82,6 +83,19 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
               onSetPassword={onSetPassword}
               onRemovePassword={onRemovePassword}
             />
+          )}
+          {fullUserProfile.teamMembership?.team && (
+            <FormRowItem>
+              <ReadOnlyFormItem label="Team" horizontal omitEdit>
+                {fullUserProfile.teamMembership.role === 'ADMIN' || fullUserProfile.teamMembership.role === 'BILLING' ? (
+                  <Link to="/teams" className="slds-button">
+                    {fullUserProfile.teamMembership.team.name}
+                  </Link>
+                ) : (
+                  fullUserProfile.teamMembership.team.name
+                )}
+              </ReadOnlyFormItem>
+            </FormRowItem>
           )}
         </FormRow>
         {editMode && (
