@@ -54,6 +54,9 @@ export function buildTree(
 ): TreeItems<FileItemMetadata | null>[] {
   const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
 
+  sourceResultFiles = orderObjectsBy(sourceResultFiles || [], 'fileName');
+  targetResultFiles = targetResultFiles ? orderObjectsBy(targetResultFiles || [], 'fileName') : targetResultFiles;
+
   const result: TreeItems<FileItemMetadata | null>[] = [];
   // level is just a placeholder object to store intermediate results
   const level: any = { result };
@@ -84,7 +87,7 @@ export function buildTree(
         return output[name];
       }, level);
     });
-  return orderObjectsBy(result, 'id');
+  return orderObjectsBy(result, 'label');
 }
 
 function getTreeLabel(id: string, name: string, meta: FileItemMetadata | null): string | React.ReactNode {
