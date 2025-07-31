@@ -17,6 +17,7 @@
   },
   "search.exclude": {
     "apps/api/src/assets/js": true,
+    "**/monaco/vs/**": true,
     "dist": true,
     "logs": true,
     "tmp": true
@@ -27,6 +28,7 @@
     "**/.hg": true,
     "**/.DS_Store": true,
     "**/node_modules/**": true,
+    "**/monaco/vs/**": true,
     "apps/api/src/assets/js": true
   },
   "[typescript]": {

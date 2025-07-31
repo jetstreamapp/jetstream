@@ -363,9 +363,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
   }
 
-  app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
-    res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
-  });
+  app.use('/assets/js/monaco/vs', express.static(join(__dirname, '../../../node_modules/monaco-editor/min/vs')));
   app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
