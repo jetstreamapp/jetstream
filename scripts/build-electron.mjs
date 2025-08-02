@@ -37,7 +37,7 @@ const DOWNZIP_SW_BUILD_DIR = join(process.cwd(), 'dist/apps/download-zip-sw');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
 
 // NX calculates these dependencies, but they are not used in the final build
-const yarnRemoveDeps = ['@prisma/client', 'react', 'tslib', 'xlsx', 'stripe'];
+const yarnRemoveDeps = ['react', 'tslib', 'xlsx', 'stripe'];
 
 /**
  * Look at root package.json for version of all dependencies to install

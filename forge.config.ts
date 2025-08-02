@@ -13,6 +13,20 @@ import path from 'node:path';
 const isDarwin = process.platform == 'darwin';
 const isMas = isDarwin && process.argv.some((value) => value.includes('--platform=mas'));
 
+const windowsSigningCertPath = path.resolve('../../certificates/signing_certificate.crt');
+
+const windowsSign = {
+  signToolPath: 'C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\signtool.exe',
+  signWithParams: [
+    '/csp "DigiCert Signing Manager KSP"',
+    '/kc JETSTREAM_KEY',
+    `/f ${windowsSigningCertPath}`,
+    '/tr http://timestamp.digicert.com',
+    '/td SHA256',
+    '/fd SHA256',
+  ].join(' '),
+};
+
 const packagerConfig: ForgePackagerOptions = {
   asar: true,
   name: 'Jetstream',
@@ -21,6 +35,10 @@ const packagerConfig: ForgePackagerOptions = {
   appCopyright: `Copyright © ${new Date().getFullYear()} Jetstream Solutions`,
   icon: path.resolve('assets/icons/icon'),
   ignore: ['.env'],
+  win32Metadata: {
+    CompanyName: 'Jetstream Solutions, LLC',
+    OriginalFilename: 'jetstream'
+  },
   protocols: [
     {
       name: 'Jetstream Protocol',
@@ -46,6 +64,7 @@ const packagerConfig: ForgePackagerOptions = {
       },
     ],
   },
+  windowsSign,
 };
 
 if (isDarwin) {
@@ -106,7 +125,7 @@ const config: ForgeConfig = {
   packagerConfig,
   rebuildConfig: {},
   makers: [
-    new MakerZIP({}, ['darwin', 'linux', 'win32']),
+    new MakerZIP({}, ['darwin', 'win32']),
     new MakerDMG(
       {
         format: 'ULFO',
@@ -117,30 +136,19 @@ const config: ForgeConfig = {
     ),
     new MakerSquirrel(
       {
-        authors: 'Jetstream Solutions, LLC',
         name: 'Jetstream',
+        authors: 'Jetstream Solutions, LLC',
+        exe: 'jetstream.exe',
+        noMsi: true,
         description:
           'The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.',
         // iconUrl: 'https://getjetstream.app/assets/icons/icon_256x256.png',
-        windowsSign: {
-          // TODO
-        },
         setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
+        windowsSign,
       },
       ['win32']
     ),
-    // I doubt there are many, if any, linux users
-    // new MakerDeb({
-    //   options: {
-    //     mimeType: ['x-scheme-handler/jetstream'],
-    //   },
-    // }),
-    // new MakerRpm({
-    //   options: {
-    //     mimeType: ['x-scheme-handler/jetstream'],
-    //   },
-    // }),
   ],
   publishers: [
     new PublisherGithub({
