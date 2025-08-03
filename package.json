@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/jetstreamapp/jetstream"
   },
-  "author": "Jetstream",
+  "author": "Jetstream Solutions, LLC",
   "version": "7.0.0",
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
@@ -133,6 +133,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
     "@electron-forge/plugin-fuses": "^7.8.1",
     "@electron-forge/publisher-github": "^7.8.1",
+    "@electron-forge/publisher-s3": "^7.8.2",
     "@electron/fuses": "^1.8.0",
     "@emotion/babel-plugin": "^11.13.5",
     "@eslint/compat": "^1.1.1",
@@ -278,6 +279,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-browser": "2.9.2",
+    "@aws-sdk/client-s3": "^3.859.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@express-rate-limit/cluster-memory-store": "^0.3.0",
