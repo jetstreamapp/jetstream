@@ -130,7 +130,7 @@ const config: ForgeConfig = {
   makers: [
     new MakerZIP(
       (arch) => ({
-        macUpdateManifestBaseUrl: `https://desktop-updates.s3.us-east-005.backblazeb2.com/jetstream/macos/${arch}`,
+        macUpdateManifestBaseUrl: `https://releases.getjetstream.app/jetstream/macos/${arch}`,
       }),
       ['darwin']
     ),
@@ -154,7 +154,7 @@ const config: ForgeConfig = {
         setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
         windowsSign: ENV.IS_CODESIGNING_ENABLED ? (windowsSign as any) : undefined,
-        remoteReleases: `https://desktop-updates.s3.us-east-005.backblazeb2.com/jetstream/windows/${arch}`,
+        remoteReleases: `https://releases.getjetstream.app/jetstream/windows/${arch}`,
       }),
       ['win32']
     ),

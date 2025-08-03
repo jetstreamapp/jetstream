@@ -23,6 +23,7 @@ import {
   apiRoutes,
   authRoutes,
   desktopAppRoutes,
+  desktopAssetsRoutes,
   oauthRoutes,
   platformEventRoutes,
   staticAuthenticatedRoutes,
@@ -173,6 +174,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             'https://api.stripe.com',
             'https://*.js.stripe.com',
             'https://hooks.stripe.com',
+            'https://releases.getjetstream.app',
           ],
           baseUri: ["'self'"],
           blockAllMixedContent: [],
@@ -346,6 +348,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/healthz', healthCheck);
   app.use('/api/auth', authRoutes);
   app.use('/api', apiRoutes);
+  app.use('/desktop-assets', desktopAssetsRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
   app.use('/web-extension', webExtensionRoutes);

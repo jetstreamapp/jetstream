@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import { Browser } from './browser/browser';
+import { setupAutoUpdater } from './config/updater';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
@@ -11,6 +12,7 @@ import {
 } from './services/protocol.service';
 import { isMac } from './utils/utils';
 
+setupAutoUpdater();
 initDeepLink();
 initAppMenu();
 

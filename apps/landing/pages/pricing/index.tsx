@@ -42,7 +42,16 @@ const tiers = [
     description: 'Get the most out of Jetstream.',
     features: [
       'Everything in Free plan',
-      'Chrome and Firefox Extensions',
+      <>
+        <Link href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
+          Browser Extensions
+        </Link>
+      </>,
+      <>
+        <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
+          Desktop Application
+        </Link>
+      </>,
       'Save history across devices',
       'Save downloads to Google Drive',
       'Load data from Google Drive',
