@@ -13,18 +13,11 @@ import path from 'node:path';
 const isDarwin = process.platform == 'darwin';
 const isMas = isDarwin && process.argv.some((value) => value.includes('--platform=mas'));
 
-const windowsSigningCertPath = path.resolve('../../certificates/signing_certificate.crt');
-
-const windowsSign = {
+const windowsSign: ForgePackagerOptions['windowsSign'] = {
   signToolPath: 'C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\signtool.exe',
-  signWithParams: [
-    '/csp "DigiCert Signing Manager KSP"',
-    '/kc JETSTREAM_KEY',
-    `/f ${windowsSigningCertPath}`,
-    '/tr http://timestamp.digicert.com',
-    '/td SHA256',
-    '/fd SHA256',
-  ].join(' '),
+  signWithParams: '/sha1 6526a53309171bf43d3321cee5719c06b2ba28e9',
+  timestampServer: 'http://timestamp.digicert.com',
+  hashes: ['sha256' as any],
 };
 
 const packagerConfig: ForgePackagerOptions = {
@@ -35,10 +28,6 @@ const packagerConfig: ForgePackagerOptions = {
   appCopyright: `Copyright © ${new Date().getFullYear()} Jetstream Solutions`,
   icon: path.resolve('assets/icons/icon'),
   ignore: ['.env'],
-  win32Metadata: {
-    CompanyName: 'Jetstream Solutions, LLC',
-    OriginalFilename: 'jetstream'
-  },
   protocols: [
     {
       name: 'Jetstream Protocol',
@@ -145,7 +134,7 @@ const config: ForgeConfig = {
         // iconUrl: 'https://getjetstream.app/assets/icons/icon_256x256.png',
         setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
-        windowsSign,
+        windowsSign: windowsSign as any,
       },
       ['win32']
     ),
