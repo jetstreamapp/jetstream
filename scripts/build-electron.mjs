@@ -4,7 +4,12 @@ import { readFileSync, writeFileSync } from 'fs';
 import { copy, ensureDir, remove } from 'fs-extra';
 import minimist from 'minimist';
 import { join } from 'path';
-import { $, cd, chalk } from 'zx'; // https://github.com/google/zx
+import { $, cd, chalk, usePowerShell } from 'zx'; // https://github.com/google/zx
+
+// Configure shell based on platform
+if (process.platform === 'win32') {
+  usePowerShell(); // Use PowerShell on Windows
+}
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['help'],

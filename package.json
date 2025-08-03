@@ -275,7 +275,7 @@
     "webpack": "5.99.9",
     "webpack-merge": "^5.8.0",
     "worker-loader": "^2.0.0",
-    "zx": "^7.2.3"
+    "zx": "^8.7.2"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "2.9.2",
