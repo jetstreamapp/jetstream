@@ -4,6 +4,7 @@ import { setupAutoUpdater } from './config/updater';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
+import { registerNotificationPoller } from './services/notification.service';
 import {
   registerDownloadHandler,
   registerFileOpenHandler,
@@ -36,4 +37,6 @@ app.whenReady().then(async () => {
   registerWebRequestHandlers();
   registerDownloadHandler();
   registerFileOpenHandler();
+
+  registerNotificationPoller();
 });

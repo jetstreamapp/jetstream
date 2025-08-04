@@ -66,4 +66,6 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, desktopAppController.routeDe
 routes.get('/data-sync/pull', authMiddleware, desktopAppController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
 
+routes.get('/v1/notifications', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.notifications.controllerFn());
+
 export default routes;
