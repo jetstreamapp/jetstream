@@ -16,7 +16,12 @@
   "npm": false,
   "github": false,
   "hooks": {
-    "after:bump": ["npx prettier --write apps/jetstream-desktop/package.json", "yarn build:desktop"],
+    "before:init": ["yarn test:all"],
+    "after:bump": [
+      "npx prettier --write apps/jetstream-desktop/package.json",
+      "yarn build:desktop",
+      "cd dist/desktop-build && yarn package:macos"
+    ],
     "after:release": "echo Successfully released ${name} v${version}."
   }
 }
