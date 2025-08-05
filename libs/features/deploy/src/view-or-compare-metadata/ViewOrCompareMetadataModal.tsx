@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { isBrowserExtension, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { unSanitizeXml } from '@jetstream/shared/utils';
+import { delay, unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
+import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, Checkbox, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -151,6 +151,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
     editorRef.current = ed;
   }
+
   function handleDiffEditorMount(ed: editor.IStandaloneDiffEditor) {
     diffEditorRef.current = ed;
     // navigate to first difference
@@ -158,8 +159,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
       ed.revealPosition({ column: 0, lineNumber: 0 });
       // Toggle off and on to ensure that the toggle is actually collapsed
       if (hideUnchangedRegions) {
-        ed.updateOptions({ hideUnchangedRegions: { enabled: false } });
-        setTimeout(() => ed.updateOptions({ hideUnchangedRegions: { enabled: true } }), 0);
+        toggleHideUnchangedRegions(ed);
       } else {
         const diff = ed.getLineChanges();
         if (diff?.length) {
@@ -169,6 +169,17 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
         }
       }
     });
+  }
+
+  /**
+   * Toggle off then on to ensure the unchanged regions are actually hidden
+   * This is a workaround for a bug in Monaco Diff Editor where the unchanged regions do not toggle correctly
+   * when the option is set to true initially.
+   */
+  function toggleHideUnchangedRegions(ed: Maybe<editor.IStandaloneDiffEditor>) {
+    ed?.updateOptions({ hideUnchangedRegions: { enabled: false } });
+    // Workaround to force the lines to be collapsed, otherwise it was inconsistent when changing to a new file
+    delay(0).then(() => ed?.updateOptions({ hideUnchangedRegions: { enabled: true } }));
   }
 
   function handleTargetOrg(org: SalesforceOrgUi) {
@@ -337,8 +348,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                               diffEditorRef.current?.updateOptions({ hideUnchangedRegions: { enabled } });
                               // toggle off and on to force the diff editor to put in collapsed mode
                               if (enabled) {
-                                diffEditorRef.current?.updateOptions({ hideUnchangedRegions: { enabled: false } });
-                                setTimeout(() => diffEditorRef.current?.updateOptions({ hideUnchangedRegions: { enabled: true } }), 0);
+                                toggleHideUnchangedRegions(diffEditorRef.current);
                               }
                             }}
                             disabled={editorType !== 'DIFF'}
