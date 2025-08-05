@@ -179,7 +179,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   function toggleHideUnchangedRegions(ed: Maybe<editor.IStandaloneDiffEditor>) {
     ed?.updateOptions({ hideUnchangedRegions: { enabled: false } });
     // Workaround to force the lines to be collapsed, otherwise it was inconsistent when changing to a new file
-    delay(0).then(() => ed?.updateOptions({ hideUnchangedRegions: { enabled: true } }));
+    delay(100).then(() => ed?.updateOptions({ hideUnchangedRegions: { enabled: true } }));
   }
 
   function handleTargetOrg(org: SalesforceOrgUi) {
