@@ -20,7 +20,7 @@
     "after:bump": [
       "npx prettier --write apps/jetstream-desktop/package.json",
       "yarn build:desktop",
-      "cd dist/desktop-build && yarn package:macos"
+      "cd dist/desktop-build && yarn publish:macos:x64 && yarn publish:macos:arm64"
     ],
     "after:release": "echo Successfully released ${name} v${version}."
   }

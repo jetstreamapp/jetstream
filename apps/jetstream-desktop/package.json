@@ -15,7 +15,8 @@
     "build:macos:arm64": "electron-forge make --platform=darwin --arch=arm64 --overwrite",
     "build:macos:mas": "electron-forge make --platform=mas --arch=universal",
     "build:windows:x64": "electron-forge make --platform=win32 --arch=x64",
-    "publish:macos": "electron-forge publish --platform=darwin --arch=arm64,x64 --overwrite",
+    "publish:macos:arm64": "electron-forge publish --platform=darwin --arch=arm64 --overwrite",
+    "publish:macos:x64": "electron-forge publish --platform=darwin --arch=x64 --overwrite",
     "publish:windows": "electron-forge publish --platform=win32 --arch=x64 --overwrite"
   },
   "devDependencies": {},
