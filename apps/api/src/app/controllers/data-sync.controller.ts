@@ -10,12 +10,11 @@ import { createRoute } from '../utils/route.utils';
 
 // FIXME: TEMPORARY UNTIL ALL CLIENTS HAVE BEEN BACKFILLED
 export const SyncRecordOperationSchemaFillHashedKey = z
-  .object({
+  .looseObject({
     key: z.string(),
     hashedKey: z.string().optional(),
-    data: z.record(z.unknown()),
+    data: z.record(z.string(), z.unknown()),
   })
-  .passthrough()
   .array()
   .transform((records) => {
     return SyncRecordOperationSchema.array()
@@ -61,7 +60,7 @@ export const routeDefinition = {
     controllerFn: () => push,
     validators: {
       query: z.object({
-        clientId: z.string().uuid(),
+        clientId: z.uuid(),
         updatedAt: z
           .string()
           .regex(REGEX.ISO_DATE)

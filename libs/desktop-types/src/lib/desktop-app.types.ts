@@ -81,12 +81,11 @@ export const AppDataSchema = z.object({
     .default(() => crypto.randomUUID()),
   accessToken: z.string().nullish(),
   userProfile: z
-    .object({
+    .looseObject({
       id: z.string(),
       name: z.string(),
       email: z.string(),
     })
-    .passthrough()
     .nullish(),
   expiresAt: z.number().nullish(),
   lastChecked: z.number().nullish(),

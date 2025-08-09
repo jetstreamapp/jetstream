@@ -71,7 +71,7 @@ export const routeDefinition = {
   getCsrfToken: {
     controllerFn: () => getCsrfToken,
     validators: {
-      query: z.record(z.any()),
+      query: z.record(z.string(), z.any()),
       hasSourceOrg: false,
     },
   },
@@ -86,14 +86,14 @@ export const routeDefinition = {
     validators: {
       params: z.object({ provider: OauthProviderTypeSchema }),
       query: z.object({ returnUrl: z.string().nullish(), isAccountLink: z.literal('true').nullish() }),
-      body: z.object({ csrfToken: z.string(), callbackUrl: z.string().url() }),
+      body: z.object({ csrfToken: z.string(), callbackUrl: z.url() }),
       hasSourceOrg: false,
     },
   },
   callback: {
     controllerFn: () => callback,
     validators: {
-      query: z.record(z.any()),
+      query: z.record(z.string(), z.any()),
       params: z.object({ provider: ProviderKeysSchema }),
       body: z.union([
         z.discriminatedUnion('action', [
@@ -101,14 +101,14 @@ export const routeDefinition = {
             action: z.literal('login'),
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
-            email: z.string().email().min(5).max(255).toLowerCase(),
+            email: z.email().min(5).max(255).toLowerCase(),
             password: z.string().min(8).max(255),
           }),
           z.object({
             action: z.literal('register'),
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
-            email: z.string().email().min(5).max(255).toLowerCase(),
+            email: z.email().min(5).max(255).toLowerCase(),
             name: z.string().min(1).max(255).trim(),
             password: z.string().min(8).max(255),
           }),
@@ -162,7 +162,7 @@ export const routeDefinition = {
     controllerFn: () => validatePasswordReset,
     validators: {
       body: z.object({
-        email: z.string().email().toLowerCase(),
+        email: z.email().toLowerCase(),
         token: z.string(),
         password: z.string(),
         csrfToken: z.string(),

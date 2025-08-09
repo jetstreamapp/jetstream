@@ -290,7 +290,7 @@ export const MfaMethodSchema = z.enum(['otp', 'email']);
 export type MfaMethod = z.infer<typeof MfaMethodSchema>;
 
 export const LoginConfigurationSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   allowedMfaMethods: z.array(MfaMethodSchema).transform(
     (value) =>
       new Set(
@@ -327,9 +327,9 @@ export type LoginConfigurationUI = {
 // TODO: could do discriminated union?
 export const ProviderBaseSchema = z.object({
   label: z.string(),
-  icon: z.string().url(),
-  signinUrl: z.string().url(),
-  callbackUrl: z.string().url(),
+  icon: z.url(),
+  signinUrl: z.url(),
+  callbackUrl: z.url(),
 });
 
 export const OauthProviderSchema = ProviderBaseSchema.extend({

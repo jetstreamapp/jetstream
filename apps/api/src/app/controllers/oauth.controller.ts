@@ -36,7 +36,7 @@ export const routeDefinition = {
   salesforceOauthCallback: {
     controllerFn: () => salesforceOauthCallback,
     validators: {
-      query: z.record(z.any()),
+      query: z.record(z.string(), z.any()),
       hasSourceOrg: false,
     },
   },

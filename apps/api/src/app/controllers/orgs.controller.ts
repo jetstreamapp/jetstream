@@ -46,7 +46,7 @@ export const routeDefinition = {
         uniqueId: z.string().min(1),
       }),
       body: z.object({
-        jetstreamOrganizationId: z.string().uuid().nullish(),
+        jetstreamOrganizationId: z.uuid().nullish(),
       }),
       hasSourceOrg: false,
     },
