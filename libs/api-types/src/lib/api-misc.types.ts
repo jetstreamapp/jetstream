@@ -5,7 +5,7 @@ export const SalesforceApiRequestSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   isTooling: z.boolean().nullish(),
   body: z.any().nullish(),
-  headers: z.record(z.string()).nullish(),
+  headers: z.record(z.string(), z.string()).nullish(),
   options: z
     .object({
       responseType: z.enum(['json', 'text']).nullish().default('json'),

@@ -31,7 +31,7 @@ export const routeDefinition = {
     controllerFn: () => initSession,
     validators: {
       query: z.object({
-        deviceId: z.string().uuid(),
+        deviceId: z.uuid(),
       }),
       hasSourceOrg: false,
     },
