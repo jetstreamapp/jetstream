@@ -203,7 +203,9 @@ export async function mutateFullNameForFolderToIncludeFullPath(selectedOrg: Sale
     if (foldersByPath[item.fullName] && foldersByPath[item.fullName] !== item.fullName) {
       item.fullName = foldersByPath[item.fullName];
     }
-    item.fullName = item.fullName.endsWith('/') ? item.fullName : `${item.fullName}/`;
+    if (!item.fullName.endsWith('/')) {
+      item.fullName += '/';
+    }
   });
 }
 
