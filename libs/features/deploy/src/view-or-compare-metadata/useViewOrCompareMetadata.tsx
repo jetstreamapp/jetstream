@@ -1,3 +1,4 @@
+import { METADATA_TYPES_WITH_FOLDERS } from '@jetstream/shared/constants';
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
@@ -199,6 +200,14 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
         if (isMounted.current) {
           if (isString(results.zipFile)) {
             const salesforcePackage = await JSZip.loadAsync(results.zipFile, { base64: true });
+            // Add folder file extension so that the metadata shows up
+            (results.fileProperties || []).forEach((file) => {
+              // Folders don't have a suffix in the fileProperties response, but there is an associated file, so we must add the extension
+              if (METADATA_TYPES_WITH_FOLDERS.has(file.type) && file.fileName.includes('/') && !file.fileName.includes('.')) {
+                file.fileName = `${file.fileName}-meta.xml`;
+              }
+            });
+
             await populateFileContents(salesforcePackage, results.fileProperties || []);
 
             dispatch({ type: 'FETCH_SUCCESS', payload: { which, data: salesforcePackage, fileProperties: results.fileProperties } });

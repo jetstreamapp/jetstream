@@ -1014,3 +1014,17 @@ export const PROFILE_NAME_TO_FULL_NAME_MAP = {
   'System Administrator': 'Admin',
   Admin: 'System Administrator',
 };
+
+export const METADATA_TYPES_WITH_NESTED_FOLDERS = new Set(['Report', 'Dashboard', 'EmailTemplate']);
+export const METADATA_TYPES_WITH_FOLDERS = new Set([
+  'Document',
+  'Email',
+  'Report',
+  'Dashboard',
+  'QuickText',
+  'Macro',
+  'EmailTemplate',
+  'ActionCadence',
+  'Capstone',
+  'AnalyticAssetCollection',
+]);
