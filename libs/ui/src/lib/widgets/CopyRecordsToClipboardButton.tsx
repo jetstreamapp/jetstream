@@ -17,7 +17,7 @@ export const CopyRecordsToClipboardButton: FunctionComponent<CopyRecordsToClipbo
   fields,
   records,
 }) => {
-  async function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
+  function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
     copyRecordsToClipboard(records, format, fields);
   }
 
