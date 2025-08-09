@@ -1,5 +1,5 @@
 import { retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
-import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications, useRollbar } from '@jetstream/shared/ui-utils';
+import { pollRetrieveMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { TreeItems } from '@jetstream/ui';
@@ -8,7 +8,7 @@ import { useAtom } from 'jotai';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { FileItemMetadata, FileListItem, FilePropertiesWithContent, OrgType } from './viewOrCompareMetadataTypes';
+import { FileItemMetadata, FilePropertiesWithContent, OrgType } from './viewOrCompareMetadataTypes';
 import { buildTree, populateFileContents } from './viewOrCompareMetadataUtils';
 
 type LoadStatus = 'Not Started' | 'Loading' | 'Success' | 'Failed';
@@ -84,15 +84,6 @@ function reducer(state: State, action: Action): State {
       }
     }
     case 'FETCH_SUCCESS': {
-      const files: FileListItem[] = action.payload.fileProperties
-        .filter((item) => item.fullName !== 'package.xml')
-        .map(
-          (meta): FileListItem => ({
-            key: meta.fileName,
-            heading: meta.fileName,
-            meta,
-          })
-        );
       if (action.payload.which === 'SOURCE') {
         return {
           ...state,
@@ -182,7 +173,6 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
   });
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const { notifyUser } = useBrowserNotifications(serverUrl);
-  const rollbar = useRollbar();
 
   useEffect(() => {
     isMounted.current = true;
