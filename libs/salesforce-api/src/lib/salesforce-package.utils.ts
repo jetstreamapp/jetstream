@@ -7,6 +7,32 @@ import { create as xmlBuilder } from 'xmlbuilder2';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
+/**
+ * Mutates the input types by moving "Folder" types to their parent type.
+ * @param types Map of metadata types to their items
+ */
+function mutateFolderMetadataTypes(types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>) {
+  // Move the "Folder" types to their parent type
+  Object.keys(types)
+    .filter((metadataType) => metadataType.endsWith('Folder'))
+    .forEach((metadataType) => {
+      let correctType = metadataType.replace('Folder', '');
+      // Special Case - Classic email templates have a snowflake naming convention, so we cannot simply remove "Folder" from the end
+      if (correctType === 'Email') {
+        correctType = 'EmailTemplate';
+      }
+      const items = types[metadataType];
+      types[correctType] = types[correctType] || [];
+      items.forEach((item) => {
+        types[correctType].push({
+          fullName: item.fullName,
+          namespacePrefix: item.namespacePrefix,
+        });
+      });
+      delete types[metadataType];
+    });
+}
+
 // TODO: deprecate in favor of xml-utils version
 export function buildPackageXml(
   types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
@@ -17,6 +43,8 @@ export function buildPackageXml(
   // prettier-ignore
   const packageNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
     .ele('Package', { xmlns: 'http://soap.sforce.com/2006/04/metadata' });
+
+  mutateFolderMetadataTypes(types);
 
   Object.keys(types).forEach((metadataType) => {
     const typesNode = packageNode.ele('types');
@@ -49,6 +77,7 @@ export function getRetrieveRequestFromListMetadata(
   types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
   version: string
 ) {
+  mutateFolderMetadataTypes(types);
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve_request.htm
   const retrieveRequest: RetrieveRequest = {
     apiVersion: version,

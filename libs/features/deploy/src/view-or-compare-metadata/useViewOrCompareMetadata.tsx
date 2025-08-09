@@ -199,6 +199,14 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
         if (isMounted.current) {
           if (isString(results.zipFile)) {
             const salesforcePackage = await JSZip.loadAsync(results.zipFile, { base64: true });
+            // Add folder file extension so that the metadata shows up
+            (results.fileProperties || []).forEach((file) => {
+              // Folders don't have a suffix, this is the only known way to identify them
+              if (file.fileName.includes('/') && !file.fileName.includes('.')) {
+                file.fileName = `${file.fileName}-meta.xml`;
+              }
+            });
+
             await populateFileContents(salesforcePackage, results.fileProperties || []);
 
             dispatch({ type: 'FETCH_SUCCESS', payload: { which, data: salesforcePackage, fileProperties: results.fileProperties } });
