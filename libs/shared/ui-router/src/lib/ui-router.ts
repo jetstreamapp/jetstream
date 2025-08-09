@@ -21,6 +21,8 @@ type RouteKey =
   | 'PLATFORM_EVENT_MONITOR'
   | 'FEEDBACK_SUPPORT'
   | 'PROFILE'
+  | 'TEAM_DASHBOARD'
+  | 'TEAM_INVITE'
   | 'SETTINGS'
   | 'BILLING';
 
@@ -191,6 +193,17 @@ export const APP_ROUTES: RouteMap = {
     DOCS: 'https://docs.getjetstream.app/user-profile-and-settings/user-profile',
     TITLE: 'Profile',
     DESCRIPTION: 'Update your user profile',
+  },
+  TEAM_DASHBOARD: {
+    ...getRoutePath('/teams'),
+    // DOCS: 'https://docs.getjetstream.app/user-profile-and-settings/billing',
+    TITLE: 'Team Dashboard',
+    DESCRIPTION: 'Manage your Team and Team Members',
+  },
+  TEAM_INVITE: {
+    ...getRoutePath('/teams/invite'),
+    TITLE: 'Accept Team Invitation',
+    DESCRIPTION: 'Accept your invitation to join the team',
   },
   SETTINGS: {
     ...getRoutePath('/settings'),

@@ -6,6 +6,7 @@ import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { StripeUserFacingCustomer } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  Grid,
   Icon,
   Page,
   PageHeader,
@@ -26,7 +27,7 @@ import BillingPlanCard from './BillingPlanCard';
 const HEIGHT_BUFFER = 170;
 
 export const Billing = () => {
-  useTitle(TITLES.SETTINGS);
+  useTitle(TITLES.BILLING);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
@@ -125,34 +126,52 @@ export const Billing = () => {
           {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
             <JetstreamProLogo width="250px" className="slds-m-bottom_x-small" />
           )}
-          <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
-          <ul className="slds-list_dotted slds-m-bottom_small">
-            <li>
-              Access to the{' '}
-              <a
-                href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
-                target="_blank"
-                className="slds-text-heading_x-small"
-                rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'billing_page' })}
-              >
-                Chrome Extension
-              </a>{' '}
-              and{' '}
-              <a
-                href={APP_ROUTES.FIREFOX_EXTENSION.ROUTE}
-                target="_blank"
-                className="slds-text-heading_x-small"
-                rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.firefox_extension_link, { action: 'clicked', source: 'billing_page' })}
-              >
-                Firefox Extension
-              </a>
-            </li>
-            <li>Save query history across devices</li>
-            <li>Save downloads to Google Drive</li>
-            <li>Load data from Google Drive</li>
-          </ul>
+          <Grid wrap>
+            <div className="slds-m-right_medium">
+              <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
+              <ul className="slds-list_dotted slds-m-bottom_small">
+                <li>
+                  Access to the{' '}
+                  <a
+                    href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
+                    target="_blank"
+                    className="slds-text-heading_x-small"
+                    rel="noreferrer"
+                    onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'billing_page' })}
+                  >
+                    Chrome Extension
+                  </a>{' '}
+                  and{' '}
+                  <a
+                    href={APP_ROUTES.FIREFOX_EXTENSION.ROUTE}
+                    target="_blank"
+                    className="slds-text-heading_x-small"
+                    rel="noreferrer"
+                    onClick={() => trackEvent(ANALYTICS_KEYS.firefox_extension_link, { action: 'clicked', source: 'billing_page' })}
+                  >
+                    Firefox Extension
+                  </a>
+                </li>
+                <li>Save query history across devices</li>
+                <li>Save downloads to Google Drive</li>
+                <li>Load data from Google Drive</li>
+              </ul>
+            </div>
+            <div>
+              <p className="slds-text-heading_medium">Jetstream For Teams Includes:</p>
+              <ul className="slds-list_dotted slds-m-bottom_small">
+                <li>Everything in Professional</li>
+                <li>Manage multiple team members</li>
+                <ul className="slds-list_dotted">
+                  <li>View team member activity</li>
+                </ul>
+                <li>Share orgs between team members</li>
+                <li>Role-based access control</li>
+                <li>Option to save load and deploy files</li>
+                <li>Audit logs</li>
+              </ul>
+            </div>
+          </Grid>
         </div>
 
         <div className="slds-box slds-box_small">
@@ -185,7 +204,24 @@ export const Billing = () => {
                     priceDescription="Billed Annually"
                     onChange={setSelectedPlan}
                   />
-                  {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
+                  <BillingPlanCard
+                    descriptionTitle="Team - Monthly"
+                    description="Includes 5 users, $35/month per additional user."
+                    checked={selectedPlan === environment.STRIPE_TEAM_MONTHLY_PRICE_ID}
+                    value={environment.STRIPE_TEAM_MONTHLY_PRICE_ID}
+                    price="$150"
+                    priceDescription="Billed Monthly"
+                    onChange={setSelectedPlan}
+                  />
+                  <BillingPlanCard
+                    descriptionTitle="Team - Annual"
+                    description="Includes 5 users, $35/month per additional user, billed annually."
+                    checked={selectedPlan === environment.STRIPE_TEAM_ANNUAL_PRICE_ID}
+                    value={environment.STRIPE_TEAM_ANNUAL_PRICE_ID}
+                    price="$1,500"
+                    priceDescription="Billed Annually"
+                    onChange={setSelectedPlan}
+                  />
                 </div>
               </fieldset>
               <button type="submit" className="slds-button slds-button_brand slds-m-top_medium">
