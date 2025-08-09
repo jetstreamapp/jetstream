@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { METADATA_TYPES_WITH_NESTED_FOLDERS } from '@jetstream/shared/constants';
 import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
@@ -49,8 +50,6 @@ const getFolderSoqlQuery = (type: string) => {
 const getPersonTypeSoqlQuery = () => {
   return `SELECT DeveloperName, SobjectType FROM RecordType WHERE IsPersonType = TRUE`;
 };
-
-const METADATA_TYPES_WITH_NESTED_FOLDERS = new Set(['Report', 'Dashboard', 'EmailTemplate']);
 
 // helper method
 async function fetchListMetadata(

@@ -9,7 +9,10 @@ const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
 /**
  * Mutates the input types by moving "Folder" types to their parent type.
- * @param types Map of metadata types to their items
+ * Deletes the original "Folder" type entries from the input object and appends their items to the parent type array.
+ * Special case: If the folder type is "EmailFolder", its items are moved to "EmailTemplate" instead of "Email".
+ *
+ * @param types Map of metadata types to their items. This object will be mutated: folder types will be removed and their items moved.
  */
 function mutateFolderMetadataTypes(types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>) {
   // Move the "Folder" types to their parent type
