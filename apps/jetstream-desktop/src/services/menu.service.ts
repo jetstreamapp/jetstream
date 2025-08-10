@@ -114,5 +114,11 @@ export function initAppMenu() {
   ];
 
   const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  // Only set application menu on macOS, Windows will use custom menu in the UI
+  if (isMac()) {
+    Menu.setApplicationMenu(menu);
+  } else {
+    // Hide the menu bar on Windows
+    Menu.setApplicationMenu(null);
+  }
 }

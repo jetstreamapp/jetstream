@@ -24,6 +24,7 @@ export interface HeaderNavbarProps {
   isChromeExtension?: boolean;
   isDesktop?: boolean;
   logoCss?: SerializedStyles;
+  onMenuAction?: (action: string) => void;
   onAddOrgHandlerFn?: AddOrgHandlerFn;
   onLogoutHandlerFn?: () => void;
 }
@@ -74,6 +75,7 @@ export const HeaderNavbar = ({
   isChromeExtension = false,
   isDesktop = false,
   logoCss,
+  onMenuAction,
   onAddOrgHandlerFn,
   onLogoutHandlerFn,
 }: HeaderNavbarProps) => {
@@ -159,7 +161,9 @@ export const HeaderNavbar = ({
         userMenuItems={userMenuItems}
         rightHandMenuItems={rightHandMenuItems}
         isChromeExtension={isChromeExtension}
+        isDesktop={isDesktop}
         onUserMenuItemSelected={handleUserMenuSelection}
+        onMenuAction={onMenuAction}
       >
         <Navbar>
           <NavbarItem

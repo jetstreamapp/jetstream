@@ -48,6 +48,17 @@ export function registerIpc(): void {
   registerHandler('setPreferences', handleSetPreferences);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
+
+  // Window control handlers
+  ipcMain.handle('openNewWindow', handleOpenNewWindow);
+  ipcMain.handle('quit', handleQuit);
+  ipcMain.handle('toggleDevTools', handleToggleDevTools);
+  ipcMain.handle('resetZoom', handleResetZoom);
+  ipcMain.handle('zoomIn', handleZoomIn);
+  ipcMain.handle('zoomOut', handleZoomOut);
+  ipcMain.handle('toggleFullscreen', handleToggleFullscreen);
+  ipcMain.handle('minimize', handleMinimize);
+  ipcMain.handle('close', handleClose);
 }
 
 const handleGetAppCookieEvent: MainIpcHandler<'getAppCookie'> = async (event) => {
@@ -269,4 +280,65 @@ const handleRequestEvent: MainIpcHandler<'request'> = async (event, { url: urlSt
     // FIXME: based on content type, need to parse the body accordingly
     body: await response.json(),
   };
+};
+
+// Window control handlers
+const handleOpenNewWindow = () => {
+  const { Browser } = require('../browser/browser');
+  Browser.create();
+};
+
+const handleQuit = () => {
+  app.quit();
+};
+
+const handleToggleDevTools = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.
+  if (window) {
+    window.webContents.toggleDevTools();
+  }
+};
+
+const handleResetZoom = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.getOwnerBrowserWindow();
+  if (window) {
+    window.webContents.setZoomLevel(0);
+  }
+};
+
+const handleZoomIn = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.getOwnerBrowserWindow();
+  if (window) {
+    const currentZoom = window.webContents.getZoomLevel();
+    window.webContents.setZoomLevel(currentZoom + 0.5);
+  }
+};
+
+const handleZoomOut = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.getOwnerBrowserWindow();
+  if (window) {
+    const currentZoom = window.webContents.getZoomLevel();
+    window.webContents.setZoomLevel(currentZoom - 0.5);
+  }
+};
+
+const handleToggleFullscreen = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.getOwnerBrowserWindow();
+  if (window) {
+    window.setFullScreen(!window.isFullScreen());
+  }
+};
+
+const handleMinimize = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.getOwnerBrowserWindow();
+  if (window) {
+    window.minimize();
+  }
+};
+
+const handleClose = (event: Electron.IpcMainInvokeEvent) => {
+  const window = event.sender.getOwnerBrowserWindow();
+  if (window) {
+    window.close();
+  }
 };

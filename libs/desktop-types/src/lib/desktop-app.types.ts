@@ -23,6 +23,16 @@ export interface ElectronApiRequestResponse {
   getPreferences: () => Promise<DesktopUserPreferences>;
   setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
   request: (payload: { url: string; request: IcpRequest }) => Promise<IcpResponse>;
+  // Window controls (only used on windows)
+  openNewWindow: () => void;
+  quit: () => void;
+  toggleDevTools: () => void;
+  resetZoom: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  toggleFullscreen: () => void;
+  minimize: () => void;
+  close: () => void;
 }
 
 export type ElectronAPI = ElectronApiCallback & ElectronApiRequestResponse;

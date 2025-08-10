@@ -17,6 +17,16 @@ const API: ElectronAPI = {
   getPreferences: () => ipcRenderer.invoke('getPreferences'),
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),
   request: (payload) => ipcRenderer.invoke('request', payload),
+  // Window control API for menu actions
+  openNewWindow: () => ipcRenderer.invoke('openNewWindow'),
+  quit: () => ipcRenderer.invoke('quit'),
+  toggleDevTools: () => ipcRenderer.invoke('toggleDevTools'),
+  resetZoom: () => ipcRenderer.invoke('resetZoom'),
+  zoomIn: () => ipcRenderer.invoke('zoomIn'),
+  zoomOut: () => ipcRenderer.invoke('zoomOut'),
+  toggleFullscreen: () => ipcRenderer.invoke('toggleFullscreen'),
+  minimize: () => ipcRenderer.invoke('minimize'),
+  close: () => ipcRenderer.invoke('close'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', API);

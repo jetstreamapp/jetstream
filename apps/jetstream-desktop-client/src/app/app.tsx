@@ -20,6 +20,74 @@ import { addDesktopOrg } from './utils/utils';
 export const App = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
+  function handleMenuAction(action: string) {
+    // Handle menu actions from Windows menu bar
+    switch (action) {
+      case 'new-window':
+        window.electronAPI?.openNewWindow();
+        break;
+      case 'quit':
+        window.electronAPI?.quit();
+        break;
+      case 'undo':
+        document.execCommand('undo');
+        break;
+      case 'redo':
+        document.execCommand('redo');
+        break;
+      case 'cut':
+        document.execCommand('cut');
+        break;
+      case 'copy':
+        document.execCommand('copy');
+        break;
+      case 'paste':
+        document.execCommand('paste');
+        break;
+      case 'select-all':
+        document.execCommand('selectAll');
+        break;
+      case 'reload':
+        window.location.reload();
+        break;
+      case 'force-reload':
+        window.location.reload();
+        break;
+      case 'toggle-devtools':
+        window.electronAPI?.toggleDevTools();
+        break;
+      case 'reset-zoom':
+        window.electronAPI?.resetZoom();
+        break;
+      case 'zoom-in':
+        window.electronAPI?.zoomIn();
+        break;
+      case 'zoom-out':
+        window.electronAPI?.zoomOut();
+        break;
+      case 'toggle-fullscreen':
+        window.electronAPI?.toggleFullscreen();
+        break;
+      case 'minimize':
+        window.electronAPI?.minimize();
+        break;
+      case 'close':
+        window.electronAPI?.close();
+        break;
+      case 'documentation':
+        window.open('https://docs.getjetstream.app/', '_blank');
+        break;
+      case 'report-issue':
+        window.open('https://github.com/jetstreamapp/jetstream/issues', '_blank');
+        break;
+      case 'email-support':
+        window.open('mailto:support@getjetstream.app', '_blank');
+        break;
+      default:
+        break;
+    }
+  }
+
   return (
     <ConfirmationServiceProvider>
       <Suspense fallback={<AppLoading />}>
@@ -36,7 +104,7 @@ export const App = () => {
                 <div>
                   <div
                     css={css`
-                      app-region: drag;
+                      -webkit-app-region: drag;
                     `}
                     data-testid="header"
                   >
@@ -46,6 +114,7 @@ export const App = () => {
                       `}
                       isDesktop
                       isBillingEnabled={false}
+                      onMenuAction={handleMenuAction}
                       onAddOrgHandlerFn={addDesktopOrg}
                       onLogoutHandlerFn={onLogout}
                     />

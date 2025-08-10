@@ -3,6 +3,7 @@ import { DropDownItem, Maybe, UserProfileUi } from '@jetstream/types';
 import Avatar from '@salesforce-ux/design-system/assets/images/profile_avatar_96.png';
 import { Fragment, FunctionComponent, ReactNode, Suspense, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
+import WindowsMenuBar from './WindowsMenuBar';
 
 export interface HeaderProps {
   userProfile: Maybe<UserProfileUi>;
@@ -13,7 +14,9 @@ export interface HeaderProps {
   rightHandMenuItems?: ReactNode;
   // notification?: ReactNode;
   isChromeExtension?: boolean;
+  isDesktop?: boolean;
   onUserMenuItemSelected: (id: string) => void;
+  onMenuAction?: (action: string) => void;
   children?: React.ReactNode;
 }
 
@@ -25,12 +28,17 @@ export const Header: FunctionComponent<HeaderProps> = ({
   rightHandMenuItems,
   userMenuItems,
   isChromeExtension,
+  isDesktop,
   onUserMenuItemSelected,
+  onMenuAction,
   children,
 }) => {
+  const isWindowsDesktop = isDesktop && typeof window !== 'undefined' && !navigator.userAgent.toLowerCase().includes('mac');
+
   return (
     <header className="slds-global-header_container branding-header slds-no-print">
       <div className="slds-global-header slds-grid slds-grid_align-spread">
+        {isWindowsDesktop && onMenuAction && <WindowsMenuBar onMenuAction={onMenuAction} />}
         <HeaderContent
           userProfile={userProfile}
           logo={logo}
@@ -66,13 +74,13 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
         className="slds-global-header__item non-draggable"
         css={css`
           padding: 0 0.25rem;
-          app-region: no-drag;
+          -webkit-app-region: no-drag;
         `}
       >
         <div
           css={css`
             width: 10.7rem;
-            app-region: drag;
+            -webkit-app-region: drag;
             ${logoCss}
           `}
           className="slds-global-header__logo"
@@ -86,7 +94,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
             className="slds-global-header__item non-draggable"
             css={css`
               padding: 0 0.25rem;
-              app-region: no-drag;
+              -webkit-app-region: no-drag;
             `}
           >
             {orgs}
@@ -98,7 +106,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
         className="slds-global-header__item non-draggable"
         css={css`
           padding: 0 0.25rem;
-          app-region: no-drag;
+          -webkit-app-region: no-drag;
         `}
       >
         <ul className="slds-global-actions non-draggable">
@@ -123,7 +131,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
                   buttonClassName="slds-button slds-global-actions__avatar slds-global-actions__item-action"
                   buttonContent={
                     <span className="slds-avatar slds-avatar_circle slds-avatar_medium">
-                      <img loading="lazy" alt="Avatar" src={avatarSrc} onError={(err) => setAvatarSrc(Avatar)} />
+                      <img loading="lazy" alt="Avatar" src={avatarSrc} onError={() => setAvatarSrc(Avatar)} />
                     </span>
                   }
                   position="right"
