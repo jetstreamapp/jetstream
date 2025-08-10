@@ -70,7 +70,7 @@
     "build:web-extension:upload": "node scripts/web-extension-publish.mjs --upload -f dist/web-extension-build/web-extension.zip",
     "build:web-extension:publish": "node scripts/web-extension-publish.mjs --publish -f dist/web-extension-build/web-extension.zip",
     "publish:desktop:macos": "yarn build:desktop && cd dist/desktop-build && yarn publish:macos:x64 && yarn publish:macos:arm64",
-    "publish:desktop:windows": "yarn build:desktop && cd dist\\desktop-build && yarn publish:windows",
+    "publish:desktop:windows": "yarn build:desktop && cd dist\\desktop-build && yarn publish:windows:x64",
     "email:dev": "email dev --dir ./libs/email/src/lib/email-templates --port 3003",
     "email:build": "email build --dir ./libs/email/src/lib/email-templates --packageManager yarn",
     "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",

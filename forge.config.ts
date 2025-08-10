@@ -155,6 +155,7 @@ const config: ForgeConfig = {
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
         windowsSign: ENV.IS_CODESIGNING_ENABLED ? (windowsSign as any) : undefined,
         remoteReleases: `https://releases.getjetstream.app/jetstream/windows/${arch}`,
+        noDelta: true,
       }),
       ['win32']
     ),
