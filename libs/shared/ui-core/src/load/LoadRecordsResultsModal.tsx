@@ -5,6 +5,7 @@ import { SalesforceOrgUi } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
+  CopyRecordsToClipboardButton,
   CopyToClipboardWithToolTip,
   DataTable,
   getRowTypeFromValue,
@@ -116,15 +117,16 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                 </>
               )}
             </div>
-            <div>
-              <button className="slds-button slds-button_neutral" onClick={onClose}>
+            <Grid verticalAlign="center" align="end">
+              <CopyRecordsToClipboardButton containerClassName="slds-m-right_xx-small" fields={header} records={rows} />
+              <button className="slds-button slds-button_neutral slds-m-left_x-small" onClick={onClose}>
                 Close
               </button>
               <button className="slds-button slds-button_brand" onClick={handleDownload} disabled={loading}>
                 <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Download
               </button>
-            </div>
+            </Grid>
           </Grid>
         }
         onClose={onClose}

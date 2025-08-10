@@ -928,6 +928,10 @@ export function getFullNameFromListMetadata({
     const layoutName = fullName.slice(fullName.indexOf('-') + 1);
     return `${objectName}${namespace}__${layoutName}`;
   }
+  // Remove "Folder" suffix, folders need to get combined with their normal metadata type
+  if (metadataType.endsWith('Folder')) {
+    return metadataType.replace('Folder', '');
+  }
   return fullName;
 }
 

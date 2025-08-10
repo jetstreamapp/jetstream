@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeMetadata as describeMetadataApi } from '@jetstream/shared/data';
-import { useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
+import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { orderValues } from '@jetstream/shared/utils';
 import { DescribeMetadataResult, MetadataObject, SalesforceOrgUi } from '@jetstream/types';
 import { formatRelative } from 'date-fns/formatRelative';
@@ -16,7 +16,6 @@ export function useDescribeMetadata(
   loadOnInit = true
 ) {
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
   // map of each item or child item to parent item
   const [metadataItemMap, setMetadataItemMap] = useState<Record<string, MetadataObject>>(initialMetadataItemMap || {});
   const [metadataItems, setMetadataItems] = useState<string[] | undefined>(initialItems);
@@ -87,6 +86,26 @@ export function useDescribeMetadata(
               // map parent item
               output.items.push(item.xmlName);
               output.itemMap[item.xmlName] = item;
+              if (item.inFolder) {
+                output.items.push(`${item.xmlName}Folder`);
+                output.itemMap[`${item.xmlName}Folder`] = {
+                  ...item,
+                  xmlName: `${item.xmlName}Folder`,
+                  inFolder: false,
+                  childXmlNames: [],
+                };
+                // EmailTemplate types are stored in: "EmailFolder" (classic email templates) and "EmailTemplateFolder" (lightning email templates)
+                // Add classic email templates to output
+                if (item.directoryName === 'email') {
+                  output.items.push(`EmailFolder`);
+                  output.itemMap[`EmailFolder`] = {
+                    ...item,
+                    xmlName: `EmailFolder`,
+                    inFolder: false,
+                    childXmlNames: [],
+                  };
+                }
+              }
               // map child items
               if (Array.isArray(item.childXmlNames) && item.childXmlNames.length > 0) {
                 item.childXmlNames.forEach((childItem) => {

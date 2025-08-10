@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { isBrowserExtension, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { unSanitizeXml } from '@jetstream/shared/utils';
+import { delay, unSanitizeXml } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { FileExtAllTypes, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
-import { AutoFullHeightContainer, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
+import { FileExtAllTypes, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { AutoFullHeightContainer, Checkbox, FileDownloadModal, Modal, Spinner, TreeItems } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import Editor, { DiffEditor } from '@monaco-editor/react';
@@ -40,6 +40,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   const [activeTargetContent, setActiveTargetContent] = useState<string | null>(null);
   const [editorType, setEditorType] = useState<EditorType>('SOURCE');
   const [swapped, setSwapped] = useState(false);
+  const [hideUnchangedRegions, setHideUnchangedRegions] = useState(false);
 
   const [downloadFileModalConfig, setDownloadFileModalConfig] = useState<{
     open: boolean;
@@ -96,8 +97,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
       // TODO: can we cache previously used files to avoid async operation?
       if (currentActiveFile.meta?.source && sourceResults) {
         try {
-          // setActiveSourceContent(await sourceResults.file(currentActiveFile.meta.filename).async('string'));
-          setActiveSourceContent(currentActiveFile.meta.source.content || '');
+          setActiveSourceContent(unSanitizeXml(currentActiveFile.meta.source.content || ''));
           setActiveFileType(getEditorLanguage(currentActiveFile.meta.source));
         } catch (ex) {
           // failed
@@ -106,7 +106,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
       }
       if (targetResults) {
         try {
-          setActiveTargetContent(currentActiveFile.meta?.target?.content || '');
+          setActiveTargetContent(unSanitizeXml(currentActiveFile.meta?.target?.content || ''));
         } catch (ex) {
           // failed
           logger.warn('[VIEW OR COMPARE][FILE LOAD ERROR][TARGET]', ex);
@@ -151,17 +151,35 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
   function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
     editorRef.current = ed;
   }
+
   function handleDiffEditorMount(ed: editor.IStandaloneDiffEditor) {
     diffEditorRef.current = ed;
     // navigate to first difference
     ed.onDidUpdateDiff(() => {
-      const diff = ed.getLineChanges();
-      if (diff?.length) {
-        ed.revealLineInCenter(diff[0].originalStartLineNumber);
+      ed.revealPosition({ column: 0, lineNumber: 0 });
+      // Toggle off and on to ensure that the toggle is actually collapsed
+      if (hideUnchangedRegions) {
+        toggleHideUnchangedRegions(ed);
       } else {
-        ed.revealPosition({ column: 0, lineNumber: 0 });
+        const diff = ed.getLineChanges();
+        if (diff?.length) {
+          ed.revealLineInCenter(diff[0].originalStartLineNumber);
+        } else {
+          ed.revealPosition({ column: 0, lineNumber: 0 });
+        }
       }
     });
+  }
+
+  /**
+   * Toggle off then on to ensure the unchanged regions are actually hidden
+   * This is a workaround for a bug in Monaco Diff Editor where the unchanged regions do not toggle correctly
+   * when the option is set to true initially.
+   */
+  function toggleHideUnchangedRegions(ed: Maybe<editor.IStandaloneDiffEditor>) {
+    ed?.updateOptions({ hideUnchangedRegions: { enabled: false } });
+    // Workaround to force the lines to be collapsed, otherwise it was inconsistent when changing to a new file
+    delay(100).then(() => ed?.updateOptions({ hideUnchangedRegions: { enabled: true } }));
   }
 
   function handleTargetOrg(org: SalesforceOrgUi) {
@@ -318,6 +336,27 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                     onEditorTypeChange={setEditorType}
                     onSelectedFile={setActiveFile}
                     onTargetOrgChange={handleTargetOrg}
+                    treeSettingsContent={
+                      editorType === 'DIFF' ? (
+                        <div className="slds-m-top_x-small slds-p-left_xx-small">
+                          <Checkbox
+                            id="hide-unchanged-regions"
+                            label="Hide Unchanged Regions"
+                            checked={hideUnchangedRegions}
+                            onChange={(enabled) => {
+                              setHideUnchangedRegions(enabled);
+                              diffEditorRef.current?.updateOptions({ hideUnchangedRegions: { enabled } });
+                              // toggle off and on to force the diff editor to put in collapsed mode
+                              if (enabled) {
+                                toggleHideUnchangedRegions(diffEditorRef.current);
+                              }
+                            }}
+                            disabled={editorType !== 'DIFF'}
+                            className="slds-m-bottom_x-small"
+                          />
+                        </div>
+                      ) : undefined
+                    }
                   />
                 </div>
                 <div
@@ -350,23 +389,26 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                           readOnly: true,
                           contextmenu: false,
                         }}
-                        value={
-                          editorType === 'SOURCE' ? unSanitizeXml(activeSourceContent || '') : unSanitizeXml(activeTargetContent || '')
-                        }
+                        value={(editorType === 'SOURCE' ? activeSourceContent : activeTargetContent) || ''}
                         onMount={handleEditorMount}
                       />
                     )}
+
                     {editorType === 'DIFF' && (
                       <DiffEditor
                         height="100%"
                         theme="vs-dark"
                         language={activeFileType}
+                        keepCurrentModifiedModel={true}
+                        keepCurrentOriginalModel={true}
                         options={{
                           readOnly: true,
                           contextmenu: false,
+                          renderSideBySide: true,
+                          useInlineViewWhenSpaceIsLimited: false,
                         }}
-                        original={!swapped ? unSanitizeXml(activeSourceContent || '') : unSanitizeXml(activeTargetContent || '')}
-                        modified={!swapped ? unSanitizeXml(activeTargetContent || '') : unSanitizeXml(activeSourceContent || '')}
+                        original={(swapped ? activeTargetContent : activeSourceContent) || ''}
+                        modified={(swapped ? activeSourceContent : activeTargetContent) || ''}
                         onMount={handleDiffEditorMount}
                       />
                     )}

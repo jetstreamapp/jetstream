@@ -16,6 +16,7 @@ export interface ViewOrCompareMetadataSidebarProps {
   sourceError?: Maybe<string>;
   targetError?: Maybe<string>;
   isChromeExtension: boolean;
+  treeSettingsContent?: React.ReactNode;
   onEditorTypeChange: (value: 'SOURCE' | 'TARGET' | 'DIFF') => void;
   onSelectedFile: (item: TreeItems<FileItemMetadata>) => void;
   onTargetOrgChange: (org: SalesforceOrgUi) => void;
@@ -31,6 +32,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
   sourceError,
   targetError,
   isChromeExtension,
+  treeSettingsContent,
   onEditorTypeChange,
   onSelectedFile,
   onTargetOrgChange,
@@ -100,6 +102,7 @@ export const ViewOrCompareMetadataSidebar: FunctionComponent<ViewOrCompareMetada
           There was an error getting metadata from the target org: {targetError}
         </ScopedNotification>
       )}
+      {treeSettingsContent && !sourceError && !targetError && treeSettingsContent}
       {!!files?.length && (
         <Tree
           header="Metadata Files"
