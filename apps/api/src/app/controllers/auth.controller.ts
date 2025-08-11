@@ -193,50 +193,55 @@ export const routeDefinition = {
 function initSession(
   req: Request<unknown, unknown, unknown>,
   { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>
-) {
-  req.session.regenerate((error) => {
-    if (error) {
-      logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
-      throw new AuthError('Error initializing session');
-    }
-    const userAgent = req.get('User-Agent');
-    if (userAgent) {
-      req.session.userAgent = req.get('User-Agent');
-    }
-    req.session.ipAddress = getApiAddressFromReq(req);
-    req.session.loginTime = new Date().getTime();
-    req.session.provider = provider;
-    req.session.user = user as UserProfileSession;
-    req.session.pendingMfaEnrollment = null;
-    req.session.pendingVerification = null;
-
-    if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
-      req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
-    }
-
-    if (verificationRequired) {
-      const token = generateRandomCode(6);
-      if (isNewUser) {
-        req.session.sendNewUserEmailAfterVerify = true;
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Regenerate session to avoid session fixation attacks
+    req.session.regenerate((error) => {
+      if (error) {
+        logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
+        reject(new AuthError('Error initializing session'));
+        return;
       }
-      if (verificationRequired.email) {
-        const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
-        // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
-        req.session.pendingVerification = [{ type: 'email', exp, token }];
-      } else if (verificationRequired.twoFactor?.length > 0) {
-        const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
-        req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
-          switch (factor.type) {
-            case '2fa-otp':
-              return { type: '2fa-otp', exp };
-            case '2fa-email':
-              return { type: '2fa-email', exp, token };
-            default:
-              throw new InvalidVerificationType('Invalid two factor type');
-          }
-        });
+      const userAgent = req.get('User-Agent');
+      if (userAgent) {
+        req.session.userAgent = req.get('User-Agent');
       }
-    }
+      req.session.ipAddress = getApiAddressFromReq(req);
+      req.session.loginTime = new Date().getTime();
+      req.session.provider = provider;
+      req.session.user = user as UserProfileSession;
+      req.session.pendingMfaEnrollment = null;
+      req.session.pendingVerification = null;
+
+      if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
+        req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
+      }
+
+      if (verificationRequired) {
+        const token = generateRandomCode(6);
+        if (isNewUser) {
+          req.session.sendNewUserEmailAfterVerify = true;
+        }
+        if (verificationRequired.email) {
+          const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
+          // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
+          req.session.pendingVerification = [{ type: 'email', exp, token }];
+        } else if (verificationRequired.twoFactor?.length > 0) {
+          const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
+          req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
+            switch (factor.type) {
+              case '2fa-otp':
+                return { type: '2fa-otp', exp };
+              case '2fa-email':
+                return { type: '2fa-email', exp, token };
+              default:
+                throw new InvalidVerificationType('Invalid two factor type');
+            }
+          });
+        }
+      }
+      resolve();
+    });
   });
 }
 
@@ -438,7 +443,7 @@ const callback = createRoute(
         });
         isNewUser = sessionData.isNewUser;
 
-        initSession(req, sessionData);
+        await initSession(req, sessionData);
       } else if (provider.type === 'credentials' && req.method === 'POST') {
         if (!body || !('action' in body)) {
           throw new InvalidAction('Missing action in body');
@@ -468,7 +473,7 @@ const callback = createRoute(
 
         isNewUser = sessionData.isNewUser;
 
-        initSession(req, sessionData);
+        await initSession(req, sessionData);
       } else {
         throw new InvalidProvider(`Provider type ${provider.type} is not supported. Method=${req.method}`);
       }
