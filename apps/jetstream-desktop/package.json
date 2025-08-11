@@ -1,7 +1,7 @@
 {
   "name": "jetstream",
   "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/jetstreamapp/jetstream"
