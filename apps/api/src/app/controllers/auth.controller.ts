@@ -204,7 +204,7 @@ function initSession(
       }
       const userAgent = req.get('User-Agent');
       if (userAgent) {
-        req.session.userAgent = req.get('User-Agent');
+        req.session.userAgent = userAgent;
       }
       req.session.ipAddress = getApiAddressFromReq(req);
       req.session.loginTime = new Date().getTime();
