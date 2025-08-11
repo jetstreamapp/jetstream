@@ -69,7 +69,6 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
               </ul>
             </div>
           </div>
-
           <div>
             <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Resources</h3>
             <ul className="mt-4 space-y-4">

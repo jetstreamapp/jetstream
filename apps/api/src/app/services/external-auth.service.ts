@@ -2,6 +2,7 @@ import { ENV } from '@jetstream/api-config';
 import { convertUserProfileToSession, InvalidAccessToken } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe, UserProfileUi } from '@jetstream/types';
 import * as express from 'express';
 import jwt from 'fast-jwt';
@@ -107,7 +108,7 @@ export async function getUserAndDeviceIdForExternalAuth(audience: Audience, req:
     }
     return { user, deviceId };
   } catch (ex) {
-    req.log.info('[DESKTOP-AUTH][AUTH ERROR] Error decoding token', ex);
+    req.log.info({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
     return { user: null, deviceId };
   }
 }
