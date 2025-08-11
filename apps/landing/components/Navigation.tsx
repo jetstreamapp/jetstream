@@ -208,54 +208,54 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                     </button>
                   </div>
                 </div>
-            <div className="pt-5 pb-6">
-              <div className="px-2 space-y-1">
-                {navigation
-                  .filter((item) => !omitLinks.includes(item.href))
-                  .map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                <div className="pt-5 pb-6">
+                  <div className="px-2 space-y-1">
+                    {navigation
+                      .filter((item) => !omitLinks.includes(item.href))
+                      .map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    <a
+                      href="https://github.com/jetstreamapp/jetstream"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
                     >
-                      {item.name}
+                      Github Project
+                    </a>
+                    <a
+                      href="https://discord.gg/sfxd"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
+                    >
+                      SFXD Discord <span className="ml-2 text-gray-400">(#vendors-jetstream)</span>
+                    </a>
+                  </div>
+                  <div className="mt-6 px-5">
+                    <Link
+                      href={ROUTES.AUTH.signup}
+                      className="block text-center w-full py-3 px-4 rounded-md shadow bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700"
+                    >
+                      Sign up for free
                     </Link>
-                  ))}
-                <a
-                  href="https://github.com/jetstreamapp/jetstream"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                >
-                  Github Project
-                </a>
-                <a
-                  href="https://discord.gg/sfxd"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:bg-gray-50"
-                >
-                  SFXD Discord <span className="ml-2 text-gray-400">(#vendors-jetstream)</span>
-                </a>
+                  </div>
+                  <div className="mt-6 px-5">
+                    <p className="text-center text-base font-medium text-gray-500">
+                      Existing customer?{' '}
+                      <Link href={ROUTES.AUTH.login} className="text-gray-900 hover:underline">
+                        Login
+                      </Link>
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="mt-6 px-5">
-                <Link
-                  href={ROUTES.AUTH.signup}
-                  className="block text-center w-full py-3 px-4 rounded-md shadow bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700"
-                >
-                  Sign up for free
-                </Link>
-              </div>
-              <div className="mt-6 px-5">
-                <p className="text-center text-base font-medium text-gray-500">
-                  Existing customer?{' '}
-                  <Link href={ROUTES.AUTH.login} className="text-gray-900 hover:underline">
-                    Login
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </div>
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

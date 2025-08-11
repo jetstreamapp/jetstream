@@ -222,6 +222,13 @@ const envSchema = z.object({
   STRIPE_PRO_ANNUAL_PRICE_ID: z.string().optional(),
   STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
   STRIPE_BILLING_PORTAL_LINK: z.string().optional(),
+  /**
+   * BackBlaze B2
+   */
+  BACKBLAZE_ACCESS_KEY_ID: z.string().default(''),
+  BACKBLAZE_SECRET_ACCESS_KEY: z.string().default(''),
+  BACKBLAZE_BUCKET_NAME: z.string().default('desktop-updates'),
+  BACKBLAZE_REGION: z.string().default('us-east-005'),
 });
 
 const parseResults = envSchema.safeParse({

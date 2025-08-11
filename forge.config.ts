@@ -5,13 +5,31 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
-import { PublisherGithub } from '@electron-forge/publisher-github';
+import { PublisherS3 } from '@electron-forge/publisher-s3';
 import type { ForgeConfig, ForgePackagerOptions } from '@electron-forge/shared-types';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import path from 'node:path';
 
 const isDarwin = process.platform == 'darwin';
 const isMas = isDarwin && process.argv.some((value) => value.includes('--platform=mas'));
+
+const ENV = {
+  IS_CODESIGNING_ENABLED: process.env.IS_CODESIGNING_ENABLED === 'true',
+  APPLE_ID: process.env.APPLE_ID,
+  APPLE_PASSWORD: process.env.APPLE_PASSWORD,
+  APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
+  PROVISIONING_PROFILE_PATH_DARWIN: process.env.PROVISIONING_PROFILE_PATH_DARWIN,
+  PROVISIONING_PROFILE_PATH_MAS: process.env.PROVISIONING_PROFILE_PATH_MAS,
+  BACKBLAZE_ACCESS_KEY_ID: process.env.BACKBLAZE_ACCESS_KEY_ID,
+  BACKBLAZE_SECRET_ACCESS_KEY: process.env.BACKBLAZE_SECRET_ACCESS_KEY,
+};
+
+const windowsSign: ForgePackagerOptions['windowsSign'] = {
+  signToolPath: 'C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64\\signtool.exe',
+  signWithParams: '/sha1 6526a53309171bf43d3321cee5719c06b2ba28e9',
+  timestampServer: 'http://timestamp.digicert.com',
+  hashes: ['sha256' as any],
+};
 
 const packagerConfig: ForgePackagerOptions = {
   asar: true,
@@ -46,17 +64,21 @@ const packagerConfig: ForgePackagerOptions = {
       },
     ],
   },
+  windowsSign: ENV.IS_CODESIGNING_ENABLED ? windowsSign : undefined,
+  junk: true,
+  overwrite: true,
+  prune: true,
 };
 
-if (isDarwin) {
-  const APPLE_ID = process.env.APPLE_ID;
-  const APPLE_PASSWORD = process.env.APPLE_PASSWORD;
-  const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID;
+if (isDarwin && ENV.IS_CODESIGNING_ENABLED) {
+  const APPLE_ID = ENV.APPLE_ID;
+  const APPLE_PASSWORD = ENV.APPLE_PASSWORD;
+  const APPLE_TEAM_ID = ENV.APPLE_TEAM_ID;
   const PROVISIONING_PROFILE_PATH_DARWIN = path.resolve(
-    process.env.PROVISIONING_PROFILE_PATH_DARWIN || '../../build-resources/Jetstream_Mac_App_Profile.provisionprofile'
+    ENV.PROVISIONING_PROFILE_PATH_DARWIN || '../../build-resources/Jetstream_Mac_App_Profile.provisionprofile'
   );
   const PROVISIONING_PROFILE_PATH_MAS = path.resolve(
-    process.env.PROVISIONING_PROFILE_PATH_MAS || '../../build-resources/Jetstream_Mac_App_Store_Profile.provisionprofile'
+    ENV.PROVISIONING_PROFILE_PATH_MAS || '../../build-resources/Jetstream_Mac_App_Store_Profile.provisionprofile'
   );
 
   if (!APPLE_ID) {
@@ -106,7 +128,12 @@ const config: ForgeConfig = {
   packagerConfig,
   rebuildConfig: {},
   makers: [
-    new MakerZIP({}, ['darwin', 'linux', 'win32']),
+    new MakerZIP(
+      (arch) => ({
+        macUpdateManifestBaseUrl: `https://releases.getjetstream.app/jetstream/macos/${arch}`,
+      }),
+      ['darwin']
+    ),
     new MakerDMG(
       {
         format: 'ULFO',
@@ -116,40 +143,41 @@ const config: ForgeConfig = {
       ['darwin']
     ),
     new MakerSquirrel(
-      {
-        authors: 'Jetstream Solutions, LLC',
+      (arch) => ({
         name: 'Jetstream',
+        authors: 'Jetstream Solutions, LLC',
+        exe: 'jetstream.exe',
+        noMsi: true,
         description:
           'The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.',
         // iconUrl: 'https://getjetstream.app/assets/icons/icon_256x256.png',
-        windowsSign: {
-          // TODO
-        },
         setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
-      },
+        windowsSign: ENV.IS_CODESIGNING_ENABLED ? (windowsSign as any) : undefined,
+        remoteReleases: `https://releases.getjetstream.app/jetstream/windows/${arch}`,
+        noDelta: true,
+      }),
       ['win32']
     ),
-    // I doubt there are many, if any, linux users
-    // new MakerDeb({
-    //   options: {
-    //     mimeType: ['x-scheme-handler/jetstream'],
-    //   },
-    // }),
-    // new MakerRpm({
-    //   options: {
-    //     mimeType: ['x-scheme-handler/jetstream'],
-    //   },
-    // }),
   ],
   publishers: [
-    new PublisherGithub({
-      repository: {
-        owner: 'jetstreamapp',
-        name: 'jetstream',
+    new PublisherS3({
+      accessKeyId: ENV.BACKBLAZE_ACCESS_KEY_ID,
+      secretAccessKey: ENV.BACKBLAZE_SECRET_ACCESS_KEY,
+      bucket: 'desktop-updates',
+      endpoint: `https://s3.us-east-005.backblazeb2.com`,
+      region: 'us-east-005',
+      folder: 'jetstream',
+      public: true,
+      keyResolver: (filename: string, platform: string, arch: string) => {
+        if (platform == 'win32') {
+          platform = 'windows';
+        }
+        if (platform == 'darwin') {
+          platform = 'macos';
+        }
+        return `jetstream/${platform}/${arch}/${filename}`;
       },
-      draft: true,
-      prerelease: true,
     }),
   ],
   plugins: [
@@ -160,7 +188,7 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
       [FuseV1Options.GrantFileProtocolExtraPrivileges]: false,
     }),

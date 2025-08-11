@@ -1,7 +1,7 @@
 {
   "name": "jetstream",
   "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
-  "version": "0.1.0",
+  "version": "1.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/jetstreamapp/jetstream"
@@ -9,11 +9,16 @@
   "author": "Jetstream",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "build:macos:dmg:x64": "electron-forge make --platform=darwin --arch=x64 --overwrite",
-    "build:macos:dmg:arm64": "electron-forge make --platform=darwin --arch=arm64 --overwrite",
+    "package:macos": "electron-forge package --platform=darwin --arch=arm64",
+    "package:windows": "electron-forge package --platform=win32 --arch=x64",
+    "build:macos:x64": "electron-forge make --platform=darwin --arch=x64 --overwrite",
+    "build:macos:arm64": "electron-forge make --platform=darwin --arch=arm64 --overwrite",
     "build:macos:mas": "electron-forge make --platform=mas --arch=universal",
-    "build:windows:x64": "npx electron-forge make --platform=win32 --arch=x64",
-    "build:windows:arm64": "npx electron-forge make --platform=win32 --arch=arm64"
+    "build:windows:x64": "electron-forge make --platform=win32 --arch=x64",
+    "publish:macos:arm64": "electron-forge publish --platform=darwin --arch=arm64 --overwrite",
+    "publish:macos:x64": "electron-forge publish --platform=darwin --arch=x64 --overwrite",
+    "publish:windows:arm64": "electron-forge publish --platform=win32 --arch=arm64 --overwrite",
+    "publish:windows:x64": "electron-forge publish --platform=win32 --arch=x64 --overwrite"
   },
   "devDependencies": {},
   "dependencies": {}

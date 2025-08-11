@@ -135,6 +135,7 @@ export function getFullUserProfile() {
     preferences: userPreferences,
     entitlements: {
       googleDrive: false,
+      desktop: false,
       chromeExtension: false,
       recordSync: true,
     },

@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 export const EntitlementsAccessSchema = z.object({
   googleDrive: z.boolean().optional().default(false),
+  desktop: z.boolean().optional().default(false),
   recordSync: z.boolean().optional().default(false),
   chromeExtension: z.boolean().optional().default(false),
 });

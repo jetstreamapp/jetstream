@@ -10,11 +10,13 @@ const footerNavigation = {
     { name: 'File an issue', href: ROUTES.EXTERNAL.GITHUB_ISSUE, target: '_blank' },
     { name: 'Contact Us', href: ROUTES.EXTERNAL.SUPPORT_EMAIL, target: '_blank' },
   ],
-  company: [
-    { name: 'About', href: ROUTES.ABOUT },
+  resources: [
     { name: 'Blog', href: ROUTES.BLOG },
+    { name: 'Desktop Application', href: ROUTES.DESKTOP },
+    { name: 'Browser Extensions', href: ROUTES.BROWSER_EXTENSIONS },
   ],
   legal: [
+    { name: 'About', href: ROUTES.ABOUT },
     { name: 'Privacy & Security', href: ROUTES.PRIVACY },
     { name: 'Terms of Service', href: ROUTES.TERMS_OF_SERVICE },
     { name: 'Data Processing Agreement', href: ROUTES.DPA },
@@ -53,7 +55,7 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
                   .map((item) => (
                     <li key={item.name}>
                       {item.target && (
-                        <a href={item.href} className="text-base text-gray-500 hover:text-gray-900" target={item.target}>
+                        <a href={item.href} className="text-base text-gray-500 hover:text-gray-900" target={item.target} rel="noreferrer">
                           {item.name}
                         </a>
                       )}
@@ -68,15 +70,15 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Company</h3>
+            <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Resources</h3>
             <ul className="mt-4 space-y-4">
-              {footerNavigation.company
+              {footerNavigation.resources
                 .filter((item) => !omitLinks.includes(item.href))
                 .map((item) => (
                   <li key={item.name}>
-                    <a href={item.href} className="text-base text-gray-500 hover:text-gray-900">
+                    <Link href={item.href} className="text-base text-gray-500 hover:text-gray-900">
                       {item.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
             </ul>
@@ -98,7 +100,9 @@ export const Footer = ({ omitLinks = [] }: FooterProps) => (
         </div>
       </div>
       <div className="mt-12 border-t border-gray-200 py-8">
-        <p className="text-base text-gray-400 xl:text-center">&copy; {new Date().getFullYear()} Jetstream. All rights reserved.</p>
+        <p className="text-base text-gray-400 xl:text-center">
+          &copy; {new Date().getFullYear()} Jetstream Solutions, LLC. All rights reserved.
+        </p>
       </div>
     </div>
   </footer>

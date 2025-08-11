@@ -43,6 +43,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
   entitlements: {
     googleDrive: false,
     chromeExtension: false,
+    desktop: false,
     recordSync: false,
   },
   subscriptions: [],

@@ -33,11 +33,11 @@ export const HeaderCta = () => (
       <div className="text-center">
         <div className="hidden sm:mb-8 sm:flex sm:justify-center">
           <div className="relative rounded-full px-3 py-1 text-sm/6 text-gray-400 ring-1 ring-white/10 hover:ring-white/20">
-            Announcing the launch of the profession plan{' '}
-            <span role="img" aria-label="party popper emoji">
-              🎉
+            Announcing the launch of the desktop application{' '}
+            <span role="img" aria-label="desktop computer emoji">
+              🖥️
             </span>{' '}
-            <Link href={ROUTES.blogPost('paid-plans')} className="font-semibold text-white ml-2">
+            <Link href={ROUTES.blogPost('desktop-application')} className="font-semibold text-white ml-2">
               <span aria-hidden="true" className="absolute inset-0" />
               Read more <span aria-hidden="true">&rarr;</span>
             </Link>

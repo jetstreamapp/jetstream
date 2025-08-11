@@ -130,23 +130,25 @@ export const Billing = () => {
             <li>
               Access to the{' '}
               <a
-                href={APP_ROUTES.CHROME_EXTENSION.ROUTE}
+                href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
                 target="_blank"
                 className="slds-text-heading_x-small"
                 rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.chrome_extension_link, { action: 'clicked', source: 'billing_page' })}
+                onClick={() => trackEvent(ANALYTICS_KEYS.desktop_app_download_link, { action: 'clicked', source: 'billing_page' })}
               >
-                Chrome Extension
-              </a>{' '}
-              and{' '}
+                Desktop Application
+              </a>
+            </li>
+            <li>
+              Access to the{' '}
               <a
-                href={APP_ROUTES.FIREFOX_EXTENSION.ROUTE}
+                href={APP_ROUTES.BROWSER_EXTENSION.ROUTE}
                 target="_blank"
                 className="slds-text-heading_x-small"
                 rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.firefox_extension_link, { action: 'clicked', source: 'billing_page' })}
+                onClick={() => trackEvent(ANALYTICS_KEYS.browser_extension_link, { action: 'clicked', source: 'billing_page' })}
               >
-                Firefox Extension
+                Chrome and Firefox Extensions
               </a>
             </li>
             <li>Save query history across devices</li>

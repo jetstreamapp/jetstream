@@ -2,7 +2,8 @@ import { ENV } from '@jetstream/api-config';
 import { convertUserProfileToSession, InvalidAccessToken } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
-import { UserProfileUi } from '@jetstream/types';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { Maybe, UserProfileUi } from '@jetstream/types';
 import * as express from 'express';
 import jwt from 'fast-jwt';
 import { LRUCache } from 'lru-cache';
@@ -88,23 +89,34 @@ export async function verifyToken(
   return (await jwtVerifier(token)) as JwtDecodedPayload;
 }
 
+export async function getUserAndDeviceIdForExternalAuth(audience: Audience, req: express.Request<unknown, unknown, unknown, unknown>) {
+  let deviceId: Maybe<string> = null;
+  try {
+    const accessToken = req.get('Authorization')?.split(' ')[1];
+    deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID) || req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID);
+    let user: UserProfileSession | null = null;
+    if (accessToken && deviceId) {
+      const cacheKey = `${accessToken}-${deviceId}`;
+      const userFromCache = cache.get(cacheKey);
+      if (!userFromCache || userFromCache.exp < Date.now() / 1000) {
+        const decodedJwtToken = await verifyToken({ token: accessToken, deviceId }, audience);
+        user = convertUserProfileToSession(decodedJwtToken.userProfile);
+        cache.set(cacheKey, decodedJwtToken);
+      } else {
+        user = convertUserProfileToSession(userFromCache.userProfile);
+      }
+    }
+    return { user, deviceId };
+  } catch (ex) {
+    req.log.info({ audience, deviceId, ...getErrorMessageAndStackObj(ex) }, '[EXTERNAL-AUTH][AUTH ERROR] Error decoding token');
+    return { user: null, deviceId };
+  }
+}
+
 export function getExternalAuthMiddleware(audience: Audience) {
   return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
-      const accessToken = req.get('Authorization')?.split(' ')[1];
-      const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID) || req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID);
-      let user: UserProfileSession | null = null;
-      if (accessToken && deviceId) {
-        const cacheKey = `${accessToken}-${deviceId}`;
-        const userFromCache = cache.get(cacheKey);
-        if (!userFromCache || userFromCache.exp < Date.now() / 1000) {
-          const decodedJwtToken = await verifyToken({ token: accessToken, deviceId }, audience);
-          user = convertUserProfileToSession(decodedJwtToken.userProfile);
-          cache.set(cacheKey, decodedJwtToken);
-        } else {
-          user = convertUserProfileToSession(userFromCache.userProfile);
-        }
-      }
+      const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req);
       if (!user) {
         throw new AuthenticationError('Unauthorized', { skipLogout: true });
       }

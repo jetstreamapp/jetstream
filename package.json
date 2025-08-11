@@ -5,7 +5,7 @@
     "type": "git",
     "url": "https://github.com/jetstreamapp/jetstream"
   },
-  "author": "Jetstream",
+  "author": "Jetstream Solutions, LLC",
   "version": "7.2.0",
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
@@ -69,6 +69,8 @@
     "build:web-extension:status": "node scripts/web-extension-publish.mjs --check-status",
     "build:web-extension:upload": "node scripts/web-extension-publish.mjs --upload -f dist/web-extension-build/web-extension.zip",
     "build:web-extension:publish": "node scripts/web-extension-publish.mjs --publish -f dist/web-extension-build/web-extension.zip",
+    "publish:desktop:macos": "yarn build:desktop && cd dist/desktop-build && yarn publish:macos:x64 && yarn publish:macos:arm64",
+    "publish:desktop:windows": "yarn build:desktop && cd dist\\desktop-build && yarn publish:windows:x64",
     "email:dev": "email dev --dir ./libs/email/src/lib/email-templates --port 3003",
     "email:build": "email build --dir ./libs/email/src/lib/email-templates --packageManager yarn",
     "scripts:replace-deps": "node ./scripts/replace-package-deps.mjs",
@@ -133,6 +135,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
     "@electron-forge/plugin-fuses": "^7.8.1",
     "@electron-forge/publisher-github": "^7.8.1",
+    "@electron-forge/publisher-s3": "^7.8.2",
     "@electron/fuses": "^1.8.0",
     "@emotion/babel-plugin": "^11.13.5",
     "@eslint/compat": "^1.1.1",
@@ -274,10 +277,11 @@
     "webpack": "5.99.9",
     "webpack-merge": "^5.8.0",
     "worker-loader": "^2.0.0",
-    "zx": "^7.2.3"
+    "zx": "^8.7.2"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "2.9.2",
+    "@aws-sdk/client-s3": "^3.859.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@express-rate-limit/cluster-memory-store": "^0.3.0",

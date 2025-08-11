@@ -1,6 +1,7 @@
 import apiRoutes from './api.routes';
 import authRoutes from './auth.routes';
 import desktopAppRoutes from './desktop-app.routes';
+import desktopAssetsRoutes from './desktop-assets.routes';
 import oauthRoutes from './oauth.routes';
 import platformEventRoutes from './platform-event.routes';
 import staticAuthenticatedRoutes from './static-authenticated.routes';
@@ -12,6 +13,7 @@ export {
   apiRoutes,
   authRoutes,
   desktopAppRoutes,
+  desktopAssetsRoutes,
   oauthRoutes,
   platformEventRoutes,
   staticAuthenticatedRoutes,
