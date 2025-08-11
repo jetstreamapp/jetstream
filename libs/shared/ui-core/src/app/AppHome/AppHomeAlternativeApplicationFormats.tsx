@@ -61,7 +61,7 @@ export const AppHomeAlternativeApplicationFormats = () => {
           </h3>
           {(!hasExtensionAccess || !hasDesktopAccess) && (
             <p className="slds-m-bottom_x-small">
-              The desktop application and browser extension <strong>requires a Pro</strong> subscription.{' '}
+              The desktop application and browser extension <strong>require a Pro</strong> subscription.{' '}
               <Link
                 to="/settings/billing"
                 onClick={() => trackEvent(ANALYTICS_KEYS.billing_page_accessed, { action: 'clicked', source: 'app_home' })}
@@ -81,11 +81,9 @@ export const AppHomeAlternativeApplicationFormats = () => {
             Download the Desktop Application
           </a>
           {!hasDesktopAccess && (
-            <>
-              <p className="slds-m-top_xx-small">
-                When using the desktop application, none of your Salesforce data is sent to the Jetstream server.
-              </p>
-            </>
+            <p className="slds-m-top_xx-small">
+              When using the desktop application, none of your Salesforce data is sent to the Jetstream server.
+            </p>
           )}
           <p>
             <a href={APP_ROUTES.DESKTOP_APPLICATION.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
