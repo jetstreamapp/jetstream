@@ -5,7 +5,7 @@ import { Badge, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { AppHomeChromeExtension } from './AppHomeChromeExtension';
+import { AppHomeAlternativeApplicationFormats } from './AppHomeAlternativeApplicationFormats';
 import { AppHomeOrganizations } from './AppHomeOrganizations';
 
 const HOME_ITEMS = [
@@ -159,7 +159,7 @@ export const AppHome = ({ showChromeExtension }: AppHomeProps) => {
           </div>
         ))}
 
-        {showChromeExtension ? <AppHomeChromeExtension /> : null}
+        {showChromeExtension ? <AppHomeAlternativeApplicationFormats /> : null}
       </div>
     </div>
   );

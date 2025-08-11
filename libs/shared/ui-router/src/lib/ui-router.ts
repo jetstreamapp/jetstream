@@ -1,7 +1,7 @@
 type RouteKey =
   | 'HOME'
-  | 'CHROME_EXTENSION'
-  | 'FIREFOX_EXTENSION'
+  | 'DESKTOP_APPLICATION'
+  | 'BROWSER_EXTENSION'
   | 'ORGANIZATIONS'
   | 'QUERY'
   | 'LOAD'
@@ -60,20 +60,20 @@ export const APP_ROUTES: RouteMap = {
     TITLE: 'Home',
     DESCRIPTION: 'Welcome to Jetstream',
   },
-  CHROME_EXTENSION: {
-    ROUTE: 'https://chromewebstore.google.com/detail/jetstream/nhahnhcpbhlkmpkdgbbadffnhblhlomm',
+  DESKTOP_APPLICATION: {
+    ROUTE: 'https://getjetstream.app/desktop-app/',
     SEARCH_PARAM: undefined,
-    DOCS: 'https://docs.getjetstream.app/browser-extension',
-    TITLE: 'Chrome Extension',
-    DESCRIPTION: 'Use Jetstream on any Salesforce page with the Chrome Extension',
-    NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
+    DOCS: 'https://docs.getjetstream.app/desktop-app',
+    TITLE: 'Desktop Application',
+    DESCRIPTION: 'Use Jetstream on any Salesforce page with the desktop application',
+    NEW_UNTIL: new Date(2025, 9, 31, 23, 59, 59).getTime(), // October 31, 2025
   },
-  FIREFOX_EXTENSION: {
-    ROUTE: 'https://addons.mozilla.org/en-US/firefox/addon/jetstreamapp',
+  BROWSER_EXTENSION: {
+    ROUTE: 'https://getjetstream.app/browser-extensions/',
     SEARCH_PARAM: undefined,
     DOCS: 'https://docs.getjetstream.app/browser-extension',
-    TITLE: 'Firefox Extension',
-    DESCRIPTION: 'Use Jetstream on any Salesforce page with the Firefox Extension',
+    TITLE: 'Browser Extension',
+    DESCRIPTION: 'Use Jetstream on any Salesforce page with the browser extension',
     NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
   ORGANIZATIONS: {

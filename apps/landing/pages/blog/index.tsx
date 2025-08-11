@@ -41,7 +41,7 @@ export default function Page({ blogPosts }: PostProps) {
 
 Page.getLayout = function getLayout(page) {
   return (
-    <Layout title="Blog | Jetstream" isInverse navigationProps={{ omitLinks: ['/blog'] }}>
+    <Layout title="Blog | Jetstream" isInverse>
       {page}
     </Layout>
   );

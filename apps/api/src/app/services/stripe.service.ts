@@ -170,6 +170,7 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
       googleDrive: false,
       chromeExtension: false,
       recordSync: false,
+      desktop: false,
     }
   );
 
@@ -240,7 +241,10 @@ export async function synchronizeStripeWithJetstreamIfRequired({
     const hasCorrectSubscriptionItemCount = priceRecordCount === userProfile.subscriptions.length;
     // This isn't very scalable as we introduce more entitlements, but that is likely going to be a really slow process
     const areEntitlementsEnabled =
-      !!userProfile.entitlements?.chromeExtension && !!userProfile.entitlements?.googleDrive && !!userProfile.entitlements?.recordSync;
+      !!userProfile.entitlements?.chromeExtension &&
+      !!userProfile.entitlements?.googleDrive &&
+      !!userProfile.entitlements?.desktop &&
+      !!userProfile.entitlements?.recordSync;
     const hasCorrectEntitlements = priceRecordCount > 0 ? areEntitlementsEnabled : !areEntitlementsEnabled;
     if (!force && hasCorrectSubscriptionItemCount && hasCorrectEntitlements) {
       return { success: true, didUpdate, stripeCustomer } as const;

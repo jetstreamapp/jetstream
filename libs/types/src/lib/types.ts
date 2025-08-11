@@ -118,6 +118,7 @@ export interface UserProfileUi {
   entitlements: {
     googleDrive: boolean;
     chromeExtension: boolean;
+    desktop: boolean;
     recordSync: boolean;
   };
   subscriptions: {
