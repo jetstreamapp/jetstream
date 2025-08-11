@@ -202,7 +202,6 @@ export async function generate2faTotpSecret() {
 export async function verify2faTotpOrThrow(secret: string, code: string) {
   const { decodeHex } = await osloEncodingPromise;
   const { verifyTOTP } = await osloOtpPromise;
-  console.log(decodeHex(secret));
   const validOTP = verifyTOTP(decodeHex(secret), TOTP_INTERVAL_SEC, TOTP_DIGITS, code);
   if (!validOTP) {
     throw new InvalidVerificationToken();
