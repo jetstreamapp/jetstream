@@ -1,8 +1,11 @@
 import { app, BrowserWindow } from 'electron';
 import { Browser } from './browser/browser';
+import { handleSquirrelEvent } from './config/squirrel-startup';
+import { setupAutoUpdater } from './config/updater';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
+import { registerNotificationPoller } from './services/notification.service';
 import {
   registerDownloadHandler,
   registerFileOpenHandler,
@@ -11,27 +14,32 @@ import {
 } from './services/protocol.service';
 import { isMac } from './utils/utils';
 
-initDeepLink();
-initAppMenu();
+if (!handleSquirrelEvent()) {
+  setupAutoUpdater();
+  initDeepLink();
+  initAppMenu();
 
-app.on('window-all-closed', () => {
-  if (!isMac()) {
-    app.quit();
-  }
-});
-
-app.whenReady().then(async () => {
-  registerProtocols();
-
-  const mainWindow = Browser.create(() => registerIpc());
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0 || !mainWindow || mainWindow.isDestroyed()) {
-      Browser.create();
+  app.on('window-all-closed', () => {
+    if (!isMac()) {
+      app.quit();
     }
   });
 
-  registerWebRequestHandlers();
-  registerDownloadHandler();
-  registerFileOpenHandler();
-});
+  app.whenReady().then(async () => {
+    registerProtocols();
+
+    const mainWindow = Browser.create(() => registerIpc());
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0 || !mainWindow || mainWindow.isDestroyed()) {
+        Browser.create();
+      }
+    });
+
+    registerWebRequestHandlers();
+    registerDownloadHandler();
+    registerFileOpenHandler();
+
+    registerNotificationPoller();
+  });
+}

@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
+import { METADATA_TYPES_WITH_NESTED_FOLDERS } from '@jetstream/shared/constants';
 import { listMetadata as listMetadataApi, queryAll, queryWithCache } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy, splitArrayToMaxSize } from '@jetstream/shared/utils';
@@ -49,8 +50,6 @@ const getFolderSoqlQuery = (type: string) => {
 const getPersonTypeSoqlQuery = () => {
   return `SELECT DeveloperName, SobjectType FROM RecordType WHERE IsPersonType = TRUE`;
 };
-
-const METADATA_TYPES_WITH_NESTED_FOLDERS = new Set(['Report', 'Dashboard']);
 
 // helper method
 async function fetchListMetadata(
@@ -112,7 +111,7 @@ async function fetchListMetadata(
 /**
  * Recursively fetch all metadata inside all unmanaged folders
  *
- * Used when inFolder=true (Dashboard, Document, Email, Report)
+ * Used when inFolder=true (Dashboard, Document, Email/EmailTemplate, Report)
  *
  * https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_folder.htm
  *
@@ -128,12 +127,12 @@ async function fetchListMetadataForItemsInFolder(
   skipCacheIfOlderThan?: number
 ): Promise<ListMetadataResultItem> {
   const { type } = item;
-  const typeWithFolder = type === 'EmailTemplate' ? 'EmailFolder' : `${type}Folder`;
+  const typeWithFolder = type === 'EmailTemplate' ? ['EmailFolder', 'EmailTemplateFolder'] : [`${type}Folder`];
   let outputItems: ListMetadataResult[] = [];
   // get list of folders
   const { data, cache } = await listMetadataApi(
     selectedOrg,
-    [{ type: typeWithFolder, folder: undefined }],
+    typeWithFolder.map((folderType): ListMetadataQuery => ({ type: folderType })),
     skipRequestCache,
     skipCacheIfOlderThan
   );
@@ -146,26 +145,9 @@ async function fetchListMetadataForItemsInFolder(
    *
    * @example {'SubSubFolder2': 'RootFolder/SubFolder1/SubSubFolder2'}
    */
-  const foldersByPath: Record<string, string> = {};
+  let foldersByPath: Record<string, string> = {};
   if (METADATA_TYPES_WITH_NESTED_FOLDERS.has(type)) {
-    // query all folders and figure out all path combinations
-    const reportFolders = await queryAll<FolderRecord>(selectedOrg, getFolderSoqlQuery(type));
-    const foldersById = groupByFlat(reportFolders.queryResults.records, 'Id');
-
-    reportFolders.queryResults.records.reduce((foldersByPath, folder) => {
-      const { DeveloperName, ParentId } = folder;
-
-      if (!ParentId) {
-        foldersByPath[DeveloperName] = DeveloperName;
-      } else if (foldersById[ParentId]?.DeveloperName) {
-        const parentFolder = foldersById[ParentId];
-        const parentPath = foldersByPath[parentFolder.DeveloperName];
-        foldersByPath[DeveloperName] = `${parentPath}/${DeveloperName}`;
-      } else {
-        logger.warn('[ERROR] Could not find parent folder for folder', folder);
-      }
-      return foldersByPath;
-    }, foldersByPath);
+    foldersByPath = await getFullFolderPathByFolderDeveloperName(selectedOrg, type);
   }
 
   // we need to fetch for each folder, split into sets of 3
@@ -201,6 +183,68 @@ async function fetchListMetadataForItemsInFolder(
     loading: false,
     lastRefreshed: cache ? `Last updated ${formatRelative(cache.age, new Date())}` : null,
   };
+}
+
+/**
+ * Folders need to include their full folder path and must end with "/" so the API knows they are a folder
+ * and not a metadata item.
+ *
+ * Reference: https://github.com/forcedotcom/source-deploy-retrieve/commit/4d35ce333d59ec18ac9fe3ca730dbd2dd34f06ff
+ *
+ */
+export async function mutateFullNameForFolderToIncludeFullPath(selectedOrg: SalesforceOrgUi, responseItem: ListMetadataResultItem) {
+  if (!responseItem || !responseItem.items || !responseItem.type.endsWith('Folder')) {
+    return;
+  }
+  const folderType = responseItem.type.replace(/Folder$/, '');
+  const foldersByPath = await getFullFolderPathByFolderDeveloperName(selectedOrg, folderType);
+
+  responseItem.items.forEach((item) => {
+    if (foldersByPath[item.fullName] && foldersByPath[item.fullName] !== item.fullName) {
+      item.fullName = foldersByPath[item.fullName];
+    }
+    if (!item.fullName.endsWith('/')) {
+      item.fullName += '/';
+    }
+  });
+}
+
+export async function getFullFolderPathByFolderDeveloperName(
+  selectedOrg: SalesforceOrgUi,
+  // Types are listed here mostly for documentation purposes
+  type:
+    | 'Document'
+    | 'Email'
+    | 'Report'
+    | 'Dashboard'
+    | 'QuickText'
+    | 'Macro'
+    | 'EmailTemplate'
+    | 'ActionCadence'
+    | 'Capstone'
+    | 'AnalyticAssetCollection'
+    | string
+) {
+  const foldersByPath: Record<string, string> = {};
+  const reportFolders = await queryAll<FolderRecord>(selectedOrg, getFolderSoqlQuery(type));
+  const foldersById = groupByFlat(reportFolders.queryResults.records, 'Id');
+
+  reportFolders.queryResults.records.reduce((foldersByPath, folder) => {
+    const { DeveloperName, ParentId } = folder;
+
+    if (!ParentId) {
+      foldersByPath[DeveloperName] = DeveloperName;
+    } else if (foldersById[ParentId]?.DeveloperName) {
+      const parentFolder = foldersById[ParentId];
+      const parentPath = foldersByPath[parentFolder.DeveloperName];
+      foldersByPath[DeveloperName] = `${parentPath}/${DeveloperName}`;
+    } else {
+      logger.warn('[ERROR] Could not find parent folder for folder', folder);
+    }
+    return foldersByPath;
+  }, foldersByPath);
+
+  return foldersByPath;
 }
 
 /**
@@ -306,6 +350,11 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
               responseItem = await fetchListMetadata(selectedOrg, item, skipRequestCache, skipCacheIfOlderThan);
             }
 
+            // Ensure nested folders have the full path in their name
+            if (item.type.endsWith('Folder')) {
+              await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
+            }
+
             // Some sobjects are in the list twice (Salesforce bug - specifically Account shows up twice)
             if (responseItem?.items) {
               responseItem.items = uniqWith(
@@ -371,12 +420,16 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         );
 
         let responseItem = await fetchListMetadata(selectedOrg, item, true);
-
         if (inFolder) {
           // handle additional fetches required if type is in folder
           responseItem = await fetchListMetadataForItemsInFolder(selectedOrg, item, true);
         } else {
           responseItem = await fetchListMetadata(selectedOrg, item, true);
+        }
+
+        // Ensure nested folders have the full path in their name
+        if (item.type.endsWith('Folder')) {
+          await mutateFullNameForFolderToIncludeFullPath(selectedOrg, responseItem);
         }
 
         if (!isMounted.current) {

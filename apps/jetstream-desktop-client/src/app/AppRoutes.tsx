@@ -88,7 +88,7 @@ const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').the
 const PlatformEventMonitor = lazy(() =>
   import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
 );
-const Billing = lazy(() => import('./components/billing/Billing'));
+
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 // Wrapper to avoid having to define this everywhere
@@ -282,7 +282,6 @@ export const AppRoutes = () => {
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
       <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
       <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
-      <Route path={APP_ROUTES.BILLING.ROUTE} element={<Billing />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );

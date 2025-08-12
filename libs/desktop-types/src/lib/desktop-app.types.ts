@@ -169,3 +169,14 @@ export const OrgsPersistenceSchema = z.object({
 export type OrgsPersistence = z.infer<typeof OrgsPersistenceSchema>;
 
 export type DesktopAuthInfo = { accessToken: string; deviceId: string };
+
+export const NotificationMessageV1ResponseSchema = z.object({
+  success: z.boolean(),
+  severity: z.enum(['normal', 'critical']),
+  action: z.enum(['notification', 'action-modal']).nullish(),
+  actionUrl: z.string().nullable(),
+  title: z.string().nullable(),
+  message: z.string().nullable(),
+});
+
+export type NotificationMessageV1Response = z.infer<typeof NotificationMessageV1ResponseSchema>;

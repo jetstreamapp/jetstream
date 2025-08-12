@@ -29,6 +29,7 @@ test.describe('Login 1', () => {
       expect(userProfile.entitlements).toBeTruthy();
       expect(userProfile.entitlements.chromeExtension).toEqual(false);
       expect(userProfile.entitlements.googleDrive).toEqual(false);
+      expect(userProfile.entitlements.desktop).toEqual(false);
       expect(userProfile.entitlements.recordSync).toEqual(false);
       expect(userProfile.subscriptions).toBeTruthy();
       expect(userProfile.subscriptions).toHaveLength(0);

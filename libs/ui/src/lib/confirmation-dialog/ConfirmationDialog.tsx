@@ -1,5 +1,4 @@
 import { Maybe } from '@jetstream/types';
-import { OverlayProvider } from '@react-aria/overlays';
 import React, { Fragment, FunctionComponent } from 'react';
 import Modal from '../modal/Modal';
 
@@ -40,30 +39,30 @@ export const ConfirmationDialog: FunctionComponent<ConfirmationDialogProps> = ({
   onConfirm,
   children,
 }) => {
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <OverlayProvider>
-      {isOpen && (
-        <Modal
-          className="slds-modal_prompt"
-          header={header || 'Confirm Action'}
-          tagline={tagline}
-          closeOnBackdropClick={false}
-          footer={
-            <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={onCancel}>
-                {cancelText}
-              </button>
-              <button className="slds-button slds-button_brand" onClick={onConfirm} disabled={submitDisabled}>
-                {confirmText}
-              </button>
-            </Fragment>
-          }
-          onClose={() => onCancel && onCancel()}
-        >
-          {children}
-        </Modal>
-      )}
-    </OverlayProvider>
+    <Modal
+      className="slds-modal_prompt"
+      header={header || 'Confirm Action'}
+      tagline={tagline}
+      closeOnBackdropClick={false}
+      footer={
+        <Fragment>
+          <button className="slds-button slds-button_neutral" onClick={onCancel}>
+            {cancelText}
+          </button>
+          <button className="slds-button slds-button_brand" onClick={onConfirm} disabled={submitDisabled}>
+            {confirmText}
+          </button>
+        </Fragment>
+      }
+      onClose={() => onCancel && onCancel()}
+    >
+      {children}
+    </Modal>
   );
 };
 

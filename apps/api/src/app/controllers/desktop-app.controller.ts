@@ -1,5 +1,6 @@
 import { ENV } from '@jetstream/api-config';
 import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
+import { NotificationMessageV1Response } from '@jetstream/desktop/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { fromUnixTime } from 'date-fns';
@@ -60,6 +61,13 @@ export const routeDefinition = {
     controllerFn: () => dataSyncPush,
     validators: {
       ...dataSyncController.push.validators,
+    },
+  },
+  notifications: {
+    controllerFn: () => notifications,
+    validators: {
+      query: z.object({ os: z.string(), version: z.string(), isPackaged: z.union([z.string(), z.boolean()]).optional().default(true) }),
+      hasSourceOrg: false,
     },
   },
 };
@@ -187,6 +195,27 @@ const dataSyncPush = createRoute(routeDefinition.dataSyncPush.validators, async 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID)!;
   emitRecordSyncEventsToOtherClients(deviceId, syncEvent);
+
+  sendJson(res, response);
+});
+
+const notifications = createRoute(routeDefinition.notifications.validators, async ({ query }, req, res) => {
+  // TODO: reserved for future use (e.g. check if there is a critical update required, or auto-update is broken etc..)
+  const { os, version } = query;
+  const { deviceId, user } = await externalAuthService.getUserAndDeviceIdForExternalAuth(externalAuthService.AUDIENCE_DESKTOP, req);
+
+  // TODO: potentially message user based on some conditions
+
+  res.log.info({ userId: user?.id, deviceId, os, version }, '[DESKTOP NOTIFICATIONS] User requested notifications');
+
+  const response: NotificationMessageV1Response = {
+    success: true,
+    severity: 'normal',
+    title: null,
+    action: null,
+    actionUrl: null,
+    message: null,
+  };
 
   sendJson(res, response);
 });

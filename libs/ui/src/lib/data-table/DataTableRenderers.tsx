@@ -54,6 +54,13 @@ export function configIdLinkRenderer(serverUrl: string, org: SalesforceOrgUi, sk
   _skipFrontdoorLogin = skipFrontdoorLogin ?? _skipFrontdoorLogin;
 }
 
+/**
+ * Map of function identities in order to identify the function in callback functions
+ * This is generally used to have dedicated functionality for keyboard navigation based on the cell renderer type
+ */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export const dataTableRenderFnMap = new Map<Function, string>();
+
 // HEADER RENDERERS
 
 export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
@@ -76,6 +83,7 @@ export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
     </DataTableSelectedContext.Consumer>
   );
 }
+dataTableRenderFnMap.set(SelectHeaderGroupRenderer, 'SelectHeaderGroupRenderer');
 
 export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
   sortDirection,
@@ -110,6 +118,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     </div>
   );
 }
+dataTableRenderFnMap.set(FilterRenderer, 'FilterRenderer');
 
 /**
  * Filter renderer that can be used for any field that does not need sort
@@ -124,6 +133,7 @@ export function SummaryFilterRenderer({ columnKey, label }: { columnKey: string;
     </div>
   );
 }
+dataTableRenderFnMap.set(SummaryFilterRenderer, 'SummaryFilterRenderer');
 
 interface HeaderFilterProps {
   columnKey: string;
@@ -222,6 +232,7 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, updateF
     </div>
   );
 });
+dataTableRenderFnMap.set(HeaderFilter, 'HeaderFilter');
 
 interface DataTableTextFilterProps {
   columnKey: string;
@@ -246,6 +257,7 @@ export const HeaderTextFilter = memo(({ columnKey, filter, autoFocus = false, up
     </Input>
   );
 });
+dataTableRenderFnMap.set(HeaderTextFilter, 'HeaderTextFilter');
 
 interface HeaderSetFilterProps {
   columnKey: string;
@@ -361,6 +373,7 @@ export const HeaderSetFilter = memo(({ columnKey, filter, values, updateFilter }
     </div>
   );
 });
+dataTableRenderFnMap.set(HeaderSetFilter, 'HeaderSetFilter');
 
 interface DataTableDateFilterProps {
   columnKey: string;
@@ -409,6 +422,7 @@ export const HeaderDateFilter = memo(({ columnKey, filter, updateFilter }: DataT
     </div>
   );
 });
+dataTableRenderFnMap.set(HeaderDateFilter, 'HeaderDateFilter');
 
 interface HeaderTimeFilterProps {
   columnKey: string;
@@ -458,6 +472,7 @@ export const HeaderTimeFilter = memo(({ columnKey, filter, updateFilter }: Heade
     </div>
   );
 });
+dataTableRenderFnMap.set(HeaderTimeFilter, 'HeaderTimeFilter');
 
 // CELL RENDERERS
 /** Generic cell renderer when the type of data is unknown */
@@ -480,6 +495,7 @@ export function GenericRenderer(RenderCellProps: RenderCellProps<RowWithKey>): R
 
   return <div className="slds-truncate">{value}</div>;
 }
+dataTableRenderFnMap.set(GenericRenderer, 'GenericRenderer');
 
 export function SelectFormatter<T>(props: RenderCellProps<T>): ReactNode {
   const { column, row } = props;
@@ -496,6 +512,7 @@ export function SelectFormatter<T>(props: RenderCellProps<T>): ReactNode {
     />
   );
 }
+dataTableRenderFnMap.set(SelectFormatter, 'SelectFormatter');
 
 export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column, row }: RenderCellProps<T>): ReactNode {
   if (!row) {
@@ -508,6 +525,7 @@ export function ValueOrLoadingRenderer<T extends { loading: boolean }>({ column,
   }
   return <div>{value}</div>;
 }
+dataTableRenderFnMap.set(ValueOrLoadingRenderer, 'ValueOrLoadingRenderer');
 
 export const ComplexDataRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
   const value = row[column.key];
@@ -552,6 +570,7 @@ export const ComplexDataRenderer = ({ column, row }: RenderCellProps<RowWithKey,
     </div>
   );
 };
+dataTableRenderFnMap.set(ComplexDataRenderer, 'ComplexDataRenderer');
 
 export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unknown>): ReactNode => {
   const { onRecordAction } = useContext(DataTableGenericContext) as {
@@ -571,6 +590,7 @@ export const IdLinkRenderer = ({ column, row }: RenderCellProps<RowWithKey, unkn
     />
   );
 };
+dataTableRenderFnMap.set(IdLinkRenderer, 'IdLinkRenderer');
 
 export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey>): ReactNode {
   const { column, row } = RenderCellProps;
@@ -639,6 +659,7 @@ export const ActionRenderer = ({ row }: { row: any }): ReactNode => {
     </Fragment>
   );
 };
+dataTableRenderFnMap.set(ActionRenderer, 'ActionRenderer');
 
 export const BooleanRenderer = ({ column, row }: RenderCellProps<any, unknown>): ReactNode => {
   const value = row[column.key];
@@ -653,6 +674,7 @@ export const BooleanRenderer = ({ column, row }: RenderCellProps<any, unknown>):
     />
   );
 };
+dataTableRenderFnMap.set(BooleanRenderer, 'BooleanRenderer');
 
 export const ErrorMessageRenderer = ({ row }: { row: any }): ReactNode => {
   if (!row?._saveError) {
@@ -696,3 +718,4 @@ export const ErrorMessageRenderer = ({ row }: { row: any }): ReactNode => {
     </Popover>
   );
 };
+dataTableRenderFnMap.set(ErrorMessageRenderer, 'ErrorMessageRenderer');

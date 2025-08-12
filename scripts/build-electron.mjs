@@ -4,7 +4,12 @@ import { readFileSync, writeFileSync } from 'fs';
 import { copy, ensureDir, remove } from 'fs-extra';
 import minimist from 'minimist';
 import { join } from 'path';
-import { $, cd, chalk } from 'zx'; // https://github.com/google/zx
+import { $, cd, chalk, usePowerShell } from 'zx'; // https://github.com/google/zx
+
+// Configure shell based on platform
+if (process.platform === 'win32') {
+  usePowerShell(); // Use PowerShell on Windows
+}
 
 const argv = minimist(process.argv.slice(2), {
   boolean: ['help'],
@@ -37,7 +42,7 @@ const DOWNZIP_SW_BUILD_DIR = join(process.cwd(), 'dist/apps/download-zip-sw');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
 
 // NX calculates these dependencies, but they are not used in the final build
-const yarnRemoveDeps = ['@prisma/client', 'react', 'tslib', 'xlsx', 'stripe'];
+const yarnRemoveDeps = ['react', 'tslib', 'xlsx', 'stripe'];
 
 /**
  * Look at root package.json for version of all dependencies to install
@@ -57,6 +62,7 @@ const yarnAddDevDeps = (() => {
     '@electron-forge/plugin-auto-unpack-natives',
     '@electron-forge/plugin-fuses',
     '@electron-forge/publisher-github',
+    '@electron-forge/publisher-s3',
     '@electron/fuses',
     'dotenv',
     'electron',
@@ -103,7 +109,14 @@ async function build() {
   await $`yarn remove ${yarnRemoveDeps}`;
   await remove(join(TARGET_DIR, 'node_modules/.prisma'));
 
-  const envContent = ['GITHUB_TOKEN', 'APPLE_ID', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']
+  const envContent = [
+    'IS_CODESIGNING_ENABLED',
+    'APPLE_ID',
+    'APPLE_PASSWORD',
+    'APPLE_TEAM_ID',
+    'BACKBLAZE_ACCESS_KEY_ID',
+    'BACKBLAZE_SECRET_ACCESS_KEY',
+  ]
     .filter((key) => process.env[key])
     .map((key) => `${key}=${process.env[key] ?? ''}`)
     .join('\n');

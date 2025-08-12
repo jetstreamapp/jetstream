@@ -50,7 +50,7 @@ export const QueryResultsCopyToClipboard: FunctionComponent<QueryResultsCopyToCl
     setWhichRecords('all');
   }, [records, filteredRows, selectedRows]);
 
-  async function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
+  function handleCopyToClipboard(format: CopyAsDataType = 'excel') {
     if (
       (records && hasFilteredRows && filteredRows.length < records.length) ||
       (records && hasPartialSelectedRows && selectedRows.length < records.length)

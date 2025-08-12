@@ -14,6 +14,9 @@ export const ROUTES = {
   TERMS_OF_SERVICE: '/terms-of-service',
   SUB_PROCESSORS: '/subprocessors',
   DPA: '/dpa',
+  DESKTOP: '/desktop-app',
+  BROWSER_EXTENSIONS: '/browser-extensions',
+  PRICING: '/pricing',
   EXTERNAL: {
     DOCS: 'https://docs.getjetstream.app',
     STATUS: 'https://status.getjetstream.app',
@@ -21,6 +24,8 @@ export const ROUTES = {
     DISCORD: 'https://discord.gg/sfxd',
     GITHUB_ISSUE: 'https://github.com/jetstreamapp/jetstream/issues',
     GITHUB_SPONSOR: 'https://github.com/sponsors/jetstreamapp',
+    CHROME_EXTENSION: 'https://chromewebstore.google.com/detail/jetstream/nhahnhcpbhlkmpkdgbbadffnhblhlomm',
+    FIREFOX_EXTENSION: 'https://addons.mozilla.org/en-US/firefox/addon/jetstreamapp',
   },
   AUTH: {
     _root_path: '/auth/',
@@ -38,6 +43,9 @@ export const ROUTES = {
     api_verify_resend: `/api/auth/verify/resend`,
     api_reset_password_init: `/api/auth/password/reset/init`,
     api_reset_password_verify: `/api/auth/password/reset/verify`,
+  },
+  API: {
+    desktop_downloads: `${process.env.NX_PUBLIC_SERVER_URL || 'https://getjetstream.app'}/desktop-assets/downloads`,
   },
 };
 

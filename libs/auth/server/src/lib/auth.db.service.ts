@@ -966,7 +966,7 @@ async function createUserFromProvider(
         // picture: providerUser.picture,
         lastLoggedIn: new Date(),
         preferences: { create: { skipFrontdoorLogin: false } },
-        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
+        entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
         identities: {
           create: {
             type: 'oauth',
@@ -1119,7 +1119,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
           passwordUpdatedAt: new Date(),
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
-          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
+          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
           authFactors: {
             create: {
               type: '2fa-email',

@@ -1,4 +1,3 @@
-import { OverlayProvider } from '@react-aria/overlays';
 import { Fragment, FunctionComponent } from 'react';
 import { create, InstanceProps } from 'react-modal-promise';
 import Modal, { ModalProps } from './Modal';
@@ -24,30 +23,30 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
   closeOnBackdropClick = true,
   onResolve,
 }) => {
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <OverlayProvider>
-      {isOpen && (
-        <Modal
-          header={header}
-          tagline={tagline}
-          closeOnEsc={closeOnEsc}
-          closeOnBackdropClick={closeOnBackdropClick}
-          footer={
-            <Fragment>
-              <button className="slds-button slds-button_neutral" onClick={() => onResolve(false)}>
-                {cancel}
-              </button>
-              <button className="slds-button slds-button_brand" onClick={() => onResolve(true)}>
-                {confirm}
-              </button>
-            </Fragment>
-          }
-          onClose={() => onResolve(false)}
-        >
-          <div>{content}</div>
-        </Modal>
-      )}
-    </OverlayProvider>
+    <Modal
+      header={header}
+      tagline={tagline}
+      closeOnEsc={closeOnEsc}
+      closeOnBackdropClick={closeOnBackdropClick}
+      footer={
+        <Fragment>
+          <button className="slds-button slds-button_neutral" onClick={() => onResolve(false)}>
+            {cancel}
+          </button>
+          <button className="slds-button slds-button_brand" onClick={() => onResolve(true)}>
+            {confirm}
+          </button>
+        </Fragment>
+      }
+      onClose={() => onResolve(false)}
+    >
+      <div>{content}</div>
+    </Modal>
   );
 };
 

@@ -9,6 +9,7 @@ const sidebar = {
         'getting-started/troubleshooting',
         'getting-started/organizations',
         'getting-started/feedback',
+        'getting-started/desktop-app',
         'getting-started/browser-extension/browser-extension',
         'getting-started/history-data-sync/history-data-sync',
       ],

@@ -225,7 +225,16 @@ export interface DeployResult {
   success: boolean;
 }
 
-export type DeployResultStatus = 'Pending' | 'InProgress' | 'Succeeded' | 'SucceededPartial' | 'Failed' | 'Canceling' | 'Canceled';
+export type DeployResultStatus =
+  | 'Pending'
+  | 'InProgress'
+  | 'Succeeded'
+  | 'SucceededPartial'
+  | 'Failed'
+  | 'Canceling'
+  | 'Canceled'
+  | 'Finalizing'
+  | 'FinalizingFailed';
 
 export interface DeployMessage {
   changed: boolean;

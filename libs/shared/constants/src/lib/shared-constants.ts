@@ -158,8 +158,8 @@ export const ANALYTICS_KEYS = {
   notifications_permission_requested: 'notifications_permission_requested',
   /** Misc */
   file_download: 'file_download',
-  chrome_extension_link: 'chrome_extension_link',
-  firefox_extension_link: 'firefox_extension_link',
+  desktop_app_download_link: 'desktop_app_download_link',
+  browser_extension_link: 'browser_extension_link',
   /** Record Modal */
   record_modal_action_change: 'record_modal_action_change',
   record_modal_view_related: 'record_modal_view_related',
@@ -1018,3 +1018,17 @@ export const PROFILE_NAME_TO_FULL_NAME_MAP = {
   'System Administrator': 'Admin',
   Admin: 'System Administrator',
 };
+
+export const METADATA_TYPES_WITH_NESTED_FOLDERS = new Set(['Report', 'Dashboard', 'EmailTemplate']);
+export const METADATA_TYPES_WITH_FOLDERS = new Set([
+  'Document',
+  'Email',
+  'Report',
+  'Dashboard',
+  'QuickText',
+  'Macro',
+  'EmailTemplate',
+  'ActionCadence',
+  'Capstone',
+  'AnalyticAssetCollection',
+]);

@@ -23,6 +23,7 @@ import {
   apiRoutes,
   authRoutes,
   desktopAppRoutes,
+  desktopAssetsRoutes,
   oauthRoutes,
   platformEventRoutes,
   redirectRoutes,
@@ -175,6 +176,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             'https://api.stripe.com',
             'https://*.js.stripe.com',
             'https://hooks.stripe.com',
+            'https://releases.getjetstream.app',
           ],
           baseUri: ["'self'"],
           blockAllMixedContent: [],
@@ -350,6 +352,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/api/auth', authRoutes);
   app.use('/api/teams', teamRoutes);
   app.use('/api', apiRoutes);
+  app.use('/desktop-assets', desktopAssetsRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
   app.use('/web-extension', webExtensionRoutes);
@@ -367,9 +370,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
   }
 
-  app.use('/codicon.ttf', (req: express.Request, res: express.Response) => {
-    res.sendFile(join(__dirname, './assets/js/monaco/vs/base/browser/ui/codicons/codicon/codicon.ttf'), { maxAge: '1m' });
-  });
+  app.use('/assets/js/monaco/vs', express.static(join(__dirname, '../../../node_modules/monaco-editor/min/vs')));
   app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
   app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
@@ -467,13 +468,13 @@ try {
           lastLoggedIn: new Date(),
           preferences: { create: { skipFrontdoorLogin: false } },
           authFactors: { create: { type: '2fa-email', enabled: false } },
-          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false } },
+          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
         },
         update: {
           entitlements: {
             upsert: {
-              create: { chromeExtension: false, recordSync: false, googleDrive: false },
-              update: { chromeExtension: false, recordSync: false, googleDrive: false },
+              create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false },
+              update: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false },
             },
           },
         },

@@ -14,9 +14,14 @@
     "tagName": "desktop-v${version}"
   },
   "npm": false,
-  "github": false,
+  "github": {
+    "release": true,
+    "releaseName": "Jetstream Desktop ${version}",
+    "draft": true
+  },
   "hooks": {
-    "after:bump": ["npx prettier --write apps/jetstream-desktop/package.json", "yarn build:desktop"],
+    "before:init": ["yarn test:all"],
+    "after:bump": ["npx prettier --write apps/jetstream-desktop/package.json"],
     "after:release": "echo Successfully released ${name} v${version}."
   }
 }
