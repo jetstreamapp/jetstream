@@ -13,10 +13,11 @@ const FormSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: 'Passwords do not match',
         path: ['confirmPassword'],
+        input: '',
       });
     }
   });

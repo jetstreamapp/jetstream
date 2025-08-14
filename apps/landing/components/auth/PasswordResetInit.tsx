@@ -14,7 +14,7 @@ import { Captcha } from './Captcha';
 const FormSchema = z.object({
   csrfToken: z.string(),
   captchaToken: z.string(),
-  email: z.string().email({ message: 'A valid email address is required' }).min(5).max(255).trim(),
+  email: z.email({ error: 'A valid email address is required' }).min(5).max(255).trim(),
 });
 
 type Form = z.infer<typeof FormSchema>;
