@@ -17,9 +17,15 @@ import Icon from '../widgets/Icon';
 import { PortalProvider } from './PortalContext';
 
 export interface ModalProps {
+  testId?: string;
   className?: string;
   classStyles?: SerializedStyles;
-  hide?: boolean; // used to hide the modal without destroying contents
+  /**
+   * Used to hide the modal without destroying modal state.
+   * Generally used to open a second modal (e.g. file download)
+   * Since nothing is rendered, ensure the secondary modals are rendered in a different tree.
+   */
+  hide?: boolean;
   header?: Maybe<string | React.ReactNode>;
   tagline?: Maybe<string | React.ReactNode>;
   footer?: React.ReactNode;
@@ -49,6 +55,7 @@ function getSizeClass(size?: SizeSmMdLg) {
 }
 
 export const Modal = ({
+  testId,
   className,
   classStyles,
   hide,
@@ -145,7 +152,7 @@ export const Modal = ({
                 ${overrideZIndex ? `z-index: ${overrideZIndex}` : ''}
               `}
             >
-              <div className={classNames('slds-modal__container', containerClassName)}>
+              <div data-testid={testId} className={classNames('slds-modal__container', containerClassName)}>
                 <header className={classNames('slds-modal__header', { 'slds-modal__header_empty': !header })}>
                   <button
                     className="slds-button slds-button_icon slds-modal__close"

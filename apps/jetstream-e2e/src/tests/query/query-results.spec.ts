@@ -97,4 +97,52 @@ test.describe('QUERY RESULTS', () => {
       await expect(queryPage.getSelectedField(field)).toHaveAttribute('aria-selected', 'true');
     }
   });
+
+  test('Bulk record update should work from query results', async ({ queryPage, page }) => {
+    const query = `SELECT Id, Name, Fax FROM Account LIMIT 1`;
+    await queryPage.gotoResults(query);
+    await queryPage.waitForQueryResults(query);
+
+    await page.getByRole('button', { name: 'Record actions' }).click();
+    await page.getByRole('menuitem', { name: 'Bulk update records' }).click();
+
+    const bulkUpdateModal = page.getByTestId('bulk-update-query-results-modal');
+
+    await expect(bulkUpdateModal).toBeVisible();
+
+    await bulkUpdateModal.getByTestId('dropdown-Field to Update').getByPlaceholder('Select an Option').click();
+    await bulkUpdateModal.getByTestId('dropdown-Field to Update').getByPlaceholder('Select an Option').fill('fax');
+
+    const value = `test-value-${new Date().getTime()}`;
+    await bulkUpdateModal.getByTestId('dropdown-Field to Update').getByText('Account Fax').click();
+    await bulkUpdateModal.getByPlaceholder('Value to set on each record').fill(value);
+
+    await bulkUpdateModal.getByRole('button', { name: /Update [0-9]+ Record(s)?/ }).click();
+
+    // TODO: add mock API response to speed test up and ensure it is not flaky
+    await expect(bulkUpdateModal.getByText('Finished')).toBeVisible({ timeout: 60_000 });
+
+    // View and then Download from teh view modal
+    await bulkUpdateModal.getByRole('button', { name: 'View' }).click();
+    const loadRecordResultsModal = page.getByTestId('load-records-results-modal');
+    await loadRecordResultsModal.getByRole('button', { name: 'Download' }).click();
+
+    const downloadRecordsModal = page.getByTestId('record-download-modal');
+    await downloadRecordsModal.locator('label').filter({ hasText: 'CSV' }).locator('span').first().click();
+    const downloadPromise = page.waitForEvent('download');
+    await downloadRecordsModal.getByRole('button', { name: 'Download' }).click();
+    const download = await downloadPromise;
+    await expect(download).toBeTruthy();
+
+    // Download the updated records results
+    await bulkUpdateModal.getByRole('button', { name: 'Download' }).click();
+    await downloadRecordsModal.locator('label').filter({ hasText: 'CSV' }).locator('span').first().click();
+    const download1Promise = page.waitForEvent('download');
+    await downloadRecordsModal.getByRole('button', { name: 'Download' }).click();
+    const download1 = await download1Promise;
+
+    await expect(download1).toBeTruthy();
+
+    await bulkUpdateModal.getByRole('contentinfo').getByRole('button', { name: 'Close' }).click();
+  });
 });
