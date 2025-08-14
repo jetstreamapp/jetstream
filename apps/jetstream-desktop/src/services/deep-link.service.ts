@@ -9,7 +9,17 @@ type Listener = (query: Record<string, string>) => any;
 export const initDeepLink = () => {
   if (process.defaultApp) {
     if (process.argv.length >= 2) {
-      app.setAsDefaultProtocolClient(JETSTREAM_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+      // Find the actual script path, which might not be argv[1] if debug flags are present
+      // Look for the first arg that ends with .js or doesn't start with --
+      let scriptPath = process.argv[1];
+      for (let i = 1; i < process.argv.length; i++) {
+        const arg = process.argv[i];
+        if (arg.endsWith('.js') || (!arg.startsWith('--') && !arg.startsWith('-'))) {
+          scriptPath = arg;
+          break;
+        }
+      }
+      app.setAsDefaultProtocolClient(JETSTREAM_PROTOCOL, process.execPath, [path.resolve(scriptPath)]);
     }
   } else {
     app.setAsDefaultProtocolClient(JETSTREAM_PROTOCOL);
