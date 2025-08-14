@@ -174,6 +174,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
 
   return (
     <Modal
+      testId="record-download-modal"
       header={modalHeader}
       tagline={modalTagline}
       overrideZIndex={1001}
@@ -190,7 +191,6 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
           {alternateDownloadButton}
         </Fragment>
       }
-      hide={isGooglePickerVisible}
       onClose={() => onCancel()}
     >
       <div>
