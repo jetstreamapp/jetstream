@@ -97,7 +97,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
   const [batchSize, setBatchSize] = useState<Maybe<number>>(10000);
   const [batchSizeError, setBatchSizeError] = useState<string | null>(null);
   const [serialMode, setSerialMode] = useState(false);
-  const [isSecondModalOpen, setIsSecondModalOpen] = useState(false);
   const [deployResults, setDeployResults] = useAtom(deployResultsState);
   const [didDeploy, setDidDeploy] = useState(false);
   const resetDeployResults = useResetAtom(deployResultsState);
@@ -256,13 +255,13 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
 
   return (
     <Modal
+      testId="bulk-update-query-results-modal"
       header="Update Records"
       tagline="Update a field from your query results to a new value."
       size="lg"
       closeOnBackdropClick={false}
       closeOnEsc={false}
       closeDisabled={deployInProgress}
-      hide={isSecondModalOpen}
       footer={
         <Grid align="spread">
           <NotSeeingRecentMetadataPopover
@@ -387,7 +386,6 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             hasExternalWhereClause={!!parsedQuery.where}
             batchSize={batchSize ?? 10000}
             omitTransformationText
-            onModalOpenChange={setIsSecondModalOpen}
           />
         )}
       </div>

@@ -334,6 +334,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     <Fragment>
       {downloadModalOpen && (
         <Modal
+          testId="record-download-modal"
           header="Download Records"
           footer={
             <Fragment>
@@ -352,7 +353,6 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           }
           overrideZIndex={1001}
           onClose={() => handleModalClose(true)}
-          hide={isGooglePickerVisible}
         >
           <div>
             {requireBulkApi && (

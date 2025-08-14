@@ -105,6 +105,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   return (
     <div>
       <Modal
+        testId="load-records-results-modal"
         size="lg"
         header="Load Results"
         closeOnBackdropClick

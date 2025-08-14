@@ -99,7 +99,7 @@ export const MassUpdateRecordsDeploymentRow = ({
       const header = ['_id', '_success', '_errors'].concat(['Id', ...configuration.map(({ selectedField }) => selectedField!)]);
 
       if (action === 'view') {
-        setResultsModalData({ ...downloadModalData, open: true, header, data: combinedResults, type });
+        setResultsModalData({ ...resultsModalData, open: true, header, data: combinedResults, type });
         trackEvent(ANALYTICS_KEYS.mass_update_DownloadRecords, {
           type,
           numRows: data.length,
