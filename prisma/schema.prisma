@@ -74,10 +74,6 @@ model Team {
   invitations        TeamMemberInvitation[]
   teamEntitlement    TeamEntitlement?
 
-  // TODO: entitlement
-
-  // TODO: audit logs
-  // auditLogs      AuditLog[]
   @@map("team")
 }
 
@@ -126,21 +122,6 @@ model TeamMemberInvitation {
   @@unique([teamId, email], name: "uniqueTeamEmail", map: "unique_team_email")
   @@map("team_member_invitation")
 }
-
-// model AuditLog {
-//   id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-//   teamId    String   @db.Uuid
-//   userId    String?  @db.Uuid
-//   action    String   @db.VarChar(255) // e.g., "user_invited", "org_added"
-//   details   Json?    @db.Json
-//   createdAt DateTime @default(now())
-
-//   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-//   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-//   @@index([teamId, createdAt])
-//   @@map("audit_log")
-// }
 
 model LoginConfiguration {
   id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid

@@ -131,7 +131,6 @@ export const Billing = () => {
               <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
               <ul className="slds-list_dotted slds-m-bottom_small">
                 <li>
-                  Access to the{' '}
                   <a
                     href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
                     target="_blank"
@@ -143,7 +142,6 @@ export const Billing = () => {
                   </a>
                 </li>
                 <li>
-                  Access to the{' '}
                   <a
                     href={APP_ROUTES.BROWSER_EXTENSION.ROUTE}
                     target="_blank"
@@ -223,6 +221,13 @@ export const Billing = () => {
                     price="$1,500"
                     priceDescription="Billed Annually"
                     onChange={setSelectedPlan}
+                  />
+                  <BillingPlanCard
+                    descriptionTitle="Enterprise"
+                    description="Contact Us"
+                    price="Enterprise"
+                    priceDescription="Custom"
+                    disabled
                   />
                 </div>
               </fieldset>

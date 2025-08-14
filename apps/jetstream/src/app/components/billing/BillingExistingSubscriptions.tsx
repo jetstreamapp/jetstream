@@ -61,6 +61,7 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
             priceDescription="Billed Annually"
             onChange={setSelectedPlan}
           />
+          <BillingPlanCard descriptionTitle="Enterprise" description="Contact Us" price="Enterprise" priceDescription="Custom" disabled />
         </div>
         <form method="POST" action="/api/billing/portal" target="_blank" className="slds-m-bottom_x-small">
           <p className="slds-text-body_small">
