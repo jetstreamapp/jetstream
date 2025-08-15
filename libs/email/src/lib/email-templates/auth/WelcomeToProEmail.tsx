@@ -4,6 +4,8 @@ import { EmailFooter } from '../../components/EmailFooter';
 import { EmailProLogo } from '../../components/EmailProLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
+void React.createElement;
+
 export const WelcomeToProEmail = () => (
   <Html>
     <Head />

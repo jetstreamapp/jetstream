@@ -4,6 +4,8 @@ import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
+void React.createElement;
+
 export const PasswordResetConfirmationEmail = () => {
   return (
     <Html>

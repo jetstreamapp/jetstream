@@ -188,6 +188,11 @@ export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fet
  */
 export const userProfileSyncState = unwrap(userProfileState, (prev) => prev ?? DEFAULT_PROFILE);
 
+export const hasPaidPlanState = atom((get) => {
+  const userProfile = get(userProfileSyncState);
+  return userProfile.teamMembership?.status === 'ACTIVE' || (userProfile.subscriptions?.length || 0) > 0;
+});
+
 export const userProfileEntitlementState = atomFamily((entitlement: keyof UserProfileUi['entitlements']) =>
   atom((get) => {
     const userProfile = get(userProfileSyncState);

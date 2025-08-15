@@ -146,8 +146,12 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
   };
 }
 
-export async function isProviderAllowed(email: string, provider: OauthAndLocalProviders): Promise<boolean> {
-  const loginConfiguration = await getLoginConfiguration(email);
+export async function isProviderAllowed(
+  options: { email: string; provider: OauthAndLocalProviders } | { teamId: string; provider: OauthAndLocalProviders }
+): Promise<boolean> {
+  const { provider } = options;
+  const loginConfiguration =
+    'teamId' in options ? await getLoginConfiguration({ teamId: options.teamId }) : await getLoginConfiguration({ email: options.email });
   if (!loginConfiguration) {
     return true;
   }

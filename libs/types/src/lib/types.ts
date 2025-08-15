@@ -2,6 +2,7 @@ import type { Query } from '@jetstreamapp/soql-parser-js';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
+import { TeamMemberRole, TeamMemberStatus } from './team.types';
 
 export interface Announcement {
   id: string;
@@ -128,6 +129,14 @@ export interface UserProfileUi {
     priceId: string;
     status: 'ACTIVE' | 'CANCELED' | 'INCOMPLETE' | 'INCOMPLETE_EXPIRED' | 'PAST_DUE' | 'PAUSED' | 'TRIALING' | 'UNPAID';
   }[];
+  teamMembership?: {
+    role: TeamMemberRole;
+    status: TeamMemberStatus;
+    team: {
+      id: string;
+      name: string;
+    };
+  } | null;
 }
 
 export interface SalesforceUserInfo {

@@ -3,7 +3,7 @@ import { getApexLogsToDeleteQuery } from '@jetstream/shared/ui-utils';
 import { AsyncJobNew, SalesforceOrgUi } from '@jetstream/types';
 import { Modal, RadioButton, RadioGroup, ScopedNotification, Spinner } from '@jetstream/ui';
 import { fromJetstreamEvents } from '@jetstream/ui-core';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
 
 type WhichUsers = 'ALL' | 'CURRENT';
 type Status = 'NOT_STARTED' | 'LOADING' | 'ERROR';
@@ -57,14 +57,14 @@ export const PurgeLogsModal: FunctionComponent<PurgeLogsModalProps> = ({ selecte
     <Modal
       header="Delete Logs"
       footer={
-        <Fragment>
+        <>
           <button className="slds-button slds-button_neutral" onClick={() => onModalClose()} disabled={status === 'LOADING'}>
             Cancel
           </button>
           <button className="slds-button slds-button_brand" onClick={deleteLogs} disabled={status === 'LOADING'}>
             Delete Logs
           </button>
-        </Fragment>
+        </>
       }
       onClose={() => {
         if (status !== 'LOADING') {
