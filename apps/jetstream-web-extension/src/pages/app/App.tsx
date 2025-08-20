@@ -65,7 +65,7 @@ export function App() {
         <Suspense fallback={<AppLoading />}>
           <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
             <Routes>
-              <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={false} />} />
+              <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome hideConnectedAppBanner showAlternativeAppFormats={false} />} />
               <Route path={APP_ROUTES.QUERY.ROUTE} element={<Query />}>
                 <Route index element={<QueryBuilder />} />
                 <Route path="results" element={<QueryResults />} />

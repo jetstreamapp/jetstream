@@ -114,7 +114,7 @@ export const AppRoutes = () => {
     <Routes>
       {/* This is just here to allow testing the error page without having a real error - can uncomment for testing */}
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
-      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={environment.BILLING_ENABLED} />} />
+      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showAlternativeAppFormats={environment.BILLING_ENABLED} />} />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}
         element={
