@@ -103,11 +103,21 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           {!hideConnectedAppBanner && (
             <ScopedNotification theme="light">
               Prepare for upcoming changes to{' '}
-              <a href="https://help.salesforce.com/s/articleView?id=005132365&type=1" target="_blank" rel="noreferrer">
+              <a
+                href="https://help.salesforce.com/s/articleView?id=005132365&type=1"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Salesforce Connected Apps documentation"
+              >
                 Salesforce Connected Apps
               </a>
               . You may need to{' '}
-              <a href="https://docs.getjetstream.app/troubleshooting#installing-jetstream" target="_blank" rel="noreferrer">
+              <a
+                href="https://docs.getjetstream.app/troubleshooting#installing-jetstream"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Installing Jetstream connected app"
+              >
                 install the Jetstream Connected App
               </a>{' '}
               to connect to new orgs.
