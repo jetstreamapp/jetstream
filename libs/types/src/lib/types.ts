@@ -1,4 +1,5 @@
 import type { Query } from '@jetstreamapp/soql-parser-js';
+import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from './billing.types';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
@@ -137,6 +138,14 @@ export interface UserProfileUi {
       name: string;
     };
   } | null;
+}
+
+export interface SubscriptionsResponse {
+  customer: StripeUserFacingCustomer | null;
+  pricesByLookupKey: JetstreamPricesByLookupKey | null;
+  hasManualBilling: boolean;
+  didUpdate: boolean;
+  userProfile?: Maybe<UserProfileUi>;
 }
 
 export interface SalesforceUserInfo {

@@ -13,7 +13,6 @@ export interface PageHeaderTitleProps {
   docsPath?: string;
   metaLabel?: string;
   titleDropDown?: React.ReactNode;
-  children?: React.ReactNode;
 }
 
 export const PageHeaderTitle: FunctionComponent<PageHeaderTitleProps> = ({
@@ -23,7 +22,6 @@ export const PageHeaderTitle: FunctionComponent<PageHeaderTitleProps> = ({
   docsPath,
   metaLabel,
   titleDropDown,
-  children,
 }) => {
   return (
     <div

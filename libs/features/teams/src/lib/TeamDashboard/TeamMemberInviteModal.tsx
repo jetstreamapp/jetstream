@@ -6,10 +6,11 @@ import { useState } from 'react';
 
 interface TeamMemberInviteModalProps {
   teamId: string;
+  hasManualBilling: boolean;
   onClose: (invitations?: TeamInviteUserFacing[]) => void;
 }
 
-export function TeamMemberInviteModal({ teamId, onClose }: TeamMemberInviteModalProps) {
+export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: TeamMemberInviteModalProps) {
   const [email, setEmail] = useState('');
   const [invalidEmail, setInvalidEmail] = useState(false);
   const [role, setRole] = useState<TeamMemberRole>('MEMBER');
@@ -53,6 +54,16 @@ export function TeamMemberInviteModal({ teamId, onClose }: TeamMemberInviteModal
         </>
       }
     >
+      {!hasManualBilling && role !== 'BILLING' && (
+        <ScopedNotification theme="info">
+          Billing for this user will start after the invitation is accepted. If a charge is required, an invoice will be generated.
+        </ScopedNotification>
+      )}
+      {!hasManualBilling && role === 'BILLING' && (
+        <ScopedNotification theme="info">
+          Billing-only users do not apply to your overall user count and will not impact billing.
+        </ScopedNotification>
+      )}
       <form
         id="team-member-invite-form"
         onSubmit={(event) => {

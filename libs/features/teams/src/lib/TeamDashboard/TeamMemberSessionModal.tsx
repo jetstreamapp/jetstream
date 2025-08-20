@@ -34,6 +34,7 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
     <Modal
       header="User Sessions"
       size="lg"
+      // TODO: revoke sessions, download sessions
       // footer={
       //   <>
       //     <button className="slds-button slds-button_brand" >

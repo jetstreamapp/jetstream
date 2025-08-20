@@ -129,7 +129,7 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
         select: {
           id: true,
           name: true,
-          teamEntitlement: {
+          entitlements: {
             select: {
               chromeExtension: true,
               desktop: true,
@@ -184,7 +184,7 @@ export const findIdByUserIdUserFacing = ({
   // FIXME: we should be using zod to parse this
   return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => {
     // prefer team entitlements if exists, otherwise user entitlements
-    const inScopeEntitlements = user.teamMembership?.team.teamEntitlement ?? user.entitlements;
+    const inScopeEntitlements = user.teamMembership?.team.entitlements ?? user.entitlements;
     const entitlements = {
       chromeExtension: inScopeEntitlements?.chromeExtension ?? false,
       recordSync: inScopeEntitlements?.recordSync ?? false,
@@ -222,6 +222,56 @@ export const findIdByUserIdUserFacing = ({
         : null,
     };
   });
+};
+
+export const getBillingAccount = async (id: string) => {
+  const userBillingAccount = await prisma.user.findFirst({
+    where: { id },
+    select: {
+      billingAccount: { select: { customerId: true, manualBilling: true } },
+      teamMembership: {
+        select: {
+          status: true,
+          role: true,
+          team: { select: { id: true, status: true, billingAccount: { select: { customerId: true, manualBilling: true } } } },
+        },
+      },
+    },
+  });
+  if (userBillingAccount?.teamMembership?.team?.billingAccount?.customerId) {
+    return {
+      customerId: userBillingAccount.teamMembership.team.billingAccount.customerId,
+      manualBilling: userBillingAccount.teamMembership.team.billingAccount.manualBilling,
+      teamId: userBillingAccount.teamMembership.team.id,
+      teamRole: userBillingAccount.teamMembership.role as TeamMemberRole,
+    };
+  }
+  if (userBillingAccount?.billingAccount?.customerId) {
+    return {
+      customerId: userBillingAccount.billingAccount.customerId,
+      manualBilling: userBillingAccount.billingAccount.manualBilling,
+      teamId: null,
+      teamRole: null,
+    };
+  }
+  return null;
+};
+
+export const hasManualBilling = async ({ userId }: { userId: string }): Promise<boolean> => {
+  const userBillingAccount = await prisma.user.findFirst({
+    where: { id: userId },
+    select: {
+      billingAccount: { select: { manualBilling: true } },
+      teamMembership: { select: { team: { select: { billingAccount: { select: { manualBilling: true } } } } } },
+    },
+  });
+  if (userBillingAccount?.teamMembership?.team?.billingAccount?.manualBilling) {
+    return true;
+  }
+  if (userBillingAccount?.billingAccount?.manualBilling) {
+    return true;
+  }
+  return false;
 };
 
 export const checkUserEntitlement = async ({

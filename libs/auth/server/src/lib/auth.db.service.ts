@@ -70,6 +70,11 @@ const userSelect = Prisma.validator<Prisma.UserSelect>()({
       role: true,
       status: true,
     },
+    where: {
+      team: {
+        status: 'ACTIVE',
+      },
+    },
   },
 });
 

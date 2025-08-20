@@ -3,9 +3,10 @@ import { prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import {
-  TEAM_ROLE_ADMIN,
-  TEAM_ROLE_BILLING,
-  TEAM_STATUS_ACTIVE,
+  TEAM_MEMBER_ROLE_ADMIN,
+  TEAM_MEMBER_ROLE_BILLING,
+  TEAM_MEMBER_STATUS_ACTIVE,
+  TeamEntitlementSchema,
   TeamInvitationRequest,
   TeamInvitationUpdateRequest,
   TeamInviteUserFacingSchema,
@@ -14,6 +15,12 @@ import {
   TeamMemberRole,
   TeamMemberSchema,
   TeamMemberStatus,
+  TeamMemberUpdateRequest,
+  TeamMemberUpdateRequestSchema,
+  TeamStatus,
+  TeamStatusSchema,
+  TeamSubscriptionSchema,
+  TeamUserFacing,
   TeamUserFacingSchema,
 } from '@jetstream/types';
 import { addDays, endOfDay } from 'date-fns';
@@ -73,6 +80,7 @@ const SELECT_WITH_RELATED = Prisma.validator<Prisma.TeamSelect>()({
   id: true,
   name: true,
   loginConfigId: true,
+  status: true,
   sharedOrgs: {
     select: {
       uniqueId: true,
@@ -84,9 +92,10 @@ const SELECT_WITH_RELATED = Prisma.validator<Prisma.TeamSelect>()({
       jetstreamUserId2: true,
     },
   },
-  teamBillingAccount: {
+  billingAccount: {
     select: {
       customerId: true,
+      manualBilling: true,
     },
   },
   members: {
@@ -126,7 +135,7 @@ export const findByUserId = async ({ userId }: { userId: string }) => {
     .findFirstOrThrow({
       select: SELECT_WITH_RELATED,
       where: {
-        members: { some: { userId, role: { in: [TEAM_ROLE_ADMIN, TEAM_ROLE_BILLING] } } },
+        members: { some: { userId, role: { in: [TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING] } } },
       },
     })
     .then((team) => team && TeamUserFacingSchema.parse(team))
@@ -143,20 +152,38 @@ export const findByUserId = async ({ userId }: { userId: string }) => {
 export const checkTeamRole = async ({ teamId, userId, roles }: { teamId: string; userId: string; roles: TeamMemberRole[] }) => {
   return prisma.teamMember
     .count({
-      where: { teamId, userId, role: { in: roles }, status: TEAM_STATUS_ACTIVE },
+      where: { teamId, team: { status: TeamStatusSchema.Enum.ACTIVE }, userId, role: { in: roles }, status: TEAM_MEMBER_STATUS_ACTIVE },
     })
     .then((count) => count > 0);
+};
+
+export const fetchEntitlements = async ({ teamId }: { teamId: string }) => {
+  return prisma.teamEntitlement
+    .findFirst({
+      where: { teamId },
+    })
+    .then((entitlements) => TeamEntitlementSchema.parse(entitlements || {}));
+};
+
+export const fetchSubscriptions = async ({ teamId }: { teamId: string }) => {
+  return prisma.teamSubscription
+    .findMany({
+      where: { teamId },
+    })
+    .then((records) => TeamSubscriptionSchema.array().parse(records));
 };
 
 export const createTeam = async ({
   name,
   userId,
+  status = 'ACTIVE',
   loginConfiguration,
 }: {
   name: string;
   userId: string;
+  status?: TeamStatus;
   loginConfiguration: TeamLoginConfig;
-}) => {
+}): Promise<TeamUserFacing> => {
   // ensure user is not part of another team
   const existingTeam = await prisma.teamMember.findFirst({
     where: { userId, team: { members: { some: { userId } } } },
@@ -166,24 +193,51 @@ export const createTeam = async ({
     throw new Error(`User with ID ${userId} is already a member of another team.`);
   }
 
-  const team = await prisma.team.create({
-    select: SELECT_WITH_RELATED,
-    data: {
-      name,
-      members: {
-        create: {
-          userId,
-          role: TEAM_ROLE_ADMIN,
-          status: TEAM_STATUS_ACTIVE,
+  const team = await prisma.team
+    .create({
+      select: SELECT_WITH_RELATED,
+      data: {
+        name,
+        status,
+        members: {
+          create: {
+            userId,
+            role: TEAM_MEMBER_ROLE_ADMIN,
+            status: TEAM_MEMBER_STATUS_ACTIVE,
+          },
+        },
+        loginConfig: {
+          create: loginConfiguration,
+        },
+        entitlements: {
+          create: {
+            chromeExtension: false,
+            googleDrive: false,
+            desktop: false,
+            recordSync: false,
+          },
         },
       },
-      loginConfig: {
-        create: loginConfiguration,
-      },
-    },
-  });
+    })
+    .then((team) => team && TeamUserFacingSchema.parse(team));
 
   return team;
+};
+
+export const updatePendingTeamToActive = async ({ teamId }: { teamId: string }) => {
+  return await prisma.team
+    .update({
+      select: SELECT_WITH_RELATED,
+      where: { id: teamId },
+      data: { status: TeamStatusSchema.Enum.ACTIVE },
+    })
+    .then((team) => team && TeamUserFacingSchema.parse(team));
+};
+
+export const deletePendingTeam = async ({ teamId }: { teamId: string }) => {
+  await prisma.team.delete({
+    where: { id: teamId, status: TeamStatusSchema.Enum.PENDING },
+  });
 };
 
 export const updateLoginConfiguration = async ({
@@ -245,6 +299,16 @@ export const updateLoginConfiguration = async ({
   return findById({ teamId: team.id });
 };
 
+export async function updateTeamMemberRole({ teamId, userId, data }: { teamId: string; userId: string; data: TeamMemberUpdateRequest }) {
+  return await prisma.teamMember
+    .update({
+      select: SELECT_TEAM_MEMBER,
+      where: { teamId_userId: { teamId, userId } },
+      data: TeamMemberUpdateRequestSchema.parse(data),
+    })
+    .then((member) => TeamMemberSchema.parse(member));
+}
+
 export async function updateTeamMemberStatus({ teamId, userId, status }: { teamId: string; userId: string; status: TeamMemberStatus }) {
   return await prisma.teamMember
     .update({
@@ -255,7 +319,7 @@ export async function updateTeamMemberStatus({ teamId, userId, status }: { teamI
     .then((member) => TeamMemberSchema.parse(member));
 }
 
-export async function createTeamBillingAccountIfNotExists({ teamId, customerId }: { teamId: string; customerId: string }) {
+export async function createBillingAccountIfNotExists({ teamId, customerId }: { teamId: string; customerId: string }) {
   const existingCustomer = await prisma.teamBillingAccount.findUnique({ where: { uniqueCustomer: { customerId, teamId } } });
   if (existingCustomer) {
     return existingCustomer;
@@ -361,20 +425,29 @@ export async function verifyTeamInvitation({ user, teamId, token }: { user: User
 export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }) {
   const existingInvitation = await verifyTeamInvitation({ user, teamId, token });
 
-  await prisma.$transaction([
+  const [_, teamMembership] = await prisma.$transaction([
     prisma.teamMemberInvitation.delete({
       where: { id: existingInvitation.id },
     }),
     prisma.teamMember.create({
+      select: {
+        features: true,
+        role: true,
+        status: true,
+        teamId: true,
+        userId: true,
+      },
       data: {
         teamId,
         userId: user.id,
         role: existingInvitation.role,
-        status: TEAM_STATUS_ACTIVE,
+        status: TEAM_MEMBER_STATUS_ACTIVE,
         features: existingInvitation.features,
       },
     }),
   ]);
+
+  return teamMembership;
 }
 
 export async function revokeTeamInvitation({ id, teamId }: { id: string; teamId: string }) {

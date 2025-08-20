@@ -164,7 +164,7 @@ export interface SessionData {
   // TODO: lastActivity: number;
   ipAddress: string;
   userAgent: string;
-  teamMembership?: Maybe<{ teamId: string; role: TeamMemberRole }>;
+  teamMembership?: Maybe<AuthenticatedUser['teamMembership']>;
   sendNewUserEmailAfterVerify?: boolean;
   orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; jetstreamOrganizationId?: Maybe<string> };
 }
@@ -261,32 +261,39 @@ export type HostCookieConstraint = {
 };
 export type CookiePrefixOptions = 'host' | 'secure';
 
+// Auth Related Cookies
 type CallbackUrlCookie = 'callbackUrl';
 type CsrfTokenCookie = 'csrfToken';
-type PkceCodeVerifierCookie = 'pkceCodeVerifier';
 type LinkIdentityCookie = 'linkIdentity';
+type NonceCookie = 'nonce';
+type PkceCodeVerifierCookie = 'pkceCodeVerifier';
+type RedirectUrlCookie = 'redirectUrl';
+type RememberDeviceCookie = 'rememberDevice';
 type ReturnUrlCookie = 'returnUrl';
 type StateCookie = 'state';
-type NonceCookie = 'nonce';
 type WebauthnChallengeCookie = 'webauthnChallenge';
-type RememberDeviceCookie = 'rememberDevice';
-type RedirectUrl = 'redirectUrl';
 
-type CookieConfigKey =
+// App related cookies
+type CheckoutSessionCookie = 'checkoutSession';
+
+type AuthCookieConfigKey =
   | CallbackUrlCookie
   | CsrfTokenCookie
-  | PkceCodeVerifierCookie
   | LinkIdentityCookie
+  | NonceCookie
+  | PkceCodeVerifierCookie
+  | RedirectUrlCookie
+  | RememberDeviceCookie
   | ReturnUrlCookie
   | StateCookie
-  | NonceCookie
-  | WebauthnChallengeCookie
-  | RememberDeviceCookie
-  | RedirectUrl;
+  | WebauthnChallengeCookie;
+
+type AppCookieConfigKey = CheckoutSessionCookie;
 
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
 
-export type CookieConfig = Record<CookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }>;
+export type CookieConfig = Record<AuthCookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }> &
+  Record<AppCookieConfigKey, { name: `jetstream.${string}`; options: CookieOptions }>;
 
 export type ResponseLocalsCookies = Record<
   string,

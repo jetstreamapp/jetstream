@@ -6,6 +6,7 @@ import DropDown from '../form/dropdown/DropDown';
 
 export interface HeaderProps {
   userProfile: Maybe<UserProfileUi>;
+  isReadOnlyUser?: boolean;
   logo: string | ReactNode;
   logoCss?: SerializedStyles;
   orgs?: ReactNode;
@@ -19,6 +20,7 @@ export interface HeaderProps {
 
 export const Header: FunctionComponent<HeaderProps> = ({
   userProfile,
+  isReadOnlyUser,
   logo,
   logoCss,
   orgs,
@@ -33,6 +35,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
       <div className="slds-global-header slds-grid slds-grid_align-spread">
         <HeaderContent
           userProfile={userProfile}
+          isReadOnlyUser={isReadOnlyUser}
           logo={logo}
           logoCss={logoCss}
           orgs={orgs}
@@ -49,6 +52,7 @@ export const Header: FunctionComponent<HeaderProps> = ({
 
 const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
   userProfile,
+  isReadOnlyUser,
   logo,
   logoCss,
   orgs,
@@ -80,7 +84,7 @@ const HeaderContent: FunctionComponent<Omit<HeaderProps, 'children'>> = ({
         ></div>
       </div>
       {/* ORGS */}
-      {orgs && (
+      {orgs && !isReadOnlyUser && (
         <Suspense fallback={<div>Loading...</div>}>
           <div
             className="slds-global-header__item non-draggable"

@@ -272,7 +272,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="autoAddToTeam"
                 checked={formData.data.autoAddToTeam}
-                label="Automatically add users to team"
+                label="Automatically add users to team based on email domain"
                 labelHelp="Enabling this will automatically add users to the team when they log in with a domain that matches the allowed domains."
                 helpText="This option streamlines provisioning. Enabling this will increase your seat count when new users sign up."
                 errorMessage={errors.autoAddToTeam}

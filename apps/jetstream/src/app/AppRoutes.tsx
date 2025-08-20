@@ -1,5 +1,7 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { AppHome, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
+import { AppHome, AppHomeBillingUser, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
+import { isReadOnlyUserState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { environment } from '../environments/environment';
@@ -95,6 +97,7 @@ const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 export const AppRoutes = () => {
+  const isReadOnlyUser = useAtomValue(isReadOnlyUserState);
   const location = useLocation();
 
   // Preload sub-pages if user is on parent page
@@ -118,7 +121,10 @@ export const AppRoutes = () => {
     <Routes>
       {/* This is just here to allow testing the error page without having a real error - can uncomment for testing */}
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
-      <Route path={APP_ROUTES.HOME.ROUTE} element={<AppHome showChromeExtension={environment.BILLING_ENABLED} />} />
+      <Route
+        path={APP_ROUTES.HOME.ROUTE}
+        element={isReadOnlyUser ? <AppHomeBillingUser /> : <AppHome showChromeExtension={environment.BILLING_ENABLED} />}
+      />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}
         element={

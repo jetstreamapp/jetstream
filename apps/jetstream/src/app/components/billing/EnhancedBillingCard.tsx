@@ -1,5 +1,7 @@
 import { css } from '@emotion/react';
+import { StripePriceKey } from '@jetstream/types';
 import { Icon } from '@jetstream/ui';
+import classNames from 'classnames';
 import { useId } from 'react';
 
 interface EnhancedBillingCardProps {
@@ -8,12 +10,12 @@ interface EnhancedBillingCardProps {
   priceSubtext?: string;
   description?: string;
   features: string[];
-  isPopular?: boolean;
+  comingSoonFeatures?: string[];
   isEnterprise?: boolean;
   disabled?: boolean;
-  value?: string;
+  value?: StripePriceKey;
   checked?: boolean;
-  onChange?: (value: string) => void;
+  onChange?: (value: StripePriceKey) => void;
   onEnterpriseContact?: () => void;
 }
 
@@ -39,14 +41,6 @@ const cardStyles = css`
       box-shadow: 0 4px 12px rgba(1, 118, 211, 0.2);
     }
 
-    &.popular {
-      &:hover,
-      &.selected {
-        border-color: #0176d3;
-        box-shadow: 0 4px 12px rgba(1, 118, 211, 0.2);
-      }
-    }
-
     &.enterprise {
       cursor: default;
 
@@ -65,23 +59,6 @@ const cardStyles = css`
         box-shadow: none;
       }
     }
-  }
-
-  .popular-badge {
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #ff6b00;
-    color: white;
-    padding: 4px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    min-width: max-content;
   }
 
   .card-header {
@@ -192,6 +169,30 @@ const cardStyles = css`
   .selected .selected-indicator {
     opacity: 1;
   }
+
+  .coming-soon-features {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #d8dde6;
+  }
+
+  .coming-soon-features h4 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #706e6b;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .coming-soon-features .feature-item {
+    color: #706e6b;
+    font-style: italic;
+    position: relative;
+  }
 `;
 
 export const EnhancedBillingCard = ({
@@ -200,7 +201,7 @@ export const EnhancedBillingCard = ({
   priceSubtext,
   description,
   features,
-  isPopular = false,
+  comingSoonFeatures,
   isEnterprise = false,
   disabled = false,
   value,
@@ -221,9 +222,11 @@ export const EnhancedBillingCard = ({
   return (
     <div css={cardStyles}>
       <div
-        className={`billing-card ${checked ? 'selected' : ''} ${isPopular ? 'popular' : ''} ${disabled ? 'disabled' : ''} ${
-          isEnterprise ? 'enterprise' : ''
-        }`}
+        className={classNames('billing-card', {
+          selected: checked,
+          enterprise: isEnterprise,
+          disabled: disabled,
+        })}
         onClick={handleCardClick}
       >
         {!isEnterprise && (
@@ -234,12 +237,10 @@ export const EnhancedBillingCard = ({
             checked={checked}
             name="priceId"
             disabled={disabled}
-            onChange={(ev) => onChange?.(ev.target.value)}
+            onChange={(ev) => onChange?.(ev.target.value as StripePriceKey)}
             className="radio-input"
           />
         )}
-
-        {isPopular && <div className="popular-badge">Most Popular</div>}
 
         <div className="card-header">
           <div className="plan-name">{planName}</div>
@@ -262,6 +263,24 @@ export const EnhancedBillingCard = ({
               </li>
             ))}
           </ul>
+          {comingSoonFeatures && comingSoonFeatures.length > 0 && (
+            <div className="coming-soon-features">
+              <h4>Coming Soon</h4>
+              <ul className="features-list">
+                {comingSoonFeatures.map((feature, index) => (
+                  <li key={index} className="feature-item">
+                    <Icon
+                      type="utility"
+                      icon="check"
+                      className="slds-icon slds-icon_x-small feature-icon"
+                      containerClassname="slds-icon_container slds-icon-text-default"
+                    />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {isEnterprise && (

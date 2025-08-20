@@ -144,29 +144,23 @@ const ActionCell = ({
 }) => {
   const { status } = member;
   const menuItems = useMemo(() => {
-    const items: DropDownItem[] = [];
+    const items: DropDownItem[] = [
+      {
+        id: 'edit',
+        value: 'Edit',
+        icon: { type: 'utility', icon: 'settings', description: 'Edit' },
+        trailingDivider: true,
+      },
+    ];
     if (status === 'ACTIVE') {
       items.push({
         id: 'deactivate',
         value: 'Deactivate',
         icon: { type: 'utility', icon: 'toggle_off', description: 'Deactivate' },
       });
-    } else if (status === 'INACTIVE') {
-      items.push(
-        {
-          id: 'cancel-invite',
-          value: 'Cancel Invite',
-          icon: { type: 'utility', icon: 'toggle_off', description: 'Cancel Invite' },
-        },
-        {
-          id: 'resend-invite',
-          value: 'Resend Invite',
-          icon: { type: 'utility', icon: 'toggle_off', description: 'Resend Invite' },
-        }
-      );
     } else {
       items.push({
-        id: 'enable',
+        id: 'reactivate',
         value: 'Reactivate User',
         icon: { type: 'utility', icon: 'toggle_on', description: 'Reactivate User' },
       });

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export type TeamGlobalAction = 'view-auth-activity' | 'view-user-sessions' | 'team-member-invite';
-export type TeamUserAction = 'deactivate' | 'reactivate';
+export type TeamUserAction = 'deactivate' | 'reactivate' | 'edit';
 export type TeamInvitationAction = 'cancel-invite' | 'resend-invite';
 
 export interface TeamMemberTableAction {
@@ -25,14 +25,19 @@ export const FeatureSchema = z.enum([
   'DEPLOYMENT',
   'DEVELOPER_TOOLS',
 ]);
-export const TEAM_ROLE_ADMIN = 'ADMIN';
-export const TEAM_ROLE_BILLING = 'BILLING';
-export const TEAM_ROLE_MEMBER = 'MEMBER';
-export const TeamMemberRoleSchema = z.enum([TEAM_ROLE_ADMIN, TEAM_ROLE_BILLING, TEAM_ROLE_MEMBER]);
+export const TEAM_MEMBER_ROLE_ADMIN = 'ADMIN';
+export const TEAM_MEMBER_ROLE_BILLING = 'BILLING';
+export const TEAM_MEMBER_ROLE_MEMBER = 'MEMBER';
+export const TeamMemberRoleSchema = z.enum([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TEAM_MEMBER_ROLE_MEMBER]);
 
 export const TEAM_STATUS_ACTIVE = 'ACTIVE';
+export const TEAM_STATUS_PENDING = 'PENDING';
 export const TEAM_STATUS_INACTIVE = 'INACTIVE';
-export const TeamMemberStatusSchema = z.enum([TEAM_STATUS_ACTIVE, TEAM_STATUS_INACTIVE]);
+export const TeamStatusSchema = z.enum([TEAM_STATUS_ACTIVE, TEAM_STATUS_PENDING, TEAM_STATUS_INACTIVE]);
+
+export const TEAM_MEMBER_STATUS_ACTIVE = 'ACTIVE';
+export const TEAM_MEMBER_STATUS_INACTIVE = 'INACTIVE';
+export const TeamMemberStatusSchema = z.enum([TEAM_MEMBER_STATUS_ACTIVE, TEAM_MEMBER_STATUS_INACTIVE]);
 
 const DateStringSchema = z.union([z.string(), z.date()]).transform((value) => {
   if (value instanceof Date) {
@@ -86,6 +91,13 @@ export const TeamMemberSchema = z.object({
   updatedAt: DateStringSchema,
 });
 
+export const TeamEntitlementSchema = z.object({
+  chromeExtension: z.boolean().optional().default(false),
+  googleDrive: z.boolean().optional().default(false),
+  desktop: z.boolean().optional().default(false),
+  recordSync: z.boolean().optional().default(false),
+});
+
 export const TeamLoginConfigSchema = z.object({
   allowedMfaMethods: z.enum(['otp', 'email']).array().optional().default(['email', 'otp']),
   allowedProviders: z.enum(['credentials', 'google', 'salesforce']).array().optional().default(['credentials', 'google', 'salesforce']),
@@ -95,6 +107,18 @@ export const TeamLoginConfigSchema = z.object({
   autoAddToTeam: z.boolean().optional().default(false),
 });
 export const TeamLoginConfigRequestSchema = TeamLoginConfigSchema;
+
+export const TeamSubscriptionSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  customerId: z.string(),
+  productId: z.string().nullish(),
+  subscriptionId: z.string(),
+  priceId: z.string(),
+  status: z.enum(['ACTIVE', 'CANCELED', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', 'PAST_DUE', 'PAUSED', 'TRIALING', 'UNPAID']),
+  createdAt: DateStringSchema,
+  updatedAt: DateStringSchema,
+});
 
 export const TeamInviteUserFacingSchema = z.object({
   id: z.string(),
@@ -115,11 +139,13 @@ export const TeamUserFacingSchema = z.object({
   members: TeamMemberSchema.array(),
   invitations: TeamInviteUserFacingSchema.array(),
   loginConfig: TeamLoginConfigSchema.nullable(),
-  teamBillingAccount: z
+  billingAccount: z
     .object({
       customerId: z.string(),
+      manualBilling: z.boolean(),
     })
     .nullable(),
+  status: TeamStatusSchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 });
@@ -137,16 +163,25 @@ export const TeamInvitationUpdateRequestSchema = z.object({
 });
 export type TeamInvitationUpdateRequest = z.infer<typeof TeamInvitationUpdateRequestSchema>;
 
+export const TeamMemberUpdateRequestSchema = z.object({
+  role: TeamMemberRoleSchema.optional(),
+  features: FeatureSchema.array().optional(),
+});
+export type TeamMemberUpdateRequest = z.infer<typeof TeamMemberUpdateRequestSchema>;
+
 export type Feature = z.infer<typeof FeatureSchema>;
 export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
+export type TeamStatus = z.infer<typeof TeamStatusSchema>;
 export type TeamMemberStatus = z.infer<typeof TeamMemberStatusSchema>;
 
 export type TeamUser = z.infer<typeof TeamUserSchema>;
 export type TeamOrg = z.infer<typeof TeamOrgSchema>;
 export type TeamMember = z.infer<typeof TeamMemberSchema>;
+export type TeamEntitlement = z.infer<typeof TeamEntitlementSchema>;
 export type TeamLoginConfig = z.infer<typeof TeamLoginConfigSchema>;
 export type TeamLoginConfigRequest = z.infer<typeof TeamLoginConfigRequestSchema>;
 export type TeamUserFacing = z.infer<typeof TeamUserFacingSchema>;
+export type TeamSubscription = z.infer<typeof TeamSubscriptionSchema>;
 export type TeamInviteUserFacing = z.infer<typeof TeamInviteUserFacingSchema>;
 
 export type VerifyInvitationResponse = { success: true; teamName: string } | { success: false };

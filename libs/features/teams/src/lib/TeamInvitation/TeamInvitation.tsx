@@ -67,54 +67,42 @@ export function TeamInvitation() {
   }
 
   return (
-    <>
-      {/* {team && inviteModalOpen && (
-        <TeamMemberInviteModal
-          teamId={team.id}
-          onClose={(invitations) => {
-            // TODO: invitations
-            setInviteModalOpen(false);
-          }}
-        />
-      )} */}
-
-      <Page testId="team-invitation-page">
-        <PageHeader>
-          <PageHeaderRow>
-            <PageHeaderTitle icon={{ type: 'standard', icon: 'team_member' }} label="Team Invitation" />
-          </PageHeaderRow>
-        </PageHeader>
-        <AutoFullHeightContainer className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
-          {loading && <Spinner />}
-          {loadingError && (
-            <ScopedNotification theme="error" className="slds-m-vertical_medium">
-              {loadingError}
-            </ScopedNotification>
-          )}
-          {team && !loading && !loadingError && (
-            <div className="slds-align_absolute-center slds-m-top_large">
-              <div className="slds-text-align_center slds-p-around_large">
-                <div className="slds-m-bottom_large">
-                  <h1 className="slds-text-heading_large slds-text-color_default">Join {team.teamName}</h1>
-                  <p className="slds-text-body_regular slds-text-color_weak slds-m-top_small">
-                    You've been invited to join your team {team.teamName}.
-                  </p>
-                </div>
-                <div className="slds-m-top_large">
-                  <button
-                    className="slds-button slds-button_brand slds-is-relative slds-size_1-of-1 slds-max-medium-size_1-of-3"
-                    disabled={accepting}
-                    type="button"
-                    onClick={handleAcceptInvitation}
-                  >
-                    {accepting ? <Spinner size="small" className="slds-m-right_x-small" /> : 'Accept Invitation'}
-                  </button>
-                </div>
+    <Page testId="team-invitation-page">
+      <PageHeader>
+        <PageHeaderRow>
+          <PageHeaderTitle icon={{ type: 'standard', icon: 'team_member' }} label="Team Invitation" />
+        </PageHeaderRow>
+      </PageHeader>
+      <AutoFullHeightContainer className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
+        {loading && <Spinner />}
+        {loadingError && (
+          <ScopedNotification theme="error" className="slds-m-vertical_medium">
+            {loadingError}
+          </ScopedNotification>
+        )}
+        {team && !loading && !loadingError && (
+          <div className="slds-align_absolute-center slds-m-top_large">
+            <div className="slds-text-align_center slds-p-around_large">
+              <div className="slds-m-bottom_large">
+                <h1 className="slds-text-heading_large slds-text-color_default">Join {team.teamName}</h1>
+                <p className="slds-text-body_regular slds-text-color_weak slds-m-top_small">
+                  You've been invited to join your team {team.teamName}.
+                </p>
+              </div>
+              <div className="slds-m-top_large">
+                <button
+                  className="slds-button slds-button_brand slds-is-relative slds-size_1-of-1 slds-max-medium-size_1-of-3"
+                  disabled={accepting}
+                  type="button"
+                  onClick={handleAcceptInvitation}
+                >
+                  {accepting ? <Spinner size="small" className="slds-m-right_x-small" /> : 'Accept Invitation'}
+                </button>
               </div>
             </div>
-          )}
-        </AutoFullHeightContainer>
-      </Page>
-    </>
+          </div>
+        )}
+      </AutoFullHeightContainer>
+    </Page>
   );
 }

@@ -1,7 +1,6 @@
-import { TEAM_ROLE_ADMIN, TEAM_ROLE_MEMBER, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
+import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express from 'express';
 import Router from 'express-promise-router';
-import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as teamController } from '../controllers/team.controller';
 import { checkTeamRole } from '../db/team.db';
 import { checkAuth } from './route.middleware';
@@ -25,8 +24,8 @@ function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
     if (!TeamMemberRoleSchema.array().safeParse(roles).success) {
       return res.status(400).json({ error: 'Invalid request' });
     }
-    const isAdmin = await checkTeamRole({ teamId: req.params.teamId, userId: req.session.user.id, roles });
-    if (!isAdmin) {
+    const hasValidRole = await checkTeamRole({ teamId: req.params.teamId, userId: req.session.user.id, roles });
+    if (!hasValidRole) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     next();
@@ -42,31 +41,57 @@ routes.post('/:teamId/invitations/:token/accept', teamController.acceptInvitatio
  * ADMIN ONLY ROUTES
  */
 
-routes.get('/:teamId', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.getTeam.controllerFn());
-
-routes.get('/:teamId/sessions', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.getUserSessions.controllerFn());
-routes.get('/:teamId/auth-activity', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.getUserAuthActivity.controllerFn());
-routes.post(
-  '/:teamId/login-configuration',
-  validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]),
-  teamController.updateLoginConfiguration.controllerFn()
+routes.get(
+  '/:teamId',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.getTeam.controllerFn()
 );
 
-// routes.put('/:teamId/members/:userId', validateTeamRoleMiddleware([TEAM_ROLE_ADMIN]), teamController.updateLoginConfiguration.controllerFn());
+routes.get(
+  '/:teamId/sessions',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.getUserSessions.controllerFn()
+);
+routes.get(
+  '/:teamId/auth-activity',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.getUserAuthActivity.controllerFn()
+);
+routes.post(
+  '/:teamId/login-configuration',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.updateLoginConfiguration.controllerFn()
+);
+routes.put(
+  '/:teamId/members/:userId',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.updateTeamMember.controllerFn()
+);
 routes.put(
   '/:teamId/members/:userId/status',
-  validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]),
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
   teamController.updateTeamMemberStatus.controllerFn()
 );
 
-routes.get('/:teamId/invitations', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.getInvitations.controllerFn());
-routes.post('/:teamId/invitations', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.createInvitation.controllerFn());
-routes.put('/:teamId/invitations/:id', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.resendInvitation.controllerFn());
-routes.delete('/:teamId/invitations/:id', validateTeamRoleMiddlewareFn([TEAM_ROLE_ADMIN]), teamController.cancelInvitation.controllerFn());
+routes.get(
+  '/:teamId/invitations',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.getInvitations.controllerFn()
+);
 routes.post(
-  '/:teamId/billing/portal',
-  validateTeamRoleMiddlewareFn([TEAM_ROLE_MEMBER, TEAM_ROLE_ADMIN]),
-  billingController.createTeamBillingPortalSession.controllerFn()
+  '/:teamId/invitations',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.createInvitation.controllerFn()
+);
+routes.put(
+  '/:teamId/invitations/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.resendInvitation.controllerFn()
+);
+routes.delete(
+  '/:teamId/invitations/:id',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.cancelInvitation.controllerFn()
 );
 
 export default routes;

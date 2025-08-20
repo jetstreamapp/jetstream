@@ -1,8 +1,17 @@
 import { ENV, logger } from '@jetstream/api-config';
 import { Team, UserProfile } from '@jetstream/auth/types';
 import { sendWelcomeToProEmail } from '@jetstream/email';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { EntitlementsAccess, StripeUserFacingCustomer, StripeUserFacingSubscriptionItem } from '@jetstream/types';
+import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import {
+  EntitlementsAccess,
+  JetstreamPrice,
+  JetstreamPricesByLookupKey,
+  JetstreamPriceTier,
+  Maybe,
+  STRIPE_PRICE_KEYS,
+  StripeUserFacingCustomer,
+  StripeUserFacingSubscriptionItem,
+} from '@jetstream/types';
 import { formatISO, fromUnixTime } from 'date-fns';
 import { isString } from 'lodash';
 import Stripe from 'stripe';
@@ -11,6 +20,14 @@ import * as teamDbService from '../db/team.db';
 import * as userDbService from '../db/user.db';
 
 const stripe = ENV.STRIPE_API_KEY ? new Stripe(ENV.STRIPE_API_KEY) : ({} as Stripe);
+
+const priceCache = new WeakMap<
+  typeof STRIPE_PRICE_KEYS,
+  {
+    prices: JetstreamPricesByLookupKey;
+    expiresAt: number;
+  }
+>();
 
 export const ensureStripeIsInitialized = () => {
   if (!ENV.STRIPE_API_KEY) {
@@ -63,14 +80,73 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
   }
 }
 
-export function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
+function filterInactiveSubscriptions(subscriptions: Stripe.Subscription[]) {
   return subscriptions.filter((subscription) => activeSubscriptionStatuses.has(subscription.status));
 }
 
-export async function fetchCustomerWithSubscriptionsById({ customerId }: { customerId: string }) {
+async function fetchCustomerWithSubscriptionsById({ customerId }: { customerId: string }) {
   return await stripe.customers.retrieve(customerId, {
     expand: ['subscriptions'],
   });
+}
+
+export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PRICE_KEYS }): Promise<JetstreamPricesByLookupKey> {
+  const cache = priceCache.get(lookupKeys);
+  if (cache?.expiresAt && cache.expiresAt > Date.now()) {
+    return cache.prices;
+  }
+
+  const prices = await stripe.prices
+    .list({
+      lookup_keys: lookupKeys as any as string[],
+      expand: ['data.product'],
+      type: 'recurring',
+      currency: 'usd',
+      active: true,
+    })
+    .then(({ data }) => data);
+
+  const groupedPrices = groupByFlat(prices, 'lookup_key');
+
+  function getPrice(key: string): JetstreamPrice {
+    const price = groupedPrices[key]!;
+    const product = price.product as Stripe.Product;
+    return {
+      id: price.id,
+      billingScheme: price.billing_scheme,
+      lookupKey: key,
+      interval: price.recurring?.interval === 'year' ? 'ANNUAL' : 'MONTHLY',
+      amount: (price.unit_amount || 0) / 100,
+      tiersMode: price.tiers_mode || null,
+      tiers:
+        price.tiers?.map(
+          (tier) =>
+            ({
+              flatAmount: tier.flat_amount ? tier.flat_amount / 100 : null,
+              unitAmount: tier.unit_amount ? tier.unit_amount / 100 : null,
+              upTo: tier.up_to,
+            } as JetstreamPriceTier)
+        ) || null,
+      product: {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        images: product.images,
+      },
+    };
+  }
+
+  const pricesByKey = lookupKeys.reduce((acc, key) => {
+    acc[key] = getPrice(key);
+    return acc;
+  }, {} as JetstreamPricesByLookupKey);
+
+  priceCache.set(lookupKeys, {
+    prices: pricesByKey,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 6, // Cache for 6 hours
+  });
+
+  return pricesByKey;
 }
 
 export async function fetchCustomerEntitlements({ customerId }: { customerId: string }) {
@@ -112,8 +188,8 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           cancel_at,
           cancel_at_period_end,
           canceled_at,
-          current_period_end,
-          current_period_start,
+          // current_period_end,
+          // current_period_start,
           ended_at,
           items,
           start_date,
@@ -125,8 +201,9 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           cancelAt: cancel_at ? formatISO(fromUnixTime(cancel_at)) : null,
           cancelAtPeriodEnd: cancel_at_period_end,
           canceledAt: canceled_at ? formatISO(fromUnixTime(canceled_at)) : null,
-          currentPeriodEnd: formatISO(fromUnixTime(current_period_end)),
-          currentPeriodStart: formatISO(fromUnixTime(current_period_start)),
+          // TODO: these are moved to line items in stripe v18
+          // currentPeriodEnd: formatISO(fromUnixTime(current_period_end)),
+          // currentPeriodStart: formatISO(fromUnixTime(current_period_start)),
           endedAt: ended_at ? formatISO(fromUnixTime(ended_at)) : null,
           startDate: formatISO(fromUnixTime(start_date)),
           status: status.toUpperCase() as Uppercase<Stripe.Subscription.Status>,
@@ -189,9 +266,17 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
     }
   );
 
-  await subscriptionDbService.updateUserEntitlements(customerId, entitlementAccess);
+  const customer = await fetchCustomerWithSubscriptionsById({ customerId });
+  if (!customer.deleted && customer.metadata.type === 'TEAM') {
+    await subscriptionDbService.updateTeamEntitlements(customerId, entitlementAccess);
+  } else {
+    await subscriptionDbService.updateUserEntitlements(customerId, entitlementAccess);
+  }
 }
 
+/**
+ * This handles USER and TEAM subscriptions
+ */
 export async function saveSubscriptionFromCompletedSession({ sessionId }: { sessionId: string }) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
@@ -213,11 +298,21 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
  * This is generally only needed if a webhook delivery fails, but we also perform this operation when a user accesses the billing page
  * and we detect things are are out of sync
  */
-export async function synchronizeStripeWithJetstreamIfRequired({
+export async function synchronizeStripeWithJetstreamIfRequiredForTeamOrUser({
+  userId,
+  teamId,
+  customerId,
+}: { userId: string; teamId?: string; customerId?: null } | { userId: string; teamId: string; customerId: string }) {
+  if (teamId) {
+    return synchronizeStripeWithJetstreamTeamIfRequired({ teamId, customerId });
+  }
+  return synchronizeStripeWithJetstreamUserIfRequired({ userId, customerId });
+}
+
+export async function synchronizeStripeWithJetstreamUserIfRequired({
   userId,
   customerId,
-  force = false,
-}: { userId: string; customerId?: null; force?: boolean } | { userId: string; customerId: string; force: true }) {
+}: { userId: string; customerId?: null; force?: boolean } | { userId: string; customerId: string }) {
   try {
     let didUpdate = false;
     const userProfile = await userDbService.findById(userId);
@@ -225,11 +320,7 @@ export async function synchronizeStripeWithJetstreamIfRequired({
     // TODO: would we ever need to go in the opposite direction and delete things in Jetstream?
     const billingAccountCustomerId = userProfile?.billingAccount?.customerId;
     if (!billingAccountCustomerId) {
-      if (customerId && force) {
-        await userDbService.createBillingAccountIfNotExists({ userId, customerId });
-      } else {
-        return { success: true, didUpdate } as const;
-      }
+      return { success: true, didUpdate } as const;
     }
 
     customerId = billingAccountCustomerId || customerId;
@@ -261,7 +352,7 @@ export async function synchronizeStripeWithJetstreamIfRequired({
       !!userProfile.entitlements?.desktop &&
       !!userProfile.entitlements?.recordSync;
     const hasCorrectEntitlements = priceRecordCount > 0 ? areEntitlementsEnabled : !areEntitlementsEnabled;
-    if (!force && hasCorrectSubscriptionItemCount && hasCorrectEntitlements) {
+    if (hasCorrectSubscriptionItemCount && hasCorrectEntitlements) {
       return { success: true, didUpdate, stripeCustomer } as const;
     }
 
@@ -278,6 +369,69 @@ export async function synchronizeStripeWithJetstreamIfRequired({
     return { success: true, didUpdate, stripeCustomer } as const;
   } catch (ex) {
     logger.error({ userId, ...getErrorMessageAndStackObj(ex) }, 'Error synchronizing stripe with jetstream');
+    return { success: false, reason: 'UNKNOWN_ERROR', didUpdate: false } as const;
+  }
+}
+
+export async function synchronizeStripeWithJetstreamTeamIfRequired({
+  teamId,
+  customerId,
+}: { teamId: string; customerId?: null; force?: boolean } | { teamId: string; customerId: string }) {
+  try {
+    let didUpdate = false;
+    const team = await teamDbService.findById({ teamId });
+    const entitlements = await teamDbService.fetchEntitlements({ teamId });
+    const teamSubscriptions = await teamDbService.fetchSubscriptions({ teamId });
+
+    // TODO: would we ever need to go in the opposite direction and delete things in Jetstream?
+    const billingAccountCustomerId = team?.billingAccount?.customerId;
+    if (!billingAccountCustomerId) {
+      return { success: true, didUpdate } as const;
+    }
+
+    customerId = billingAccountCustomerId || customerId;
+
+    if (!customerId) {
+      return { success: false, reason: 'NO_CUSTOMER_ID' } as const;
+    }
+
+    const stripeCustomer = await fetchCustomerWithSubscriptionsById({ customerId });
+    if (stripeCustomer.deleted) {
+      return { success: false, reason: 'CUSTOMER_IS_DELETED', didUpdate } as const;
+    }
+
+    if (!stripeCustomer.subscriptions?.data) {
+      return { success: false, reason: 'MISSING_SUBSCRIPTIONS', didUpdate } as const;
+    }
+
+    const subscriptions = filterInactiveSubscriptions(stripeCustomer.subscriptions.data);
+    const priceRecordCount = subscriptions.flatMap((subscription) => subscription.items.data.length).length;
+
+    /**
+     * Check if we need to synchronize
+     */
+    const hasCorrectSubscriptionItemCount = priceRecordCount === teamSubscriptions.length;
+    // This isn't very scalable as we introduce more entitlements, but that is likely going to be a really slow process
+    const areEntitlementsEnabled =
+      !!entitlements?.chromeExtension && !!entitlements?.googleDrive && !!entitlements?.desktop && !!entitlements?.recordSync;
+    const hasCorrectEntitlements = priceRecordCount > 0 ? areEntitlementsEnabled : !areEntitlementsEnabled;
+    if (hasCorrectSubscriptionItemCount && hasCorrectEntitlements) {
+      return { success: true, didUpdate, stripeCustomer } as const;
+    }
+
+    /**
+     * Synchronize data
+     */
+    didUpdate = true;
+    await subscriptionDbService.updateTeamSubscriptionStateForCustomer({
+      teamId,
+      customerId,
+      subscriptions,
+    });
+    await fetchAndUpdateEntitlements(customerId);
+    return { success: true, didUpdate, stripeCustomer } as const;
+  } catch (ex) {
+    logger.error({ teamId, ...getErrorMessageAndStackObj(ex) }, 'Error synchronizing stripe with jetstream for team');
     return { success: false, reason: 'UNKNOWN_ERROR', didUpdate: false } as const;
   }
 }
@@ -322,7 +476,7 @@ export async function saveOrUpdateSubscription({
     await userDbService.createBillingAccountIfNotExists({ userId, customerId: customer.id });
   } else if (teamId && type === 'TEAM') {
     // For new subscriptions, create a billing account if it does not exist
-    await teamDbService.createTeamBillingAccountIfNotExists({ teamId, customerId: customer.id });
+    await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });
   } else {
     logger.error({ customerId: customer.id, userId, teamId, type }, 'Unable to save subscriptions - userId or teamId is required');
     return;
@@ -342,6 +496,14 @@ export async function saveOrUpdateSubscription({
         });
       });
     }
+  } else if (type === 'TEAM') {
+    await subscriptionDbService.updateTeamSubscriptionStateForCustomer({
+      teamId,
+      customerId: customer.id,
+      subscriptions: filterInactiveSubscriptions(subscriptions),
+    });
+  } else {
+    throw new Error(`Invalid type for subscription update: ${type}`);
   }
 }
 
@@ -420,8 +582,7 @@ export async function createCheckoutSession({
       type: 'TEAM';
     }
 )) {
-  let successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`;
-  let cancelUrl = `${ENV.JETSTREAM_CLIENT_URL}/settings/billing?subscribeAction=canceled`;
+  const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
   if (!customerId) {
     if (type === 'USER') {
       const customer = await createCustomer(user);
@@ -430,23 +591,28 @@ export async function createCheckoutSession({
       if (!team) {
         throw new Error('Team is required for team checkout session');
       }
+      urlParams.set('teamId', team.id);
       const customer = await createTeamCustomer(user, team);
       customerId = customer.id;
-      // FIXME: specify correct URLs for team checkout session
-      successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/teams/billing/checkout-session/complete?subscribeAction=success&sessionId={CHECKOUT_SESSION_ID}`;
-      cancelUrl = `${ENV.JETSTREAM_CLIENT_URL}/teams/billing?subscribeAction=canceled`;
     } else {
       throw new Error('Invalid type for checkout session, must be USER or TEAM');
     }
   }
 
+  urlParams.set('customerId', customerId);
+
   if (type === 'USER') {
     await userDbService.createBillingAccountIfNotExists({ userId: user.id, customerId });
   } else if (type === 'TEAM' && team) {
-    teamDbService.createTeamBillingAccountIfNotExists({ teamId: team.id, customerId });
+    teamDbService.createBillingAccountIfNotExists({ teamId: team.id, customerId });
   } else {
     throw new Error('Invalid type for checkout session, must be USER or TEAM');
   }
+
+  // ensure { & } are not encoded
+  const serializedUrlParams = urlParams.toString().replace('CHECKOUT_SESSION_ID', '{CHECKOUT_SESSION_ID}');
+  const successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?${serializedUrlParams}`;
+  const cancelUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/cancel?${serializedUrlParams}`;
 
   const session = await stripe.checkout.sessions.create({
     line_items: [
@@ -482,14 +648,136 @@ export async function createCheckoutSession({
  */
 export async function createBillingPortalSession({
   customerId,
+  portalType,
   returnUrl = `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`,
 }: {
   customerId: string;
+  portalType: 'USER' | 'TEAM' | 'MANUAL';
   returnUrl?: string;
 }) {
+  let portalId = ENV.STRIPE_BILLING_PORTAL_LINK;
+  if (portalType === 'TEAM') {
+    portalId = ENV.STRIPE_TEAM_BILLING_PORTAL_ID;
+  } else if (portalType === 'MANUAL') {
+    portalId = ENV.STRIPE_MANUAL_BILLING_PORTAL_ID;
+  }
+
+  if (!portalId) {
+    throw new Error(`Billing portal not found for type ${portalType}`);
+  }
+
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
+    configuration: portalId,
     return_url: returnUrl,
   });
+
   return session;
+}
+
+/**
+ * Update Stripe subscription item quantity to match the number of active users in Jetstream
+ * This will invoice the customer immediately if required based on their plan and the number of users
+ */
+export async function updateSubscriptionItemQuantity(
+  customerId: string,
+  newQuantity: number
+): Promise<{
+  success: boolean;
+  didUpdate: boolean;
+  subscriptionId?: Maybe<string>;
+  subscriptionItemId?: Maybe<string>;
+  quantity?: Maybe<number>;
+  error?: Maybe<string>;
+}> {
+  let subscription: Stripe.Subscription | undefined = undefined;
+  let subscriptionItem: Stripe.SubscriptionItem | undefined = undefined;
+  try {
+    const customer = await stripe.customers.retrieve(customerId, {
+      expand: ['subscriptions'],
+    });
+
+    if (customer.deleted) {
+      throw new Error('Customer is deleted');
+    }
+
+    const subscriptions = (customer.subscriptions?.data || []).filter((subscription) =>
+      ['active', 'past_due', 'unpaid'].includes(subscription.status)
+    );
+    subscription = subscriptions[0];
+    const subscriptionItems = subscriptions[0]?.items?.data || [];
+    subscriptionItem = subscriptionItems[0];
+
+    if (subscriptions.length !== 1 || !subscription) {
+      throw new Error('Customer does not have an eligible subscription');
+    }
+
+    if (subscriptionItems.length !== 1 || !subscriptionItem) {
+      throw new Error('Customer does not have an eligible subscription item');
+    }
+
+    if (subscriptionItem.quantity === newQuantity) {
+      logger.info(
+        {
+          customerId,
+          quantity: newQuantity,
+          subscriptionId: subscription?.id,
+          subscriptionItemId: subscriptionItem?.id,
+        },
+        `Skipping Stripe quantity update, quantity already matches desired number`
+      );
+      return {
+        success: true,
+        didUpdate: false,
+        subscriptionId: subscription.id,
+        subscriptionItemId: subscriptionItem.id,
+        quantity: newQuantity,
+        error: null,
+      };
+    }
+
+    await stripe.subscriptionItems.update(subscriptionItem.id, {
+      payment_behavior: 'allow_incomplete',
+      proration_behavior: 'always_invoice',
+      quantity: newQuantity,
+    });
+
+    logger.info(
+      {
+        customerId,
+        quantity: newQuantity,
+        subscriptionId: subscription?.id,
+        subscriptionItemId: subscriptionItem?.id,
+      },
+      `Updated Stripe subscription item quantity`
+    );
+
+    return {
+      success: true,
+      didUpdate: true,
+      subscriptionId: subscription.id,
+      subscriptionItemId: subscriptionItem.id,
+      quantity: newQuantity,
+      error: null,
+    };
+  } catch (ex) {
+    logger.warn(
+      {
+        customerId,
+        quantity: newQuantity,
+        subscriptionId: subscription?.id,
+        subscriptionItemId: subscriptionItem?.id,
+        ...getErrorMessageAndStackObj(ex),
+      },
+      `Error updating subscription quantity: ${getErrorMessage(ex)}`
+    );
+    return {
+      success: false,
+      didUpdate: false,
+      subscriptionId: subscription?.id,
+      subscriptionItemId: subscriptionItem?.id,
+      quantity: newQuantity,
+      error: getErrorMessage(ex),
+    };
+  }
 }

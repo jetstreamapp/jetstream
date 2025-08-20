@@ -182,11 +182,17 @@ export const appVersionState = atom<Promise<{ version: string; announcements?: A
 export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
 
 export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fetchUserProfile());
+
 /**
  * This is for internal use for derived state to avoid async issues.
  * Use `userProfileState` for components.
  */
 export const userProfileSyncState = unwrap(userProfileState, (prev) => prev ?? DEFAULT_PROFILE);
+
+export const isReadOnlyUserState = atom((get) => {
+  const userProfile = get(userProfileSyncState);
+  return userProfile.teamMembership?.role === 'BILLING';
+});
 
 export const hasPaidPlanState = atom((get) => {
   const userProfile = get(userProfileSyncState);

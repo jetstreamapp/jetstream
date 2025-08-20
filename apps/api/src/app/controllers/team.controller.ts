@@ -1,12 +1,14 @@
 import { ENV, logger } from '@jetstream/api-config';
 import * as authDbService from '@jetstream/auth/server';
+import { AuthenticatedUserSchema } from '@jetstream/auth/types';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
-  TEAM_STATUS_ACTIVE,
-  TEAM_STATUS_INACTIVE,
+  TEAM_MEMBER_STATUS_ACTIVE,
+  TEAM_MEMBER_STATUS_INACTIVE,
   TeamInvitationRequestSchema,
   TeamInvitationUpdateRequestSchema,
   TeamLoginConfigRequestSchema,
+  TeamMemberUpdateRequestSchema,
 } from '@jetstream/types';
 import { z } from 'zod';
 import * as teamDbService from '../db/team.db';
@@ -69,6 +71,17 @@ export const routeDefinition = {
       body: TeamLoginConfigRequestSchema,
     },
   },
+  updateTeamMember: {
+    controllerFn: () => updateTeamMember,
+    validators: {
+      hasSourceOrg: false,
+      params: z.object({
+        teamId: z.string().uuid(),
+        userId: z.string().uuid(),
+      }),
+      body: TeamMemberUpdateRequestSchema,
+    },
+  },
   updateTeamMemberStatus: {
     controllerFn: () => updateTeamMemberStatus,
     validators: {
@@ -78,7 +91,7 @@ export const routeDefinition = {
         userId: z.string().uuid(),
       }),
       body: z.object({
-        status: z.enum([TEAM_STATUS_ACTIVE, TEAM_STATUS_INACTIVE]),
+        status: z.enum([TEAM_MEMBER_STATUS_ACTIVE, TEAM_MEMBER_STATUS_INACTIVE]),
       }),
     },
   },
@@ -142,10 +155,18 @@ const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators
   const { teamId, token } = params;
 
   const cookieConfig = authDbService.getCookieConfig(ENV.USE_SECURE_COOKIES);
-  await teamDbService.acceptTeamInvitation({ teamId, token, user });
+  const teamMembership = await teamDbService.acceptTeamInvitation({ teamId, token, user });
   clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
 
+  // ensure session is updated to include the teamMembership
+  if (teamMembership) {
+    req.session.teamMembership = AuthenticatedUserSchema.shape.teamMembership.parse(teamMembership);
+  }
+
   sendJson(res, { success: true, redirectUrl: ENV.JETSTREAM_CLIENT_URL });
+
+  // This happens in the background outside the user's request flow
+  teamService.syncUserCountWithStripe(teamId);
 });
 
 const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user }, req, res) => {
@@ -171,10 +192,24 @@ const updateLoginConfiguration = createRoute(routeDefinition.updateLoginConfigur
   sendJson(res, team);
 });
 
+const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators, async ({ params, body, user }, req, res) => {
+  const { teamId, userId } = params;
+  // TODO: validate that user has permissions to take this action
+  // (e.g. cannot change their own role, possibly other restrictions)
+  const team = await teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id });
+  sendJson(res, team);
+
+  // This happens in the background outside the user's request flow
+  teamService.syncUserCountWithStripe(teamId);
+});
+
 const updateTeamMemberStatus = createRoute(routeDefinition.updateTeamMemberStatus.validators, async ({ params, body, user }, req, res) => {
   const { teamId, userId } = params;
   const team = await teamService.updateTeamMemberStatus({ teamId, userId, status: body.status, runningUserId: user.id });
   sendJson(res, team);
+
+  // This happens in the background outside the user's request flow
+  teamService.syncUserCountWithStripe(teamId);
 });
 
 const getInvitations = createRoute(routeDefinition.getInvitations.validators, async ({ params, body }, req, res) => {

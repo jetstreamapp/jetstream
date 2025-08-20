@@ -34,6 +34,7 @@ import {
   GenericRequestPayload,
   GoogleFileApiResponse,
   JetstreamOrganization,
+  JetstreamPricesByLookupKey,
   ListMetadataQuery,
   ListMetadataResult,
   ListMetadataResultRaw,
@@ -49,6 +50,7 @@ import {
   SalesforceApiRequest,
   SalesforceOrgUi,
   SobjectOperation,
+  StripePriceKey,
   StripeUserFacingCustomer,
   SyncRecord,
   SyncRecordOperation,
@@ -56,6 +58,7 @@ import {
   TeamInviteUserFacing,
   TeamLoginConfigRequest,
   TeamMemberStatus,
+  TeamMemberUpdateRequest,
   TeamUserFacing,
   UserProfileUi,
   VerifyInvitationResponse,
@@ -134,6 +137,10 @@ export async function getTeamAuthActivity(teamId: string): Promise<LoginActivity
 
 export async function updateTeamLoginConfiguration(teamId: string, data: TeamLoginConfigRequest): Promise<TeamUserFacing> {
   return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/login-configuration`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamMember(teamId: string, userId: string, data: TeamMemberUpdateRequest): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/members/${userId}`, data }).then(unwrapResponseIgnoreCache);
 }
 
 export async function updateTeamMemberStatus(teamId: string, userId: string, data: { status: TeamMemberStatus }): Promise<TeamUserFacing> {
@@ -246,8 +253,22 @@ export async function resendVerificationEmail(identity: { provider: string; user
   return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
+export async function initCheckoutSession({
+  priceLookupKey,
+  teamName,
+}: {
+  priceLookupKey: StripePriceKey;
+  teamName?: string;
+}): Promise<{ url: string }> {
+  return handleRequest({ method: 'POST', url: '/api/billing/checkout-session', data: { priceLookupKey, teamName } }).then(
+    unwrapResponseIgnoreCache
+  );
+}
+
 export async function getSubscriptions(): Promise<{
   customer: StripeUserFacingCustomer | null;
+  pricesByLookupKey: JetstreamPricesByLookupKey | null;
+  hasManualBilling: boolean;
   didUpdate: boolean;
   userProfile?: Maybe<UserProfileUi>;
 }> {

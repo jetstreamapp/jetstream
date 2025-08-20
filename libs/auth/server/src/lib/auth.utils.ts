@@ -7,6 +7,7 @@ import * as Bowser from 'bowser';
 export const REMEMBER_DEVICE_DAYS = 30;
 
 const TIME_15_MIN = 60 * 15;
+const TIME_1_HOUR = 60 * 60;
 const REMEMBER_DEVICE_MAX_AGE = REMEMBER_DEVICE_DAYS * 24 * 60 * 60;
 
 export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
@@ -109,6 +110,16 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         path: '/',
         secure: useSecureCookies,
         maxAge: TIME_15_MIN,
+      },
+    },
+    checkoutSession: {
+      name: `jetstream.checkout-session`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: useSecureCookies,
+        maxAge: TIME_1_HOUR,
       },
     },
   } as const;
