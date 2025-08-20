@@ -9,6 +9,22 @@ slug: /troubleshooting
 
 import OrgTroubleshootingTable from './_org-troubleshooting-table.mdx';
 
+:::info
+
+Starting in September 2025, Salesforce requires that all 3rd party connected apps are [installed](https://help.salesforce.com/s/articleView?id=xcloud.connected_app_how_to_install.htm&type=5) in your org for any new authorizations.
+
+If you are a System Administrator, you may be unaffected if you have not modified the "Approve Uninstalled Connected Apps" setting, which Salesforce set on all System Administrator profiles by default.
+
+After you attempt to Login to Jetstream, you will see <code>Jetstream</code> show up in the list on the <code>Manage Connected Apps</code> setup page.
+
+You will need to click "Install" and then you can configure your desired security policies for the connection.
+
+Jetstream will **NEVER** communicate with Salesforce APIs without your explicit authorization and will never do so in the background or for any actions you have not explicity taken while using Jetstream.
+
+Refer to the [Salesforce Documentation](https://help.salesforce.com/s/articleView?id=005132365&type=1) for more information.
+
+:::
+
 If you are having problems connecting to Salesforce, here are some tips to help you resolve any issues.
 
 ### Jetstream IP Addresses

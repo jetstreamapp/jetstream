@@ -1018,16 +1018,28 @@ export async function handleSignInOrRegistration(
           // throw error or return error?
           // tell user to login with existing account and link this identity
           // TODO: we should try to prevent duplicate email addresses to avoid this complexity
+          logger.warn(
+            { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
+            'Cannot auto-link account because there are multiple users with the same email address'
+          );
           throw new LoginWithExistingIdentity();
         }
         if (usersWithEmail.length === 1) {
           if (!usersWithEmail[0].emailVerified || !providerUser.emailVerified) {
             // return error - cannot link since email addresses are not verified
+            logger.warn(
+              { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
+              'Cannot auto-link account because email addresses are not verified'
+            );
             throw new LoginWithExistingIdentity();
           }
 
           const loginConfiguration = await getLoginConfiguration(usersWithEmail[0].email);
           if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
+            logger.warn(
+              { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
+              'Cannot auto-link account because login configuration disallows it'
+            );
             throw new IdentityLinkingNotAllowed();
           }
 
@@ -1156,6 +1168,10 @@ export async function linkIdentityToUser({
     if (existingProviderUser && existingProviderUser.id !== userId) {
       // FIXME: This error is never presented to the user, it silently fails
       // TODO: is this the correct error message? some other user already has this identity linked
+      logger.warn(
+        { newUserId: userId, existingUserId: existingProviderUser.id },
+        'Cannot link account, Provider identity already linked to another user'
+      );
       throw new LoginWithExistingIdentity('Provider identity already linked to another user');
     } else if (existingProviderUser) {
       // identity is already linked to this user - NO_OP
