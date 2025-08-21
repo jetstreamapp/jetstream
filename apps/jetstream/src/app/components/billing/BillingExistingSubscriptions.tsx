@@ -37,7 +37,7 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
             checked={selectedPlan === environment.STRIPE_PRO_ANNUAL_PRICE_ID}
             disabled={selectedPlan !== environment.STRIPE_PRO_ANNUAL_PRICE_ID}
             value={environment.STRIPE_PRO_ANNUAL_PRICE_ID}
-            price="$275"
+            price="$250"
             priceDescription="Billed Annually"
             onChange={setSelectedPlan}
           />
