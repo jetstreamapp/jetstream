@@ -1,4 +1,4 @@
-import { getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
+import { getExceptionLog, logger } from '@jetstream/api-config';
 import { CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { NextFunction } from 'express';
@@ -98,20 +98,6 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(new UserFacingError(ex));
       }
     } catch (ex) {
-      rollbarServer.error('Route Validation Error', req, {
-        context: `route#createRoute`,
-        custom: {
-          ...getExceptionLog(ex, true),
-          message: ex.message,
-          stack: ex.stack,
-          url: req.url,
-          params: req.params,
-          query: req.query,
-          body: req.body,
-          userId: req.session.user?.id,
-          requestId: res.locals.requestId,
-        },
-      });
       req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
       next(new UserFacingError(ex));
     }
