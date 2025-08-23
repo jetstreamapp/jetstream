@@ -19,23 +19,24 @@ const LoginSchema = z.object({
   action: z.literal('login'),
   csrfToken: z.string(),
   captchaToken: z.string(),
-  email: z.string().email({ message: 'A valid email address is required' }).min(5).max(255).trim(),
+  email: z.email().min(5).max(255).trim(),
   password: PasswordSchema,
 });
 
 const RegisterSchema = LoginSchema.omit({ action: true }).extend({
   action: z.literal('register'),
-  name: z.string().min(1, { message: 'Name is required' }).max(255, { message: 'Name must be at most 255 characters' }),
+  name: z.string().min(1, { error: 'Name is required' }).max(255, { error: 'Name must be at most 255 characters' }),
   confirmPassword: PasswordSchema,
 });
 
 const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema]).superRefine((data, ctx) => {
   if (data.action === 'register') {
     if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+      ctx.issues.push({
+        code: 'custom',
         message: 'Passwords do not match',
         path: ['confirmPassword'],
+        input: '',
       });
     }
   }

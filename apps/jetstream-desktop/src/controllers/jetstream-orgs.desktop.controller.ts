@@ -14,7 +14,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({
         name: z.string(),
-        description: z.string().optional().nullable().default(null),
+        description: z.string().optional().nullable().prefault(null),
       }),
       hasSourceOrg: false,
     },
@@ -23,11 +23,11 @@ export const routeDefinition = {
     controllerFn: () => updateOrganization,
     validators: {
       params: z.object({
-        id: z.string().uuid(),
+        id: z.uuid(),
       }),
       body: z.object({
         name: z.string(),
-        description: z.string().optional().nullable().default(null),
+        description: z.string().optional().nullable().prefault(null),
       }),
       hasSourceOrg: false,
     },
@@ -36,7 +36,7 @@ export const routeDefinition = {
     controllerFn: () => deleteOrganization,
     validators: {
       params: z.object({
-        id: z.string().uuid(),
+        id: z.uuid(),
       }),
       hasSourceOrg: false,
     },

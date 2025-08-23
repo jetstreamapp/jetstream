@@ -59,11 +59,11 @@ const envSchema = z.object({
     .optional()
     .transform((value) => value ?? 'production'),
   CLIENT_URL: z.string(),
-  SERVER_URL: z.string().url(),
+  SERVER_URL: z.url(),
   // TODO: allow updating this in the app
   SFDC_API_VERSION: z.string().regex(/^[0-9]{2,4}\.[0-9]$/),
   DESKTOP_SFDC_CLIENT_ID: z.string().min(1),
-  DESKTOP_SFDC_CALLBACK_URL: z.string().url(),
+  DESKTOP_SFDC_CALLBACK_URL: z.url(),
 });
 
 const parseResults = envSchema.safeParse({
@@ -73,7 +73,7 @@ const parseResults = envSchema.safeParse({
 
 if (!parseResults.success) {
   console.error(`❌ ${chalk.red('Error parsing environment variables:')}
-${chalk.yellow(JSON.stringify(parseResults.error.flatten().fieldErrors, null, 2))}
+${chalk.yellow(JSON.stringify(z.treeifyError(parseResults.error), null, 2))}
 `);
   process.exit(1);
 }
