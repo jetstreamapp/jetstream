@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import crypto from 'node:crypto';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { chalk, fs, path, question } from 'zx'; // https://github.com/google/zx
+import { argv, chalk, fs, path, question } from 'zx'; // https://github.com/google/zx
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,8 +17,10 @@ function generateRandomBase64(size = 32) {
 
 const exampleEnvFile = fs.readFileSync(inputFilename, 'utf8');
 
+const silent = argv.silent;
+
 // check if .env file exists, if so ask the user if they want to overwrite it or abort
-if (fs.existsSync(inputFilename)) {
+if (!silent && fs.existsSync(outputFilename)) {
   console.log(chalk.yellow(`.env file already exists.`));
   const response = await question('Overwrite? (y/N)? ');
   if (!response || response.toLocaleLowerCase() !== 'y') {
@@ -27,15 +29,21 @@ if (fs.existsSync(inputFilename)) {
   }
 }
 
-const clientUrl = await question('Are you going to developing on the codebase (determines ports to use)? (y/N) ').then((response) =>
-  (response || '').toLocaleLowerCase() === 'y' ? 'http://localhost:4200/app' : 'http://localhost:3333/app'
-);
+let clientUrl = 'http://localhost:3333/app';
+if (!silent) {
+  clientUrl = await question('Are you going to developing on the codebase (determines ports to use)? (y/N) ').then((response) =>
+    (response || '').toLocaleLowerCase() === 'y' ? 'http://localhost:4200/app' : 'http://localhost:3333/app'
+  );
+}
 
 console.log(chalk.green('Client url set to:'), clientUrl);
 
-const enableExampleUser = await question('Would you like to enable the example user? (Y/n) ').then((response) =>
-  !response || (response || '').toLocaleLowerCase() === 'y' ? 'true' : 'false'
-);
+let enableExampleUser = 'true';
+if (!silent) {
+  enableExampleUser = await question('Would you like to enable the example user? (Y/n) ').then((response) =>
+    !response || (response || '').toLocaleLowerCase() === 'y' ? 'true' : 'false'
+  );
+}
 
 const replacements = [
   ['JETSTREAM_CLIENT_URL=', `JETSTREAM_CLIENT_URL='${clientUrl}'`],
