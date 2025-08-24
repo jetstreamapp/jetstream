@@ -1,4 +1,4 @@
-import { Cipher, createCipheriv, createDecipheriv, Decipher, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 export function generateKey(): string {
   // Generates 32 byte cryptographically strong pseudo-random data as a base64 encoded string
@@ -25,16 +25,16 @@ export function encryptString(plainText: string, secret: string): string {
     throw new Error('you must pass a secret');
   }
 
-  const keyBytes: Buffer = Buffer.from(secret, 'base64');
+  const keyBytes = Buffer.from(secret, 'base64');
 
   // Generates 16 byte cryptographically strong pseudo-random data as IV
   // https://nodejs.org/api/crypto.html#crypto_crypto_randombytes_size_callback
-  const ivBytes: Buffer = randomBytes(16);
-  const ivText: string = ivBytes.toString('base64');
+  const ivBytes = randomBytes(16);
+  const ivText = ivBytes.toString('base64');
 
   // encrypt using aes256 iv + key + plainText = encryptedText
-  const cipher: Cipher = createCipheriv('aes256', keyBytes, ivBytes);
-  let encryptedValue: string = cipher.update(plainText, 'utf8', 'base64');
+  const cipher = createCipheriv('aes-256-cbc', new Uint8Array(keyBytes), new Uint8Array(ivBytes));
+  let encryptedValue = cipher.update(plainText, 'utf8', 'base64');
   encryptedValue += cipher.final('base64');
 
   // store base64(ivBytes)!base64(encryptedValue)
@@ -62,8 +62,8 @@ export function decryptString(encryptedValue: string, secret: string): string {
     throw new Error('The encrypted value is not a valid format');
   }
 
-  const ivBytes: Buffer = Buffer.from(ivText, 'base64');
-  const keyBytes: Buffer = Buffer.from(secret, 'base64');
+  const ivBytes = Buffer.from(ivText, 'base64');
+  const keyBytes = Buffer.from(secret, 'base64');
 
   if (ivBytes.length !== 16) {
     throw new Error('The encrypted value is not a valid format');
@@ -74,8 +74,8 @@ export function decryptString(encryptedValue: string, secret: string): string {
   }
 
   // decrypt using aes256 iv + key + encryptedText = decryptedText
-  const decipher: Decipher = createDecipheriv('aes-256-cbc', keyBytes, ivBytes);
-  let value: string = decipher.update(encryptedText, 'base64', 'utf8');
+  const decipher = createDecipheriv('aes-256-cbc', new Uint8Array(keyBytes), new Uint8Array(ivBytes));
+  let value = decipher.update(encryptedText, 'base64', 'utf8');
   value += decipher.final('utf8');
 
   return value;

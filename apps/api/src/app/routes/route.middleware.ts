@@ -11,6 +11,7 @@ import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
+import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 import { getApiAddressFromReq } from '../utils/route.utils';
 
@@ -279,8 +280,8 @@ export async function getOrgForRequest(
     throw new NotFoundError('An org with the provided id does not exist');
   }
 
-  const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId, organizationId } = org;
-  const [accessToken, refreshToken] = salesforceOrgsDb.decryptAccessToken(encryptedAccessToken);
+  const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId: salesforceUserId, organizationId } = org;
+  const [accessToken, refreshToken] = await sfdcEncService.decryptAccessToken({ encryptedAccessToken, userId: user.id });
 
   apiVersion = apiVersion || org.apiVersion || ENV.SFDC_API_VERSION;
   let callOptions: Record<string, string> = {
@@ -299,7 +300,7 @@ export async function getOrgForRequest(
       if (!refreshToken) {
         return;
       }
-      await salesforceOrgsDb.updateAccessToken_UNSAFE(org, accessToken, refreshToken);
+      await salesforceOrgsDb.updateAccessToken_UNSAFE({ accessToken, refreshToken, org, userId: user.id });
     } catch (ex) {
       logger.error({ requestId, ...getExceptionLog(ex) }, '[ORG][REFRESH] Error saving refresh token');
     }
@@ -316,7 +317,7 @@ export async function getOrgForRequest(
   const jetstreamConn = new ApiConnection(
     {
       apiRequestAdapter: getApiRequestFactoryFn(fetch),
-      userId,
+      userId: salesforceUserId,
       organizationId,
       accessToken,
       apiVersion,
