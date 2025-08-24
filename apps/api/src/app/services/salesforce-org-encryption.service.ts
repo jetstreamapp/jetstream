@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
 import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { createHash, pbkdf2, randomBytes } from 'crypto';
 import { LRUCache } from 'lru-cache';
@@ -115,20 +115,28 @@ export async function decryptAccessToken({
       // Derive the same key using the stored salt
       const { key } = await deriveUserKey({ userId, salt });
       const decrypted = decryptString(encryptedData, key);
-      return decrypted.split(' ') as [string, string];
+      const [accessToken, refreshToken] = decrypted.split(' ');
+      return [accessToken, refreshToken];
     }
 
     // Legacy format - decrypt with old method
     try {
       const decrypted = decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
-      return decrypted.split(' ') as [string, string];
+      const [accessToken, refreshToken] = decrypted.split(' ');
+      return [accessToken, refreshToken];
     } catch (error) {
       logger.error('Failed to decrypt token, it may be corrupted', error);
       throw new Error('Unable to decrypt access token');
     }
   } catch (error) {
     logger.error({ userId, ...getExceptionLog(error) }, 'Failed to decrypt token, it may be corrupted');
-    // return invalid data to allow the org to gt marked as having invalid credentials once we attempt use them for Salesforce connection
+    rollbarServer.error('Failed to decrypt token', {
+      context: `salesforce-org-encryption.service#decryptAccessToken`,
+      custom: {
+        ...getExceptionLog(error, true),
+      },
+    });
+    // return invalid data to allow the org to get marked as having invalid credentials once we attempt use them for Salesforce connection
     return ['invalid', 'invalid'];
   }
 }
