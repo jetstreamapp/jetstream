@@ -6,7 +6,7 @@ import { PlaywrightPage } from './PlaywrightPage.model';
 export function getDefaultProfile() {
   const defaultProfile: UserProfileUiWithIdentities = {
     id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
-    userId: 'test|AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+    userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
     name: 'Test User',
     email: 'test@example.com',
     emailVerified: true,

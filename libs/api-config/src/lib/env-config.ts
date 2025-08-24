@@ -33,11 +33,11 @@ function ensureBoolean(value: Maybe<string | boolean>): boolean {
  * This user cannot be used outside of localhost regardless of the environment variables.
  */
 const EXAMPLE_USER: UserProfileSession = {
-  id: 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+  id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   name: 'Test User',
   email: 'test@example.com',
   emailVerified: true,
-  userId: 'test|AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+  userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   authFactors: [],
 };
 
@@ -52,7 +52,7 @@ const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
   preferences: {
     skipFrontdoorLogin: false,
     recordSyncEnabled: false,
-    id: 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+    id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
     userId: 'test|TEST_USER_ID',
     createdAt: new Date(),
     updatedAt: new Date(),
