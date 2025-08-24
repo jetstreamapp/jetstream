@@ -8,6 +8,7 @@ import { z } from 'zod';
 import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import * as oauthService from '../services/oauth.service';
+import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { createRoute } from '../utils/route.utils';
 
 export interface OauthLinkParams {
@@ -158,10 +159,15 @@ export async function initConnectionFromOAuthResponse({
 
   const orgName = companyInfoRecord?.Name || 'Unknown Organization';
 
+  const encryptedTokens = await sfdcEncService.encryptAccessToken({
+    accessToken: jetstreamConn.sessionInfo.accessToken,
+    refreshToken: jetstreamConn.sessionInfo.refreshToken || '',
+    userId,
+  });
+
   const salesforceOrgUi: Partial<SalesforceOrgUi> = {
     uniqueId: `${jetstreamConn.sessionInfo.organizationId}-${jetstreamConn.sessionInfo.userId}`,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    accessToken: salesforceOrgsDb.encryptAccessToken(jetstreamConn.sessionInfo.accessToken, jetstreamConn.sessionInfo.refreshToken!),
+    accessToken: encryptedTokens,
     instanceUrl: jetstreamConn.sessionInfo.instanceUrl,
     loginUrl: jetstreamConn.sessionInfo.instanceUrl,
     userId: identity.user_id,

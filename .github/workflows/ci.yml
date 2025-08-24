@@ -128,6 +128,7 @@ jobs:
       SFDC_CALLBACK_URL: http://localhost:3333/oauth/sfdc/callback
       SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
       SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
+      SFDC_ENCRYPTION_KEY: ${{ secrets.SFDC_ENCRYPTION_KEY }}
 
     services:
       postgres:
