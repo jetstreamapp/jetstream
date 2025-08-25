@@ -30,6 +30,7 @@ export const DeployMetadataRequestSchema = z.object({
 export type DeployMetadataRequest = z.infer<typeof DeployMetadataRequestSchema>;
 
 export const RetrievePackageFromLisMetadataResultsRequestSchema = z.record(
+  z.string(),
   z
     .object({
       fullName: z.string(),
@@ -63,6 +64,7 @@ export type CheckRetrieveStatusAndRedeployRequest = z.infer<typeof CheckRetrieve
 
 export const GetPackageXmlSchema = z.object({
   metadata: z.record(
+    z.string(),
     z
       .object({
         fullName: z.string(),
@@ -70,7 +72,7 @@ export const GetPackageXmlSchema = z.object({
       })
       .array()
   ), // TODO: define metadata type
-  otherFields: z.record(z.string()).nullish(),
+  otherFields: z.record(z.string(), z.string()).nullish(),
 });
 export type GetPackageXml = z.infer<typeof GetPackageXmlSchema>;
 
