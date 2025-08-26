@@ -193,7 +193,9 @@ const envSchema = z.object({
   SFDC_CONSUMER_KEY: z.string().min(1),
   SFDC_CALLBACK_URL: z.string().url(),
   // Should be a base64-encoded 32-byte key (generate with: openssl rand -base64 32)
-  SFDC_ENCRYPTION_KEY: z.string(),
+  SFDC_ENCRYPTION_KEY: z.string().min(44, {
+    message: 'SFDC_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
+  }),
   // Encryption performance tuning
   SFDC_ENCRYPTION_ITERATIONS: z
     .string()
