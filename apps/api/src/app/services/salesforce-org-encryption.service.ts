@@ -83,6 +83,10 @@ export async function encryptAccessToken({
 }): Promise<string> {
   const tokenData = `${accessToken} ${refreshToken}`;
 
+  if (!userId) {
+    throw new Error('User ID is required for encryption');
+  }
+
   // Per-user encryption key
   const { key, salt } = await deriveUserKey({ userId });
   const encryptedData = encryptString(tokenData, key);

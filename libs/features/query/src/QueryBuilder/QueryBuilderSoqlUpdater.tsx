@@ -33,9 +33,19 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
         limit: queryLimit,
         offset: queryLimitSkip,
       };
-      const queryCount: Query = { ...query, fields: [{ type: 'FieldFunctionExpression', functionName: 'COUNT', parameters: [] }] };
       setSoql(composeSoqlQuery(query, filters, hasGroupBy ? havingClauses : undefined));
-      setSoqlCount(composeSoqlQuery(queryCount, filters, hasGroupBy ? havingClauses : undefined));
+
+      const queryCount: Query = {
+        ...query,
+        fields: [{ type: 'FieldFunctionExpression', functionName: 'COUNT', parameters: [] }],
+        orderBy: undefined,
+      };
+
+      if (query.groupBy || query.having) {
+        setSoqlCount('');
+      } else {
+        setSoqlCount(composeSoqlQuery(queryCount, filters));
+      }
     } else if (soql !== '') {
       setSoql('');
       setSoqlCount('');
