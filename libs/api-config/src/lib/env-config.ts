@@ -33,11 +33,11 @@ function ensureBoolean(value: Maybe<string | boolean>): boolean {
  * This user cannot be used outside of localhost regardless of the environment variables.
  */
 const EXAMPLE_USER: UserProfileSession = {
-  id: 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+  id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   name: 'Test User',
   email: 'test@example.com',
   emailVerified: true,
-  userId: 'test|AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+  userId: 'test|aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
   authFactors: [],
 };
 
@@ -52,7 +52,7 @@ const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
   preferences: {
     skipFrontdoorLogin: false,
     recordSyncEnabled: false,
-    id: 'AAAAAAAA-0000-0000-0000-AAAAAAAAAAAA',
+    id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
     userId: 'test|TEST_USER_ID',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -192,6 +192,21 @@ const envSchema = z.object({
   SFDC_CONSUMER_SECRET: z.string().min(1),
   SFDC_CONSUMER_KEY: z.string().min(1),
   SFDC_CALLBACK_URL: z.string().url(),
+  // Should be a base64-encoded 32-byte key (generate with: openssl rand -base64 32)
+  SFDC_ENCRYPTION_KEY: z.string(),
+  // Encryption performance tuning
+  SFDC_ENCRYPTION_ITERATIONS: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 100_000)),
+  SFDC_ENCRYPTION_CACHE_MAX_ENTRIES: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 10_000)),
+  SFDC_ENCRYPTION_CACHE_TTL_MS: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val) : 3_600_000)),
   /**
    * Google OAuth2
    * Allows google drive configuration
