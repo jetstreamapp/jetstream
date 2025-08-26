@@ -16,6 +16,7 @@ env:
   NX_PUBLIC_ROLLBAR_KEY: ${{ secrets.NX_PUBLIC_ROLLBAR_KEY }}
   NX_PUBLIC_CLIENT_URL: 'http://localhost:3333/app'
   NX_PUBLIC_SERVER_URL: 'http://localhost:3333'
+  SFDC_ENCRYPTION_KEY: ${{ secrets.SFDC_ENCRYPTION_KEY }}
 
 jobs:
   # Build application

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { Badge, Icon } from '@jetstream/ui';
+import { Badge, Icon, ScopedNotification } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
@@ -50,10 +50,11 @@ const HOME_ITEMS = [
 const CURRENT_TIME = new Date().getTime();
 
 interface AppHomeProps {
-  showChromeExtension: boolean;
+  showAlternativeAppFormats: boolean;
+  hideConnectedAppBanner?: boolean;
 }
 
-export const AppHome = ({ showChromeExtension }: AppHomeProps) => {
+export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = false }: AppHomeProps) => {
   return (
     <div
       className="slds-m-top_small"
@@ -85,6 +86,44 @@ export const AppHome = ({ showChromeExtension }: AppHomeProps) => {
           }
         `}
       >
+        <div
+          css={css`
+            background-color: white;
+            grid-column: span 3;
+
+            @media (max-width: 1024px) {
+              grid-column: span 2;
+            }
+
+            @media (max-width: 768px) {
+              grid-column: span 1;
+            }
+          `}
+        >
+          {!hideConnectedAppBanner && (
+            <ScopedNotification theme="light">
+              Prepare for upcoming changes to{' '}
+              <a
+                href="https://help.salesforce.com/s/articleView?id=005132365&type=1"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Salesforce Connected Apps documentation"
+              >
+                Salesforce Connected Apps
+              </a>
+              . You may need to{' '}
+              <a
+                href="https://docs.getjetstream.app/troubleshooting#installing-jetstream"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Installing Jetstream connected app"
+              >
+                install the Jetstream Connected App
+              </a>{' '}
+              to connect to new orgs.
+            </ScopedNotification>
+          )}
+        </div>
         <AppHomeOrganizations />
         {HOME_ITEMS.map((card) => (
           <div
@@ -159,7 +198,7 @@ export const AppHome = ({ showChromeExtension }: AppHomeProps) => {
           </div>
         ))}
 
-        {showChromeExtension ? <AppHomeAlternativeApplicationFormats /> : null}
+        {showAlternativeAppFormats ? <AppHomeAlternativeApplicationFormats /> : null}
       </div>
     </div>
   );

@@ -351,7 +351,6 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
                                 toggleHideUnchangedRegions(diffEditorRef.current);
                               }
                             }}
-                            disabled={editorType !== 'DIFF'}
                             className="slds-m-bottom_x-small"
                           />
                         </div>
@@ -396,11 +395,12 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
 
                     {editorType === 'DIFF' && (
                       <DiffEditor
+                        key={swapped ? 'swapped' : 'original'}
                         height="100%"
                         theme="vs-dark"
                         language={activeFileType}
-                        keepCurrentModifiedModel={true}
-                        keepCurrentOriginalModel={true}
+                        keepCurrentModifiedModel
+                        keepCurrentOriginalModel
                         options={{
                           readOnly: true,
                           contextmenu: false,

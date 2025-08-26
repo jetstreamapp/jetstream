@@ -210,8 +210,6 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 label: resourceLabel,
                 labelHelp: resourceHelpText,
                 itemLength: 10,
-                showSelectionAsButton: true,
-                onClear: () => onChange({ ...selected, resource: null, resourceGroup: '', resourceMeta: undefined }),
               }}
               selectedItemLabelFn={getSelectionLabel}
               selectedItemId={selected.resource}

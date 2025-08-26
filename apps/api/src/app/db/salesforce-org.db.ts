@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, prisma } from '@jetstream/api-config';
 import { Prisma, SalesforceOrg } from '@jetstream/prisma';
-import { decryptString, encryptString, hexToBase64 } from '@jetstream/shared/node-utils';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
 import isUndefined from 'lodash/isUndefined';
+import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { NotFoundError } from '../utils/error-handler';
 
 const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
@@ -53,16 +53,6 @@ const findUsersOrgs = ({ userId }: { userId: string }) => {
   });
 };
 
-export function encryptAccessToken(accessToken: string, refreshToken: string) {
-  return encryptString(`${accessToken} ${refreshToken}`, hexToBase64(ENV.SFDC_CONSUMER_SECRET));
-}
-
-export function decryptAccessToken(encryptedAccessToken: string) {
-  // FIXME: we should use a dedicated encryption key for this
-  // TODO: if org is not used for X timeperiod, we should auto-expire the token
-  return decryptString(encryptedAccessToken, hexToBase64(ENV.SFDC_CONSUMER_SECRET)).split(' ');
-}
-
 /**
  * Finds by unique id and returns all fields
  * This is unsafe to send to the browser and should only be used internally
@@ -77,11 +67,22 @@ export async function findByUniqueId_UNSAFE(userId: string, uniqueId: string) {
   });
 }
 
-export async function updateAccessToken_UNSAFE(org: SalesforceOrg, accessToken: string, refreshToken: string) {
+export async function updateAccessToken_UNSAFE({
+  accessToken,
+  org,
+  refreshToken,
+  userId,
+}: {
+  userId: string;
+  org: SalesforceOrg;
+  accessToken: string;
+  refreshToken: string;
+}) {
+  const encryptedToken = await sfdcEncService.encryptAccessToken({ userId, accessToken, refreshToken });
   return await prisma.salesforceOrg.update({
     where: { id: org.id },
     data: {
-      accessToken: encryptAccessToken(accessToken, refreshToken),
+      accessToken: encryptedToken,
     },
   });
 }

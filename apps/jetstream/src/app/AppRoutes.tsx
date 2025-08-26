@@ -123,7 +123,7 @@ export const AppRoutes = () => {
       {/* <Route path={'/error'} element={<ErrorBoundaryFallback error={new Error('test')} resetErrorBoundary={NOOP} />} /> */}
       <Route
         path={APP_ROUTES.HOME.ROUTE}
-        element={isReadOnlyUser ? <AppHomeBillingUser /> : <AppHome showChromeExtension={environment.BILLING_ENABLED} />}
+        element={isReadOnlyUser ? <AppHomeBillingUser /> : <AppHome showAlternativeAppFormats={environment.BILLING_ENABLED} />}
       />
       <Route
         path={APP_ROUTES.QUERY.ROUTE}

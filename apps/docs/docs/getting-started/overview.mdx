@@ -23,7 +23,7 @@ If you haven't created a Jetstream account, you can [sign up here](https://getje
 :::tip
 
 <JetstreamProLogo width="200px" />
-To get the most out of Jetstream, sign up for a Pro plan. [View features included in Pro here](https://getjetstream.app/pricing/).
+To get the most out of Jetstream, sign up for a paid plan. [View features included in Pro here](https://getjetstream.app/pricing/).
 
 :::
 
@@ -45,6 +45,35 @@ You will be asked to choose an org type which is used to determine the which Sal
   - `https://prerellogin.pre.salesforce.com`
 - **Custom Login URL**
   - `https://my--domain.my.salesforce.com`
+
+:::info
+
+Starting in September 2025, [Salesforce requires that all 3rd party connected apps are installed](https://help.salesforce.com/s/articleView?id=005132365&type=1) in your org for any new authorizations.
+
+If you are a System Administrator, you may be unaffected if you have not modified the "Approve Uninstalled Connected Apps" setting, which Salesforce set on all System Administrator profiles by default.
+
+After you attempt to Login to Jetstream, you will see <code>Jetstream</code> show up in the list on the <code>Manage Connected Apps</code> setup page.
+
+You will need to click "Install" and then you can configure your desired security policies for the connection.
+
+Jetstream will **NEVER** communicate with Salesforce APIs without your explicit authorization and will never do so in the background or for any actions you have not explicitly taken while using Jetstream.
+
+Refer to the [Salesforce Connected App documentation](https://help.salesforce.com/s/articleView?id=xcloud.connected_app_manage.htm&type=5) for additional information.
+
+:::
+
+### Authorization
+
+When you are authorizing with Salesforce, you will see a consent screen with the following permission requests:
+
+| Permission                        | Description                                                                                                                                                                                                                               |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access the identity URL service   | Provide access to your unique identifier and basic user profile information.                                                                                                                                                              |
+| Manage user data via Web browsers | Allows logging in using "[frontdoor](https://help.salesforce.com/s/articleView?id=000386254&language=en_US&type=1)" login, this means when you click a link from Jetstream, you will be auto-logged in if you were not already logged in. |
+| Manage user data via APIs         | Allows Jetstream to communicate with Salesforce.                                                                                                                                                                                          |
+| Perform requests at any time      | Allows Jetstream to store "refresh tokens" so that you don't need to continuously re-connect your Salesforce org to Jetstream.                                                                                                            |
+
+<img src={require('./connecting-org.png').default} alt="Salesforce authorization screen" />
 
 ### Jetstream IP Addresses
 
