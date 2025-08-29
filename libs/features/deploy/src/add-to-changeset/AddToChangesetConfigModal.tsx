@@ -151,7 +151,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               `}
             >
               {changesetEntryType === 'list' && (
-                <Grid verticalAlign="end">
+                <Grid verticalAlign="start">
                   <div className="slds-grow">
                     <ComboboxWithItems
                       comboboxProps={{
@@ -181,20 +181,20 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                   <div className="slds-m-horizontal_small">
                     <button
                       css={css`
-                        margin-bottom: 20px;
+                        margin-top: 25px;
                       `}
                       className="slds-button slds-button_neutral"
                       onClick={() => loadPackages()}
                       disabled={loading}
                     >
-                      Refresh Changesets
+                      Refresh
                     </button>
                   </div>
                 </Grid>
               )}
               {changesetEntryType === 'manual' && (
                 <Input
-                  label="Changesets"
+                  label="Changeset"
                   isRequired
                   labelHelp="This is case-sensitive and must match the exact name of the outbound changeset or package in Salesforce"
                 >

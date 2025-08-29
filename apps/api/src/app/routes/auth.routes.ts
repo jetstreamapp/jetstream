@@ -1,6 +1,5 @@
 import { createRateLimit, ENV } from '@jetstream/api-config';
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import { verifyCaptcha } from './route.middleware';
 

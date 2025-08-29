@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import { initConnectionFromOAuthResponse } from '../controllers/oauth.controller';
 import { salesforceLoginUsernamePassword_UNSAFE } from '../services/oauth.service';
 import { NotAllowedError } from '../utils/error-handler';

@@ -249,7 +249,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     HTTP.HEADERS.X_EXT_DEVICE_ID,
     HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID,
   ].join(', ');
-  app.use('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  app.use('/web-extension/*splat', (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (
       (ENV.WEB_EXTENSION_ID_CHROME && req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`) ||
       (ENV.WEB_EXTENSION_ID_MOZILLA && req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`)
@@ -261,7 +261,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     next();
   });
 
-  app.options('/web-extension/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  app.options('/web-extension/*splat', (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (
       (ENV.WEB_EXTENSION_ID_CHROME && req.headers.origin === `chrome-extension://${ENV.WEB_EXTENSION_ID_CHROME}`) ||
       (ENV.WEB_EXTENSION_ID_MOZILLA && req.headers.origin === `moz-extension://${ENV.WEB_EXTENSION_ID_MOZILLA}`)
@@ -304,7 +304,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       next();
     });
     app.options(
-      '*',
+      '/{*splat}',
       (req: express.Request, res: express.Response, next: express.NextFunction) => {
         res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -393,29 +393,30 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
    */
 
   const BOT_ROUTES = [
-    '/_ignition*',
-    '/*.aspx',
-    '/*.env*',
-    '/*.php',
-    '/*.txt',
-    '/*.xml',
-    '/*magento_version',
-    '/*phpinfo*',
-    '/*wp-content*',
-    '/*wp-includes*',
-    '//feed*',
+    '/_ignition{*splat}',
+    '/{*splat}.aspx',
+    '/{*splat}.env{*splat}',
+    '/{*splat}.php',
+    '/{*splat}.txt',
+    '/{*splat}.xml',
+    '/{*splat}magento_version',
+    '/{*splat}phpinfo',
+    '/{*splat}wp-content{*splat}',
+    '/{*splat}wp-includes{*splat}',
+    '//feed{*splat}',
     '/%20',
-    '/ALFA_DATA*',
-    '/cgi-bin*',
+    '/ALFA_DATA{*splat}',
+    '/cgi-bin{*splat}',
     '/humans.txt',
-    '/tmp*',
-    '/view-source*',
-    '/wp*',
+    '/tmp{*splat}',
+    '/view-source{*splat}',
+    '/wp{*splat}',
   ];
 
   BOT_ROUTES.forEach((route) => app.use(route, blockBotHandler));
 
-  app.use('*', notFoundMiddleware);
+  // Catch-all 404 handler (no path => matches all)
+  app.use(notFoundMiddleware);
   app.use(uncaughtErrorHandler);
 
   server.on('error', (error: Error) => {

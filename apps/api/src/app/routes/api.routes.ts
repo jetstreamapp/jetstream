@@ -1,6 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';

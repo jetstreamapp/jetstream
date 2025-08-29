@@ -1,6 +1,5 @@
 import { createRateLimit, ENV } from '@jetstream/api-config';
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import helmet from 'helmet';
 import * as desktopAppController from '../controllers/desktop-app.controller';
 import * as externalAuthService from '../services/external-auth.service';

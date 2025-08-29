@@ -1,5 +1,4 @@
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import { routeDefinition as bulkApiController } from '../controllers/sf-bulk-api.controller';
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { addOrgsToLocal, checkAuth } from './route.middleware';
