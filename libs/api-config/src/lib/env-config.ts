@@ -236,9 +236,9 @@ const envSchema = z.object({
    */
   STRIPE_API_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  STRIPE_PRO_ANNUAL_PRICE_ID: z.string().optional(),
-  STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
   STRIPE_BILLING_PORTAL_LINK: z.string().optional(),
+  STRIPE_TEAM_BILLING_PORTAL_ID: z.string().optional(),
+  STRIPE_MANUAL_BILLING_PORTAL_ID: z.string().optional(),
   /**
    * BackBlaze B2
    */
@@ -255,9 +255,9 @@ const parseResults = envSchema.safeParse({
   EXAMPLE_USER_PASSWORD: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? process.env.EXAMPLE_USER_PASSWORD : null,
   EXAMPLE_USER_FULL_PROFILE: ensureBoolean(process.env.EXAMPLE_USER_OVERRIDE) ? EXAMPLE_USER_FULL_PROFILE : null,
   SFDC_API_VERSION: process.env.NX_SFDC_API_VERSION || process.env.SFDC_API_VERSION,
-  STRIPE_PRO_ANNUAL_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID,
-  STRIPE_PRO_MONTHLY_PRICE_ID: process.env.NX_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
   STRIPE_BILLING_PORTAL_LINK: process.env.NX_PUBLIC_STRIPE_BILLING_PORTAL_LINK,
+  STRIPE_TEAM_BILLING_PORTAL_ID: process.env.NX_PUBLIC_STRIPE_TEAM_BILLING_PORTAL_ID,
+  STRIPE_MANUAL_BILLING_PORTAL_ID: process.env.NX_PUBLIC_STRIPE_MANUAL_BILLING_PORTAL_ID,
   VERSION,
 });
 

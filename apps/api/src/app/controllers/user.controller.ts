@@ -284,35 +284,40 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
   });
 });
 
-const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfiguration.validators, async ({ user }, req, res) => {
-  const loginConfiguration = await getLoginConfiguration(user.email).then((response): LoginConfigurationUI => {
-    if (!response) {
-      return {
-        isPasswordAllowed: true,
-        isGoogleAllowed: true,
-        isSalesforceAllowed: true,
-        requireMfa: false,
-        allowIdentityLinking: true,
-        allowedMfaMethods: {
-          email: true,
-          otp: true,
-        },
-      };
-    }
-    return {
-      isPasswordAllowed: response.allowedProviders.has('credentials'),
-      isGoogleAllowed: response.allowedProviders.has('google'),
-      isSalesforceAllowed: response.allowedProviders.has('salesforce'),
-      requireMfa: response.requireMfa,
-      allowIdentityLinking: response.allowIdentityLinking,
-      allowedMfaMethods: {
-        email: response.allowedMfaMethods.has('2fa-email'),
-        otp: response.allowedMfaMethods.has('2fa-otp'),
-      },
-    };
-  });
-  sendJson(res, loginConfiguration);
-});
+const getUserLoginConfiguration = createRoute(
+  routeDefinition.getUserLoginConfiguration.validators,
+  async ({ user, teamMembership }, req, res) => {
+    const loginConfiguration = await getLoginConfiguration({ teamId: teamMembership?.teamId, email: user.email }).then(
+      (response): LoginConfigurationUI => {
+        if (!response) {
+          return {
+            isPasswordAllowed: true,
+            isGoogleAllowed: true,
+            isSalesforceAllowed: true,
+            requireMfa: false,
+            allowIdentityLinking: true,
+            allowedMfaMethods: {
+              email: true,
+              otp: true,
+            },
+          };
+        }
+        return {
+          isPasswordAllowed: response.allowedProviders.has('credentials'),
+          isGoogleAllowed: response.allowedProviders.has('google'),
+          isSalesforceAllowed: response.allowedProviders.has('salesforce'),
+          requireMfa: response.requireMfa,
+          allowIdentityLinking: response.allowIdentityLinking,
+          allowedMfaMethods: {
+            email: response.allowedMfaMethods.has('2fa-email'),
+            otp: response.allowedMfaMethods.has('2fa-otp'),
+          },
+        };
+      }
+    );
+    sendJson(res, loginConfiguration);
+  }
+);
 
 const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {
   const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
@@ -484,6 +489,11 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     let billingResultsJson = '';
     let billingPortalLinkText = '';
 
+    if (req.session.teamMembership) {
+      throw new UserFacingError('You cannot delete your account while you are a member of a team.');
+    }
+
+    // FIXME: handle user on a team plan
     const userWithSubscriptions = await userDbService.findByIdWithSubscriptions(user.id);
     if (userWithSubscriptions.billingAccount?.customerId) {
       const results = await stripeService.cancelAllSubscriptions({ customerId: userWithSubscriptions.billingAccount.customerId });

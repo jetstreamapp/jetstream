@@ -50,6 +50,23 @@ export const updateUserEntitlements = async (customerId: string, entitlementAcce
   });
 };
 
+export const updateTeamEntitlements = async (customerId: string, entitlementAccessUntrusted: EntitlementsAccess) => {
+  const entitlementAccess = EntitlementsAccessSchema.parse(entitlementAccessUntrusted);
+  const team = await prisma.team.findFirstOrThrow({
+    where: { billingAccount: { customerId } },
+    select: { id: true },
+  });
+
+  await prisma.teamEntitlement.upsert({
+    create: {
+      teamId: team.id,
+      ...entitlementAccess,
+    },
+    update: entitlementAccess,
+    where: { teamId: team.id },
+  });
+};
+
 /**
  * Given a customer's current subscriptions, cancel all other subscriptions, create any needed subscriptions, and update the subscription state
  * In addition, entitlements are also updated to reflect the user's current subscription state
@@ -83,6 +100,45 @@ export const updateSubscriptionStateForCustomer = async ({
           },
           update: { status: subscription.status.toUpperCase() },
           where: { uniqueSubscription: { userId, subscriptionId: subscription.id, priceId: item.price.id } },
+        })
+      )
+    ),
+  ]);
+};
+
+/**
+ * Given a customer's current subscriptions, cancel all other subscriptions, create any needed subscriptions, and update the subscription state
+ * In addition, entitlements are also updated to reflect the user's current subscription state
+ */
+export const updateTeamSubscriptionStateForCustomer = async ({
+  teamId,
+  customerId,
+  subscriptions,
+}: {
+  teamId: string;
+  customerId: string;
+  subscriptions: Stripe.Subscription[];
+}) => {
+  const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
+
+  await prisma.$transaction([
+    // Delete all subscriptions that are no longer active in Stripe
+    prisma.teamSubscription.deleteMany({
+      where: { teamId, customerId, priceId: { notIn: priceIds } },
+    }),
+    // Create/Update all current subscriptions from Stripe
+    ...subscriptions.flatMap((subscription) =>
+      subscription.items.data.map((item) =>
+        prisma.teamSubscription.upsert({
+          create: {
+            teamId,
+            subscriptionId: subscription.id,
+            status: subscription.status.toUpperCase(),
+            customerId,
+            priceId: item.price.id,
+          },
+          update: { status: subscription.status.toUpperCase() },
+          where: { uniqueSubscription: { teamId, subscriptionId: subscription.id, priceId: item.price.id } },
         })
       )
     ),

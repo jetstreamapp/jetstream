@@ -1,7 +1,7 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma, User } from '@jetstream/prisma';
-import { UserProfileUi } from '@jetstream/types';
+import { TeamMemberRole, TeamMemberStatus, UserProfileUi } from '@jetstream/types';
 
 const userSelect: Prisma.UserSelect = {
   appMetadata: true,
@@ -73,6 +73,20 @@ const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPa
       customerId: true,
     },
   },
+  teamMembership: {
+    where: {
+      status: 'ACTIVE',
+    },
+    select: {
+      role: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
   createdAt: true,
   updatedAt: true,
 });
@@ -105,6 +119,26 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
       subscriptionId: true,
       priceId: true,
       status: true,
+    },
+  },
+  teamMembership: {
+    select: {
+      role: true,
+      status: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          entitlements: {
+            select: {
+              chromeExtension: true,
+              desktop: true,
+              googleDrive: true,
+              recordSync: true,
+            },
+          },
+        },
+      },
     },
   },
 });
@@ -147,43 +181,115 @@ export const findIdByUserIdUserFacing = ({
   userId: string;
   omitSubscriptions?: boolean;
 }): Promise<UserProfileUi> => {
-  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => ({
-    id: user.id,
-    userId: user.userId,
-    email: user.email,
-    name: user.name,
-    emailVerified: user.emailVerified,
-    picture: user.picture,
-    preferences: {
-      skipFrontdoorLogin: user.preferences?.skipFrontdoorLogin ?? false,
-      recordSyncEnabled: user.preferences?.recordSyncEnabled ?? false,
-    },
-    billingAccount: user.billingAccount,
-    entitlements: {
-      chromeExtension: user.entitlements?.chromeExtension ?? true,
-      recordSync: user.entitlements?.recordSync ?? false,
-      googleDrive: user.entitlements?.googleDrive ?? false,
-      desktop: user.entitlements?.desktop ?? false,
-    },
-    subscriptions: omitSubscriptions
-      ? []
-      : user.subscriptions.map((subscription) => ({
-          id: subscription.id,
-          productId: subscription.productId,
-          subscriptionId: subscription.subscriptionId,
-          priceId: subscription.priceId,
-          status: subscription.status as UserProfileUi['subscriptions'][number]['status'],
-        })),
-  }));
+  // FIXME: we should be using zod to parse this
+  return prisma.user.findFirstOrThrow({ where: { id: userId }, select: UserFacingProfileSelect }).then((user) => {
+    // prefer team entitlements if exists, otherwise user entitlements
+    const inScopeEntitlements = user.teamMembership?.team.entitlements ?? user.entitlements;
+    const entitlements = {
+      chromeExtension: inScopeEntitlements?.chromeExtension ?? false,
+      recordSync: inScopeEntitlements?.recordSync ?? false,
+      googleDrive: inScopeEntitlements?.googleDrive ?? false,
+      desktop: inScopeEntitlements?.desktop ?? false,
+    };
+    return {
+      id: user.id,
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      emailVerified: user.emailVerified,
+      picture: user.picture,
+      preferences: {
+        skipFrontdoorLogin: user.preferences?.skipFrontdoorLogin ?? false,
+        recordSyncEnabled: user.preferences?.recordSyncEnabled ?? false,
+      },
+      billingAccount: user.billingAccount,
+      entitlements,
+      subscriptions: omitSubscriptions
+        ? []
+        : user.subscriptions.map((subscription) => ({
+            id: subscription.id,
+            productId: subscription.productId,
+            subscriptionId: subscription.subscriptionId,
+            priceId: subscription.priceId,
+            status: subscription.status as UserProfileUi['subscriptions'][number]['status'],
+          })),
+      teamMembership: user.teamMembership
+        ? {
+            role: user.teamMembership.role as TeamMemberRole,
+            status: user.teamMembership.status as TeamMemberStatus,
+            team: user.teamMembership.team,
+          }
+        : null,
+    };
+  });
 };
 
-export const checkUserEntitlement = ({
+export const getBillingAccount = async (id: string) => {
+  const userBillingAccount = await prisma.user.findFirst({
+    where: { id },
+    select: {
+      billingAccount: { select: { customerId: true, manualBilling: true } },
+      teamMembership: {
+        select: {
+          status: true,
+          role: true,
+          team: { select: { id: true, status: true, billingAccount: { select: { customerId: true, manualBilling: true } } } },
+        },
+      },
+    },
+  });
+  if (userBillingAccount?.teamMembership?.team?.billingAccount?.customerId) {
+    return {
+      customerId: userBillingAccount.teamMembership.team.billingAccount.customerId,
+      manualBilling: userBillingAccount.teamMembership.team.billingAccount.manualBilling,
+      teamId: userBillingAccount.teamMembership.team.id,
+      teamRole: userBillingAccount.teamMembership.role as TeamMemberRole,
+    };
+  }
+  if (userBillingAccount?.billingAccount?.customerId) {
+    return {
+      customerId: userBillingAccount.billingAccount.customerId,
+      manualBilling: userBillingAccount.billingAccount.manualBilling,
+      teamId: null,
+      teamRole: null,
+    };
+  }
+  return null;
+};
+
+export const hasManualBilling = async ({ userId }: { userId: string }): Promise<boolean> => {
+  const userBillingAccount = await prisma.user.findFirst({
+    where: { id: userId },
+    select: {
+      billingAccount: { select: { manualBilling: true } },
+      teamMembership: { select: { team: { select: { billingAccount: { select: { manualBilling: true } } } } } },
+    },
+  });
+  if (userBillingAccount?.teamMembership?.team?.billingAccount?.manualBilling) {
+    return true;
+  }
+  if (userBillingAccount?.billingAccount?.manualBilling) {
+    return true;
+  }
+  return false;
+};
+
+export const checkUserEntitlement = async ({
   userId,
   entitlement,
 }: {
   userId: string;
   entitlement: keyof Omit<Entitlement, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 }): Promise<boolean> => {
+  // prefer team entitlement if exists, otherwise check user entitlement
+  const teamId = await prisma.teamMember
+    .findFirst({ select: { teamId: true }, where: { userId, status: 'ACTIVE' } })
+    .then((team) => team?.teamId);
+
+  if (teamId) {
+    return prisma.teamEntitlement.count({ where: { teamId, [entitlement]: true } }).then((result) => result > 0);
+  }
+
   return prisma.entitlement.count({ where: { userId, [entitlement]: true } }).then((result) => result > 0);
 };
 

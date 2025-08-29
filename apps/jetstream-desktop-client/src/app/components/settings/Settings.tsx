@@ -21,6 +21,7 @@ export const Settings = () => {
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const ability = useAtomValue(fromAppState.abilityState);
   const [preferences, setPreferences] = useAtom(desktopUserPreferences);
   const [modifiedPreferences, setModifiedPreferences] = useState<DesktopUserPreferences>(() => ({ ...preferences }));
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
@@ -28,7 +29,7 @@ export const Settings = () => {
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
-  const recordSyncEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = ability.can('access', 'RecordSync');
 
   useEffect(() => {
     isMounted.current = true;

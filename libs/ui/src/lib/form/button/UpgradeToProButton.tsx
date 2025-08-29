@@ -38,7 +38,7 @@ export const UpgradeToProButton = ({ showOpenInNewTabIcon, source, trackEvent }:
         {showOpenInNewTabIcon && (
           <Icon type="utility" icon="new_window" className="slds-button__icon slds-button__icon_left" omitContainer />
         )}
-        Upgrade to Pro
+        Upgrade
       </Link>
     </Tooltip>
   );

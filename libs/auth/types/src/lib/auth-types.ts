@@ -1,6 +1,11 @@
-import { Maybe } from '@jetstream/types';
+import { Maybe, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatusSchema } from '@jetstream/types';
 import type { CookieSerializeOptions } from 'cookie';
 import { z } from 'zod';
+
+export interface Team {
+  id: string;
+  name: string;
+}
 
 // TODO: we might want a SessionUser (this) and a UserProfile with a few extra fields, like photo
 export interface UserProfile {
@@ -31,6 +36,7 @@ export interface UserProfileUiWithIdentities extends UserProfile {
   } | null;
   identities: UserProfileIdentity[];
   authFactors: UserProfileAuthFactor[];
+  teamMembership?: UserProfileTeamMemberships;
 }
 
 export interface UserProfileIdentity {
@@ -56,7 +62,16 @@ export interface UserProfileAuthFactor {
   updatedAt?: string;
 }
 
+export interface UserProfileTeamMemberships {
+  role: TeamMemberRole;
+  team: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface UserSession {
+  userId: string;
   sessionId: string;
   expires: string;
   userAgent: string;
@@ -67,6 +82,14 @@ export interface UserSession {
 
 export interface UserSessionWithLocation extends UserSession {
   location?: Maybe<SessionIpData>;
+}
+
+export interface UserSessionWithLocationAndUser extends UserSessionWithLocation {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export type TokenSourceBrowserExtensions = 'BROWSER_EXTENSION';
@@ -92,6 +115,11 @@ export interface LoginActivityUserFacing {
   success: boolean;
   userAgent: Maybe<string>;
   location?: Maybe<SessionIpData>;
+  user?: Maybe<{
+    id: string;
+    name: string;
+    email: string;
+  }>;
 }
 
 export interface UserSessionAndExtTokensAndActivityWithLocation {
@@ -136,6 +164,7 @@ export interface SessionData {
   // TODO: lastActivity: number;
   ipAddress: string;
   userAgent: string;
+  teamMembership?: Maybe<AuthenticatedUser['teamMembership']>;
   sendNewUserEmailAfterVerify?: boolean;
   orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; jetstreamOrganizationId?: Maybe<string> };
 }
@@ -183,6 +212,13 @@ export const AuthenticatedUserSchema = z.object({
       enabled: z.boolean(),
     })
   ),
+  teamMembership: z
+    .object({
+      teamId: z.string(),
+      role: TeamMemberRoleSchema,
+      status: TeamMemberStatusSchema,
+    })
+    .nullish(),
 });
 
 export type AuthenticatedUser = z.infer<typeof AuthenticatedUserSchema>;
@@ -225,32 +261,39 @@ export type HostCookieConstraint = {
 };
 export type CookiePrefixOptions = 'host' | 'secure';
 
+// Auth Related Cookies
 type CallbackUrlCookie = 'callbackUrl';
 type CsrfTokenCookie = 'csrfToken';
-type PkceCodeVerifierCookie = 'pkceCodeVerifier';
 type LinkIdentityCookie = 'linkIdentity';
+type NonceCookie = 'nonce';
+type PkceCodeVerifierCookie = 'pkceCodeVerifier';
+type RedirectUrlCookie = 'redirectUrl';
+type RememberDeviceCookie = 'rememberDevice';
 type ReturnUrlCookie = 'returnUrl';
 type StateCookie = 'state';
-type NonceCookie = 'nonce';
 type WebauthnChallengeCookie = 'webauthnChallenge';
-type RememberDeviceCookie = 'rememberDevice';
-type RedirectUrl = 'redirectUrl';
 
-type CookieConfigKey =
+// App related cookies
+type CheckoutSessionCookie = 'checkoutSession';
+
+type AuthCookieConfigKey =
   | CallbackUrlCookie
   | CsrfTokenCookie
-  | PkceCodeVerifierCookie
   | LinkIdentityCookie
+  | NonceCookie
+  | PkceCodeVerifierCookie
+  | RedirectUrlCookie
+  | RememberDeviceCookie
   | ReturnUrlCookie
   | StateCookie
-  | NonceCookie
-  | WebauthnChallengeCookie
-  | RememberDeviceCookie
-  | RedirectUrl;
+  | WebauthnChallengeCookie;
+
+type AppCookieConfigKey = CheckoutSessionCookie;
 
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
 
-export type CookieConfig = Record<CookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }>;
+export type CookieConfig = Record<AuthCookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }> &
+  Record<AppCookieConfigKey, { name: `jetstream.${string}`; options: CookieOptions }>;
 
 export type ResponseLocalsCookies = Record<
   string,
@@ -309,6 +352,8 @@ export const LoginConfigurationSchema = z.object({
   allowedProviders: z.array(OauthAndLocalProvidersSchema).transform((value) => new Set(value)),
   requireMfa: z.boolean(),
   allowIdentityLinking: z.boolean(),
+  autoAddToTeam: z.boolean().optional().default(false),
+  team: z.object({ id: z.string() }).nullish(),
 });
 export type LoginConfiguration = z.infer<typeof LoginConfigurationSchema>;
 

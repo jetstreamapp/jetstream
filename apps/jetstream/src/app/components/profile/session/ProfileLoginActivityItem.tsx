@@ -1,10 +1,8 @@
 import { LoginActivityUserFacing } from '@jetstream/auth/types';
-import { Card } from '@jetstream/ui';
+import { getBrowserInfo } from '@jetstream/shared/ui-utils';
+import { Card, SessionLocationDisplay } from '@jetstream/ui';
 import { parseISO } from 'date-fns/parseISO';
 import { FunctionComponent, useMemo } from 'react';
-import { getBrowserInfo } from './browser-session.utils';
-import { ProfileSessionLocation } from './ProfileSessionLocation';
-
 export interface ProfileLoginActivityItemProps {
   loginActivity: LoginActivityUserFacing;
 }
@@ -32,7 +30,7 @@ export const ProfileLoginActivityItem: FunctionComponent<ProfileLoginActivityIte
         </p>
       )}
       <p className="slds-text-color_weak">
-        {ipAddress} {location && <ProfileSessionLocation location={location} />}
+        {ipAddress} {location && <SessionLocationDisplay location={location} />}
       </p>
       <p className="slds-text-color_weak" title={createdAt}>
         {parseISO(createdAt).toLocaleString()}

@@ -1,39 +1,57 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { getSubscriptions } from '@jetstream/shared/data';
+import { getSubscriptions, initCheckoutSession } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { StripeUserFacingCustomer } from '@jetstream/types';
+import { JetstreamPricesByLookupKey, StripePriceKey, StripeUserFacingCustomer } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
+  FeedbackLink,
   Icon,
   Page,
   PageHeader,
+  PageHeaderActions,
   PageHeaderRow,
   PageHeaderTitle,
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { JetstreamProLogo, useAmplitude } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
-import { useSetAtom } from 'jotai';
+import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { environment } from '../../../environments/environment';
+import {
+  enterpriseFeatures,
+  PRO_ANNUAL_KEY,
+  PRO_MONTHLY_KEY,
+  professionalFeatures,
+  TEAM_ANNUAL_KEY,
+  TEAM_MONTHLY_KEY,
+  teamFeatures,
+  teamFeaturesComingSoon,
+} from './billing.constants';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
-import BillingPlanCard from './BillingPlanCard';
+import { BillingPeriodToggle } from './BillingPeriodToggle';
+import { EnhancedBillingCard } from './EnhancedBillingCard';
+import { TeamNameModalPromise } from './TeamNameModal';
 
 const HEIGHT_BUFFER = 170;
 
 export const Billing = () => {
-  useTitle(TITLES.SETTINGS);
+  useTitle(TITLES.BILLING);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
-  const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(environment.STRIPE_PRO_MONTHLY_PRICE_ID);
+  const [checkoutSessionLoading, setCheckoutSessionLoading] = useState(false);
+  const [checkoutSessionError, setCheckoutSessionError] = useState<string>();
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<StripePriceKey>(PRO_MONTHLY_KEY);
   const [customerWithSubscriptions, setCustomerWithSubscriptions] = useState<StripeUserFacingCustomer | null>(null);
+  const [pricesByLookupKey, setPricesByLookupKey] = useState<JetstreamPricesByLookupKey | null>(null);
+  const [hasManualBilling, setHasManualBilling] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState({
     hasCanceledSubscriptions: false,
     hasFutureDatedCancellation: false,
@@ -51,7 +69,7 @@ export const Billing = () => {
         // TODO: should we do something on the server - like ensure server has the subscription?
         // depending on webhook timing, we may want to do this here
       }
-      const { customer, didUpdate, userProfile } = await getSubscriptions();
+      const { customer, pricesByLookupKey, hasManualBilling, didUpdate, userProfile } = await getSubscriptions();
       if (userProfile) {
         // this ensures that all entitlements are updated across the application to match what is on the server
         setUserProfile(userProfile);
@@ -61,6 +79,8 @@ export const Billing = () => {
       const hasActiveSubscriptions = customer?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
       setSubscriptionStatus({ hasCanceledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
       setCustomerWithSubscriptions(customer);
+      setPricesByLookupKey(pricesByLookupKey);
+      setHasManualBilling(hasManualBilling);
     } catch (ex) {
       logger.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
       rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
@@ -75,11 +95,73 @@ export const Billing = () => {
     fetchSubscriptions();
   }, [fetchSubscriptions]);
 
+  useEffect(() => {
+    // Update selected plan when billing period changes
+    if (selectedPlan === PRO_MONTHLY_KEY && isAnnual) {
+      setSelectedPlan(PRO_ANNUAL_KEY);
+    } else if (selectedPlan === PRO_ANNUAL_KEY && !isAnnual) {
+      setSelectedPlan(PRO_MONTHLY_KEY);
+    } else if (selectedPlan === TEAM_MONTHLY_KEY && isAnnual) {
+      setSelectedPlan(TEAM_ANNUAL_KEY);
+    } else if (selectedPlan === TEAM_ANNUAL_KEY && !isAnnual) {
+      setSelectedPlan(TEAM_MONTHLY_KEY);
+    }
+  }, [isAnnual, selectedPlan]);
+
+  const handleCheckoutSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    try {
+      event.preventDefault();
+      setCheckoutSessionLoading(true);
+
+      // TODO: is there a valid path where a user is already part of an existing team?
+
+      let teamName: string | undefined;
+
+      if (selectedPlan.startsWith('TEAM_')) {
+        // FIXME: make a specific modal for this use-case
+        const options = await TeamNameModalPromise({ email: userProfile.email });
+        teamName = options.teamName;
+        if (options.cancelled) {
+          return;
+        }
+      }
+
+      const { url } = await initCheckoutSession({ priceLookupKey: selectedPlan, teamName });
+      // Redirect
+      location.href = url;
+
+      // Track analytics for enterprise contact
+      trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan });
+    } catch (ex) {
+      rollbar.error('There was an error initiating your checkout session', { stack: ex.stack, message: ex.message });
+      setCheckoutSessionError('There was an error initiating your checkout session, please contact support for assistance.');
+    } finally {
+      setCheckoutSessionLoading(false);
+    }
+  };
+
+  const handleEnterpriseContact = () => {
+    // Track analytics for enterprise contact
+    trackEvent(ANALYTICS_KEYS.billing_session, { action: 'enterprise_contact' });
+    // Open email or contact form
+    window.open('mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
+  };
+
   return (
     <Page testId="billing-page">
       <PageHeader>
         <PageHeaderRow>
           <PageHeaderTitle icon={{ type: 'standard', icon: 'billing' }} label="Billing" docsPath={APP_ROUTES.BILLING.DOCS} />
+          {customerWithSubscriptions && (
+            <PageHeaderActions colType="actions" buttonType="separate">
+              <form method="POST" action="/api/billing/portal" target="_blank">
+                <button className="slds-button slds-button_brand">
+                  Billing Portal
+                  <Icon type="utility" icon="new_window" className="slds-button__icon slds-m-left_x-small" omitContainer />
+                </button>
+              </form>
+            </PageHeaderActions>
+          )}
         </PageHeaderRow>
       </PageHeader>
       <AutoFullHeightContainer className="slds-p-around_small slds-scrollable_none" bufferIfNotRendered={HEIGHT_BUFFER}>
@@ -89,113 +171,117 @@ export const Billing = () => {
             There was a problem loading your profile. Try again or file a support ticket for assistance.
           </ScopedNotification>
         )}
+        {!loading && (
+          <>
+            {subscriptionStatus.hasFutureDatedCancellation && (
+              <ScopedNotification theme="info" className="slds-m-around_medium">
+                Your plan is scheduled to be canceled, visit the Billing Portal view more information or to resume service.
+              </ScopedNotification>
+            )}
 
-        {subscriptionStatus.hasFutureDatedCancellation && (
-          <ScopedNotification theme="info" className="slds-m-around_medium">
-            Your plan is scheduled to be canceled, visit the Billing Portal view more information or to resume service.
-          </ScopedNotification>
+            <div className="slds-box slds-box_small slds-m-bottom_small">
+              <p className="slds-text-heading_small slds-m-bottom_x-small">Visit the Billing Portal to manage your billing information</p>
+              {customerWithSubscriptions && !hasManualBilling && (
+                <ul className="slds-list_horizontal slds-has-dividers_left slds-wrap slds-p-bottom_x-small">
+                  <li className="slds-item read-only">Change plans</li>
+                  <li className="slds-item read-only">Manage your payment methods</li>
+                  <li className="slds-item read-only">Update your billing information</li>
+                  <li className="slds-item read-only">View payment history</li>
+                  <li className="slds-item read-only">View invoice history</li>
+                  <li className="slds-item read-only">Cancel</li>
+                </ul>
+              )}
+
+              {customerWithSubscriptions && hasManualBilling && (
+                <>
+                  <ul className="slds-list_horizontal slds-has-dividers_left slds-wrap slds-p-bottom_x-small">
+                    <li className="slds-item read-only">Manage your payment methods</li>
+                    <li className="slds-item read-only">Update your billing information</li>
+                    <li className="slds-item read-only">View payment history</li>
+                    <li className="slds-item read-only">View invoice history</li>
+                  </ul>
+                  <p className="slds-p-bottom_x-small">
+                    Because you have a custom billing arrangement, you may need to contact support to make certain changes to your service.
+                  </p>
+                </>
+              )}
+              <FeedbackLink label="Have a question or need help? Send us an email." type="EMAIL" omitInNewWindowIcon />
+            </div>
+
+            {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
+              <div className="slds-text-align_center slds-p-vertical_medium">
+                <h2 className="slds-text-heading_medium slds-text-color_weak">Unlock the full potential of your Salesforce workflow</h2>
+              </div>
+            )}
+
+            <div className="slds-p-horizontal_small">
+              {customerWithSubscriptions && subscriptionStatus.hasActiveSubscriptions ? (
+                <BillingExistingSubscriptions
+                  customerWithSubscriptions={customerWithSubscriptions}
+                  pricesByLookupKey={pricesByLookupKey}
+                  hasManualBilling={hasManualBilling}
+                />
+              ) : (
+                <form onSubmit={handleCheckoutSubmit}>
+                  <BillingPeriodToggle isAnnual={isAnnual} onChange={setIsAnnual} />
+
+                  <fieldset className="slds-form-element" role="radiogroup">
+                    <div
+                      className="slds-grid slds-wrap slds-gutters slds-grid_align-center"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                        gap: '1rem',
+                        alignItems: 'stretch',
+                      }}
+                    >
+                      <EnhancedBillingCard
+                        planName="Professional"
+                        price={isAnnual ? '$250' : '$25'}
+                        priceSubtext={isAnnual ? '/year' : '/month'}
+                        description="Perfect for individual users"
+                        features={professionalFeatures}
+                        checked={selectedPlan === (isAnnual ? PRO_ANNUAL_KEY : PRO_MONTHLY_KEY)}
+                        value={isAnnual ? PRO_ANNUAL_KEY : PRO_MONTHLY_KEY}
+                        onChange={setSelectedPlan}
+                      />
+                      <EnhancedBillingCard
+                        planName="Team"
+                        price={isAnnual ? '$1,100' : '$110'}
+                        priceSubtext={isAnnual ? '/year (includes 5 users)' : '/month (includes 5 users)'}
+                        description="$22/user/month with 5-user minimum"
+                        features={teamFeatures}
+                        comingSoonFeatures={teamFeaturesComingSoon}
+                        checked={selectedPlan === (isAnnual ? TEAM_ANNUAL_KEY : TEAM_MONTHLY_KEY)}
+                        value={isAnnual ? TEAM_ANNUAL_KEY : TEAM_MONTHLY_KEY}
+                        onChange={setSelectedPlan}
+                      />
+                      <EnhancedBillingCard
+                        planName="Enterprise"
+                        price="Custom"
+                        priceSubtext="Contact us"
+                        description="Advanced features for large teams"
+                        features={enterpriseFeatures}
+                        isEnterprise={true}
+                        onEnterpriseContact={handleEnterpriseContact}
+                      />
+                    </div>
+                  </fieldset>
+                  <div className="slds-text-align_center slds-m-top_large slds-p-horizontal_medium">
+                    <button
+                      type="submit"
+                      disabled={checkoutSessionLoading}
+                      className="slds-button slds-button_brand"
+                      style={{ width: '100%', maxWidth: '400px' }}
+                    >
+                      Subscribe Now
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </>
         )}
-
-        {customerWithSubscriptions && (
-          <div className="slds-box slds-box_small slds-m-bottom_small">
-            <form
-              method="POST"
-              action="/api/billing/portal"
-              target="_blank"
-              onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal, { action: 'click', location: 'cta_button' })}
-            >
-              <p className="slds-text-heading_small">Visit the Billing Portal to manage your billing information</p>
-              <ul className="slds-list_dotted slds-m-bottom_small">
-                <li>Change plans</li>
-                <li>Manage your payment methods</li>
-                <li>Update your billing information</li>
-                <li>View payment history</li>
-                <li>View invoice history</li>
-                <li>Cancel</li>
-              </ul>
-              <button className="slds-button slds-button_brand">
-                Billing Portal
-                <Icon type="utility" icon="new_window" className="slds-button__icon slds-m-left_x-small" omitContainer />
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="slds-box slds-box_small slds-m-bottom_small">
-          {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
-            <JetstreamProLogo width="250px" className="slds-m-bottom_x-small" />
-          )}
-          <p className="slds-text-heading_medium">Jetstream Professional Includes:</p>
-          <ul className="slds-list_dotted slds-m-bottom_small">
-            <li>
-              Access to the{' '}
-              <a
-                href={APP_ROUTES.DESKTOP_APPLICATION.ROUTE}
-                target="_blank"
-                className="slds-text-heading_x-small"
-                rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.desktop_app_download_link, { action: 'clicked', source: 'billing_page' })}
-              >
-                Desktop Application
-              </a>
-            </li>
-            <li>
-              Access to the{' '}
-              <a
-                href={APP_ROUTES.BROWSER_EXTENSION.ROUTE}
-                target="_blank"
-                className="slds-text-heading_x-small"
-                rel="noreferrer"
-                onClick={() => trackEvent(ANALYTICS_KEYS.browser_extension_link, { action: 'clicked', source: 'billing_page' })}
-              >
-                Chrome and Firefox Extensions
-              </a>
-            </li>
-            <li>Save query history across devices</li>
-            <li>Save downloads to Google Drive</li>
-            <li>Load data from Google Drive</li>
-          </ul>
-        </div>
-
-        <div className="slds-box slds-box_small">
-          {customerWithSubscriptions && subscriptionStatus.hasActiveSubscriptions ? (
-            <BillingExistingSubscriptions customerWithSubscriptions={customerWithSubscriptions} />
-          ) : (
-            <form
-              method="POST"
-              action="/api/billing/checkout-session"
-              onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan })}
-            >
-              <fieldset className="slds-form-element" role="radiogroup">
-                <legend className="slds-form-element__legend slds-form-element__label">Select a plan</legend>
-                <div className="slds-form-element__control">
-                  <BillingPlanCard
-                    descriptionTitle="Professional - Monthly"
-                    description="Get started with Professional."
-                    checked={selectedPlan === environment.STRIPE_PRO_MONTHLY_PRICE_ID}
-                    value={environment.STRIPE_PRO_MONTHLY_PRICE_ID}
-                    price="$25"
-                    priceDescription="Billed Monthly"
-                    onChange={setSelectedPlan}
-                  />
-                  <BillingPlanCard
-                    descriptionTitle="Professional - Annual"
-                    description="Get two months free."
-                    checked={selectedPlan === environment.STRIPE_PRO_ANNUAL_PRICE_ID}
-                    value={environment.STRIPE_PRO_ANNUAL_PRICE_ID}
-                    price="$250"
-                    priceDescription="Billed Annually"
-                    onChange={setSelectedPlan}
-                  />
-                  {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
-                </div>
-              </fieldset>
-              <button type="submit" className="slds-button slds-button_brand slds-m-top_medium">
-                Subscribe
-              </button>
-            </form>
-          )}
-        </div>
       </AutoFullHeightContainer>
     </Page>
   );

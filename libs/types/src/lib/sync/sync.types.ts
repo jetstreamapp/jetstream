@@ -1,4 +1,4 @@
-import { parseISO } from 'date-fns';
+import { parseISO } from 'date-fns/parseISO';
 import { z } from 'zod';
 import { Maybe } from '../types';
 import { SavedFieldMapping } from '../ui/load-records-types';

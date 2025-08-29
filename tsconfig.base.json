@@ -16,6 +16,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@jetstream/acl": ["libs/auth/acl/src/index.ts"],
       "@jetstream/api-config": ["libs/api-config/src/index.ts"],
       "@jetstream/api-types": ["libs/api-types/src/index.ts"],
       "@jetstream/auth/server": ["libs/auth/server/src/index.ts"],
@@ -39,6 +40,7 @@
       "@jetstream/feature/record-type-manager": ["libs/features/record-type-manager/src/index.ts"],
       "@jetstream/feature/salesforce-api": ["libs/features/salesforce-api/src/index.ts"],
       "@jetstream/feature/sobject-export": ["libs/features/sobject-export/src/index.ts"],
+      "@jetstream/feature/teams": ["libs/features/teams/src/index.ts"],
       "@jetstream/feature/update-records": ["libs/features/update-records/src/index.ts"],
       "@jetstream/icon-factory": ["libs/icon-factory/src/index.ts"],
       "@jetstream/monaco": ["libs/monaco-configuration/src/index.ts"],

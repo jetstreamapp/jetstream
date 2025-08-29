@@ -41,6 +41,7 @@ export interface AppInitializerProps {
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInfo, onAnnouncements, children }) => {
   const userProfile = useAtomValue(fromAppState.userProfileState);
+  const ability = useAtomValue(fromAppState.abilityState);
   const { version, announcements } = useAtomValue(fromAppState.appVersionState);
   const [appCookie, setAppCookie] = useAtom(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
@@ -48,7 +49,7 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInf
 
   useElectronActionLoader();
 
-  const recordSyncEntitlementEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
 
   useEffect(() => {

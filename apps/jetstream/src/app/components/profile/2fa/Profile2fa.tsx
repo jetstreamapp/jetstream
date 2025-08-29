@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { LoginConfigAbility } from '@jetstream/acl';
 import { LoginConfigurationUI, UserProfileAuthFactor } from '@jetstream/auth/types';
 import { Card, ScopedNotification } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
@@ -8,10 +9,11 @@ import { Profile2faOtp } from './Profile2faOtp';
 export interface Profile2faProps {
   authFactors: UserProfileAuthFactor[];
   loginConfiguration: LoginConfigurationUI | null;
+  loginConfigAbility: LoginConfigAbility;
   onUpdate: (authFactors: UserProfileAuthFactor[]) => void;
 }
 
-export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, loginConfiguration, onUpdate }) => {
+export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, loginConfiguration, loginConfigAbility, onUpdate }) => {
   const factorsByType = useMemo(() => {
     return {
       // 'email': authFactors.filter((factor) => factor.type === 'email'), // TODO:
@@ -24,20 +26,29 @@ export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, lo
     return authFactors.some(({ enabled }) => enabled);
   }, [authFactors]);
 
-  const canEnable2faOtp = !loginConfiguration || loginConfiguration.allowedMfaMethods.otp;
-  const canDisable2faOtp = !loginConfiguration || !loginConfiguration.requireMfa;
+  const canEnable2faOtp = loginConfigAbility.can('update', { type: 'MFA', method: 'otp' });
+  let canDisable2faOtp = loginConfigAbility.can('remove', { type: 'MFA', method: 'otp' });
 
-  const canEnable2faEmail = !loginConfiguration || loginConfiguration.allowedMfaMethods.email;
-  const canDisable2faEmail = !loginConfiguration || !loginConfiguration.requireMfa;
+  const canEnable2faEmail = loginConfigAbility.can('update', { type: 'MFA', method: 'email' });
+  let canDisable2faEmail = loginConfigAbility.can('remove', { type: 'MFA', method: 'email' });
+
+  // If MFA is required, the user can disable factors but must always have one remaining
+  if (loginConfigAbility.cannot('remove_all', 'MFA')) {
+    // if email is not allowed or email is not enabled, this is the final option and cannot be disabled
+    if (!canEnable2faEmail || !factorsByType.otpEmail?.enabled) {
+      canDisable2faOtp = false;
+    }
+    // if otp is not configured or not enabled, this is the final option and cannot be disabled
+    if (!canEnable2faOtp || !factorsByType.otpEmail?.enabled) {
+      canDisable2faEmail = false;
+    }
+  }
 
   return (
     <Card
       bodyClassName={null}
       title="Two-factor Authentication"
-      icon={{
-        type: 'standard',
-        icon: 'portal',
-      }}
+      icon={{ type: 'standard', icon: 'portal' }}
       nestedBorder
       css={css`
         max-width: 33rem;
