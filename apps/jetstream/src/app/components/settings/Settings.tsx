@@ -33,6 +33,7 @@ export const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);
+  const ability = useAtomValue(fromAppState.abilityState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
@@ -41,7 +42,7 @@ export const Settings = () => {
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
   // TODO: Give option to disable
-  const recordSyncEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = ability.can('access', 'RecordSync');
 
   useEffect(() => {
     isMounted.current = true;

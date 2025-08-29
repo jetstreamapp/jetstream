@@ -4,10 +4,11 @@ import { TeamInviteRow } from './InvitationRow';
 
 export interface TeamInviteTableProps {
   invitations: TeamUserFacing['invitations'];
+  canUpdate: boolean;
   onUserAction: (payload: TeamTableAction) => Promise<unknown>;
 }
 
-export function TeamInviteTable({ invitations, onUserAction }: TeamInviteTableProps) {
+export function TeamInviteTable({ invitations, canUpdate, onUserAction }: TeamInviteTableProps) {
   if (!invitations.length) {
     return null;
   }
@@ -55,7 +56,7 @@ export function TeamInviteTable({ invitations, onUserAction }: TeamInviteTablePr
       </thead>
       <tbody>
         {invitations.map((invitation) => (
-          <TeamInviteRow key={invitation.id} invitation={invitation} onUserAction={onUserAction} />
+          <TeamInviteRow key={invitation.id} invitation={invitation} canUpdate={canUpdate} onUserAction={onUserAction} />
         ))}
       </tbody>
     </table>

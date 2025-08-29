@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AppHome, AppHomeBillingUser, Feedback, OrgSelectionRequired } from '@jetstream/ui-core';
-import { isReadOnlyUserState } from '@jetstream/ui/app-state';
+import { abilityState, isReadOnlyUserState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -97,6 +97,7 @@ const Billing = lazy(() => import('./components/billing/Billing'));
 const Settings = lazy(() => import('./components/settings/Settings'));
 
 export const AppRoutes = () => {
+  const ability = useAtomValue(abilityState);
   const isReadOnlyUser = useAtomValue(isReadOnlyUserState);
   const location = useLocation();
 
@@ -125,169 +126,178 @@ export const AppRoutes = () => {
         path={APP_ROUTES.HOME.ROUTE}
         element={isReadOnlyUser ? <AppHomeBillingUser /> : <AppHome showAlternativeAppFormats={environment.BILLING_ENABLED} />}
       />
-      <Route
-        path={APP_ROUTES.QUERY.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <Query />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<QueryBuilder />} />
-        <Route path="results" element={<QueryResults />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route path={APP_ROUTES.ORGANIZATIONS.ROUTE} element={<Organizations />} />
-      <Route
-        path={APP_ROUTES.LOAD.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <LoadRecords />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.LOAD_MULTIPLE.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <LoadRecordsMultiObject />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.LOAD_CREATE_RECORD.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <CreateRecords />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.AUTOMATION_CONTROL.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <AutomationControl />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<AutomationControlSelection />} />
-        <Route path="editor" element={<AutomationControlEditor />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route
-        path={APP_ROUTES.PERMISSION_MANAGER.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <ManagePermissions />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<ManagePermissionsSelection />} />
-        <Route path="editor" element={<ManagePermissionsEditor />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route
-        path={APP_ROUTES.DEPLOY_METADATA.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <DeployMetadata />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<DeployMetadataSelection />} />
-        <Route path="deploy" element={<DeployMetadataDeployment />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route
-        path={APP_ROUTES.CREATE_FIELDS.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <CreateObjectAndFields />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<CreateFieldsSelection />} />
-        <Route path="configurator" element={<CreateFields />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route
-        path={APP_ROUTES.FORMULA_EVALUATOR.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <FormulaEvaluator />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <RecordTypeManager />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<RecordTypeManagerSelection />} />
-        <Route path="editor" element={<RecordTypeManagerEditor />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route
-        path={APP_ROUTES.LOAD_MASS_UPDATE.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <MassUpdateRecords />
-          </OrgSelectionRequired>
-        }
-      >
-        <Route index element={<MassUpdateRecordsSelection />} />
-        <Route path="deployment" element={<MassUpdateRecordsDeployment />} />
-        <Route path="*" element={<Navigate to=".." />} />
-      </Route>
-      <Route
-        path={APP_ROUTES.ANON_APEX.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <AnonymousApex />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.SALESFORCE_API.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <SalesforceApi />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <DebugLogViewer />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <PlatformEventMonitor />
-          </OrgSelectionRequired>
-        }
-      />
-      <Route
-        path={APP_ROUTES.OBJECT_EXPORT.ROUTE}
-        element={
-          <OrgSelectionRequired>
-            <SObjectExport />
-          </OrgSelectionRequired>
-        }
-      />
+      {ability.can('read', 'CoreFunctionality') && (
+        <>
+          <Route
+            path={APP_ROUTES.QUERY.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <Query />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<QueryBuilder />} />
+            <Route path="results" element={<QueryResults />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route path={APP_ROUTES.ORGANIZATIONS.ROUTE} element={<Organizations />} />
+          <Route
+            path={APP_ROUTES.LOAD.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <LoadRecords />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.LOAD_MULTIPLE.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <LoadRecordsMultiObject />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.LOAD_CREATE_RECORD.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <CreateRecords />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.AUTOMATION_CONTROL.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <AutomationControl />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<AutomationControlSelection />} />
+            <Route path="editor" element={<AutomationControlEditor />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.PERMISSION_MANAGER.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <ManagePermissions />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<ManagePermissionsSelection />} />
+            <Route path="editor" element={<ManagePermissionsEditor />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.DEPLOY_METADATA.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <DeployMetadata />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<DeployMetadataSelection />} />
+            <Route path="deploy" element={<DeployMetadataDeployment />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.CREATE_FIELDS.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <CreateObjectAndFields />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<CreateFieldsSelection />} />
+            <Route path="configurator" element={<CreateFields />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.FORMULA_EVALUATOR.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <FormulaEvaluator />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.RECORD_TYPE_MANAGER.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <RecordTypeManager />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<RecordTypeManagerSelection />} />
+            <Route path="editor" element={<RecordTypeManagerEditor />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.LOAD_MASS_UPDATE.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <MassUpdateRecords />
+              </OrgSelectionRequired>
+            }
+          >
+            <Route index element={<MassUpdateRecordsSelection />} />
+            <Route path="deployment" element={<MassUpdateRecordsDeployment />} />
+            <Route path="*" element={<Navigate to=".." />} />
+          </Route>
+          <Route
+            path={APP_ROUTES.ANON_APEX.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <AnonymousApex />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.SALESFORCE_API.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <SalesforceApi />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.DEBUG_LOG_VIEWER.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <DebugLogViewer />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.PLATFORM_EVENT_MONITOR.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <PlatformEventMonitor />
+              </OrgSelectionRequired>
+            }
+          />
+          <Route
+            path={APP_ROUTES.OBJECT_EXPORT.ROUTE}
+            element={
+              <OrgSelectionRequired>
+                <SObjectExport />
+              </OrgSelectionRequired>
+            }
+          />
+        </>
+      )}
+
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
       <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
-      <Route path={APP_ROUTES.TEAM_DASHBOARD.ROUTE} element={<TeamDashboard />} />
+
+      {ability.can('read', 'Team') && <Route path={APP_ROUTES.TEAM_DASHBOARD.ROUTE} element={<TeamDashboard />} />}
+
       <Route path={APP_ROUTES.TEAM_INVITE.ROUTE} element={<TeamInvitation />} />
-      <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
-      <Route path={APP_ROUTES.BILLING.ROUTE} element={<Billing />} />
+
+      {ability.can('read', 'Settings') && <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />}
+      {ability.can('read', 'Billing') && <Route path={APP_ROUTES.BILLING.ROUTE} element={<Billing />} />}
+
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>
   );

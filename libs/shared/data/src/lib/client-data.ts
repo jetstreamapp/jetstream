@@ -127,6 +127,10 @@ export async function getTeam(teamId: string): Promise<TeamUserFacing> {
   return handleRequest({ method: 'GET', url: `/api/teams/${teamId}` }).then(unwrapResponseIgnoreCache);
 }
 
+export async function updateTeam(teamId: string, payload: { name: string }): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}`, data: payload }).then(unwrapResponseIgnoreCache);
+}
+
 export async function getTeamUserSessions(teamId: string): Promise<UserSessionWithLocationAndUser[]> {
   return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sessions` }).then(unwrapResponseIgnoreCache);
 }

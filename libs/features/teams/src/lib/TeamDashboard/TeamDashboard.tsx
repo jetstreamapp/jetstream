@@ -33,6 +33,7 @@ import { TeamMemberAuthActivityModal } from './TeamMemberAuthActivityModal';
 import { TeamMemberInviteModal } from './TeamMemberInviteModal';
 import { TeamMemberSessionModal } from './TeamMemberSessionModal';
 import { TeamMemberUpdateModal } from './TeamMemberUpdateModal';
+import { TeamName } from './TeamName';
 
 type TeamMemberEditModalState = { open: false } | { open: true; teamMember: TeamUserFacing['members'][number] };
 
@@ -254,6 +255,8 @@ export function TeamDashboard() {
               There was a problem loading your team. Try again or file a support ticket for assistance.
             </ScopedNotification>
           )}
+
+          {team && <TeamName team={team} onSave={(updatedTeam) => setTeam(updatedTeam)} />}
 
           <div className="slds-m-bottom_medium">
             {loginConfiguration && (

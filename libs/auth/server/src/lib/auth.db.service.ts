@@ -44,10 +44,11 @@ import {
 import { ensureAuthError, lookupGeoLocationFromIpAddresses } from './auth.service';
 import { checkUserAgentSimilarity, hashPassword, REMEMBER_DEVICE_DAYS, verifyPassword } from './auth.utils';
 
+// This is potentially accessed multiple times in a transaction for a user, cache data to avoid DB access
 const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfiguration | null }>({
   max: 500,
-  // 5 minutes
-  ttl: 1000 * 60 * 5,
+  // 1 minute
+  ttl: 1000 * 60,
 });
 
 const userSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -139,6 +140,10 @@ export async function findUserById_UNSAFE(id: string) {
     .then((user) => AuthenticatedUserSchema.parse(user));
 }
 
+export function clearLoginConfigurationCacheItem(key: string) {
+  LOGIN_CONFIGURATION_CACHE.delete(key);
+}
+
 export async function getLoginConfiguration(
   options: { email: string; skipCache?: boolean } | { teamId: string; skipCache?: false }
 ): Promise<LoginConfiguration | null> {
@@ -176,6 +181,7 @@ export async function getLoginConfiguration(
         return value;
       });
   } else {
+    // TODO: after we launch teams, deprecate login config which is not used by a team
     const { email } = options;
     const domain = email?.split('@')[1]?.toLowerCase();
 

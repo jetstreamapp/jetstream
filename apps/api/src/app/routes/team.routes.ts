@@ -47,6 +47,12 @@ routes.get(
   teamController.getTeam.controllerFn()
 );
 
+routes.put(
+  '/:teamId',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
+  teamController.updateTeam.controllerFn()
+);
+
 routes.get(
   '/:teamId/sessions',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),

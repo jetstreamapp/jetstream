@@ -43,6 +43,18 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
+  updateTeam: {
+    controllerFn: () => updateTeam,
+    validators: {
+      hasSourceOrg: false,
+      params: z.object({
+        teamId: z.string().uuid(),
+      }),
+      body: z.object({
+        name: z.string().trim().min(2).max(255),
+      }),
+    },
+  },
   getUserSessions: {
     controllerFn: () => getUserSessions,
     validators: {
@@ -174,13 +186,19 @@ const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user },
   sendJson(res, team);
 });
 
-const getUserSessions = createRoute(routeDefinition.getUserSessions.validators, async ({ user, params }, req, res) => {
+const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ params, body }, req, res) => {
+  const { teamId } = params;
+  const team = await teamDbService.updateTeam({ teamId, payload: body });
+  sendJson(res, team);
+});
+
+const getUserSessions = createRoute(routeDefinition.getUserSessions.validators, async ({ params }, req, res) => {
   const { teamId } = params;
   const sessions = await authDbService.getTeamUserSessions(teamId);
   sendJson(res, sessions);
 });
 
-const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ user, params }, req, res) => {
+const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ params }, req, res) => {
   const { teamId } = params;
   const authActivity = await authDbService.getTeamUserActivity(teamId);
   sendJson(res, authActivity);
@@ -212,7 +230,7 @@ const updateTeamMemberStatus = createRoute(routeDefinition.updateTeamMemberStatu
   teamService.syncUserCountWithStripe(teamId);
 });
 
-const getInvitations = createRoute(routeDefinition.getInvitations.validators, async ({ params, body }, req, res) => {
+const getInvitations = createRoute(routeDefinition.getInvitations.validators, async ({ params }, req, res) => {
   const { teamId } = params;
   const invitations = await teamDbService.getTeamInvitations({ teamId });
   sendJson(res, invitations);

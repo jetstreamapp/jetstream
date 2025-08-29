@@ -2,7 +2,9 @@ import { css } from '@emotion/react';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { TeamLoginConfigRequest } from '@jetstream/types';
 import { Card, Checkbox, fireToast, Grid, GridCol, Icon, Input, Spinner } from '@jetstream/ui';
+import { abilityState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
 
 function isItemDirty(current: Set<string>, original: Set<string>, key: string) {
@@ -36,6 +38,7 @@ export interface TeamLoginConfigurationProps {
 }
 
 export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLoginConfigurationProps) {
+  const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(() => getFormData(loginConfiguration));
 
@@ -65,6 +68,8 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
     autoAddToTeam: false,
     domains: false,
   }));
+
+  const isReadOnly = ability.cannot('update', 'Team');
 
   useEffect(() => {
     const userData = formData.data;
@@ -151,7 +156,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
   return (
     <Card
       className="slds-m-bottom_medium slds-card_boundary"
-      title="Team Configuration"
+      title="Login Configuration"
       icon={{ type: 'standard', icon: 'settings' }}
       actions={
         <button
@@ -173,6 +178,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="requireMfa"
                 checked={formData.data.requireMfa}
+                disabled={isReadOnly}
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.requireMfa })}
                 label="Require Multi-Factor Authentication"
                 labelHelp="Enabling this will require all users to set up Multi-Factor Authentication before they can log in. Users that do not have MFA set up will be prompted to do so on their next login."
@@ -182,6 +188,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="allowIdentityLinking"
                 checked={formData.data.allowIdentityLinking}
+                disabled={isReadOnly}
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowIdentityLinking })}
                 label="Allow linking additional identities"
                 labelHelp="Enabling this will allow users to link additional identities (e.g., Google, Salesforce) to their account."
@@ -195,6 +202,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="allowedMfaMethods-otp"
                 checked={formData.data.allowedMfaMethods.has('otp')}
+                disabled={isReadOnly}
                 label="Authenticator App (OTP)"
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedMfaMethods.otp })}
                 onChange={(value) =>
@@ -208,6 +216,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="allowedMfaMethods-email"
                 checked={formData.data.allowedMfaMethods.has('email')}
+                disabled={isReadOnly}
                 label="Email"
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedMfaMethods.email })}
                 onChange={(value) =>
@@ -227,6 +236,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="allowedProviders-credentials"
                 checked={formData.data.allowedProviders.has('credentials')}
+                disabled={isReadOnly}
                 label="Username + Password"
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedProviders.credentials })}
                 onChange={(value) =>
@@ -241,6 +251,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
                 id="allowedProviders-google"
                 checked={formData.data.allowedProviders.has('google')}
                 label="Google"
+                disabled={isReadOnly}
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedProviders.google })}
                 onChange={(value) =>
                   setFormData((prev) => {
@@ -253,6 +264,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="allowedProviders-salesforce"
                 checked={formData.data.allowedProviders.has('salesforce')}
+                disabled={isReadOnly}
                 label="Salesforce"
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedProviders.salesforce })}
                 onChange={(value) =>
@@ -272,6 +284,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="autoAddToTeam"
                 checked={formData.data.autoAddToTeam}
+                disabled={isReadOnly}
                 label="Automatically add users to team based on email domain"
                 labelHelp="Enabling this will automatically add users to the team when they log in with a domain that matches the allowed domains."
                 helpText="This option streamlines provisioning. Enabling this will increase your seat count when new users sign up."
@@ -284,6 +297,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               {formData.data.autoAddToTeam && (
                 <DomainInputs
                   domains={formData.data.domains}
+                  disabled={isReadOnly}
                   onChange={(domains) => setFormData((prev) => ({ ...prev, data: { ...prev.data, domains } }))}
                 />
               )}
@@ -295,7 +309,15 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
   );
 }
 
-function DomainInputs({ domains: domainsInput, onChange }: { domains: string[]; onChange: (domains: string[]) => void }) {
+function DomainInputs({
+  domains: domainsInput,
+  disabled,
+  onChange,
+}: {
+  disabled: boolean;
+  domains: string[];
+  onChange: (domains: string[]) => void;
+}) {
   const [domains, setDomains] = useState(domainsInput);
   const [addDomainActive, setAddDomainActive] = useState(() => !domainsInput.length);
 
@@ -323,17 +345,19 @@ function DomainInputs({ domains: domainsInput, onChange }: { domains: string[]; 
               <input className="slds-input" type="text" disabled value={domain} />
             </div>
             <div>
-              <button
-                className="slds-button slds-button_icon slds-button_icon-border-filled slds-m-left_xx-small"
-                type="button"
-                onClick={() => onRemoveDomain(domain)}
-              >
-                <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
-              </button>
+              {!disabled && (
+                <button
+                  className="slds-button slds-button_icon slds-button_icon-border-filled slds-m-left_xx-small"
+                  type="button"
+                  onClick={() => onRemoveDomain(domain)}
+                >
+                  <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+                </button>
+              )}
             </div>
           </Grid>
         ))}
-        {addDomainActive && (
+        {addDomainActive && !disabled && (
           <DomainInput
             onCancel={() => {
               setAddDomainActive(false);
@@ -341,7 +365,7 @@ function DomainInputs({ domains: domainsInput, onChange }: { domains: string[]; 
             onSave={(domain) => onAddDomain(domain)}
           />
         )}
-        {!addDomainActive && (
+        {!addDomainActive && !disabled && (
           <button className="slds-button slds-button_neutral slds-m-top_xx-small" type="button" onClick={() => setAddDomainActive(true)}>
             + Add Domain
           </button>

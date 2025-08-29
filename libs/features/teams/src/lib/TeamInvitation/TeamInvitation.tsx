@@ -1,9 +1,10 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { TITLES } from '@jetstream/shared/constants';
-import { acceptInvitation, verifyInvitation } from '@jetstream/shared/data';
+import { acceptInvitation, getUserProfile, verifyInvitation } from '@jetstream/shared/data';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { AutoFullHeightContainer, Page, PageHeader, PageHeaderRow, PageHeaderTitle, ScopedNotification, Spinner } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
-import { useAtomValue } from 'jotai';
+import { abilityState, fromAppState } from '@jetstream/ui/app-state';
+import { useAtom, useAtomValue } from 'jotai';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -12,13 +13,15 @@ const HEIGHT_BUFFER = 170;
 export function TeamInvitation() {
   useTitle(TITLES.TEAM);
   const navigate = useNavigate();
+  const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [team, setTeam] = useState<{ teamName: string }>();
-  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+
   const teamId = searchParams.get('teamId');
   const token = searchParams.get('token');
 
@@ -55,7 +58,18 @@ export function TeamInvitation() {
       setAccepting(true);
       const result = await acceptInvitation({ teamId, token });
       if ('success' in result && result.success) {
-        navigate('/app/teams');
+        await getUserProfile()
+          .then((profile) => {
+            setUserProfile(profile);
+          })
+          .catch(() => {
+            logger.warn('Failed to refresh user profile after accepting team invitation');
+          });
+        if (ability.can('read', 'Team')) {
+          navigate('/app/teams');
+        } else {
+          navigate('/app/home');
+        }
       } else {
         setLoadingError('An error occurred while accepting the invitation.');
       }

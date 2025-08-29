@@ -11,11 +11,12 @@ import { TeamMembersTableProps } from './TeamMembersTable';
 export const TeamMemberRow = ({
   member,
   isCurrentUser,
+  canUpdate,
   onUserAction,
 }: {
   member: TeamUserFacing['members'][number];
   isCurrentUser: boolean;
-
+  canUpdate: boolean;
   onUserAction: TeamMembersTableProps['onUserAction'];
 }) => {
   return (
@@ -26,7 +27,7 @@ export const TeamMemberRow = ({
           padding-left: 0.5rem !important;
         `}
       >
-        <ActionCell isCurrentUser={isCurrentUser} member={member} onUserAction={onUserAction} />
+        {canUpdate && <ActionCell isCurrentUser={isCurrentUser} member={member} onUserAction={onUserAction} />}
       </td>
       <th scope="row" className="slds-cell-wrap">
         <div title={member.user.name}>

@@ -8,9 +8,11 @@ import { TeamMembersTableProps } from './TeamMembersTable';
 
 export const TeamInviteRow = ({
   invitation,
+  canUpdate,
   onUserAction,
 }: {
   invitation: TeamUserFacing['invitations'][number];
+  canUpdate: boolean;
   onUserAction: TeamMembersTableProps['onUserAction'];
 }) => {
   return (
@@ -21,7 +23,7 @@ export const TeamInviteRow = ({
           padding-left: 0.5rem !important;
         `}
       >
-        <ActionCell invitation={invitation} onUserAction={onUserAction} />
+        {canUpdate && <ActionCell invitation={invitation} onUserAction={onUserAction} />}
       </td>
       <th scope="row" className="slds-cell-wrap">
         <div title={invitation.email}>

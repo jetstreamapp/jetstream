@@ -285,6 +285,7 @@ export const checkUserEntitlement = async ({
   const teamId = await prisma.teamMember
     .findFirst({ select: { teamId: true }, where: { userId, status: 'ACTIVE' } })
     .then((team) => team?.teamId);
+
   if (teamId) {
     return prisma.teamEntitlement.count({ where: { teamId, [entitlement]: true } }).then((result) => result > 0);
   }

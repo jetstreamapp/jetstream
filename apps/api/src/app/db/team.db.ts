@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { prisma } from '@jetstream/api-config';
+import { clearLoginConfigurationCacheItem } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import {
@@ -234,6 +235,16 @@ export const updatePendingTeamToActive = async ({ teamId }: { teamId: string }) 
     .then((team) => team && TeamUserFacingSchema.parse(team));
 };
 
+export const updateTeam = async ({ teamId, payload }: { teamId: string; payload: { name: string } }) => {
+  return await prisma.team
+    .update({
+      select: SELECT_WITH_RELATED,
+      where: { id: teamId },
+      data: { name: payload.name },
+    })
+    .then((team) => team && TeamUserFacingSchema.parse(team));
+};
+
 export const deletePendingTeam = async ({ teamId }: { teamId: string }) => {
   await prisma.team.delete({
     where: { id: teamId, status: TeamStatusSchema.Enum.PENDING },
@@ -295,6 +306,8 @@ export const updateLoginConfiguration = async ({
       },
     });
   }
+
+  clearLoginConfigurationCacheItem(team.id);
 
   return findById({ teamId: team.id });
 };

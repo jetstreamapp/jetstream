@@ -209,11 +209,11 @@ const processCheckoutSuccessHandler = createRoute(
   }
 );
 
-const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user }, req, res) => {
+const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user, teamMembership }, req, res) => {
   stripeService.ensureStripeIsInitialized();
 
-  const teamId = req.session.teamMembership?.teamId;
-  const teamRole = req.session.teamMembership?.role;
+  const teamId = teamMembership?.teamId;
+  const teamRole = teamMembership?.role;
 
   if (teamId && teamRole !== 'ADMIN' && teamRole !== 'BILLING') {
     sendJson(res, { customer: null, pricesByLookupKey: null, didUpdate: false });

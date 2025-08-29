@@ -313,7 +313,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             </div>
           </form>
 
-          <RegisterOrSignUpLink action={action} />
+          <RegisterOrSignUpLink action={action} emailHint={emailHint} />
         </div>
       </div>
     </Fragment>

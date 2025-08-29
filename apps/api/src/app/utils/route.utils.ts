@@ -1,6 +1,7 @@
 import { getExceptionLog, logger } from '@jetstream/api-config';
-import { CookieOptions, UserProfileSession } from '@jetstream/auth/types';
+import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
+import { Maybe } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
@@ -25,6 +26,7 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     jetstreamConn: ApiConnection;
     targetJetstreamConn: ApiConnection;
     user: UserProfileSession;
+    teamMembership?: Maybe<AuthenticatedUser['teamMembership']>;
     requestId: string;
     org: NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>;
     targetOrg: NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>;
@@ -74,6 +76,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         targetOrg: res.locals.targetOrg as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         user: req.externalAuth?.user || req.session.user!, // It is possible this is null, but middleware asserts it exists so this is easier to work with
+        teamMembership: req.session.teamMembership,
         requestId: res.locals.requestId,
         setCookie: (name: string, value: string, options: CookieOptions) => {
           res.locals.cookies = res.locals.cookies || {};

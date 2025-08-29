@@ -1,4 +1,4 @@
-import { ENV, logger } from '@jetstream/api-config';
+import { ENV } from '@jetstream/api-config';
 import { getCookieConfig } from '@jetstream/auth/server';
 import { serialize } from 'cookie';
 import * as express from 'express';
@@ -24,7 +24,7 @@ routes.get('/', (req, res, next) => {
     !redirectUrl.startsWith(ENV.JETSTREAM_CLIENT_URL) &&
     !redirectUrl.startsWith(ENV.JETSTREAM_SERVER_URL)
   ) {
-    logger.warn('Redirect URL is not a valid path or external URL:', redirectUrl);
+    res.log.warn('Redirect URL is not a valid path or is an external URL:', redirectUrl);
     throw new UserFacingError('Invalid redirect URL', { redirectUrl });
   }
 

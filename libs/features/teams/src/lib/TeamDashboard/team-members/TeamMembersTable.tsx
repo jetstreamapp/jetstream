@@ -1,6 +1,8 @@
 import { css } from '@emotion/react';
 import { TeamGlobalAction, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
 import { ButtonGroupContainer, Card } from '@jetstream/ui';
+import { abilityState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { TeamInviteTable } from './TeamInviteTable';
 import { TeamMemberRow } from './TeamMemberRow';
 
@@ -13,6 +15,14 @@ export interface TeamMembersTableProps {
 }
 
 export function TeamMembersTable({ teamMembers, invitations, userProfile, onGlobalAction, onUserAction }: TeamMembersTableProps) {
+  const ability = useAtomValue(abilityState);
+
+  const canUpdate = ability.can('update', 'TeamMember');
+
+  if (ability.cannot('read', 'TeamMember')) {
+    return null;
+  }
+
   return (
     <Card
       title="Team Members"
@@ -21,15 +31,21 @@ export function TeamMembersTable({ teamMembers, invitations, userProfile, onGlob
       icon={{ type: 'standard', icon: 'people' }}
       actions={
         <ButtonGroupContainer>
-          <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-auth-activity')}>
-            View Auth Activity
-          </button>
-          <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-user-sessions')}>
-            View User Sessions
-          </button>
-          <button className="slds-button slds-button_brand" onClick={() => onGlobalAction('team-member-invite')}>
-            Add Team Member
-          </button>
+          {ability.can('read', 'TeamAuthActivity') && (
+            <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-auth-activity')}>
+              View Auth Activity
+            </button>
+          )}
+          {ability.can('read', 'TeamUserSessions') && (
+            <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-user-sessions')}>
+              View User Sessions
+            </button>
+          )}
+          {canUpdate && (
+            <button className="slds-button slds-button_brand" onClick={() => onGlobalAction('team-member-invite')}>
+              Add Team Member
+            </button>
+          )}
         </ButtonGroupContainer>
       }
     >
@@ -85,6 +101,7 @@ export function TeamMembersTable({ teamMembers, invitations, userProfile, onGlob
               member={member}
               isCurrentUser={userProfile.id === member.userId}
               onUserAction={onUserAction}
+              canUpdate={canUpdate}
             />
           ))}
         </tbody>
@@ -92,7 +109,7 @@ export function TeamMembersTable({ teamMembers, invitations, userProfile, onGlob
       {invitations.length > 0 && (
         <>
           <h4 className="slds-text-align_center slds-text-heading_small slds-m-around_small">Team Member Invitations</h4>
-          <TeamInviteTable invitations={invitations} onUserAction={onUserAction} />
+          <TeamInviteTable invitations={invitations} canUpdate={canUpdate} onUserAction={onUserAction} />
         </>
       )}
     </Card>

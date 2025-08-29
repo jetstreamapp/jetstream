@@ -1,5 +1,6 @@
 import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
 import * as React from 'react';
+import { pluralizeFromNumber } from '../../../../../shared/utils/src';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
@@ -22,7 +23,8 @@ export const VerifyEmail = ({ baseUrl = 'https://getjetstream.app', validationCo
         <Heading style={EMAIL_STYLES.codeTitle}>Verify your email address</Heading>
 
         <Text style={EMAIL_STYLES.codeDescription}>
-          Enter this code in your open browser window or press the button below. This code will expire in {expHours} hours.
+          Enter this code in your open browser window or press the button below. This code will expire in {expHours}{' '}
+          {pluralizeFromNumber('hour', expHours)}.
         </Text>
 
         <Section style={EMAIL_STYLES.codeContainer}>

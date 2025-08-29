@@ -1,8 +1,10 @@
 import { SerializedStyles } from '@emotion/react';
+import { AppAbility } from '@jetstream/acl';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AddOrgHandlerFn, DropDownItem, UserProfileUi } from '@jetstream/types';
 import { Header, Navbar, UpgradeToProButton } from '@jetstream/ui';
 import {
+  abilityState,
   applicationCookieState,
   hasPaidPlanState,
   isReadOnlyUserState,
@@ -43,37 +45,35 @@ function logout(serverUrl: string) {
 }
 
 function getMenuItems({
+  ability,
   userProfile,
-  isReadOnlyUser,
-  isBillingEnabled,
   deniedNotifications,
-  isDesktop,
+  isBillingEnabled,
 }: {
+  ability: AppAbility;
   userProfile: UserProfileUi;
-  isReadOnlyUser: boolean;
-  isBillingEnabled: boolean;
   deniedNotifications?: boolean;
-  isDesktop?: boolean;
+  isBillingEnabled: boolean;
 }) {
   const menu: DropDownItem[] = [];
 
-  if (!isDesktop) {
+  if (ability.can('read', 'Profile')) {
     menu.push({ id: 'profile', value: 'Profile', subheader: userProfile.email, icon: { type: 'utility', icon: 'profile_alt' } });
   }
 
-  if (!isReadOnlyUser) {
+  if (ability.can('read', 'Settings')) {
     menu.push({ id: 'settings', value: 'Settings', icon: { type: 'utility', icon: 'settings' } });
   }
 
-  if (userProfile.teamMembership && (userProfile.teamMembership.role === 'ADMIN' || userProfile.teamMembership.role === 'BILLING')) {
+  if (ability.can('read', 'Team')) {
     menu.push({ id: 'team-dashboard', value: 'Team Dashboard', icon: { type: 'utility', icon: 'people' } });
   }
 
-  if (isBillingEnabled && userProfile.teamMembership?.role !== 'MEMBER') {
+  if (isBillingEnabled && ability.can('read', 'Billing')) {
     menu.push({ id: 'billing', value: 'Billing & Subscription', subheader: 'Billing', icon: { type: 'utility', icon: 'billing' } });
   }
 
-  if (deniedNotifications && !isReadOnlyUser && window.Notification && window.Notification.permission === 'default') {
+  if (deniedNotifications && ability.can('read', 'Settings') && window.Notification && window.Notification.permission === 'default') {
     menu.push({
       id: 'enable-notifications',
       value: 'Enable Notifications',
@@ -96,6 +96,7 @@ export const HeaderNavbar = ({
 }: HeaderNavbarProps) => {
   const navigate = useNavigate();
   const { trackEvent } = useAmplitude();
+  const ability = useAtomValue(abilityState);
   const userProfile = useAtomValue(userProfileState);
   const isReadOnlyUser = useAtomValue(isReadOnlyUserState);
   const hasPaidPlan = useAtomValue(hasPaidPlanState);
@@ -131,12 +132,12 @@ export const HeaderNavbar = ({
 
   function handleNotificationMenuClosed(isEnabled: boolean) {
     setEnableNotifications(false);
-    setUserMenuItems(getMenuItems({ userProfile, isReadOnlyUser, isBillingEnabled, deniedNotifications: !isEnabled, isDesktop }));
+    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications: !isEnabled, isBillingEnabled }));
   }
 
   useEffect(() => {
-    setUserMenuItems(getMenuItems({ userProfile, isReadOnlyUser, isBillingEnabled, deniedNotifications, isDesktop }));
-  }, [userProfile, deniedNotifications, isBillingEnabled, isDesktop]);
+    setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled }));
+  }, [ability, userProfile, deniedNotifications, isBillingEnabled]);
 
   const rightHandMenuItems = useMemo(() => {
     if (isReadOnlyUser) {
