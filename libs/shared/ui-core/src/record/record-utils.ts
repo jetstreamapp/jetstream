@@ -20,7 +20,7 @@ export async function getRecentRecordsFromStorage() {
     if (recentItemsMapCache) {
       return recentItemsMapCache;
     }
-    recentItemsMapCache = await localforage.getItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.userPreferences);
+    recentItemsMapCache = await localforage.getItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords);
     return recentItemsMapCache || {};
   } catch (ex) {
     return recentItemsMapCache || {};
@@ -40,7 +40,7 @@ export async function addRecentRecordToStorage(record: RecentRecord, orgUniqueId
   recentItems[orgUniqueId].unshift({ recordId, sobject, name: name || existingItem?.name });
   recentItems[orgUniqueId] = uniqBy(recentItems[orgUniqueId], 'recordId').slice(0, NUM_HISTORY_ITEMS);
 
-  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.userPreferences, recentItems).catch((err) => {
+  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems).catch((err) => {
     logger.warn('[ERROR] Could not save recent record history', err);
   });
 
@@ -57,7 +57,7 @@ export async function updateRecentRecordItem(recordId: string, record: Partial<R
   recentItems[orgUniqueId] = recentItems[orgUniqueId] || [];
   recentItems[orgUniqueId] = recentItems[orgUniqueId].map((item) => (item.recordId !== recordId ? item : { ...item, ...record }));
 
-  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.userPreferences, recentItems).catch((err) => {
+  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems).catch((err) => {
     logger.warn('[ERROR] Could not save recent record history', err);
   });
 
@@ -74,7 +74,7 @@ export async function removeRecentRecordItem(recordId: string, orgUniqueId: stri
   recentItems[orgUniqueId] = recentItems[orgUniqueId] || [];
   recentItems[orgUniqueId] = recentItems[orgUniqueId].filter((item) => item.recordId !== recordId);
 
-  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.userPreferences, recentItems).catch((err) => {
+  localforage.setItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords, recentItems).catch((err) => {
     logger.warn('[ERROR] Could not save recent record history', err);
   });
 

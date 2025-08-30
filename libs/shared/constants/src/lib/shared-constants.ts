@@ -129,6 +129,7 @@ export const INDEXED_DB = {
     salesforceApiHistory: 'HISTORY:SALESFORCE_API',
     httpCache: 'HTTP:CACHE',
     userPreferences: 'USER:PREFERENCES',
+    recentRecords: 'USER:RECENT_RECORDS',
     sobjectExportSelection: 'USER:SOBJECT_EXPORT_OPTIONS',
   },
 };

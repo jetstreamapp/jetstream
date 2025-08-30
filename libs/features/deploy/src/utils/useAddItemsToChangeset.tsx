@@ -124,7 +124,7 @@ export function useAddItemsToChangeset(
           runAllTests: false,
           singlePackage: false,
           testLevel: 'NoTestRun',
-          rollbackOnError: !!selectedOrg.orgIsSandbox,
+          rollbackOnError: !selectedOrg.orgIsSandbox,
           ...providedDeployOptions,
         };
         const { results: deployResults, zipFile } = await pollAndDeployMetadataResultsWhenReady(selectedOrg, selectedOrg, id, {
