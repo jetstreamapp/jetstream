@@ -53,6 +53,7 @@ import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState }
 import { useAmplitude } from '../analytics';
 import { fromJetstreamEvents } from '../jetstream-events';
 import { ViewChildRecords } from './ViewChildRecords';
+import { addRecentRecordToStorage, removeRecentRecordItem } from './record-utils';
 
 const CHILD_RELATIONSHIP_BLOCK_LIST = new Set<string>([
   'OutgoingEmailRelations',
@@ -256,6 +257,14 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
           }
         }
 
+        // Update recent record history
+        if ((action === 'edit' || action === 'view') && recordId) {
+          addRecentRecordToStorage(
+            { recordId, sobject: sobjectName, name: record[SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'] as string },
+            selectedOrg.uniqueId
+          );
+        }
+
         if (action === 'clone') {
           record.attributes = undefined;
           record.Id = undefined;
@@ -278,7 +287,10 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
             generalErrors: ['Oops. There was a problem loading the record information. Make sure the record id is valid.'],
           });
           setLoading(false);
-          onFetchError && recordId && onFetchError(recordId, sobjectName);
+          if (recordId) {
+            onFetchError && onFetchError(recordId, sobjectName);
+            await removeRecentRecordItem(recordId, selectedOrg.uniqueId);
+          }
         }
       }
     },

@@ -10,8 +10,7 @@ import { isSameDay } from 'date-fns/isSameDay';
 import { isValid as isValidDate } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { startOfDay } from 'date-fns/startOfDay';
-import contains from 'document.contains';
-import { ChangeEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
@@ -71,8 +70,11 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
 }) => {
   initialSelectedDate = isValidDate(initialSelectedDate) ? initialSelectedDate : undefined;
   initialVisibleDate = isValidDate(initialVisibleDate) ? initialVisibleDate : undefined;
+
   const inputRef = useRef<HTMLInputElement>(null);
-  const [popoverRef, setPopoverRef] = useState<HTMLElement | null>(null);
+  const datePickerRef = useRef<HTMLInputElement>(null);
+  const entireContainerEl = useRef<HTMLDivElement>(null);
+
   const [id] = useState<string>(`${_id || 'date-picker'}-${Date.now()}`); // used to avoid auto-complete
   const [value, setValue] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState(() => (isValidDate(initialSelectedDate) ? initialSelectedDate : undefined));
@@ -128,8 +130,14 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
     }
   }
 
-  function handleBlur(event: ChangeEvent<HTMLInputElement>) {
-    if (trigger !== 'onBlur' || contains(popoverRef, event.target)) {
+  function handleBlur(event: FocusEvent) {
+    if (
+      !entireContainerEl.current?.contains(event.relatedTarget as Node) &&
+      !datePickerRef.current?.contains(event.relatedTarget as Node)
+    ) {
+      setIsOpen(false);
+    }
+    if (trigger !== 'onBlur') {
       return;
     }
     const currDate = parseISO(value);
@@ -166,6 +174,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
 
   return (
     <div
+      ref={entireContainerEl}
       className={classNames(
         'slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click',
         { 'slds-is-open': isOpen, 'slds-has-error': hasError },
@@ -218,13 +227,14 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       </div>
       <div className="slds-assistive-text slds-form-element__help">Format: yyyy-mm-dd</div>
       <PopoverContainer
-        ref={setPopoverRef}
         isOpen={isOpen}
         className={`slds-datepicker`}
         referenceElement={inputRef.current}
+        onBlur={handleBlur}
         usePortal={usePortal}
       >
         <DatePickerPopup
+          ref={datePickerRef}
           initialSelectedDate={selectedDate}
           initialVisibleDate={initialVisibleDate || selectedDate}
           availableYears={availableYears}

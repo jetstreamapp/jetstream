@@ -1,6 +1,6 @@
 import { Announcement } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar } from '@jetstream/ui-core';
+import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar, ViewEditCloneRecordWrapper } from '@jetstream/ui-core';
 import { Suspense, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -30,6 +30,7 @@ export const App = () => {
               <LogInitializer />
               <NotificationsRequestModal loadDelay={10000} />
               <DownloadFileStream />
+              <ViewEditCloneRecordWrapper />
               <div>
                 <div data-testid="header">
                   <HeaderNavbar isBillingEnabled={environment.BILLING_ENABLED} />

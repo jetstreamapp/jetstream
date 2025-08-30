@@ -1,5 +1,13 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { ChangeSet, DeployMetadataTableRow, DeployResult, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import {
+  ChangeSet,
+  DeployMetadataTableRow,
+  DeployOptions,
+  DeployResult,
+  ListMetadataResult,
+  Maybe,
+  SalesforceOrgUi,
+} from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromDeployMetadataState, fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
@@ -7,8 +15,8 @@ import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, useState } from 'react';
 import { convertRowsToMapOfListMetadataResults, getDeployResultsExcelData } from '../utils/deploy-metadata.utils';
-import AddToChangesetConfigModal from './AddToChangesetConfigModal';
-import AddToChangesetStatusModal from './AddToChangesetStatusModal';
+import { AddToChangesetConfigModal } from './AddToChangesetConfigModal';
+import { AddToChangesetStatusModal } from './AddToChangesetStatusModal';
 
 export interface AddToChangesetProps {
   className?: string;
@@ -28,6 +36,7 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
 
   const [changesetPackageName, setChangesetPackageName] = useState<string | null>(null);
   const [changesetPackageDescription, setChangesetPackageDescription] = useState<string | null>(null);
+  const [deployOptions, setDeployOptions] = useState<DeployOptions | null>(null);
   const [selectedChangeset, setSelectedChangeset] = useState<ChangeSet | null | undefined>(null);
 
   const [changesetPackage, setChangesetPackage] = useAtom(fromDeployMetadataState.changesetPackage);
@@ -40,9 +49,15 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
     setSelectedMetadata(convertRowsToMapOfListMetadataResults(Array.from(selectedRows)));
   }
 
-  function handleDeployToChangeset(packageName: string, changesetDescription: string, changeset?: Maybe<ChangeSet>) {
+  function handleDeployToChangeset(
+    packageName: string,
+    changesetDescription: string,
+    deployOptions: DeployOptions,
+    changeset?: Maybe<ChangeSet>
+  ) {
     setChangesetPackageName(packageName);
     setChangesetPackageDescription(changesetDescription);
+    setDeployOptions(deployOptions);
     setSelectedChangeset(changeset);
     setConfigModalOpen(false);
     setDeployStatusModalOpen(true);
@@ -94,6 +109,7 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
           changesetName={changesetPackageName}
           changesetDescription={changesetPackageDescription || ''}
           changeset={selectedChangeset}
+          deployOptions={deployOptions}
           selectedMetadata={selectedMetadata}
           onGoBack={handleGoBackFromDeploy}
           onClose={() => setDeployStatusModalOpen(false)}

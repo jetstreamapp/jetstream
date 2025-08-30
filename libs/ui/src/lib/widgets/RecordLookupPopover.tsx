@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { describeGlobal, describeSObject, queryWithCache } from '@jetstream/shared/data';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { appActionObservable, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { CloneEditView, RecordWithAuditFields, SalesforceOrgUi } from '@jetstream/types';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { dataTableDateFormatter } from '../data-table/data-table-formatters';
@@ -98,7 +98,13 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
         return;
       }
 
-      setRecord(queryResults.data.queryResults.records[0]);
+      const _record = queryResults.data.queryResults.records[0];
+
+      if (!_record) {
+        setErrorMessage(`A record with id "${recordId}" for object "${sobject.name}" was not found.`);
+      }
+
+      setRecord(_record);
     } catch (ex) {
       setErrorMessage(`There was an error getting the record data.`);
     } finally {
@@ -204,25 +210,21 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
           <footer className="slds-popover__footer">
             <Grid align="spread">
               <div>
-                {onRecordAction && sobjectName && (
-                  <>
-                    <button
-                      autoFocus
-                      className="slds-button slds-button_neutral"
-                      onClick={() => onRecordAction('view', recordId, sobjectName)}
-                    >
-                      <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      View Record
-                    </button>
-                    <button
-                      className="slds-button slds-button_neutral slds-p-left_x-small"
-                      onClick={() => onRecordAction('edit', recordId, sobjectName)}
-                    >
-                      <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
-                      Edit Record
-                    </button>
-                  </>
-                )}
+                <button
+                  autoFocus
+                  className="slds-button slds-button_neutral"
+                  onClick={() => appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } })}
+                >
+                  <Icon type="utility" icon="preview" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  View Record
+                </button>
+                <button
+                  className="slds-button slds-button_neutral slds-p-left_x-small"
+                  onClick={() => appActionObservable.next({ action: 'EDIT_RECORD', payload: { recordId } })}
+                >
+                  <Icon type="utility" icon="edit" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Edit Record
+                </button>
               </div>
               <button className="slds-button" disabled={loading} onClick={() => fetchRecord(true)}>
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />

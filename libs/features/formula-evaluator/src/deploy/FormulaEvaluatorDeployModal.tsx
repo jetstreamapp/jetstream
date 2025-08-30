@@ -374,5 +374,3 @@ export const FormulaEvaluatorDeployModal = ({
     </>
   );
 };
-
-export default FormulaEvaluatorDeployModal;

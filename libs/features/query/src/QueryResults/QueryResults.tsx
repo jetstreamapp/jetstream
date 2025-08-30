@@ -6,9 +6,11 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { query, sobjectOperation } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import {
+  appActionObservable,
   formatNumber,
   hasModifierKey,
   isMKey,
+  recordActionModalClosedObservable$,
   setItemInSessionStorage,
   useBrowserNotifications,
   useGlobalEventHandler,
@@ -44,7 +46,6 @@ import {
 import {
   QueryHistory,
   QueryHistoryRef,
-  ViewEditCloneRecord,
   fromJetstreamEvents,
   fromQueryHistoryState,
   fromQueryState,
@@ -133,11 +134,6 @@ export const QueryResults = React.memo(() => {
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { confirm } = useConfirmation();
 
-  const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
-    action: CloneEditView;
-    sobjectName: string;
-    recordId: string | null;
-  } | null>(null);
   const [getRecordAsApex, setGetRecordAsApex] = useState<{ record: any; sobjectName: string } | null>(null);
   const [restore] = useQueryRestore(soql, isTooling, { silent: true });
 
@@ -152,6 +148,17 @@ export const QueryResults = React.memo(() => {
   });
 
   const { fieldMetadata, fieldMetadataSubquery } = useQueryResultsFetchMetadata(selectedOrg, queryResults?.parsedQuery, isTooling);
+
+  // if record modal closed and same object was specified, re-load the page
+  const reloadRecordEvents = useObservable(
+    recordActionModalClosedObservable$.pipe(filter(({ objectName, reloadRecords }) => !!reloadRecords && objectName === sobject))
+  );
+
+  useNonInitialEffect(() => {
+    if (reloadRecordEvents) {
+      executeQuery(soql, SOURCE_RECORD_ACTION, { isTooling });
+    }
+  }, [reloadRecordEvents]);
 
   // ensure that on a page refresh, the query is restored from browser state if it exists
   useEffect(() => {
@@ -420,11 +427,22 @@ export const QueryResults = React.memo(() => {
   }
 
   function handleCloneEditView(record: any, action: CloneEditView, source: 'ROW_ACTION' | 'RELATED_RECORD_POPOVER') {
-    setCloneEditViewRecord({
-      action,
-      recordId: record.Id || getRecordIdFromAttributes(record),
-      sobjectName: getSObjectNameFromAttributes(record),
-    });
+    const recordId = record.Id || getRecordIdFromAttributes(record);
+    const sobjectName = getSObjectNameFromAttributes(record);
+    switch (action) {
+      case 'clone':
+        appActionObservable.next({ action: 'CLONE_RECORD', payload: { recordId } });
+        break;
+      case 'create':
+        appActionObservable.next({ action: 'CREATE_RECORD', payload: { objectName: sobjectName } });
+        break;
+      case 'edit':
+        appActionObservable.next({ action: 'EDIT_RECORD', payload: { recordId } });
+        break;
+      case 'view':
+        appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } });
+        break;
+    }
     trackEvent(ANALYTICS_KEYS.query_RecordAction, { action, source });
   }
 
@@ -442,17 +460,6 @@ export const QueryResults = React.memo(() => {
     ).flat();
     trackEvent(ANALYTICS_KEYS.query_UpdateRecordsInline, { recordCount: modifiedRecords.length });
     return results;
-  }
-
-  function handleChangeAction(action: CloneEditView) {
-    setCloneEditViewRecord((currentAction) => (currentAction ? { ...currentAction, action } : null));
-  }
-
-  async function handleCloseEditCloneModal(reloadRecords?: boolean) {
-    setCloneEditViewRecord(null);
-    if (reloadRecords) {
-      executeQuery(soql, SOURCE_RECORD_ACTION, { isTooling });
-    }
   }
 
   async function handleDelete(record?: SalesforceRecord) {
@@ -544,12 +551,8 @@ export const QueryResults = React.memo(() => {
 
   function handleCreateNewRecord() {
     if (queryResults?.parsedQuery?.sObject) {
-      setCloneEditViewRecord({
-        action: 'create',
-        recordId: null,
-        sobjectName: queryResults?.parsedQuery?.sObject,
-      });
-      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'create' });
+      appActionObservable.next({ action: 'CREATE_RECORD', payload: { objectName: queryResults.parsedQuery.sObject } });
+      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'create', source: 'QUERY_RESULTS_CREATE_RECORD' });
     }
   }
 
@@ -605,17 +608,6 @@ export const QueryResults = React.memo(() => {
 
   return (
     <div data-testid="query-results-page">
-      {cloneEditViewRecord && (
-        <ViewEditCloneRecord
-          apiVersion={defaultApiVersion}
-          selectedOrg={selectedOrg}
-          action={cloneEditViewRecord.action}
-          sobjectName={cloneEditViewRecord.sobjectName}
-          recordId={cloneEditViewRecord.recordId}
-          onClose={handleCloseEditCloneModal}
-          onChangeAction={handleChangeAction}
-        />
-      )}
       {getRecordAsApex && (
         <QueryResultsGetRecAsApexModal
           org={selectedOrg}
