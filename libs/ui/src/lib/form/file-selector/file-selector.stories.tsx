@@ -1,7 +1,6 @@
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import { action } from '@storybook/addon-actions';
 import { array, boolean, text } from '@storybook/addon-knobs';
-import React from 'react';
 import FileOrGoogleSelector from './FileOrGoogleSelector';
 import FileSelector from './FileSelector';
 import GoogleFileSelector from './GoogleFileSelector';
@@ -29,7 +28,7 @@ export const googleDrive = () => (
   <GoogleFileSelector
     apiConfig={{
       appId: '1046118608516',
-      apiKey: 'AIzaSyBKlRmVgUxJ928co_CTT1Rx_RbmkKiibgU',
+      apiKey: 'invalid',
       clientId: '1046118608516-54c1gdvmaosuh84k2oamot7a0kql3p0i.apps.googleusercontent.com',
     }}
     className={text('className', undefined)}
@@ -47,7 +46,7 @@ export const googleDriveSelectFolder = () => (
   <GoogleFolderSelector
     apiConfig={{
       appId: '1046118608516',
-      apiKey: 'AIzaSyBKlRmVgUxJ928co_CTT1Rx_RbmkKiibgU',
+      apiKey: 'invalid',
       clientId: '1046118608516-54c1gdvmaosuh84k2oamot7a0kql3p0i.apps.googleusercontent.com',
     }}
     className={text('className', undefined)}
@@ -77,7 +76,7 @@ export const fileInputAndGoogleDrive = () => (
     googleSelectorProps={{
       apiConfig: {
         appId: '1046118608516',
-        apiKey: 'AIzaSyBKlRmVgUxJ928co_CTT1Rx_RbmkKiibgU',
+        apiKey: 'invalid',
         clientId: '1046118608516-54c1gdvmaosuh84k2oamot7a0kql3p0i.apps.googleusercontent.com',
       },
       id: text('googleId', 'google'),
