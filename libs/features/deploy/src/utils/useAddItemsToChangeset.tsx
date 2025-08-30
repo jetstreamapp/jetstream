@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { getPackageXml, retrieveMetadataFromListMetadata } from '@jetstream/shared/data';
 import { pollAndDeployMetadataResultsWhenReady, pollMetadataResultsUntilDone, useBrowserNotifications } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { DeployMetadataStatus, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
+import { DeployMetadataStatus, DeployOptions, DeployResult, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { applicationCookieState } from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -76,8 +76,14 @@ export function useAddItemsToChangeset(
   {
     changesetName,
     changesetDescription,
+    deployOptions: providedDeployOptions,
     selectedMetadata,
-  }: { changesetName: string; changesetDescription: string; selectedMetadata: Record<string, ListMetadataResult[]> }
+  }: {
+    changesetName: string;
+    changesetDescription: string;
+    deployOptions?: Maybe<DeployOptions>;
+    selectedMetadata: Record<string, ListMetadataResult[]>;
+  }
 ) {
   const isMounted = useRef(true);
 
@@ -118,6 +124,8 @@ export function useAddItemsToChangeset(
           runAllTests: false,
           singlePackage: false,
           testLevel: 'NoTestRun',
+          rollbackOnError: !!selectedOrg.orgIsSandbox,
+          ...providedDeployOptions,
         };
         const { results: deployResults, zipFile } = await pollAndDeployMetadataResultsWhenReady(selectedOrg, selectedOrg, id, {
           deployOptions,

@@ -14,6 +14,7 @@ import DateGrid from './DateGrid';
 import DateGridPrevNextSelector from './DateGridPrevNextSelector';
 
 export interface DatePickerPopupProps {
+  ref?: React.Ref<HTMLDivElement>;
   initialSelectedDate?: Date;
   initialVisibleDate?: Date;
   dropDownPosition?: PositionLeftRight;
@@ -26,6 +27,7 @@ export interface DatePickerPopupProps {
 }
 
 export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
+  ref,
   initialSelectedDate,
   initialVisibleDate = startOfMonth(new Date()),
   availableYears,
@@ -85,13 +87,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
   }
 
   return (
-    // <div
-    //   aria-hidden="false"
-    //   aria-label={`Date picker: ${visibleMonth}`}
-    //   className={`slds-datepicker slds-dropdown slds-dropdown_${dropDownPosition}`}
-    //   role="dialog"
-    // >
-    <>
+    <div ref={ref}>
       <DateGridPrevNextSelector
         id="date-picker"
         currMonth={currMonthString}
@@ -131,8 +127,7 @@ export const DatePickerPopup: FunctionComponent<DatePickerPopupProps> = ({
           </button>
         </GridCol>
       </Grid>
-      {/* </div> */}
-    </>
+    </div>
   );
 };
 

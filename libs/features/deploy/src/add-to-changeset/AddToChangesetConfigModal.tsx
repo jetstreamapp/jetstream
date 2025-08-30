@@ -1,12 +1,21 @@
 import { css } from '@emotion/react';
-import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ChangeSet, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { ChangeSet, DeployOptions, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import DeployMetadataOptions from '../utils/DeployMetadataOptions';
 import { useChangesetList } from '../utils/useChangesetList';
+
+const DISABLED_OPTIONS = new Set<keyof DeployOptions>([
+  'allowMissingFiles',
+  'autoUpdatePackage',
+  'performRetrieve',
+  'purgeOnDelete',
+  'singlePackage',
+]);
 
 export interface AddToChangesetConfigModalProps {
   selectedOrg: SalesforceOrgUi;
@@ -17,7 +26,7 @@ export interface AddToChangesetConfigModalProps {
   onChangesetPackages: (changesetPackages: ListItem<string, ChangeSet>[]) => void;
   onSelection: (changesetPackage: string) => void;
   onClose: () => void;
-  onDeploy: (changesetPackage: string, changesetDescription: string, changeset?: Maybe<ChangeSet>) => void;
+  onDeploy: (changesetPackage: string, changesetDescription: string, deployOptions: DeployOptions, changeset?: Maybe<ChangeSet>) => void;
 }
 
 export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigModalProps> = ({
@@ -41,6 +50,15 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
   // FIXME: show hasError on page somewhere
   const { loadPackages, loading, changesetPackages, hasError, errorMessage } = useChangesetList(selectedOrg, initialPackages);
   const [selectedMetadataList, setSelectedMetadataList] = useState<string[]>();
+  const [deployOptions, setDeployOptions] = useState<DeployOptions>(() => ({
+    allowMissingFiles: true,
+    autoUpdatePackage: true,
+    checkOnly: false,
+    runAllTests: false,
+    singlePackage: false,
+    testLevel: 'NoTestRun',
+    rollbackOnError: !selectedOrg.orgIsSandbox && !selectedOrg.orgOrganizationType?.includes('Developer'),
+  }));
 
   useEffect(() => {
     if (changesetPackages && changesetPackages.length) {
@@ -85,7 +103,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
           </button>
           <button
             className="slds-button slds-button_brand"
-            onClick={() => onDeploy(changesetPackage, changesetDescription, selectedChangeset)}
+            onClick={() => onDeploy(changesetPackage, changesetDescription, deployOptions, selectedChangeset)}
             disabled={loading || !changesetPackage}
           >
             Deploy
@@ -223,6 +241,16 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
                   maxLength={255}
                 />
               </Textarea>
+
+              <div>
+                {/* OPTIONS */}
+                <DeployMetadataOptions
+                  deployOptions={deployOptions}
+                  hiddenOptions={DISABLED_OPTIONS}
+                  orgType={getOrgType(selectedOrg)}
+                  onChange={setDeployOptions}
+                />
+              </div>
             </div>
           </GridCol>
           <GridCol className="slds-p-left_x-small" size={6} sizeLarge={4}>
@@ -251,5 +279,3 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
     </Modal>
   );
 };
-
-export default AddToChangesetConfigModal;

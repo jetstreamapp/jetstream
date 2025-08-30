@@ -35,6 +35,8 @@ export const inputFilenameState = atomWithReset<string | null>(null);
 
 export const inputFilenameTypeState = atomWithReset<LocalOrGoogle | null>(null);
 
+export const inputGoogleFileState = atomWithReset<Maybe<google.picker.DocumentObject>>(null);
+
 export const inputZipFileDataState = atomWithReset<ArrayBuffer | null>(null);
 
 export const inputZipFilenameState = atomWithReset<string | null>(null);

@@ -1,7 +1,7 @@
 import { enableLogger } from '@jetstream/shared/client-logger';
 import { AxiosAdapterConfig } from '@jetstream/shared/data';
 import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-import { AppLoading } from '@jetstream/ui-core';
+import { AppLoading, ViewEditCloneRecordWrapper } from '@jetstream/ui-core';
 import '@salesforce-ux/design-system/assets/styles/salesforce-lightning-design-system.css';
 import { useAtomValue } from 'jotai';
 import { ReactNode, Suspense } from 'react';
@@ -35,6 +35,7 @@ export function AppWrapper({ allowWithoutSalesforceOrg, children }: { allowWitho
             <DndProvider backend={HTML5Backend}>
               <ModalContainer />
               <AppToast />
+              <ViewEditCloneRecordWrapper />
               {children}
             </DndProvider>
           </AppInitializer>

@@ -2,8 +2,8 @@ import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { query } from '@jetstream/shared/data';
-import { hasModifierKey, isUKey, useDebounce, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { CloneEditView, QueryResults } from '@jetstream/types';
+import { appActionObservable, hasModifierKey, isUKey, useDebounce, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { QueryResults } from '@jetstream/types';
 import {
   CopyToClipboard,
   getModifierKey,
@@ -22,7 +22,6 @@ import { useAtom, useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '../analytics';
 import { getSearchUserSoql } from './record-utils';
-import { ViewEditCloneRecord } from './ViewEditCloneRecord';
 
 interface User {
   Id: string;
@@ -62,8 +61,6 @@ export const UserSearchPopover: FunctionComponent = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [usersResults, setUsersResults] = useState<QueryResults<User>>();
 
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -92,8 +89,6 @@ export const UserSearchPopover: FunctionComponent = () => {
     };
   }, [isOpen, searchTermDebounced, selectedOrg, trackEvent]);
 
-  const [action, setAction] = useState<CloneEditView>('view');
-
   const onKeydown = useCallback((event: KeyboardEvent) => {
     if (hasModifierKey(event as any) && isUKey(event as any)) {
       event.stopPropagation();
@@ -102,16 +97,14 @@ export const UserSearchPopover: FunctionComponent = () => {
     }
   }, []);
 
+  function handleViewRecord(user: User) {
+    if (user) {
+      appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: user.Id } });
+      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'view', source: 'USER_SEARCH' });
+    }
+  }
+
   useGlobalEventHandler('keydown', onKeydown);
-
-  function onActionChange(action: CloneEditView) {
-    setAction(action);
-  }
-
-  function onModalClose() {
-    setSelectedUser(null);
-    setAction('view');
-  }
 
   if (!selectedOrg || !!selectedOrg.connectionError) {
     return null;
@@ -119,17 +112,6 @@ export const UserSearchPopover: FunctionComponent = () => {
 
   return (
     <Fragment>
-      {selectedUser && (
-        <ViewEditCloneRecord
-          apiVersion={defaultApiVersion}
-          selectedOrg={selectedOrg}
-          action={action}
-          sobjectName="User"
-          recordId={selectedUser.Id}
-          onClose={onModalClose}
-          onChangeAction={onActionChange}
-        />
-      )}
       <Popover
         ref={popoverRef}
         size="large"
@@ -181,8 +163,7 @@ export const UserSearchPopover: FunctionComponent = () => {
                   onSelected={(key: string) => {
                     const user = usersResults?.queryResults.records.find(({ Id }) => Id === key);
                     if (user) {
-                      setSelectedUser(user);
-                      trackEvent(ANALYTICS_KEYS.user_search_view_user);
+                      handleViewRecord(user);
                     }
                   }}
                   getContent={(user: User) => ({

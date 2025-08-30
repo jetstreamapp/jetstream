@@ -9,6 +9,7 @@ import { DescribeGlobalSObjectResult } from '@jetstream/types';
 import {
   Alert,
   AutoFullHeightContainer,
+  ButtonGroupContainer,
   Card,
   EmptyState,
   GoneFishingIllustration,
@@ -40,7 +41,7 @@ import * as formulon from 'formulon';
 import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import FormulaEvaluatorDeployModal from './deploy/FormulaEvaluatorDeployModal';
+import { FormulaEvaluatorDeployModal } from './deploy/FormulaEvaluatorDeployModal';
 
 // Lazy import
 const prettier = import('prettier/standalone');
@@ -418,7 +419,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
               icon={{ type: 'standard', icon: 'outcome' }}
               title={<div>Results</div>}
               actions={
-                <>
+                <ButtonGroupContainer>
                   <button
                     className="slds-button slds-button_neutral"
                     disabled={deployFormulaDisabled}
@@ -433,7 +434,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
                   >
                     Test
                   </button>
-                </>
+                </ButtonGroupContainer>
               }
             >
               {loading && <Spinner />}
