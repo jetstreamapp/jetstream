@@ -1,5 +1,4 @@
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import { routeDefinition as oauthController } from '../controllers/oauth.controller';
 import { checkAuth } from './route.middleware';
 

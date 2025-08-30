@@ -1,6 +1,5 @@
 import { createRateLimit, ENV } from '@jetstream/api-config';
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import * as desktopAssetsController from '../controllers/desktop-assets.controller';
 import { checkAuth } from './route.middleware';
 
@@ -15,7 +14,12 @@ export const DownloadRateLimit = createRateLimit('download', {
 
 export const routes: express.Router = Router();
 
-routes.get('/download/:platform/:arch', DownloadRateLimit, checkAuth, desktopAssetsController.routeDefinition.getDownloadLink.controllerFn());
+routes.get(
+  '/download/:platform/:arch',
+  DownloadRateLimit,
+  checkAuth,
+  desktopAssetsController.routeDefinition.getDownloadLink.controllerFn()
+);
 routes.get('/downloads', DownloadRateLimit, checkAuth, desktopAssetsController.routeDefinition.getAllDownloadLinks.controllerFn());
 
 export default routes;

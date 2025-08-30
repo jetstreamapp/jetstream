@@ -1,7 +1,6 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import https from 'https';
 import { checkAuth, getOrgFromHeaderOrQuery } from './route.middleware';
 

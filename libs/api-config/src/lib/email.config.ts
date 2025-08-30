@@ -1,4 +1,3 @@
-import formData from 'form-data';
 import Mailgun from 'mailgun.js';
 import { prisma } from './api-db-config';
 import { logger } from './api-logger';
@@ -7,7 +6,7 @@ import { ENV } from './env-config';
 let mailgun: ReturnType<Mailgun['client']>;
 
 if (ENV.MAILGUN_API_KEY) {
-  mailgun = new Mailgun(formData).client({
+  mailgun = new Mailgun(FormData).client({
     username: 'api',
     key: ENV.MAILGUN_API_KEY,
   });
