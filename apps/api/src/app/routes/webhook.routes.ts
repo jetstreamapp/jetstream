@@ -1,6 +1,5 @@
 import { raw } from 'body-parser';
-import express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 
 const routes: express.Router = Router();

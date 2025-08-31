@@ -1,6 +1,5 @@
 import { createRateLimit, ENV } from '@jetstream/api-config';
-import * as express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import helmet from 'helmet';
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';

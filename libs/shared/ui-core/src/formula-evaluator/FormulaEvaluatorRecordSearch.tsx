@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';
-import { CloneEditView, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { appActionObservable } from '@jetstream/shared/ui-utils';
+import { ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItemsTypeAhead, Grid, Icon, Tooltip } from '@jetstream/ui';
-import { applicationCookieState } from '@jetstream/ui/app-state';
-import { useAtom } from 'jotai';
 import { FunctionComponent, useCallback, useRef, useState } from 'react';
-import { ViewEditCloneRecord } from '../record/ViewEditCloneRecord';
+import { useAmplitude } from '../analytics';
 
 export interface FormulaEvaluatorRecordSearchProps {
   selectedOrg: SalesforceOrgUi;
@@ -24,11 +24,9 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   onSelectedRecord,
 }) => {
   const nameField = useRef<{ selectedSObject: string; nameField: string }>(null);
-  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
-  const [viewRecordModalOpen, setViewRecordModalOpen] = useState<boolean>();
-  const [viewRecordAction, setViewRecordAction] = useState<CloneEditView>('view');
+  const { trackEvent } = useAmplitude();
 
   const handleSearch = useCallback(
     async (searchTerm: string) => {
@@ -82,22 +80,15 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
     onSelectedRecord(item?.value);
   }
 
+  function handleViewRecord() {
+    if (selectedRecord) {
+      appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: selectedRecord.id } });
+      trackEvent(ANALYTICS_KEYS.query_RecordAction, { action: 'view', source: 'FORMULA_EDITOR' });
+    }
+  }
+
   return (
     <>
-      {viewRecordModalOpen && selectedRecord && (
-        <ViewEditCloneRecord
-          apiVersion={defaultApiVersion}
-          selectedOrg={selectedOrg}
-          action={viewRecordAction}
-          sobjectName={selectedSObject}
-          recordId={selectedRecord.value}
-          onClose={() => {
-            setViewRecordModalOpen(false);
-            setViewRecordAction('view');
-          }}
-          onChangeAction={setViewRecordAction}
-        />
-      )}
       <Grid className="slds-m-bottom_x-small" verticalAlign="end">
         <ComboboxWithItemsTypeAhead
           key={selectedSObject}
@@ -120,7 +111,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           <Tooltip content={(!disabled && !!selectedRecord && 'View Record Details') || ''}>
             <button
               className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer"
-              onClick={() => selectedRecord && setViewRecordModalOpen(true)}
+              onClick={handleViewRecord}
               disabled={disabled || !selectedRecord}
             >
               <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />

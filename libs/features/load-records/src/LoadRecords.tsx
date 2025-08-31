@@ -4,7 +4,7 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber, useTitle } from '@jetstream/shared/ui-utils';
-import { FieldWithRelatedEntities, LocalOrGoogle, Step } from '@jetstream/types';
+import { FieldWithRelatedEntities, LocalOrGoogle, Maybe, Step } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   Grid,
@@ -79,6 +79,7 @@ export const LoadRecords = () => {
   const [inputFileHeader, setInputFileHeader] = useAtom(fromLoadRecordsState.inputFileHeaderState);
   const [inputFilename, setInputFilename] = useAtom(fromLoadRecordsState.inputFilenameState);
   const [inputFilenameType, setInputFilenameType] = useAtom(fromLoadRecordsState.inputFilenameTypeState);
+  const [inputGoogleFile, setInputGoogleFile] = useAtom(fromLoadRecordsState.inputGoogleFileState);
 
   const [inputZipFileData, setInputZipFileData] = useAtom(fromLoadRecordsState.inputZipFileDataState);
   const [inputZipFilename, setInputZipFilename] = useAtom(fromLoadRecordsState.inputZipFilenameState);
@@ -110,6 +111,7 @@ export const LoadRecords = () => {
   const resetInputFilenameState = useResetAtom(fromLoadRecordsState.inputFilenameState);
   const resetFieldMappingState = useResetAtom(fromLoadRecordsState.fieldMappingState);
   const resetFieldMappingTypeState = useResetAtom(fromLoadRecordsState.inputFilenameTypeState);
+  const resetInputGoogleFile = useResetAtom(fromLoadRecordsState.inputGoogleFileState);
   const resetInputZipFileData = useResetAtom(fromLoadRecordsState.inputZipFileDataState);
   const resetInputZipFilename = useResetAtom(fromLoadRecordsState.inputZipFilenameState);
 
@@ -167,6 +169,7 @@ export const LoadRecords = () => {
         resetInputFilenameState();
         resetFieldMappingState();
         resetFieldMappingTypeState();
+        resetInputGoogleFile();
         resetInputZipFileData();
         resetInputZipFilename();
         resetApiModeState();
@@ -186,6 +189,7 @@ export const LoadRecords = () => {
     resetLoadTypeState,
     resetSelectedSObjectState,
     resetFieldMappingTypeState,
+    resetInputGoogleFile,
     resetInputZipFileData,
     resetInputZipFilename,
     resetApiModeState,
@@ -348,11 +352,18 @@ export const LoadRecords = () => {
     setLoadSummaryText(text.join(' • '));
   }, [selectedSObject, loadType, fieldMapping, inputFileHeader, externalId]);
 
-  function handleFileChange(data: any[], headers: string[], filename: string, type: LocalOrGoogle) {
+  function handleFileChange(
+    data: any[],
+    headers: string[],
+    filename: string,
+    type: LocalOrGoogle,
+    googleFile?: Maybe<google.picker.DocumentObject>
+  ) {
     setInputFileData(data);
     setInputFileHeader(headers);
     setInputFilename(filename);
     setInputFilenameType(type);
+    setInputGoogleFile(googleFile);
   }
 
   function handleZipFileChange(data: ArrayBuffer, filename: string) {
@@ -471,6 +482,7 @@ export const LoadRecords = () => {
                 externalId={externalId}
                 inputFilename={inputFilename}
                 inputFileType={inputFilenameType}
+                inputGoogleFile={inputGoogleFile}
                 allowBinaryAttachment={!!allowBinaryAttachment}
                 binaryAttachmentBodyField={binaryAttachmentBodyField}
                 inputZipFilename={inputZipFilename}

@@ -40,13 +40,20 @@ export interface LoadRecordsSelectObjectAndFileProps {
   externalId: string;
   inputFileType: Maybe<LocalOrGoogle>;
   inputFilename: Maybe<string>;
+  inputGoogleFile: Maybe<google.picker.DocumentObject>;
   loadingFields: Maybe<boolean>;
   allowBinaryAttachment: Maybe<boolean>;
   binaryAttachmentBodyField: Maybe<string>;
   inputZipFilename: Maybe<string>;
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSobject: (selectedSObject: DescribeGlobalSObjectResult) => void;
-  onFileChange: (data: any[], headers: string[], filename: string, inputFileType: LocalOrGoogle) => void;
+  onFileChange: (
+    data: any[],
+    headers: string[],
+    filename: string,
+    inputFileType: LocalOrGoogle,
+    googleFile?: Maybe<google.picker.DocumentObject>
+  ) => void;
   onZipFileChange: (data: ArrayBuffer, filename: string) => void;
   onLoadTypeChange: (type: InsertUpdateUpsertDelete) => void;
   onExternalIdChange: (externalId: string) => void;
@@ -70,6 +77,7 @@ export const LoadRecordsSelectObjectAndFile = ({
   externalId,
   inputFileType,
   inputFilename,
+  inputGoogleFile,
   loadingFields,
   allowBinaryAttachment,
   binaryAttachmentBodyField,
@@ -118,7 +126,7 @@ export const LoadRecordsSelectObjectAndFile = ({
   async function handleGoogleFile({ workbook, selectedFile }: InputReadGoogleSheet) {
     try {
       const { data, headers } = await parseWorkbook(workbook, { onParsedMultipleWorkbooks });
-      onFileChange(data, headers, selectedFile.name, 'google');
+      onFileChange(data, headers, selectedFile.name, 'google', selectedFile);
     } catch (ex) {
       fireToast({
         message: `There was an error reading your file. ${getErrorMessage(ex)}`,
@@ -195,6 +203,7 @@ export const LoadRecordsSelectObjectAndFile = ({
                     label: 'Google Drive',
                     buttonLabel: 'Choose Google Sheet',
                     filename: inputFileType === 'google' ? inputFilename : undefined,
+                    inputGoogleFile,
                     onReadFile: handleGoogleFile,
                   }}
                   source="load_records_single_object"

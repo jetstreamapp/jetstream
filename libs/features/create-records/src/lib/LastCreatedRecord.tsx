@@ -1,10 +1,10 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { appActionObservable } from '@jetstream/shared/ui-utils';
 import { CloneEditView, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, RecordLookupPopover } from '@jetstream/ui';
-import { useAmplitude, ViewEditCloneRecord } from '@jetstream/ui-core';
+import { useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { useState } from 'react';
 
 interface LastCreatedRecordProps {
   selectedOrg: SalesforceOrgUi;
@@ -14,30 +14,25 @@ interface LastCreatedRecordProps {
 export function LastCreatedRecord({ selectedOrg, recordId }: LastCreatedRecordProps) {
   const { trackEvent } = useAmplitude();
 
-  const { defaultApiVersion, serverUrl } = useAtomValue(applicationCookieState);
+  const { serverUrl } = useAtomValue(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
 
-  const [cloneEditViewRecord, setCloneEditViewRecord] = useState<{
-    action: CloneEditView;
-    sobjectName: string;
-    recordId: string | null;
-  } | null>(null);
-
   function handleCloneEditView(action: CloneEditView, recordId: string, sobjectName: string) {
-    setCloneEditViewRecord({
-      action,
-      recordId,
-      sobjectName,
-    });
-    trackEvent(ANALYTICS_KEYS.create_record_action, { action });
-  }
-
-  function handleChangeAction(action: CloneEditView) {
-    setCloneEditViewRecord((currentAction) => (currentAction ? { ...currentAction, action } : null));
-  }
-
-  async function handleCloseEditCloneModal(reloadRecords?: boolean) {
-    setCloneEditViewRecord(null);
+    switch (action) {
+      case 'clone':
+        appActionObservable.next({ action: 'CLONE_RECORD', payload: { recordId } });
+        break;
+      case 'create':
+        appActionObservable.next({ action: 'CREATE_RECORD', payload: { objectName: sobjectName } });
+        break;
+      case 'edit':
+        appActionObservable.next({ action: 'EDIT_RECORD', payload: { recordId } });
+        break;
+      case 'view':
+        appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId } });
+        break;
+    }
+    trackEvent(ANALYTICS_KEYS.create_record_action, { action, source: 'CREATE_RECORD' });
   }
 
   return (
@@ -52,17 +47,6 @@ export function LastCreatedRecord({ selectedOrg, recordId }: LastCreatedRecordPr
         isTooling={false}
         onRecordAction={handleCloneEditView}
       />
-      {cloneEditViewRecord && (
-        <ViewEditCloneRecord
-          apiVersion={defaultApiVersion}
-          selectedOrg={selectedOrg}
-          action={cloneEditViewRecord.action}
-          sobjectName={cloneEditViewRecord.sobjectName}
-          recordId={cloneEditViewRecord.recordId}
-          onClose={handleCloseEditCloneModal}
-          onChangeAction={handleChangeAction}
-        />
-      )}
     </Grid>
   );
 }

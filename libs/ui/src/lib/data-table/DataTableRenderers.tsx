@@ -602,11 +602,7 @@ export function TextOrIdLinkRenderer(RenderCellProps: RenderCellProps<RowWithKey
   const maybeSalesforceId = row[column.key];
 
   if (_org && isString(maybeSalesforceId) && maybeSalesforceId.length === 18 && isValidSalesforceRecordId(maybeSalesforceId, false)) {
-    return (
-      <a href={`${_org.instanceUrl}/${maybeSalesforceId}`} target="_blank" rel="noopener noreferrer">
-        {maybeSalesforceId}
-      </a>
-    );
+    return <IdLinkRenderer {...RenderCellProps} />;
   }
 
   return GenericRenderer(RenderCellProps);

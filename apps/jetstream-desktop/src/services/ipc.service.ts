@@ -56,7 +56,7 @@ const handleGetAppCookieEvent: MainIpcHandler<'getAppCookie'> = async (event) =>
     environment: ENV.ENVIRONMENT,
     defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
     google_appId: '1071580433137',
-    google_apiKey: 'AIzaSyAOo0Xb3gNHDuXCDgmPJA0Jx2cpYroTXiA',
+    google_apiKey: 'invalid',
     google_clientId: '1046118608516-lstbl00607e43hev2abfh9hegbv7iuav.apps.googleusercontent.com',
   };
   return appCookie;

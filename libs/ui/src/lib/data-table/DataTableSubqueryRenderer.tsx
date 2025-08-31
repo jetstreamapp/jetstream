@@ -1,7 +1,7 @@
 import { queryMore } from '@jetstream/shared/data';
-import { copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
+import { appActionObservable, copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
-import { ContextMenuItem, Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
+import { CloneEditView, ContextMenuItem, Maybe, QueryResult, SalesforceOrgUi } from '@jetstream/types';
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RenderCellProps } from 'react-data-grid';
 import RecordDownloadModal from '../file-download-modal/RecordDownloadModal';
@@ -337,6 +337,19 @@ function ModalDataTable({
                 contextMenuItems={TABLE_CONTEXT_MENU_ITEMS}
                 contextMenuAction={handleContextMenuAction}
                 onReorderColumns={handleColumnReorder}
+                context={{
+                  org,
+                  onRecordAction: (action: CloneEditView, recordId: string, objectName: string) => {
+                    switch (action) {
+                      case 'view':
+                        appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId, objectName } });
+                        break;
+                      case 'edit':
+                        appActionObservable.next({ action: 'EDIT_RECORD', payload: { recordId, objectName } });
+                        break;
+                    }
+                  },
+                }}
               />
             </AutoFullHeightContainer>
           </div>

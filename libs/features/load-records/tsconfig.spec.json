@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "../../../dist/out-tsc",
     "module": "commonjs",
-    "types": ["jest", "node"]
+    "types": ["jest", "node", "google.accounts", "google.picker", "gapi.auth2"]
   },
   "include": [
     "jest.config.ts",

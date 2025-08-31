@@ -20,6 +20,7 @@ export interface GoogleFileSelectorProps {
   id?: string;
   className?: string;
   filename?: Maybe<string>;
+  inputGoogleFile?: Maybe<google.picker.DocumentObject>;
   label?: string;
   buttonLabel?: string;
   helpText?: string;
@@ -38,6 +39,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   id = uniqueId('google-file-input'),
   className,
   filename,
+  inputGoogleFile,
   label,
   buttonLabel = 'Choose Google Sheet',
   hideLabel,
@@ -53,7 +55,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
   const [labelId] = useState(() => `${id}-label`);
   const { data, error: scriptLoadError, loading: googleApiLoading, isVisible, openPicker } = useDrivePicker(apiConfig);
   const [loading, setLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<google.picker.DocumentObject>();
+  const [selectedFile, setSelectedFile] = useState<Maybe<google.picker.DocumentObject>>(inputGoogleFile);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [{ managedFilename, filenameTruncated }, setManagedFilename] = useFilename(filename);
 

@@ -1,6 +1,5 @@
 import { action } from '@storybook/addon-actions';
 import { boolean, text } from '@storybook/addon-knobs';
-import React from 'react';
 import GoogleFileSelector from '../form/file-selector/GoogleFileSelector';
 import GoogleSignIn from './GoogleSignIn';
 
@@ -13,7 +12,7 @@ export const filePickerWithSignIn = () => (
   <GoogleSignIn
     apiConfig={{
       appId: '1046118608516',
-      apiKey: 'AIzaSyBKlRmVgUxJ928co_CTT1Rx_RbmkKiibgU',
+      apiKey: 'invalid',
       clientId: '1046118608516-54c1gdvmaosuh84k2oamot7a0kql3p0i.apps.googleusercontent.com',
     }}
     onError={action('onSignInError')}
@@ -22,7 +21,7 @@ export const filePickerWithSignIn = () => (
     <GoogleFileSelector
       apiConfig={{
         appId: '1046118608516',
-        apiKey: 'AIzaSyBKlRmVgUxJ928co_CTT1Rx_RbmkKiibgU',
+        apiKey: 'invalid',
         clientId: '1046118608516-54c1gdvmaosuh84k2oamot7a0kql3p0i.apps.googleusercontent.com',
       }}
       className={text('className', undefined)}

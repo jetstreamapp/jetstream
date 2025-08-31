@@ -392,16 +392,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   onSelected={onLeadingDropdownChange}
                 />
               )}
-              <div
-                className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}
-                // additionalParentRef={popoverRef.current}
-                // onOutsideClick={() => {
-                //   // if (isOpen) {
-                //   //   setIsOpen(false);
-                //   //   onClose && onClose();
-                //   // }
-                // }}
-              >
+              <div className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}>
                 <div
                   ref={entireContainerEl}
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}

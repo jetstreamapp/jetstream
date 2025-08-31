@@ -1,10 +1,7 @@
-import { lazy } from 'react';
 import Tabs from '../../tabs/Tabs';
 import FileSelector, { FileSelectorProps } from './FileSelector';
-import type { GoogleFileSelectorProps } from './GoogleFileSelector';
+import { GoogleFileSelector, type GoogleFileSelectorProps } from './GoogleFileSelector';
 import { GoogleSelectedProUpgradeButton } from './GoogleSelectedProUpgradeButton';
-
-const GoogleFileSelector = lazy(() => import('./GoogleFileSelector'));
 
 export interface FileOrGoogleSelectorProps {
   fileSelectorProps: FileSelectorProps;

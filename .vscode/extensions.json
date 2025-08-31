@@ -4,12 +4,8 @@
     "esbenp.prettier-vscode",
     "mikestead.dotenv",
     "prisma.prisma",
-    "vscode-icons-team.vscode-icons",
     "streetsidesoftware.code-spell-checker",
     "eamodio.gitlens",
-    "ms-playwright.playwright",
-    "wayou.vscode-todo-highlight",
-    "orta.vscode-jest",
-    "firsttris.vscode-jest-runner"
+    "ms-playwright.playwright"
   ]
 }

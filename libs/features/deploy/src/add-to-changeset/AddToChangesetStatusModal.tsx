@@ -1,5 +1,5 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ChangeSet, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
+import { ChangeSet, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { SalesforceLogin } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -14,6 +14,7 @@ export interface AddToChangesetStatusModalProps {
   changesetName: string;
   changesetDescription: string;
   changeset?: ChangeSet | null;
+  deployOptions: DeployOptions | null;
   // used to hide while download window is open
   hideModal: boolean;
   onGoBack: () => void;
@@ -26,6 +27,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   changesetName,
   changesetDescription,
   changeset,
+  deployOptions,
   selectedMetadata,
   hideModal,
   onGoBack,
@@ -38,6 +40,7 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useAddItemsToChangeset(selectedOrg, {
     changesetName,
     changesetDescription,
+    deployOptions,
     selectedMetadata,
   });
 
@@ -108,5 +111,3 @@ export const AddToChangesetStatusModal: FunctionComponent<AddToChangesetStatusMo
     />
   );
 };
-
-export default AddToChangesetStatusModal;

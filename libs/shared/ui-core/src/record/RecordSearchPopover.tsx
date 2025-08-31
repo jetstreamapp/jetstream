@@ -1,75 +1,27 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
 import { describeGlobal } from '@jetstream/shared/data';
-import {
-  appActionObservable$,
-  appActionRecordEventFilter,
-  convertId15To18,
-  hasModifierKey,
-  isKKey,
-  isValidSalesforceRecordId,
-  useGlobalEventHandler,
-  useObservable,
-} from '@jetstream/shared/ui-utils';
-import { CloneEditView } from '@jetstream/types';
-import { Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner, getModifierKey } from '@jetstream/ui';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
-import { useAtom, useAtomValue } from 'jotai';
-import localforage from 'localforage';
-import uniqBy from 'lodash/uniqBy';
+import { appActionObservable, convertId15To18, hasModifierKey, isKKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
+import { getModifierKey, Grid, Icon, Input, KeyboardShortcut, Popover, PopoverRef, ScopedNotification, Spinner } from '@jetstream/ui';
+import { selectedOrgState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
-import { ViewEditCloneRecord } from './ViewEditCloneRecord';
-
-type RecentRecordMap = Record<string, RecentRecord[]>;
-interface RecentRecord {
-  recordId: string;
-  sobject: string;
-  name?: string;
-}
-
-const NUM_HISTORY_ITEMS = 10;
+import { addRecentRecordToStorage, getRecentRecordsFromStorage, RecentRecord } from './record-utils';
 
 export const RecordSearchPopover: FunctionComponent = () => {
   const popoverRef = useRef<PopoverRef>(null);
   const retainRecordId = useRef<boolean>(false);
-  const [{ defaultApiVersion }] = useAtom(applicationCookieState);
   const selectedOrg = useAtomValue(selectedOrgState);
 
   const [loading, setLoading] = useState<boolean>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const [recentRecords, setRecentRecords] = useState<RecentRecord[]>();
-  const [modalOpen, setModalOpen] = useState<boolean>();
-
   const [recordId, setRecordId] = useState<string>('');
-  const [sobjectName, setSobjectName] = useState<string | null>(null);
-  const [action, setAction] = useState<CloneEditView>('view');
-
-  const appActionEvents = useObservable(appActionObservable$.pipe(appActionRecordEventFilter));
-
-  useEffect(() => {
-    if (appActionEvents && appActionEvents.action === 'VIEW_RECORD' && isValidSalesforceRecordId(appActionEvents.payload.recordId)) {
-      handleSubmit(null, appActionEvents.payload.recordId);
-      setRecordId(appActionEvents.payload.recordId);
-      setAction('view');
-    } else if (appActionEvents && appActionEvents.action === 'EDIT_RECORD' && isValidSalesforceRecordId(appActionEvents.payload.recordId)) {
-      handleSubmit(null, appActionEvents.payload.recordId);
-      setRecordId(appActionEvents.payload.recordId);
-      setAction('edit');
-    } else if (appActionEvents && appActionEvents.action === 'CREATE_RECORD') {
-      setRecordId('');
-      setSobjectName(appActionEvents.payload.objectName);
-      setAction('create');
-      setModalOpen(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appActionEvents]);
 
   const getRecentRecords = useCallback(async () => {
     setRecordId('');
     try {
       if (selectedOrg?.uniqueId) {
-        const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
+        const recentItems = await getRecentRecordsFromStorage();
         setRecentRecords(recentItems[selectedOrg.uniqueId] || []);
       }
     } catch (ex) {
@@ -103,7 +55,6 @@ export const RecordSearchPopover: FunctionComponent = () => {
       }
       _recordId = _recordId || recordId;
       setErrorMessage(null);
-      setSobjectName(null);
       setLoading(true);
       const keyPrefix = _recordId.substring(0, 3);
       const describeGlobalResults = await describeGlobal(selectedOrg);
@@ -121,10 +72,10 @@ export const RecordSearchPopover: FunctionComponent = () => {
         }
       }
       setLoading(false);
-      setSobjectName(sobject.name);
-      setModalOpen(true);
       saveRecentRecords(_recordId, sobject.name);
       retainRecordId.current = false;
+      appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: _recordId } });
+      popoverRef.current?.close();
     } catch (ex) {
       setErrorMessage('An unexpected error has occurred.');
     } finally {
@@ -135,58 +86,10 @@ export const RecordSearchPopover: FunctionComponent = () => {
   async function saveRecentRecords(recordId: string, sobject: string) {
     try {
       // TODO: we need to clear this out when a user deletes their org
-      const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
-      recentItems[selectedOrg.uniqueId] = recentItems[selectedOrg.uniqueId] || [];
-      recentItems[selectedOrg.uniqueId].unshift({ recordId, sobject });
-      recentItems[selectedOrg.uniqueId] = uniqBy(recentItems[selectedOrg.uniqueId], 'recordId').slice(0, NUM_HISTORY_ITEMS);
-      setRecentRecords(recentItems[selectedOrg.uniqueId]);
-      await localforage.setItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences, recentItems);
+      const orgRecentRecords = await addRecentRecordToStorage({ recordId, sobject }, selectedOrg.uniqueId);
+      setRecentRecords(orgRecentRecords);
     } catch (ex) {
       logger.warn('[ERROR] Could not save recent record history', ex);
-    }
-  }
-
-  function onActionChange(action: CloneEditView) {
-    setAction(action);
-  }
-
-  function onModalClose() {
-    setAction('view');
-    setModalOpen(false);
-    if (!retainRecordId.current) {
-      setRecordId('');
-    }
-  }
-
-  async function onFetch(recordId: string, record: any) {
-    try {
-      if (recordId && record?.Name) {
-        const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
-        if (Array.isArray(recentItems[selectedOrg.uniqueId])) {
-          recentItems[selectedOrg.uniqueId] = recentItems[selectedOrg.uniqueId].map((item) =>
-            item.recordId !== recordId ? item : { ...item, name: record.Name }
-          );
-          setRecentRecords(recentItems[selectedOrg.uniqueId]);
-          await localforage.setItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences, recentItems);
-        }
-      }
-    } catch (ex) {
-      logger.warn('[ERROR] Could not remove invalid recent record history', ex);
-    }
-  }
-
-  async function onFetchError(recordId: string, sobjectName: string) {
-    try {
-      retainRecordId.current = true;
-      setRecordId(recordId);
-      const recentItems = (await localforage.getItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences)) || {};
-      if (Array.isArray(recentItems[selectedOrg.uniqueId])) {
-        recentItems[selectedOrg.uniqueId] = recentItems[selectedOrg.uniqueId].filter((item) => item.recordId !== recordId);
-        setRecentRecords(recentItems[selectedOrg.uniqueId]);
-        await localforage.setItem<RecentRecordMap>(INDEXED_DB.KEYS.userPreferences, recentItems);
-      }
-    } catch (ex) {
-      logger.warn('[ERROR] Could not remove invalid recent record history', ex);
     }
   }
 
@@ -198,22 +101,14 @@ export const RecordSearchPopover: FunctionComponent = () => {
 
   return (
     <Fragment>
-      {modalOpen && sobjectName && (
-        <ViewEditCloneRecord
-          apiVersion={defaultApiVersion}
-          selectedOrg={selectedOrg}
-          action={action}
-          sobjectName={sobjectName}
-          recordId={recordId}
-          onClose={onModalClose}
-          onChangeAction={onActionChange}
-          onFetch={onFetch}
-          onFetchError={onFetchError}
-        />
-      )}
       <Popover
         ref={popoverRef}
         size="large"
+        onChange={(isOpen) => {
+          if (isOpen) {
+            getRecentRecordsFromStorage().then((recentRecords) => setRecentRecords(recentRecords[selectedOrg.uniqueId] || []));
+          }
+        }}
         header={
           <header className="slds-popover__header slds-grid">
             <h2 className="slds-text-heading_small">View Record Details</h2>

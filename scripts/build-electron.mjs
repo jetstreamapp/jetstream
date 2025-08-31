@@ -41,16 +41,22 @@ const MAIN_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop');
 const DOWNZIP_SW_BUILD_DIR = join(process.cwd(), 'dist/apps/download-zip-sw');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
 
+const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
+const allDependencies = { ...devDependencies, ...dependencies };
+
 // NX calculates these dependencies, but they are not used in the final build
-const yarnRemoveDeps = ['react', 'tslib', 'xlsx', 'stripe'];
+const yarnRemoveDeps = ['react', 'tslib', 'xlsx', 'stripe'].filter((dep) => {
+  const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
+  if (!matchingDependency) {
+    console.warn(`${dep} not found in root package.json, skipping removal`);
+  }
+  return matchingDependency;
+});
 
 /**
  * Look at root package.json for version of all dependencies to install
  */
 const yarnAddDevDeps = (() => {
-  const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
-  const allDependencies = { ...devDependencies, ...dependencies };
-
   return [
     '@electron-forge/cli',
     '@electron-forge/maker-deb',
