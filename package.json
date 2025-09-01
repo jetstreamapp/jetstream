@@ -88,7 +88,7 @@
     "generate:version": "zx ./scripts/generate-version.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "npx --yes prisma migrate deploy",
-    "db:seed": "chmod +x prisma/seed.sh && npx --yes prisma db seed",
+    "db:seed": "npx --yes prisma db seed",
     "icons:build": "npm-run-all icons:build:* && npx prettier --loglevel error --write libs/icon-factory/src/lib/icons/**/*.tsx",
     "icons:build:action": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/action ./node_modules/@salesforce-ux/design-system/assets/icons/action",
     "icons:build:custom": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/custom ./node_modules/@salesforce-ux/design-system/assets/icons/custom",
@@ -115,9 +115,6 @@
     "dep-graph": "nx dep-graph"
   },
   "private": true,
-  "prisma": {
-    "seed": "node prisma/seed-salesforce-api.mjs"
-  },
   "devDependencies": {
     "@babel/core": "^7.24.4",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
