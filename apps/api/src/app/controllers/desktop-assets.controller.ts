@@ -87,7 +87,7 @@ async function getLatestVersion({ arch, platform }: PlatformArch): Promise<Versi
           const version = versionMatch ? versionMatch[1] : 'unknown';
 
           // The actual installer filename for Windows
-          const filename = `Jetstream-${version}-Setup.exe`;
+          const filename = `Jetstream-${version}+Setup.exe`;
 
           versionInfo = {
             version,

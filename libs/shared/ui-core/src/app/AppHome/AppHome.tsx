@@ -113,7 +113,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
               </a>
               . You may need to{' '}
               <a
-                href="https://docs.getjetstream.app/troubleshooting#installing-jetstream"
+                href="https://docs.getjetstream.app/install-connected-app"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Installing Jetstream connected app"
