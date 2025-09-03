@@ -6,6 +6,7 @@ const sidebar = {
       items: [
         'getting-started/overview',
         'getting-started/security',
+        'getting-started/install-connected-app',
         'getting-started/troubleshooting',
         'getting-started/organizations',
         'getting-started/feedback',
