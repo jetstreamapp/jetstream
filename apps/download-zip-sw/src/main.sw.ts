@@ -25,7 +25,6 @@ SOFTWARE.
 https://github.com/robbederks/downzip
 (NOTE: this was heavily modified)
 
-NOTE: After modifying this, we need to build and copy the results to apps/jetstream-desktop-client/public/download-zip.sw.js
  */
 import { logger } from './app/Logger';
 import Zip from './app/Zip';
