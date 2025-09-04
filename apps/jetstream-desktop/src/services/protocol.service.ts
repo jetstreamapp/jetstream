@@ -43,9 +43,9 @@ export function registerProtocols() {
       const url = searchParams.get('url');
       if (uniqueId && url) {
         const result = initApiConnection(uniqueId);
-        if (result) {
+        if (result && result.jetstreamConn) {
           const { jetstreamConn } = result;
-          return jetstreamConn!.org.streamDownload(url as string).then((results) => new Response(results));
+          return jetstreamConn.org.streamDownload(url).then((results) => new Response(results));
         }
       }
     }

@@ -53,7 +53,7 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
   try {
     const { url } = query;
 
-    const results = await jetstreamConn!.org.streamDownload(url as string);
+    const results = await jetstreamConn!.org.streamDownload(url);
     return new Response(results);
   } catch (ex) {
     return handleErrorResponse(ex);
