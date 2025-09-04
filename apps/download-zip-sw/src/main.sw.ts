@@ -37,6 +37,7 @@ interface DownZipFile {
   name: string;
   downloadUrl: string;
   size: number;
+  baseUrl: string;
 }
 
 // /////////// GLOBAL OBJECTS /////////// //
@@ -135,7 +136,7 @@ self.addEventListener('fetch', async (event) => {
       // Append all the downloaded data
       try {
         await new Promise<void>((resolve, reject) => {
-          fetch(file.downloadUrl)
+          fetch(`${file.baseUrl || ''}${file.downloadUrl}`)
             .then((response) => response.body)
             .then(async (stream) => {
               if (!stream) {

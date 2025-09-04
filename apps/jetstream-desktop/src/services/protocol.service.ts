@@ -22,7 +22,7 @@ const desktopSocketRoutes = [
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'app',
-    privileges: { standard: true, secure: true, supportFetchAPI: true, allowServiceWorkers: true },
+    privileges: { standard: true, secure: true, supportFetchAPI: true, allowServiceWorkers: true, bypassCSP: true },
   },
 ]);
 
@@ -32,10 +32,22 @@ protocol.registerSchemesAsPrivileged([
 export function registerProtocols() {
   const allowedPaths = ['/assets/', '/client/', '/download-zip.sw.js'];
   protocol.handle('app', (req) => {
-    const { hostname, pathname } = new URL(req.url);
+    const { hostname, pathname, searchParams } = new URL(req.url);
+    // Fetch files
     if (hostname === 'jetstream' && (req.url === ENV.CLIENT_URL || allowedPaths.some((path) => pathname.startsWith(path)))) {
       const pathToServe = join(__dirname, pathname);
       return net.fetch(pathToFileURL(pathToServe).toString());
+      // Handle streaming file downloads
+    } else if (hostname === 'jetstream' && pathname === '/api/file/stream-download') {
+      const uniqueId = searchParams.get(HTTP.HEADERS.X_SFDC_ID);
+      const url = searchParams.get('url');
+      if (uniqueId && url) {
+        const result = initApiConnection(uniqueId);
+        if (result) {
+          const { jetstreamConn } = result;
+          return jetstreamConn!.org.streamDownload(url as string).then((results) => new Response(results));
+        }
+      }
     }
 
     return new Response('Bad Request', {
