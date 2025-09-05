@@ -34,29 +34,35 @@ if (argv.help) {
   process.exit(0);
 }
 
-const ROOT_PACKAGE_JSON_PATH = join(process.cwd(), 'package.json');
 const TARGET_DIR = join(process.cwd(), 'dist/desktop-build');
+const ROOT_PACKAGE_JSON_PATH = join(process.cwd(), 'package.json');
+const TARGET_PACKAGE_JSON_PATH = join(TARGET_DIR, 'package.json');
 const TARGET_CLIENT_DIR = join(TARGET_DIR, 'client');
 const MAIN_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop');
 const DOWNZIP_SW_BUILD_DIR = join(process.cwd(), 'dist/apps/download-zip-sw');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
 
-const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
-const allDependencies = { ...devDependencies, ...dependencies };
-
 // NX calculates these dependencies, but they are not used in the final build
-const yarnRemoveDeps = ['react', 'tslib', 'xlsx', 'stripe'].filter((dep) => {
-  const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
-  if (!matchingDependency) {
-    console.warn(`${dep} not found in root package.json, skipping removal`);
-  }
-  return matchingDependency;
-});
+const yarnRemoveDeps = () => {
+  const { devDependencies, dependencies } = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
+  const allDependencies = { ...devDependencies, ...dependencies };
+  console.log(allDependencies);
+  return ['react', 'tslib', 'xlsx', 'stripe'].filter((dep) => {
+    const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
+    if (!matchingDependency) {
+      console.warn(`${dep} not found in root package.json, skipping removal`);
+    }
+    return matchingDependency;
+  });
+};
 
 /**
  * Look at root package.json for version of all dependencies to install
+ * This enabled us to avoid having to keep the version numbers in sync manually
  */
-const yarnAddDevDeps = (() => {
+const yarnAddDevDeps = () => {
+  const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
+  const allDependencies = { ...devDependencies, ...dependencies };
   return [
     '@electron-forge/cli',
     '@electron-forge/maker-deb',
@@ -83,7 +89,7 @@ const yarnAddDevDeps = (() => {
     const [packageName, packageVersion] = matchingDependency;
     return `${packageName}@${packageVersion}`;
   });
-})();
+};
 
 async function build() {
   console.log(chalk.blue(`Building and Preparing output. Target directory:`), TARGET_DIR);
@@ -108,11 +114,11 @@ async function build() {
 
   // install dependencies
   // These MUST be dev dependencies for electron-forge to work properly and we cannot include them in the generated package.json since that only includes production dependencies
-  await $`yarn add -D ${yarnAddDevDeps}`;
+  await $`yarn add -D ${yarnAddDevDeps()}`;
 
   // Remove extra dependencies
   // Some dependencies are pulled in because we use their types, but we don't actually need them
-  await $`yarn remove ${yarnRemoveDeps}`;
+  await $`yarn remove ${yarnRemoveDeps()}`;
   await remove(join(TARGET_DIR, 'node_modules/.prisma'));
 
   const envContent = [
