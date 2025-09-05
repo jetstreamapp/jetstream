@@ -25,7 +25,6 @@ SOFTWARE.
 https://github.com/robbederks/downzip
 (NOTE: this was heavily modified)
 
-NOTE: After modifying this, we need to build and copy the results to apps/jetstream-desktop-client/public/download-zip.sw.js
  */
 import { logger } from './app/Logger';
 import Zip from './app/Zip';
@@ -37,6 +36,7 @@ interface DownZipFile {
   name: string;
   downloadUrl: string;
   size: number;
+  baseUrl: string;
 }
 
 // /////////// GLOBAL OBJECTS /////////// //
@@ -53,6 +53,9 @@ const zipMap: Map<
 // COMMANDS
 const ACKNOWLEDGE = 'ACKNOWLEDGE';
 const ACTIVE_DOWNLOADS = 'ACTIVE_DOWNLOADS';
+
+const allowedBaseUrls = ['app://jetstream'];
+const allowedPathPrefixes = ['/api/file/stream-download'];
 
 //////// MESSAGE HANDLERS
 const initialize = (data: any, ports: readonly MessagePort[]) => {
@@ -135,8 +138,24 @@ self.addEventListener('fetch', async (event) => {
       // Append all the downloaded data
       try {
         await new Promise<void>((resolve, reject) => {
-          fetch(file.downloadUrl)
-            .then((response) => response.body)
+          const { baseUrl } = file;
+          if (baseUrl && !allowedBaseUrls.includes(baseUrl)) {
+            logger.error('[SW][ERROR]', `Base URL not allowed: ${baseUrl}`);
+            reject(new Error(`Base URL not allowed: ${baseUrl}`));
+            return;
+          }
+          if (!allowedPathPrefixes.some((prefix) => file.downloadUrl.startsWith(prefix))) {
+            logger.error('[SW][ERROR]', `Download URL path not allowed: ${file.downloadUrl}`);
+            reject(new Error(`Download URL path not allowed: ${file.downloadUrl}`));
+            return;
+          }
+          fetch(`${baseUrl || ''}${file.downloadUrl}`)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+              }
+              return response.body;
+            })
             .then(async (stream) => {
               if (!stream) {
                 return;
