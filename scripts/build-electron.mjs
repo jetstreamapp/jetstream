@@ -46,7 +46,7 @@ const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-clie
 const yarnRemoveDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(TARGET_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
-  console.log(allDependencies);
+
   return ['react', 'tslib', 'xlsx', 'stripe'].filter((dep) => {
     const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
     if (!matchingDependency) {
