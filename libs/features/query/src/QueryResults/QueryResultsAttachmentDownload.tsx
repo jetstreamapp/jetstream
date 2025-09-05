@@ -8,6 +8,7 @@ import {
   getOrgUrlParams,
   getZipDownloadUrl,
   isBrowserExtension,
+  isDesktop,
   useRollbar,
 } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj, REGEX, splitFilenameByExtension } from '@jetstream/shared/utils';
@@ -69,8 +70,10 @@ function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: Sale
 
     const [fileName, extension] = splitFilenameByExtension(recordName);
     recordName = `${fileName.replaceAll(REGEX.SAFE_FILENAME, '-')}${extension || ''}`;
+    const BASE_URL = isDesktop() ? 'app://jetstream' : window.location.origin;
 
     return {
+      baseUrl: BASE_URL,
       downloadUrl: `${ROOT_FILENAME}?${getOrgUrlParams(selectedOrg, { url: record[bodyField] })}`,
       name: recordName,
       size: record[sizeField],

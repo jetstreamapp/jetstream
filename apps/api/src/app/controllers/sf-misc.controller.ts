@@ -59,7 +59,7 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
   try {
     const { url } = query;
 
-    const results = await jetstreamConn.org.streamDownload(url as string);
+    const results = await jetstreamConn.org.streamDownload(url);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Readable.fromWeb(results as any).pipe(res);
   } catch (ex) {

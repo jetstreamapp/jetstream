@@ -32,6 +32,7 @@ export interface DownZipFile {
   name: string;
   downloadUrl: string;
   size: number;
+  baseUrl: string;
 }
 
 const browser = globalThis['browser'] || globalThis['chrome'];

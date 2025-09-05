@@ -1,7 +1,14 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
-import { GoogleApiClientConfig, filterLoadSobjects, parseFile, parseWorkbook } from '@jetstream/shared/ui-utils';
+import {
+  GoogleApiClientConfig,
+  filterLoadSobjects,
+  isBrowserExtension,
+  isDesktop,
+  parseFile,
+  parseWorkbook,
+} from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import {
@@ -93,6 +100,10 @@ export const LoadRecordsSelectObjectAndFile = ({
   const { trackEvent } = useAmplitude();
   const hasGoogleInputConfigured =
     hasGoogleDriveAccess && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
+
+  // Desktop and browser extension have unlimited, pro users have 1GB, free users have 10MB
+  const filesizeLimit = isDesktop() || isBrowserExtension() ? Infinity : hasGoogleDriveAccess ? 1000 : 10;
+
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
       const { data, headers, errors } = await parseFile(content, { onParsedMultipleWorkbooks, isPasteFromClipboard, extension });
@@ -222,7 +233,7 @@ export const LoadRecordsSelectObjectAndFile = ({
                     filename={inputZipFilename}
                     accept={[INPUT_ACCEPT_FILETYPES.ZIP]}
                     userHelpText="Choose a zip file with attachments to upload"
-                    maxAllowedSizeMB={100}
+                    maxAllowedSizeMB={filesizeLimit}
                     onReadFile={(fileData) => handleZip(fileData as InputReadFileContent<ArrayBuffer>)}
                   ></FileSelector>
                 </GridCol>
