@@ -17,6 +17,12 @@ export default defineConfig({
     fs: {
       allow: ['..'],
     },
+    proxy: {
+      '/download-zip.sw.js': {
+        target: 'app://jetstream',
+        secure: false,
+      },
+    },
   },
   base: '',
   build: {
