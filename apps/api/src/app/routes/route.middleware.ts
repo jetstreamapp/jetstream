@@ -1,5 +1,12 @@
 import { ENV, getExceptionLog, logger, telemetryAddUserToAttributes } from '@jetstream/api-config';
-import { AuthError, ExpiredVerificationToken, InvalidCaptcha, MissingEntitlement, checkUserAgentSimilarity } from '@jetstream/auth/server';
+import {
+  AuthError,
+  ExpiredVerificationToken,
+  InvalidCaptcha,
+  MissingEntitlement,
+  checkUserAgentSimilarity,
+  getApiAddressFromReq,
+} from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
@@ -13,7 +20,6 @@ import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
-import { getApiAddressFromReq } from '../utils/route.utils';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || req.get('rndr-id') || uuid();

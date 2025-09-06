@@ -278,7 +278,8 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               {!!errors.allowedProviders && <span className="slds-text-color_error">{errors.allowedProviders}</span>}
             </fieldset>
           </GridCol>
-          <GridCol size={12}>
+          {/* TODO: Not MVP */}
+          {/* <GridCol size={12}>
             <fieldset className="slds-form-element">
               <legend className="slds-form-element__legend slds-form-element__label">Domain Configuration</legend>
               <Checkbox
@@ -286,8 +287,18 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
                 checked={formData.data.autoAddToTeam}
                 disabled={isReadOnly}
                 label="Automatically add users to team based on email domain"
-                labelHelp="Enabling this will automatically add users to the team when they log in with a domain that matches the allowed domains."
-                helpText="This option streamlines provisioning. Enabling this will increase your seat count when new users sign up."
+                labelHelp={
+                  <>
+                    <p>
+                      Enabling this will automatically add users to the team when they log in with a domain that matches the allowed
+                      domains.
+                    </p>
+                    <p className="slds-m-top_x-small">
+                      New users will consume a license upon signing up and this may trigger an invoice to be generated.
+                    </p>
+                    <p className="slds-m-top_x-small">If you don't have any available licenses, the user will not be able to sign up.</p>
+                  </>
+                }
                 errorMessage={errors.autoAddToTeam}
                 errorMessageId="autoAddToTeam-error"
                 hasError={!!errors.autoAddToTeam}
@@ -302,7 +313,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
                 />
               )}
             </fieldset>
-          </GridCol>
+          </GridCol> */}
         </Grid>
       </form>
     </Card>

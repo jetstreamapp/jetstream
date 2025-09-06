@@ -1,3 +1,5 @@
+import { Request, Response } from '@jetstream/api-types';
+import * as authService from '@jetstream/auth/server';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
 import express from 'express';
 import Router from 'express-promise-router';
@@ -5,21 +7,19 @@ import { routeDefinition as teamController } from '../controllers/team.controlle
 import { checkTeamRole } from '../db/team.db';
 import { checkAuth } from './route.middleware';
 
+/**
+ * Route Prefix: /api/teams
+ */
+
 const routes: express.Router = Router();
 
 function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
-  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  return async (req: Request, res: Response, next: express.NextFunction) => {
     if (!req.session.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    if (!req.session.teamMembership) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
     if (!req.params.teamId) {
       return res.status(400).json({ error: 'Team ID is required' });
-    }
-    if (req.session.teamMembership.teamId !== req.params.teamId) {
-      return res.status(403).json({ error: 'Unauthorized' });
     }
     if (!TeamMemberRoleSchema.array().safeParse(roles).success) {
       return res.status(400).json({ error: 'Invalid request' });
@@ -28,6 +28,12 @@ function validateTeamRoleMiddlewareFn(roles: TeamMemberRole[]) {
     if (!hasValidRole) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
+
+    if (!req.session.user.teamMembership) {
+      // Team does not exist on session, refresh session (e.g. team membership was assigned after user logged in)
+      await authService.refreshSessionUser(req);
+    }
+
     next();
   };
 }

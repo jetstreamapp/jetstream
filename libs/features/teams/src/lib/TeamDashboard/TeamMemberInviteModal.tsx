@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { createInvitation } from '@jetstream/shared/data';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { Feature, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
 import { Input, Modal, Picklist, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
@@ -25,8 +26,8 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
     try {
       const invitations = await createInvitation(teamId, { email, features, role });
       onClose(invitations);
-    } catch {
-      setErrorMessage('There was an error sending the invitation, try again or contact support for assistance.');
+    } catch (ex) {
+      setErrorMessage(getErrorMessage(ex));
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,8 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
     >
       {!hasManualBilling && role !== 'BILLING' && (
         <ScopedNotification theme="info">
-          Billing for this user will start after the invitation is accepted. If a charge is required, an invoice will be generated.
+          Billing for this user will start after the invitation is accepted. If required, an invoice will be generated and collected upon
+          acceptance.
         </ScopedNotification>
       )}
       {!hasManualBilling && role === 'BILLING' && (

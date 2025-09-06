@@ -13,6 +13,7 @@ interface EnhancedBillingCardProps {
   comingSoonFeatures?: string[];
   isEnterprise?: boolean;
   disabled?: boolean;
+  disabledReason?: string;
   value?: StripePriceKey;
   checked?: boolean;
   onChange?: (value: StripePriceKey) => void;
@@ -124,7 +125,7 @@ const cardStyles = css`
     flex-shrink: 0;
   }
 
-  .enterprise-cta {
+  .bottom-section {
     padding: 24px;
     text-align: center;
     margin-top: auto;
@@ -143,6 +144,11 @@ const cardStyles = css`
         background: #0f2040;
       }
     }
+  }
+
+  .disabled-reason {
+    font-size: 12px;
+    opacity: 1;
   }
 
   .radio-input {
@@ -204,6 +210,7 @@ export const EnhancedBillingCard = ({
   comingSoonFeatures,
   isEnterprise = false,
   disabled = false,
+  disabledReason,
   value,
   checked = false,
   onChange,
@@ -212,7 +219,9 @@ export const EnhancedBillingCard = ({
   const id = useId();
 
   const handleCardClick = () => {
-    if (disabled || isEnterprise) return;
+    if (disabled || isEnterprise) {
+      return;
+    }
 
     if (value && onChange) {
       onChange(value);
@@ -225,7 +234,7 @@ export const EnhancedBillingCard = ({
         className={classNames('billing-card', {
           selected: checked,
           enterprise: isEnterprise,
-          disabled: disabled,
+          disabled,
         })}
         onClick={handleCardClick}
       >
@@ -283,8 +292,10 @@ export const EnhancedBillingCard = ({
           )}
         </div>
 
+        {disabled && disabledReason && <div className="bottom-section disabled-reason slds-text-color_error">{disabledReason}</div>}
+
         {isEnterprise && (
-          <div className="enterprise-cta">
+          <div className="bottom-section">
             <button
               type="button"
               className="enterprise-button"

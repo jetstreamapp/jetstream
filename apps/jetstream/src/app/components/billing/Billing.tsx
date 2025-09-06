@@ -3,7 +3,7 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { getSubscriptions, initCheckoutSession } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { JetstreamPricesByLookupKey, StripePriceKey, StripeUserFacingCustomer } from '@jetstream/types';
+import { JetstreamPricesByLookupKey, Maybe, StripePriceKey, StripeUserFacingCustomer } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   FeedbackLink,
@@ -22,7 +22,9 @@ import { useAtom } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
+  ACTIVE_SUBSCRIPTION_STATUSES,
   enterpriseFeatures,
+  PAST_DUE_SUBSCRIPTION_STATUSES,
   PRO_ANNUAL_KEY,
   PRO_MONTHLY_KEY,
   professionalFeatures,
@@ -30,11 +32,11 @@ import {
   TEAM_MONTHLY_KEY,
   teamFeatures,
   teamFeaturesComingSoon,
+  UNPAID_SUBSCRIPTION_STATUSES,
 } from './billing.constants';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
 import { BillingPeriodToggle } from './BillingPeriodToggle';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
-import { TeamNameModalPromise } from './TeamNameModal';
 
 const HEIGHT_BUFFER = 170;
 
@@ -46,18 +48,22 @@ export const Billing = () => {
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
   const [checkoutSessionLoading, setCheckoutSessionLoading] = useState(false);
-  const [checkoutSessionError, setCheckoutSessionError] = useState<string>();
+  const [checkoutSessionError, setCheckoutSessionError] = useState<Maybe<string>>();
   const [isAnnual, setIsAnnual] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<StripePriceKey>(PRO_MONTHLY_KEY);
+  const [selectedPlan, setSelectedPlan] = useState<StripePriceKey>(
+    userProfile.teamMembership?.team.id ? TEAM_MONTHLY_KEY : PRO_MONTHLY_KEY
+  );
   const [customerWithSubscriptions, setCustomerWithSubscriptions] = useState<StripeUserFacingCustomer | null>(null);
   const [pricesByLookupKey, setPricesByLookupKey] = useState<JetstreamPricesByLookupKey | null>(null);
   const [hasManualBilling, setHasManualBilling] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState({
+    hasActiveSubscriptions: false,
     hasCanceledSubscriptions: false,
     hasFutureDatedCancellation: false,
-    hasActiveSubscriptions: false,
+    hasPastDueSubscriptions: false,
+    hasUnPaidSubscriptions: false,
   });
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
@@ -74,10 +80,18 @@ export const Billing = () => {
         // this ensures that all entitlements are updated across the application to match what is on the server
         setUserProfile(userProfile);
       }
+      const hasActiveSubscriptions = customer?.subscriptions.some((item) => ACTIVE_SUBSCRIPTION_STATUSES.has(item.status)) ?? false;
       const hasCanceledSubscriptions = customer?.subscriptions.some((item) => item.cancelAt || item.endedAt) ?? false;
       const hasFutureDatedCancellation = customer?.subscriptions.some((item) => item.cancelAtPeriodEnd) ?? false;
-      const hasActiveSubscriptions = customer?.subscriptions.some((item) => item.status === 'ACTIVE') ?? false;
-      setSubscriptionStatus({ hasCanceledSubscriptions, hasFutureDatedCancellation, hasActiveSubscriptions });
+      const hasPastDueSubscriptions = customer?.subscriptions.some((item) => PAST_DUE_SUBSCRIPTION_STATUSES.has(item.status)) ?? false;
+      const hasUnPaidSubscriptions = customer?.subscriptions.some((item) => UNPAID_SUBSCRIPTION_STATUSES.has(item.status)) ?? false;
+      setSubscriptionStatus({
+        hasActiveSubscriptions,
+        hasCanceledSubscriptions,
+        hasFutureDatedCancellation,
+        hasPastDueSubscriptions,
+        hasUnPaidSubscriptions,
+      });
       setCustomerWithSubscriptions(customer);
       setPricesByLookupKey(pricesByLookupKey);
       setHasManualBilling(hasManualBilling);
@@ -112,24 +126,11 @@ export const Billing = () => {
     try {
       event.preventDefault();
       setCheckoutSessionLoading(true);
+      setCheckoutSessionError(null);
 
-      // TODO: is there a valid path where a user is already part of an existing team?
-
-      let teamName: string | undefined;
-
-      if (selectedPlan.startsWith('TEAM_')) {
-        // FIXME: make a specific modal for this use-case
-        const options = await TeamNameModalPromise({ email: userProfile.email });
-        teamName = options.teamName;
-        if (options.cancelled) {
-          return;
-        }
-      }
-
-      const { url } = await initCheckoutSession({ priceLookupKey: selectedPlan, teamName });
+      const { url } = await initCheckoutSession({ priceLookupKey: selectedPlan });
       // Redirect
       location.href = url;
-
       // Track analytics for enterprise contact
       trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan });
     } catch (ex) {
@@ -146,6 +147,8 @@ export const Billing = () => {
     // Open email or contact form
     window.open('mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry', '_blank');
   };
+
+  const disableProPlan = !!userProfile.teamMembership?.team.id;
 
   return (
     <Page testId="billing-page">
@@ -174,8 +177,20 @@ export const Billing = () => {
         {!loading && (
           <>
             {subscriptionStatus.hasFutureDatedCancellation && (
-              <ScopedNotification theme="info" className="slds-m-around_medium">
+              <ScopedNotification theme="info" className="slds-m-bottom_medium">
                 Your plan is scheduled to be canceled, visit the Billing Portal view more information or to resume service.
+              </ScopedNotification>
+            )}
+
+            {subscriptionStatus.hasPastDueSubscriptions && (
+              <ScopedNotification theme="warning" className="slds-m-bottom_medium">
+                Your account is past due, visit the Billing Portal to resolve your unpaid invoices or contact support for assistance.
+              </ScopedNotification>
+            )}
+
+            {subscriptionStatus.hasUnPaidSubscriptions && (
+              <ScopedNotification theme="info" className="slds-m-bottom_medium">
+                You have unpaid invoices, visit the Billing Portal to view your open invoices and make a payment.
               </ScopedNotification>
             )}
 
@@ -207,6 +222,12 @@ export const Billing = () => {
               )}
               <FeedbackLink label="Have a question or need help? Send us an email." type="EMAIL" omitInNewWindowIcon />
             </div>
+
+            {checkoutSessionError && (
+              <ScopedNotification theme="error" className="slds-m-bottom_medium">
+                {checkoutSessionError}
+              </ScopedNotification>
+            )}
 
             {(!customerWithSubscriptions || !subscriptionStatus.hasActiveSubscriptions) && (
               <div className="slds-text-align_center slds-p-vertical_medium">
@@ -243,6 +264,8 @@ export const Billing = () => {
                         features={professionalFeatures}
                         checked={selectedPlan === (isAnnual ? PRO_ANNUAL_KEY : PRO_MONTHLY_KEY)}
                         value={isAnnual ? PRO_ANNUAL_KEY : PRO_MONTHLY_KEY}
+                        disabled={disableProPlan}
+                        disabledReason="You are currently part of a team, contact support if you would like to downgrade to an individual plan."
                         onChange={setSelectedPlan}
                       />
                       <EnhancedBillingCard

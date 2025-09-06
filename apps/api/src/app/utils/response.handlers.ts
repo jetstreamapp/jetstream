@@ -1,4 +1,5 @@
 import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
+import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
 import { Prisma, SalesforceOrg } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
@@ -7,7 +8,6 @@ import { serialize } from 'cookie';
 import * as express from 'express';
 import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { Response } from '../types/types';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
 export async function healthCheck(req: express.Request, res: express.Response) {

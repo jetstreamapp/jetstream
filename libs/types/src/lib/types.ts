@@ -3,7 +3,7 @@ import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from './billing.
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
-import { TeamMemberRole, TeamMemberStatus } from './team.types';
+import { TeamBillingStatus, TeamMemberRole, TeamMemberStatus } from './team.types';
 
 export interface Announcement {
   id: string;
@@ -136,6 +136,7 @@ export interface UserProfileUi {
     team: {
       id: string;
       name: string;
+      billingStatus: TeamBillingStatus;
     };
   } | null;
 }

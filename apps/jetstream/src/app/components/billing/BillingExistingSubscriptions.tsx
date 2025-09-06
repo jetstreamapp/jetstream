@@ -4,6 +4,7 @@ import { useAmplitude } from '@jetstream/ui-core';
 import { useState } from 'react';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
 import {
+  ACTIVE_SUBSCRIPTION_STATUSES,
   enterpriseFeatures,
   PRO_ANNUAL_KEY,
   PRO_MONTHLY_KEY,
@@ -27,7 +28,8 @@ export const BillingExistingSubscriptions = ({
 }: BillingExistingSubscriptionsProps) => {
   const { trackEvent } = useAmplitude();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(() => {
-    const priceId = customerWithSubscriptions.subscriptions.find((sub) => sub.status === 'ACTIVE')?.items[0].priceId || null;
+    const priceId =
+      customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))?.items[0].priceId || null;
     if (priceId) {
       return Object.values(pricesByLookupKey || {}).find((price) => price.id === priceId)?.lookupKey || null;
     }

@@ -1,11 +1,12 @@
-import { getExceptionLog, logger } from '@jetstream/api-config';
+import { getExceptionLog } from '@jetstream/api-config';
+import { Request, Response } from '@jetstream/api-types';
+import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection } from '@jetstream/salesforce-api';
 import { Maybe } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
-import { Request, Response } from '../types/types';
 import { UserFacingError } from './error-handler';
 
 // FIXME: when these were used, createRoute did not properly infer types
@@ -76,7 +77,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         targetOrg: res.locals.targetOrg as NonNullable<Awaited<ReturnType<typeof findByUniqueId_UNSAFE>>>,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         user: req.externalAuth?.user || req.session.user!, // It is possible this is null, but middleware asserts it exists so this is easier to work with
-        teamMembership: req.session.teamMembership,
+        teamMembership: req.session.user?.teamMembership,
         requestId: res.locals.requestId,
         setCookie: (name: string, value: string, options: CookieOptions) => {
           res.locals.cookies = res.locals.cookies || {};
@@ -113,17 +114,4 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       }
     }
   };
-}
-
-export function getApiAddressFromReq(req: Request<unknown, unknown, unknown>) {
-  try {
-    const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
-    if (Array.isArray(ipAddress)) {
-      return ipAddress[ipAddress.length - 1];
-    }
-    return ipAddress;
-  } catch (ex) {
-    logger.error('Error fetching IP address', ex);
-    return `unknown-${new Date().getTime()}`;
-  }
 }

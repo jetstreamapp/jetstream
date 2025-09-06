@@ -1,4 +1,6 @@
+import { logger } from '@jetstream/api-config';
 import * as authDbService from '@jetstream/auth/server';
+import { UserProfileSession } from '@jetstream/auth/types';
 import { sendTeamInviteEmail } from '@jetstream/email';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
@@ -50,9 +52,14 @@ export async function updateTeamMember({
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<TeamUserFacing> {
-  const teamMember = await teamDbService.updateTeamMemberRole({ teamId, userId, data });
+  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberRole({ teamId, userId, data });
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
+
+  // side-effect is not awaited, it will never throw
+  if (isBillableAction) {
+    syncUserCountWithStripe(teamId);
+  }
 
   return team;
 }
@@ -68,13 +75,18 @@ export async function updateTeamMemberStatus({
   userId: string;
   status: typeof TEAM_MEMBER_STATUS_ACTIVE | typeof TEAM_MEMBER_STATUS_INACTIVE;
 }): Promise<TeamUserFacing> {
-  const teamMember = await teamDbService.updateTeamMemberStatus({ teamId, userId, status });
+  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberStatus({ teamId, userId, status });
 
   if (teamMember.status === TEAM_MEMBER_STATUS_INACTIVE) {
     authDbService.revokeAllUserSessions(userId);
   }
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
+
+  // side-effect is not awaited, it will never throw
+  if (isBillableAction) {
+    syncUserCountWithStripe(teamId);
+  }
 
   return team;
 }
@@ -133,11 +145,21 @@ export async function resendInvitation({
   return invitations;
 }
 
+export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }) {
+  const { isBillableAction } = await teamDbService.acceptTeamInvitation({ teamId, token, user });
+
+  // side-effect is not awaited, it will never throw
+  if (isBillableAction) {
+    syncUserCountWithStripe(teamId);
+  }
+}
+
 export async function syncUserCountWithStripe(teamId: string): ReturnType<typeof stripeService.updateSubscriptionItemQuantity> {
   try {
-    const team = await teamDbService.findById({ teamId });
+    const team = await teamDbService.findByIdWithBillingInfo_UNSAFE({ teamId });
 
     if (!team) {
+      logger.warn({ teamId }, 'Team not found when syncing user count with Stripe');
       return {
         success: false,
         didUpdate: false,
@@ -146,6 +168,7 @@ export async function syncUserCountWithStripe(teamId: string): ReturnType<typeof
     }
 
     if (!team.billingAccount) {
+      logger.warn({ teamId }, 'Team does not have a billing account when syncing user count with Stripe');
       return {
         success: false,
         didUpdate: false,
@@ -154,6 +177,7 @@ export async function syncUserCountWithStripe(teamId: string): ReturnType<typeof
     }
 
     if (team.billingAccount.manualBilling) {
+      logger.warn({ teamId }, 'Team is on manual billing and is not eligible for automatic quantity adjustment');
       return {
         success: false,
         didUpdate: false,
@@ -167,8 +191,11 @@ export async function syncUserCountWithStripe(teamId: string): ReturnType<typeof
 
     const results = await stripeService.updateSubscriptionItemQuantity(team.billingAccount.customerId, activeBillableMembers.length);
 
+    logger.info({ teamId, results }, 'Successfully synced user count with Stripe');
+
     return results;
   } catch (ex) {
+    logger.error({ teamId, error: getErrorMessage(ex) }, 'Error syncing user count with Stripe');
     return {
       success: false,
       didUpdate: false,

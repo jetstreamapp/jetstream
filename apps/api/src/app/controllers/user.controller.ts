@@ -489,11 +489,10 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     let billingResultsJson = '';
     let billingPortalLinkText = '';
 
-    if (req.session.teamMembership) {
-      throw new UserFacingError('You cannot delete your account while you are a member of a team.');
+    if (req.session.user?.teamMembership) {
+      throw new UserFacingError('You cannot delete your account while you are a member of a team. Contact support for assistance.');
     }
 
-    // FIXME: handle user on a team plan
     const userWithSubscriptions = await userDbService.findByIdWithSubscriptions(user.id);
     if (userWithSubscriptions.billingAccount?.customerId) {
       const results = await stripeService.cancelAllSubscriptions({ customerId: userWithSubscriptions.billingAccount.customerId });

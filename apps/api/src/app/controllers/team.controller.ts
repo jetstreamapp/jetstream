@@ -1,6 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import * as authDbService from '@jetstream/auth/server';
-import { AuthenticatedUserSchema } from '@jetstream/auth/types';
+import * as authService from '@jetstream/auth/server';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
   TEAM_MEMBER_STATUS_ACTIVE,
@@ -166,19 +165,15 @@ const verifyInvitation = createRoute(routeDefinition.verifyInvitation.validators
 const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators, async ({ user, body, params, clearCookie }, req, res) => {
   const { teamId, token } = params;
 
-  const cookieConfig = authDbService.getCookieConfig(ENV.USE_SECURE_COOKIES);
-  const teamMembership = await teamDbService.acceptTeamInvitation({ teamId, token, user });
+  await teamService.acceptTeamInvitation({ user, teamId, token });
+
+  const cookieConfig = authService.getCookieConfig(ENV.USE_SECURE_COOKIES);
   clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
 
   // ensure session is updated to include the teamMembership
-  if (teamMembership) {
-    req.session.teamMembership = AuthenticatedUserSchema.shape.teamMembership.parse(teamMembership);
-  }
+  await authService.refreshSessionUser(req);
 
   sendJson(res, { success: true, redirectUrl: ENV.JETSTREAM_CLIENT_URL });
-
-  // This happens in the background outside the user's request flow
-  teamService.syncUserCountWithStripe(teamId);
 });
 
 const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user }, req, res) => {
@@ -194,13 +189,13 @@ const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ p
 
 const getUserSessions = createRoute(routeDefinition.getUserSessions.validators, async ({ params }, req, res) => {
   const { teamId } = params;
-  const sessions = await authDbService.getTeamUserSessions(teamId);
+  const sessions = await authService.getTeamUserSessions(teamId);
   sendJson(res, sessions);
 });
 
 const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ params }, req, res) => {
   const { teamId } = params;
-  const authActivity = await authDbService.getTeamUserActivity(teamId);
+  const authActivity = await authService.getTeamUserActivity(teamId);
   sendJson(res, authActivity);
 });
 
@@ -216,18 +211,12 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
   // (e.g. cannot change their own role, possibly other restrictions)
   const team = await teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id });
   sendJson(res, team);
-
-  // This happens in the background outside the user's request flow
-  teamService.syncUserCountWithStripe(teamId);
 });
 
 const updateTeamMemberStatus = createRoute(routeDefinition.updateTeamMemberStatus.validators, async ({ params, body, user }, req, res) => {
   const { teamId, userId } = params;
   const team = await teamService.updateTeamMemberStatus({ teamId, userId, status: body.status, runningUserId: user.id });
   sendJson(res, team);
-
-  // This happens in the background outside the user's request flow
-  teamService.syncUserCountWithStripe(teamId);
 });
 
 const getInvitations = createRoute(routeDefinition.getInvitations.validators, async ({ params }, req, res) => {

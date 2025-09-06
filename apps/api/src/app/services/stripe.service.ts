@@ -1,5 +1,5 @@
 import { ENV, logger } from '@jetstream/api-config';
-import { Team, UserProfile } from '@jetstream/auth/types';
+import { UserProfile } from '@jetstream/auth/types';
 import { sendWelcomeToProEmail } from '@jetstream/email';
 import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
 import {
@@ -58,6 +58,10 @@ export async function handleStripeWebhook({ signature, payload }: { signature?: 
     switch (event.type) {
       case 'entitlements.active_entitlement_summary.updated': {
         await updateEntitlementsFromWebhook(event.data.object);
+        break;
+      }
+      case 'checkout.session.completed': {
+        await saveSubscriptionFromCompletedSession({ sessionId: event.data.object.id });
         break;
       }
       case 'customer.subscription.created':
@@ -224,20 +228,22 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
   return customerWithSubscriptions;
 }
 
-export async function createCustomer(user: UserProfile) {
-  return await stripe.customers.create({
+export async function createCustomer(user: Pick<UserProfile, 'id' | 'name' | 'email'>, type: 'TEAM' | 'USER') {
+  const customer = await stripe.customers.create({
     email: user.email,
     name: user.name,
-    metadata: { userId: user.id, teamId: null, type: 'USER' },
+    metadata: { userId: user.id, teamId: null, type },
   });
-}
-
-export async function createTeamCustomer(user: UserProfile, team: Team) {
-  return await stripe.customers.create({
-    email: user.email,
-    name: team.name,
-    metadata: { userId: user.id, teamId: team.id, type: 'TEAM' },
-  });
+  if (type === 'TEAM') {
+    await stripe.customers.createFundingInstructions(customer.id, {
+      currency: 'usd',
+      funding_type: 'bank_transfer',
+      bank_transfer: {
+        type: 'us_bank_transfer',
+      },
+    });
+  }
+  return customer;
 }
 
 export async function updateEntitlementsFromWebhook(eventData: Stripe.Entitlements.ActiveEntitlementSummary) {
@@ -276,6 +282,10 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
 
 /**
  * This handles USER and TEAM subscriptions
+ *
+ * Upsert team
+ * Upsert billing account
+ * Synchronize subscription state
  */
 export async function saveSubscriptionFromCompletedSession({ sessionId }: { sessionId: string }) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -283,14 +293,38 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   if (!session.customer) {
     throw new Error('Invalid checkout session - a customer is required to be associated with the session');
   }
+  const customerOrId = session.customer;
+  const customerId = isString(customerOrId) ? customerOrId : customerOrId.id;
+
+  const metadata = (session.metadata || {}) as { userId?: string; teamId?: string; type?: 'USER' | 'TEAM' };
+  const userId = session.client_reference_id as string;
+  let teamId = metadata.teamId || null;
+  let type = metadata.type || 'USER';
+
+  if (type === 'TEAM') {
+    // upsert team (in case webhook is being processed at about the same time - this function needs to be idempotent)
+    const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customerId });
+    teamId = team.id;
+  } else {
+    // Ensure billing account exists
+    await userDbService.upsertBillingAccount({ userId, customerId });
+  }
+
+  // ensure stripe has proper metadata
+  await stripe.customers.update(customerId, { metadata: { userId, teamId, type } });
 
   // Update customer subscriptions - will also be updated via webhook
-  const customerOrId = session.customer;
-  const customer = await fetchCustomerWithSubscriptionsById({ customerId: isString(customerOrId) ? customerOrId : customerOrId.id });
+  const customer = await fetchCustomerWithSubscriptionsById({ customerId });
   await saveOrUpdateSubscription({ customer, sendWelcomeEmail: true });
 
   // Update customer entitlements - will also be updated via webhook
   await fetchAndUpdateEntitlements(customer.id);
+
+  return {
+    userId,
+    teamId,
+    type,
+  };
 }
 
 /**
@@ -380,8 +414,8 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
   try {
     let didUpdate = false;
     const team = await teamDbService.findById({ teamId });
-    const entitlements = await teamDbService.fetchEntitlements({ teamId });
-    const teamSubscriptions = await teamDbService.fetchSubscriptions({ teamId });
+    const entitlements = await teamDbService.findEntitlements({ teamId });
+    const teamSubscriptions = await teamDbService.findSubscriptions({ teamId });
 
     // TODO: would we ever need to go in the opposite direction and delete things in Jetstream?
     const billingAccountCustomerId = team?.billingAccount?.customerId;
@@ -438,6 +472,8 @@ export async function synchronizeStripeWithJetstreamTeamIfRequired({
 
 /**
  * Synchronize subscription state from Stripe to Jetstream
+ *
+ * If customer metadata is not correct, then this may be a NOOP
  */
 export async function saveOrUpdateSubscription({
   customer,
@@ -473,11 +509,13 @@ export async function saveOrUpdateSubscription({
     await stripe.customers.update(customer.id, { metadata: { userId } });
   } else if (userId && type === 'USER') {
     // For new subscriptions, create a billing account if it does not exist
-    await userDbService.createBillingAccountIfNotExists({ userId, customerId: customer.id });
+    await userDbService.upsertBillingAccount({ userId, customerId: customer.id });
   } else if (teamId && type === 'TEAM') {
     // For new subscriptions, create a billing account if it does not exist
     await teamDbService.createBillingAccountIfNotExists({ teamId, customerId: customer.id });
   } else {
+    // This could happen depending on the order of webhook events for subscription creation vs checkout session completion
+    // it should self heal since we call this code path in both cases
     logger.error({ customerId: customer.id, userId, teamId, type }, 'Unable to save subscriptions - userId or teamId is required');
     return;
   }
@@ -566,50 +604,28 @@ export async function createCheckoutSession({
   priceId,
   user,
   type,
-  team,
+  teamId,
 }: {
-  user: UserProfile;
+  user: Pick<UserProfile, 'id' | 'name' | 'email'>;
   priceId: string;
   mode: Stripe.Checkout.SessionCreateParams.Mode;
   customerId?: string;
-} & (
-  | {
-      team?: never;
-      type: 'USER';
-    }
-  | {
-      team: Team;
-      type: 'TEAM';
-    }
-)) {
+  type: 'TEAM' | 'USER';
+  teamId?: string;
+}) {
   const urlParams = new URLSearchParams({ sessionId: 'CHECKOUT_SESSION_ID', type, priceId, userId: user.id, mode });
+
+  // Create customer if one does not exist
   if (!customerId) {
-    if (type === 'USER') {
-      const customer = await createCustomer(user);
-      customerId = customer.id;
-    } else if (type === 'TEAM') {
-      if (!team) {
-        throw new Error('Team is required for team checkout session');
-      }
-      urlParams.set('teamId', team.id);
-      const customer = await createTeamCustomer(user, team);
-      customerId = customer.id;
-    } else {
-      throw new Error('Invalid type for checkout session, must be USER or TEAM');
-    }
+    const customer = await createCustomer(user, type);
+    customerId = customer.id;
   }
 
   urlParams.set('customerId', customerId);
-
-  if (type === 'USER') {
-    await userDbService.createBillingAccountIfNotExists({ userId: user.id, customerId });
-  } else if (type === 'TEAM' && team) {
-    teamDbService.createBillingAccountIfNotExists({ teamId: team.id, customerId });
-  } else {
-    throw new Error('Invalid type for checkout session, must be USER or TEAM');
+  if (teamId) {
+    urlParams.set('teamId', teamId);
   }
 
-  // ensure { & } are not encoded
   const serializedUrlParams = urlParams.toString().replace('CHECKOUT_SESSION_ID', '{CHECKOUT_SESSION_ID}');
   const successUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/complete?${serializedUrlParams}`;
   const cancelUrl = `${ENV.JETSTREAM_SERVER_URL}/api/billing/checkout-session/cancel?${serializedUrlParams}`;
@@ -630,18 +646,26 @@ export async function createCheckoutSession({
     currency: 'usd',
     customer: customerId,
     customer_email: customerId ? undefined : user.email,
-    billing_address_collection: 'auto',
+    billing_address_collection: type === 'TEAM' ? 'required' : 'auto',
+    tax_id_collection: { enabled: type === 'TEAM' },
+    consent_collection: {
+      terms_of_service: 'required',
+    },
     customer_update: {
+      name: 'auto',
+      shipping: 'auto',
       address: 'auto',
     },
     payment_method_data: {
       allow_redisplay: 'always',
     },
-    metadata: { userId: user.id },
+    metadata: { userId: user.id, teamId: teamId || null, type },
   });
 
   return session;
 }
+
+const cachedPortalSessions = new Map<'USER' | 'TEAM' | 'MANUAL', Stripe.BillingPortal.Configuration>();
 
 /**
  * CREATE BILLING PORTAL SESSION
@@ -655,12 +679,18 @@ export async function createBillingPortalSession({
   portalType: 'USER' | 'TEAM' | 'MANUAL';
   returnUrl?: string;
 }) {
-  let portalId = ENV.STRIPE_BILLING_PORTAL_LINK;
-  if (portalType === 'TEAM') {
-    portalId = ENV.STRIPE_TEAM_BILLING_PORTAL_ID;
-  } else if (portalType === 'MANUAL') {
-    portalId = ENV.STRIPE_MANUAL_BILLING_PORTAL_ID;
+  if (cachedPortalSessions.size === 0) {
+    logger.info('Loading billing portal configurations from Stripe');
+    await stripe.billingPortal.configurations.list({ active: true }).then((res) => {
+      res.data.forEach((configuration) => {
+        if (configuration.metadata?.type) {
+          cachedPortalSessions.set(configuration.metadata.type as 'USER' | 'TEAM' | 'MANUAL', configuration);
+        }
+      });
+    });
   }
+
+  const portalId = cachedPortalSessions.get(portalType)?.id;
 
   if (!portalId) {
     throw new Error(`Billing portal not found for type ${portalType}`);

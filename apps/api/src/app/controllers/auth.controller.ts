@@ -14,6 +14,7 @@ import {
   generatePasswordResetToken,
   generateRandomCode,
   generateRandomString,
+  getApiAddressFromReq,
   getAuthorizationUrl,
   getCookieConfig,
   getLoginConfiguration,
@@ -21,12 +22,12 @@ import {
   handleSignInOrRegistration,
   hasRememberDeviceRecord,
   IdentityLinkingNotAllowed,
+  initSession,
   InvalidAction,
   InvalidParameters,
   InvalidProvider,
   InvalidSession,
   InvalidVerificationToken,
-  InvalidVerificationType,
   isProviderAllowed,
   linkIdentityToUser,
   getProviders as listProviders,
@@ -49,11 +50,10 @@ import {
 } from '@jetstream/email';
 import { ensureBoolean } from '@jetstream/shared/utils';
 import { parse as parseCookie } from 'cookie';
-import { addHours, addMinutes } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { z } from 'zod';
-import { Request } from '../types/types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
-import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 
 export const routeDefinition = {
   logout: {
@@ -190,62 +190,6 @@ export const routeDefinition = {
   },
 };
 
-function initSession(
-  req: Request<unknown, unknown, unknown>,
-  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Regenerate session to avoid session fixation attacks
-    req.session.regenerate((error) => {
-      if (error) {
-        logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
-        reject(new AuthError('Error initializing session'));
-        return;
-      }
-      const userAgent = req.get('User-Agent');
-      if (userAgent) {
-        req.session.userAgent = userAgent;
-      }
-      req.session.ipAddress = getApiAddressFromReq(req);
-      req.session.loginTime = new Date().getTime();
-      req.session.provider = provider;
-      req.session.user = user as UserProfileSession;
-      req.session.pendingMfaEnrollment = undefined;
-      req.session.pendingVerification = undefined;
-      req.session.teamMembership = user.teamMembership;
-
-      if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
-        req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
-      }
-
-      if (verificationRequired) {
-        const token = generateRandomCode(6);
-        if (isNewUser) {
-          req.session.sendNewUserEmailAfterVerify = true;
-        }
-        if (verificationRequired.email) {
-          const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
-          // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
-          req.session.pendingVerification = [{ type: 'email', exp, token }];
-        } else if (verificationRequired.twoFactor?.length > 0) {
-          const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
-          req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
-            switch (factor.type) {
-              case '2fa-otp':
-                return { type: '2fa-otp', exp };
-              case '2fa-email':
-                return { type: '2fa-email', exp, token };
-              default:
-                throw new InvalidVerificationType('Invalid two factor type');
-            }
-          });
-        }
-      }
-      resolve();
-    });
-  });
-}
-
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -324,8 +268,8 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
           throw new InvalidSession('Cannot link account without an active session');
         }
 
-        const loginConfiguration = req.session.teamMembership
-          ? await getLoginConfiguration({ teamId: req.session.teamMembership.teamId })
+        const loginConfiguration = req.session.user?.teamMembership
+          ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
           : await getLoginConfiguration({ email: req.session.user.email });
         if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
           throw new IdentityLinkingNotAllowed();
@@ -434,8 +378,8 @@ const callback = createRoute(
          * link and redirect to profile page
          */
         if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
-          const providerAllowed = req.session.teamMembership
-            ? await isProviderAllowed({ teamId: req.session.teamMembership.teamId, provider: provider.provider })
+          const providerAllowed = req.session.user?.teamMembership
+            ? await isProviderAllowed({ teamId: req.session.user.teamMembership.teamId, provider: provider.provider })
             : await isProviderAllowed({ email: userInfo.email, provider: provider.provider });
 
           if (!providerAllowed) {

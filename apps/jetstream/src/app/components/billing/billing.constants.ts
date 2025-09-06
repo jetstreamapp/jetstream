@@ -1,3 +1,15 @@
+import { StripeUserFacingSubscription } from '@jetstream/types';
+
+export const ACTIVE_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>([
+  'ACTIVE',
+  'PAST_DUE',
+  'TRIALING',
+  'PAUSED',
+  'UNPAID',
+]);
+export const PAST_DUE_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>(['PAST_DUE']);
+export const UNPAID_SUBSCRIPTION_STATUSES = new Set<StripeUserFacingSubscription['status']>(['UNPAID']);
+
 export const PRO_MONTHLY_KEY = 'PRO_MONTHLY';
 export const PRO_ANNUAL_KEY = 'PRO_ANNUAL';
 export const TEAM_MONTHLY_KEY = 'TEAM_MONTHLY';

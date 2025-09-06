@@ -12,16 +12,17 @@ import {
   setItemInSessionStorage,
 } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
-import type {
-  Announcement,
-  ApplicationCookie,
-  JetstreamOrganization,
-  JetstreamOrganizationWithOrgs,
-  Maybe,
-  SalesforceOrgUi,
-  SalesforceOrgUiType,
-  UserProfilePreferences,
-  UserProfileUi,
+import {
+  TeamBillingStatusSchema,
+  type Announcement,
+  type ApplicationCookie,
+  type JetstreamOrganization,
+  type JetstreamOrganizationWithOrgs,
+  type Maybe,
+  type SalesforceOrgUi,
+  type SalesforceOrgUiType,
+  type UserProfilePreferences,
+  type UserProfileUi,
 } from '@jetstream/types';
 import { atom, useAtom, useSetAtom } from 'jotai';
 import { unwrap } from 'jotai/utils';
@@ -206,7 +207,7 @@ export const abilityState = atom((get) => {
 
 export const hasPaidPlanState = atom((get) => {
   const userProfile = get(userProfileSyncState);
-  return userProfile.teamMembership?.status === 'ACTIVE' || (userProfile.subscriptions?.length || 0) > 0;
+  return userProfile.teamMembership?.team?.billingStatus !== TeamBillingStatusSchema.Enum.PAST_DUE;
 });
 
 export const googleDriveAccessState = atom((get) => {

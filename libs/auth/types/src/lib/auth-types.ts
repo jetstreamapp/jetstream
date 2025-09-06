@@ -16,9 +16,7 @@ export interface UserProfile {
   emailVerified: boolean;
 }
 
-export interface UserProfileSession extends UserProfile {
-  authFactors?: UserProfileAuthFactor[];
-}
+export type UserProfileSession = AuthenticatedUser;
 
 export interface UserProfileUiWithIdentities extends UserProfile {
   name: string;
@@ -36,7 +34,7 @@ export interface UserProfileUiWithIdentities extends UserProfile {
   } | null;
   identities: UserProfileIdentity[];
   authFactors: UserProfileAuthFactor[];
-  teamMembership?: UserProfileTeamMemberships;
+  teamMembership?: Maybe<UserProfileTeamMemberships>;
 }
 
 export interface UserProfileIdentity {
@@ -164,7 +162,6 @@ export interface SessionData {
   // TODO: lastActivity: number;
   ipAddress: string;
   userAgent: string;
-  teamMembership?: Maybe<AuthenticatedUser['teamMembership']>;
   sendNewUserEmailAfterVerify?: boolean;
   orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; jetstreamOrganizationId?: Maybe<string> };
 }
@@ -273,9 +270,6 @@ type ReturnUrlCookie = 'returnUrl';
 type StateCookie = 'state';
 type WebauthnChallengeCookie = 'webauthnChallenge';
 
-// App related cookies
-type CheckoutSessionCookie = 'checkoutSession';
-
 type AuthCookieConfigKey =
   | CallbackUrlCookie
   | CsrfTokenCookie
@@ -288,12 +282,9 @@ type AuthCookieConfigKey =
   | StateCookie
   | WebauthnChallengeCookie;
 
-type AppCookieConfigKey = CheckoutSessionCookie;
-
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
 
-export type CookieConfig = Record<AuthCookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }> &
-  Record<AppCookieConfigKey, { name: `jetstream.${string}`; options: CookieOptions }>;
+export type CookieConfig = Record<AuthCookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }>;
 
 export type ResponseLocalsCookies = Record<
   string,

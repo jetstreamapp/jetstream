@@ -4,10 +4,13 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
+  TEAM_MEMBER_STATUS_ACTIVE,
+  TeamBillingStatusSchema,
   TeamGlobalAction,
   TeamLoginConfig,
   TeamLoginConfigRequest,
   TeamLoginConfigSchema,
+  TeamMemberRoleSchema,
   TeamTableAction,
   TeamUserFacing,
 } from '@jetstream/types';
@@ -15,7 +18,6 @@ import {
   AutoFullHeightContainer,
   ConfirmationModalPromise,
   fireToast,
-  Icon,
   Page,
   PageHeader,
   PageHeaderActions,
@@ -26,7 +28,8 @@ import {
 } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { TeamMembersTable } from './team-members/TeamMembersTable';
 import { TeamLoginConfiguration } from './TeamLoginConfiguration';
 import { TeamMemberAuthActivityModal } from './TeamMemberAuthActivityModal';
@@ -54,6 +57,17 @@ export function TeamDashboard() {
   const [teamMemberUpdateState, setTeamMemberUpdateState] = useState<TeamMemberEditModalState>({ open: false });
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
+
+  const availableLicenses = useMemo(() => {
+    const licenseCountLimit = team?.billingAccount?.licenseCountLimit ?? Infinity;
+    const billableUserCount = team?.members.filter(
+      ({ status, role }) => status === TEAM_MEMBER_STATUS_ACTIVE && role !== TeamMemberRoleSchema.Enum.BILLING
+    ).length;
+    const billableInviteCount = team?.invitations.filter(({ role }) => role !== TeamMemberRoleSchema.Enum.BILLING).length;
+    const billableUserCountWithInvites = (billableUserCount || 0) + (billableInviteCount || 0);
+    const availableLicenses = licenseCountLimit - billableUserCountWithInvites;
+    return availableLicenses;
+  }, [team]);
 
   const fetchTeam = useCallback(async () => {
     try {
@@ -239,12 +253,9 @@ export function TeamDashboard() {
               docsPath={APP_ROUTES.TEAM_DASHBOARD.DOCS}
             />
             <PageHeaderActions colType="actions" buttonType="separate">
-              <form method="POST" action="/api/billing/portal" target="_blank">
-                <button className="slds-button slds-button_brand">
-                  Billing Portal
-                  <Icon type="utility" icon="new_window" className="slds-button__icon slds-m-left_x-small" omitContainer />
-                </button>
-              </form>
+              <Link to="/settings/billing" className="slds-button slds-button_neutral">
+                Go to Billing
+              </Link>
             </PageHeaderActions>
           </PageHeaderRow>
         </PageHeader>
@@ -256,7 +267,25 @@ export function TeamDashboard() {
             </ScopedNotification>
           )}
 
-          {team && <TeamName team={team} onSave={(updatedTeam) => setTeam(updatedTeam)} />}
+          {team && (
+            <>
+              {team.billingStatus === TeamBillingStatusSchema.Enum.PAST_DUE && (
+                <ScopedNotification theme="warning" className="slds-m-bottom_medium">
+                  You do not have any active subscriptions and may have a past-due invoice, your team will be cancelled if service is not
+                  resumed.
+                  <br />
+                  Go to the billing page to resume service or contact support for assistance.
+                </ScopedNotification>
+              )}
+              {!availableLicenses && (
+                <ScopedNotification theme="light">
+                  You have used all of your available licenses. To add additional users, deactivate existing users or contact support to
+                  purchase more licenses.
+                </ScopedNotification>
+              )}
+              <TeamName team={team} onSave={(updatedTeam) => setTeam(updatedTeam)} />
+            </>
+          )}
 
           <div className="slds-m-bottom_medium">
             {loginConfiguration && (
@@ -271,6 +300,9 @@ export function TeamDashboard() {
           <div className="slds-m-bottom_medium">
             {team && (
               <TeamMembersTable
+                billingStatus={team.billingStatus}
+                availableLicenses={availableLicenses}
+                hasManualBilling={!hasManualBilling}
                 teamMembers={team.members}
                 invitations={team.invitations}
                 userProfile={userProfile}

@@ -29,11 +29,19 @@ export const TEAM_MEMBER_ROLE_ADMIN = 'ADMIN';
 export const TEAM_MEMBER_ROLE_BILLING = 'BILLING';
 export const TEAM_MEMBER_ROLE_MEMBER = 'MEMBER';
 export const TeamMemberRoleSchema = z.enum([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TEAM_MEMBER_ROLE_MEMBER]);
+export const BILLABLE_ROLES = new Set([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_MEMBER]);
 
 export const TEAM_STATUS_ACTIVE = 'ACTIVE';
-export const TEAM_STATUS_PENDING = 'PENDING';
 export const TEAM_STATUS_INACTIVE = 'INACTIVE';
-export const TeamStatusSchema = z.enum([TEAM_STATUS_ACTIVE, TEAM_STATUS_PENDING, TEAM_STATUS_INACTIVE]);
+export const TeamStatusSchema = z.enum([TEAM_STATUS_ACTIVE, TEAM_STATUS_INACTIVE]);
+
+// has active subscriptions and none are past due
+export const TEAM_BILLING_STATUS_ACTIVE = 'ACTIVE';
+// has no active subscriptions or any are past due
+export const TEAM_BILLING_STATUS_PAST_DUE = 'PAST_DUE';
+// manual billing is enabled (subscription state is ignored)
+export const TEAM_BILLING_STATUS_MANUAL = 'MANUAL';
+export const TeamBillingStatusSchema = z.enum([TEAM_BILLING_STATUS_ACTIVE, TEAM_BILLING_STATUS_PAST_DUE, TEAM_BILLING_STATUS_MANUAL]);
 
 export const TEAM_MEMBER_STATUS_ACTIVE = 'ACTIVE';
 export const TEAM_MEMBER_STATUS_INACTIVE = 'INACTIVE';
@@ -134,6 +142,8 @@ export const TeamInviteUserFacingSchema = z.object({
 export const TeamUserFacingSchema = z.object({
   id: z.string(),
   name: z.string().max(255).min(1),
+  status: TeamStatusSchema,
+  billingStatus: TeamBillingStatusSchema,
   loginConfigId: z.string().nullable(),
   sharedOrgs: TeamOrgSchema.array(),
   members: TeamMemberSchema.array(),
@@ -143,9 +153,9 @@ export const TeamUserFacingSchema = z.object({
     .object({
       customerId: z.string(),
       manualBilling: z.boolean(),
+      licenseCountLimit: z.number().min(0).nullable().default(null),
     })
     .nullable(),
-  status: TeamStatusSchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 });
@@ -173,6 +183,7 @@ export type Feature = z.infer<typeof FeatureSchema>;
 export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;
 export type TeamMemberStatus = z.infer<typeof TeamMemberStatusSchema>;
+export type TeamBillingStatus = z.infer<typeof TeamBillingStatusSchema>;
 
 export type TeamUser = z.infer<typeof TeamUserSchema>;
 export type TeamOrg = z.infer<typeof TeamOrgSchema>;

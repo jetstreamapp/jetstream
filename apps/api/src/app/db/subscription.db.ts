@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
-import { EntitlementsAccess, EntitlementsAccessSchema } from '@jetstream/types';
+import { EntitlementsAccess, EntitlementsAccessSchema, TeamBillingStatus } from '@jetstream/types';
 import Stripe from 'stripe';
 
 const SELECT = Prisma.validator<Prisma.SubscriptionSelect>()({
@@ -121,6 +121,25 @@ export const updateTeamSubscriptionStateForCustomer = async ({
 }) => {
   const priceIds = subscriptions.flatMap((subscription) => subscription.items.data.map((item) => item.price.id));
 
+  /**
+   * Calculate team billing status and update it
+   * ACTIVE = has active subscriptions and none are past_due
+   * PAST_DUE = has no active subscriptions or any are past_due
+   * MANUAL = manual billing is enabled (subscription state is ignored)
+   */
+  const hasSubscriptions = subscriptions.length > 0;
+  const isPastDue = subscriptions.some(({ status }) => status === 'past_due');
+  const team = await prisma.team.findFirstOrThrow({
+    where: { id: teamId },
+    select: { id: true, billingAccount: { select: { manualBilling: true } } },
+  });
+  let teamBillingStatus: TeamBillingStatus = 'ACTIVE';
+  if (team.billingAccount?.manualBilling) {
+    teamBillingStatus = 'MANUAL';
+  } else if (!hasSubscriptions || isPastDue) {
+    teamBillingStatus = 'PAST_DUE';
+  }
+
   await prisma.$transaction([
     // Delete all subscriptions that are no longer active in Stripe
     prisma.teamSubscription.deleteMany({
@@ -142,12 +161,22 @@ export const updateTeamSubscriptionStateForCustomer = async ({
         })
       )
     ),
+    prisma.team.update({
+      data: { billingStatus: teamBillingStatus },
+      where: { id: teamId },
+    }),
   ]);
 };
 
 export const cancelAllSubscriptionsForUser = async ({ customerId }: { customerId: string }) => {
-  await prisma.subscription.updateMany({
-    where: { customerId },
-    data: { status: 'CANCELED' },
-  });
+  await prisma.$transaction([
+    prisma.subscription.updateMany({
+      where: { customerId },
+      data: { status: 'CANCELED' },
+    }),
+    prisma.teamSubscription.updateMany({
+      where: { customerId },
+      data: { status: 'CANCELED' },
+    }),
+  ]);
 };

@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/api-config';
+import { Request } from '@jetstream/api-types';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
 import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcryptjs';
@@ -112,16 +113,6 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         maxAge: TIME_15_MIN,
       },
     },
-    checkoutSession: {
-      name: `jetstream.checkout-session`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: useSecureCookies,
-        maxAge: TIME_1_HOUR,
-      },
-    },
   } as const;
 }
 
@@ -225,3 +216,16 @@ export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSes
     authFactors: [],
   };
 };
+
+export function getApiAddressFromReq(req: Request<unknown, unknown, unknown>) {
+  try {
+    const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    if (Array.isArray(ipAddress)) {
+      return ipAddress[ipAddress.length - 1];
+    }
+    return ipAddress;
+  } catch (ex) {
+    logger.error('Error fetching IP address', ex);
+    return `unknown-${new Date().getTime()}`;
+  }
+}

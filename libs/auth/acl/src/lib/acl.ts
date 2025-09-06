@@ -1,14 +1,22 @@
 import { AbilityBuilder, createMongoAbility, type CreateAbility, type MongoAbility } from '@casl/ability';
-import { type UserProfileUi } from '@jetstream/types';
+import { TeamBillingStatusSchema, TeamUserFacing, type UserProfileUi } from '@jetstream/types';
 
 type Actions = 'read' | 'update';
 // TODO: granular app access
-type Subjects = 'Billing' | 'CoreFunctionality' | 'Profile' | 'Settings' | 'Team' | 'TeamUserSessions' | 'TeamAuthActivity' | 'TeamMember';
+type Subjects = 'Billing' | 'CoreFunctionality' | 'Profile' | 'Settings';
 
 type EntitlementActions = 'access';
 type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync';
 
-export type AppAbility = MongoAbility<[Actions, Subjects] | [EntitlementActions, EntitlementSubjects]>;
+type TeamActions = 'read' | 'update';
+type TeamSubjects = 'Team' | 'TeamUserSessions' | 'TeamAuthActivity' | 'TeamMember';
+
+type TeamMemberActions = 'invite';
+type TeamMemberSubjects = 'TeamMember' | { type: 'TeamMember'; billingStatus: TeamUserFacing['billingStatus']; availableLicenses: number };
+
+export type AppAbility = MongoAbility<
+  [Actions, Subjects] | [EntitlementActions, EntitlementSubjects] | [TeamActions, TeamSubjects] | [TeamMemberActions, TeamMemberSubjects]
+>;
 
 const createAppAbility = createMongoAbility as CreateAbility<AppAbility>;
 
@@ -55,14 +63,10 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
     }
 
     if (activeTeamMembership && isTeamsBillingOrAdmin) {
-      can('read', ['Team', 'TeamAuthActivity', 'TeamUserSessions']);
-      can('update', 'Team');
-      can('update', ['Team', 'TeamAuthActivity', 'TeamUserSessions']);
-    }
-
-    if (activeTeamMembership && isTeamsBillingOrAdmin) {
-      can('read', 'TeamMember');
-      can('update', 'TeamMember');
+      can(['read', 'update'], ['Team', 'TeamAuthActivity', 'TeamUserSessions', 'TeamMember']);
+      can('invite', 'TeamMember');
+      cannot('invite', 'TeamMember', { billingStatus: TeamBillingStatusSchema.Enum.PAST_DUE });
+      cannot('invite', 'TeamMember', { availableLicenses: { $lte: 0 } });
     }
   }
 
@@ -92,5 +96,12 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
  * @param options
  */
 export function getUserAbility(options: GetAbilityOptions) {
-  return createAppAbility(getAbilityRules(options));
+  return createAppAbility(getAbilityRules(options), {
+    detectSubjectType: (item) => {
+      if (typeof item === 'object' && 'type' in item) {
+        return item.type;
+      }
+      return item as any;
+    },
+  });
 }

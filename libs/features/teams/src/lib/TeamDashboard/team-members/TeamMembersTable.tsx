@@ -1,12 +1,18 @@
 import { css } from '@emotion/react';
+import { formatNumber } from '@jetstream/shared/ui-utils';
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { TeamGlobalAction, TeamTableAction, TeamUserFacing, UserProfileUi } from '@jetstream/types';
 import { ButtonGroupContainer, Card } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
+import { ReactNode } from 'react';
 import { TeamInviteTable } from './TeamInviteTable';
 import { TeamMemberRow } from './TeamMemberRow';
 
 export interface TeamMembersTableProps {
+  billingStatus: TeamUserFacing['billingStatus'];
+  availableLicenses: number;
+  hasManualBilling: boolean;
   teamMembers: TeamUserFacing['members'];
   invitations: TeamUserFacing['invitations'];
   userProfile: UserProfileUi;
@@ -14,21 +20,41 @@ export interface TeamMembersTableProps {
   onUserAction: (payload: TeamTableAction) => Promise<unknown>;
 }
 
-export function TeamMembersTable({ teamMembers, invitations, userProfile, onGlobalAction, onUserAction }: TeamMembersTableProps) {
+export function TeamMembersTable({
+  billingStatus,
+  teamMembers,
+  availableLicenses,
+  hasManualBilling,
+  invitations,
+  userProfile,
+  onGlobalAction,
+  onUserAction,
+}: TeamMembersTableProps) {
   const ability = useAtomValue(abilityState);
 
   const canUpdate = ability.can('update', 'TeamMember');
+  const canInvite = ability.can('invite', { type: 'TeamMember', billingStatus, availableLicenses });
 
   if (ability.cannot('read', 'TeamMember')) {
     return null;
   }
 
+  let licenseMessage: ReactNode = null;
+
+  if (isFinite(availableLicenses)) {
+    if (hasManualBilling) {
+      licenseMessage = `You have ${formatNumber(availableLicenses)} ${pluralizeFromNumber('license', availableLicenses)} remaining.`;
+    } else if (availableLicenses > 0) {
+      licenseMessage = `You can add up to ${formatNumber(availableLicenses)} additional ${pluralizeFromNumber('user', availableLicenses)}.`;
+    }
+  }
+
   return (
     <Card
       title="Team Members"
-      bodyClassName=""
       className="slds-m-bottom_medium slds-card_boundary"
       icon={{ type: 'standard', icon: 'people' }}
+      footer={licenseMessage}
       actions={
         <ButtonGroupContainer>
           {ability.can('read', 'TeamAuthActivity') && (
@@ -41,7 +67,7 @@ export function TeamMembersTable({ teamMembers, invitations, userProfile, onGlob
               View User Sessions
             </button>
           )}
-          {canUpdate && (
+          {canInvite && (
             <button className="slds-button slds-button_brand" onClick={() => onGlobalAction('team-member-invite')}>
               Add Team Member
             </button>

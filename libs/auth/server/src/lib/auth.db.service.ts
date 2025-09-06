@@ -51,7 +51,8 @@ const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfigurati
   ttl: 1000 * 60,
 });
 
-const userSelect = Prisma.validator<Prisma.UserSelect>()({
+// Mirrors AuthenticatedUserSchema
+const AuthenticatedUserSelect = Prisma.validator<Prisma.UserSelect>()({
   id: true,
   userId: true,
   name: true,
@@ -105,7 +106,7 @@ export async function pruneExpiredRecords() {
 async function findUserByProviderId(provider: OauthProviderType, providerAccountId: string) {
   return await prisma.user
     .findFirst({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       where: {
         identities: { some: { provider, providerAccountId } },
       },
@@ -122,7 +123,7 @@ async function findUsersByEmail(email: string) {
   email = email.toLowerCase();
   return prisma.user
     .findMany({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       where: { email },
     })
     .then((user) => AuthenticatedUserSchema.array().parse(user));
@@ -134,7 +135,7 @@ async function findUsersByEmail(email: string) {
 export async function findUserById_UNSAFE(id: string) {
   return await prisma.user
     .findFirstOrThrow({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       where: { id },
     })
     .then((user) => AuthenticatedUserSchema.parse(user));
@@ -225,7 +226,7 @@ export async function getLoginConfiguration(
 export async function setUserEmailVerified(id: string) {
   return prisma.user
     .update({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       data: { emailVerified: true },
       where: { id },
     })
@@ -753,7 +754,7 @@ export async function setPasswordForUser(id: string, password: string) {
 
   return prisma.user
     .update({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
       where: { id },
     })
@@ -853,7 +854,7 @@ export const removePasswordFromUser = async (id: string) => {
 
   return prisma.user
     .update({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       data: { password: null, passwordUpdatedAt: new Date() },
       where: { id },
     })
@@ -891,7 +892,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
       error: null,
       user: await prisma.user
         .findFirstOrThrow({
-          select: userSelect,
+          select: AuthenticatedUserSelect,
           where: { id: UNSAFE_userWithPassword.id },
         })
         .then((user) => AuthenticatedUserSchema.parse(user)),
@@ -918,7 +919,7 @@ async function addIdentityToUser(userId: string, providerUser: ProviderUser, pro
   });
   return prisma.user
     .findFirstOrThrow({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       where: { id: userId },
     })
     .then((user) => AuthenticatedUserSchema.parse(user));
@@ -951,7 +952,7 @@ export async function removeIdentityFromUser(userId: string, provider: OauthProv
 
   return prisma.user
     .findFirstOrThrow({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       where: { id: userId },
     })
     .then((user) => AuthenticatedUserSchema.parse(user));
@@ -965,7 +966,7 @@ async function createUserFromProvider(
   const email = providerUser.email?.toLowerCase();
   const user = await prisma.user
     .create({
-      select: userSelect,
+      select: AuthenticatedUserSelect,
       data: {
         email,
         // TODO: do we really get any benefit from storing this userId like this?
@@ -1120,7 +1121,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
     // Create initial user
     const user = await tx.user
       .create({
-        select: userSelect,
+        select: AuthenticatedUserSelect,
         data: {
           email,
           userId: `jetstream|${email}`, // this is temporary, we will update this after the user is created
@@ -1157,7 +1158,7 @@ async function createUserFromUserInfo(email: string, name: string, password: str
       .update({
         data: { userId: `jetstream|${user.id}` },
         where: { id: user.id },
-        select: userSelect,
+        select: AuthenticatedUserSelect,
       })
       .then((user) => AuthenticatedUserSchema.parse(user));
   });
@@ -1449,7 +1450,7 @@ export async function linkIdentityToUser({
   try {
     // Check for existing user
     const existingUser = await prisma.user
-      .findFirstOrThrow({ select: userSelect, where: { id: userId } })
+      .findFirstOrThrow({ select: AuthenticatedUserSelect, where: { id: userId } })
       .then((user) => AuthenticatedUserSchema.parse(user));
     const existingProviderUser = await findUserByProviderId(provider, providerUser.id);
     if (existingProviderUser && existingProviderUser.id !== userId) {

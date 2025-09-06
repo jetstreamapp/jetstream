@@ -62,6 +62,7 @@ describe('acl', () => {
           team: {
             id: '1',
             name: 'Test Team',
+            billingStatus: 'ACTIVE',
           },
         },
       };
@@ -114,6 +115,7 @@ describe('acl', () => {
             team: {
               id: '1',
               name: 'Test Team',
+              billingStatus: 'ACTIVE',
             },
           },
         };
@@ -134,6 +136,7 @@ describe('acl', () => {
             team: {
               id: '1',
               name: 'Test Team',
+              billingStatus: 'ACTIVE',
             },
           },
         };
@@ -154,6 +157,7 @@ describe('acl', () => {
             team: {
               id: '1',
               name: 'Test Team',
+              billingStatus: 'ACTIVE',
             },
           },
         };
@@ -161,6 +165,36 @@ describe('acl', () => {
         const ability = getUserAbility({ user });
         expect(ability.can('read', 'Team')).toBe(false);
         expect(ability.can('update', 'Team')).toBe(false);
+      });
+
+      it('should grant invite team member to admin users', () => {
+        const user: UserProfileUi = {
+          ...baseUser,
+          teamMembership: {
+            role: 'ADMIN',
+            status: 'ACTIVE',
+            team: {
+              id: '1',
+              name: 'Test Team',
+              billingStatus: 'ACTIVE',
+            },
+          },
+        };
+
+        const ability = getUserAbility({ user });
+        expect(ability.can('invite', 'TeamMember')).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: Infinity })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: Infinity })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: 100 })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: 1 })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: 100 })).toBe(true);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: 1 })).toBe(true);
+
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'PAST_DUE', availableLicenses: Infinity })).toBe(false);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: 0 })).toBe(false);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'MANUAL', availableLicenses: -1 })).toBe(false);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: -1 })).toBe(false);
+        expect(ability.can('invite', { type: 'TeamMember', billingStatus: 'ACTIVE', availableLicenses: 0 })).toBe(false);
       });
     });
 

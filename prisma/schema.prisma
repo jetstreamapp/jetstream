@@ -10,38 +10,39 @@ datasource db {
 }
 
 model User {
-  id                   String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   // TODO: we should deprecate this field - is there a purpose of having two user ids?
   // Might be nice to rename this to something like "legacyId" for reference
-  userId               String                  @unique @db.VarChar
+  userId            String    @unique @db.VarChar
   // TODO: we want to make this unique
-  email                String                  @db.VarChar
-  emailVerified        Boolean                 @default(false)
-  password             String?                 @db.VarChar
-  passwordUpdatedAt    DateTime?
-  name                 String                  @db.VarChar
-  nickname             String?                 @db.VarChar
-  picture              String?                 @db.VarChar
-  appMetadata          Json?                   @db.Json
-  lastLoggedIn         DateTime?
-  createdAt            DateTime                @default(now()) @db.Timestamp(6)
-  updatedAt            DateTime                @updatedAt
-  hasPasswordSet       Boolean                 @default(dbgenerated())
-  preferences          UserPreference?
-  salesforceOrgs       SalesforceOrg[]
-  organizations        JetstreamOrganization[]
-  identities           AuthIdentity[]
+  email             String    @db.VarChar
+  emailVerified     Boolean   @default(false)
+  password          String?   @db.VarChar
+  passwordUpdatedAt DateTime?
+  name              String    @db.VarChar
+  nickname          String?   @db.VarChar
+  picture           String?   @db.VarChar
+  appMetadata       Json?     @db.Json
+  lastLoggedIn      DateTime?
+  createdAt         DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime  @updatedAt
+  hasPasswordSet    Boolean   @default(dbgenerated())
+
   authFactors          AuthFactors[]
+  billingAccount       BillingAccount?
+  entitlements         Entitlement?
+  identities           AuthIdentity[]
   loginActivity        LoginActivity[]
-  rememberedDevices    RememberedDevice[]
+  organizations        JetstreamOrganization[]
   passwordResetTokens  PasswordResetToken[]
+  preferences          UserPreference?
+  rememberedDevices    RememberedDevice[]
+  salesforceOrgs       SalesforceOrg[]
   subscriptions        Subscription[]
   syncData             UserSyncData[]
-  webExtensionTokens   WebExtensionToken[]
-  entitlements         Entitlement?
-  billingAccount       BillingAccount?
-  teamMembership       TeamMember?
   teamMemberInvitation TeamMemberInvitation[]
+  teamMembership       TeamMember?
+  webExtensionTokens   WebExtensionToken[]
   // AuditLog            AuditLog[]
 }
 
@@ -64,7 +65,8 @@ model Team {
   name          String             @db.VarChar(255)
   loginConfigId String             @unique @db.Uuid
   loginConfig   LoginConfiguration @relation(fields: [loginConfigId], references: [id], onDelete: Cascade)
-  status        String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'PENDING' | 'INACTIVE'
+  status        String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
+  billingStatus String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'PAST_DUE' | 'MANUAL'
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
@@ -355,11 +357,12 @@ model Subscription {
 }
 
 model TeamBillingAccount {
-  teamId        String   @unique @db.Uuid
-  customerId    String   @unique
-  manualBilling Boolean  @default(false)
-  createdAt     DateTime @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime @updatedAt
+  teamId            String   @unique @db.Uuid
+  customerId        String   @unique
+  manualBilling     Boolean  @default(false)
+  licenseCountLimit Int?
+  createdAt         DateTime @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime @updatedAt
 
   team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
   subscriptions TeamSubscription[]
