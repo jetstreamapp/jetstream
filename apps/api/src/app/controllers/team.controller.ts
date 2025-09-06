@@ -207,8 +207,13 @@ const updateLoginConfiguration = createRoute(routeDefinition.updateLoginConfigur
 
 const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators, async ({ params, body, user }, req, res) => {
   const { teamId, userId } = params;
-  // TODO: validate that user has permissions to take this action
-  // (e.g. cannot change their own role, possibly other restrictions)
+
+  const existingRole = user.teamMembership?.role;
+
+  // TODO: we may want to allow a user to change their own role in some cases (E.g. ADMIN->BILLING when there are multiple admins)
+  if (body.role && body.role !== existingRole && user.id === userId) {
+    throw new Error('You cannot change your own role');
+  }
   const team = await teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id });
   sendJson(res, team);
 });

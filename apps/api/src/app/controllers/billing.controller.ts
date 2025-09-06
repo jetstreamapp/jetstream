@@ -97,15 +97,20 @@ const createCheckoutSessionHandler = createRoute(
 
     const user = await userDbService.findByIdWithSubscriptions(sessionUser.id);
     const team = await teamDbService.findByUserIdWithSubscriptions({ userId: sessionUser.id });
+    const teamMember = team?.members.find(({ userId }) => userId === sessionUser.id);
 
     const type = priceLookupKey.startsWith('TEAM_') ? 'TEAM' : 'USER';
     let session: Stripe.Response<Stripe.Checkout.Session> | null = null;
 
     if (type === 'TEAM') {
+      if (team && teamMember?.role !== 'ADMIN' && teamMember?.role !== 'BILLING') {
+        throw new UserFacingError(`You do not have permission to create a billing session for this team`);
+      }
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
-        customerId: user?.billingAccount?.customerId,
+        // Customer will be created if it doesn't exist
+        customerId: user.billingAccount?.customerId,
         user,
         type: 'TEAM',
         teamId: team?.id,
@@ -114,6 +119,7 @@ const createCheckoutSessionHandler = createRoute(
       session = await stripeService.createCheckoutSession({
         mode: 'subscription',
         priceId,
+        // Customer will be created if it doesn't exist
         customerId: user.billingAccount?.customerId,
         user,
         type: 'USER',

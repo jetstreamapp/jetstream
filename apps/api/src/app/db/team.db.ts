@@ -249,6 +249,7 @@ export const findByUserIdWithSubscriptions = async ({ userId }: { userId: string
       id: true,
       status: true,
       name: true,
+      billingStatus: true,
       billingAccount: {
         select: { customerId: true, manualBilling: true },
       },
@@ -262,6 +263,10 @@ export const findByUserIdWithSubscriptions = async ({ userId }: { userId: string
           priceId: true,
           status: true,
         },
+      },
+      members: {
+        select: { role: true, status: true, userId: true },
+        where: { userId },
       },
     },
     where: {
