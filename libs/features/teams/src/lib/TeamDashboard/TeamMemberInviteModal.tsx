@@ -86,9 +86,9 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
           label="Role"
           className="slds-button_last"
           items={[
-            { id: 'MEMBER', value: 'ADMIN', label: 'Member' },
-            { id: 'BILLING', value: 'ADMIN', label: 'Billing' },
             { id: 'ADMIN', value: 'ADMIN', label: 'Admin' },
+            { id: 'BILLING', value: 'ADMIN', label: 'Billing' },
+            { id: 'MEMBER', value: 'ADMIN', label: 'Member' },
           ]}
           selectedItemIds={[role]}
           onChange={(role) => setRole(role[0].id as TeamMemberRole)}
