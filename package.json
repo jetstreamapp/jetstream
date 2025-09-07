@@ -6,7 +6,7 @@
     "url": "https://github.com/jetstreamapp/jetstream"
   },
   "author": "Jetstream Solutions, LLC",
-  "version": "7.6.2",
+  "version": "7.6.3",
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "node": ">=22 <23",
