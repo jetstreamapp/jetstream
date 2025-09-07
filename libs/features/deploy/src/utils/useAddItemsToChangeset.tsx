@@ -83,7 +83,7 @@ export function useAddItemsToChangeset(
     changesetDescription: string;
     deployOptions?: Maybe<DeployOptions>;
     selectedMetadata: Record<string, ListMetadataResult[]>;
-  }
+  },
 ) {
   const isMounted = useRef(true);
 

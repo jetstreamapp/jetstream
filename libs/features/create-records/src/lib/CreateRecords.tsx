@@ -166,7 +166,7 @@ export const CreateRecords = () => {
             label: item.name,
             secondaryLabel: item.developerName,
             secondaryLabelOnNewLine: true,
-          }))
+          })),
         );
       }
 

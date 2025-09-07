@@ -20,7 +20,7 @@ export class AsyncIntervalTimer {
 
   constructor(
     private callback: () => Promise<void>,
-    private options: TimerOptions
+    private options: TimerOptions,
   ) {
     this.options.runOnInit = !!this.options.runOnInit;
     if (this.options.runOnInit) {

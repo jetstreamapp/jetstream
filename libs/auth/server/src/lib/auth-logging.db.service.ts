@@ -65,7 +65,7 @@ interface LoginActivity {
 export async function createUserActivityFromReq(
   req: Request<unknown, unknown, unknown, unknown>,
   res: Response<unknown>,
-  data: LoginActivity
+  data: LoginActivity,
 ) {
   try {
     const ipAddress =
@@ -76,7 +76,7 @@ export async function createUserActivityFromReq(
     const requestId = data.requestId || res.locals?.['requestId'];
 
     createUserActivity({ ...data, userId, email, ipAddress, userAgent, requestId }).catch((ex) =>
-      logger.error('Error creating login activity', ex)
+      logger.error('Error creating login activity', ex),
     );
   } catch (ex) {
     logger.error('Error creating login activity', ex);
@@ -87,7 +87,7 @@ export async function createUserActivityFromReqWithError(
   req: Request<unknown, unknown, unknown, unknown>,
   res: Response<unknown>,
   ex: unknown,
-  data: LoginActivity
+  data: LoginActivity,
 ) {
   try {
     data.success = false;

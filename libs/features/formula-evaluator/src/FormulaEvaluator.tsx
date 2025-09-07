@@ -164,7 +164,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         setLoading(false);
       }
     },
-    [testFormulaDisabled, trackEvent, recordId, selectedOrg, selectedSObject?.name, numberNullBehavior]
+    [testFormulaDisabled, trackEvent, recordId, selectedOrg, selectedSObject?.name, numberNullBehavior],
   );
 
   const onKeydown = useCallback(
@@ -176,7 +176,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
         handleTestFormula(formulaValue);
       }
     },
-    [formulaValue, handleTestFormula, testFormulaDisabled]
+    [formulaValue, handleTestFormula, testFormulaDisabled],
   );
 
   useGlobalEventHandler('keydown', onKeydown);
@@ -246,7 +246,7 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
           trailingComma: 'none',
           useTabs: false,
           tabWidth: 2,
-        })
+        }),
       );
     } catch (ex) {
       logger.warn('failed to format', ex);

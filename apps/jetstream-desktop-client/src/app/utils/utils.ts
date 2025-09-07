@@ -6,7 +6,7 @@ export const addDesktopOrg: AddOrgHandlerFn = async (
     addLoginTrue,
     jetstreamOrganizationId,
   }: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
-  callback: (org: SalesforceOrgUi) => void
+  callback: (org: SalesforceOrgUi) => void,
 ) => {
   if (!window.electronAPI) {
     return;

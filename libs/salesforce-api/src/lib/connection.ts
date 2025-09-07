@@ -56,7 +56,7 @@ export class ApiConnection {
       logger = console,
     }: ApiConnectionOptions,
     refreshCallback?: (accessToken: string, refreshToken: string) => void,
-    onConnectionError?: (error: string) => void
+    onConnectionError?: (error: string) => void,
   ) {
     this.logger = logger;
     this.apiRequest = apiRequestAdapter(this.handleRefresh.bind(this), this.handleConnectionError.bind(this), logging, logger);

@@ -129,7 +129,7 @@ export const QueryResults = React.memo(() => {
   const bulkDeleteJob = useObservable(
     fromJetstreamEvents
       .getObservable('jobFinished')
-      .pipe(filter((ev) => isAsyncJob(ev) && (ev.type === 'BulkDelete' || ev.type === 'BulkUndelete')))
+      .pipe(filter((ev) => isAsyncJob(ev) && (ev.type === 'BulkDelete' || ev.type === 'BulkUndelete'))),
   );
   const { notifyUser } = useBrowserNotifications(serverUrl);
   const { confirm } = useConfirmation();
@@ -151,7 +151,7 @@ export const QueryResults = React.memo(() => {
 
   // if record modal closed and same object was specified, re-load the page
   const reloadRecordEvents = useObservable(
-    recordActionModalClosedObservable$.pipe(filter(({ objectName, reloadRecords }) => !!reloadRecords && objectName === sobject))
+    recordActionModalClosedObservable$.pipe(filter(({ objectName, reloadRecords }) => !!reloadRecords && objectName === sobject)),
   );
 
   useNonInitialEffect(() => {
@@ -190,7 +190,7 @@ export const QueryResults = React.memo(() => {
         setSoqlPanelOpen(!soqlPanelOpen);
       }
     },
-    [soqlPanelOpen]
+    [soqlPanelOpen],
   );
 
   useGlobalEventHandler('keydown', onKeydown);
@@ -287,7 +287,7 @@ export const QueryResults = React.memo(() => {
     options: {
       forceRestore?: boolean;
       isTooling?: boolean;
-    } = { forceRestore: false, isTooling: false }
+    } = { forceRestore: false, isTooling: false },
   ) {
     const forceRestore = options.forceRestore ?? false;
     const tooling = options.isTooling ?? false;
@@ -365,11 +365,11 @@ export const QueryResults = React.memo(() => {
     if (results.parsedQuery?.sObject && FILE_DOWNLOAD_FIELD_MAP.has(results.parsedQuery.sObject.toLowerCase())) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const { bodyField, nameField, extensionField, titleField, sizeField } = FILE_DOWNLOAD_FIELD_MAP.get(
-        results.parsedQuery.sObject.toLowerCase()
+        results.parsedQuery.sObject.toLowerCase(),
       )!;
       const missingFields: string[] = [];
       const fields = new Set(
-        results.parsedQuery.fields?.map((field) => field.type === 'Field' && field.field.toLowerCase()).filter(Boolean) || []
+        results.parsedQuery.fields?.map((field) => field.type === 'Field' && field.field.toLowerCase()).filter(Boolean) || [],
       );
       if (!fields.has(bodyField.toLowerCase())) {
         missingFields.push(bodyField);
@@ -454,8 +454,8 @@ export const QueryResults = React.memo(() => {
     const results = (
       await Promise.all(
         splitArrayToMaxSize(modifiedRecords, 200).map((records) =>
-          sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false })
-        )
+          sobjectOperation(selectedOrg, type, 'update', { records }, { allOrNone: false }),
+        ),
       )
     ).flat();
     trackEvent(ANALYTICS_KEYS.query_UpdateRecordsInline, { recordCount: modifiedRecords.length });

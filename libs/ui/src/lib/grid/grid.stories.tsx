@@ -24,7 +24,7 @@ export const grid = () => (
         'x-large': 'x-large',
         'xx-large': 'xx-large',
       },
-      undefined
+      undefined,
     )}
     pullPadded={boolean('pullPadded', false)}
     pullPaddedSize={select(
@@ -39,7 +39,7 @@ export const grid = () => (
         'x-large': 'x-large',
         'xx-large': 'xx-large',
       },
-      undefined
+      undefined,
     )}
     align={select(
       'align',
@@ -49,7 +49,7 @@ export const grid = () => (
         spread: 'spread',
         end: 'end',
       },
-      undefined
+      undefined,
     )}
     verticalAlign={select(
       'verticalAlign',
@@ -58,7 +58,7 @@ export const grid = () => (
         center: 'center',
         end: 'end',
       },
-      undefined
+      undefined,
     )}
     vertical={boolean('vertical', false)}
     verticalStretch={boolean('verticalStretch', false)}
@@ -83,7 +83,7 @@ export const grid = () => (
           bottom: 'bottom',
           left: 'left',
         },
-        undefined
+        undefined,
       )}
       size={number('size', undefined)}
       maxSize={number('maxSize', undefined)}
@@ -106,7 +106,7 @@ export const grid = () => (
           bottom: 'bottom',
           left: 'left',
         },
-        undefined
+        undefined,
       )}
       size={number('size', undefined)}
       maxSize={number('maxSize', undefined)}
@@ -129,7 +129,7 @@ export const grid = () => (
           bottom: 'bottom',
           left: 'left',
         },
-        undefined
+        undefined,
       )}
       size={number('size - col 3', undefined)}
       maxSize={number('maxSize - col 3', undefined)}
@@ -155,7 +155,7 @@ export const gridSizes = () => (
         'x-large': 'x-large',
         'xx-large': 'xx-large',
       },
-      undefined
+      undefined,
     )}
     pullPadded={boolean('pullPadded', false)}
     pullPaddedSize={select(
@@ -170,7 +170,7 @@ export const gridSizes = () => (
         'x-large': 'x-large',
         'xx-large': 'xx-large',
       },
-      undefined
+      undefined,
     )}
     align={select(
       'align',
@@ -180,7 +180,7 @@ export const gridSizes = () => (
         spread: 'spread',
         end: 'end',
       },
-      undefined
+      undefined,
     )}
     verticalAlign={select(
       'verticalAlign',
@@ -189,7 +189,7 @@ export const gridSizes = () => (
         center: 'center',
         end: 'end',
       },
-      undefined
+      undefined,
     )}
     vertical={boolean('vertical', false)}
     verticalStretch={boolean('verticalStretch', false)}

@@ -69,7 +69,7 @@ export const panel = () => (
         xl: 'xl',
         full: 'full',
       },
-      'lg'
+      'lg',
     )}
     fullHeight={boolean('fullHeight', true)}
     position={select(
@@ -78,7 +78,7 @@ export const panel = () => (
         left: 'left',
         right: 'right',
       },
-      'left'
+      'left',
     )}
     onClosed={action('onClosed')}
   >
@@ -103,7 +103,7 @@ export const page = () => (
               separate: 'separate',
               listGroup: 'list-group',
             },
-            'list-group'
+            'list-group',
           )}
         >
           <button className="slds-button slds-button_neutral">Button</button>

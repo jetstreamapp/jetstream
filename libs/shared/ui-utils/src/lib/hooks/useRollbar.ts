@@ -169,7 +169,7 @@ export function useRollbar(options?: RollbarProperties, optOut?: boolean): Rollb
 export function logErrorToRollbar(
   message: string,
   data?: any,
-  severity: 'log' | 'debug' | 'info' | 'warn' | 'error' | 'critical' = 'error'
+  severity: 'log' | 'debug' | 'info' | 'warn' | 'error' | 'critical' = 'error',
 ) {
   try {
     if (RollbarConfig.getInstance().rollbarIsConfigured) {

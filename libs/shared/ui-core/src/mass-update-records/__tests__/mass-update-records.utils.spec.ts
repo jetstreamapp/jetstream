@@ -25,7 +25,7 @@ describe('mass-update-records.utils#isValidRow', () => {
             transformationOptions: { whereClause: `Id IN ('1', '2')` },
           },
         ],
-      } as any)
+      } as any),
     ).toBe(true);
   });
 
@@ -47,7 +47,7 @@ describe('mass-update-records.utils#isValidRow', () => {
             transformationOptions: { whereClause: '' },
           },
         ],
-      } as any)
+      } as any),
     ).toBe(false);
   });
 
@@ -66,7 +66,7 @@ describe('mass-update-records.utils#isValidRow', () => {
             transformationOptions: { option: 'anotherField', alternateField: '' },
           },
         ],
-      } as any)
+      } as any),
     ).toBe(false);
     expect(
       isValidRow({
@@ -76,7 +76,7 @@ describe('mass-update-records.utils#isValidRow', () => {
             transformationOptions: { option: 'staticValue', staticValue: '' },
           },
         ],
-      } as any)
+      } as any),
     ).toBe(false);
     expect(
       isValidRow({
@@ -86,7 +86,7 @@ describe('mass-update-records.utils#isValidRow', () => {
             transformationOptions: { whereClause: '' },
           },
         ],
-      } as any)
+      } as any),
     ).toBe(false);
     expect(
       isValidRow({
@@ -96,7 +96,7 @@ describe('mass-update-records.utils#isValidRow', () => {
             transformationOptions: { whereClause: 'Invalid Where Clause!' },
           },
         ],
-      } as any)
+      } as any),
     ).toBe(false);
   });
 });
@@ -198,7 +198,7 @@ describe('mass-update-records.utils#composeSoqlQueryOptionalCustomWhereClause', 
           },
         ],
       } as any,
-      ['Id', 'FirstName', 'LastName', 'Type', 'Fax']
+      ['Id', 'FirstName', 'LastName', 'Type', 'Fax'],
     );
 
     expect(soql).toBe(`SELECT Id, FirstName, LastName, Type, Fax FROM Contact`);
@@ -264,7 +264,7 @@ describe('mass-update-records.utils#composeSoqlQueryOptionalCustomWhereClause', 
           },
         ],
       } as any,
-      ['Id', 'Fax']
+      ['Id', 'Fax'],
     );
 
     expect(soql).toBe(null);
@@ -319,7 +319,7 @@ describe('mass-update-records.utils#composeSoqlQueryCustomWhereClause', () => {
           },
         ],
       } as any,
-      ['Id', 'FirstName', 'LastName', 'Type', 'Fax']
+      ['Id', 'FirstName', 'LastName', 'Type', 'Fax'],
     );
 
     expect(soql).toBe(`SELECT Id, FirstName, LastName, Type, Fax FROM Contact WHERE (Id = '12345')`);
@@ -362,7 +362,7 @@ describe('mass-update-records.utils#composeSoqlQueryCustomWhereClause', () => {
           },
         ],
       } as any,
-      ['Id', 'FirstName', 'LastName', 'Type', 'Fax']
+      ['Id', 'FirstName', 'LastName', 'Type', 'Fax'],
     );
 
     expect(soql).toBe(null);
@@ -392,7 +392,7 @@ describe('mass-update-records.utils#prepareRecords', () => {
           selectedField: 'Fax',
           transformationOptions: { criteria: 'all', option: 'staticValue', staticValue: '867-5309', alternateField: null, whereClause: '' },
         },
-      ]
+      ],
     );
 
     expect(record1.Name).toBe('Jenny Jenny');
@@ -423,7 +423,7 @@ describe('mass-update-records.utils#prepareRecords', () => {
             whereClause: '',
           },
         },
-      ]
+      ],
     );
 
     expect(record1.Name).toBe('867-5309');
@@ -464,7 +464,7 @@ describe('mass-update-records.utils#prepareRecords', () => {
             whereClause: '',
           },
         },
-      ]
+      ],
     );
 
     expect(record1.Name).toBe('Acct 1');
@@ -508,7 +508,7 @@ describe('mass-update-records.utils#prepareRecords', () => {
             whereClause: '',
           },
         },
-      ]
+      ],
     );
 
     expect(record1.Name).toBe('#N/A');
@@ -540,7 +540,7 @@ describe('mass-update-records.utils#prepareRecords', () => {
           },
         },
       ],
-      new Set(['1', '3'])
+      new Set(['1', '3']),
     );
 
     expect(record1.Name).toBe('Jenny Jenny');

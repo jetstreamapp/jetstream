@@ -101,7 +101,7 @@ export class Stack<T = any> {
 export function multiWordObjectFilter<T>(
   props: Array<keyof T>,
   value: string,
-  optionalExtraCondition?: (item: T) => boolean
+  optionalExtraCondition?: (item: T) => boolean,
 ): (value: T, index?: number, array?: T[]) => boolean {
   value = value || '';
   let search: string[];
@@ -311,7 +311,7 @@ export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any
     const subqueryFields = new Set<string>(
       results.parsedQuery.fields
         ?.filter((field) => field.type === 'FieldSubquery')
-        .map((field: FieldSubquery) => field.subquery.relationshipName)
+        .map((field: FieldSubquery) => field.subquery.relationshipName),
     );
     if (subqueryFields.size > 0) {
       results.queryResults.records.forEach((record) => {
@@ -388,7 +388,7 @@ export function getSObjectNameFromAttributes(record: any) {
 
 export function convertFieldWithPolymorphicToQueryFields(
   inputFields: QueryFieldWithPolymorphic[],
-  filterFns: Record<string, { fn: string; alias: string | null }> = {}
+  filterFns: Record<string, { fn: string; alias: string | null }> = {},
 ): FieldType[] {
   let polymorphicItems: { field: string; sobject: string; fields: string[] } = {
     field: '',
@@ -431,7 +431,7 @@ export function convertFieldWithPolymorphicToQueryFields(
             functionName: filterFns[field.field].fn,
             alias: filterFns[field.field].alias || undefined,
             parameters: [field.field],
-          })
+          }),
         );
       } else {
         // return regular non-TYPEOF fields
@@ -811,7 +811,7 @@ export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[],
       }
       return output;
     },
-    [[], []]
+    [[], []],
   );
 
   // records
@@ -894,7 +894,7 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
             id: group.id,
             label: group.label,
           },
-        })
+        }),
       );
     }
     return output;

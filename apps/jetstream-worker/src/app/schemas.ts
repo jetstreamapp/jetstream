@@ -22,7 +22,7 @@ export const POST_JOB_SCHEMA = S.object()
       .prop('type', S.enum(EMAIL_TYPES))
       .prop('userId', S.string())
       .prop('email', S.string())
-      .required(['type', 'userId', 'email'])
+      .required(['type', 'userId', 'email']),
   )
   .prop('payload', S.ref('#payload'))
   .required()

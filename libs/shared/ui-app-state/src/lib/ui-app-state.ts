@@ -192,7 +192,7 @@ export const userProfileEntitlementState = atomFamily((entitlement: keyof UserPr
   atom((get) => {
     const userProfile = get(userProfileSyncState);
     return userProfile?.entitlements?.[entitlement] ?? false;
-  })
+  }),
 );
 
 export const googleDriveAccessState = atom((get) => {
@@ -205,7 +205,7 @@ export const googleDriveAccessState = atom((get) => {
 });
 
 export const jetstreamOrganizationsAsyncState = atom<Promise<JetstreamOrganization[]> | JetstreamOrganization[]>(
-  fetchJetstreamOrganizations()
+  fetchJetstreamOrganizations(),
 );
 // Unwrapped value to simplify derived state
 export const jetstreamOrganizationsState = unwrap(jetstreamOrganizationsAsyncState, (prev) => prev ?? []);
@@ -226,9 +226,9 @@ export const jetstreamOrganizationsWithOrgsSelector = atom(
       newValue.map((organization) => ({
         ...organization,
         orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
-      }))
+      })),
     );
-  }
+  },
 );
 
 export const jetstreamOrganizationsExistsSelector = atom((get) => {
@@ -243,7 +243,7 @@ export const jetstreamActiveOrganizationState = atom(
   (get, set, newValue: Maybe<string>) => {
     set(_baseJetstreamActiveOrganizationState, newValue);
     setSelectedJetstreamOrganizationFromStorage(newValue);
-  }
+  },
 );
 
 export const jetstreamActiveOrganizationSelector = atom((get) => {
@@ -268,7 +268,7 @@ export const salesforceOrgsWithoutOrganizationSelector = atom((get) => {
   const orgs = get(salesforceOrgsState);
   return orderObjectsBy(
     orgs.filter((org) => !org.jetstreamOrganizationId),
-    'label'
+    'label',
   );
 });
 

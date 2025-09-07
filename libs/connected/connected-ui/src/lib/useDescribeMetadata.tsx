@@ -13,7 +13,7 @@ export function useDescribeMetadata(
   selectedOrg: SalesforceOrgUi,
   initialItems?: string[],
   initialMetadataItemMap?: Record<string, MetadataObject>,
-  loadOnInit = true
+  loadOnInit = true,
 ) {
   const isMounted = useRef(true);
   // map of each item or child item to parent item
@@ -121,7 +121,7 @@ export function useDescribeMetadata(
             {
               items: [],
               itemMap: {},
-            }
+            },
           );
 
         setMetadataItemMap(itemMap);
@@ -137,7 +137,7 @@ export function useDescribeMetadata(
       setLoading(false);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg]
+    [selectedOrg],
   );
 
   useEffect(() => {

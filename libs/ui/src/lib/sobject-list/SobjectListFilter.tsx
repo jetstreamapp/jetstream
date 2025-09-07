@@ -52,7 +52,7 @@ type CheckboxFilters = keyof Omit<ObjectFilterValues, 'STANDARD_CUSTOM' | 'MANAG
 
 export function filterSobjects(
   sobjects: DescribeGlobalSObjectResult[],
-  selectedFilters: ObjectFilterValues
+  selectedFilters: ObjectFilterValues,
 ): DescribeGlobalSObjectResult[] {
   return sobjects.filter((sobject) => {
     if (selectedFilters.STANDARD_CUSTOM === 'custom' && !sobject.name.endsWith('__c')) {

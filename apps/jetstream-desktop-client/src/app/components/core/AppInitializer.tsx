@@ -68,7 +68,7 @@ APP VERSION ${version}
       'background: #222; color: #999999',
       'background: #222; color: #BBBBBB',
       'background: #222; color: #DDDDDD',
-      'background: #222; color: #FFFFFF'
+      'background: #222; color: #FFFFFF',
     );
   }, [version]);
 

@@ -30,7 +30,7 @@ export class OrganizationsPage {
   async addSalesforceOrg(
     username: string,
     password: string,
-    method: { type: 'production' } | { type: 'pre-release' } | { type: 'sandbox' } | { type: 'custom'; domain: string }
+    method: { type: 'production' } | { type: 'pre-release' } | { type: 'sandbox' } | { type: 'custom'; domain: string },
   ) {
     await this.page.getByRole('button', { name: 'Add Org' }).click();
 
@@ -110,7 +110,7 @@ export class OrganizationsPage {
     await expect(
       this.page
         .getByTestId(`organization-card-${jetstreamOrgName}`)
-        .locator(this.page.getByTestId(`salesforce-organization-${salesforceOrgLabel}`))
+        .locator(this.page.getByTestId(`salesforce-organization-${salesforceOrgLabel}`)),
     ).toBeVisible();
   }
 

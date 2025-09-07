@@ -64,7 +64,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
       (rows: PermissionTableFieldCell[], { indexes }: { indexes: number[] }) => {
         onBulkUpdate(rows, indexes);
       },
-      [onBulkUpdate]
+      [onBulkUpdate],
     );
 
     return (
@@ -96,7 +96,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
         </AutoFullHeightContainer>
       </div>
     );
-  }
+  },
 );
 
 export default ManagePermissionsEditorFieldTable;

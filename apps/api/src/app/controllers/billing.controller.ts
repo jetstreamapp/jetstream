@@ -84,7 +84,7 @@ const createCheckoutSessionHandler = createRoute(
     });
 
     redirect(res, sessions.url);
-  }
+  },
 );
 
 const processCheckoutSuccessHandler = createRoute(routeDefinition.processCheckoutSuccess.validators, async ({ user, query }, req, res) => {
@@ -143,5 +143,5 @@ const createBillingPortalSession = createRoute(
     });
 
     redirect(res, sessions.url);
-  }
+  },
 );

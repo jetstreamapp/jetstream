@@ -96,7 +96,7 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
         });
       }
       throw new Error(message);
-    }
+    },
   );
   const response = await axiosInstance.request<T>(config);
   return response;

@@ -94,7 +94,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           secondaryLabelOnNewLine: true,
           tertiaryLabel: field.isExternalId ? 'External ID' : undefined,
           meta: field,
-        }))
+        })),
       );
     }
   }, [fieldMappingItem.fieldMetadata, fieldMappingItem.selectedReferenceTo]);

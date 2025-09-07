@@ -60,13 +60,13 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
       onSelected,
       onClose,
     },
-    ref
+    ref,
   ) => {
     const comboboxRef = useRef<ComboboxPropsRef>(null);
     const [filterTextNonDebounced, setFilterText] = useState<string>('');
     const filterText = useDebounce(filterTextNonDebounced, 300);
     const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-      selectedItemId ? groups.flatMap((group) => group.items).find((item) => item.id === selectedItemId) : null
+      selectedItemId ? groups.flatMap((group) => group.items).find((item) => item.id === selectedItemId) : null,
     );
     const [visibleItems, setVisibleItems] = useState(groups);
     const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
@@ -94,7 +94,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
           comboboxRef.current?.clearInputText();
         },
       }),
-      []
+      [],
     );
 
     useEffect(() => {
@@ -129,7 +129,7 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
                 ? { ...group, items: group.items } // keep all items if the group label matches the filter text
                 : { ...group, items: group.items.filter(filterFn(filter)) };
             })
-            .filter((group) => group.items.length > 0)
+            .filter((group) => group.items.length > 0),
         );
         setFocusedIndex(null);
       }
@@ -288,13 +288,13 @@ export const ComboboxWithGroupedItems = forwardRef<ComboboxWithGroupedItemsRef, 
                 >
                   {item.customRenderer(item)}
                 </ComboboxListItem>
-              )
+              ),
             )}
           </ComboboxListItemGroup>
         ))}
       </Combobox>
     );
-  }
+  },
 );
 
 export default ComboboxWithGroupedItems;

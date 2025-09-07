@@ -64,7 +64,7 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
       onSortedAndFilteredRowsChange,
       ...rest
     }: DataTreeProps<T>,
-    ref
+    ref,
   ) => {
     const {
       gridId,
@@ -151,5 +151,5 @@ export const DataTree = forwardRef<any, DataTreeProps<any>>(
         </DataTableFilterContext.Provider>
       </DataTableGenericContext.Provider>
     );
-  }
+  },
 );

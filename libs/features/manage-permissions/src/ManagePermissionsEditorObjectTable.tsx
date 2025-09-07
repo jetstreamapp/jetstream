@@ -53,7 +53,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
       (rows: PermissionTableObjectCell[], { indexes }: { indexes: number[] }) => {
         onBulkUpdate(rows, indexes);
       },
-      [onBulkUpdate]
+      [onBulkUpdate],
     );
 
     return (
@@ -81,7 +81,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
         </AutoFullHeightContainer>
       </div>
     );
-  }
+  },
 );
 
 export default ManagePermissionsEditorObjectTable;

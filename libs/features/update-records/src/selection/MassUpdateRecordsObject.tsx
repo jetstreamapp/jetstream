@@ -30,7 +30,7 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
     async (item: ListItem): Promise<ListItem[]> => {
       return onLoadChildFields(row.sobject, item);
     },
-    [onLoadChildFields, row.sobject]
+    [onLoadChildFields, row.sobject],
   );
 
   return (

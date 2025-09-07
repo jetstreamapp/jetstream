@@ -56,5 +56,5 @@ export const profilesAndPermSetsByIdSelector = atom<Record<string, PermissionSet
       }, output);
     }
     return output;
-  }
+  },
 );

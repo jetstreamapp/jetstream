@@ -42,7 +42,7 @@ export function OrganizationCardNoOrganization({
         });
       },
     },
-    [onMoveOrg]
+    [onMoveOrg],
   );
 
   return (

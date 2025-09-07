@@ -115,17 +115,17 @@ export async function parseWorkbook(workbook: XLSX.WorkBook, org: SalesforceOrgU
             : dataHeaders[i];
           currRow[currHeader] = cell ?? null;
           return currRow;
-        }, {})
+        }, {}),
       );
 
       // init remaining data
       dataset.referenceColumnHeader = worksheet[WORKSHEET_LOCATIONS.referenceId]?.v;
       const headers = dataHeaders.filter(
-        (field) => !!field && !field.toLowerCase().startsWith('__empty') && field !== dataset.referenceColumnHeader
+        (field) => !!field && !field.toLowerCase().startsWith('__empty') && field !== dataset.referenceColumnHeader,
       );
       dataset.headers = headers.map((header) => header.replace(SURROUNDING_BRACKETS_RGX, '').trim());
       dataset.referenceHeaders = new Set(
-        headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, ''))
+        headers.filter((header) => IS_REFERENCE_HEADER_RGX.test(header)).map((header) => header.replace(SURROUNDING_BRACKETS_RGX, '')),
       );
       dataset.dataById = dataset.data.reduce((output: Record<string, any>, row, i) => {
         const referenceId = row[dataset.referenceColumnHeader || ''] || uniqueId('reference_');
@@ -242,7 +242,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
           location: WORKSHEET_LOCATIONS.operation,
           locationType: 'CELL',
           message: `The operation is not valid: "${operation}". Valid operations are "${VALID_OPERATIONS.map((operation) =>
-            operation.toLowerCase()
+            operation.toLowerCase(),
           ).join('", "')}"`,
         });
       }
@@ -322,7 +322,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
         }
 
         const invalidRefIds = dataset.data.filter(
-          (row) => !!row[dataset.referenceColumnHeader] && !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader])
+          (row) => !!row[dataset.referenceColumnHeader] && !VALID_REF_ID_RGX.test(row[dataset.referenceColumnHeader]),
         );
         if (invalidRefIds.length) {
           errors.push({
@@ -334,7 +334,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
               .slice(0, 25)
               .map((row) => `"${row[dataset.referenceColumnHeader]}"`)
               .join(
-                ', '
+                ', ',
               )}. The referenceId must start with a letter or a number and must not contain anything besides letters, numbers, or underscores.`,
           });
         }
@@ -376,7 +376,7 @@ async function validateObjectData(org: SalesforceOrgUi, datasets: LoadMultiObjec
 export function getDataGraph(
   datasets: LoadMultiObjectData[],
   apiVersion: string,
-  options: { insertNulls: boolean; dateFormat: string }
+  options: { insertNulls: boolean; dateFormat: string },
 ): LoadMultiObjectRequestWithResult[] {
   const { dateFormat, insertNulls } = options;
   const graphs: Record<string, CompositeGraphRequest> = {};
@@ -406,7 +406,7 @@ export function getDataGraph(
             recordIdForUpdate: string | null;
             dependencies: string[];
           },
-          header
+          header,
         ) => {
           const isRelatedField = header.includes('.');
           const field = dataset.fieldsByName[header.toLowerCase()];
@@ -454,7 +454,7 @@ export function getDataGraph(
 
           return { transformedRecord, externalIdValue, recordIdForUpdate, dependencies };
         },
-        { transformedRecord: {}, externalIdValue: null, recordIdForUpdate: null, dependencies: [] }
+        { transformedRecord: {}, externalIdValue: null, recordIdForUpdate: null, dependencies: [] },
       );
 
       const tempData: LoadMultiObjectRecord = {
@@ -558,7 +558,7 @@ export function getDataGraph(
         location: `${WORKSHEET_LOCATIONS.dataStartRow + 1 + record.recordIdx + 1}`,
         locationType: 'ROW',
         message: `The Reference Id "${topLevelNode}" has ${formatNumber(
-          graphs[topLevelNode]?.compositeRequest?.length || 0
+          graphs[topLevelNode]?.compositeRequest?.length || 0,
         )} dependent records. A maximum of ${MAX_REQ_SIZE} records can be related to each other in one data load`,
       });
       throw new Error('There was an error parsing the record dependencies');
@@ -573,7 +573,7 @@ function processGraphDependency(
   unprocessedTopLevelNodes: Set<string>,
   graph: DepGraph<unknown>,
   overallGraph: DepGraph<unknown>,
-  nodeToTopLevelNodes: Record<string, string[]>
+  nodeToTopLevelNodes: Record<string, string[]>,
 ) {
   return function processDependents(dependents: string[]) {
     // add all child nodes to graph
@@ -604,7 +604,7 @@ function processGraphDependency(
 
 function transformGraphRequestsToRequestWithResults(
   graphs: CompositeGraphRequest[],
-  recordsByRefId: Record<string, LoadMultiObjectRecord>
+  recordsByRefId: Record<string, LoadMultiObjectRecord>,
 ): LoadMultiObjectRequestWithResult[] {
   return splitRequestsToMaxSize(graphs, MAX_REQ_SIZE).map(
     (compositeRequestGraph, i): LoadMultiObjectRequestWithResult => ({
@@ -621,7 +621,7 @@ function transformGraphRequestsToRequestWithResults(
           compositeRequest: item.compositeRequest || [],
           compositeResponse: null,
         })),
-        'graphId'
+        'graphId',
       ),
       recordWithResponseByRefId: groupByFlat(
         compositeRequestGraph.flatMap(
@@ -633,11 +633,11 @@ function transformGraphRequestsToRequestWithResults(
               externalId: recordsByRefId[item.referenceId].externalId,
               request: item,
               response: null,
-            })) || []
+            })) || [],
         ),
-        'referenceId'
+        'referenceId',
       ),
-    })
+    }),
   );
 }
 

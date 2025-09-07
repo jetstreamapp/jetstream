@@ -24,7 +24,7 @@ export interface PopoverContainerProps extends Omit<HTMLAttributes<HTMLDivElemen
 export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
   (
     { className, isOpen, referenceElement, usePortal = false, isEager = false, minWidth = '15rem', maxWidth = '20rem', children, ...rest },
-    ref
+    ref,
   ) => {
     const { portalRoot } = usePortalContext();
     const { refs, floatingStyles, context, update } = useFloating({
@@ -85,7 +85,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     );
 
     return usePortal ? <FloatingPortal root={portalRoot}>{content}</FloatingPortal> : content;
-  }
+  },
 );
 
 export default PopoverContainer;

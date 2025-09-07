@@ -98,7 +98,7 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
             field: `${basePath}${field}`,
             polymorphicObj: queryField.isPolymorphic ? queryField.sobject : undefined,
             metadata: queryField.fields[field]?.metadata,
-          })
+          }),
         );
       });
 
@@ -215,10 +215,10 @@ export const QueryChildFields: FunctionComponent<QueryChildFieldsProps> = ({
                 ['filterText'],
                 filterTerm,
                 (field) =>
-                  !!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded
-              )
+                  !!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded,
+              ),
             )
-            .map((field) => field.name)
+            .map((field) => field.name),
         );
       }
       clonedQueryFieldsMap[key] = tempQueryField;

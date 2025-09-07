@@ -74,7 +74,7 @@ export function getFormulonData(
   col: QueryResultsColumn | Field | { type: Field['type'] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any,
-  numberNullBehavior = 'ZERO'
+  numberNullBehavior = 'ZERO',
 ): FormulaDataValue {
   const dataType = isQueryResultsColumn(col) ? getFormulonTypeFromColumnType(col) : getFormulonTypeFromMetadata(col);
   if (dataType === 'text') {
@@ -268,7 +268,7 @@ export async function getFormulaData({
         system: [],
         user: [],
         userRole: [],
-      }
+      },
     );
 
     // TODO: this is a good candidate for unit tests
@@ -343,7 +343,7 @@ async function collectBaseQueriedRecordFields({
           literalType: 'STRING',
         },
       },
-    })
+    }),
   );
 
   if (!queryResults.totalSize) {
@@ -366,7 +366,7 @@ async function collectBaseQueriedRecordFields({
     formulaFields[field] = getFormulonData(
       column,
       lodashGet(queryResults.records[0], fieldsByName[field.toLowerCase()].columnFullPath),
-      numberNullBehavior
+      numberNullBehavior,
     );
   });
 }
@@ -422,7 +422,7 @@ function collectApiFields({
       const apiVersion = field.split('_').reverse()[0];
       value = `${selectedOrg.instanceUrl}/services/Soap/u/${apiVersion.substring(
         0,
-        apiVersion.length - 1
+        apiVersion.length - 1,
       )}.0/${selectedOrg.organizationId.substring(0, 15)}`;
     }
 
@@ -451,7 +451,7 @@ async function collectCustomMetadata({
         string,
         { object: string; records: Record<string, { record: string; fields: { field: string; fullField: string }[] }> }
       >,
-      fullField
+      fullField,
     ) => {
       const [prefix, object, record, field] = fullField.split('.');
       output[object] = output[object] || { object, records: {} };
@@ -459,7 +459,7 @@ async function collectCustomMetadata({
       output[object].records[record].fields.push({ field, fullField });
       return output;
     },
-    {}
+    {},
   );
 
   // Query each metadata object, extract fields, and add to formulaFields
@@ -480,7 +480,7 @@ async function collectCustomMetadata({
           },
         },
         limit: 200,
-      })
+      }),
     );
 
     // Group records by Api name, then get value of each used field in record
@@ -502,7 +502,7 @@ async function collectCustomMetadata({
         formulaFields[fullField] = getFormulonData(
           column,
           lodashGet(metadataRecord, fieldsByName[field.toLowerCase()].columnFullPath),
-          numberNullBehavior
+          numberNullBehavior,
         );
       });
     });
@@ -540,7 +540,7 @@ async function collectLabels({
       },
       limit: 200,
     }),
-    true
+    true,
   );
 
   const recordsByApiName = getRecordsByLowercaseField(queryResults.records, 'Name');
@@ -579,7 +579,7 @@ async function collectOrganizationFields({
       fields: [{ type: 'FieldFunctionExpression', functionName: 'FIELDS', parameters: ['ALL'], rawValue: 'FIELDS(ALL)' }],
       sObject: 'Organization',
       limit: 1,
-    })
+    }),
   );
 
   const fieldsByName = getFieldsByName(columns);
@@ -591,7 +591,7 @@ async function collectOrganizationFields({
     formulaFields[fieldWithIdentifier] = getFormulonData(
       column,
       lodashGet(queryResults.records[0], column.columnFullPath),
-      numberNullBehavior
+      numberNullBehavior,
     );
   });
 }
@@ -627,7 +627,7 @@ async function collectUserProfileAndRoleFields({
           ...profileFields.map((field) => getField(`Profile.${field.split('.')[1]}`)),
           getField('UserRole.Id'),
           ...roleFields.map((field) => getField(`UserRole.${field.split('.')[1]}`)),
-        ])
+        ]),
       ),
       sObject: 'User',
       where: {
@@ -639,7 +639,7 @@ async function collectUserProfileAndRoleFields({
         },
       },
       limit: 1,
-    })
+    }),
   );
 
   const { Profile, UserRole, ...User } = queryResults.records[0];
@@ -708,7 +708,7 @@ async function collectCustomPermissions({
           getField('PermissionSet.Name'),
           getField('PermissionSet.IsOwnedByProfile'),
           getField('PermissionSet.Profile.Name'),
-        ])
+        ]),
       ),
       sObject: 'PermissionSetAssignment',
       where: {
@@ -722,7 +722,7 @@ async function collectCustomPermissions({
           },
         },
       },
-    })
+    }),
   );
 
   // Fetch metadata for assigned profile and all assigned permission sets
@@ -735,7 +735,7 @@ async function collectCustomPermissions({
     'Profile',
     queryResults.records
       .filter((item) => item.PermissionSet.IsOwnedByProfile)
-      .map(({ PermissionSet }) => encodeURIComponent(PermissionSet.Profile?.Name || ''))
+      .map(({ PermissionSet }) => encodeURIComponent(PermissionSet.Profile?.Name || '')),
   );
   const permissionSets = permissionSetNames.length
     ? await readMetadata<PermissionSetMetadataRecord>(selectedOrg, 'PermissionSet', permissionSetNames)
@@ -750,7 +750,7 @@ async function collectCustomPermissions({
         customPermissions = [customPermissions];
       }
       return customPermissions.filter(({ enabled }) => enabled).map(({ name }) => name);
-    })
+    }),
   );
 
   // Calculate if custom permission is enabled
@@ -796,7 +796,7 @@ async function collectCustomSettingFields({
         },
       },
       limit: 1,
-    })
+    }),
   );
 
   const { Id, ProfileId } = queryResults.records[0];
@@ -826,7 +826,7 @@ async function collectCustomSettingFields({
           },
         },
         limit: 200,
-      })
+      }),
     );
 
     const fieldsByName = getFieldsByName(columns);

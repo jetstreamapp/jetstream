@@ -13,7 +13,7 @@ interface BillingExistingSubscriptionsProps {
 export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: BillingExistingSubscriptionsProps) => {
   const { trackEvent } = useAmplitude();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(
-    () => customerWithSubscriptions.subscriptions.find((sub) => sub.status === 'ACTIVE')?.items[0].priceId || null
+    () => customerWithSubscriptions.subscriptions.find((sub) => sub.status === 'ACTIVE')?.items[0].priceId || null,
   );
 
   return (

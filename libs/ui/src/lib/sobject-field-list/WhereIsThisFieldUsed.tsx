@@ -45,7 +45,7 @@ export const QueryWhereIsThisUsed = ({ org, sobject, field }: QueryWhereIsThisUs
           'Reference Type': meta?.MetadataComponentType || '',
           'Reference Label': meta?.MetadataComponentName || '',
           Namespace: meta?.MetadataComponentNamespace || '',
-        }))
+        })),
       );
     }
   }, [items]);

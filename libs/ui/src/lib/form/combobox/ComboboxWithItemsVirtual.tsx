@@ -43,7 +43,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-    selectedItemId ? items.find((item) => item.id === selectedItemId) : null
+    selectedItemId ? items.find((item) => item.id === selectedItemId) : null,
   );
   const [visibleItems, setVisibleItems] = useState(items);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -80,7 +80,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       setFocusedIndex(null);
       comboboxRef?.current?.close();
     },
-    [onSelected]
+    [onSelected],
   );
 
   // ensure that focused item is removed if user types something

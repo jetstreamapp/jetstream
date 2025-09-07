@@ -83,7 +83,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
       hasLoaded: false,
       loading: false,
       status: 'IDLE',
-    }
+    },
   );
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
       // get milliseconds until we are close to expiring - ensure that it is at least 1 hour in the future
       const needToRefreshTrace = Math.max(
         60000,
-        differenceInMilliseconds(addMinutes(expirationDate, BUFFER_TO_EXTEND_MINUTES * -1), new Date())
+        differenceInMilliseconds(addMinutes(expirationDate, BUFFER_TO_EXTEND_MINUTES * -1), new Date()),
       );
 
       logger.log('[APEX LOG][REFRESH TRACE MS]', needToRefreshTrace);
@@ -140,7 +140,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
         expirationTimeout.current && clearTimeout(expirationTimeout.current);
       };
     },
-    [org, extendTraceHours]
+    [org, extendTraceHours],
   );
 
   useEffect(() => {
@@ -178,7 +178,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
           let debugLevels = debugLevelResults.records;
           let activeDebugLevel =
             debugLevels.find(
-              (item) => item.DeveloperName.toLowerCase() === 'sfdc_devconsole' || item.DeveloperName.toLowerCase().includes('DEBUG')
+              (item) => item.DeveloperName.toLowerCase() === 'sfdc_devconsole' || item.DeveloperName.toLowerCase().includes('DEBUG'),
             ) || debugLevels[0];
           let userTrace = traceResults.records[0];
 
@@ -229,7 +229,7 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
         }
       }
     },
-    [org, extendTraceHours]
+    [org, extendTraceHours],
   );
 
   useEffect(() => {

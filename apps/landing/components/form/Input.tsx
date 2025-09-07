@@ -27,7 +27,7 @@ export function Input({ label, error, labelProps, inputProps, inputContainerProp
             {
               'text-gray-900 shadow-sm  ring-gray-300 placeholder:text-gray-400 focus:ring-blue-600': !error,
               'pr-8 text-red-900  ring-red-300 placeholder:text-red-300 focus:ring-red-500': error,
-            }
+            },
           )}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}

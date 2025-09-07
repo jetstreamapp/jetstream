@@ -73,7 +73,7 @@ export const ListItem = memo<ListItemProps>(
         {children}
       </li>
     );
-  }
+  },
 );
 
 export default ListItem;

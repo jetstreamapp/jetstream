@@ -15,7 +15,7 @@ import React, { ReactNode, useEffect, useState } from 'react';
 export function useHighlightedText(
   text: string | React.ReactNode | ReactNode,
   searchTerm?: string,
-  options?: { className?: string; ignoreHighlight?: boolean }
+  options?: { className?: string; ignoreHighlight?: boolean },
 ) {
   options = options || {};
   const { className, ignoreHighlight } = options;

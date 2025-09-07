@@ -21,7 +21,7 @@ describe('generatePackageXml', () => {
         '</types>',
         '<version>99.0</version>',
         '</Package>',
-      ].join('')
+      ].join(''),
     );
   });
 });

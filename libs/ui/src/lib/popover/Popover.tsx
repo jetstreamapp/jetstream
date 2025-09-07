@@ -266,7 +266,7 @@ export const Popover = ({
                 {
                   'slds-button_icon-inverse': inverseIcons,
                 },
-                closeBtnClassName
+                closeBtnClassName,
               )}
               title="Close dialog"
               onClick={handleClose}

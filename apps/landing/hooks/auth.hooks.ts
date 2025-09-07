@@ -47,7 +47,7 @@ export function useUserProfile() {
         }) => {
           setAuthState(data);
           setIsLoading(false);
-        }
+        },
       )
       .catch((error) => {
         setIsLoading(false);

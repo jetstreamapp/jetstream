@@ -11,7 +11,7 @@ const subscriptions = new Map<string, SubscriptionHandle>();
 function getUrl(serverUrl: string, defaultApiVersion: string, selectedOrg: SalesforceOrgUi) {
   if (isDesktop()) {
     return `${selectedOrg.instanceUrl}/cometd/${defaultApiVersion.replace('v', '')}?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(
-      selectedOrg.uniqueId
+      selectedOrg.uniqueId,
     )}`;
   }
   return `${serverUrl}/platform-event?${HTTP.HEADERS.X_SFDC_ID}=${encodeURIComponent(selectedOrg.uniqueId)}`;
@@ -74,7 +74,7 @@ export function init({
 
 export function subscribe<T = any>(
   { cometd, channel, replayId }: { cometd: CometD; channel: string; replayId?: number },
-  callback: (message: T) => void
+  callback: (message: T) => void,
 ) {
   if (!cometd.isDisconnected()) {
     const replayExt = cometd.getExtension(CometdReplayExtension.EXT_NAME) as any;
@@ -90,7 +90,7 @@ export function subscribe<T = any>(
       channel,
       cometd.subscribe(channel, (message) => {
         callback(message as any);
-      })
+      }),
     );
   }
 }

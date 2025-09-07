@@ -156,7 +156,7 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
         </Grid>
       </>
     );
-  }
+  },
 );
 
 export default CreateFieldsFormulaEditorManualField;

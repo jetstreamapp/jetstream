@@ -49,7 +49,7 @@ export const QueryResultsGetRecAsApexFieldOptions: FunctionComponent<QueryResult
           }
           return true;
         })
-        .map((field) => field.name)
+        .map((field) => field.name),
     );
   }, [fieldMetadata, nulls, readOnly, system, defaultOnCreate, booleanIfFalse]);
 

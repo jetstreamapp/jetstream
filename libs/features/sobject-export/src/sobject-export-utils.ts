@@ -59,7 +59,7 @@ export async function getSobjectMetadata(org: SalesforceOrgUi, selectedSobjects:
 
 export async function getChildRelationshipNames(
   selectedOrg: SalesforceOrgUi,
-  metadataResults: SobjectFetchResult[]
+  metadataResults: SobjectFetchResult[],
 ): Promise<Record<string, Record<string, ChildRelationship>>> {
   try {
     // Get Parent SObject names from all relationship fields and remove duplicates
@@ -69,9 +69,9 @@ export async function getChildRelationshipNames(
           (item) =>
             item.metadata?.fields
               .filter((field) => field.type === 'reference' && field.referenceTo?.length === 1)
-              .flatMap((field) => field.referenceTo || []) || []
-        )
-      )
+              .flatMap((field) => field.referenceTo || []) || [],
+        ),
+      ),
     );
     // Fetch all parent sobject metadata (hopefully from cache for many of them) and reduce into map for easy lookup
     const sobjectsWithChildRelationships = await getSobjectMetadata(selectedOrg, relatedSobjects).then((results) =>
@@ -81,10 +81,10 @@ export async function getChildRelationshipNames(
             acc[childRelationship.field] = childRelationship;
             return acc;
           },
-          {}
+          {},
         );
         return sobjectsWithChildRelationships;
-      }, {})
+      }, {}),
     );
     return sobjectsWithChildRelationships;
   } catch (ex) {
@@ -96,7 +96,7 @@ export async function getChildRelationshipNames(
 
 export async function getExtendedFieldDefinitionData(
   selectedOrg: SalesforceOrgUi,
-  selectedSObjects: string[]
+  selectedSObjects: string[],
 ): Promise<Record<string, Record<string, FieldDefinitionRecord>>> {
   const allRecords: FieldDefinitionRecord[] = [];
   for (const sobjects of splitArrayToMaxSize(selectedSObjects, 10)) {
@@ -121,7 +121,7 @@ export function prepareExport(
   sobjectsWithChildRelationships: Record<string, Record<string, ChildRelationship>>,
   extendedFieldDefinitionData: Record<string, Record<string, FieldDefinitionRecord>>,
   selectedAttributes: string[],
-  options: ExportOptions
+  options: ExportOptions,
 ): Record<string, any[]> {
   const errors: { sobject: string; error: string }[] = [];
   const sobjectAttributes: any[] = [];
@@ -175,7 +175,7 @@ export function prepareExport(
           sobjectAttributeKeys.reduce((output: any, key) => {
             output[key] = metadata?.[key as keyof DescribeSObjectResult];
             return output;
-          }, {})
+          }, {}),
         );
       }
     } else {

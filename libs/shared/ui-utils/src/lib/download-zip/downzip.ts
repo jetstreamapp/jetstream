@@ -143,7 +143,7 @@ class DownZip {
 
           this.sendMessage('TICK', null, messageChannel.port2);
         }
-      }, KEEPALIVE_INTERVAL_MS)
+      }, KEEPALIVE_INTERVAL_MS),
     );
   }
 

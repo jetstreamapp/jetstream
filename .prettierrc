@@ -1,7 +1,6 @@
 {
   "singleQuote": true,
   "printWidth": 140,
-  "trailingComma": "es5",
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   }

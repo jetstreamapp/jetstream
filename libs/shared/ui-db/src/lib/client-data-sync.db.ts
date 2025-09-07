@@ -179,7 +179,7 @@ export function initializeDexieSync(name: string) {
       /**
        * Call this function if an error occur. Provide the error object (exception or other toStringable object such as a String instance) as well as the again value that should be number of milliseconds until trying to call sync() again.
        */
-      onError
+      onError,
     ) => {
       /**
        * Listen to change from the server in other user sessions
@@ -223,7 +223,7 @@ async function pushAndPullAllRecords(
   syncedRevision: any,
   changes: IDatabaseChange[],
   applyRemoteChanges: ApplyRemoteChangesFunction,
-  onChangesAccepted: () => void
+  onChangesAccepted: () => void,
 ) {
   if (changes.length === 0) {
     /**
@@ -251,7 +251,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
   const deletedAt = new Date();
 
   const existingRecordsById = await getAllSyncableRecordsById(
-    changes.filter(({ table, type }) => SyncableEntities.has(table as keyof typeof SyncableTables)).map((change) => change.key)
+    changes.filter(({ table, type }) => SyncableEntities.has(table as keyof typeof SyncableTables)).map((change) => change.key),
   );
 
   // FIXME: this is temporary just to smooth out the data sync - remove after backfill is complete
@@ -283,7 +283,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
         creates: [] as ICreateChange[],
         updates: [] as IUpdateChange[],
         deletes: [] as IDeleteChange[],
-      }
+      },
     );
 
   // deleted records will not show up in existing and oldObj is undefined, so we need to re calculate the hashedKey
@@ -309,7 +309,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
             keyPrefix: getKeyPrefix(key),
             type: 'update',
             fullRecord: existingRecordsById[key],
-          })
+          }),
         ),
       ...changesByType.deletes
         .filter(({ key, oldObj }) => existingRecordsById[key]?.hashedKey ?? oldObj?.hashedKey ?? keyToHashedKey[key])
@@ -320,7 +320,7 @@ async function sendChangesToServer(changes: IDatabaseChange[], syncedRevision: M
             key,
             hashedKey: existingRecordsById[key]?.hashedKey ?? oldObj?.hashedKey ?? keyToHashedKey[key],
             deletedAt,
-          })
+          }),
         ),
     ].filter(Boolean),
     chunkSize: MAX_PUSH_SIZE,
@@ -431,7 +431,7 @@ async function getAllSyncableRecordsById(ids: string[]): Promise<Record<string, 
         return dexieDb[syncableTable.name].bulkGet(keys as any).then((records) => records.filter(Boolean));
       }
       return Promise.resolve([]);
-    })
+    }),
   ).then((records) => records.flat().filter(Boolean));
 
   return groupByFlat(records as SyncableRecord[], 'key');

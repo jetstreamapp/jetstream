@@ -76,7 +76,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
   const popoverRef = useRef<PopoverRef>(null);
   const idPrefix = useId();
   const [filterSelectedCount, setFilterSelectedCount] = useState<number>(
-    () => Object.values(selectedItems).filter((item) => item !== 'all').length
+    () => Object.values(selectedItems).filter((item) => item !== 'all').length,
   );
 
   useEffect(() => {

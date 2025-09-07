@@ -136,7 +136,7 @@ export function sortQueryFields<T extends Pick<Field, 'name' | 'label'>>(fields:
       id: null,
       name: null,
       remaining: [],
-    }
+    },
   );
 
   const firstItems: T[] = [];
@@ -167,7 +167,7 @@ export function sortQueryFieldsStr(fields: string[]): string[] {
       id: null,
       name: null,
       remaining: [],
-    }
+    },
   );
 
   const firstItems: string[] = [];
@@ -223,7 +223,7 @@ export function sortQueryFieldsPolymorphicComparable(field1: QueryFieldWithPolym
     if (aRoot === bRoot) {
       return sortQueryFieldsPolymorphicComparable(
         { field: aParts.join('.'), polymorphicObj: field1.polymorphicObj } as any,
-        { field: bParts.join('.'), polymorphicObj: field2.polymorphicObj } as any
+        { field: bParts.join('.'), polymorphicObj: field2.polymorphicObj } as any,
       );
     } else {
       if (a < b) {
@@ -332,7 +332,7 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
         XLSX.utils.book_append_sheet(
           workbook,
           XLSX.utils.aoa_to_sheet(isArrayOfArray ? data[sheetName] : convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
-          sheetName
+          sheetName,
         );
       }
     });
@@ -357,7 +357,7 @@ export function prepareCsvFile(data: Record<string, string>[], header: string[])
       data,
       fields: header,
     },
-    { header: true, quotes: true, delimiter: detectDelimiter() }
+    { header: true, quotes: true, delimiter: detectDelimiter() },
   );
 }
 
@@ -546,7 +546,7 @@ export function getOperatorFromWhereClause(operator: Operator, value: string, ha
 function buildExpressionConditionWhereClause<T extends WhereClause | HavingClause>(
   whereOrHavingClauses: T[],
   row: ExpressionConditionType,
-  action: AndOr
+  action: AndOr,
 ): T[] {
   // REGULAR WHERE CLAUSE
   if (isNegationOperator(row.selected.operator)) {
@@ -596,7 +596,7 @@ function buildExpressionConditionWhereClause<T extends WhereClause | HavingClaus
 function buildExpressionGroupConditionWhereClause<T extends WhereClause | HavingClause>(
   whereOrHavingClauses: T[],
   group: ExpressionGroupType,
-  parentAction: AndOr
+  parentAction: AndOr,
 ): T[] {
   const tempWhereOrHavingClauses: (WhereClauseWithRightCondition | HavingClauseWithRightCondition)[] = [];
   group.rows.forEach((row, i) => {
@@ -940,7 +940,7 @@ function handleWindowEvent(event: MessageEvent) {
 
 export const addOrg: AddOrgHandlerFn = (
   options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
-  callback: (org: SalesforceOrgUi) => void
+  callback: (org: SalesforceOrgUi) => void,
 ) => {
   const { serverUrl, loginUrl, addLoginTrue, jetstreamOrganizationId } = options;
   addOrgCallbackFn = callback;
@@ -988,7 +988,7 @@ export function checkIfBulkApiJobIsDone(jobInfo: BulkJobWithBatches, totalBatche
 export async function pollMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void }
+  options?: { includeDetails?: boolean; interval?: number; maxAttempts?: number; onChecked?: (deployResults: DeployResult) => void },
 ) {
   let { includeDetails, interval, maxAttempts, onChecked } = options || {};
   includeDetails = includeDetails || false;
@@ -1027,7 +1027,7 @@ export async function pollMetadataResultsUntilDone(
 export async function pollRetrieveMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void; isCanceled?: () => boolean }
+  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void; isCanceled?: () => boolean },
 ) {
   let { interval, maxAttempts, onChecked } = options || {};
   interval = interval || DEFAULT_INTERVAL_5_SEC;
@@ -1080,7 +1080,7 @@ export async function pollAndDeployMetadataResultsWhenReady(
     changesetName?: string;
     replacementPackageXml?: string;
     onChecked?: (retrieveResults: { type: 'deploy' | 'retrieve'; results: RetrieveResult; zipFile?: string }) => void;
-  }
+  },
 ) {
   // eslint-disable-next-line prefer-const
   let { interval, maxAttempts, deployOptions, replacementPackageXml, changesetName, onChecked } = options || {};
@@ -1160,7 +1160,7 @@ export async function parseFile(
     isBinaryString?: boolean;
     isPasteFromClipboard?: boolean;
     extension?: string;
-  }
+  },
 ): Promise<{
   data: any[];
   headers: string[];
@@ -1204,7 +1204,7 @@ export async function parseWorkbook(
   workbook: XLSX.WorkBook,
   options?: {
     onParsedMultipleWorkbooks?: (worksheets: string[]) => Promise<string>;
-  }
+  },
 ): Promise<{
   data: any[];
   headers: string[];
@@ -1333,7 +1333,7 @@ export function getValueForExcel(value: any) {
 export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
   data: Maybe<T>[],
   fields?: Maybe<string[]>,
-  includeHeader = true
+  includeHeader = true,
 ): string {
   if (!Array.isArray(data) || data.length === 0) {
     return '';
@@ -1348,7 +1348,7 @@ export function transformTabularDataToExcelStr<T = Record<string, unknown>>(
         ?.map((field) => {
           return getValueForExcel(row?.[field]);
         })
-        .join('\t')
+        .join('\t'),
     )
     .join('\n');
 
@@ -1653,7 +1653,7 @@ export function focusElementFromRefWhenAvailable<T extends HTMLElement>(
   element: Maybe<React.RefObject<T | null>>,
   backOff = 0,
   attempt = 0,
-  maxAttempts = 3
+  maxAttempts = 3,
 ) {
   if (!element) {
     return;

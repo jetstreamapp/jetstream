@@ -10,7 +10,7 @@ function getObservable(type: JetstreamEventType): Observable<JetstreamEventPaylo
   return jetstreamEvent$.pipe(
     tap((ev) => logger.info('[jetstreamEvent]', ev)),
     filter((ev) => ev.type === type),
-    map((ev) => ev.payload)
+    map((ev) => ev.payload),
   );
 }
 

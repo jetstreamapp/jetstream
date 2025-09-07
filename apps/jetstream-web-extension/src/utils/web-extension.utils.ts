@@ -27,7 +27,7 @@ function handleResponse<T>(response: MessageResponse<ResponseForRequest<T>>) {
 
 export function initAndRenderReact(
   content: Parameters<ReturnType<typeof createRoot>['render']>[0],
-  { elementId = 'app-container' }: { elementId?: string } = { elementId: 'app-container' }
+  { elementId = 'app-container' }: { elementId?: string } = { elementId: 'app-container' },
 ) {
   // Render
   const container = document.getElementById(elementId);

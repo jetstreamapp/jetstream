@@ -29,7 +29,7 @@ export const base = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'list-group'
+          'list-group',
         )}
       >
         <button className="slds-button slds-button_neutral">Button 1</button>
@@ -47,7 +47,7 @@ export const base = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'separate'
+          'separate',
         )}
       >
         <button className="slds-button slds-button_icon slds-button_icon-border-filled" title="Refresh List">
@@ -76,7 +76,7 @@ export const withNoTitleMeta = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'separate'
+          'separate',
         )}
       >
         <button className="slds-button slds-button_neutral">Button 1</button>
@@ -94,7 +94,7 @@ export const withNoTitleMeta = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'list-group'
+          'list-group',
         )}
       >
         <button className="slds-button slds-button_icon slds-button_icon-border-filled" title="Refresh List">
@@ -123,7 +123,7 @@ export const withNoMeta = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'separate'
+          'separate',
         )}
       >
         <button className="slds-button slds-button_neutral">Button 1</button>
@@ -141,7 +141,7 @@ export const withNoMeta = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'list-group'
+          'list-group',
         )}
       >
         <button className="slds-button slds-button_icon slds-button_icon-border-filled" title="Refresh List">
@@ -171,7 +171,7 @@ export const singleRow = () => (
             separate: 'separate',
             listGroup: 'list-group',
           },
-          'list-group'
+          'list-group',
         )}
       >
         <button className="slds-button slds-button_neutral">Button 1</button>

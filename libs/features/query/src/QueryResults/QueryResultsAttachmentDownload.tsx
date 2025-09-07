@@ -100,8 +100,8 @@ function getFileNamesWithoutDuplicates(org: SalesforceOrgUi, sobjectName: string
         acc[fileName] = file;
         return acc;
       },
-      {} as Record<string, DownZipFile>
-    )
+      {} as Record<string, DownZipFile>,
+    ),
   );
 }
 

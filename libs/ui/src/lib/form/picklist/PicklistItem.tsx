@@ -73,7 +73,7 @@ export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
         </div>
       </li>
     );
-  }
+  },
 );
 
 export default PicklistItem;

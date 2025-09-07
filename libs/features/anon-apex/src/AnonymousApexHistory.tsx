@@ -23,7 +23,7 @@ export const AnonymousApexHistory: FunctionComponent<AnonymousApexHistoryProps> 
         onHistorySelected(foundItem.apex);
       }
     },
-    [historyItems, onHistorySelected]
+    [historyItems, onHistorySelected],
   );
 
   return (

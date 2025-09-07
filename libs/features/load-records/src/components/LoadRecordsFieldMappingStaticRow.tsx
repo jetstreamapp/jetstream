@@ -95,7 +95,7 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
         };
       }
       setEditableField(
-        convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {}, isCustomMetadata)[0]
+        convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {}, isCustomMetadata)[0],
       );
     }
   }, [fieldMappingItem.fieldMetadata, isCustomMetadata]);

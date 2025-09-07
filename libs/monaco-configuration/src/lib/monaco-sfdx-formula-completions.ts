@@ -58,7 +58,7 @@ function getSuggestions(monaco: Monaco, model: monaco.editor.ITextModel, positio
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: completion,
         range: range,
-      }))
+      })),
     );
   }
 

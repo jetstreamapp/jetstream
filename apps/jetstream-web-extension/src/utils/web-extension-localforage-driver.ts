@@ -21,7 +21,7 @@ interface LocalForageDriver {
   keys(callback?: (err?: Maybe<any>, keys?: string[]) => void): Promise<string[]>;
   iterate<T, U>(
     iteratee: (value: T, key: string, iterationNumber: number) => U,
-    callback?: (err?: Maybe<any>, result?: U) => void
+    callback?: (err?: Maybe<any>, result?: U) => void,
   ): Promise<any>;
   dropInstance?: LocalForageDropInstanceFn;
 }

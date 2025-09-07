@@ -63,7 +63,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       onSelection,
       children,
     },
-    ref
+    ref,
   ) => {
     const innerRef = useRef<HTMLLIElement>(ref as any);
     const combinedRef = useCombinedRefs<HTMLLIElement>(ref, innerRef);
@@ -99,7 +99,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
               'slds-media_center slds-listbox__option_entity': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
               'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
-            textContainerClassName
+            textContainerClassName,
           )}
           role="option"
           aria-selected={selected}
@@ -167,5 +167,5 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         </div>
       </li>
     );
-  }
+  },
 );

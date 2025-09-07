@@ -41,7 +41,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
           nameField.current = {
             selectedSObject,
             nameField: await describeSObject(selectedOrg, selectedSObject).then(
-              (result) => result.data.fields.find((field) => field.nameField)?.name || 'Name'
+              (result) => result.data.fields.find((field) => field.nameField)?.name || 'Name',
             ),
           };
         }
@@ -65,14 +65,14 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
             secondaryLabelOnNewLine: true,
             value: record.Id,
             meta: record,
-          }))
+          })),
         );
       } catch (ex) {
         logger.warn('Error searching records', ex);
         setRecords([]);
       }
     },
-    [selectedOrg, selectedSObject]
+    [selectedOrg, selectedSObject],
   );
 
   function handleSelection(item: ListItem<string, any>) {

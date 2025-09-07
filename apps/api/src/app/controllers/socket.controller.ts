@@ -68,7 +68,7 @@ export function initSocketServer(
   app: express.Express,
   middlewareFns: {
     sessionMiddleware: express.RequestHandler;
-  }
+  },
 ) {
   const httpServer = createServer(app);
 
@@ -134,7 +134,7 @@ export function initSocketServer(
     logger.debug(
       { socketId: socket.id, userId: session?.user?.id || 'unknown', sessionId: session?.id },
       '[SOCKET][CONNECT] %s',
-      socket.id
+      socket.id,
     );
 
     if (userId) {

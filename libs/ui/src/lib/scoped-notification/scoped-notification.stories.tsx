@@ -21,7 +21,7 @@ export const base = () => (
         light: 'light',
         dark: 'dark',
       },
-      'info'
+      'info',
     )}
   >
     INFO! <a href="#">Click here</a>
@@ -41,7 +41,7 @@ export const customIcon = () => (
         light: 'light',
         dark: 'dark',
       },
-      'info'
+      'info',
     )}
   >
     INFO! <a href="#">Click here</a>
@@ -60,7 +60,7 @@ export const lotsOfContent = () => (
         light: 'light',
         dark: 'dark',
       },
-      'error'
+      'error',
     )}
   >
     <div>

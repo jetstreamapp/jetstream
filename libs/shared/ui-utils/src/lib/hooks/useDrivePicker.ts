@@ -110,7 +110,7 @@ export function useDrivePicker(apiConfig: GoogleApiClientConfig) {
 
       return pickerBuilder;
     },
-    [apiConfig.apiKey, apiConfig.appId, getToken, pickerCallback]
+    [apiConfig.apiKey, apiConfig.appId, getToken, pickerCallback],
   );
 
   return {

@@ -108,7 +108,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allowFromClipboard, setManagedFilename]
+    [allowFromClipboard, setManagedFilename],
   );
 
   useGlobalEventHandler('paste', handlePaste);

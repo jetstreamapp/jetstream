@@ -25,7 +25,7 @@ export function registerNotificationPoller() {
         logger.error('Error checking notifications:', error);
       }
     },
-    1000 * 60 * 60 * 24
+    1000 * 60 * 60 * 24,
   ); // Check every 24 hours
 }
 

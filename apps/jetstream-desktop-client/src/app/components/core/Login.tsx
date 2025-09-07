@@ -32,7 +32,7 @@ export function Login({ children }: LoginProps) {
       }
       setLoggingIn(false);
     },
-    [setUserProfile]
+    [setUserProfile],
   );
 
   const handleLogout = useCallback(() => {

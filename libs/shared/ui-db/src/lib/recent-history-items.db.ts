@@ -77,7 +77,7 @@ async function clearRecentHistoryItemsForAllOrgs() {
 }
 
 async function saveRecentHistoryItem(
-  recentHistoryItem: Pick<RecentHistoryItem, 'key' | 'items' | 'org'> & Partial<Pick<RecentHistoryItem, 'hashedKey' | 'createdAt'>>
+  recentHistoryItem: Pick<RecentHistoryItem, 'key' | 'items' | 'org'> & Partial<Pick<RecentHistoryItem, 'hashedKey' | 'createdAt'>>,
 ) {
   const items = uniqBy(recentHistoryItem.items, 'name')
     .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())

@@ -92,7 +92,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
         org,
         `SELECT ${Array.from(fieldsToQuery).join(', ')} FROM ${sobject.name} WHERE Id = '${recordId}'`,
         isTooling,
-        reload
+        reload,
       );
       if (!isMounted.current) {
         return;

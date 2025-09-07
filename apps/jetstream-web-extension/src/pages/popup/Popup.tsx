@@ -14,7 +14,7 @@ import { initAndRenderReact } from '../../utils/web-extension.utils';
 initAndRenderReact(
   <AppWrapperNotJetstreamOwnedPage>
     <Component />
-  </AppWrapperNotJetstreamOwnedPage>
+  </AppWrapperNotJetstreamOwnedPage>,
 );
 
 export function Component() {

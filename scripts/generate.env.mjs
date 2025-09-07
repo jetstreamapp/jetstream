@@ -28,13 +28,13 @@ if (fs.existsSync(inputFilename)) {
 }
 
 const clientUrl = await question('Are you going to developing on the codebase (determines ports to use)? (y/N) ').then((response) =>
-  (response || '').toLocaleLowerCase() === 'y' ? 'http://localhost:4200/app' : 'http://localhost:3333/app'
+  (response || '').toLocaleLowerCase() === 'y' ? 'http://localhost:4200/app' : 'http://localhost:3333/app',
 );
 
 console.log(chalk.green('Client url set to:'), clientUrl);
 
 const enableExampleUser = await question('Would you like to enable the example user? (Y/n) ').then((response) =>
-  !response || (response || '').toLocaleLowerCase() === 'y' ? 'true' : 'false'
+  !response || (response || '').toLocaleLowerCase() === 'y' ? 'true' : 'false',
 );
 
 const replacements = [
@@ -87,7 +87,7 @@ ${chalk.greenBright(`If you want to enable login with Google, you will need to c
 ${chalk.greenBright(`And populate these values:`)}
 AUTH_GOOGLE_CLIENT_ID
 AUTH_GOOGLE_CLIENT_SECRET
-`)
+`),
 );
 
 fs.writeFileSync(outputFilename, newEnvFile);

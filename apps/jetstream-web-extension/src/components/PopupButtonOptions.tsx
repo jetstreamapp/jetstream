@@ -25,7 +25,7 @@ export function PopupButtonOptions() {
       inactiveSize: buttonInactiveSize,
       activeScale: buttonActiveScale,
     }),
-    [buttonActiveScale, buttonInactiveSize, buttonLocation, buttonOpacity, buttonPosition]
+    [buttonActiveScale, buttonInactiveSize, buttonLocation, buttonOpacity, buttonPosition],
   );
 
   const currentButtonPositionDebounced = useDebounce(currentButtonPosition, 500);

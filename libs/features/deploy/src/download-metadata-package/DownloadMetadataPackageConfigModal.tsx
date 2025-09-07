@@ -55,9 +55,9 @@ export const DownloadMetadataPackageConfigModal: FunctionComponent<DownloadMetad
           packageNames
             .concat(packageNamesStr.replace(SPLIT_LINE_COMMA, ',').split(','))
             .map((item) => item.trim())
-            .filter((item) => !!item)
-        )
-      )
+            .filter((item) => !!item),
+        ),
+      ),
     );
   }
 

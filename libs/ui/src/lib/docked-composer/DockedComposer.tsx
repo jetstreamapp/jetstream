@@ -36,7 +36,7 @@ export const DockedComposer = forwardRef<any, DockedComposerProps>(
       onClose,
       children,
     },
-    ref
+    ref,
   ) => {
     const [isOpen, setIsOpen] = useState(initOpenState);
     const [hasOpened, setHasOpened] = useState(initOpenState);
@@ -125,7 +125,7 @@ export const DockedComposer = forwardRef<any, DockedComposerProps>(
         </section>
       </div>
     );
-  }
+  },
 );
 
 export default DockedComposer;

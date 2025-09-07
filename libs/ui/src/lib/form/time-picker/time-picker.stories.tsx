@@ -26,7 +26,7 @@ export const base = () => (
         Seven: 7,
         Ten: 10,
       },
-      5
+      5,
     )}
     onChange={action('onChange')}
   ></TimePicker>

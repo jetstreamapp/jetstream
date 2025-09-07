@@ -64,11 +64,11 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
               name: item.sObject,
               label: item.sObjectLabel,
               isTooling: item.isTooling === 'true',
-            })
+            }),
           ),
         ]),
     [whichOrg],
-    [] as QueryHistorySelection[]
+    [] as QueryHistorySelection[],
   );
 
   const [isRestoring, setIsRestoring] = useState(false);
@@ -95,20 +95,20 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
       }
       return true;
     },
-    [selectedObject, selectedOrg.uniqueId, sqlFilterValue, whichOrg, whichType]
+    [selectedObject, selectedOrg.uniqueId, sqlFilterValue, whichOrg, whichType],
   );
 
   const queryHistory = useLiveQuery(
     // Since we want to sort by lastRun, we cannot use a normal where clause
     () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).limit(showingUpTo).toArray(),
     [filterRecordsFn, showingUpTo, refreshCounter],
-    [] as QueryHistoryItem[]
+    [] as QueryHistoryItem[],
   );
 
   const totalRecordCount = useLiveQuery(
     () => dexieDb.query_history.orderBy('lastRun').reverse().filter(filterRecordsFn).count(),
     [filterRecordsFn, showingUpTo, refreshCounter],
-    0
+    0,
   );
 
   // reset load more when specific properties changes
@@ -135,7 +135,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
       setFilteredSelectObjectsList(selectObjectsList);
     } else if (sObjectFilterValue) {
       setFilteredSelectObjectsList(
-        selectObjectsList.filter(multiWordObjectFilter(['name', 'label'], sObjectFilterValue, (item) => item.key === SOBJECT_ALL))
+        selectObjectsList.filter(multiWordObjectFilter(['name', 'label'], sObjectFilterValue, (item) => item.key === SOBJECT_ALL)),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

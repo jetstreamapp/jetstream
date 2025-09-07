@@ -19,7 +19,7 @@ describe(' Modal', () => {
         }}
       >
         Test Content
-      </Modal>
+      </Modal>,
     );
     expect(baseElement).toBeTruthy();
   });

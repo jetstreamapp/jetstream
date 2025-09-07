@@ -57,12 +57,12 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
       onSelected,
       onClose,
     },
-    ref
+    ref,
   ) => {
     const comboboxRef = useRef<ComboboxPropsRef>(null);
     const [filterText, setFilterText] = useState<string>('');
     const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-      selectedItemId ? items.find((item) => item.id === selectedItemId) : null
+      selectedItemId ? items.find((item) => item.id === selectedItemId) : null,
     );
     const visibleItems = useFuzzySearchFilter(items, filterText);
     const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
@@ -90,7 +90,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
           comboboxRef.current?.clearInputText();
         },
       }),
-      []
+      [],
     );
 
     useEffect(() => {
@@ -266,11 +266,11 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
             >
               {item.customRenderer(item)}
             </ComboboxListItem>
-          )
+          ),
         )}
       </Combobox>
     );
-  }
+  },
 );
 
 export default ComboboxWithItems;

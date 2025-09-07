@@ -35,7 +35,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
   const [objectPermissionMap, setObjectPermissionMap] = useState<Record<string, ObjectPermissionDefinitionMap> | null>(null);
   const [fieldPermissionMap, setFieldPermissionMap] = useState<Record<string, FieldPermissionDefinitionMap> | null>(null);
   const [tabVisibilityPermissionMap, setTabVisibilityPermissionMap] = useState<Record<string, TabVisibilityPermissionDefinitionMap> | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -67,10 +67,10 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         queryAndCombineResults<FieldPermissionRecord>(selectedOrg, getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds)),
         queryAndCombineResults<TabVisibilityPermissionRecord>(
           selectedOrg,
-          getQueryTabVisibilityPermissions(sobjects, permSetIds, profilePermSetIds)
+          getQueryTabVisibilityPermissions(sobjects, permSetIds, profilePermSetIds),
         ).then((record) => record.map((item) => ({ ...item, Name: item.Name.replace('standard-', '') }))),
         queryAndCombineResults<TabDefinitionRecord>(selectedOrg, getQueryTabDefinition(sobjects), false, true).then((tabs) =>
-          groupByFlat(tabs, 'SobjectName')
+          groupByFlat(tabs, 'SobjectName'),
         ),
       ]).then(([fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
         return {
@@ -83,7 +83,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
             profilePermSetIds,
             permSetIds,
             tabVisibilityPermissions,
-            tabDefinitions
+            tabDefinitions,
           ),
         };
       });
@@ -125,7 +125,7 @@ async function queryAndCombineResults<T>(
   selectedOrg: SalesforceOrgUi,
   queries: string[],
   useOffset = false,
-  isTooling = false
+  isTooling = false,
 ): Promise<T[]> {
   let output: T[] = [];
   for (const currQuery of queries) {
@@ -159,7 +159,7 @@ function getObjectPermissionMap(
   sobjects: string[],
   selectedProfiles: string[],
   selectedPermissionSets: string[],
-  permissions: ObjectPermissionRecord[]
+  permissions: ObjectPermissionRecord[],
 ): Record<string, ObjectPermissionDefinitionMap> {
   const objectPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, ObjectPermissionRecord>>, item) => {
     output[item.SobjectType] = output[item.SobjectType] || {};
@@ -214,7 +214,7 @@ function getFieldPermissionMap(
   fields: EntityParticlePermissionsRecord[],
   selectedProfiles: string[],
   selectedPermissionSets: string[],
-  permissions: FieldPermissionRecord[]
+  permissions: FieldPermissionRecord[],
 ): Record<string, FieldPermissionDefinitionMap> {
   const fieldPermissionsByFieldByParentId = permissions.reduce((output: Record<string, Record<string, FieldPermissionRecord>>, field) => {
     output[field.Field] = output[field.Field] || {};
@@ -263,7 +263,7 @@ function getTabVisibilityPermissionMap(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   permissions: TabVisibilityPermissionRecord[],
-  tabDefinitions: Record<string, TabDefinitionRecord>
+  tabDefinitions: Record<string, TabDefinitionRecord>,
 ): Record<string, TabVisibilityPermissionDefinitionMap> {
   const objectPermissionsByFieldByParentId = permissions.reduce(
     (output: Record<string, Record<string, TabVisibilityPermissionRecord>>, item) => {
@@ -271,7 +271,7 @@ function getTabVisibilityPermissionMap(
       output[item.Name][item.ParentId] = item;
       return output;
     },
-    {}
+    {},
   );
 
   return sobjects.reduce((output: Record<string, TabVisibilityPermissionDefinitionMap>, item) => {

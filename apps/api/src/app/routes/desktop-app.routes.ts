@@ -42,7 +42,7 @@ routes.use(
         upgradeInsecureRequests: [],
       },
     },
-  })
+  }),
 );
 
 const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP);

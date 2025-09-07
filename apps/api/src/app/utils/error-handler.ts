@@ -26,7 +26,7 @@ export class UserFacingError extends Error {
         message.flatten((issue) => ({
           message: `Data Validation error: '${issue.path.join('.')}' is invalid, ${issue.message}`,
           errorCode: issue.code,
-        })).fieldErrors
+        })).fieldErrors,
       );
 
       const formattedMessage = errorDetails

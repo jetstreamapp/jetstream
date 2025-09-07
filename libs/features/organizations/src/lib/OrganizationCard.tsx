@@ -48,7 +48,7 @@ export function OrganizationCard({
         });
       },
     },
-    [id, onMoveOrg]
+    [id, onMoveOrg],
   );
 
   function handleActions(action: 'delete') {

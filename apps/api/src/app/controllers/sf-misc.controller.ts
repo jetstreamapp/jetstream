@@ -47,7 +47,7 @@ const getFrontdoorLoginUrl = createRoute(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 /**
@@ -105,5 +105,5 @@ const salesforceRequestManual = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );

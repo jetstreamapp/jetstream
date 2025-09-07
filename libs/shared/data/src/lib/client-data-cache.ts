@@ -51,7 +51,7 @@ export async function getCacheItemHttp<T>(
   config: AxiosRequestConfig,
   org?: SalesforceOrgUi,
   useQueryParamsInCacheKey?: boolean,
-  useBodyInCacheKey?: boolean
+  useBodyInCacheKey?: boolean,
 ): Promise<CacheItemWithData<T> | null> {
   try {
     const orgId = org?.uniqueId || 'unset';
@@ -102,7 +102,7 @@ export async function saveCacheItemHttp<T>(
   config: AxiosRequestConfig,
   org?: SalesforceOrgUi,
   useQueryParamsInCacheKey?: boolean,
-  useBodyInCacheKey?: boolean
+  useBodyInCacheKey?: boolean,
 ): Promise<CacheItemWithData<T> | undefined> {
   try {
     const orgId = org?.uniqueId || 'unset';
@@ -164,7 +164,7 @@ function getCacheKeyForHttp(config: AxiosRequestConfig, useQueryParamsInCacheKey
       Object.keys(config.params)
         .sort()
         .map((key) => `${key}=${config.params[key]}`)
-        .join('|')
+        .join('|'),
     );
   }
   if (useBodyInCacheKey && config.data) {

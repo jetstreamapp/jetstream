@@ -75,7 +75,7 @@ export function useDeployMetadataBetweenOrgs(
   sourceOrg: SalesforceOrgUi,
   destinationOrg: SalesforceOrgUi,
   selectedMetadata: Record<string, ListMetadataResult[]>,
-  deployOptions: DeployOptions
+  deployOptions: DeployOptions,
 ) {
   const isMounted = useRef(true);
 

@@ -87,7 +87,7 @@ export function getRowId(data: any): string {
  */
 export function getColumnsForGenericTable(
   headers: { label: string; key: string; columnProps?: Partial<ColumnWithFilter<RowWithKey>>; type?: ColumnType }[],
-  defaultFilters: FilterType[] = ['TEXT', 'SET']
+  defaultFilters: FilterType[] = ['TEXT', 'SET'],
 ): ColumnWithFilter<RowWithKey>[] {
   return headers.map(({ label, key, columnProps, type }) => {
     const column: Mutable<ColumnWithFilter<RowWithKey>> = {
@@ -122,7 +122,7 @@ export function getColumnDefinitions(
   results: QueryResults<any>,
   isTooling: boolean,
   fieldMetadata?: Maybe<Record<string, Field>>,
-  fieldMetadataSubquery?: Maybe<Record<string, Record<string, Field>>>
+  fieldMetadataSubquery?: Maybe<Record<string, Record<string, Field>>>,
 ): SalesforceQueryColumnDefinition<any> {
   // if we have id, include record actions
   const includeRecordActions =
@@ -160,7 +160,7 @@ export function getColumnDefinitions(
   // If there is a FIELDS('') clause in the query, then we know the data will not be shown
   // in this case, fall back to Salesforce column data instead of the query results
   const hasFieldsQuery = results.parsedQuery?.fields?.some(
-    (field) => field.type === 'FieldFunctionExpression' && field.functionName === 'FIELDS'
+    (field) => field.type === 'FieldFunctionExpression' && field.functionName === 'FIELDS',
   );
   if (results.parsedQuery && hasFieldsQuery) {
     results.parsedQuery.fields = results.columns?.columns?.map((column) => getField(column.columnFullPath));
@@ -168,7 +168,7 @@ export function getColumnDefinitions(
 
   // Base fields
   const parentColumns: ColumnWithFilter<RowWithKey>[] = getFlattenedFields(results.parsedQuery || {}).map((field, i) =>
-    getQueryResultColumn({ field, queryColumnsByPath, isSubquery: isFieldSubquery(results.parsedQuery?.[i]), fieldMetadata })
+    getQueryResultColumn({ field, queryColumnsByPath, isSubquery: isFieldSubquery(results.parsedQuery?.[i]), fieldMetadata }),
   );
 
   // set checkbox as first column
@@ -207,7 +207,7 @@ export function getColumnDefinitions(
           isSubquery: false,
           allowEdit: false,
           fieldMetadata: fieldMetadataSubquery?.[field],
-        })
+        }),
       );
     });
 
@@ -415,7 +415,7 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
 export function updateColumnWithEditMode(
   column: Mutable<ColumnWithFilter<any>>,
   { updatable, booleanType, apexType, columnName }: QueryResultsColumn,
-  fieldMetadata: Maybe<Record<string, Field>> = {}
+  fieldMetadata: Maybe<Record<string, Field>> = {},
 ) {
   column.editable = false;
   fieldMetadata = fieldMetadata || {};
@@ -743,7 +743,7 @@ export const TABLE_CONTEXT_MENU_ITEMS: ContextMenuItem<ContextAction>[] = [
 export function copySalesforceRecordTableDataToClipboard(
   action: ContextAction,
   fields: string[],
-  { row, rows, column, columns }: ContextMenuActionData<RowWithKey>
+  { row, rows, column, columns }: ContextMenuActionData<RowWithKey>,
 ) {
   let includeHeader = true;
   let recordsToCopy: unknown[] = [];

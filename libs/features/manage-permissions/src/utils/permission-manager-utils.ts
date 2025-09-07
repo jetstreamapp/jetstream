@@ -67,7 +67,7 @@ export function prepareObjectPermissionSaveData(dirtyPermissions: PermissionTabl
         recordsToDelete: string[];
       },
       perm,
-      i
+      i,
     ) => {
       const newRecord: ObjectPermissionRecordForSave = {
         attributes: { type: 'ObjectPermissions' },
@@ -100,7 +100,7 @@ export function prepareObjectPermissionSaveData(dirtyPermissions: PermissionTabl
 
       return output;
     },
-    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] }
+    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] },
   );
 }
 
@@ -115,7 +115,7 @@ export function prepareFieldPermissionSaveData(dirtyPermissions: PermissionTable
         recordsToDelete: string[];
       },
       perm,
-      i
+      i,
     ) => {
       const newRecord: FieldPermissionRecordForSave = {
         attributes: { type: 'FieldPermissions' },
@@ -145,12 +145,12 @@ export function prepareFieldPermissionSaveData(dirtyPermissions: PermissionTable
 
       return output;
     },
-    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] }
+    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] },
   );
 }
 
 export function prepareTabVisibilityPermissionSaveData(
-  dirtyPermissions: PermissionTableTabVisibilityCellPermission[]
+  dirtyPermissions: PermissionTableTabVisibilityCellPermission[],
 ): PermissionTabVisibilitySaveData {
   return dirtyPermissions.reduce(
     (
@@ -162,7 +162,7 @@ export function prepareTabVisibilityPermissionSaveData(
         recordsToDelete: string[];
       },
       perm,
-      i
+      i,
     ) => {
       let newRecord: TabVisibilityPermissionRecordForSave | undefined = undefined;
       let recordIdx: number;
@@ -201,7 +201,7 @@ export function prepareTabVisibilityPermissionSaveData(
 
       return output;
     },
-    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] }
+    { permissionSaveResults: [], recordsToInsert: [], recordsToUpdate: [], recordsToDelete: [] },
   );
 }
 
@@ -213,7 +213,7 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
     recordsToInsert: RecordType[];
     recordsToUpdate: RecordType[];
     recordsToDelete: string[];
-  }
+  },
 ): Promise<PermissionSaveResults<RecordType, DirtyPermType>[]> {
   const { permissionSaveResults, recordsToInsert, recordsToUpdate, recordsToDelete } = preparedData;
   let recordInsertResults: RecordResult[] = [];
@@ -222,21 +222,25 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
   if (recordsToInsert.length) {
     recordInsertResults = (
       await Promise.all(
-        splitArrayToMaxSize(recordsToInsert, 200).map((records) => sobjectOperation(org, type, 'create', { records }, { allOrNone: false }))
+        splitArrayToMaxSize(recordsToInsert, 200).map((records) =>
+          sobjectOperation(org, type, 'create', { records }, { allOrNone: false }),
+        ),
       )
     ).flat();
   }
   if (recordsToUpdate.length) {
     recordUpdateResults = (
       await Promise.all(
-        splitArrayToMaxSize(recordsToUpdate, 200).map((records) => sobjectOperation(org, type, 'update', { records }, { allOrNone: false }))
+        splitArrayToMaxSize(recordsToUpdate, 200).map((records) =>
+          sobjectOperation(org, type, 'update', { records }, { allOrNone: false }),
+        ),
       )
     ).flat();
   }
   if (recordsToDelete.length) {
     recordDeleteResults = (
       await Promise.all(
-        splitArrayToMaxSize(recordsToDelete, 200).map((ids) => sobjectOperation(org, type, 'delete', { ids }, { allOrNone: false }))
+        splitArrayToMaxSize(recordsToDelete, 200).map((ids) => sobjectOperation(org, type, 'delete', { ids }, { allOrNone: false })),
       )
     ).flat();
   }
@@ -263,7 +267,7 @@ export async function savePermissionRecords<RecordType, DirtyPermType>(
  */
 export async function updatePermissionSetRecords(
   org: SalesforceOrgUi,
-  { profileIds, permissionSetIds }: { profileIds: string[]; permissionSetIds: string[] }
+  { profileIds, permissionSetIds }: { profileIds: string[]; permissionSetIds: string[] },
 ) {
   await Promise.all([
     ...splitArrayToMaxSize(
@@ -271,7 +275,7 @@ export async function updatePermissionSetRecords(
         attributes: { type: 'Profile' },
         Id: id,
       })),
-      200
+      200,
     ).map((records) => {
       if (records.length === 0) {
         return Promise.resolve();
@@ -283,7 +287,7 @@ export async function updatePermissionSetRecords(
         attributes: { type: 'PermissionSet' },
         Id: id,
       })),
-      200
+      200,
     ).map((records) => {
       if (records.length === 0) {
         return Promise.resolve();
@@ -296,7 +300,7 @@ export async function updatePermissionSetRecords(
 export function collectProfileAndPermissionIds(
   dirtyPermissions: PermissionTableCellPermission[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
-  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
 ) {
   const profileIds = new Set<string>();
   const permissionSetIds = new Set<string>();
@@ -316,7 +320,7 @@ export function collectProfileAndPermissionIds(
  */
 export function getUpdatedObjectPermissions(
   objectPermissionMap: Record<string, ObjectPermissionDefinitionMap>,
-  permissionSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[]
+  permissionSaveResults: PermissionSaveResults<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>[],
 ) {
   const output: Record<string, ObjectPermissionDefinitionMap> = { ...objectPermissionMap };
   // remove all error messages across all objects
@@ -396,7 +400,7 @@ export function getUpdatedObjectPermissions(
                 // (field not detectable in advance): Field Name: bad value for restricted picklist field: X.X
                 err.statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'
                   ? 'Salesforce does not allow modification of permissions for this field.'
-                  : err.message
+                  : err.message,
               )
               .join('\n'),
           },
@@ -413,7 +417,7 @@ export function getUpdatedObjectPermissions(
  */
 export function getUpdatedFieldPermissions(
   fieldPermissionMap: Record<string, FieldPermissionDefinitionMap>,
-  permissionSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[]
+  permissionSaveResults: PermissionSaveResults<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>[],
 ) {
   const output: Record<string, FieldPermissionDefinitionMap> = { ...fieldPermissionMap };
   // remove all error messages across all objects
@@ -482,7 +486,7 @@ export function getUpdatedFieldPermissions(
                 // (field not detectable in advance): Field Name: bad value for restricted picklist field: X.X
                 err.statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'
                   ? 'Salesforce does not allow modification of permissions for this field.'
-                  : err.message
+                  : err.message,
               )
               .join('\n'),
           },
@@ -495,7 +499,7 @@ export function getUpdatedFieldPermissions(
 
 export function getUpdatedTabVisibilityPermissions(
   objectPermissionMap: Record<string, TabVisibilityPermissionDefinitionMap>,
-  permissionSaveResults: PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[]
+  permissionSaveResults: PermissionSaveResults<TabVisibilityPermissionRecordForSave, PermissionTableTabVisibilityCellPermission>[],
 ) {
   const output: Record<string, TabVisibilityPermissionDefinitionMap> = { ...objectPermissionMap };
   // remove all error messages across all objects
@@ -563,7 +567,7 @@ export function getUpdatedTabVisibilityPermissions(
                 // (field not detectable in advance): Field Name: bad value for restricted picklist field: X.X
                 err.statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'
                   ? 'Salesforce does not allow modification of permissions for this field.'
-                  : err.message
+                  : err.message,
               )
               .join('\n'),
           },
@@ -755,7 +759,7 @@ export function getQueryTabVisibilityPermissions(allSobjects: string[], permSetI
         sobjects.map((sobject) => (sobject.endsWith('__c') ? sobject : `standard-${sobject}`)),
         permSetIds,
         profilePermSetIds,
-        'Name'
+        'Name',
       ),
       orderBy: {
         field: 'Name',
@@ -808,7 +812,7 @@ function getWhereClauseForPermissionQuery(
   sobjects: string[],
   profilePermSetIds: string[],
   permSetIds: string[],
-  sobjectNameField: 'SobjectType' | 'Name' = 'SobjectType'
+  sobjectNameField: 'SobjectType' | 'Name' = 'SobjectType',
 ): WhereClause | undefined {
   if (!sobjects.length || (!permSetIds.length && !profilePermSetIds.length)) {
     return undefined;

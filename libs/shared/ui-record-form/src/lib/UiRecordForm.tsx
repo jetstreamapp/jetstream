@@ -57,7 +57,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
       }
       if (limitToRequired) {
         visibleFields = visibleFields.filter(
-          (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable
+          (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable,
         );
       }
       if (limitToErrorFields) {

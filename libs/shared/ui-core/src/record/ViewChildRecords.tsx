@@ -172,7 +172,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         name: 'Created',
       },
     ],
-    [selectedOrg, serverUrl, skipFrontDoorAuth]
+    [selectedOrg, serverUrl, skipFrontDoorAuth],
   );
 
   const fetchChildRecords = useCallback(
@@ -184,11 +184,11 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         // Some child objects are missing basic fields like Name and CreatedDate, and others are not queryable
         // This fetches all the fields so the subqueries can be constructed with valid fields
         const fields = ['Id', 'Name', 'CreatedDate', 'CreatedById', 'LastModifiedDate', 'LastModifiedById'].concat(
-          Array.from(new Set(Object.values(SOBJECT_NAME_FIELD_MAP)))
+          Array.from(new Set(Object.values(SOBJECT_NAME_FIELD_MAP))),
         );
         const entityParticleQueries = splitArrayToMaxSize(
           Array.from(new Set(childRelationships.map((item) => item.childSObject).filter((sobject) => !DISALLOWED_OBJECTS.has(sobject)))),
-          50
+          50,
         ).map((childRelationshipObjects) =>
           composeQuery({
             sObject: 'EntityDefinition',
@@ -227,7 +227,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
                 },
               },
             },
-          })
+          }),
         );
 
         const entityQueryResults = await queryAllFromList<{
@@ -242,7 +242,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
           .filter((item) => item.relationshipName && queryResultsByObject[item.childSObject]?.Fields?.records.length)
           .map((childRelationship) => {
             const fields = new Set(
-              queryResultsByObject[childRelationship.childSObject]?.Fields?.records?.map?.((record) => record.QualifiedApiName) || []
+              queryResultsByObject[childRelationship.childSObject]?.Fields?.records?.map?.((record) => record.QualifiedApiName) || [],
             );
             if (fields.has('CreatedById')) {
               fields.add('CreatedBy.Name');
@@ -303,7 +303,7 @@ export const ViewChildRecords: FunctionComponent<ViewChildRecordsProps> = ({
         setLoading(false);
       }
     },
-    [childRelationships, onChildrenData, parentRecordId, selectedOrg, sobjectName, trackEvent]
+    [childRelationships, onChildrenData, parentRecordId, selectedOrg, sobjectName, trackEvent],
   );
 
   useEffect(() => {

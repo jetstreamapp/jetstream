@@ -44,7 +44,7 @@ function getInitialValue(initialValue: string | boolean | null, field: EditableF
 function getInitialModifiedValue(
   modifiedValue: string | boolean | null,
   initialValue: string | boolean | string[] | null,
-  field: EditableFields
+  field: EditableFields,
 ) {
   if (modifiedValue !== null && modifiedValue !== undefined) {
     return getInitialValue(modifiedValue, field);
@@ -125,7 +125,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
 
   function checkIfDirty(
     isDirty: boolean,
-    valueOverride?: string | string[] | boolean | null
+    valueOverride?: string | string[] | boolean | null,
   ): { value: string | boolean | null; isDirty: boolean } {
     const priorDirtyValue = isDirty;
     let newDirtyValue = isDirty;

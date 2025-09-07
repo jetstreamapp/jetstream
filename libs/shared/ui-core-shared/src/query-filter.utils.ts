@@ -262,7 +262,7 @@ export function getFieldSelectItems(field: Field): ListItem<string, any>[] {
 export function ensureFieldSelectItemsIncludesSelectionsFromRestore(
   field: Field,
   listItems: ListItem<string, any>[],
-  value: string | string[]
+  value: string | string[],
 ) {
   switch (field.type) {
     case 'picklist':
@@ -280,7 +280,7 @@ export function ensureFieldSelectItemsIncludesSelectionsFromRestore(
 
 export function getFieldResourceTypes(
   field: Field,
-  operator: Maybe<QueryFilterOperator>
+  operator: Maybe<QueryFilterOperator>,
 ): ListItem<ExpressionRowValueType, any>[] | undefined {
   if (!operator) {
     return;

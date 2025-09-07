@@ -59,7 +59,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
       getContent,
       onSelected,
     },
-    ref: RefObject<HTMLUListElement>
+    ref: RefObject<HTMLUListElement>,
   ) => {
     const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const [didScrollIntoView, setDidScrollIntoView] = useState(false);
@@ -221,7 +221,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
         )}
       </Fragment>
     );
-  }
+  },
 );
 
 export default List;

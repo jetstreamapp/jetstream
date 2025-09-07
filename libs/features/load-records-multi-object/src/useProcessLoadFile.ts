@@ -133,7 +133,7 @@ export const useValidateLoadFile = (org: SalesforceOrgUi, apiVersion: string, op
         }
       }
     },
-    [org]
+    [org],
   );
 
   return { processFile, reset, loading, data: dataGraph, errors };

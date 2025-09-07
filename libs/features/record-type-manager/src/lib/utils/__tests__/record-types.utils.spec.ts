@@ -105,7 +105,7 @@ describe('getObjectWithRecordTypesXml', () => {
         generateRecordTypeXml(TEST_DATA['Contact.Record_Type_1']),
         generateRecordTypeXml(TEST_DATA['Contact.Record_Type_2']),
         `</CustomObject>`,
-      ].join('')
+      ].join(''),
     );
   });
 });

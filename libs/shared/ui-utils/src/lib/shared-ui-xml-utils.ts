@@ -70,7 +70,7 @@ function serializeXml(doc: XMLDocument): string {
   </xsl:template>
   <xsl:output indent="yes"/>
 </xsl:stylesheet>`,
-    'application/xml'
+    'application/xml',
   );
 
   const xsltProcessor = new XSLTProcessor();

@@ -59,7 +59,7 @@ export interface LoadRecordsSelectObjectAndFileProps {
     headers: string[],
     filename: string,
     inputFileType: LocalOrGoogle,
-    googleFile?: Maybe<google.picker.DocumentObject>
+    googleFile?: Maybe<google.picker.DocumentObject>,
   ) => void;
   onZipFileChange: (data: ArrayBuffer, filename: string) => void;
   onLoadTypeChange: (type: InsertUpdateUpsertDelete) => void;

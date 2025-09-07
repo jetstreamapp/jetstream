@@ -38,7 +38,7 @@ export const CheckboxButton: FunctionComponent<CheckboxButtonProps> = ({
           'slds-checkbox-button_is-checked': checked,
           'slds-checkbox-button_is-disabled': disabled,
         },
-        className
+        className,
       )}
       htmlFor={id}
     >

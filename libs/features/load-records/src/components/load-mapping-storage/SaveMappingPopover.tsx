@@ -34,9 +34,9 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
     () =>
       Object.values(fieldMapping).some(
         (fieldMappingItem) =>
-          fieldMappingItem.isDuplicateMappedField || (fieldMappingItem.mappedToLookup && !fieldMappingItem.relatedFieldMetadata)
+          fieldMappingItem.isDuplicateMappedField || (fieldMappingItem.mappedToLookup && !fieldMappingItem.relatedFieldMetadata),
       ),
-    [fieldMapping]
+    [fieldMapping],
   );
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
           acc.mapping[key] = omit({ ...field }, 'fieldMetadata');
         }
         return acc;
-      }, getDefaultItem(sobject))
+      }, getDefaultItem(sobject)),
     );
   }, [fieldMapping, sobject]);
 

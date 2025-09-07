@@ -23,7 +23,7 @@ test('changing checkbox should change active item', async () => {
         checked={activeValue === 'radio2'}
         onChange={(value) => (activeValue = value)}
       />
-    </RadioGroup>
+    </RadioGroup>,
   );
 
   expect(screen.getByRole('radio', { checked: true }).getAttribute('value')).toEqual('radio1');
@@ -48,7 +48,7 @@ test('changing checkbox should change active item', async () => {
         checked={activeValue === 'radio2'}
         onChange={(value) => (activeValue = value)}
       />
-    </RadioGroup>
+    </RadioGroup>,
   );
 
   expect(screen.getByRole('radio', { checked: true }).getAttribute('value')).toEqual('radio2');

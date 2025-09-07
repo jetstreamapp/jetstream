@@ -27,7 +27,7 @@ export const singleSelection = () => (
         Seven: 7,
         Ten: 10,
       },
-      5
+      5,
     )}
     items={[
       { id: 'item1', label: 'Apple', value: 'item1' },
@@ -60,7 +60,7 @@ export const singleSelectionWithExistingSelection = () => {
           Seven: 7,
           Ten: 10,
         },
-        5
+        5,
       )}
       items={[
         item1,
@@ -93,7 +93,7 @@ export const singleSelectionRequireSelection = () => (
         Seven: 7,
         Ten: 10,
       },
-      5
+      5,
     )}
     items={[
       { id: 'item1', label: 'Item 1', value: 'item1' },
@@ -124,7 +124,7 @@ export const multiSelection = () => (
         Seven: 7,
         Ten: 10,
       },
-      5
+      5,
     )}
     items={[
       { id: 'item1', label: 'Item 1', value: 'item1' },
