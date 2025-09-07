@@ -856,7 +856,7 @@ export function getExcelSafeSheetName(name: string, existingNames: string[] = []
 
 // https://stackoverflow.com/questions/53228948/how-to-get-image-file-size-from-base-64-string-in-javascript
 export function getSizeInMbFromBase64(data: string) {
-  if (!data) {
+  if (!data || !isString(data) || !data.length) {
     return 0;
   }
   const padding = data.endsWith('==') ? 2 : 1;
