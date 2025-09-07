@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
 import { generateCsv } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorStack, getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
@@ -301,8 +301,8 @@ async function getBatchApiBatches({
           binaryBodyField,
           filePath: _record[binaryBodyField],
           record: _record,
+          stackTrace: getErrorStack(ex),
         });
-        logger.error(ex);
         failedRecords.push(_record);
       }
 
