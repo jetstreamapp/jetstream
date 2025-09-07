@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/landing",
   "projectType": "application",
+  "tags": ["scope:browser"],
   "targets": {
     "test": {
       "executor": "@nx/jest:jest",
@@ -11,6 +12,5 @@
         "jestConfig": "apps/landing/jest.config.ts"
       }
     }
-  },
-  "tags": ["scope:browser"]
+  }
 }
