@@ -6728,10 +6728,10 @@
     "@types/yargs" "^17.0.8"
     chalk "^4.0.0"
 
-"@jetstreamapp/soql-parser-js@^6.2.0":
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/@jetstreamapp/soql-parser-js/-/soql-parser-js-6.2.0.tgz#1f27bff6f35dea7539403332827bd4c66d1f8756"
-  integrity sha512-669dCd5VMFPyRH155CBa0i8NH9MgANAL25wB3MJu1maYKjPbLiNFn57S2GrT+2MSw7VtzNx4JYSsYgWThjfhsQ==
+"@jetstreamapp/soql-parser-js@^6.2.4":
+  version "6.2.4"
+  resolved "https://registry.yarnpkg.com/@jetstreamapp/soql-parser-js/-/soql-parser-js-6.2.4.tgz#06ea0b89ee24e111a7194f108d999004ebe5c071"
+  integrity sha512-5iSYs8uVQ0bVvur8S4YHmJBK6tKC+3w94S6PfW8Rcv6zgjrNlpb5dfqFj3bv0wJWkTMc+i0l6QIdT9LqxPUZsA==
   dependencies:
     chevrotain "^11.0.3"
     commander "^2.20.3"
@@ -9816,10 +9816,10 @@
     argparse "~1.0.9"
     string-argv "~0.3.1"
 
-"@salesforce-ux/design-system@^2.26.1":
-  version "2.26.1"
-  resolved "https://registry.yarnpkg.com/@salesforce-ux/design-system/-/design-system-2.26.1.tgz#304ebaa8be8dd4eb99e889868366e0d31fe71da3"
-  integrity sha512-dg9sF7FfgLCiSqalM3NrKtmJyw57H/DKKf7eID5+60eNa8fFrxG5WVlCbMaQmF8+VPXrr9P5fZhk8dJaP2RjdQ==
+"@salesforce-ux/design-system@^2.28.0":
+  version "2.28.0"
+  resolved "https://registry.yarnpkg.com/@salesforce-ux/design-system/-/design-system-2.28.0.tgz#0e23161a15a3f349aacdbabc2f04b234efc719f4"
+  integrity sha512-UN0n5pesgOh9QhhVsQHGLn2R49E5JMyAHnZYr65s5ILtxZVVsFfaLyoHl+LknltjR7RfBZ4cmIbUWexhAip9VA==
 
 "@sec-ant/readable-stream@^0.4.1":
   version "0.4.1"
@@ -25990,10 +25990,10 @@ prettier-plugin-prisma@^3.1.1:
   dependencies:
     "@prisma/prisma-fmt-wasm" "3.14.0-36.2b0c12756921c891fec4f68d9444e18c7d5d4a6a"
 
-prettier@2.7.0:
-  version "2.7.0"
-  resolved "https://registry.npmjs.org/prettier/-/prettier-2.7.0.tgz"
-  integrity sha512-nwoX4GMFgxoPC6diHvSwmK/4yU8FFH3V8XWtLQrbj4IBsK2pkYhG4kf/ljF/haaZ/aii+wNJqISrCDPgxGWDVQ==
+prettier@^3.6.2:
+  version "3.6.2"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.6.2.tgz#ccda02a1003ebbb2bfda6f83a074978f608b9393"
+  integrity sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==
 
 pretty-error@^4.0.0:
   version "4.0.0"
