@@ -172,7 +172,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           title="Reset all filters"
           css={css`
             position: absolute;
-            background-color: #ba0517;
+            background-color: var(--slds-g-color-error-base-30, #ba0517);
             top: -0.8rem;
             right: -0.5rem;
             border-radius: 50%;

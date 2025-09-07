@@ -243,7 +243,7 @@ export const Popover = ({
                   }
                   ${containerClassName?.includes('_error') &&
                   `&::before {
-              background-color: #ba0517;
+              background-color: var(--slds-g-color-error-base-30, #ba0517);
             }`}
                   ${containerClassName?.includes('_warning') &&
                   `&::before {
