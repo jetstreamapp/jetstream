@@ -128,18 +128,14 @@ export const Popover = ({
   /**
    * Allows a parent component to open or close
    */
-  useImperativeHandle(
-    ref,
-    () => {
-      return {
-        toggle: () => setIsOpen((prev) => !prev),
-        open: () => setIsOpen(true),
-        close: () => setIsOpen(false),
-        isOpen: () => isOpen,
-      };
-    },
-    [isOpen]
-  );
+  useImperativeHandle(ref, () => {
+    return {
+      toggle: () => setIsOpen((prev) => !prev),
+      open: () => setIsOpen(true),
+      close: () => setIsOpen(false),
+      isOpen: () => isOpen,
+    };
+  }, [isOpen]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);

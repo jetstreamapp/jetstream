@@ -7,7 +7,7 @@ import { z } from 'zod';
 export type Request<
   Params extends Record<string, string> | unknown = Record<string, string>,
   ReqBody = unknown,
-  Query extends Record<string, string | undefined> | unknown = Record<string, string | undefined>
+  Query extends Record<string, string | undefined> | unknown = Record<string, string | undefined>,
 > = ExpressRequest<Params, unknown, ReqBody, Query> & { log: pino.Logger };
 
 export type Response<ResBody = unknown> = ExpressResponse<ResBody> & { log: pino.Logger };

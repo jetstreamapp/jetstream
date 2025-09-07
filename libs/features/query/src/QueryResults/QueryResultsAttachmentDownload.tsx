@@ -84,21 +84,24 @@ function getFile(selectedOrg: SalesforceOrgUi, sobjectName: string, record: Sale
 
 function getFileNamesWithoutDuplicates(org: SalesforceOrgUi, sobjectName: string, records: SalesforceRecord[]): DownZipFile[] {
   return Object.values(
-    records.reduce((acc, record) => {
-      const file = getFile(org, sobjectName, record);
-      let fileName = file.name;
-      const [fileNameWithoutExt, fileExtension] = splitFilenameByExtension(file.name);
-      if (acc[file.name]) {
-        let counter = 1;
-        while (acc[`${fileNameWithoutExt} (${counter})${fileExtension}`]) {
-          counter++;
+    records.reduce(
+      (acc, record) => {
+        const file = getFile(org, sobjectName, record);
+        let fileName = file.name;
+        const [fileNameWithoutExt, fileExtension] = splitFilenameByExtension(file.name);
+        if (acc[file.name]) {
+          let counter = 1;
+          while (acc[`${fileNameWithoutExt} (${counter})${fileExtension}`]) {
+            counter++;
+          }
+          fileName = `${fileNameWithoutExt} (${counter})${fileExtension}`;
+          file.name = fileName;
         }
-        fileName = `${fileNameWithoutExt} (${counter})${fileExtension}`;
-        file.name = fileName;
-      }
-      acc[fileName] = file;
-      return acc;
-    }, {} as Record<string, DownZipFile>)
+        acc[fileName] = file;
+        return acc;
+      },
+      {} as Record<string, DownZipFile>
+    )
   );
 }
 

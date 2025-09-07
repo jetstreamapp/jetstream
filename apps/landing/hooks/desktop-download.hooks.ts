@@ -24,7 +24,7 @@ export function useDesktopDownloads() {
   const userProfile = useUserProfile();
   const [state, setState] = useState<DownloadState>(() => {
     // Initialize with cache if available and user is logged in
-    if (userProfile.isLoggedIn && downloadCache && (Date.now() - downloadCache.timestamp) < CACHE_DURATION) {
+    if (userProfile.isLoggedIn && downloadCache && Date.now() - downloadCache.timestamp < CACHE_DURATION) {
       return downloadCache.data;
     }
     // If user is logged in but no cache, start with loading
@@ -42,7 +42,7 @@ export function useDesktopDownloads() {
     }
 
     // Check cache first
-    if (downloadCache && (Date.now() - downloadCache.timestamp) < CACHE_DURATION) {
+    if (downloadCache && Date.now() - downloadCache.timestamp < CACHE_DURATION) {
       setState(downloadCache.data);
       return;
     }
@@ -113,25 +113,27 @@ export function useDetectPlatform() {
         os = 'windows';
       } else if (userAgent.includes('mac')) {
         os = 'macos';
-        
+
         // Improved ARM detection for Apple Silicon
         // Check for modern Safari on macOS which typically indicates Apple Silicon
         const isSafari = userAgent.includes('safari') && !userAgent.includes('chrome');
         const macOSVersion = userAgent.match(/mac os x (\d+)[._](\d+)/);
-        
+
         // Apple Silicon detection strategies:
         // 1. Check for ARM in user agent (rare but sometimes present)
         // 2. Check screen properties that might indicate Apple Silicon
         // 3. Use newer APIs if available
-        if (userAgent.includes('arm64') || 
-            userAgent.includes('apple m1') || 
-            userAgent.includes('apple m2') ||
-            userAgent.includes('apple m3')) {
+        if (
+          userAgent.includes('arm64') ||
+          userAgent.includes('apple m1') ||
+          userAgent.includes('apple m2') ||
+          userAgent.includes('apple m3')
+        ) {
           arch = 'arm64';
         } else if (macOSVersion) {
           const majorVersion = parseInt(macOSVersion[1], 10);
           const minorVersion = parseInt(macOSVersion[2], 10);
-          
+
           // macOS 11+ with Safari and high screen density often indicates Apple Silicon
           if (majorVersion >= 11 && isSafari && window.devicePixelRatio >= 2) {
             // This is a heuristic - newer macOS with Retina display and Safari
@@ -139,17 +141,20 @@ export function useDetectPlatform() {
             arch = 'arm64';
           }
         }
-        
+
         // Additional check: try to use the newer navigator.userAgentData API if available
         if ('userAgentData' in navigator && (navigator as any).userAgentData?.getHighEntropyValues) {
           try {
-            (navigator as any).userAgentData.getHighEntropyValues(['architecture']).then((values: any) => {
-              if (values.architecture === 'arm') {
-                setPlatform({ os: 'macos', arch: 'arm64' });
-              }
-            }).catch(() => {
-              // Ignore errors, fallback to current detection
-            });
+            (navigator as any).userAgentData
+              .getHighEntropyValues(['architecture'])
+              .then((values: any) => {
+                if (values.architecture === 'arm') {
+                  setPlatform({ os: 'macos', arch: 'arm64' });
+                }
+              })
+              .catch(() => {
+                // Ignore errors, fallback to current detection
+              });
           } catch {
             // Ignore errors, fallback to current detection
           }

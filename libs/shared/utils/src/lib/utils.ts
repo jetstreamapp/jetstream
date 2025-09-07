@@ -144,7 +144,7 @@ export function orderObjectsBy<T>(items: T[], fields: keyof T | Array<keyof T>, 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fields = Array.isArray(fields) ? fields : [fields];
   order = Array.isArray(order) ? order : [order];
-  const orderByItereeFn = fields.map((field) => (item: T) => isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);
+  const orderByItereeFn = fields.map((field) => (item: T) => (isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]));
   return orderBy(items, orderByItereeFn, order);
 }
 
