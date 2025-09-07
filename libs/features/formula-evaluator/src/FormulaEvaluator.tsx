@@ -43,10 +43,6 @@ import type { editor } from 'monaco-editor';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import { FormulaEvaluatorDeployModal } from './deploy/FormulaEvaluatorDeployModal';
 
-// Lazy import
-const prettier = import('prettier/standalone');
-const prettierBabelParser = import('prettier/parser-babel');
-
 window.addEventListener('unhandledrejection', function (event) {
   console.log('unhandledrejection', event);
 });
@@ -233,13 +229,16 @@ export const FormulaEvaluator: FunctionComponent<FormulaEvaluatorProps> = () => 
 
   const handleFormat = async (value = formulaValue) => {
     try {
-      if (!editorRef.current || !formulaValue) {
+      if (!editorRef.current || !value) {
         return;
       }
+      const prettier = await import('prettier/standalone');
+      const prettierPluginBabel = await import('prettier/plugins/babel');
+      const prettierPluginEstree = await import('prettier/plugins/estree');
       editorRef.current.setValue(
-        (await prettier).format(formulaValue, {
+        await prettier.format(value, {
           parser: 'babel',
-          plugins: [await prettierBabelParser],
+          plugins: [prettierPluginBabel, prettierPluginEstree as any],
           bracketSpacing: false,
           semi: false,
           singleQuote: true,

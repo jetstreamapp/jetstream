@@ -57,10 +57,10 @@ function getFieldListItems(fields: FieldWithRelatedEntities[]) {
             )}
           </Grid>
         </span>
-        <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-          <span title={item.value} className="slds-truncate">
+        <span className="slds-listbox__option-meta">
+          <div title={item.value} className="slds-truncate">
             {item.value}
-          </span>
+          </div>
         </span>
       </>
     ),

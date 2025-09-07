@@ -184,7 +184,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     // store keys user typed in so that if typing triggered open, we can ensure input is set to this value
     const inputBuffer = useRef('');
     const popoverRef = useRef<HTMLDivElement | null>(null);
-    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [isOpen, setIsOpen] = useState<boolean>(true);
     const [id] = useState<string>(uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
     const [value, setValue] = useState<string>(selectedItemLabel || '');

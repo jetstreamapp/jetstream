@@ -64,8 +64,10 @@ export const PicklistItem = forwardRef<HTMLLIElement, PicklistItemProps>(
             {label && secondaryLabel && secondaryLabelOnNewLine && (
               <Fragment>
                 <div className="slds-listbox__option-text slds-listbox__option-text_entity">{label}</div>
-                <div className="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate" title={secondaryLabel}>
-                  {secondaryLabel}
+                <div className="slds-listbox__option-meta">
+                  <div title={secondaryLabel} className="slds-truncate">
+                    {secondaryLabel}
+                  </div>
                 </div>
               </Fragment>
             )}
