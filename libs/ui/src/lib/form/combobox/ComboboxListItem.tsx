@@ -1,4 +1,4 @@
-import { SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { useCombinedRefs } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
@@ -146,7 +146,12 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
                   </div>
                 </div>
                 {tertiaryLabel && (
-                  <span className="slds-listbox__option-meta">
+                  <span
+                    className="slds-listbox__option-meta"
+                    css={css`
+                      margin-top: 0.125rem;
+                    `}
+                  >
                     <div className="slds-truncate">
                       <strong>{tertiaryLabel}</strong>
                     </div>
