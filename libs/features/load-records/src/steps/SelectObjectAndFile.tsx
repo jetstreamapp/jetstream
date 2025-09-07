@@ -228,7 +228,7 @@ export const LoadRecordsSelectObjectAndFile = ({
               <Grid verticalAlign="center">
                 <GridCol size={6}>
                   <FileSelector
-                    id={'load-record-file'}
+                    id="load-record-file-zip"
                     label="Zip file with attachments"
                     filename={inputZipFilename}
                     accept={[INPUT_ACCEPT_FILETYPES.ZIP]}

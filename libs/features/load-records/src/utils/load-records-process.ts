@@ -297,6 +297,12 @@ async function getBatchApiBatches({
         }
         batchRecordMap.get(i)?.push(_record);
       } catch (ex) {
+        logger.error(`Error processing record with binary data: ${getErrorMessage(ex)}`, {
+          binaryBodyField,
+          filePath: _record[binaryBodyField],
+          record: _record,
+        });
+        logger.error(ex);
         failedRecords.push(_record);
       }
 
