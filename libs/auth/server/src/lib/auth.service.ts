@@ -174,7 +174,7 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
     const cookies = parseCookie(cookieString);
     const cookieValue = cookies[cookieConfig.csrfToken.name];
-    const validCSRFToken = await validateCSRFToken({
+    const validCSRFToken = validateCSRFToken({
       secret: ENV.JETSTREAM_AUTH_SECRET,
       bodyValue: csrfToken,
       cookieValue,

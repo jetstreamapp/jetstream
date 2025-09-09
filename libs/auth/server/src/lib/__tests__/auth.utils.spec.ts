@@ -1,7 +1,7 @@
 import {
   checkUserAgentSimilarity,
   createCSRFToken,
-  createHash,
+  createHMAC,
   getCookieConfig,
   hashPassword,
   randomString,
@@ -50,7 +50,7 @@ describe('verifyPassword', () => {
 describe('createHash', () => {
   it('should create a correct hash', async () => {
     const message = 'testMessage';
-    const hash = await createHash(message);
+    const hash = await createHMAC('test', message);
     expect(hash).toHaveLength(64);
   });
 });
@@ -64,25 +64,25 @@ describe('randomString', () => {
 });
 
 describe('createCSRFToken', () => {
-  it('should create a CSRF token and cookie', async () => {
+  it('should create a CSRF token and cookie', () => {
     const secret = 'testSecret';
-    const { cookie, csrfToken } = await createCSRFToken({ secret });
+    const { cookie, csrfToken } = createCSRFToken({ secret });
     expect(cookie).toContain(csrfToken);
   });
 });
 
 describe('validateCSRFToken', () => {
-  it('should validate the CSRF token correctly', async () => {
+  it('should validate the CSRF token correctly', () => {
     const secret = 'testSecret';
-    const { cookie, csrfToken } = await createCSRFToken({ secret });
-    const isValid = await validateCSRFToken({ secret, cookieValue: cookie, bodyValue: csrfToken });
+    const { cookie, csrfToken } = createCSRFToken({ secret });
+    const isValid = validateCSRFToken({ secret, cookieValue: cookie, bodyValue: csrfToken });
     expect(isValid).toBe(true);
   });
 
-  it('should return false for invalid CSRF token', async () => {
+  it('should return false for invalid CSRF token', () => {
     const secret = 'testSecret';
-    const { cookie } = await createCSRFToken({ secret });
-    const isValid = await validateCSRFToken({ secret, cookieValue: cookie, bodyValue: 'wrongToken' });
+    const { cookie } = createCSRFToken({ secret });
+    const isValid = validateCSRFToken({ secret, cookieValue: cookie, bodyValue: 'wrongToken' });
     expect(isValid).toBe(false);
   });
 });

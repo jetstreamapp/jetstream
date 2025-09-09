@@ -6,7 +6,7 @@ import {
   getOrgType,
   isBrowserExtension,
   isDesktop,
-  parseCookie,
+  parseJsonCookie,
   setItemInLocalStorage,
   setItemInSessionStorage,
 } from '@jetstream/shared/ui-utils';
@@ -60,7 +60,7 @@ export const STORAGE_KEYS = {
  * Parse application state with a fallback in case there is an issue parsing
  */
 function getAppCookie(): ApplicationCookie {
-  let appState = parseCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
+  let appState = parseJsonCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
   appState = appState
     ? { ...appState }
     : {

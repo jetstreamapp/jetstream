@@ -235,6 +235,7 @@ type NonceCookie = 'nonce';
 type WebauthnChallengeCookie = 'webauthnChallenge';
 type RememberDeviceCookie = 'rememberDevice';
 type RedirectUrl = 'redirectUrl';
+type DoubleCSRFTokenCookie = 'doubleCSRFToken';
 
 type CookieConfigKey =
   | CallbackUrlCookie
@@ -246,11 +247,15 @@ type CookieConfigKey =
   | NonceCookie
   | WebauthnChallengeCookie
   | RememberDeviceCookie
-  | RedirectUrl;
+  | RedirectUrl
+  | DoubleCSRFTokenCookie;
 
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
 
-export type CookieConfig = Record<CookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }>;
+export type CookieConfig = Record<
+  CookieConfigKey,
+  { name: `${cookieNamePrefix}jetstream-auth.${string}` | `${cookieNamePrefix}jetstream-csrf`; options: CookieOptions }
+>;
 
 export type ResponseLocalsCookies = Record<
   string,
