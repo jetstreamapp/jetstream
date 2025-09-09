@@ -18,7 +18,10 @@ export class AsyncIntervalTimer {
   private timerId: NodeJS.Timeout | null = null;
   private failureCount = 0;
 
-  constructor(private callback: () => Promise<void>, private options: TimerOptions) {
+  constructor(
+    private callback: () => Promise<void>,
+    private options: TimerOptions,
+  ) {
     this.options.runOnInit = !!this.options.runOnInit;
     if (this.options.runOnInit) {
       this.runCallback(); // Run immediately if `runOnInit` is true

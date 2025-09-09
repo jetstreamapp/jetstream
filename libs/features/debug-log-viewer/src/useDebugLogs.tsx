@@ -44,7 +44,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
             asOfId,
             limit,
             userId,
-          })
+          }),
         );
         if (isMounted.current && fetchToken === currentFetchToken.current) {
           if (clearPrevious) {
@@ -54,8 +54,8 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
               orderBy(
                 Object.values({ ...groupByFlat(logs, 'Id'), ...groupByFlat(queryResults.records, 'Id') }),
                 ['LastModifiedDate'],
-                ['desc']
-              )
+                ['desc'],
+              ),
             );
           }
           setLoading(false);
@@ -77,7 +77,7 @@ export function useDebugLogs(org: SalesforceOrgUi, { limit, pollInterval, userId
         }
       }
     },
-    [org, asOfId, limit, userId, pollInterval, intervalDelay]
+    [org, asOfId, limit, userId, pollInterval, intervalDelay],
   );
 
   const handlePoll = useCallback(() => {

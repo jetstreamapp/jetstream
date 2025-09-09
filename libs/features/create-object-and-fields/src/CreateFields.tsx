@@ -43,7 +43,7 @@ function SelectedItemsBadge({
           id: item,
           label: itemsById[item]?.label || item,
           value: item,
-        })
+        }),
       );
     } else {
       return _items.map(
@@ -51,7 +51,7 @@ function SelectedItemsBadge({
           id: item,
           label: item,
           value: item,
-        })
+        }),
       );
     }
   });

@@ -189,7 +189,7 @@ export const checkUserEntitlement = ({
 
 export async function updateUser(
   user: UserProfileSession,
-  data: { name?: string; preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean } }
+  data: { name?: string; preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean } },
 ): Promise<User> {
   try {
     const existingUser = await prisma.user.findUniqueOrThrow({

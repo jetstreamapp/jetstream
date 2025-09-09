@@ -121,7 +121,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         setErrorMessage('An error occurred while processing your request. Please try again.');
       }
     },
-    [setDeployResults]
+    [setDeployResults],
   );
 
   const { loadDataForProvidedRecords, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults, 'QUERY');
@@ -168,7 +168,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             secondaryLabelOnNewLine: true,
             tertiaryLabel: field.type,
             meta: field,
-          }))
+          })),
       );
       if (!filterLoadSobjects(describe)) {
         setFatalError('This object does not support loading in data.');

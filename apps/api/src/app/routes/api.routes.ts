@@ -127,7 +127,7 @@ routes.get('/metadata/retrieve/check-results', metadataToolingController.checkRe
 routes.post(
   '/metadata/retrieve/check-and-redeploy',
   ensureTargetOrgExists,
-  metadataToolingController.checkRetrieveStatusAndRedeploy.controllerFn()
+  metadataToolingController.checkRetrieveStatusAndRedeploy.controllerFn(),
 );
 routes.post('/metadata/package-xml', metadataToolingController.getPackageXml.controllerFn());
 routes.post('/apex/anonymous', metadataToolingController.anonymousApex.controllerFn());

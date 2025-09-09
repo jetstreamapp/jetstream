@@ -13,7 +13,7 @@ test.describe('API - Misc', () => {
       'GET',
       `/api/file/stream-download?${new URLSearchParams({
         url: '/services/data/v60.0/sobjects/ContentVersion/068Dn00000BSXTsIAP/VersionData&X-SFDC-ID=00DDn000006Cfm2MAC-005Dn000003DuJgIAK',
-      }).toString()}`
+      }).toString()}`,
     );
 
     expect(file).toBeTruthy();

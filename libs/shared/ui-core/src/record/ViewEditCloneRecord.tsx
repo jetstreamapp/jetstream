@@ -82,7 +82,7 @@ function getTagline(
   serverUrl: string,
   sobjectName: string,
   initialRecord?: SalesforceRecord,
-  recordId?: string | null
+  recordId?: string | null,
 ) {
   if (initialRecord && recordId) {
     return (
@@ -201,8 +201,8 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         const sobjectMetadata = await describeSObject(selectedOrg, sobjectName);
         setChildRelationships(
           sobjectMetadata.data.childRelationships.filter(
-            (item) => item.relationshipName && item.childSObject && !CHILD_RELATIONSHIP_BLOCK_LIST.has(item.relationshipName)
-          )
+            (item) => item.relationshipName && item.childSObject && !CHILD_RELATIONSHIP_BLOCK_LIST.has(item.relationshipName),
+          ),
         );
 
         if (action !== 'create' && recordId) {
@@ -239,7 +239,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       field: 'Name',
                       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                       relationships: [field.relationshipName!],
-                    })
+                    }),
                   ),
                 where: {
                   left: {
@@ -249,7 +249,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     literalType: 'STRING',
                   },
                 },
-              })
+              }),
             );
             record = { ...record, ...queryResults.records[0] };
           } catch (ex) {
@@ -261,7 +261,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
         if ((action === 'edit' || action === 'view') && recordId) {
           addRecentRecordToStorage(
             { recordId, sobject: sobjectName, name: record[SOBJECT_NAME_FIELD_MAP[sobjectName] || 'Name'] as string },
-            selectedOrg.uniqueId
+            selectedOrg.uniqueId,
           );
         }
 
@@ -295,7 +295,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [action, apiVersion, recordId, selectedOrg, sobjectName]
+    [action, apiVersion, recordId, selectedOrg, sobjectName],
   );
 
   useEffect(() => {
@@ -438,7 +438,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     copyRecordsToClipboard(
       [initialRecord],
       format,
-      Object.keys(initialRecord).filter((field) => field !== 'attributes')
+      Object.keys(initialRecord).filter((field) => field !== 'attributes'),
     );
     trackEvent(ANALYTICS_KEYS.record_modal_clipboard);
   }

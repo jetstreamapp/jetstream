@@ -106,7 +106,7 @@ export default function useCreateObject({ apiVersion, serverUrl, selectedOrg }: 
         setStatus('FAILED');
       }
     },
-    [apiVersion, doDeployMetadata, rollbar, selectedOrg]
+    [apiVersion, doDeployMetadata, rollbar, selectedOrg],
   );
 
   return {

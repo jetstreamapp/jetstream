@@ -78,7 +78,7 @@ export const trialRunSizeState = atomWithReset<Maybe<number>>(1);
 export const dateFormatState = atom(detectDateFormatForLocale());
 
 export const selectHasDateFieldMapped = atom((get) =>
-  Object.values(get(fieldMappingState)).some((item) => item.fieldMetadata && DATE_FIELDS.has(item.fieldMetadata.type))
+  Object.values(get(fieldMappingState)).some((item) => item.fieldMetadata && DATE_FIELDS.has(item.fieldMetadata.type)),
 );
 
 export const selectBatchSizeError = atom<string | null>((get) => {

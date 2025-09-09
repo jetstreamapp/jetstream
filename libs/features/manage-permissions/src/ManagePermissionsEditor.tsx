@@ -252,7 +252,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
             output += createIsDirty || readIsDirty || editIsDirty || deleteIsDirty || viewAllIsDirty || modifyAllIsDirty ? 1 : 0;
             return output;
           },
-          0
+          0,
         );
         newValues[rowKey] = { rowKey, dirtyCount, row };
       });
@@ -320,7 +320,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     includeColumns = true,
     objectPermissionMapOverride?: Record<string, ObjectPermissionDefinitionMap>,
     fieldPermissionMapOverride?: Record<string, FieldPermissionDefinitionMap>,
-    tabVisibilityPermissionMapOverride?: Record<string, TabVisibilityPermissionDefinitionMap>
+    tabVisibilityPermissionMapOverride?: Record<string, TabVisibilityPermissionDefinitionMap>,
   ) {
     if (includeColumns) {
       setObjectColumns(getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById));
@@ -339,7 +339,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
     const tempTabVisibilityRows = getTabVisibilityRows(
       selectedSObjects,
-      tabVisibilityPermissionMapOverride || tabVisibilityPermissionMap || {}
+      tabVisibilityPermissionMapOverride || tabVisibilityPermissionMap || {},
     );
     setTabVisibilityRows(tempTabVisibilityRows);
     setVisibleTabVisibilityRows(tempTabVisibilityRows);
@@ -362,8 +362,8 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         {
           columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
           rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
-        }
-      )
+        },
+      ),
     );
     setFileDownloadModalOpen(true);
   }
@@ -423,7 +423,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         objectSaveResults = await savePermissionRecords<ObjectPermissionRecordForSave, PermissionTableObjectCellPermission>(
           selectedOrg,
           'ObjectPermissions',
-          objectPermissionData
+          objectPermissionData,
         );
         logger.log({ objectSaveResults });
       }
@@ -431,7 +431,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         fieldSaveResults = await savePermissionRecords<FieldPermissionRecordForSave, PermissionTableFieldCellPermission>(
           selectedOrg,
           'FieldPermissions',
-          fieldPermissionData
+          fieldPermissionData,
         );
         logger.log({ fieldSaveResults });
       }

@@ -142,7 +142,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
                     containerClassname="slds-icon_container"
                     className={classNames(
                       'slds-icon slds-icon_small',
-                      `slds-icon-${card.icon.type}-${card.icon.icon.replaceAll('_', '-')}`
+                      `slds-icon-${card.icon.type}-${card.icon.icon.replaceAll('_', '-')}`,
                     )}
                   />
                 )}

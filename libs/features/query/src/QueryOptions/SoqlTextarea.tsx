@@ -88,7 +88,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
         </Grid>
       </Fragment>
     );
-  }
+  },
 );
 
 export default SoqlTextarea;

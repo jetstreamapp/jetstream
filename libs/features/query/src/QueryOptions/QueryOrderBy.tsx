@@ -71,7 +71,7 @@ export const QueryOrderByContainer: FunctionComponent<QueryOrderByContainerProps
         </div>
       </Fragment>
     );
-  }
+  },
 );
 
 export default QueryOrderByContainer;

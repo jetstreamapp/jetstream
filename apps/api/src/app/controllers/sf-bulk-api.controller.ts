@@ -145,7 +145,7 @@ const addBatchToJob = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 const addBatchToJobWithBinaryAttachment = createRoute(
@@ -162,7 +162,7 @@ const addBatchToJobWithBinaryAttachment = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 /**
@@ -197,7 +197,7 @@ const downloadResultsFile = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 /**
@@ -241,7 +241,7 @@ const downloadResults = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 /**
@@ -351,5 +351,5 @@ const downloadAllResults = createRoute(
       combinedStream.end();
       next(new UserFacingError(ex));
     }
-  }
+  },
 );

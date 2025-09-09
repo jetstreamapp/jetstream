@@ -40,5 +40,5 @@ export const ComboboxListItemHeading = forwardRef<HTMLLIElement, ComboboxListIte
         )}
       </li>
     );
-  }
+  },
 );

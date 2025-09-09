@@ -276,7 +276,7 @@ export const fieldDefinitions: FieldDefinitions = {
         org,
         `SELECT Id, DeveloperName, NamespacePrefix, MasterLabel FROM GlobalValueSet ORDER BY DeveloperName ASC`,
         true,
-        skipRequestCache || false
+        skipRequestCache || false,
       );
       return results.data.queryResults.records.map((record) => {
         const value = `${record.NamespacePrefix ? `${record.NamespacePrefix}__` : ''}${record.DeveloperName}`;
@@ -949,7 +949,7 @@ export async function prepareCreateFieldsCompositeRequests(
   org: SalesforceOrgUi,
   sobjects: string[],
   apiVersion: string,
-  allFields: CreateFieldsResults[]
+  allFields: CreateFieldsResults[],
 ) {
   const existingFields = await queryAllFromList<EntityParticleRecord>(org, getQueriesForAllCustomFieldsForObjects(sobjects), true);
 
@@ -1063,7 +1063,7 @@ export async function deployLayouts(
   apiVersion: string,
   selectedOrg: SalesforceOrgUi,
   layoutIds: string[],
-  fields: FieldDefinitionMetadata[]
+  fields: FieldDefinitionMetadata[],
 ) {
   /** FETCH LAYOUTS */
   const layoutsWithFullMetadata = splitArrayToMaxSize(Object.values(layoutIds), 25).map((_layoutIds) => ({
@@ -1166,14 +1166,14 @@ export function getRowsForExport(fieldValues: FieldValues[]) {
         }
       }
       return output;
-    }, {})
+    }, {}),
   );
 }
 
 export function prepareDownloadResultsFile(
   fieldResults: CreateFieldsResults[],
   fieldValues: FieldValues[],
-  profilesAndPermSetsById: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>
+  profilesAndPermSetsById: Record<string, PermissionSetWithProfileRecord | PermissionSetNoProfileRecord>,
 ) {
   let permissionRecords: FieldPermissionRecord[] = [];
   const resultsWorksheet = fieldResults.map(
@@ -1195,7 +1195,7 @@ export function prepareDownloadResultsFile(
             ?.join('\n') || '',
         'Page Layouts Errors': layoutErrors?.join('\n') || '',
       };
-    }
+    },
   );
   return {
     worksheetData: {

@@ -157,7 +157,7 @@ export class ApiSObject extends SalesforceApi {
               AllOrNoneHeader: { allOrNone: allOrNone ? 'true' : 'false' },
             },
             body: { undelete: { ids } },
-          })
+          }),
         ).then((response) => {
           return correctRecordResultSoapXmlResponse(response['ns1:Envelope'].Body.undeleteResponse.result);
         });

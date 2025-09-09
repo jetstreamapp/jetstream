@@ -38,7 +38,7 @@ export function downloadJob(job: AsyncJob) {
           data,
           fields: ['id', 'success', 'errors', 'fields'],
         },
-        { header: true, quotes: true }
+        { header: true, quotes: true },
       );
 
       saveFile(csv, `job-results-${job.id}.csv`, MIME_TYPES.CSV);

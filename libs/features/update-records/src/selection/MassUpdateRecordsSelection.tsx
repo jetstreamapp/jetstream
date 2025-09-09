@@ -79,7 +79,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
     recentHistoryItemsDb.addItemToRecentHistoryItems(
       selectedOrg.uniqueId,
       'sobject',
-      sobjects.map(({ name }) => name)
+      sobjects.map(({ name }) => name),
     );
   }
 

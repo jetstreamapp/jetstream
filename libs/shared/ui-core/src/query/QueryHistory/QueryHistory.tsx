@@ -46,7 +46,7 @@ export const QueryHistory = forwardRef<any, QueryHistoryProps>(({ className, sel
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOpen]
+    [isOpen],
   );
 
   useGlobalEventHandler('keydown', onKeydown);

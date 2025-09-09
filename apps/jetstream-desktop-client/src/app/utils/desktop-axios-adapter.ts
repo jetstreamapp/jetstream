@@ -79,7 +79,7 @@ async function getAxiosResponse(
   config: InternalAxiosRequestConfig,
   request: IcpRequest,
   response: IcpResponse,
-  axiosResponse: Partial<AxiosResponse>
+  axiosResponse: Partial<AxiosResponse>,
 ): Promise<AxiosResponse> {
   axiosResponse.data = response.body;
   axiosResponse.status = response.status;
@@ -92,7 +92,7 @@ async function getAxiosResponse(
       'ERR_BAD_REQUEST',
       config,
       request,
-      axiosResponse as AxiosResponse
+      axiosResponse as AxiosResponse,
     );
   }
 
@@ -102,7 +102,7 @@ async function getAxiosResponse(
 async function throwAxiosNotFoundResponse(
   config: InternalAxiosRequestConfig,
   request: IcpRequest,
-  axiosResponse: Partial<AxiosResponse>
+  axiosResponse: Partial<AxiosResponse>,
 ): Promise<AxiosResponse> {
   axiosResponse.status = 404;
   axiosResponse.statusText = 'Not Found';

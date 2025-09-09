@@ -28,7 +28,7 @@ export async function sendUserFeedbackEmail(
   emailAddress: string,
   userId: string,
   content: string,
-  attachment?: { data: Buffer; filename: string }[]
+  attachment?: { data: Buffer; filename: string }[],
 ) {
   try {
     const component = <GenericEmail heading="User submitted feedback" preview="User submitted feedback" segments={[userId, content]} />;
@@ -175,7 +175,7 @@ export async function sendPasswordResetConfirmation(emailAddress: string) {
 export async function sendAuthenticationChangeConfirmation(
   emailAddress: string,
   subject: string,
-  props: AuthenticationChangeConfirmationEmailProps
+  props: AuthenticationChangeConfirmationEmailProps,
 ) {
   const component = <AuthenticationChangeConfirmationEmail {...props} />;
   const [html, text] = await renderComponent(component);

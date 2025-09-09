@@ -105,12 +105,12 @@ export function useDataTable<T = RowWithKey>({
     if (onReorderColumns) {
       const newColumns = reorderedColumns.filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key)).map(({ key }) => key);
       const remainingIdx = new Set(
-        reorderedColumns.map((column, i) => (NON_DATA_COLUMN_KEYS.has(column.key) ? -1 : i)).filter((idx) => idx >= 0)
+        reorderedColumns.map((column, i) => (NON_DATA_COLUMN_KEYS.has(column.key) ? -1 : i)).filter((idx) => idx >= 0),
       );
       const offset = reorderedColumns.length - newColumns.length;
       onReorderColumns(
         newColumns,
-        columnsOrder.filter((idx) => remainingIdx.has(idx)).map((index) => index - offset)
+        columnsOrder.filter((idx) => remainingIdx.has(idx)).map((index) => index - offset),
       );
     }
   }, [reorderedColumns, columnsOrder, onReorderColumns]);
@@ -135,7 +135,7 @@ export function useDataTable<T = RowWithKey>({
     return orderObjectsBy(
       data,
       sortColumns.map(({ columnKey }) => columnKey) as any,
-      sortColumns.map(({ direction }) => (direction === 'ASC' ? 'asc' : 'desc'))
+      sortColumns.map(({ direction }) => (direction === 'ASC' ? 'asc' : 'desc')),
     );
   }, [data, sortColumns]);
 
@@ -157,7 +157,7 @@ export function useDataTable<T = RowWithKey>({
           (columnKey) =>
             Array.isArray(filters[columnKey]) &&
             filters[columnKey].length &&
-            filters[columnKey].some((filter) => isFilterActive(filter, sortedRows.length))
+            filters[columnKey].some((filter) => isFilterActive(filter, sortedRows.length)),
         )
         .every((columnKey) => {
           let rowValue = row[columnKey];
@@ -350,7 +350,7 @@ export function useDataTable<T = RowWithKey>({
         });
       });
     },
-    [filteredRows]
+    [filteredRows],
   );
 
   const handleRowChange = useCallback((rows: any[], data: RowsChangeData<any>) => {
@@ -360,23 +360,19 @@ export function useDataTable<T = RowWithKey>({
   const handleCloseContextMenu = useCallback(() => setContextMenuProps(null), []);
 
   // NOTE: this is not used anywhere, so we may consider removing it.
-  useImperativeHandle<unknown, DataTableRef<any>>(
-    ref,
-    () => {
-      return {
-        hasSortApplied: () => sortColumns?.length > 0,
-        getFilteredAndSortedRows: () => filteredRows,
-        hasReorderedColumns: () => columnsOrder.some((idx, i) => idx !== i),
-        getCurrentColumns: () => columnsOrder.map((idx) => columns[idx]).filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key)),
-        getCurrentColumnNames: () =>
-          columnsOrder
-            .map((idx) => columns[idx])
-            .filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key))
-            .map(({ key }) => key),
-      };
-    },
-    [columns, columnsOrder, filteredRows, sortColumns?.length]
-  );
+  useImperativeHandle<unknown, DataTableRef<any>>(ref, () => {
+    return {
+      hasSortApplied: () => sortColumns?.length > 0,
+      getFilteredAndSortedRows: () => filteredRows,
+      hasReorderedColumns: () => columnsOrder.some((idx, i) => idx !== i),
+      getCurrentColumns: () => columnsOrder.map((idx) => columns[idx]).filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key)),
+      getCurrentColumnNames: () =>
+        columnsOrder
+          .map((idx) => columns[idx])
+          .filter((column) => !NON_DATA_COLUMN_KEYS.has(column.key))
+          .map(({ key }) => key),
+    };
+  }, [columns, columnsOrder, filteredRows, sortColumns?.length]);
 
   if (serverUrl && org) {
     configIdLinkRenderer(serverUrl, org, skipFrontdoorLogin);
@@ -470,9 +466,9 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
                       const rowValue = getValueFn({ row, column });
                       // TODO: we need some additional function to get the filter value and also compare the value when filtering
                       return isNil(rowValue) ? EMPTY_FIELD : String(rowValue);
-                    })
-                )
-              )
+                    }),
+                ),
+              ),
             );
           }
 
@@ -566,6 +562,6 @@ function hasFilterApplied(filters: Record<string, DataTableFilter[]>, filterSetV
           return false;
       }
       return applied;
-    })
+    }),
   );
 }

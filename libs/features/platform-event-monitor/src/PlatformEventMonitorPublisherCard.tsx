@@ -50,7 +50,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
   const [publishKey, setPublishKey] = useState<number>(1);
   const [publishEventRecord, setPublishEventRecord] = useState<SalesforceRecord>({});
   const [publishEventResponse, setPublishEventResponse] = useState<{ success: boolean; eventId?: string; errorMessage?: string } | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
         dispatchSobjectDescribe({ type: 'ERROR', payload: { errorMessage: getErrorMessage(ex) } });
       }
     },
-    [selectedOrg, selectedPublishEvent]
+    [selectedOrg, selectedPublishEvent],
   );
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
         }
       }
     },
-    [publish, selectedPublishEvent]
+    [publish, selectedPublishEvent],
   );
 
   function handlePlatformEventChange(item: ListItem<string, any>) {

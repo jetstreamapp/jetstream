@@ -31,7 +31,7 @@ export const ReadonlyList = forwardRef<HTMLUListElement, ReadonlyListProps>(
         )}
       </Fragment>
     );
-  }
+  },
 );
 
 export default ReadonlyList;

@@ -76,7 +76,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
         Object.keys(selectedMetadata).reduce((output: string[], key) => {
           selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
           return output;
-        }, [])
+        }, []),
       );
     }
   }, [selectedMetadata]);

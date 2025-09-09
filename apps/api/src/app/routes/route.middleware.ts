@@ -77,7 +77,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
       },
       '[BLOCKED REQUEST][USER AGENT] %s %s',
       req.method,
-      req.originalUrl
+      req.originalUrl,
     );
     return res.status(403).send('Forbidden');
   }
@@ -183,7 +183,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
         req,
         HTTP.HEADERS.X_SFDC_ID_TARGET,
         HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
-        res.locals.requestId
+        res.locals.requestId,
       );
       if (results) {
         if (results) {
@@ -255,7 +255,7 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
   // TODO: not yet implemented on the front-end
   const apiVersion = (req.get(versionHeaderKey) || req.query[versionHeaderKey]) as string | undefined;
   const includeCallOptions = ensureBoolean(
-    req.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (req.query.includeCallOptions as string | undefined)
+    req.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (req.query.includeCallOptions as string | undefined),
   );
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const user = req.session.user!;
@@ -273,7 +273,7 @@ export async function getOrgForRequest(
   logger: pino.Logger | typeof console = console,
   apiVersion?: string,
   includeCallOptions?: boolean,
-  requestId?: string
+  requestId?: string,
 ) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
   if (!org) {
@@ -330,7 +330,7 @@ export async function getOrgForRequest(
       sfdcClientSecret: ENV.SFDC_CONSUMER_SECRET,
     },
     handleRefresh,
-    handleConnectionError
+    handleConnectionError,
   );
 
   return { org, jetstreamConn };

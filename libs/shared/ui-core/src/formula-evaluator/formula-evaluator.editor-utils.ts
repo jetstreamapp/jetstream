@@ -30,7 +30,7 @@ export async function registerCompletions(
   monaco: Monaco,
   selectedOrg: SalesforceOrgUi,
   sobject?: string,
-  additionalFields?: Partial<Field>[]
+  additionalFields?: Partial<Field>[],
 ) {
   if (priorCompletion) {
     priorCompletion.dispose();
@@ -95,7 +95,7 @@ async function fetchCompletions(
   characterInfo: CharacterInfo,
   selectedOrg: SalesforceOrgUi,
   sobject?: string,
-  additionalFields?: Partial<Field>[]
+  additionalFields?: Partial<Field>[],
 ): Promise<monaco.languages.CompletionItem[]> {
   const { textUntilPosition: textUntilPositionAll, mostRecentCharacter, range } = characterInfo;
   // if spaces, ignore prior words - e.x. "Log__r.ApiVersion__c != LoggedBy__r" we only care about LoggedBy__r
@@ -240,7 +240,7 @@ async function fetchCompletions(
     for (const priorWord of priorWords) {
       const foundRelationship = currentSObjectMeta.fields.find(
         (field) =>
-          !!field.relationshipName && !!field.referenceTo?.length && field.relationshipName.toLowerCase() === priorWord.toLowerCase()
+          !!field.relationshipName && !!field.referenceTo?.length && field.relationshipName.toLowerCase() === priorWord.toLowerCase(),
       );
       if (foundRelationship && foundRelationship.referenceTo && foundRelationship.referenceTo?.length > 0) {
         const { data: relatedSObjectMeta } = await describeSObject(selectedOrg, foundRelationship.referenceTo[0]);
@@ -263,7 +263,7 @@ async function fetchCompletions(
           insertText: specialWord,
           range,
         });
-      }
+      },
     );
   }
 
@@ -296,7 +296,7 @@ async function fetchCompletions(
  */
 async function fetchAndNormalizeLabelOrPermission(
   selectedOrg: SalesforceOrgUi,
-  { type }: SpecialWordType
+  { type }: SpecialWordType,
 ): Promise<
   {
     name: string;
@@ -319,7 +319,7 @@ async function fetchAndNormalizeLabelOrPermission(
           },
         },
       }),
-      true
+      true,
     );
 
     return data.queryResults.records.map(({ Name, NamespacePrefix, MasterLabel, Value }) => ({
@@ -341,7 +341,7 @@ async function fetchAndNormalizeLabelOrPermission(
             literalType: 'BOOLEAN',
           },
         },
-      })
+      }),
     );
 
     return data.queryResults.records.map(({ DeveloperName, NamespacePrefix, MasterLabel, Description }) => ({

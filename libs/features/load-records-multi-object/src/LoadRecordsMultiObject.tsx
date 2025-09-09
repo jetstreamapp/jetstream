@@ -52,7 +52,7 @@ export const LoadRecordsMultiObject = () => {
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
-    [google_apiKey, google_appId, google_clientId]
+    [google_apiKey, google_appId, google_clientId],
   );
   const [templateUrl] = useState(`${TEMPLATE_DOWNLOAD_LINK}`);
   const [insertNulls, setInsertNulls] = useState(false);

@@ -26,7 +26,7 @@ export const DeployOptionsSchema = z
       }
       return record;
     },
-    { message: 'RunSpecifiedTests requires specified tests to be provided' }
+    { message: 'RunSpecifiedTests requires specified tests to be provided' },
   )
   .transform((record) => {
     if (record.testLevel !== 'RunSpecifiedTests' && record.runTests) {

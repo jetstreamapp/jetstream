@@ -26,8 +26,8 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
           secondaryLabelOnNewLine: true,
           tertiaryLabel: polyfillFieldDefinition(field.metadata),
           meta: field,
-        })
-      )
+        }),
+      ),
     );
   }, [selectedFields]);
 
@@ -35,7 +35,7 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
     index: number,
     selectedField: QueryFieldWithPolymorphic | null,
     selectedFunction: string | null,
-    alias: string | null
+    alias: string | null,
   ) {
     setFieldFilterFunctions((prevItems) =>
       prevItems.map((item, i) =>
@@ -45,8 +45,8 @@ export const QueryFieldFunction = ({ hasGroupByClause, selectedFields }: QueryFi
               selectedFunction,
               alias,
             }
-          : item
-      )
+          : item,
+      ),
     );
   }
 

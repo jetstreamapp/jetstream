@@ -112,7 +112,7 @@ export class QueryPage {
     { conditionNumber, groupNumber }: { conditionNumber: number; groupNumber?: number },
     field: string,
     operator: QueryFilterOperator,
-    value: { type: 'text'; value: string } | { type: 'dropdown'; value: string }
+    value: { type: 'text'; value: string } | { type: 'dropdown'; value: string },
   ) {
     const groupRole = isNumber(groupNumber) ? ` Of Group ${groupNumber}` : '';
     const condition = this.page.getByRole('group', { name: `Condition ${conditionNumber}${groupRole}` });
@@ -215,7 +215,7 @@ export class QueryPage {
 
     // verify query history
     await expect(
-      this.page.getByRole('dialog', { name: 'Query History' }).getByRole('code').locator('div').filter({ hasText: query }).first()
+      this.page.getByRole('dialog', { name: 'Query History' }).getByRole('code').locator('div').filter({ hasText: query }).first(),
     ).toBeVisible();
 
     await this.page.getByRole('dialog', { name: 'Query History' }).getByRole('button', { name: 'Close' }).click();
@@ -249,7 +249,7 @@ export class QueryPage {
       | 'Create new record'
       | 'Delete selected records'
       | 'Convert selected records to Apex'
-      | 'Open selected records in Salesforce'
+      | 'Open selected records in Salesforce',
   ) {
     await this.page.getByRole('button', { name: 'Record actions' }).click();
     await this.page.getByRole('menuitem', { name: action }).click();

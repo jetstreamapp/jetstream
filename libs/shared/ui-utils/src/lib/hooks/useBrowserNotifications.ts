@@ -47,7 +47,7 @@ export function useBrowserNotifications(serverUrl: string, isFocused?: () => boo
         notification.current.onerror = (event: Event) => logger.info('[NOTIFICATION][ERROR]', event);
       }
     },
-    [serverUrl, isFocused]
+    [serverUrl, isFocused],
   );
 
   useGlobalEventHandler('visibilitychange', visibilitychange, false);

@@ -46,7 +46,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
       onChange,
       children,
     },
-    ref
+    ref,
   ) => {
     const isHorizontal = position === 'horizontal';
     const [activeId, setActiveId] = useState(() => {
@@ -109,7 +109,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
             className={classNames(
               { 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal },
               'slds-show',
-              contentClassname
+              contentClassname,
             )}
             role="tabpanel"
             aria-labelledby={`tab-${activeTab.id}`}
@@ -125,7 +125,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
             className={classNames(
               { 'slds-tabs_default__content': isHorizontal, 'slds-vertical-tabs__content': !isHorizontal },
               'slds-show',
-              contentClassname
+              contentClassname,
             )}
             role="tabpanel"
           />
@@ -178,7 +178,7 @@ export const Tabs = forwardRef<unknown, TabsProps>(
         {getContent()}
       </div>
     );
-  }
+  },
 );
 
 export default Tabs;

@@ -27,7 +27,7 @@ export const create = async (
   payload: {
     name: string;
     description?: Maybe<string>;
-  }
+  },
 ) => {
   return await prisma.jetstreamOrganization.create({
     select: SELECT,
@@ -45,7 +45,7 @@ export const update = async (
   payload: {
     name: string;
     description?: Maybe<string>;
-  }
+  },
 ) => {
   return await prisma.jetstreamOrganization.update({
     select: SELECT,

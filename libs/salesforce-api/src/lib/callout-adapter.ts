@@ -35,7 +35,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
     onRefresh?: (accessToken: string) => void,
     onConnectionError?: (accessToken: string) => void,
     enableLogging?: boolean,
-    logger: Logger = console
+    logger: Logger = console,
   ) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
       let { url, body, outputType } = options;

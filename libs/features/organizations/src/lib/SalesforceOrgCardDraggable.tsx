@@ -21,7 +21,7 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
         opacity: monitor.isDragging() ? 0.5 : 1,
       }),
     }),
-    [org.jetstreamOrganizationId]
+    [org.jetstreamOrganizationId],
   );
 
   return (

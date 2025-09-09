@@ -100,7 +100,7 @@ export default function Page() {
                   onClick={() => setFrequency(option)}
                   className={classNames(
                     'cursor-pointer rounded-full px-2.5 py-1 transition-colors',
-                    frequency.value === option.value ? 'bg-cyan-500' : 'hover:bg-white/10'
+                    frequency.value === option.value ? 'bg-cyan-500' : 'hover:bg-white/10',
                   )}
                   role="radio"
                   aria-checked={frequency.value === option.value}
@@ -117,7 +117,7 @@ export default function Page() {
               key={tier.id}
               className={classNames(
                 tier.mostPopular ? 'bg-white/5 ring-2 ring-cyan-500' : 'ring-1 ring-white/10',
-                'rounded-3xl p-8 xl:p-10'
+                'rounded-3xl p-8 xl:p-10',
               )}
             >
               <div className="flex items-center justify-between gap-x-4">
@@ -144,7 +144,7 @@ export default function Page() {
                       tier.mostPopular
                         ? 'bg-cyan-500 text-white shadow-sm hover:bg-cyan-500 focus-visible:outline-cyan-500'
                         : 'bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white',
-                      'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+                      'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
                     )}
                   >
                     Start Free

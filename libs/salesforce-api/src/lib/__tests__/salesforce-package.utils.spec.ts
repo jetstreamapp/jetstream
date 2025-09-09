@@ -32,8 +32,8 @@ describe('buildPackageXml', () => {
           ],
         } as any,
         '60.0',
-        {}
-      )
+        {},
+      ),
     ).toEqual(`<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
   <types>
@@ -78,7 +78,7 @@ describe('getRetrieveRequestFromManifest', () => {
     <name>ApexPage</name>
   </types>
   <version>60.0</version>
-</Package>`)
+</Package>`),
     ).toEqual({
       apiVersion: '60.0',
       unpackaged: {

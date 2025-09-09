@@ -43,7 +43,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-    selectedItemId ? items.find((item) => item.id === selectedItemId) : null
+    selectedItemId ? items.find((item) => item.id === selectedItemId) : null,
   );
   const [visibleItems, setVisibleItems] = useState(items);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -70,7 +70,14 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       if (item.isGroup) {
         return 37;
       }
-      return item.secondaryLabelOnNewLine && item.secondaryLabel ? 50 : 36;
+      let size = 26.84; // base size (label + some padding)
+      if (item.secondaryLabelOnNewLine && item.secondaryLabel) {
+        size += 16; // some of the padding is already included in base size
+      }
+      if (item.tertiaryLabel) {
+        size += 19;
+      }
+      return size;
     },
   });
 
@@ -80,7 +87,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
       setFocusedIndex(null);
       comboboxRef?.current?.close();
     },
-    [onSelected]
+    [onSelected],
   );
 
   // ensure that focused item is removed if user types something
@@ -259,6 +266,7 @@ export const ComboboxWithItemsVirtual: FunctionComponent<ComboboxWithItemsVirtua
               label={item.label}
               secondaryLabel={item.secondaryLabel}
               secondaryLabelOnNewLine={item.secondaryLabelOnNewLine}
+              tertiaryLabel={item.tertiaryLabel}
               selected={item.id === selectedItem?.id}
               focused={virtualItem.index === focusedIndex}
               onSelection={() => {

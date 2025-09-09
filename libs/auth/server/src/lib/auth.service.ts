@@ -158,7 +158,7 @@ export async function validateCallback(
   provider: OauthProviderType,
   parameters: URL | URLSearchParams,
   codeVerifier: string,
-  nonce?: string
+  nonce?: string,
 ) {
   const oauthClients = await OauthClients.getInstance();
 
@@ -236,7 +236,7 @@ async function handleOauthCallback(
   provider: OauthProviderType,
   parameters: URL | URLSearchParams,
   codeVerifier: string,
-  nonce?: string
+  nonce?: string,
 ) {
   const oauth = await oauthPromise;
   // TODO: should move to function to support other providers
@@ -249,7 +249,7 @@ async function handleOauthCallback(
     clientAuth,
     params,
     `${ENV.JETSTREAM_SERVER_URL}/api/auth/callback/${provider}`,
-    codeVerifier
+    codeVerifier,
   );
 
   const idTokenResult = await oauth.processAuthorizationCodeResponse(authorizationServer, client, response, {

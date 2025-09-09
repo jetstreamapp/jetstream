@@ -17,12 +17,6 @@
     },
     {
       "path": "./tsconfig.spec.json"
-    },
-    {
-      "path": "./tsconfig.storybook.json"
-    },
-    {
-      "path": "./tsconfig.storybook.json"
     }
   ]
 }

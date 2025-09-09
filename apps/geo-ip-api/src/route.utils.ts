@@ -7,7 +7,7 @@ import { z } from 'zod';
 export type Request<
   Params extends Record<string, string> | unknown = Record<string, string>,
   ReqBody = unknown,
-  Query extends Record<string, string | undefined> | unknown = Record<string, string | undefined>
+  Query extends Record<string, string | undefined> | unknown = Record<string, string | undefined>,
 > = ExpressRequest<Params, unknown, ReqBody, Query> & { log: pino.Logger };
 
 export type Response<ResBody = unknown> = ExpressResponse<ResBody> & { log: pino.Logger };
@@ -20,7 +20,7 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
   },
   req: Request<unknown, unknown, unknown>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => Promise<void> | void;
 
 export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny>(
@@ -33,7 +33,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     body?: TBodySchema;
     query?: TQuerySchema;
   },
-  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>
+  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     try {

@@ -31,7 +31,7 @@ function getSalesforceAuthClient(loginUrl: string) {
  */
 export function salesforceOauthInit(
   loginUrl: string,
-  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: string } = {}
+  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: string } = {},
 ) {
   // https://login.salesforce.com/.well-known/openid-configuration
 
@@ -71,7 +71,7 @@ export async function salesforceOauthCallback(
     code_verifier: string;
     nonce: string;
     state: string;
-  }
+  },
 ) {
   const authClient = getSalesforceAuthClient(loginUrl);
 
@@ -104,7 +104,7 @@ export async function salesforceOauthRefresh(loginUrl: string, refreshToken: str
 export async function salesforceLoginUsernamePassword_UNSAFE(
   loginUrl: string,
   username: string,
-  password: string
+  password: string,
 ): Promise<{
   access_token: string;
   instance_url: string;

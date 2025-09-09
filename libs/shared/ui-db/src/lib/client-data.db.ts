@@ -123,7 +123,7 @@ async function migrateLoadSavedMapping() {
       return;
     }
     const loadSavedMapping = await localforage.getItem<Record<string, Record<string, LoadSavedMappingItem>>>(
-      INDEXED_DB.KEYS.loadSavedMapping
+      INDEXED_DB.KEYS.loadSavedMapping,
     );
     if (loadSavedMapping) {
       const records: LoadSavedMappingItem[] = [];

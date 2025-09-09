@@ -56,7 +56,7 @@ async function fetchListMetadata(
   selectedOrg: SalesforceOrgUi,
   item: ListMetadataResultItem,
   skipRequestCache = false,
-  skipCacheIfOlderThan?: number
+  skipCacheIfOlderThan?: number,
 ): Promise<ListMetadataResultItem> {
   const { type, folder } = item;
   // eslint-disable-next-line prefer-const
@@ -64,7 +64,7 @@ async function fetchListMetadata(
     selectedOrg,
     [{ type, folder: folder || undefined }],
     skipRequestCache,
-    skipCacheIfOlderThan
+    skipCacheIfOlderThan,
   );
 
   /**
@@ -76,7 +76,7 @@ async function fetchListMetadata(
       // Fetch all person account record types
       const personAccountRecordTypes = await queryWithCache<{ DeveloperName: string; SobjectType: string }>(
         selectedOrg,
-        getPersonTypeSoqlQuery()
+        getPersonTypeSoqlQuery(),
       ).then((results) => results.data.queryResults.records);
 
       if (personAccountRecordTypes.length > 0) {
@@ -124,7 +124,7 @@ async function fetchListMetadataForItemsInFolder(
   selectedOrg: SalesforceOrgUi,
   item: ListMetadataResultItem,
   skipRequestCache = false,
-  skipCacheIfOlderThan?: number
+  skipCacheIfOlderThan?: number,
 ): Promise<ListMetadataResultItem> {
   const { type } = item;
   const typeWithFolder = type === 'EmailTemplate' ? ['EmailFolder', 'EmailTemplateFolder'] : [`${type}Folder`];
@@ -134,7 +134,7 @@ async function fetchListMetadataForItemsInFolder(
     selectedOrg,
     typeWithFolder.map((folderType): ListMetadataQuery => ({ type: folderType })),
     skipRequestCache,
-    skipCacheIfOlderThan
+    skipCacheIfOlderThan,
   );
 
   /**
@@ -159,7 +159,7 @@ async function fetchListMetadataForItemsInFolder(
       const { data: items } = await listMetadataApi(
         selectedOrg,
         currFolderItem.map((folder) => ({ type, folder })),
-        skipRequestCache
+        skipRequestCache,
       );
 
       // replace fullName with full path for reports
@@ -223,7 +223,7 @@ export async function getFullFolderPathByFolderDeveloperName(
     | 'ActionCadence'
     | 'Capstone'
     | 'AnalyticAssetCollection'
-    | string
+    | string,
 ) {
   const foldersByPath: Record<string, string> = {};
   const reportFolders = await queryAll<FolderRecord>(selectedOrg, getFolderSoqlQuery(type));
@@ -287,7 +287,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         metadataToRetain?: Record<string, ListMetadataResultItem>;
         skipRequestCache?: boolean;
         skipCacheIfOlderThan?: number;
-      } = {}
+      } = {},
     ) => {
       if (!selectedOrg || !types?.length) {
         return;
@@ -313,7 +313,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             error: null,
             lastRefreshed: null,
             items: [],
-          })
+          }),
         );
 
         const newMetadataItems = groupByFlat(itemsToProcess, 'type');
@@ -359,7 +359,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
             if (responseItem?.items) {
               responseItem.items = uniqWith(
                 responseItem.items,
-                (currValue, otherValue) => `${currValue.type}:${currValue.fullName}` === `${otherValue.type}:${otherValue.fullName}`
+                (currValue, otherValue) => `${currValue.type}:${currValue.fullName}` === `${otherValue.type}:${otherValue.fullName}`,
               );
             }
 
@@ -378,7 +378,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
                     ...previousItems,
                     [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },
                   }
-                : previousItems
+                : previousItems,
             );
           }
         }
@@ -398,7 +398,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
       setLoading(false);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg]
+    [selectedOrg],
   );
 
   /**
@@ -416,7 +416,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
                 ...previousItems,
                 [type]: { ...previousItems[type], loading: true, error: false, items: [], lastRefreshed: null },
               }
-            : previousItems
+            : previousItems,
         );
 
         let responseItem = await fetchListMetadata(selectedOrg, item, true);
@@ -446,11 +446,11 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
                 ...previousItems,
                 [type]: { ...previousItems[type], loading: false, error: true, items: [], lastRefreshed: null },
               }
-            : previousItems
+            : previousItems,
         );
       }
     },
-    [selectedOrg]
+    [selectedOrg],
   );
 
   return {

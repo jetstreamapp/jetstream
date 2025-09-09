@@ -31,21 +31,21 @@ test.describe('API - Record Controller', () => {
             InvalidField: 'true',
           },
         ],
-      }
+      },
     );
     const [leadFullRecord, leadFullRecordInvalid] = await apiRequestUtils.makeRequest<[SalesforceRecord, ErrorResult]>(
       'POST',
       `/api/record/retrieve/Lead?${new URLSearchParams({
         allOrNone: 'false',
       }).toString()}`,
-      { ids: [lead.id, 'invalid'] }
+      { ids: [lead.id, 'invalid'] },
     );
     const allInvalid = await apiRequestUtils.makeRequest<ErrorResult[]>(
       'POST',
       `/api/record/retrieve/Lead?${new URLSearchParams({
         allOrNone: 'true',
       }).toString()}`,
-      { ids: [lead.id, 'invalid'] }
+      { ids: [lead.id, 'invalid'] },
     );
     const [leadUpdated] = await apiRequestUtils.makeRequest<RecordResult[]>(
       'POST',
@@ -54,7 +54,7 @@ test.describe('API - Record Controller', () => {
       }).toString()}`,
       {
         records: [{ AnnualRevenue: 12323, attributes: { type: 'Lead' }, Id: lead.id }],
-      }
+      },
     );
     const [leadUpserted, leadUpsertedInvalid] = await apiRequestUtils.makeRequest<[SuccessResult, ErrorResult]>(
       'POST',
@@ -67,7 +67,7 @@ test.describe('API - Record Controller', () => {
           { attributes: { type: 'Lead' }, Id: lead.id },
           { attributes: { type: 'Lead' }, Id: '001Dn000003QlaaMAZ' },
         ],
-      }
+      },
     );
     const [deletedRecord, deletedRecordInvalid] = await apiRequestUtils.makeRequest<[SuccessResult, ErrorResult]>(
       'POST',
@@ -76,7 +76,7 @@ test.describe('API - Record Controller', () => {
       }).toString()}`,
       {
         ids: [lead.id, 'invalid'],
-      }
+      },
     );
 
     expect(lead).toBeTruthy();

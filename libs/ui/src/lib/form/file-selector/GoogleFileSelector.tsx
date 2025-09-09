@@ -119,7 +119,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   const handleFileSelected = useCallback(
@@ -139,7 +139,7 @@ export const GoogleFileSelector: FunctionComponent<GoogleFileSelectorProps> = ({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   useEffect(() => {

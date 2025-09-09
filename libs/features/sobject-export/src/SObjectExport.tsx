@@ -174,7 +174,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
         : {};
 
       const extendedFieldDefinitionData: Record<string, Record<string, FieldDefinitionRecord>> = selectedAttributes.some((item) =>
-        FIELD_DEFINITION_API_FIELDS.has(item as any)
+        FIELD_DEFINITION_API_FIELDS.has(item as any),
       )
         ? await getExtendedFieldDefinitionData(selectedOrg, selectedSObjects)
         : {};
@@ -184,7 +184,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
         sobjectsWithChildRelationships,
         extendedFieldDefinitionData,
         selectedAttributes,
-        options
+        options,
       );
 
       if (options.saveAsDefaultSelection) {

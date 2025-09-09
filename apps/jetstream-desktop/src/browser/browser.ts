@@ -90,7 +90,7 @@ export class Browser {
         preventDefault: () => void;
         readonly defaultPrevented: boolean;
       },
-      properties: Electron.ContextMenuParams
+      properties: Electron.ContextMenuParams,
     ) => {
       const menuItems: Parameters<typeof Menu.buildFromTemplate>[0] = [];
 
@@ -124,7 +124,7 @@ export class Browser {
                 browserWindow.webContents.devToolsWebContents?.focus();
               }
             },
-          }
+          },
         );
       }
 

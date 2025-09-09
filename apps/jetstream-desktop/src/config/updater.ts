@@ -14,9 +14,7 @@ export function setupAutoUpdater() {
     updateElectronApp({
       updateSource: {
         type: UpdateSourceType.StaticStorage,
-        baseUrl: `https://releases.getjetstream.app/jetstream/${process.platform === 'darwin' ? 'macos' : 'windows'}/${
-          process.arch
-        }`,
+        baseUrl: `https://releases.getjetstream.app/jetstream/${process.platform === 'darwin' ? 'macos' : 'windows'}/${process.arch}`,
       },
       updateInterval: '1 hour',
       notifyUser: true,

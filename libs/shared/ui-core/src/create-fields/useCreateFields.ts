@@ -102,7 +102,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
               field,
               state: 'NOT_STARTED',
               operation: 'INSERT',
-            })
+            }),
           );
           const _resultsById = groupByFlat(payload, 'key');
           setResultsById(_resultsById);
@@ -120,7 +120,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
       }
       return false;
     },
-    [rollbar, sObjects, selectedOrg.orgNamespacePrefix]
+    [rollbar, sObjects, selectedOrg.orgNamespacePrefix],
   );
 
   /**
@@ -142,7 +142,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         selectedOrg,
         sObjects,
         apiVersion,
-        Object.values(_resultsById)
+        Object.values(_resultsById),
       );
 
       createFieldsPayloads.forEach(({ compositeRequest }) => {
@@ -161,7 +161,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
             method: 'POST',
             url: `/services/data/${apiVersion}/tooling/composite`,
             body: compositeRequest,
-          }
+          },
         );
 
         response.compositeResponse.forEach(({ body, httpStatusCode, referenceId }) => {
@@ -193,7 +193,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
                   _resultsById[referenceId].field.fullName,
                   _resultsById[referenceId].field.formula ? 'Formula' : (_resultsById[referenceId].field.type as SalesforceFieldType),
                   profiles,
-                  permissionSets
+                  permissionSets,
                 ).forEach((record) => permissionRecords.push(record));
               }
             }
@@ -201,7 +201,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         });
       }
     },
-    [apiVersion, permissionSets, profiles, sObjects, selectedOrg]
+    [apiVersion, permissionSets, profiles, sObjects, selectedOrg],
   );
 
   /**
@@ -213,8 +213,8 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         const permissionResults: RecordResult[] = (
           await Promise.all(
             splitArrayToMaxSize(permissionRecords, 200).map((records) =>
-              sobjectOperation(selectedOrg, 'FieldPermissions', 'create', { records }, { allOrNone: false })
-            )
+              sobjectOperation(selectedOrg, 'FieldPermissions', 'create', { records }, { allOrNone: false }),
+            ),
           )
         ).flat();
         const resultsByFullName: Record<string, CreateFieldsResults> = Object.keys(_resultsById).reduce((output, key) => {
@@ -253,7 +253,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         });
       }
     },
-    [rollbar, selectedOrg]
+    [rollbar, selectedOrg],
   );
 
   /**
@@ -271,7 +271,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
 
         let _resultsById: Record<string, CreateFieldsResults> = groupByFlat(
           results.map((result) => ({ ...result, state: 'LOADING' })),
-          'key'
+          'key',
         );
         const permissionRecords: FieldPermissionRecord[] = [];
 
@@ -307,7 +307,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
               apiVersion,
               selectedOrg,
               selectedLayoutIds,
-              deployedFields
+              deployedFields,
             );
             if (layoutErrors.length) {
               setLayoutErrorMessage(layoutErrors.join(' '));
@@ -351,8 +351,8 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         setResultsById(
           groupByFlat(
             results.map((result) => (result.state === 'LOADING' ? { ...result, state: 'FAILED' } : result)),
-            'key'
-          )
+            'key',
+          ),
         );
         rollbar.error('Create fields error', {
           message: ex.message,
@@ -367,7 +367,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg]
+    [apiVersion, deployFieldMetadata, deployFieldPermissions, rollbar, selectedOrg],
   );
 
   function sendBrowserNotification(resultsById: Record<string, CreateFieldsResults>) {
@@ -397,19 +397,19 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
         deployedFls: false,
         layoutErrors: false,
         deployedLayouts: false,
-      }
+      },
     );
 
     let body = '';
     body += `${getSuccessOrFailureChar('success', fieldSuccess)} ${fieldSuccess.toLocaleString()} ${pluralizeFromNumber(
       'field',
-      fieldSuccess
+      fieldSuccess,
     )} deployed successfully.\n`;
 
     if (fieldErrors) {
       body += `${getSuccessOrFailureChar('failure', fieldErrors)} ${fieldErrors.toLocaleString()} ${pluralizeFromNumber(
         'field',
-        fieldErrors
+        fieldErrors,
       )} failed to deploy.\n`;
     }
 

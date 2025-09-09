@@ -29,7 +29,7 @@ dexieDb.query_history.hook('updating', function (mods, primaryKey, obj, transact
 function generateKey(orgUniqueId: string, sObject: string, soql: string): QueryHistoryItem['key'] {
   return `${SyncableTables.query_history.keyPrefix}_${orgUniqueId}:${sObject}${soql.replace(
     REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE,
-    ''
+    '',
   )}`.toLowerCase() as QueryHistoryItem['key'];
 }
 
@@ -40,7 +40,7 @@ async function getAllQueryHistory(): Promise<QueryHistoryItem[]> {
 async function setAsFavorite(
   key: QueryHistoryItem['key'],
   isFavorite: boolean,
-  customLabel?: string
+  customLabel?: string,
 ): Promise<QueryHistoryItem | undefined> {
   const updates: Partial<QueryHistoryItem> = { isFavorite };
   // update custom label if provided
@@ -62,7 +62,7 @@ async function updateSavedQuery(
   oldItem: QueryHistoryItem,
   newSoql: string,
   newLabel: string,
-  isTooling: boolean
+  isTooling: boolean,
 ): Promise<QueryHistoryItem> {
   newSoql = newSoql.trim();
   newLabel = newLabel.trim();
@@ -140,7 +140,7 @@ async function getOrInitQueryHistoryItem(
   sObject: string,
   sObjectLabel?: string,
   customLabel?: string,
-  isTooling = false
+  isTooling = false,
 ): Promise<QueryHistoryItem> {
   // FIXME: isTooling should be part of key - not a huge deal either way but could have some edge-cases for the few duplicate objects
   const key = generateKey(org.uniqueId, sObject, soql);
@@ -190,7 +190,7 @@ async function saveQueryHistoryItem(
     isFavorite?: boolean;
     isTooling?: boolean;
     incrementRunCount?: boolean;
-  } = {}
+  } = {},
 ): Promise<QueryHistoryItem> {
   const queryHistoryItem = await getOrInitQueryHistoryItem(org, soql, sObject, sObjectLabel, customLabel, isTooling);
 

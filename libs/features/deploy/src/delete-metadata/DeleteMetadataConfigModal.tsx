@@ -46,7 +46,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
       singlePackage: true,
       testLevel: undefined,
       runTests: [],
-    }
+    },
   );
 
   useNonInitialEffect(() => {
@@ -80,7 +80,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
             ...selectedMetadata[type].map((metadata) => `\t\t<members>${metadata.fullName}</members>`),
             `\t\t<name>${type}</name>`,
             '\t</types>',
-          ].join('\n')
+          ].join('\n'),
         ),
         `</Package>`,
       ].join('\n');
@@ -93,7 +93,7 @@ export const DeleteMetadataConfigModal: FunctionComponent<DeleteMetadataConfigMo
           '<Package xmlns="http://soap.sforce.com/2006/04/metadata">',
           `\t<version>${defaultApiVersion.replace('v', '')}</version>`,
           '</Package>',
-        ].join('\n')
+        ].join('\n'),
       );
       const file = await zip.generateAsync({ type: 'arraybuffer', compressionOptions: { level: 5 } });
       setFile(file);

@@ -34,7 +34,7 @@ const MAX_HISTORY_ITEMS = 500;
 export function getDeploymentStatusUrl(id: string) {
   // double encode retUrl
   const address = encodeURIComponent(
-    `/changemgmt/monitorDeploymentsDetails.apexp?asyncId=${id}&retURL=${encodeURIComponent('/changemgmt/monitorDeployment.apexp')}`
+    `/changemgmt/monitorDeploymentsDetails.apexp?asyncId=${id}&retURL=${encodeURIComponent('/changemgmt/monitorDeployment.apexp')}`,
   );
   return `/lightning/setup/DeployStatus/page?address=${address}`;
 }
@@ -380,7 +380,7 @@ export function getRows(listMetadataItems: Record<string, ListMetadataResultItem
 export function convertRowsForExport(
   rows: DeployMetadataTableRow[],
   selectedRows: Set<DeployMetadataTableRow>,
-  limitToSelected = false
+  limitToSelected = false,
 ): Record<string, any>[] {
   return rows
     .filter((row) => row.fullName && row.metadata && (!limitToSelected || selectedRows.has(row)))
@@ -548,25 +548,25 @@ export function getNotificationMessageBody(deployResults: DeployResult) {
   if (success) {
     output += `${getSuccessOrFailureChar(
       'success',
-      numberComponentsDeployed
+      numberComponentsDeployed,
     )} ${numberComponentsDeployed.toLocaleString()} ${pluralizeFromNumber('item', numberComponentsDeployed)} deployed successfully.`;
     if (runTestsEnabled) {
       output += ` ${getSuccessOrFailureChar(
         'success',
-        numberTestsCompleted
+        numberTestsCompleted,
       )} ${numberTestsCompleted.toLocaleString()} unit tests succeeded.`;
     }
   } else {
     if (numberComponentErrors > 0) {
       output += `${getSuccessOrFailureChar(
         'failure',
-        numberComponentErrors
+        numberComponentErrors,
       )} ${numberComponentErrors.toLocaleString()} of ${numberComponentsDeployed.toLocaleString()} items failed to deploy.`;
     }
     if (runTestsEnabled) {
       output += ` ${getSuccessOrFailureChar(
         'failure',
-        numberTestErrors
+        numberTestErrors,
       )} ${numberTestErrors.toLocaleString()} of ${numberTestsCompleted.toLocaleString()} unit tests failed.`;
     }
   }

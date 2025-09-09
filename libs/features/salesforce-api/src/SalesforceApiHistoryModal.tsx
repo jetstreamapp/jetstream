@@ -33,12 +33,12 @@ export const SalesforceApiHistoryModal = ({ selectedOrg, onSubmit, onClose }: Sa
         .filter((item) => whichOrg === 'ALL' || item.org === selectedOrg.uniqueId)
         .toArray(),
     [whichOrg, selectedOrg.uniqueId],
-    [] as ApiHistoryItem[]
+    [] as ApiHistoryItem[],
   );
 
   const selectedHistoryItem = useLiveQuery(
     () => (selectedItemKey ? dexieDb.api_request_history.get(selectedItemKey) : undefined),
-    [selectedItemKey]
+    [selectedItemKey],
   );
 
   const [filteredHistoryItems, setFilteredHistoryItems] = useState(historyItems);

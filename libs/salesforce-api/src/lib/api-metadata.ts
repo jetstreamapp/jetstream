@@ -42,7 +42,7 @@ export class ApiMetadata extends SalesforceApi {
         body: {
           describeMetadata: { asOfVersion: this.apiVersion },
         },
-      })
+      }),
     )
       .then((response) => correctInvalidXmlResponseTypes(response['ns1:Envelope'].Body.describeMetadataResponse.result))
       .then((response) => {
@@ -71,7 +71,7 @@ export class ApiMetadata extends SalesforceApi {
             asOfVersion: this.apiVersion,
           },
         },
-      })
+      }),
     ).then((response) => correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.listMetadataResponse?.result || []));
   }
 
@@ -88,11 +88,11 @@ export class ApiMetadata extends SalesforceApi {
                   fullNames,
                 },
               },
-            })
+            }),
           ).then((response) => {
             return correctInvalidArrayXmlResponseTypes(response['ns1:Envelope'].Body.readMetadataResponse?.result.records || []);
-          })
-        )
+          }),
+        ),
       )
     ).flat();
   }
@@ -130,7 +130,7 @@ export class ApiMetadata extends SalesforceApi {
             DeployOptions: options,
           },
         },
-      })
+      }),
     )
       .then((result) => result['ns1:Envelope'].Body.deployResponse.result)
       .then(correctInvalidXmlResponseTypes);
@@ -146,7 +146,7 @@ export class ApiMetadata extends SalesforceApi {
             includeDetails,
           },
         },
-      })
+      }),
     )
       .then((result) => result['ns1:Envelope'].Body.checkDeployStatusResponse.result)
       .then(correctDeployMetadataResultTypes);
@@ -159,7 +159,7 @@ export class ApiMetadata extends SalesforceApi {
         body: {
           retrieve: { request },
         },
-      })
+      }),
     )
       .then((results) => {
         return results;
@@ -174,7 +174,7 @@ export class ApiMetadata extends SalesforceApi {
         body: {
           checkRetrieveStatus: { asyncProcessId },
         },
-      })
+      }),
     )
       .then((result) => result['ns1:Envelope'].Body.checkRetrieveStatusResponse.result)
       .then((results) => {

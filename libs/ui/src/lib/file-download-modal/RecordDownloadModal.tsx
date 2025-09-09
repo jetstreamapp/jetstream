@@ -117,7 +117,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
   const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
   const [downloadMethod, setDownloadMethod] = useState<typeof RADIO_DOWNLOAD_METHOD_STANDARD | typeof RADIO_DOWNLOAD_METHOD_BULK_API>(
-    RADIO_DOWNLOAD_METHOD_STANDARD
+    RADIO_DOWNLOAD_METHOD_STANDARD,
   );
   const [includeSubquery, setIncludeSubquery] = useState(true);
   const [fileName, setFileName] = useState<string>(getFilename(org, ['records']));
@@ -229,7 +229,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     // Remove invalid fields from query if necessary for bulk query
     if (downloadMethod === RADIO_DOWNLOAD_METHOD_BULK_API && allowBulkApiWithWarning) {
       const complexFields = new Set(
-        columns.filter((column) => PROHIBITED_BULK_APEX_TYPES.has(column.apexType || '')).map(({ columnFullPath }) => columnFullPath)
+        columns.filter((column) => PROHIBITED_BULK_APEX_TYPES.has(column.apexType || '')).map(({ columnFullPath }) => columnFullPath),
       );
       fieldsToUse = fieldsToUse.filter((field) => !subqueryFields[field] && !complexFields.has(field));
       _includeSubquery = false;

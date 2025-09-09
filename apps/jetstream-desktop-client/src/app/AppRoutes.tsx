@@ -11,7 +11,7 @@ const Organizations = lazy(() => import('@jetstream/feature/organizations').then
 
 const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
 const LoadRecordsMultiObject = lazy(() =>
-  import('@jetstream/feature/load-records-multi-object').then((module) => ({ default: module.LoadRecordsMultiObject }))
+  import('@jetstream/feature/load-records-multi-object').then((module) => ({ default: module.LoadRecordsMultiObject })),
 );
 const CreateRecords = lazy(() => import('@jetstream/feature/create-records').then((module) => ({ default: module.CreateRecords })));
 
@@ -20,61 +20,61 @@ const QueryBuilder = lazy(() => import('@jetstream/feature/query').then((module)
 const QueryResults = lazy(() => import('@jetstream/feature/query').then((module) => ({ default: module.QueryResults })));
 
 const AutomationControl = lazy(() =>
-  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControl }))
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControl })),
 );
 const AutomationControlEditor = lazy(() =>
-  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlEditor }))
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlEditor })),
 );
 const AutomationControlSelection = lazy(() =>
-  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlSelection }))
+  import('@jetstream/feature/automation-control').then((module) => ({ default: module.AutomationControlSelection })),
 );
 
 const ManagePermissions = lazy(() =>
-  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissions }))
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissions })),
 );
 const ManagePermissionsSelection = lazy(() =>
-  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsSelection }))
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsSelection })),
 );
 const ManagePermissionsEditor = lazy(() =>
-  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsEditor }))
+  import('@jetstream/feature/manage-permissions').then((module) => ({ default: module.ManagePermissionsEditor })),
 );
 
 const DeployMetadata = lazy(() => import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadata })));
 const DeployMetadataSelection = lazy(() =>
-  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataSelection }))
+  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataSelection })),
 );
 const DeployMetadataDeployment = lazy(() =>
-  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataDeployment }))
+  import('@jetstream/feature/deploy').then((module) => ({ default: module.DeployMetadataDeployment })),
 );
 
 const CreateObjectAndFields = lazy(() =>
-  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateObjectAndFields }))
+  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateObjectAndFields })),
 );
 const CreateFieldsSelection = lazy(() =>
-  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFieldsSelection }))
+  import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFieldsSelection })),
 );
 const CreateFields = lazy(() => import('@jetstream/feature/create-object-and-fields').then((module) => ({ default: module.CreateFields })));
 
 const FormulaEvaluator = lazy(() =>
-  import('@jetstream/feature/formula-evaluator').then((module) => ({ default: module.FormulaEvaluator }))
+  import('@jetstream/feature/formula-evaluator').then((module) => ({ default: module.FormulaEvaluator })),
 );
 
 const RecordTypeManager = lazy(() =>
-  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManager }))
+  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManager })),
 );
 const RecordTypeManagerSelection = lazy(() =>
-  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerSelection }))
+  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerSelection })),
 );
 const RecordTypeManagerEditor = lazy(() =>
-  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerEditor }))
+  import('@jetstream/feature/record-type-manager').then((module) => ({ default: module.RecordTypeManagerEditor })),
 );
 
 const MassUpdateRecords = lazy(() => import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecords })));
 const MassUpdateRecordsSelection = lazy(() =>
-  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsSelection }))
+  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsSelection })),
 );
 const MassUpdateRecordsDeployment = lazy(() =>
-  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsDeployment }))
+  import('@jetstream/feature/update-records').then((module) => ({ default: module.MassUpdateRecordsDeployment })),
 );
 
 const AnonymousApex = lazy(() => import('@jetstream/feature/anon-apex').then((module) => ({ default: module.AnonymousApex })));
@@ -86,7 +86,7 @@ const DebugLogViewer = lazy(() => import('@jetstream/feature/debug-log-viewer').
 const SObjectExport = lazy(() => import('@jetstream/feature/sobject-export').then((module) => ({ default: module.SObjectExport })));
 
 const PlatformEventMonitor = lazy(() =>
-  import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor }))
+  import('@jetstream/feature/platform-event-monitor').then((module) => ({ default: module.PlatformEventMonitor })),
 );
 
 const Settings = lazy(() => import('./components/settings/Settings'));

@@ -37,7 +37,7 @@ export async function initApiClientAndOrg(sessionInfo: SessionInfo): Promise<Org
 
   try {
     const { queryResults } = await await apiConnection.query.query<SObjectOrganization>(
-      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
+      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`,
     );
     if (queryResults.totalSize > 0) {
       companyInfoRecord = queryResults.records[0];

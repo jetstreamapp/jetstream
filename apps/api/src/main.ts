@@ -221,7 +221,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
           upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
         },
       },
-    })
+    }),
   );
 
   app.use(blockBotByUserAgentMiddleware);
@@ -233,7 +233,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       '/analytics',
       proxy('https://api2.amplitude.com', {
         proxyReqPathResolver: (req) => req.originalUrl.replace('/analytics', '/2/httpapi'),
-      })
+      }),
     );
   }
 
@@ -298,7 +298,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
             HTTP.HEADERS.X_CACHE_KEY,
             HTTP.HEADERS.X_CACHE_AGE,
             HTTP.HEADERS.X_CACHE_EXP,
-          ].join(', ')
+          ].join(', '),
         );
       }
       next();
@@ -328,7 +328,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
           HTTP.HEADERS.X_CACHE_AGE,
           HTTP.HEADERS.X_CACHE_EXP,
         ],
-      })
+      }),
     );
     app.use('/platform-event', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), platformEventRoutes);
   } else {
@@ -384,7 +384,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       redirectIfMfaEnrollmentRequiredMiddleware,
       (req: express.Request, res: express.Response) => {
         res.sendFile(join(__dirname, '../jetstream/index.html'));
-      }
+      },
     );
   }
 

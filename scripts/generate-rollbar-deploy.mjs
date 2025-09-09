@@ -20,5 +20,5 @@ const version = {
 
 const results =
   await $`curl https://api.rollbar.com/api/1/deploy -H "X-Rollbar-Access-Token: ${ROLLBAR_SERVER_TOKEN}" -H "Content-Type: application/json" -d ${JSON.stringify(
-    version
+    version,
   )}`;

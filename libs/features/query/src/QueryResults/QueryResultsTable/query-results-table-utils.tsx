@@ -11,7 +11,7 @@ export function getQueryResultsCellContents(
   org: SalesforceOrgUi,
   value: unknown,
   fullRecord?: any,
-  complexDataRenderer?: (parentRecord: any, field: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi, value: unknown) => ReactNode
+  complexDataRenderer?: (parentRecord: any, field: QueryFieldHeader, serverUrl: string, org: SalesforceOrgUi, value: unknown) => ReactNode,
   // onViewData?: (field: QueryFieldHeader, value: unknown) => void
 ) {
   let type: 'other' | 'object' | 'boolean' | 'id' = 'other';

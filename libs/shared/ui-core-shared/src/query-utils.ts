@@ -25,7 +25,7 @@ export function composeSoqlQuery(query: Query, whereExpression: ExpressionType, 
       where: convertFiltersToWhereClause<WhereClause>(whereExpression),
       having: havingClauses ? convertFiltersToWhereClause<HavingClause>(havingClauses) : undefined,
     },
-    { format: true, formatOptions: { fieldMaxLineLength: 80 } }
+    { format: true, formatOptions: { fieldMaxLineLength: 80 } },
   );
 }
 
@@ -70,7 +70,7 @@ export function transformEditForm(sobjectFields: Field[], record: SalesforceReco
 export function combineRecordsForClone(
   sobjectFields: Field[],
   initialRecord: SalesforceRecord,
-  modifiedRecord: SalesforceRecord
+  modifiedRecord: SalesforceRecord,
 ): SalesforceRecord {
   const clonedRecord = { ...initialRecord, ...modifiedRecord };
   sobjectFields.forEach((field) => {

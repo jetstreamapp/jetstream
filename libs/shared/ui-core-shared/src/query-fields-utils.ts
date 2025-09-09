@@ -53,7 +53,7 @@ export function getSelectedFieldsFromQueryFields(fieldsMap: Record<string, Query
           };
         });
       }),
-    'field'
+    'field',
   ).sort(sortQueryFieldsPolymorphicComparable);
   return fields;
 }

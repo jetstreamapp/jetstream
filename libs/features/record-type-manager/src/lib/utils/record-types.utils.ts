@@ -97,7 +97,7 @@ function setOriginalMetadataSobjectName(modifiedValues: RecordTypePicklistSummar
 
 function getRecordTypeModifiedData(
   recordType: ReadMetadataRecordTypeExtended,
-  modifiedValues: RecordTypePicklistSummary[]
+  modifiedValues: RecordTypePicklistSummary[],
 ): ReadMetadataRecordTypeExtended {
   return {
     ...recordType,
@@ -138,7 +138,7 @@ export async function prepareRecordTypeMetadataPackage({
   const zipFile = JSZip();
 
   const modifiedRecordTypes = Array.from(
-    new Set(modifiedValues.map(({ recordTypeFullName }) => recordTypesByFullName[recordTypeFullName]))
+    new Set(modifiedValues.map(({ recordTypeFullName }) => recordTypesByFullName[recordTypeFullName])),
   );
   const packageXml = xmlUtils.generatePackageXml(apiVersion, { RecordType: modifiedRecordTypes.map(({ fullName }) => fullName) });
   zipFile.file('package.xml', packageXml);
@@ -149,7 +149,7 @@ export async function prepareRecordTypeMetadataPackage({
       const recordTypes = Object.entries(groupBy(modifiedValuesForObject, 'recordTypeFullName')).map(
         ([recordTypeFullName, modifiedValuesForRecordType]) => {
           return getRecordTypeModifiedData(recordTypesByFullName[recordTypeFullName], modifiedValuesForRecordType);
-        }
+        },
       );
       const objectXml = getObjectWithRecordTypesXml(recordTypes);
       objectFolder.file(`${sobject}.object`, objectXml);

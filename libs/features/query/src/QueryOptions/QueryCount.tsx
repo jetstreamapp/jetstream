@@ -42,7 +42,7 @@ export const QueryCount = ({ org }: QueryCountProps) => {
         setRecordCount(null);
       }
     },
-    [includeDeleted, isTooling, org]
+    [includeDeleted, isTooling, org],
   );
 
   useEffect(() => {

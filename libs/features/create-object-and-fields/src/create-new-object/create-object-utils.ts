@@ -12,7 +12,7 @@ import { CreateFieldParams, CreateObjectPayload, CreateObjectPermissions } from 
 export function setSObjectPermissionDependencies(
   permissions: CreateObjectPermissions,
   modifiedKey: keyof CreateObjectPermissions,
-  newValue: boolean
+  newValue: boolean,
 ) {
   const output = { ...permissions };
   let fieldsToSetIfTrue: (keyof CreateObjectPermissions)[] = [];
@@ -70,7 +70,7 @@ export function generateApiNameFromLabel(value: string) {
 
 export function getObjectAndTabPermissionRecords(
   { apiName: apiNameWithoutNamespace, createTab, profiles, permissionSets, objectPermissions }: CreateFieldParams,
-  orgNamespacePrefix?: Maybe<string>
+  orgNamespacePrefix?: Maybe<string>,
 ) {
   const apiName = orgNamespacePrefix ? `${orgNamespacePrefix}__${apiNameWithoutNamespace}` : apiNameWithoutNamespace;
   const _objectPermissions: ObjectPermissionRecordInsert[] = [];
@@ -129,7 +129,7 @@ export function getObjectAndTabPermissionRecords(
 
 export async function getMetadataPackage(
   apiVersion: string,
-  { apiName, createTab, tabMotif, payload, permissionSets, profiles }: CreateFieldParams
+  { apiName, createTab, tabMotif, payload, permissionSets, profiles }: CreateFieldParams,
 ) {
   const customObjectXml = getObjectXml(payload);
 
@@ -154,7 +154,7 @@ export async function savePermissionRecords(
   permissionRecords: {
     objectPermissions: ObjectPermissionRecordInsert[];
     tabPermissions: TabPermissionRecordInsert[];
-  }
+  },
 ) {
   const existingPermissions = await Promise.all([
     queryAll<{ ParentId: string }>(
@@ -163,7 +163,7 @@ export async function savePermissionRecords(
         fields: [getField('ParentId')],
         sObject: 'ObjectPermissions',
         where: { left: { field: 'SobjectType', operator: '=', value: objectApiName, literalType: 'STRING' } },
-      })
+      }),
     ),
     queryAll<{ ParentId: string }>(
       org,
@@ -171,21 +171,21 @@ export async function savePermissionRecords(
         fields: [getField('ParentId')],
         sObject: 'PermissionSetTabSetting',
         where: { left: { field: 'Name', operator: '=', value: objectApiName, literalType: 'STRING' } },
-      })
+      }),
     ),
   ]).then(
     ([query1, query2]) =>
       new Set([
         ...query1.queryResults.records.map((record) => record.ParentId),
         ...query2.queryResults.records.map((record) => record.ParentId),
-      ])
+      ]),
   );
 
   const [skippedObjectPermissions, objectPermissions] = partition(permissionRecords.objectPermissions, (record) =>
-    existingPermissions.has(record.ParentId)
+    existingPermissions.has(record.ParentId),
   );
   const [skippedTabPermissions, tabPermissions] = partition(permissionRecords.tabPermissions, (record) =>
-    existingPermissions.has(record.ParentId)
+    existingPermissions.has(record.ParentId),
   );
 
   const recordInsertResults: RecordResult[] = (

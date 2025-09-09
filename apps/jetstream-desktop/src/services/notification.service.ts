@@ -5,25 +5,28 @@ import { checkNotifications } from './api.service';
 import * as dataService from './persistence.service';
 
 export function registerNotificationPoller() {
-  setInterval(async () => {
-    const appData = dataService.getAppData();
-    const { deviceId, accessToken } = appData;
+  setInterval(
+    async () => {
+      const appData = dataService.getAppData();
+      const { deviceId, accessToken } = appData;
 
-    try {
-      const response = await checkNotifications({ deviceId, accessToken });
-      logger.debug('Notification received:', response);
+      try {
+        const response = await checkNotifications({ deviceId, accessToken });
+        logger.debug('Notification received:', response);
 
-      if (response.action === 'notification' && response.message) {
-        showCriticalNotification(response.title || 'Important Jetstream Information', response.message, response.actionUrl);
-      } else if (response.action === 'action-modal' && response.message) {
-        showCriticalConfirmationDialog(response.title || 'Important Jetstream Action Required', response.message, response.actionUrl);
-      } else if (!response.action && response.message) {
-        // TODO: show in-app notification
+        if (response.action === 'notification' && response.message) {
+          showCriticalNotification(response.title || 'Important Jetstream Information', response.message, response.actionUrl);
+        } else if (response.action === 'action-modal' && response.message) {
+          showCriticalConfirmationDialog(response.title || 'Important Jetstream Action Required', response.message, response.actionUrl);
+        } else if (!response.action && response.message) {
+          // TODO: show in-app notification
+        }
+      } catch (error) {
+        logger.error('Error checking notifications:', error);
       }
-    } catch (error) {
-      logger.error('Error checking notifications:', error);
-    }
-  }, 1000 * 60 * 60 * 24); // Check every 24 hours
+    },
+    1000 * 60 * 60 * 24,
+  ); // Check every 24 hours
 }
 
 export function showCriticalNotification(title: string, message: string, actionUrl?: Maybe<string>) {

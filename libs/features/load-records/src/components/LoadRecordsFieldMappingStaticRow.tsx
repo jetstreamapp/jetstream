@@ -41,7 +41,7 @@ function getFieldListItems(fields: FieldWithRelatedEntities[]) {
             )}
           </Grid>
         </span>
-        <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+        <span className="slds-listbox__option-meta">
           <span title={item.value} className="slds-truncate">
             {item.value}
           </span>
@@ -95,7 +95,7 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
         };
       }
       setEditableField(
-        convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {}, isCustomMetadata)[0]
+        convertMetadataToEditableFields([fieldMappingItem.fieldMetadata.field], picklistValues, 'create', {}, isCustomMetadata)[0],
       );
     }
   }, [fieldMappingItem.fieldMetadata, isCustomMetadata]);

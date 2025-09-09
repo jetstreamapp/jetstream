@@ -178,7 +178,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       className={classNames(
         'slds-form-element slds-dropdown-trigger slds-dropdown-trigger_click',
         { 'slds-is-open': isOpen, 'slds-has-error': hasError },
-        className
+        className,
       )}
     >
       <label className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })} htmlFor={id}>

@@ -110,7 +110,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
                 relationshipName: (row.relationshipName.value as string) || null,
                 referenceTo: row.referenceTo.value ? [row.referenceTo.value as string] : [],
               };
-            })
+            }),
         );
       }
     }, [allValues.fullName.value, isOpen, rows, value]);
@@ -190,7 +190,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
         selectedUserId,
         testMethod,
         trackEvent,
-      ]
+      ],
     );
 
     useNonInitialEffect(() => {
@@ -378,7 +378,7 @@ export const CreateFieldsFormulaEditor = forwardRef<unknown, CreateFieldsFormula
         )}
       </div>
     );
-  }
+  },
 );
 
 export default CreateFieldsFormulaEditor;

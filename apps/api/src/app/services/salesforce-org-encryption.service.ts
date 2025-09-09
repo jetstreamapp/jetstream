@@ -56,7 +56,7 @@ async function deriveUserKey({ userId, salt }: { userId: string; salt?: string }
     cacheKey,
     getIterationCount(),
     32, // key length in bytes
-    'sha256'
+    'sha256',
   );
 
   const keyString = derivedKey.toString('base64');

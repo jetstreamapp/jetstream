@@ -52,7 +52,7 @@ type CheckboxFilters = keyof Omit<ObjectFilterValues, 'STANDARD_CUSTOM' | 'MANAG
 
 export function filterSobjects(
   sobjects: DescribeGlobalSObjectResult[],
-  selectedFilters: ObjectFilterValues
+  selectedFilters: ObjectFilterValues,
 ): DescribeGlobalSObjectResult[] {
   return sobjects.filter((sobject) => {
     if (selectedFilters.STANDARD_CUSTOM === 'custom' && !sobject.name.endsWith('__c')) {
@@ -109,8 +109,8 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
     type,
     value,
   }:
-    | { type: 'STANDARD_CUSTOM'; value: typeof DEFAULT_VALUES['STANDARD_CUSTOM'] }
-    | { type: 'MANAGED'; value: typeof DEFAULT_VALUES['MANAGED'] }) {
+    | { type: 'STANDARD_CUSTOM'; value: (typeof DEFAULT_VALUES)['STANDARD_CUSTOM'] }
+    | { type: 'MANAGED'; value: (typeof DEFAULT_VALUES)['MANAGED'] }) {
     setSelectedFilters((prevValue) => ({
       ...prevValue,
       [type]: value,
@@ -166,7 +166,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.STANDARD_CUSTOM === value}
-                onChange={(value: typeof DEFAULT_VALUES['STANDARD_CUSTOM']) => handleRadioChange({ type: 'STANDARD_CUSTOM', value })}
+                onChange={(value: (typeof DEFAULT_VALUES)['STANDARD_CUSTOM']) => handleRadioChange({ type: 'STANDARD_CUSTOM', value })}
               />
             ))}
           </RadioGroup>
@@ -180,7 +180,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.MANAGED === value}
-                onChange={(value: typeof DEFAULT_VALUES['MANAGED']) => handleRadioChange({ type: 'MANAGED', value: value })}
+                onChange={(value: (typeof DEFAULT_VALUES)['MANAGED']) => handleRadioChange({ type: 'MANAGED', value: value })}
               />
             ))}
           </RadioGroup>
@@ -232,7 +232,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           title="Reset all filters"
           css={css`
             position: absolute;
-            background-color: #ba0517;
+            background-color: var(--slds-g-color-error-base-30, #ba0517);
             top: -0.4rem;
             right: -0.4rem;
             border-radius: 50%;

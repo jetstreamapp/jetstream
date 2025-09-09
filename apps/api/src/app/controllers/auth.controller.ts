@@ -192,7 +192,7 @@ export const routeDefinition = {
 
 function initSession(
   req: Request<unknown, unknown, unknown>,
-  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>
+  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     // Regenerate session to avoid session fixation attacks
@@ -395,7 +395,7 @@ const callback = createRoute(
           provider.provider as OauthProviderType,
           new URLSearchParams(query),
           cookies[pkceCodeVerifier.name],
-          cookies[nonce.name]
+          cookies[nonce.name],
         );
 
         if (!userInfo.email) {
@@ -564,7 +564,7 @@ const callback = createRoute(
       });
       next(ensureAuthError(ex));
     }
-  }
+  },
 );
 
 const verification = createRoute(
@@ -669,7 +669,7 @@ const verification = createRoute(
 
       next(ensureAuthError(ex));
     }
-  }
+  },
 );
 
 const resendVerification = createRoute(routeDefinition.resendVerification.validators, async ({ body }, req, res, next) => {
@@ -891,7 +891,7 @@ const verifyEmailViaLink = createRoute(
 
       next(ensureAuthError(ex));
     }
-  }
+  },
 );
 
 const getOtpEnrollmentData = createRoute(routeDefinition.getOtpEnrollmentData.validators, async ({ user }, req, res, next) => {

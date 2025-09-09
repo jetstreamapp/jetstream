@@ -76,7 +76,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
         (addedOrg: SalesforceOrgUi) => {
           popoverRef.current?.close();
           onAddOrg(addedOrg, true);
-        }
+        },
       );
     trackEvent(ANALYTICS_KEYS.sfdc_org_add_org, { orgType, advancedOptionsEnabled, addLoginTrue, addToActiveOrganization });
   }

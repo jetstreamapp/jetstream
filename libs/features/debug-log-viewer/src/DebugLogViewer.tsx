@@ -55,7 +55,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
   const activeOrgId = useRef(selectedOrg.uniqueId);
   const [purgeModalOpen, setPurgeModalOpen] = useState(false);
   const bulkDeleteJob = useObservable(
-    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev) => isAsyncJob(ev) && ev.type === 'BulkDelete'))
+    fromJetstreamEvents.getObservable('jobFinished').pipe(filter((ev) => isAsyncJob(ev) && ev.type === 'BulkDelete')),
   );
 
   const { togglePause, fetchLogs, isPaused, loading, lastChecked, logs, pollInterval } = useDebugLogs(selectedOrg, {
@@ -73,7 +73,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
       'LogUser.Id': log.LogUser.Id,
       'LogUser.Name': log.LogUser.Name,
       'LogUser.Username': log.LogUser.Username,
-    }))
+    })),
   );
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {
         'LogUser.Id': log.LogUser.Id,
         'LogUser.Name': log.LogUser.Name,
         'LogUser.Username': log.LogUser.Username,
-      }))
+      })),
     );
   }, [logs]);
 

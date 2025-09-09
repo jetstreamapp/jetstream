@@ -80,7 +80,7 @@ describe('getParsableFieldsFromFilter', () => {
 
   it('should return an empty array when given a filter without value conditions', () => {
     const filter = parseQuery(
-      `SELECT Id FROM Account WHERE (Id IN ('1', '2', '3') OR (NOT Id = '2') OR (Name LIKE '%FOO%' OR (Name LIKE '%ARM%' AND FOO = 'bar')))`
+      `SELECT Id FROM Account WHERE (Id IN ('1', '2', '3') OR (NOT Id = '2') OR (Name LIKE '%FOO%' OR (Name LIKE '%ARM%' AND FOO = 'bar')))`,
     ).where;
     const result = getParsableFieldsFromFilter(filter);
     expect(result).toEqual(['id', 'name', 'foo']);
@@ -94,7 +94,7 @@ describe('getParsableFieldsFromFilter', () => {
 
   it('Should ignore subqueries in WHERE clause', () => {
     const filter = parseQuery(
-      `SELECT Id, Name FROM Account WHERE Id IN (SELECT AccountId FROM Contact WHERE LastName LIKE 'apple%') AND Id IN (SELECT AccountId FROM Opportunity WHERE isClosed = FALSE)`
+      `SELECT Id, Name FROM Account WHERE Id IN (SELECT AccountId FROM Contact WHERE LastName LIKE 'apple%') AND Id IN (SELECT AccountId FROM Opportunity WHERE isClosed = FALSE)`,
     ).where;
     const result = getParsableFieldsFromFilter(filter);
     expect(result).toEqual([]);

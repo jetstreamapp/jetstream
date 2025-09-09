@@ -72,7 +72,7 @@ function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrg
         secondaryLabelOnNewLine: org.username !== org.label,
         meta: org,
       })),
-    })
+    }),
   );
 }
 

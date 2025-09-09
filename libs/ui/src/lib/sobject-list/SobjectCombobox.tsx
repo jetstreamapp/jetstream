@@ -50,7 +50,7 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
       filterFn = isTooling ? filterToolingSobjectFn : filterSobjectFn,
       onSelectedSObject,
     },
-    ref
+    ref,
   ) => {
     const isMounted = useRef(true);
     const [loading, setLoading] = useState<boolean>(false);
@@ -120,7 +120,7 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
         onSelected={(item) => onSelectedSObject(item.meta)}
       />
     );
-  }
+  },
 );
 
 export default SobjectCombobox;

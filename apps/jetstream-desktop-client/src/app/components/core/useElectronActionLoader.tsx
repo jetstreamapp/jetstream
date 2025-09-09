@@ -53,7 +53,7 @@ export const useElectronActionLoader = () => {
         logger.error('Error handling electron action:', ex);
       }
     },
-    [setInputFileData, setInputFileHeader, setInputFilename, setInputFilenameType]
+    [setInputFileData, setInputFileHeader, setInputFilename, setInputFilenameType],
   );
 
   useEffect(() => {

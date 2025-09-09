@@ -27,7 +27,7 @@ export interface DeployMetadataPackageConfigModalProps {
   onDeploy: (
     fileInfo: { file: ArrayBuffer; filename: string; fileContents: string[]; isSinglePackage: boolean },
     destinationOrg: SalesforceOrgUi,
-    deployOptions: DeployOptions
+    deployOptions: DeployOptions,
   ) => void;
 }
 
@@ -66,7 +66,7 @@ export const DeployMetadataPackageConfigModal: FunctionComponent<DeployMetadataP
       singlePackage: true,
       testLevel: undefined,
       runTests: [],
-    }
+    },
   );
 
   useNonInitialEffect(() => {

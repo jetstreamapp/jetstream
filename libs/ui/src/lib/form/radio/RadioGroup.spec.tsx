@@ -11,7 +11,7 @@ describe('Radio Group Test', () => {
     render(
       <RadioGroup label="Group label" required labelHelp="helpText">
         {radio}
-      </RadioGroup>
+      </RadioGroup>,
     );
 
     expect(screen.getByText('Group label')).toBeTruthy();
@@ -23,7 +23,7 @@ describe('Radio Group Test', () => {
     const { container } = render(
       <RadioGroup label="Group label" className="outer-class" formControlClassName="form-class">
         {radio}
-      </RadioGroup>
+      </RadioGroup>,
     );
 
     expect(container.querySelector('fieldset.outer-class')).toBeTruthy();
@@ -40,7 +40,7 @@ describe('Radio Group Test', () => {
     const { container } = render(
       <RadioGroup label="Group label" helpText="_HELP_" hasError errorMessage="_ERROR_">
         {radio}
-      </RadioGroup>
+      </RadioGroup>,
     );
 
     expect(screen.getByText('_HELP_')).toBeTruthy();
@@ -56,7 +56,7 @@ describe('Radio Group Test', () => {
     const { container } = render(
       <RadioGroup label="Group label" errorMessage="_ERROR_">
         {radio}
-      </RadioGroup>
+      </RadioGroup>,
     );
 
     expect(screen.queryAllByText('_ERROR_').length).toBeFalsy();
@@ -67,7 +67,7 @@ describe('Radio Group Test', () => {
     const { container } = render(
       <RadioGroup label="Group label" isButtonGroup>
         {radio}
-      </RadioGroup>
+      </RadioGroup>,
     );
 
     expect(container.querySelector('.slds-radio_button-group')).toBeTruthy();

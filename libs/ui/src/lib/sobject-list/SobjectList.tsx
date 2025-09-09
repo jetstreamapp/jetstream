@@ -177,7 +177,7 @@ interface SobjectListContentProps extends Pick<SobjectListProps, 'selectedSObjec
 const SobjectListContent = forwardRef(
   (
     { sobjects, selectedSObject, loading, filteredSobjects, onSelected, searchTerm }: SobjectListContentProps,
-    ref: RefObject<HTMLUListElement>
+    ref: RefObject<HTMLUListElement>,
   ) => {
     return (
       <>
@@ -204,7 +204,7 @@ const SobjectListContent = forwardRef(
         )}
       </>
     );
-  }
+  },
 );
 
 export default SobjectList;

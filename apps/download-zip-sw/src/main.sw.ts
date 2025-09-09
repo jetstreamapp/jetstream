@@ -127,7 +127,7 @@ self.addEventListener('fetch', async (event) => {
           'Content-Disposition': `attachment; filename="${zipMap.get(id)!.name}.zip"`,
           'Content-Length': zipMap.get(id)!.sizeBig.toString(), // This is an approximation, does not take into account the headers
         }),
-      })
+      }),
     );
 
     // Start feeding zip the downloads

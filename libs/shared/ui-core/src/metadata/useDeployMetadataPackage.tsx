@@ -25,25 +25,25 @@ function getNotificationMessageBody(deployResults: DeployResult) {
   if (success) {
     output += `${getSuccessOrFailureChar(
       'success',
-      numberComponentsDeployed
+      numberComponentsDeployed,
     )} ${numberComponentsDeployed.toLocaleString()} ${pluralizeFromNumber('item', numberComponentsDeployed)} deployed successfully.`;
     if (runTestsEnabled) {
       output += ` ${getSuccessOrFailureChar(
         'success',
-        numberTestsCompleted
+        numberTestsCompleted,
       )} ${numberTestsCompleted.toLocaleString()} unit tests succeeded.`;
     }
   } else {
     if (numberComponentErrors > 0) {
       output += `${getSuccessOrFailureChar(
         'failure',
-        numberComponentErrors
+        numberComponentErrors,
       )} ${numberComponentErrors.toLocaleString()} of ${numberComponentsDeployed.toLocaleString()} items failed to deploy.`;
     }
     if (runTestsEnabled) {
       output += ` ${getSuccessOrFailureChar(
         'failure',
-        numberTestErrors
+        numberTestErrors,
       )} ${numberTestErrors.toLocaleString()} of ${numberTestsCompleted.toLocaleString()} unit tests failed.`;
     }
   }
@@ -153,7 +153,7 @@ export function useDeployMetadataPackage(serverUrl: string, onFinished?: () => v
         }
       }
     },
-    [notifyUser, onFinished, rollbar]
+    [notifyUser, onFinished, rollbar],
   );
 
   return { deployMetadata, results, deployId, hasLoaded, loading, lastChecked, hasError, errorMessage };

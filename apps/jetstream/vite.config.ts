@@ -3,7 +3,7 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
 import { defineConfig } from 'vite';
-import { baseHrefPlugin, replaceFiles } from './vite.plugins';
+import { baseHrefPlugin } from './vite.plugins';
 
 // import replaceFiles from '@nx/vite/plugins/rollup-replace-files.plugin';
 
@@ -34,10 +34,6 @@ export default defineConfig({
   },
 
   plugins: [
-    replaceFiles([
-      // { replace: 'apps/jetstream/src/environments/environment.ts', with: 'apps/jetstream/src/environments/environment.prod.ts' },
-      // { replace: 'libs/ui/.storybook/storybook-styles.scss', with: 'apps/jetstream/src/main.scss' },
-    ]),
     react({
       jsxImportSource: '@emotion/react',
       babel: {

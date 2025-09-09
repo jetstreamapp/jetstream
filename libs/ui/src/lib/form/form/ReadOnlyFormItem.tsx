@@ -43,7 +43,7 @@ export const ReadOnlyFormItem: FunctionComponent<ReadOnlyFormItemProps> = ({
           'slds-form-element_horizontal': horizontal,
           'slds-form-element_1-col': fullWidth,
         },
-        className
+        className,
       )}
     >
       <span className="slds-form-element__label">

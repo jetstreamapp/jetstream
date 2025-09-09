@@ -37,34 +37,17 @@ export interface LoadRecordsFieldMappingRowProps {
 }
 
 function getFieldListItems(fields: FieldWithRelatedEntities[]) {
-  return fields.map((field) => ({
-    id: field.name,
-    label: field.label,
-    value: field.name,
-    secondaryLabel: field.typeLabel,
-    meta: field,
-    customRenderer: (item: ListItem<string, FieldWithRelatedEntities>) => (
-      <>
-        <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-          <Grid align="spread">
-            <span title={item.label} className="slds-truncate">
-              {item.label}
-            </span>
-            {item.secondaryLabel && (
-              <span className="slds-badge slds-badge_lightest slds-truncate" title={item.secondaryLabel}>
-                {item.secondaryLabel}
-              </span>
-            )}
-          </Grid>
-        </span>
-        <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
-          <span title={item.value} className="slds-truncate">
-            {item.value}
-          </span>
-        </span>
-      </>
-    ),
-  }));
+  return fields.map(
+    (field): ListItem<string, FieldWithRelatedEntities> => ({
+      id: field.name,
+      label: field.label,
+      value: field.name,
+      secondaryLabel: field.name,
+      secondaryLabelOnNewLine: true,
+      tertiaryLabel: field.typeLabel,
+      meta: field,
+    }),
+  );
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({
@@ -94,7 +77,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           secondaryLabelOnNewLine: true,
           tertiaryLabel: field.isExternalId ? 'External ID' : undefined,
           meta: field,
-        }))
+        })),
       );
     }
   }, [fieldMappingItem.fieldMetadata, fieldMappingItem.selectedReferenceTo]);

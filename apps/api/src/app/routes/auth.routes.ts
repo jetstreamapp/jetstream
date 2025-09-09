@@ -49,7 +49,7 @@ routes.post(
   '/password/reset/init',
   STRICT_2X_AuthRateLimit,
   verifyCaptcha,
-  authController.routeDefinition.requestPasswordReset.controllerFn()
+  authController.routeDefinition.requestPasswordReset.controllerFn(),
 );
 // Finish resetting password
 routes.post('/password/reset/verify', STRICT_AuthRateLimit, authController.routeDefinition.validatePasswordReset.controllerFn());

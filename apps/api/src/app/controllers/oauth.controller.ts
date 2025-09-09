@@ -145,7 +145,7 @@ export async function initConnectionFromOAuthResponse({
 
   try {
     const { queryResults: results } = await jetstreamConn.query.query<SObjectOrganization>(
-      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
+      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`,
     );
     if (results.totalSize > 0) {
       companyInfoRecord = results.records[0];
@@ -193,7 +193,7 @@ export async function initConnectionFromOAuthResponse({
       logger.warn(
         { userId, jetstreamOrganizationId, ...getExceptionLog(ex) },
         'Error getting jetstream org with provided id %s',
-        getErrorMessage(ex)
+        getErrorMessage(ex),
       );
     }
   }

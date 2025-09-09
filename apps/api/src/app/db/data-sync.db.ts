@@ -180,7 +180,7 @@ export const syncRecordChanges = async ({
         hashedKey: { in: recordsByHashedKey },
       },
     }),
-    'key'
+    'key',
   );
 
   /**
@@ -255,7 +255,7 @@ export const syncRecordChanges = async ({
       recordsToUpdate: [] as Array<{ id: string; record: SyncRecordOperationCreateUpdate }>,
       recordsToUnDelete: [] as Array<{ id: string; record: SyncRecordOperationCreateUpdate }>,
       recordsToDelete: [] as Array<{ id: string; record: SyncRecordOperationDelete }>,
-    }
+    },
   );
 
   const now = new Date();

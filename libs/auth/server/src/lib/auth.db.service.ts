@@ -288,7 +288,7 @@ export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainTex
       prisma.authFactors.update({
         data: { enabled: false },
         where: { userId_type: { type, userId } },
-      })
+      }),
     ),
     // Save the new one
     prisma.authFactors.upsert({
@@ -312,7 +312,7 @@ export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainTex
 export async function toggleEnableDisableAuthFactor(
   user: Pick<UserProfileSession, 'id' | 'email'>,
   type: TwoFactorTypeWithoutEmail,
-  action: 'enable' | 'disable'
+  action: 'enable' | 'disable',
 ) {
   if (!user?.id || !user?.email) {
     throw new Error('Invalid user');
@@ -413,7 +413,7 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
           loginTime: new Date(loginTime).toISOString(),
           provider,
         };
-      })
+      }),
     );
 
   // Fetch location data and add to each session
@@ -424,8 +424,8 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
           ({ location }, i): UserSessionWithLocation => ({
             ...sessions[i],
             location,
-          })
-        )
+          }),
+        ),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
@@ -469,8 +469,8 @@ export async function getUserWebExtensionSessions(userId: string, omitLocationDa
           ({ location }, i): ExternalTokenSessionWithLocation => ({
             ...webTokenSessions[i],
             location,
-          })
-        )
+          }),
+        ),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for webTokens');
@@ -505,7 +505,7 @@ export async function getUserActivity(userId: string) {
         action: actionDisplayName[record.action] || record.action,
         method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
         createdAt: record.createdAt.toISOString(),
-      }))
+      })),
     );
 
   try {
@@ -969,7 +969,7 @@ export async function handleSignInOrRegistration(
         email: string;
         name: string;
         password: string;
-      }
+      },
 ): Promise<{
   user: AuthenticatedUser;
   providerType: ProviderTypeOauth | ProviderTypeCredentials;
@@ -1020,7 +1020,7 @@ export async function handleSignInOrRegistration(
           // TODO: we should try to prevent duplicate email addresses to avoid this complexity
           logger.warn(
             { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
-            'Cannot auto-link account because there are multiple users with the same email address'
+            'Cannot auto-link account because there are multiple users with the same email address',
           );
           throw new LoginWithExistingIdentity();
         }
@@ -1029,7 +1029,7 @@ export async function handleSignInOrRegistration(
             // return error - cannot link since email addresses are not verified
             logger.warn(
               { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
-              'Cannot auto-link account because email addresses are not verified'
+              'Cannot auto-link account because email addresses are not verified',
             );
             throw new LoginWithExistingIdentity();
           }
@@ -1038,7 +1038,7 @@ export async function handleSignInOrRegistration(
           if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
             logger.warn(
               { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
-              'Cannot auto-link account because login configuration disallows it'
+              'Cannot auto-link account because login configuration disallows it',
             );
             throw new IdentityLinkingNotAllowed();
           }
@@ -1170,7 +1170,7 @@ export async function linkIdentityToUser({
       // TODO: is this the correct error message? some other user already has this identity linked
       logger.warn(
         { newUserId: userId, existingUserId: existingProviderUser.id },
-        'Cannot link account, Provider identity already linked to another user'
+        'Cannot link account, Provider identity already linked to another user',
       );
       throw new LoginWithExistingIdentity('Provider identity already linked to another user');
     } else if (existingProviderUser) {

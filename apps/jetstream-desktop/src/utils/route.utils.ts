@@ -35,7 +35,7 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     org?: SalesforceOrgUi;
     targetOrg?: SalesforceOrgUi;
   },
-  req: RequestOptions
+  req: RequestOptions,
 ) => Promise<Response> | Response;
 
 export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny>(
@@ -56,7 +56,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
   },
-  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>
+  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
 ) {
   return async (req: RequestOptions) => {
     const url = req.urlOverride || new URL(req.request.url);
@@ -136,7 +136,7 @@ export function handleErrorResponse(error: Error, additionalHeaders?: Record<str
       error: true,
       message: errorMessage,
     }),
-    { status: 400, statusText: 'Bad Request', headers }
+    { status: 400, statusText: 'Bad Request', headers },
   );
 }
 
@@ -146,7 +146,7 @@ export function getOrgFromHeaderOrQuery(req: Request, headerKey: string, version
 
   const apiVersion = (req.headers.get(versionHeaderKey) || query.get(versionHeaderKey)) as string | undefined;
   const includeCallOptions = ensureBoolean(
-    req.headers.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (query.get('includeCallOptions') as string | undefined)
+    req.headers.get(HTTP.HEADERS.X_INCLUDE_CALL_OPTIONS) || (query.get('includeCallOptions') as string | undefined),
   );
 
   if (!uniqueId) {
@@ -158,7 +158,7 @@ export function getOrgFromHeaderOrQuery(req: Request, headerKey: string, version
 
 export function initApiConnection(
   uniqueId: string,
-  { apiVersion, includeCallOptions }: { apiVersion?: string; includeCallOptions?: boolean } = {}
+  { apiVersion, includeCallOptions }: { apiVersion?: string; includeCallOptions?: boolean } = {},
 ) {
   const org = getSalesforceOrgById(uniqueId);
 
@@ -214,7 +214,7 @@ export function initApiConnection(
       sfdcClientId: ENV.DESKTOP_SFDC_CLIENT_ID,
     },
     handleRefresh,
-    handleConnectionError
+    handleConnectionError,
   );
 
   return { org, jetstreamConn };

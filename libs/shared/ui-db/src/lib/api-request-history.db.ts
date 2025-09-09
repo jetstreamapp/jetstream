@@ -19,7 +19,7 @@ async function getAllQueryHistory(): Promise<ApiHistoryItem[]> {
 async function saveApiHistoryItem(
   org: SalesforceOrgUi,
   request: SalesforceApiHistoryRequest,
-  response: SalesforceApiHistoryResponse
+  response: SalesforceApiHistoryResponse,
 ): Promise<ApiHistoryItem> {
   const key = generateKey(org.uniqueId, request.method, request.url);
   const hashedKey = await getHashedRecordKey(key);

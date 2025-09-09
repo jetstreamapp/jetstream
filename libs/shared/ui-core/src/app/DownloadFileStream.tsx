@@ -11,7 +11,7 @@ import { fromJetstreamEvents } from '../jetstream-events';
  */
 export const DownloadFileStream = () => {
   const onDownloadFile = useObservable(
-    fromJetstreamEvents.getObservable('streamFileDownload') as Observable<JetstreamEventStreamFilePayload>
+    fromJetstreamEvents.getObservable('streamFileDownload') as Observable<JetstreamEventStreamFilePayload>,
   );
   const [activeDownloadLink, setActiveDownloadLink] = useState<JetstreamEventStreamFilePayload | null>(null);
 

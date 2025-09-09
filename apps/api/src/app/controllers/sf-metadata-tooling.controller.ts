@@ -173,7 +173,7 @@ const deployMetadataZip = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 const checkMetadataResults = createRoute(
@@ -189,7 +189,7 @@ const checkMetadataResults = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 const retrievePackageFromLisMetadataResults = createRoute(
@@ -199,14 +199,14 @@ const retrievePackageFromLisMetadataResults = createRoute(
       const types = body;
 
       const results = await jetstreamConn.metadata.retrieve(
-        getRetrieveRequestFromListMetadata(types, jetstreamConn.sessionInfo.apiVersion)
+        getRetrieveRequestFromListMetadata(types, jetstreamConn.sessionInfo.apiVersion),
       );
 
       sendJson(res, results);
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 const retrievePackageFromExistingServerPackages = createRoute(
@@ -227,7 +227,7 @@ const retrievePackageFromExistingServerPackages = createRoute(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 const retrievePackageFromManifest = createRoute(
@@ -241,7 +241,7 @@ const retrievePackageFromManifest = createRoute(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 const checkRetrieveStatus = createRoute(
@@ -256,7 +256,7 @@ const checkRetrieveStatus = createRoute(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 const checkRetrieveStatusAndRedeploy = createRoute(
@@ -282,7 +282,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
               'package.xml',
               `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
                 jetstreamConn.sessionInfo.apiVersion || ENV.SFDC_API_VERSION
-              }</version>\n</Package>`
+              }</version>\n</Package>`,
             );
 
           oldPackage.forEach((relativePath, file) => {
@@ -294,7 +294,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
           });
           const deployResults = await targetJetstreamConn.metadata.deploy(
             await newPackage.generateAsync({ type: 'base64', compression: 'STORE', mimeType: 'application/zip', platform: 'UNIX' }),
-            deployOptions
+            deployOptions,
           );
           sendJson(res, { type: 'deploy', results: deployResults, zipFile: results.zipFile });
         } else {
@@ -309,7 +309,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
     } catch (ex) {
       next(ex);
     }
-  }
+  },
 );
 
 const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }, req, res, next) => {

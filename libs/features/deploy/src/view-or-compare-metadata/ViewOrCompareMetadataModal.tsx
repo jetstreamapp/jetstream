@@ -113,7 +113,7 @@ export const ViewOrCompareMetadataModal = ({ sourceOrg, selectedMetadata, onClos
         }
       }
     },
-    [sourceResults, targetResults]
+    [sourceResults, targetResults],
   );
 
   useEffect(() => {

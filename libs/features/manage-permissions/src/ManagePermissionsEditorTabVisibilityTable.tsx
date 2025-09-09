@@ -53,7 +53,7 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
       (rows: PermissionTableTabVisibilityCell[], { indexes }: { indexes: number[] }) => {
         onBulkUpdate(rows, indexes);
       },
-      [onBulkUpdate]
+      [onBulkUpdate],
     );
 
     return (
@@ -81,7 +81,7 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
         </AutoFullHeightContainer>
       </div>
     );
-  }
+  },
 );
 
 export default ManagePermissionsEditorTabVisibilityTable;

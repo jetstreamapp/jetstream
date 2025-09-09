@@ -35,7 +35,7 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
 
   const blockNameEdit = useMemo(
     () => fullUserProfile.identities.some((identity) => identity.isPrimary && identity.provider !== 'credentials'),
-    [fullUserProfile.identities]
+    [fullUserProfile.identities],
   );
 
   return (

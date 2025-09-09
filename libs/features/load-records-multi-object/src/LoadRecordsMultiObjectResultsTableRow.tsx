@@ -54,7 +54,7 @@ export const LoadRecordsMultiObjectResultsTableRow: FunctionComponent<LoadRecord
         {
           successCount: 0,
           failureCount: 0,
-        }
+        },
       );
 
       // if there is a bonkers failure, then there might only be one returned record

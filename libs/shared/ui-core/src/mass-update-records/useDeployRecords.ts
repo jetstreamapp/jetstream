@@ -15,7 +15,7 @@ import { getFieldsToQuery, prepareRecords, queryAndPrepareRecordsForUpdate } fro
 export function useDeployRecords(
   org: SalesforceOrgUi,
   onDeployResults: (sobject: string, deployResults: DeployResults, fatalError?: boolean) => void,
-  source: 'STAND-ALONE' | 'QUERY' = 'STAND-ALONE'
+  source: 'STAND-ALONE' | 'QUERY' = 'STAND-ALONE',
 ) {
   const [{ serverUrl }] = useAtom(applicationCookieState);
   const isMounted = useRef(true);
@@ -95,7 +95,7 @@ export function useDeployRecords(
       deployResults.lastChecked = formatDate(new Date(), 'h:mm:ss');
       isMounted.current && onDeployResults(sobject, { ...deployResults });
     },
-    [org, rollbar, onDeployResults]
+    [org, rollbar, onDeployResults],
   );
 
   const loadDataForRow = useCallback(
@@ -111,7 +111,7 @@ export function useDeployRecords(
       };
 
       const fields = getFieldsToQuery(
-        row.configuration.map(({ transformationOptions, selectedField }) => ({ transformationOptions, selectedField }))
+        row.configuration.map(({ transformationOptions, selectedField }) => ({ transformationOptions, selectedField })),
       );
 
       onDeployResults(row.sobject, { ...deployResults });
@@ -150,7 +150,7 @@ export function useDeployRecords(
         serialMode,
       });
     },
-    [org, performLoad, onDeployResults]
+    [org, performLoad, onDeployResults],
   );
 
   /**
@@ -184,7 +184,7 @@ export function useDeployRecords(
         }
       }
     },
-    [trackEvent, source, loadDataForRow, onDeployResults, rollbar]
+    [trackEvent, source, loadDataForRow, onDeployResults, rollbar],
   );
 
   /**
@@ -267,7 +267,7 @@ export function useDeployRecords(
         logger.error('Error loading data for row', ex);
       }
     },
-    [trackEvent, source, onDeployResults, prepareRecords, performLoad, rollbar]
+    [trackEvent, source, onDeployResults, prepareRecords, performLoad, rollbar],
   );
 
   const pollResults = useCallback(
@@ -310,7 +310,7 @@ export function useDeployRecords(
       }
       return allDone;
     },
-    [org, rollbar, onDeployResults]
+    [org, rollbar, onDeployResults],
   );
 
   /**
@@ -337,7 +337,7 @@ export function useDeployRecords(
         notifyUser(`Updating records has failed`, { body: 'There was a problem with your data processing', tag: 'massUpdateRecords' });
       }
     },
-    [notifyUser, pollResults, rollbar]
+    [notifyUser, pollResults, rollbar],
   );
 
   return {

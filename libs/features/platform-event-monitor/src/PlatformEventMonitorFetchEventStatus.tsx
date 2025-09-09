@@ -32,7 +32,7 @@ export const PlatformEventMonitorFetchEventStatus: FunctionComponent<PlatformEve
               org={selectedOrg}
               skipFrontDoorAuth
               returnUrl={`/lightning/setup/EventObjects/page?address=${encodeURIComponent(
-                '/p/setup/custent/EventObjectsPage?setupid=EventObjects'
+                '/p/setup/custent/EventObjectsPage?setupid=EventObjects',
               )}`}
               iconPosition="right"
             >

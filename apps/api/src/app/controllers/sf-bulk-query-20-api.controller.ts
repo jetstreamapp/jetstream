@@ -144,5 +144,5 @@ const downloadResults = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );

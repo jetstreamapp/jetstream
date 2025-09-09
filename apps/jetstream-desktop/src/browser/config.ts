@@ -7,7 +7,7 @@ const getSourceDirectory = () => (ENV.ENVIRONMENT === 'production' ? __dirname :
 
 export function getWindowConfig(
   icon: NativeImage,
-  config?: Electron.BrowserWindowConstructorOptions
+  config?: Electron.BrowserWindowConstructorOptions,
 ): Electron.BrowserWindowConstructorOptions {
   return {
     width: 800,

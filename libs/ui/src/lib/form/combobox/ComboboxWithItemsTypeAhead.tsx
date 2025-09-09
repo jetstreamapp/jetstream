@@ -36,7 +36,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
   const [filterTextNonDebounced, setFilterText] = useState<string>('');
   const filterText = useDebounce(filterTextNonDebounced, 300);
   const [selectedItem, setSelectedItem] = useState<Maybe<ListItem>>(() =>
-    selectedItemId ? items.find((item) => item.id === selectedItemId) : null
+    selectedItemId ? items.find((item) => item.id === selectedItemId) : null,
   );
   const [selectedItemLabel, setSelectedItemLabel] = useState<string | null>(() => {
     if (selectedItem) {

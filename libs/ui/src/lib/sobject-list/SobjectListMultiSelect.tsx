@@ -229,7 +229,7 @@ const SobjectListContent = forwardRef(
         {!filteredSobjects.length && <EmptyState headline="There are no matching objects" subHeading="Adjust your selection."></EmptyState>}
       </>
     );
-  }
+  },
 );
 
 export default SobjectListMultiSelect;

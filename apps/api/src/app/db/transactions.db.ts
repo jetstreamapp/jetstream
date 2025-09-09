@@ -24,7 +24,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
       dbTransactions.push(
         prisma.salesforceOrg.deleteMany({
           where: { jetstreamUserId: userId },
-        })
+        }),
       );
     }
 
@@ -32,7 +32,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
       dbTransactions.push(
         prisma.user.deleteMany({
           where: { userId },
-        })
+        }),
       );
     }
 

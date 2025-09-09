@@ -76,7 +76,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
   const popoverRef = useRef<PopoverRef>(null);
   const idPrefix = useId();
   const [filterSelectedCount, setFilterSelectedCount] = useState<number>(
-    () => Object.values(selectedItems).filter((item) => item !== 'all').length
+    () => Object.values(selectedItems).filter((item) => item !== 'all').length,
   );
 
   useEffect(() => {
@@ -172,7 +172,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
           title="Reset all filters"
           css={css`
             position: absolute;
-            background-color: #ba0517;
+            background-color: var(--slds-g-color-error-base-30, #ba0517);
             top: -0.8rem;
             right: -0.5rem;
             border-radius: 50%;

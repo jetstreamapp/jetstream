@@ -14,7 +14,7 @@ export function useUsers(
   selectedOrg: SalesforceOrgUi,
   initialUsers?: Maybe<ListItem<string, SalesforceUser>[]>,
   sortCurrentUserFirst = true,
-  loadOnInit = true
+  loadOnInit = true,
 ) {
   const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
@@ -26,7 +26,7 @@ export function useUsers(
       loading: false,
       hasError: false,
       data: initialUsers || null,
-    }
+    },
   );
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function useUsers(
         }
       }
     },
-    [selectedOrg]
+    [selectedOrg],
   );
 
   useEffect(() => {

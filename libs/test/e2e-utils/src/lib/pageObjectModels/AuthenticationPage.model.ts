@@ -316,7 +316,7 @@ export class AuthenticationPage {
     await this.goToPasswordReset();
     await this.fillOutResetPasswordForm(email);
     await expect(
-      this.page.getByText('You will receive an email with instructions if an account exists and is eligible for password reset.')
+      this.page.getByText('You will receive an email with instructions if an account exists and is eligible for password reset.'),
     ).toBeVisible();
 
     // ensure email verification was sent

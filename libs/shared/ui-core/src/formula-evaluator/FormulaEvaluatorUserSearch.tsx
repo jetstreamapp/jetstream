@@ -81,7 +81,7 @@ export const FormulaEvaluatorUserSearch: FunctionComponent<FormulaEvaluatorUserS
         ]);
       }
     },
-    [selectedOrg]
+    [selectedOrg],
   );
 
   function handleSelection(item: ListItem<string, any>) {

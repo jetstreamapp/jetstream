@@ -60,7 +60,7 @@ export const useAsync = (asyncFunction: Function, immediate = true) => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [asyncFunction]
+    [asyncFunction],
   );
 
   useEffect(() => {

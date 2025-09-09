@@ -1,4 +1,5 @@
 # Archive format:
+
     [FILE #1
     ...
     FILE #N]
@@ -12,13 +13,16 @@
     END OF CENTRAL DIRECTORY RECORD
 
 # File format:
+
     LOCAL FILE HEADER
     ENCRYPTION HEADER (NOT IMPLEMENTED)
     DATA
     DATA DESCRIPTOR
 
 # Local file header format:
+
 Header size: `30 bytes + file name length + extra field length`
+
 ```
     SIGNATURE (0x04034B50)
     VERSION (PKZip 4.5 added support for ZIP64: 45 = 0x002D)
@@ -54,7 +58,9 @@ Header size: `30 bytes + file name length + extra field length`
 ```
 
 # ZIP64 Extra field format:
+
 Extra field size: `32 bytes`
+
 ```
     HEADER ID (ZIP64: 0x0001)
     DATA SIZE (NUMBER OF BYTES IN THIS EXTRA FIELD, 2 bytes)
@@ -65,7 +71,9 @@ Extra field size: `32 bytes`
 ```
 
 # Data descriptor format:
+
 Data descriptor size: `12 or 20 bytes depending on zip64`
+
 ```
     CRC32 (4 bytes)
     COMPRESSED SIZE (IF USING ZIP64: 8 bytes, OTHERWISE 4 bytes)
@@ -73,7 +81,9 @@ Data descriptor size: `12 or 20 bytes depending on zip64`
 ```
 
 # Central directory header format:
+
 Central directory header size: `46 bytes + file name length + extra field length`
+
 ```
     SIGNATURE (0x02014B50)
     VERSION MADE BY (2 bytes: PKZip 4.5 added support for ZIP64: 45 = 0x002D)
@@ -120,7 +130,9 @@ Central directory header size: `46 bytes + file name length + extra field length
 ```
 
 # ZIP64 End of central directory record
+
 ZIP64 End of central directory record size: `56 bytes`
+
 ```
     SIGNATURE (0x06064b50)
     SIZE OF THIS RECORD, MINUS THESE 12 BYTES (8 BYTES)
@@ -136,7 +148,9 @@ ZIP64 End of central directory record size: `56 bytes`
 ```
 
 # ZIP64 End of central directory locator
+
 ZIP64 End of central directory locator size: `20 bytes`
+
 ```
     SIGNATURE (0x07064b50)
     NUMBER OF DISK WITH START OF ZIP64 END OF CENTRAL DIRECTORY HEADER (4 BYTES)
@@ -145,7 +159,9 @@ ZIP64 End of central directory locator size: `20 bytes`
 ```
 
 # End of central directory record
+
 ZIP64 End of central directory record size: `22 bytes`
+
 ```
     SIGNATURE (0x06054b50)
     NUMBER OF THIS DISK (2 BYTES)

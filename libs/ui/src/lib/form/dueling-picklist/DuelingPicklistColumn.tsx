@@ -272,7 +272,7 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
         </div>
       </div>
     );
-  }
+  },
 );
 
 export default DuelingPicklistColumn;

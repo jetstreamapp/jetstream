@@ -53,7 +53,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
       setLoading(true);
       const results = await queryWithCache<AssignmentRuleRecord>(
         selectedOrg,
-        `SELECT Id, Name, Active FROM AssignmentRule WHERE SobjectType = '${selectedSObject}' ORDER BY Name`
+        `SELECT Id, Name, Active FROM AssignmentRule WHERE SobjectType = '${selectedSObject}' ORDER BY Name`,
       );
 
       if (isMounted.current) {
@@ -64,7 +64,7 @@ export const LoadRecordsAssignmentRules: FunctionComponent<LoadRecordsAssignment
             value: item.Id,
             label: `${item.Name} (${item.Active ? 'Active' : 'Inactive'})`,
             meta: item,
-          }))
+          })),
         );
         setLoading(false);
         currKey++;

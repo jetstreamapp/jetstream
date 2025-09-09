@@ -47,7 +47,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
         moveRowToGroup(item);
       },
     },
-    []
+    [],
   );
 
   return (
