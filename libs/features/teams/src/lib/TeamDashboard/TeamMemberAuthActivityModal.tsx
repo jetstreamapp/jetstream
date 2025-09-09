@@ -108,7 +108,7 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
 
   const { browserName, browserVersion, osName } = useMemo(
     () => (userAgent ? getBrowserInfo(userAgent) : { browserName: '', browserVersion: '', osName: '' }),
-    [userAgent]
+    [userAgent],
   );
 
   return (

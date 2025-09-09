@@ -313,10 +313,10 @@ const getUserLoginConfiguration = createRoute(
             otp: response.allowedMfaMethods.has('2fa-otp'),
           },
         };
-      }
+      },
     );
     sendJson(res, loginConfiguration);
-  }
+  },
 );
 
 const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {

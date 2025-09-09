@@ -129,7 +129,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
               flatAmount: tier.flat_amount ? tier.flat_amount / 100 : null,
               unitAmount: tier.unit_amount ? tier.unit_amount / 100 : null,
               upTo: tier.up_to,
-            } as JetstreamPriceTier)
+            }) as JetstreamPriceTier,
         ) || null,
       product: {
         id: product.id,
@@ -711,7 +711,7 @@ export async function createBillingPortalSession({
  */
 export async function updateSubscriptionItemQuantity(
   customerId: string,
-  newQuantity: number
+  newQuantity: number,
 ): Promise<{
   success: boolean;
   didUpdate: boolean;
@@ -732,7 +732,7 @@ export async function updateSubscriptionItemQuantity(
     }
 
     const subscriptions = (customer.subscriptions?.data || []).filter((subscription) =>
-      ['active', 'past_due', 'unpaid'].includes(subscription.status)
+      ['active', 'past_due', 'unpaid'].includes(subscription.status),
     );
     subscription = subscriptions[0];
     const subscriptionItems = subscriptions[0]?.items?.data || [];
@@ -754,7 +754,7 @@ export async function updateSubscriptionItemQuantity(
           subscriptionId: subscription?.id,
           subscriptionItemId: subscriptionItem?.id,
         },
-        `Skipping Stripe quantity update, quantity already matches desired number`
+        `Skipping Stripe quantity update, quantity already matches desired number`,
       );
       return {
         success: true,
@@ -779,7 +779,7 @@ export async function updateSubscriptionItemQuantity(
         subscriptionId: subscription?.id,
         subscriptionItemId: subscriptionItem?.id,
       },
-      `Updated Stripe subscription item quantity`
+      `Updated Stripe subscription item quantity`,
     );
 
     return {
@@ -799,7 +799,7 @@ export async function updateSubscriptionItemQuantity(
         subscriptionItemId: subscriptionItem?.id,
         ...getErrorMessageAndStackObj(ex),
       },
-      `Error updating subscription quantity: ${getErrorMessage(ex)}`
+      `Error updating subscription quantity: ${getErrorMessage(ex)}`,
     );
     return {
       success: false,

@@ -186,7 +186,7 @@ export async function syncUserCountWithStripe(teamId: string): ReturnType<typeof
     }
 
     const activeBillableMembers = team.members.filter(
-      ({ role, status }) => status === TeamMemberStatusSchema.Values.ACTIVE && role !== TeamMemberRoleSchema.Enum.BILLING
+      ({ role, status }) => status === TeamMemberStatusSchema.Values.ACTIVE && role !== TeamMemberRoleSchema.Enum.BILLING,
     );
 
     const results = await stripeService.updateSubscriptionItemQuantity(team.billingAccount.customerId, activeBillableMembers.length);

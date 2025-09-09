@@ -61,7 +61,7 @@ export function TeamDashboard() {
   const availableLicenses = useMemo(() => {
     const licenseCountLimit = team?.billingAccount?.licenseCountLimit ?? Infinity;
     const billableUserCount = team?.members.filter(
-      ({ status, role }) => status === TEAM_MEMBER_STATUS_ACTIVE && role !== TeamMemberRoleSchema.Enum.BILLING
+      ({ status, role }) => status === TEAM_MEMBER_STATUS_ACTIVE && role !== TeamMemberRoleSchema.Enum.BILLING,
     ).length;
     const billableInviteCount = team?.invitations.filter(({ role }) => role !== TeamMemberRoleSchema.Enum.BILLING).length;
     const billableUserCountWithInvites = (billableUserCount || 0) + (billableInviteCount || 0);

@@ -265,7 +265,7 @@ export async function initCheckoutSession({
   teamName?: string;
 }): Promise<{ url: string }> {
   return handleRequest({ method: 'POST', url: '/api/billing/checkout-session', data: { priceLookupKey, teamName } }).then(
-    unwrapResponseIgnoreCache
+    unwrapResponseIgnoreCache,
   );
 }
 

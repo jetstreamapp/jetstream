@@ -51,7 +51,7 @@ export const Billing = () => {
   const [checkoutSessionError, setCheckoutSessionError] = useState<Maybe<string>>();
   const [isAnnual, setIsAnnual] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<StripePriceKey>(
-    userProfile.teamMembership?.team.id ? TEAM_MONTHLY_KEY : PRO_MONTHLY_KEY
+    userProfile.teamMembership?.team.id ? TEAM_MONTHLY_KEY : PRO_MONTHLY_KEY,
   );
   const [customerWithSubscriptions, setCustomerWithSubscriptions] = useState<StripeUserFacingCustomer | null>(null);
   const [pricesByLookupKey, setPricesByLookupKey] = useState<JetstreamPricesByLookupKey | null>(null);

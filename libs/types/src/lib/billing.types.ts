@@ -80,6 +80,6 @@ export interface JetstreamPriceByKey {
 }
 
 export const STRIPE_PRICE_KEYS = ['TEAM_ANNUAL', 'TEAM_MONTHLY', 'PRO_ANNUAL', 'PRO_MONTHLY'] as const;
-export type StripePriceKey = typeof STRIPE_PRICE_KEYS[number];
+export type StripePriceKey = (typeof STRIPE_PRICE_KEYS)[number];
 
 export type JetstreamPricesByLookupKey = { [key in StripePriceKey]: JetstreamPrice };

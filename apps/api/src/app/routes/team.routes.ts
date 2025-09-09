@@ -50,60 +50,60 @@ routes.post('/:teamId/invitations/:token/accept', teamController.acceptInvitatio
 routes.get(
   '/:teamId',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.getTeam.controllerFn()
+  teamController.getTeam.controllerFn(),
 );
 
 routes.put(
   '/:teamId',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.updateTeam.controllerFn()
+  teamController.updateTeam.controllerFn(),
 );
 
 routes.get(
   '/:teamId/sessions',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.getUserSessions.controllerFn()
+  teamController.getUserSessions.controllerFn(),
 );
 routes.get(
   '/:teamId/auth-activity',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.getUserAuthActivity.controllerFn()
+  teamController.getUserAuthActivity.controllerFn(),
 );
 routes.post(
   '/:teamId/login-configuration',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
-  teamController.updateLoginConfiguration.controllerFn()
+  teamController.updateLoginConfiguration.controllerFn(),
 );
 routes.put(
   '/:teamId/members/:userId',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.updateTeamMember.controllerFn()
+  teamController.updateTeamMember.controllerFn(),
 );
 routes.put(
   '/:teamId/members/:userId/status',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.updateTeamMemberStatus.controllerFn()
+  teamController.updateTeamMemberStatus.controllerFn(),
 );
 
 routes.get(
   '/:teamId/invitations',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.getInvitations.controllerFn()
+  teamController.getInvitations.controllerFn(),
 );
 routes.post(
   '/:teamId/invitations',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.createInvitation.controllerFn()
+  teamController.createInvitation.controllerFn(),
 );
 routes.put(
   '/:teamId/invitations/:id',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.resendInvitation.controllerFn()
+  teamController.resendInvitation.controllerFn(),
 );
 routes.delete(
   '/:teamId/invitations/:id',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
-  teamController.cancelInvitation.controllerFn()
+  teamController.cancelInvitation.controllerFn(),
 );
 
 export default routes;

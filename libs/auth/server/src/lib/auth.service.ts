@@ -149,7 +149,7 @@ export async function getAuthorizationUrl(provider: OauthProviderType) {
 }
 
 export async function isProviderAllowed(
-  options: { email: string; provider: OauthAndLocalProviders } | { teamId: string; provider: OauthAndLocalProviders }
+  options: { email: string; provider: OauthAndLocalProviders } | { teamId: string; provider: OauthAndLocalProviders },
 ): Promise<boolean> {
   const { provider } = options;
   const loginConfiguration =
@@ -329,7 +329,7 @@ export async function lookupGeoLocationFromIpAddresses(ipAddresses: string[]) {
 
 export function initSession(
   req: Request<unknown, unknown, unknown>,
-  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>
+  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     // Regenerate session to avoid session fixation attacks

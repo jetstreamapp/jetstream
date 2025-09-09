@@ -158,8 +158,8 @@ export const updateTeamSubscriptionStateForCustomer = async ({
           },
           update: { status: subscription.status.toUpperCase() },
           where: { uniqueSubscription: { teamId, subscriptionId: subscription.id, priceId: item.price.id } },
-        })
-      )
+        }),
+      ),
     ),
     prisma.team.update({
       data: { billingStatus: teamBillingStatus },

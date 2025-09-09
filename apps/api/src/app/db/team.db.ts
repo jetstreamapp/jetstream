@@ -608,7 +608,7 @@ export async function createTeamInvitation({
 
   if (existingInvitationCount > 0) {
     throw new UserFacingError(
-      `An invitation for ${request.email} already exists for this team. Revoke the existing invitation before creating a new one.`
+      `An invitation for ${request.email} already exists for this team. Revoke the existing invitation before creating a new one.`,
     );
   }
 

@@ -302,7 +302,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
 }
 
 function isPrismaError(
-  error: unknown
+  error: unknown,
 ): error is Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError | Prisma.PrismaClientValidationError {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError ||
@@ -312,7 +312,7 @@ function isPrismaError(
 }
 
 function getPrismaErrorMessage(
-  error: Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError | Prisma.PrismaClientValidationError
+  error: Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError | Prisma.PrismaClientValidationError,
 ) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     logger.error({ error: error.message, code: error.code }, '[DB][PRISMA][ERROR]');
