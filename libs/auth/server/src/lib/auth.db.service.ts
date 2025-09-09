@@ -687,61 +687,6 @@ export async function getTeamUserActivity(teamId: string) {
   return recentActivity;
 }
 
-export async function getTeamUserActivity(teamId: string) {
-  if (!teamId) {
-    throw new Error('Invalid teamId');
-  }
-
-  const userIds = await prisma.teamMember
-    .findMany({ where: { teamId }, select: { userId: true } })
-    .then((teamMember) => teamMember.map(({ userId }) => userId));
-
-  const recentActivity: LoginActivityUserFacing[] = await prisma.loginActivity
-    .findMany({
-      select: {
-        action: true,
-        createdAt: true,
-        errorMessage: true,
-        ipAddress: true,
-        method: true,
-        success: true,
-        userAgent: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      where: { userId: { in: userIds }, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
-      take: 250,
-      orderBy: { createdAt: 'desc' },
-    })
-    .then((records) =>
-      records.map((record) => ({
-        ...record,
-        action: actionDisplayName[record.action] || record.action,
-        method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
-        createdAt: record.createdAt.toISOString(),
-      })),
-    );
-
-  try {
-    // mutate records to add location property if there is an associated ip address
-    const activityWithIpAddress = recentActivity.filter((item) => item.ipAddress);
-    await lookupGeoLocationFromIpAddresses(activityWithIpAddress.map(({ ipAddress }) => ipAddress) as string[]).then((locationInfo) => {
-      activityWithIpAddress.forEach((activityWithIpAddress, i) => {
-        activityWithIpAddress.location = locationInfo[i].location;
-      });
-    });
-  } catch (ex) {
-    logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for recent activity');
-  }
-
-  return recentActivity;
-}
-
 export async function revokeUserSession(userId: string, sessionId: string) {
   if (!userId || !sessionId) {
     throw new Error('Invalid parameters');

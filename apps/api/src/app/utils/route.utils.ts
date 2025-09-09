@@ -55,11 +55,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
   },
-  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,,
+  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
   /**
    * If provided, this callback will be called instead of calling next(error) when an error occurs.
    */
-  onErrorHandler?: (error: unknown, req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => void
+  onErrorHandler?: (error: unknown, req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => void,
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     try {
