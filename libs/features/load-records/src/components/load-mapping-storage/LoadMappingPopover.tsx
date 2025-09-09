@@ -27,10 +27,10 @@ export const LoadMappingPopover: FunctionComponent<LoadMappingPopoverProps> = ({
         .filter(
           (item) =>
             item.csvFields.filter((field) => !field.startsWith(STATIC_MAPPING_PREFIX)).every((field) => csvFields.has(field)) &&
-            item.sobjectFields.every((field) => objectFields.has(field))
+            item.sobjectFields.every((field) => objectFields.has(field)),
         )
         .toArray(),
-    [sobject, csvFields, objectFields]
+    [sobject, csvFields, objectFields],
   );
 
   function onUseFieldMapping(mapping: LoadSavedMappingItem) {

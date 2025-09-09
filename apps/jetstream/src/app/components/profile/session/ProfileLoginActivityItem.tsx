@@ -18,7 +18,7 @@ export const ProfileLoginActivityItem: FunctionComponent<ProfileLoginActivityIte
             browserVersion: '',
             osName: '',
           },
-    [userAgent]
+    [userAgent],
   );
 
   return (

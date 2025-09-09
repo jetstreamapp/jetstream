@@ -72,7 +72,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const scrollLengthClass = useMemo<string | undefined>(
     () => (scrollLength ? `slds-dropdown_length-${scrollLength}` : undefined),
-    [scrollLength]
+    [scrollLength],
   );
   const [focusedItem, setFocusedItem] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState<string | undefined>(initialSelectedId);
@@ -216,7 +216,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
                   'slds-dropdown_right': position === 'right',
                 },
                 scrollLengthClass,
-                dropDownClassName
+                dropDownClassName,
               )}
             >
               <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>

@@ -23,7 +23,7 @@ import { initConnectionFromOAuthResponse, salesforceOauthCallback, salesforceOau
 
 type MainIpcHandler<Key extends keyof ElectronApiRequestResponse> = (
   event: Electron.IpcMainEvent,
-  payload: Parameters<ElectronApiRequestResponse[Key]>[0]
+  payload: Parameters<ElectronApiRequestResponse[Key]>[0],
 ) => ReturnType<ElectronApiRequestResponse[Key]>;
 
 function registerHandler<Key extends keyof ElectronApiRequestResponse>(key: Key, handler: MainIpcHandler<Key>) {
@@ -198,7 +198,7 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
 };
 
 const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (
-  event
+  event,
 ): Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined> => {
   const AUTH_CHECK_INTERVAL_DAYS = 1;
   const appData = dataService.getAppData();

@@ -63,28 +63,28 @@ test.describe('API - Query', () => {
         `/api/query?${new URLSearchParams({
           isTooling: 'false',
         }).toString()}`,
-        { query: `SELECT Id, Name, AccountNumber, Description, Fax FROM Account WHERE (NOT Name LIKE '%abc%') LIMIT 1` }
+        { query: `SELECT Id, Name, AccountNumber, Description, Fax FROM Account WHERE (NOT Name LIKE '%abc%') LIMIT 1` },
       ),
       apiRequestUtils.makeRequest<QueryResults>(
         'POST',
         `/api/query?${new URLSearchParams({
           isTooling: 'true',
         }).toString()}`,
-        { query: `SELECT Id, Name, FirstName, LastName, Username FROM User LIMIT 1` }
+        { query: `SELECT Id, Name, FirstName, LastName, Username FROM User LIMIT 1` },
       ),
       apiRequestUtils.makeRequestRaw(
         'POST',
         `/api/query?${new URLSearchParams({
           isTooling: 'true',
         }).toString()}`,
-        { query: `SELECT Id, Name, FirstName, LastName, Username FROM no_exist LIMIT 1` }
+        { query: `SELECT Id, Name, FirstName, LastName, Username FROM no_exist LIMIT 1` },
       ),
       apiRequestUtils.makeRequestRaw(
         'POST',
         `/api/query?${new URLSearchParams({
           isTooling: 'invalid',
         }).toString()}`,
-        { query: `SELECT Id, Name, FirstName, LastName, Username FROM User LIMIT 1` }
+        { query: `SELECT Id, Name, FirstName, LastName, Username FROM User LIMIT 1` },
       ),
     ]);
 
@@ -120,7 +120,7 @@ test.describe('API - Query', () => {
       `/api/query?${new URLSearchParams({
         isTooling: 'false',
       }).toString()}`,
-      { query: `SELECT Id FROM Product2 LIMIT 2500` }
+      { query: `SELECT Id FROM Product2 LIMIT 2500` },
     );
 
     expect(initialQuery.queryResults.done).toBeFalsy();
@@ -131,7 +131,7 @@ test.describe('API - Query', () => {
       `/api/query-more?${new URLSearchParams({
         isTooling: 'false',
         nextRecordsUrl: initialQuery.queryResults.nextRecordsUrl!,
-      }).toString()}`
+      }).toString()}`,
     );
 
     expect(queryMore.queryResults.done).toBeTruthy();

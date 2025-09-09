@@ -155,7 +155,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         setFields(fields);
         onFields(
           fields,
-          fields.map((_, i) => i)
+          fields.map((_, i) => i),
         );
         setSubqueryColumnsMap(subqueryColumns);
         setRecords(queryResults.queryResults.records);
@@ -234,7 +234,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
         copySalesforceRecordTableDataToClipboard(item.value, fields, data);
       },
-      [fields]
+      [fields],
     );
 
     useEffect(() => {
@@ -250,7 +250,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
             _touchedColumns: new Set(),
             _saveError: null,
           };
-        })
+        }),
       );
       setDirtyRows([]);
     }, [columns, handleRowAction, records]);
@@ -303,7 +303,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
 
         setVisibleRecordCount(rows.length);
       },
-      [onFilteredRowsChanged]
+      [onFilteredRowsChanged],
     );
 
     const handleSelectedRowsChange = useCallback((rows: Set<string>) => {
@@ -319,18 +319,18 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
       (
         allRows: RowSalesforceRecordWithKey[],
         filteredRows: RowSalesforceRecordWithKey[],
-        data: RowsChangeData<RowSalesforceRecordWithKey>
+        data: RowsChangeData<RowSalesforceRecordWithKey>,
       ) => {
         const rowsByKey = groupByFlat(filteredRows, '_key');
         const newRows = allRows.map((row) => rowsByKey[row._key] || row);
         setRows(newRows);
         setDirtyRows(
           newRows.filter(
-            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col) => row[col] !== row._record[col])
-          )
+            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col) => row[col] !== row._record[col]),
+          ),
         );
       },
-      []
+      [],
     );
 
     const handleCancelEditMode = () => {
@@ -354,9 +354,9 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
                 acc[column] = row[column];
                 return acc;
               },
-              { attributes: row._record.attributes, Id: getIdFromRecordUrl(row._record.attributes.url) }
-            )
-          )
+              { attributes: row._record.attributes, Id: getIdFromRecordUrl(row._record.attributes.url) },
+            ),
+          ),
         );
         const results = await onUpdateRecords(modifiedRecords);
 
@@ -390,8 +390,8 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         setRows(newRows);
         setDirtyRows(
           newRows.filter(
-            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col: string) => row[col] !== row._record[col])
-          )
+            (row) => row._touchedColumns.size > 0 && Array.from(row._touchedColumns).some((col: string) => row[col] !== row._record[col]),
+          ),
         );
         onSavedRecords({ recordCount: modifiedRecords.length, failureCount: Object.values(failedResultsById).length });
       } catch (ex) {
@@ -526,7 +526,7 @@ export const SalesforceRecordDataTable = memo<SalesforceRecordDataTableProps>(
         </AutoFullHeightContainer>
       </Fragment>
     ) : null;
-  }
+  },
 );
 
 export default SalesforceRecordDataTable;

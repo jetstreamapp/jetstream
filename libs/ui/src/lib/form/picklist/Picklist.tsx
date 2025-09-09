@@ -109,7 +109,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
       onClose,
       onBlur,
     },
-    ref
+    ref,
   ) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const keyBuffer = useRef(new KeyBuffer());
@@ -458,7 +458,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
         </div>
       </OutsideClickHandler>
     );
-  }
+  },
 );
 
 export default Picklist;

@@ -26,6 +26,6 @@ export const commonFields = atom<ListItem[]>((get) => {
     ...Array.from(rowsMap.values()).map((row) => row.fields?.filter((field) => (field.meta as Field).updateable) || []),
     ((item: ListItem) => {
       return item.id;
-    }) as any
+    }) as any,
   ).map((item) => ({ ...item, label: item.value }));
 });

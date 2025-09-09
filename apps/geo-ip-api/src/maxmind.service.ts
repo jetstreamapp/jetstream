@@ -69,7 +69,7 @@ export async function downloadMaxMindDb(rootDir: string): Promise<void> {
       const response = await fetch(url, {
         headers: {
           Authorization: `Basic ${Buffer.from(`${process.env.MAX_MIND_ACCOUNT_ID}:${process.env.MAX_MIND_LICENSE_KEY}`).toString(
-            'base64'
+            'base64',
           )}`,
         },
       });

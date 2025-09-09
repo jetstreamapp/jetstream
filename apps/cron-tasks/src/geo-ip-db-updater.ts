@@ -82,7 +82,7 @@ async function importCSVToTable(csvPath: string, tableName: string, schema: stri
       logger.info(`Creating temporary table ${fullTempTableName}`);
       await execAsync(`psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "DROP TABLE IF EXISTS ${fullTempTableName}"`);
       await execAsync(
-        `psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "CREATE TABLE ${fullTempTableName} (LIKE ${fullTableName} INCLUDING ALL)"`
+        `psql "${ENV.JETSTREAM_POSTGRES_DBURI}" -c "CREATE TABLE ${fullTempTableName} (LIKE ${fullTableName} INCLUDING ALL)"`,
       );
     }
 
@@ -125,7 +125,7 @@ async function processFile(
   url: string,
   zipFileName: string,
   filenames: string[],
-  processor: (filename: string, filePath: string) => Promise<void>
+  processor: (filename: string, filePath: string) => Promise<void>,
 ) {
   const downloadDir = path.join(__dirname, '../../downloads');
   const zipFilePath = path.join(downloadDir, zipFileName);

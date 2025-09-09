@@ -35,7 +35,7 @@ export const QuerySubquerySObjects: FunctionComponent<QuerySubquerySObjectsProps
   useNonInitialEffect(() => {
     if (textFilter) {
       setVisibleChildRelationships(
-        childRelationships.filter(multiWordObjectFilter(['relationshipName', 'childSObject', 'field'], textFilter))
+        childRelationships.filter(multiWordObjectFilter(['relationshipName', 'childSObject', 'field'], textFilter)),
       );
     } else {
       setVisibleChildRelationships(childRelationships);

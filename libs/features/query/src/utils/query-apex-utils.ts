@@ -239,7 +239,7 @@ function getFieldValues(record: any, options: RecordToApexOptions): [string, Fie
         field in record &&
         !isObject(record[field]) &&
         (includeNullFields || record[field] !== null) &&
-        (includeBooleanIfFalse || !isBoolean(record[field] || record[field]))
+        (includeBooleanIfFalse || !isBoolean(record[field] || record[field])),
     )
     .map((field): [string, FieldValue] => {
       if (isString(record[field])) {

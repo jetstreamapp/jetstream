@@ -67,7 +67,7 @@ export class ApiBulk extends SalesforceApi {
     body: string | Buffer | ArrayBuffer,
     jobId: string,
     closeJob = false,
-    contentType: typeof HTTP.CONTENT_TYPE.CSV | typeof HTTP.CONTENT_TYPE.ZIP_CSV = HTTP.CONTENT_TYPE.CSV
+    contentType: typeof HTTP.CONTENT_TYPE.CSV | typeof HTTP.CONTENT_TYPE.ZIP_CSV = HTTP.CONTENT_TYPE.CSV,
   ) {
     const result = await this.apiRequest<{ batchInfo: BulkJobBatchInfoUntyped }>({
       sessionInfo: this.sessionInfo,
@@ -103,7 +103,7 @@ export class ApiBulk extends SalesforceApi {
     batchId: string,
     type: BulkApiDownloadType,
     /** For query jobs, an id is required */
-    resultId?: string
+    resultId?: string,
   ) {
     const urlSuffix = resultId ? `/${resultId}` : '';
     const results = await this.apiRequest<ReadableStream<Uint8Array>>({

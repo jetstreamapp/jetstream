@@ -33,7 +33,7 @@ export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): st
         type: 'Error formatting date',
         inputValue: dateOrDateTime,
       },
-      'warn'
+      'warn',
     );
     return String(dateOrDateTime || '');
   }
@@ -58,7 +58,7 @@ export const dataTableTimeFormatter = (value: Maybe<string>): string | null => {
         type: 'Error formatting time',
         inputValue: value,
       },
-      'warn'
+      'warn',
     );
     return String(value || '');
   }
@@ -79,7 +79,7 @@ export const dataTableFileSizeFormatter = (sizeInBytes: Maybe<string | number>):
         type: 'error formatting file size',
         inputValue: sizeInBytes,
       },
-      'warn'
+      'warn',
     );
     return String(sizeInBytes || '');
   }
@@ -105,7 +105,7 @@ export const dataTableAddressValueFormatter = (value: any): string | null => {
         type: 'error formatting address',
         inputValue: value,
       },
-      'warn'
+      'warn',
     );
     return String(value || '');
   }
@@ -127,7 +127,7 @@ export const dataTableLocationFormatter = (value: Maybe<SalesforceLocationField>
         type: 'error formatting location',
         inputValue: value,
       },
-      'warn'
+      'warn',
     );
     return String(value || '');
   }

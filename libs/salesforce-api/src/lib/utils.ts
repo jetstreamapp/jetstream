@@ -190,10 +190,10 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
     }
     if (results.details) {
       results.details.componentFailures = ensureArray(results.details.componentFailures).map((item) =>
-        correctInvalidXmlResponseTypes(item)
+        correctInvalidXmlResponseTypes(item),
       );
       results.details.componentSuccesses = ensureArray(results.details.componentSuccesses).map((item) =>
-        correctInvalidXmlResponseTypes(item)
+        correctInvalidXmlResponseTypes(item),
       );
 
       if (results.details.runTestResult) {
@@ -202,22 +202,22 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
         results.details.runTestResult.totalTime = Number.parseFloat(results.details.runTestResult.numFailures as any);
 
         results.details.runTestResult.codeCoverage = ensureArray(results.details.runTestResult.codeCoverage).map((item) =>
-          correctInvalidXmlResponseTypes(item)
+          correctInvalidXmlResponseTypes(item),
         );
         results.details.runTestResult.codeCoverageWarnings = ensureArray(results.details.runTestResult.codeCoverageWarnings).map((item) =>
-          correctInvalidXmlResponseTypes(item)
+          correctInvalidXmlResponseTypes(item),
         );
         results.details.runTestResult.failures = ensureArray(results.details.runTestResult.failures).map((item) =>
-          correctInvalidXmlResponseTypes(item)
+          correctInvalidXmlResponseTypes(item),
         );
         results.details.runTestResult.flowCoverage = ensureArray(results.details.runTestResult.flowCoverage).map((item) =>
-          correctInvalidXmlResponseTypes(item)
+          correctInvalidXmlResponseTypes(item),
         );
         results.details.runTestResult.flowCoverageWarnings = ensureArray(results.details.runTestResult.flowCoverageWarnings).map((item) =>
-          correctInvalidXmlResponseTypes(item)
+          correctInvalidXmlResponseTypes(item),
         );
         results.details.runTestResult.successes = ensureArray(results.details.runTestResult.successes).map((item) =>
-          correctInvalidXmlResponseTypes(item)
+          correctInvalidXmlResponseTypes(item),
         );
       }
     }

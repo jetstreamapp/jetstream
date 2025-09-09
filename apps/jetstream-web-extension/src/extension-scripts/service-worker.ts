@@ -229,7 +229,7 @@ browser.runtime.onMessage.addListener(
   (
     request: Message['request'],
     sender: browser.Runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void
+    sendResponse: (response: MessageResponse) => void,
   ): true | Promise<unknown> | undefined => {
     logger.log('[SW EVENT] onMessage', request);
     switch (request.message) {
@@ -302,7 +302,7 @@ browser.runtime.onMessage.addListener(
         logger.warn(`Unknown message`, request);
         return;
     }
-  }
+  },
 );
 
 /**
@@ -383,7 +383,7 @@ async function handleGetExternalIdentifier(sender: browser.Runtime.MessageSender
 
 async function handleTokenExchange(
   { accessToken }: TokenExchange['request']['data'],
-  sender: browser.Runtime.MessageSender
+  sender: browser.Runtime.MessageSender,
 ): Promise<TokenExchange['response']> {
   const { exp, userProfile } = jwtDecode<JwtPayload>(accessToken);
   const expiresAt = exp ? fromUnixTime(exp) : new Date();
@@ -419,7 +419,7 @@ async function handleLogout(sender: browser.Runtime.MessageSender): Promise<Logo
       res
         .json()
         .then(({ data }) => data)
-        .catch(() => ({ success: false, error: 'Invalid response' }))
+        .catch(() => ({ success: false, error: 'Invalid response' })),
     );
 
     await browser.storage.sync.remove(storageTypes.authTokens.key).catch((err) => {
@@ -468,7 +468,7 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
       res
         .json()
         .then(({ data }) => data)
-        .catch(() => ({ success: false, error: 'Invalid response' }))
+        .catch(() => ({ success: false, error: 'Invalid response' })),
     );
 
     if (!results.success) {
@@ -495,7 +495,7 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
 
 async function handleGetSalesforceHostWithApiAccess(
   { url }: GetSfHost['request']['data'],
-  sender: browser.Runtime.MessageSender
+  sender: browser.Runtime.MessageSender,
 ): Promise<GetSfHost['response']> {
   const orgId = await browser.cookies
     .get({ url, name: 'sid', storeId: getCookieStoreId(sender) })
@@ -510,7 +510,7 @@ async function handleGetSalesforceHostWithApiAccess(
 
 async function handleGetSession(
   { salesforceHost }: GetSession['request']['data'],
-  sender: browser.Runtime.MessageSender
+  sender: browser.Runtime.MessageSender,
 ): Promise<GetSession['response']> {
   const sessionCookie = await browser.cookies.get({
     url: `https://${salesforceHost}`,
@@ -529,7 +529,7 @@ function handleGetPageUrl(page: string): GetPageUrl['response'] {
 
 async function handleInitOrg(
   { sessionInfo }: InitOrg['request']['data'],
-  sender: browser.Runtime.MessageSender
+  sender: browser.Runtime.MessageSender,
 ): Promise<InitOrg['response']> {
   const response = await initApiClientAndOrg(sessionInfo);
   await setConnection(response.org.uniqueId, { sessionInfo, org: response.org });

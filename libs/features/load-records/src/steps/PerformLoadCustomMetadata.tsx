@@ -31,7 +31,7 @@ import LoadRecordsCustomMetadataResultsTable from '../components/load-results/Lo
 
 export function getDeploymentStatusUrl(id: string) {
   const address = encodeURIComponent(
-    `/changemgmt/monitorDeploymentsDetails.apexp?asyncId=${id}&retURL=${encodeURIComponent('/changemgmt/monitorDeployment.apexp')}`
+    `/changemgmt/monitorDeploymentsDetails.apexp?asyncId=${id}&retURL=${encodeURIComponent('/changemgmt/monitorDeployment.apexp')}`,
   );
   return `/lightning/setup/DeployStatus/page?address=${address}`;
 }
@@ -135,7 +135,7 @@ export const PerformLoadCustomMetadata = ({
     }
     const resultsByFullName = groupByFlat<DeployMessage>(
       results?.details?.componentSuccesses?.concat(results.details.componentFailures) || [],
-      'fullName'
+      'fullName',
     );
     let header: string[] = [];
     let data = Object.keys(metadata).map((fullName) => {
@@ -164,7 +164,7 @@ export const PerformLoadCustomMetadata = ({
     }
     const resultsByFullName = groupByFlat<DeployMessage>(
       results?.details?.componentSuccesses?.concat(results.details.componentFailures) || [],
-      'fullName'
+      'fullName',
     );
     let header: string[] = [];
     let data = Object.keys(metadata).map((fullName) => {

@@ -56,9 +56,9 @@ export const LoadRecordsDuplicateWarning: FunctionComponent<LoadRecordsDuplicate
             value.map((row) => ({
               [DUPE_COLUMN]: key,
               ...row,
-            }))
+            })),
           )
-          .map((row, i) => ({ ...row, _key: i }))
+          .map((row, i) => ({ ...row, _key: i })),
       );
       setColumns(getColumnDefinitions(inputFileHeader, duplicates.duplicateKey));
     } else {

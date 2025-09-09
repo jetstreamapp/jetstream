@@ -80,7 +80,7 @@ export const ListItemCheckbox = memo<ListItemCheckboxProps>(
         {children}
       </li>
     );
-  }
+  },
 );
 
 export default ListItemCheckbox;

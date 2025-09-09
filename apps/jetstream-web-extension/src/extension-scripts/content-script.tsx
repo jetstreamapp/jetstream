@@ -14,7 +14,7 @@ function renderApp() {
       <AppWrapperNotJetstreamOwnedPage>
         <SfdcPageButton />
       </AppWrapperNotJetstreamOwnedPage>,
-      { elementId }
+      { elementId },
     );
   }
 }

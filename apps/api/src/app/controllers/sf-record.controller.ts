@@ -49,5 +49,5 @@ const recordOperation = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );

@@ -22,7 +22,7 @@ function getSuggestions(
   completionsData: typeof import('./monaco-apex-completions-data'),
   monaco: Monaco,
   model: monaco.editor.ITextModel,
-  position: monaco.Position
+  position: monaco.Position,
 ): monaco.languages.CompletionItem[] {
   const textUntilPositionRaw = model.getValueInRange({
     startLineNumber: position.lineNumber,
@@ -73,8 +73,8 @@ function getSuggestions(
             insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             range: range,
-          })
-        )
+          }),
+        ),
       );
     }
   } else if (textUntilPositionRaw.toLowerCase() === 'new' || textUntilPositionRaw.toLowerCase() === 'new ') {
@@ -117,8 +117,8 @@ function getSuggestions(
             insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             range: range,
-          })
-        )
+          }),
+        ),
       );
     } else {
       completions = completions.concat(
@@ -127,7 +127,7 @@ function getSuggestions(
           kind: monaco.languages.CompletionItemKind.Class,
           insertText: completion,
           range: range,
-        }))
+        })),
       );
     }
   } else {
@@ -137,7 +137,7 @@ function getSuggestions(
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: completion,
         range: range,
-      }))
+      })),
     );
   }
 

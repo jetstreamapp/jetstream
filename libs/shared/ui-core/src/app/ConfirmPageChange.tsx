@@ -25,7 +25,7 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
         delete event['returnValue'];
       }
     },
-    [actionInProgress]
+    [actionInProgress],
   );
 
   useGlobalEventHandler('beforeunload', beforeUnload);

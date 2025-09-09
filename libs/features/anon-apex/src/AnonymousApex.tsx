@@ -192,7 +192,7 @@ export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
         setLoading(false);
       }
     },
-    [historyItems, selectedOrg, logLevel, setHistoryItems, trackEvent]
+    [historyItems, selectedOrg, logLevel, setHistoryItems, trackEvent],
   );
 
   function handleEditorChange(value?: string, event?: unknown) {

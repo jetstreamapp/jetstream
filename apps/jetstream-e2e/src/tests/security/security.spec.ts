@@ -117,7 +117,7 @@ test.describe('Security Checks', () => {
         { query: 'SELECT Id FROM Account' },
         {
           'X-SFDC-ID': salesforceOrg.uniqueId,
-        }
+        },
       );
       expect(useOrgFromDifferentUserResponse.ok()).toBeFalsy();
       expect(useOrgFromDifferentUserResponse.status()).toBe(404);

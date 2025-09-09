@@ -95,7 +95,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOpen]
+    [isOpen],
   );
 
   useGlobalEventHandler('keydown', onKeydown);
@@ -187,7 +187,7 @@ export const DeployMetadataHistoryModal = ({ className }: DeployMetadataHistoryM
         org: viewItemModalState.org,
         data: getDeployResultsExcelData(
           viewItemModalState.item.results,
-          `${viewItemModalState.org.instanceUrl}${viewItemModalState.item.url}`
+          `${viewItemModalState.org.instanceUrl}${viewItemModalState.item.url}`,
         ),
       });
       setViewItemModalState({ open: false, org: null, item: null });

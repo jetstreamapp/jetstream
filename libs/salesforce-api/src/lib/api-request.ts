@@ -11,7 +11,7 @@ export class ApiRequest extends SalesforceApi {
   async manualRequest<T = unknown>(
     { method, url, body, headers = {}, options }: SalesforceApiRequest,
     outputType: ApiRequestOutputType = 'text',
-    ensureRestUrl = false
+    ensureRestUrl = false,
   ): Promise<T> {
     if (options?.responseType) {
       headers = headers || {};

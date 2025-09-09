@@ -154,7 +154,7 @@ export const LoadRecordsBulkApiResults = ({
               output[batch.id] = batch.batchNumber;
             }
             return output;
-          }, {})
+          }, {}),
         );
       }
     }
@@ -175,10 +175,10 @@ export const LoadRecordsBulkApiResults = ({
         notifyUser(`Your ${jobInfo.operation} data load is finished`, {
           body: `${getSuccessOrFailureChar('success', numSuccess)} ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
             'record',
-            numSuccess
+            numSuccess,
           )} loaded successfully - ${getSuccessOrFailureChar('failure', numFailure)} ${numFailure.toLocaleString()} ${pluralizeFromNumber(
             'record',
-            numFailure
+            numFailure,
           )} failed`,
           tag: 'load-records',
         });
@@ -323,7 +323,7 @@ export const LoadRecordsBulkApiResults = ({
             setJobInfo(resultsSummary.jobInfo);
           }
         },
-        () => isAborted.current
+        () => isAborted.current,
       );
 
       if (loadError) {

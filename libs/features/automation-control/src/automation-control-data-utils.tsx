@@ -143,7 +143,7 @@ export function fetchAutomationData(
   selectedOrg: SalesforceOrgUi,
   defaultApiVersion: string,
   selectedAutomationTypes: AutomationMetadataType[],
-  selectedSObjects: string[]
+  selectedSObjects: string[],
 ): Observable<FetchSuccessPayload | FetchErrorPayload> {
   const selectedTypes = new Set(selectedAutomationTypes);
   const requests: Observable<FetchSuccessPayload | FetchErrorPayload>[] = [];
@@ -151,67 +151,71 @@ export function fetchAutomationData(
   if (selectedTypes.has('ApexTrigger')) {
     requests.push(
       from(
-        getApexTriggersMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'ApexTrigger', records } as FetchSuccessPayload))
+        getApexTriggersMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'ApexTrigger', records }) as FetchSuccessPayload),
       ).pipe(
-        catchError((error) => of({ type: 'ApexTrigger', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
-      )
+        catchError((error) => of({ type: 'ApexTrigger', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload)),
+      ),
     );
   }
   if (selectedTypes.has('DuplicateRule')) {
     requests.push(
       from(
-        getDuplicateRules(selectedOrg, selectedSObjects).then((records) => ({ type: 'DuplicateRule', records } as FetchSuccessPayload))
+        getDuplicateRules(selectedOrg, selectedSObjects).then((records) => ({ type: 'DuplicateRule', records }) as FetchSuccessPayload),
       ).pipe(
-        catchError((error) => of({ type: 'DuplicateRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
-      )
+        catchError((error) =>
+          of({ type: 'DuplicateRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload),
+        ),
+      ),
     );
   }
   if (selectedTypes.has('ValidationRule')) {
     requests.push(
       from(
         getValidationRulesMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
-          (records) => ({ type: 'ValidationRule', records } as FetchSuccessPayload)
-        )
+          (records) => ({ type: 'ValidationRule', records }) as FetchSuccessPayload,
+        ),
       ).pipe(
         catchError((error) =>
-          of({ type: 'ValidationRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload)
-        )
-      )
+          of({ type: 'ValidationRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload),
+        ),
+      ),
     );
   }
   if (selectedTypes.has('WorkflowRule')) {
     requests.push(
       from(
         getWorkflowRulesMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
-          (records) => ({ type: 'WorkflowRule', records } as FetchSuccessPayload)
-        )
+          (records) => ({ type: 'WorkflowRule', records }) as FetchSuccessPayload,
+        ),
       ).pipe(
-        catchError((error) => of({ type: 'WorkflowRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload))
-      )
+        catchError((error) => of({ type: 'WorkflowRule', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload)),
+      ),
     );
   }
   if (selectedTypes.has('FlowRecordTriggered')) {
     requests.push(
       from(
-        getFlowsMetadata(selectedOrg, selectedSObjects).then((records) => ({ type: 'FlowRecordTriggered', records } as FetchSuccessPayload))
+        getFlowsMetadata(selectedOrg, selectedSObjects).then(
+          (records) => ({ type: 'FlowRecordTriggered', records }) as FetchSuccessPayload,
+        ),
       ).pipe(
         catchError((error) =>
-          of({ type: 'FlowRecordTriggered', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload)
-        )
-      )
+          of({ type: 'FlowRecordTriggered', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload),
+        ),
+      ),
     );
   }
   if (selectedTypes.has('FlowProcessBuilder')) {
     requests.push(
       from(
         getProcessBuildersMetadata(selectedOrg, defaultApiVersion, selectedSObjects).then(
-          (records) => ({ type: 'FlowProcessBuilder', records } as FetchSuccessPayload)
-        )
+          (records) => ({ type: 'FlowProcessBuilder', records }) as FetchSuccessPayload,
+        ),
       ).pipe(
         catchError((error) =>
-          of({ type: 'FlowProcessBuilder', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload)
-        )
-      )
+          of({ type: 'FlowProcessBuilder', error: error?.message || 'An unknown error has occurred.' } as FetchErrorPayload),
+        ),
+      ),
     );
   }
 
@@ -223,8 +227,8 @@ export async function getApexTriggersMetadata(selectedOrg: SalesforceOrgUi, sobj
   const apexClassRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(currSobjects), true)
-      )
+        query<ToolingApexTriggerRecord>(selectedOrg, getApexTriggersQuery(currSobjects), true),
+      ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
   return apexClassRecords;
@@ -235,8 +239,8 @@ export async function getDuplicateRules(selectedOrg: SalesforceOrgUi, sobjects: 
   const apexClassRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<DuplicateRuleRecord>(selectedOrg, getDuplicateRuleQuery(currSobjects), false)
-      )
+        query<DuplicateRuleRecord>(selectedOrg, getDuplicateRuleQuery(currSobjects), false),
+      ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
   return apexClassRecords;
@@ -251,13 +255,13 @@ export async function getDuplicateRules(selectedOrg: SalesforceOrgUi, sobjects: 
 export async function getValidationRulesMetadata(
   selectedOrg: SalesforceOrgUi,
   apiVersion: string,
-  sobjects: string[]
+  sobjects: string[],
 ): Promise<ToolingValidationRuleRecord[]> {
   const validationRuleRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(currSobjects), true)
-      )
+        query<ToolingValidationRuleRecord>(selectedOrg, getValidationRulesQuery(currSobjects), true),
+      ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
 
@@ -269,11 +273,11 @@ export async function getValidationRulesMetadata(
     selectedOrg,
     'ValidationRule',
     validationRuleRecords.map((record) => record.Id),
-    apiVersion
+    apiVersion,
   );
   const validationRuleMetaById = groupByFlat(
     validationRules.compositeResponse.map((item) => item.body),
-    'Id'
+    'Id',
   );
 
   return validationRuleRecords.map((validationRule) => ({
@@ -291,13 +295,13 @@ export async function getValidationRulesMetadata(
 export async function getWorkflowRulesMetadata(
   selectedOrg: SalesforceOrgUi,
   apiVersion: string,
-  sobjects: string[]
+  sobjects: string[],
 ): Promise<ToolingWorkflowRuleRecord[]> {
   const workflowRuleRecords = (
     await Promise.all(
       splitArrayToMaxSize(sobjects, 300).map((currSobjects) =>
-        query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(currSobjects), true)
-      )
+        query<ToolingWorkflowRuleRecord>(selectedOrg, getWorkflowRulesQuery(currSobjects), true),
+      ),
     )
   ).flatMap(({ queryResults }) => queryResults.records);
 
@@ -309,12 +313,12 @@ export async function getWorkflowRulesMetadata(
     selectedOrg,
     'WorkflowRule',
     workflowRuleRecords.map((record) => record.Id),
-    apiVersion
+    apiVersion,
   );
 
   const workflowRuleMetaById = groupByFlat(
     workflowRules.compositeResponse.map((item) => item.body),
-    'Id'
+    'Id',
   );
 
   return workflowRuleRecords.map((workflowRule) => ({
@@ -327,7 +331,7 @@ export async function getFlowsMetadata(selectedOrg: SalesforceOrgUi, sobjects: s
   // NOTE: this is NOT tooling
   const flowMetadataRecords = (
     await Promise.all(
-      splitArrayToMaxSize(sobjects, 300).map((currSobjects) => query<FlowViewRecord>(selectedOrg, getFlowsQuery(currSobjects), false))
+      splitArrayToMaxSize(sobjects, 300).map((currSobjects) => query<FlowViewRecord>(selectedOrg, getFlowsQuery(currSobjects), false)),
     )
   )
     .flatMap(({ queryResults }) => queryResults.records)
@@ -352,7 +356,7 @@ export async function getProcessBuildersMetadata(
   selectedOrg: SalesforceOrgUi,
   apiVersion: string,
   sobjects: string[],
-  skipCache?: boolean
+  skipCache?: boolean,
 ) {
   // this list will be filtered based on the sobject and will artificially have TriggerObjectOrEvent.QualifiedApiName added
   const sobjectSet = new Set(sobjects);
@@ -372,7 +376,7 @@ export async function getProcessBuildersMetadata(
       'Flow',
       latestVersions,
       apiVersion,
-      ['Id', 'DefinitionId', 'FullName', 'Metadata']
+      ['Id', 'DefinitionId', 'FullName', 'Metadata'],
     );
 
     const definitionIdsBySObject = flowVersionWithMetadata.compositeResponse
@@ -400,7 +404,7 @@ export async function getProcessBuildersMetadata(
               place: 'AutomationControl',
               type: 'getProcessBuildersMetadata()',
             },
-            'warn'
+            'warn',
           );
         }
         return output;
@@ -433,7 +437,7 @@ export async function getProcessBuildersMetadata(
 export function preparePayloads(
   apiVersion: string,
   selectedOrg: SalesforceOrgUi,
-  itemsByKey: DeploymentItemMap
+  itemsByKey: DeploymentItemMap,
 ): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
   const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
   const payloadEvent$ = payloadEvent.asObservable();
@@ -455,7 +459,7 @@ export async function preparePayloadsForDeployment(
   apiVersion: string,
   selectedOrg: SalesforceOrgUi,
   itemsByKey: DeploymentItemMap,
-  payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>
+  payloadEvent: Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>,
 ) {
   // Duplicate Rules require metadata API
   const duplicateRules = Object.keys(itemsByKey)
@@ -477,7 +481,7 @@ export async function preparePayloadsForDeployment(
           referenceId: key,
         };
       }),
-    25
+    25,
   );
 
   // Initiate metadata API request, then poll for results after all other metadata is fetched
@@ -589,7 +593,7 @@ async function initiateDuplicateRulesMetadataRequest(selectedOrg: SalesforceOrgU
 async function prepareMetadataForDuplicateRules(
   itemsByKey: DeploymentItemMap,
   salesforcePackage: JSZip,
-  duplicateRules: DeploymentItem[]
+  duplicateRules: DeploymentItem[],
 ): Promise<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
   const output = [] as { key: string; deploymentItem: AutomationControlDeploymentItem }[];
   for (const duplicateRule of duplicateRules) {
@@ -621,7 +625,7 @@ async function prepareMetadataForDuplicateRules(
 export function deployMetadata(
   apiVersion: string,
   selectedOrg: SalesforceOrgUi,
-  itemsByKey: DeploymentItemMap
+  itemsByKey: DeploymentItemMap,
 ): Observable<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]> {
   const payloadEvent = new Subject<{ key: string; deploymentItem: AutomationControlDeploymentItem }[]>();
   const payloadEvent$ = payloadEvent.asObservable();
@@ -649,7 +653,7 @@ export function deployMetadata(
               body: item.metadataDeploy,
             };
           }),
-        25
+        25,
       );
 
       for (const compositeRequest of metadataUpdateRequests) {
@@ -686,7 +690,7 @@ export function deployMetadata(
           metadataDeployResults.metadataItems.map((key) => {
             const output = { key, deploymentItem: { ...itemsByKey[key].deploy } };
             const failureItem = deployResults.details?.componentFailures.find(
-              (item) => item.fullName === itemsByKey[key].deploy.metadataDeploy?.FullName
+              (item) => item.fullName === itemsByKey[key].deploy.metadataDeploy?.FullName,
             );
 
             if (failureItem) {
@@ -709,7 +713,7 @@ export function deployMetadata(
               ];
             }
             return output;
-          })
+          }),
         );
       }
 
@@ -725,10 +729,10 @@ export function deployMetadata(
 export async function deployMetadataFileBased(
   selectedOrg: SalesforceOrgUi,
   itemsByKey: DeploymentItemMap,
-  apiVersion: number
+  apiVersion: number,
 ): Promise<{ deployResultsId: string; metadataItems: string[] } | null> {
   const fileBasedMetadataItems = Object.keys(itemsByKey).filter(
-    (key) => !itemsByKey[key].deploy.retrieveError && itemsByKey[key].deploy.requireMetadataApi
+    (key) => !itemsByKey[key].deploy.retrieveError && itemsByKey[key].deploy.requireMetadataApi,
   );
 
   if (fileBasedMetadataItems.length === 0) {

@@ -70,7 +70,7 @@ export const GridCol: FunctionComponent<GridColProps> = ({
         sizeSmall ? `slds-small-size_${sizeSmall}-of-${maxSizeSmall}` : undefined,
         sizeMedium ? `slds-medium-size_${sizeMedium}-of-${maxSizeMedium}` : undefined,
         sizeLarge ? `slds-large-size_${sizeLarge}-of-${maxSizeLarge}` : undefined,
-        className
+        className,
       )}
       {...extraProps}
     >

@@ -49,7 +49,7 @@ export const Jobs: FunctionComponent = () => {
   const [jobs, setJobsArr] = useAtom(selectJobs);
   const activeJobCount = useAtomValue(selectActiveJobCount);
   const newJobsToProcess = useObservable(
-    fromJetstreamEvents.getObservable('newJob').pipe(filter((ev) => Array.isArray(ev) && ev.length > 0))
+    fromJetstreamEvents.getObservable('newJob').pipe(filter((ev) => Array.isArray(ev) && ev.length > 0)),
   ) as AsyncJobNew[];
   const { notifyUser } = useBrowserNotifications(serverUrl);
 
@@ -63,7 +63,7 @@ export const Jobs: FunctionComponent = () => {
           finished: new Date(),
           lastActivity: new Date(),
           status: 'in-progress',
-        })
+        }),
       );
       newJobs.forEach((job) => {
         jobsWorker.postMessage({
@@ -103,7 +103,7 @@ export const Jobs: FunctionComponent = () => {
           folderId: googleFolder,
           fileData,
         },
-        fileExtToGoogleDriveMimeType[fileType]
+        fileExtToGoogleDriveMimeType[fileType],
       )
         .then(({ id, webViewLink }) => {
           newJob.results = webViewLink;
@@ -124,7 +124,7 @@ export const Jobs: FunctionComponent = () => {
         });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   const handleEvent = useCallback(({ name, data, error }: WorkerMessage<AsyncJobType, AsyncJobWorkerMessageResponse>) => {
@@ -512,7 +512,7 @@ export const Jobs: FunctionComponent = () => {
     },
     newJob: AsyncJob<unknown, unknown>,
     statusMessage = 'Records downloaded and saved to computer, saving to Google failed.',
-    tag = 'UploadToGoogle'
+    tag = 'UploadToGoogle',
   ) {
     fileName = `${fileName}.${fileType}`;
     // Failed to upload to google, save locally
@@ -580,7 +580,7 @@ export const Jobs: FunctionComponent = () => {
       buttonProps={{
         className: classNames(
           'slds-dropdown-trigger slds-dropdown-trigger_click slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__notifications slds-global-actions__item-action',
-          { 'slds-incoming-notification': activeJobCount || jobsUnread }
+          { 'slds-incoming-notification': activeJobCount || jobsUnread },
         ),
         title: `${activeJobCount} active job(s)`,
         'aria-live': 'assertive',

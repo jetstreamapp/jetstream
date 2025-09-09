@@ -22,7 +22,7 @@ export async function verifyAuthToken(payload: { deviceId: string; accessToken: 
     await response
       .json()
       .then((value) => value?.data)
-      .catch(() => ({ success: false, error: 'Unauthorized' }))
+      .catch(() => ({ success: false, error: 'Unauthorized' })),
   );
 
   if (!results.success) {
@@ -47,7 +47,7 @@ export async function logout(payload: { deviceId: string; accessToken: string })
     await response
       .json()
       .then((value) => value?.data)
-      .catch(() => ({ success: false, error: 'Invalid response' }))
+      .catch(() => ({ success: false, error: 'Invalid response' })),
   );
 
   if (!results.success) {
@@ -91,7 +91,7 @@ export async function checkNotifications({
     await response
       .json()
       .then((value) => value?.data)
-      .catch(() => fallbackResponse)
+      .catch(() => fallbackResponse),
   );
 
   return results.data || fallbackResponse;

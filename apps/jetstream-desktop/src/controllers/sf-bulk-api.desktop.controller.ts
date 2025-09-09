@@ -138,7 +138,7 @@ const addBatchToJobWithBinaryAttachment = createRoute(
     } catch (ex) {
       return handleErrorResponse(ex);
     }
-  }
+  },
 );
 
 /**

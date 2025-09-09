@@ -18,7 +18,7 @@ type ObjectOrFieldOrTabVisibilityColumn =
 export function generateExcelWorkbookFromTable(
   objectData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableObjectCell[] },
   tabVisibilityData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableTabVisibilityCell[] },
-  fieldData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableFieldCell[] }
+  fieldData: { columns: ObjectOrFieldOrTabVisibilityColumn[]; rows: PermissionTableFieldCell[] },
 ) {
   const workbook = XLSX.utils.book_new();
   const objectWorksheet = generateObjectWorksheet(objectData.columns, objectData.rows);

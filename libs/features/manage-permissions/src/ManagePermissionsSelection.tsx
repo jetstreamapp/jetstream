@@ -83,7 +83,7 @@ export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSele
     recentHistoryItemsDb.addItemToRecentHistoryItems(
       selectedOrg.uniqueId,
       'sobject',
-      sobjects.map(({ name }) => name)
+      sobjects.map(({ name }) => name),
     );
   }
 

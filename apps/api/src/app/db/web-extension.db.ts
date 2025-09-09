@@ -77,7 +77,7 @@ export const create = async (
     ipAddress: string;
     userAgent: string;
     expiresAt: Date;
-  }
+  },
 ) => {
   return await prisma.webExtensionToken.upsert({
     select: SELECT,

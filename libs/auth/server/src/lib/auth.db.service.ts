@@ -146,7 +146,7 @@ export function clearLoginConfigurationCacheItem(key: string) {
 }
 
 export async function getLoginConfiguration(
-  options: { email: string; skipCache?: boolean } | { teamId: string; skipCache?: false }
+  options: { email: string; skipCache?: boolean } | { teamId: string; skipCache?: false },
 ): Promise<LoginConfiguration | null> {
   const { skipCache = false } = options;
 
@@ -354,7 +354,7 @@ export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainTex
       prisma.authFactors.update({
         data: { enabled: false },
         where: { userId_type: { type, userId } },
-      })
+      }),
     ),
     // Save the new one
     prisma.authFactors.upsert({
@@ -378,7 +378,7 @@ export async function createOrUpdateOtpAuthFactor(userId: string, secretPlainTex
 export async function toggleEnableDisableAuthFactor(
   user: Pick<UserProfileSession, 'id' | 'email'>,
   type: TwoFactorTypeWithoutEmail,
-  action: 'enable' | 'disable'
+  action: 'enable' | 'disable',
 ) {
   if (!user?.id || !user?.email) {
     throw new Error('Invalid user');
@@ -477,8 +477,8 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
           ({ location }, i): UserSessionWithLocation => ({
             ...sessions[i],
             location,
-          })
-        )
+          }),
+        ),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
@@ -522,7 +522,7 @@ export async function getTeamUserSessions(teamId: string, omitLocationData?: boo
         ...userSessionWithLocation,
         user: usersById[userSessionWithLocation.userId],
       };
-    })
+    }),
   );
 
   // Fetch location data and add to each session
@@ -533,8 +533,8 @@ export async function getTeamUserSessions(teamId: string, omitLocationData?: boo
           ({ location }, i): UserSessionWithLocationAndUser => ({
             ...sessions[i],
             location,
-          })
-        )
+          }),
+        ),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for sessions');
@@ -578,8 +578,8 @@ export async function getUserWebExtensionSessions(userId: string, omitLocationDa
           ({ location }, i): ExternalTokenSessionWithLocation => ({
             ...webTokenSessions[i],
             location,
-          })
-        )
+          }),
+        ),
       );
     } catch (ex) {
       logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for webTokens');
@@ -614,7 +614,7 @@ export async function getUserActivity(userId: string) {
         action: actionDisplayName[record.action] || record.action,
         method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
         createdAt: record.createdAt.toISOString(),
-      }))
+      })),
     );
 
   try {
@@ -669,7 +669,62 @@ export async function getTeamUserActivity(teamId: string) {
         action: actionDisplayName[record.action] || record.action,
         method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
         createdAt: record.createdAt.toISOString(),
-      }))
+      })),
+    );
+
+  try {
+    // mutate records to add location property if there is an associated ip address
+    const activityWithIpAddress = recentActivity.filter((item) => item.ipAddress);
+    await lookupGeoLocationFromIpAddresses(activityWithIpAddress.map(({ ipAddress }) => ipAddress) as string[]).then((locationInfo) => {
+      activityWithIpAddress.forEach((activityWithIpAddress, i) => {
+        activityWithIpAddress.location = locationInfo[i].location;
+      });
+    });
+  } catch (ex) {
+    logger.warn({ ...getErrorMessageAndStackObj(ex) }, 'Error fetching location data for recent activity');
+  }
+
+  return recentActivity;
+}
+
+export async function getTeamUserActivity(teamId: string) {
+  if (!teamId) {
+    throw new Error('Invalid teamId');
+  }
+
+  const userIds = await prisma.teamMember
+    .findMany({ where: { teamId }, select: { userId: true } })
+    .then((teamMember) => teamMember.map(({ userId }) => userId));
+
+  const recentActivity: LoginActivityUserFacing[] = await prisma.loginActivity
+    .findMany({
+      select: {
+        action: true,
+        createdAt: true,
+        errorMessage: true,
+        ipAddress: true,
+        method: true,
+        success: true,
+        userAgent: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      where: { userId: { in: userIds }, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
+      take: 250,
+      orderBy: { createdAt: 'desc' },
+    })
+    .then((records) =>
+      records.map((record) => ({
+        ...record,
+        action: actionDisplayName[record.action] || record.action,
+        method: (record.method ? methodDisplayName[record.method] : record.method) || record.method,
+        createdAt: record.createdAt.toISOString(),
+      })),
     );
 
   try {
@@ -961,7 +1016,7 @@ export async function removeIdentityFromUser(userId: string, provider: OauthProv
 async function createUserFromProvider(
   providerUser: ProviderUser,
   provider: OauthProviderType,
-  loginConfiguration: Maybe<LoginConfiguration>
+  loginConfiguration: Maybe<LoginConfiguration>,
 ) {
   const email = providerUser.email?.toLowerCase();
   const user = await prisma.user
@@ -1201,7 +1256,7 @@ export async function handleSignInOrRegistration(
         email: string;
         name: string;
         password: string;
-      }
+      },
 ): Promise<{
   user: AuthenticatedUser;
   providerType: ProviderTypeOauth | ProviderTypeCredentials;
@@ -1281,7 +1336,7 @@ export async function handleSignInOrRegistration(
           // TODO: we should try to prevent duplicate email addresses to avoid this complexity
           logger.warn(
             { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
-            'Cannot auto-link account because there are multiple users with the same email address'
+            'Cannot auto-link account because there are multiple users with the same email address',
           );
           throw new LoginWithExistingIdentity();
         }
@@ -1290,7 +1345,7 @@ export async function handleSignInOrRegistration(
             // return error - cannot link since email addresses are not verified
             logger.warn(
               { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
-              'Cannot auto-link account because email addresses are not verified'
+              'Cannot auto-link account because email addresses are not verified',
             );
             throw new LoginWithExistingIdentity();
           }
@@ -1298,7 +1353,7 @@ export async function handleSignInOrRegistration(
           if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
             logger.warn(
               { email: providerUser.email, providerId: providerUser.id, existingUserId: usersWithEmail[0]?.id },
-              'Cannot auto-link account because login configuration disallows it'
+              'Cannot auto-link account because login configuration disallows it',
             );
             throw new IdentityLinkingNotAllowed();
           }
@@ -1458,7 +1513,7 @@ export async function linkIdentityToUser({
       // TODO: is this the correct error message? some other user already has this identity linked
       logger.warn(
         { newUserId: userId, existingUserId: existingProviderUser.id },
-        'Cannot link account, Provider identity already linked to another user'
+        'Cannot link account, Provider identity already linked to another user',
       );
       throw new LoginWithExistingIdentity('Provider identity already linked to another user');
     } else if (existingProviderUser) {

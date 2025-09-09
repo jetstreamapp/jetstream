@@ -203,7 +203,7 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
                     .join(';'),
                   _touchedColumns,
                 },
-                false
+                false,
               );
             }}
           />
@@ -301,7 +301,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
             nameField.current = {
               sobject,
               nameField: await describeSObject(org, sobject).then(
-                (result) => result.data.fields.find((field) => field.nameField)?.name || 'Name'
+                (result) => result.data.fields.find((field) => field.nameField)?.name || 'Name',
               ),
             };
           }
@@ -335,7 +335,7 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
           setRecords([]);
         }
       },
-      [org]
+      [org],
     );
 
     if (!org || !sobject) {

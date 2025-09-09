@@ -73,7 +73,7 @@ export const Slider: FunctionComponent<SliderProps> = ({
             {
               'slds-slider_vertical': vertical,
             },
-            sliderClassName
+            sliderClassName,
           )}
         >
           <input

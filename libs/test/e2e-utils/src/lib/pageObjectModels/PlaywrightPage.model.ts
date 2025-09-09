@@ -13,7 +13,7 @@ export class PlaywrightPage {
     value: string,
     options: {
       searchForValue?: boolean;
-    } = {}
+    } = {},
   ) {
     const { searchForValue } = options;
     const dropdown = this.page.getByTestId(`dropdown-${label}`);

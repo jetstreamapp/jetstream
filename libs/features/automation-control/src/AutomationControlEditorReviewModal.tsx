@@ -116,7 +116,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
         typeLabel: getAutomationTypeLabel(metadata.type),
         ...metadata,
       })),
-    [deploymentItems]
+    [deploymentItems],
   );
 
   useEffect(() => {
@@ -170,7 +170,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
             output[key] = { ...deploymentItemMap[key], status: 'Preparing' };
             return output;
-          }, {})
+          }, {}),
         );
         const subscription = handlePreparePayloads();
         return () => {
@@ -185,7 +185,7 @@ export const AutomationControlEditorReviewModal: FunctionComponent<AutomationCon
           Object.keys(deploymentItemMap).reduce((output: DeploymentItemMap, key) => {
             output[key] = { ...deploymentItemMap[key], status: 'Deploying' };
             return output;
-          }, {})
+          }, {}),
         );
         const subscription = handleDeployMetadata(deploymentItemMap);
         return () => {

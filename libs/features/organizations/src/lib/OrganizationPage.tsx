@@ -82,7 +82,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
               ...org,
               jetstreamOrganizationId: action === 'add' ? jetstreamOrganizationId : null,
             };
-          })
+          }),
         );
 
         setOrganizations(
@@ -100,7 +100,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
               };
             }
             return org;
-          })
+          }),
         );
 
         if (sfdcOrgUniqueId === selectedOrg?.uniqueId) {
@@ -136,7 +136,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
       setOrgs,
       setSelectedOrgId,
       trackEvent,
-    ]
+    ],
   );
 
   const handleCreateOrUpdate = async (organization: JetstreamOrganizationCreateUpdatePayload) => {
@@ -173,7 +173,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
             return org;
           }
           return { ...org, jetstreamOrganizationId: null };
-        })
+        }),
       );
       handleCloseOrganizationModal();
       trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: organizations.length });
@@ -192,7 +192,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
         setSelectedOrgId(firstUnassignedOrgId);
       }
     },
-    [allOrgs, selectedOrg, setActiveOrganizationId, setSelectedOrgId]
+    [allOrgs, selectedOrg, setActiveOrganizationId, setSelectedOrgId],
   );
 
   const handleOpenCreateOrganizationModal = async () => {

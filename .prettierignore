@@ -6,3 +6,4 @@
 
 /.nx/cache
 /.nx/workspace-data
+**/monaco/vs/

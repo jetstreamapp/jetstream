@@ -69,7 +69,7 @@ export const CreateNewGlobalPicklistModal: FunctionComponent<CreateNewGlobalPick
     setIsValid(
       picklistData.label && picklistData.name && !REGEX.NOT_ALPHANUMERIC_OR_UNDERSCORE.test(picklistData.name) && picklistData.values
         ? true
-        : false
+        : false,
     );
   }, [picklistData]);
 

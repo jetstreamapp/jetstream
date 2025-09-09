@@ -66,7 +66,7 @@ export function convertMetadataToEditableFields(
   picklistValues: PicklistFieldValues,
   action: CloneEditView,
   record: SalesforceRecord,
-  isCustomMetadata = false
+  isCustomMetadata = false,
 ): EditableFields[] {
   return sortQueryFields(fields.filter((field) => !IGNORED_FIELD_TYPES.has(field.type))).map((field): EditableFields => {
     let readOnly = action === 'view';
@@ -120,7 +120,7 @@ export function convertMetadataToEditableFields(
             secondaryLabel: item.label !== item.value ? item.value : null,
             secondaryLabelOnNewLine: item.label !== item.value,
             meta: item as any,
-          }))
+          })),
         );
         // if record has an inactive value, this will show the field as dirty - so instead we add the inactive value to the list
         if (isString(record[field.name]) && !picklistOutput.values.find((item) => item.value === record[field.name])) {

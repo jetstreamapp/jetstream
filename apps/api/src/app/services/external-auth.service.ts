@@ -69,7 +69,7 @@ export function decodeToken(token: string): JwtDecodedPayload {
 
 export async function verifyToken(
   { token, deviceId }: { token: string; deviceId: string },
-  audience: Audience
+  audience: Audience,
 ): Promise<JwtDecodedPayload> {
   const decoder = jwt.createDecoder();
   const decodedPayload = decoder(token) as JwtDecodedPayload;

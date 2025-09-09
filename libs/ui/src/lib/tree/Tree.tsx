@@ -34,7 +34,7 @@ export interface TreeHandleRefFns {
 
 function getAllIds(
   items: TreeItems[],
-  output?: { ids: Set<string>; idMap: Record<string, TreeItems> }
+  output?: { ids: Set<string>; idMap: Record<string, TreeItems> },
 ): { ids: Set<string>; idMap: Record<string, TreeItems> } {
   output = output || { ids: new Set(), idMap: {} };
   items.forEach((item) => {
@@ -60,7 +60,7 @@ export const Tree = forwardRef<any, TreeProps>(
       reEmitSelectionOnItemsChange = false,
       onSelected,
     },
-    ref
+    ref,
   ) => {
     const [selectedItem, setSelectedItem] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState(new Set<string>());
@@ -133,7 +133,7 @@ export const Tree = forwardRef<any, TreeProps>(
         </ul>
       </div>
     );
-  }
+  },
 );
 
 export default Tree;

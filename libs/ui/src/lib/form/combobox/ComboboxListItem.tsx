@@ -1,4 +1,4 @@
-import { SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { useCombinedRefs } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
@@ -63,7 +63,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
       onSelection,
       children,
     },
-    ref
+    ref,
   ) => {
     const innerRef = useRef<HTMLLIElement>(ref as any);
     const combinedRef = useCombinedRefs<HTMLLIElement>(ref, innerRef);
@@ -99,7 +99,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
               'slds-media_center slds-listbox__option_entity': !placeholder && secondaryLabelOnNewLine && secondaryLabel,
               'slds-media_small': !placeholder && !secondaryLabelOnNewLine,
             },
-            textContainerClassName
+            textContainerClassName,
           )}
           role="option"
           aria-selected={selected}
@@ -129,7 +129,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
                 <span>{label}</span>
                 {secondaryLabel && <span className="slds-text-color_weak slds-m-left_xx-small">{secondaryLabel}</span>}
                 {tertiaryLabel && (
-                  <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                  <span className="slds-listbox__option-meta">
                     <div className="slds-truncate">
                       <strong>{tertiaryLabel}</strong>
                     </div>
@@ -140,11 +140,18 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
             {label && secondaryLabel && secondaryLabelOnNewLine && (
               <Fragment>
                 <div className="slds-listbox__option-text slds-listbox__option-text_entity">{label}</div>
-                <div className="slds-listbox__option-meta slds-listbox__option-meta_entity slds-truncate" title={secondaryLabel}>
-                  {secondaryLabel}
+                <div className="slds-listbox__option-meta">
+                  <div className="slds-truncate" title={secondaryLabel}>
+                    {secondaryLabel}
+                  </div>
                 </div>
                 {tertiaryLabel && (
-                  <span className="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                  <span
+                    className="slds-listbox__option-meta"
+                    css={css`
+                      margin-top: 0.125rem;
+                    `}
+                  >
                     <div className="slds-truncate">
                       <strong>{tertiaryLabel}</strong>
                     </div>
@@ -167,5 +174,5 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
         </div>
       </li>
     );
-  }
+  },
 );

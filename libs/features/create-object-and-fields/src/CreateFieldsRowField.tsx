@@ -247,7 +247,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
           </div>
         );
     }
-  }
+  },
 );
 
 export default CreateFieldsRowField;

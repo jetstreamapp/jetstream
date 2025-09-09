@@ -104,7 +104,7 @@ export class Stack<T = any> {
 export function multiWordObjectFilter<T>(
   props: Array<keyof T>,
   value: string,
-  optionalExtraCondition?: (item: T) => boolean
+  optionalExtraCondition?: (item: T) => boolean,
 ): (value: T, index?: number, array?: T[]) => boolean {
   value = value || '';
   let search: string[];
@@ -146,7 +146,7 @@ export function multiWordStringFilter(value: string): (value: string, index: num
 export function orderObjectsBy<T>(items: T[], fields: keyof T | Array<keyof T>, order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
   fields = Array.isArray(fields) ? fields : [fields];
   order = Array.isArray(order) ? order : [order];
-  const orderByItereeFn = fields.map((field) => (item: T) => isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]);
+  const orderByItereeFn = fields.map((field) => (item: T) => (isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]));
   return orderBy(items, orderByItereeFn, order);
 }
 
@@ -313,7 +313,7 @@ export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any
     const subqueryFields = new Set<string>(
       results.parsedQuery.fields
         ?.filter((field) => field.type === 'FieldSubquery')
-        .map((field: FieldSubquery) => field.subquery.relationshipName)
+        .map((field: FieldSubquery) => field.subquery.relationshipName),
     );
     if (subqueryFields.size > 0) {
       results.queryResults.records.forEach((record) => {
@@ -390,7 +390,7 @@ export function getSObjectNameFromAttributes(record: any) {
 
 export function convertFieldWithPolymorphicToQueryFields(
   inputFields: QueryFieldWithPolymorphic[],
-  filterFns: Record<string, { fn: string; alias: string | null }> = {}
+  filterFns: Record<string, { fn: string; alias: string | null }> = {},
 ): FieldType[] {
   let polymorphicItems: { field: string; sobject: string; fields: string[] } = {
     field: '',
@@ -433,7 +433,7 @@ export function convertFieldWithPolymorphicToQueryFields(
             functionName: filterFns[field.field].fn,
             alias: filterFns[field.field].alias || undefined,
             parameters: [field.field],
-          })
+          }),
         );
       } else {
         // return regular non-TYPEOF fields
@@ -562,12 +562,15 @@ export function sanitizeForXml(value: string) {
 }
 
 export function unSanitizeXml(value: string) {
-  return String(value)
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, `'`);
+  return (
+    String(value)
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, `'`)
+      // Ensure this is last so it does not interfere with other cases
+      .replace(/&amp;/g, '&')
+  );
 }
 
 /**
@@ -813,7 +816,7 @@ export function getMapOfBaseAndSubqueryRecords(records: any[], fields: string[],
       }
       return output;
     },
-    [[], []]
+    [[], []],
   );
 
   // records
@@ -858,7 +861,7 @@ export function getExcelSafeSheetName(name: string, existingNames: string[] = []
 
 // https://stackoverflow.com/questions/53228948/how-to-get-image-file-size-from-base-64-string-in-javascript
 export function getSizeInMbFromBase64(data: string) {
-  if (!data) {
+  if (!data || !isString(data) || !data.length) {
     return 0;
   }
   const padding = data.endsWith('==') ? 2 : 1;
@@ -896,7 +899,7 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
             id: group.id,
             label: group.label,
           },
-        })
+        }),
       );
     }
     return output;

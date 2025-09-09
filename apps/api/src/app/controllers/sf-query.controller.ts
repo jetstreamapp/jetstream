@@ -59,7 +59,7 @@ const describeSObject = createRoute(
     } catch (ex) {
       next(new UserFacingError(ex));
     }
-  }
+  },
 );
 
 const query = createRoute(routeDefinition.query.validators, async ({ body, query, jetstreamConn }, req, res, next) => {

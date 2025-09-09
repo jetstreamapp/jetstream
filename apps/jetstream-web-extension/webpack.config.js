@@ -114,7 +114,7 @@ module.exports = composePlugins(withNx(), withReact(), (config, { configuration 
           force: true,
         },
       ],
-    })
+    }),
   );
   return config;
 });

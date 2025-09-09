@@ -126,7 +126,7 @@ export const QueryBuilder = () => {
         });
       }
     },
-    [isTooling, navigate, selectedSObject, soql]
+    [isTooling, navigate, selectedSObject, soql],
   );
 
   useGlobalEventHandler('keydown', onKeydown);
@@ -252,7 +252,7 @@ export const QueryBuilder = () => {
       resetQueryChildRelationships,
       resetQueryIncludeDeletedRecordsState,
       resetSelectedSObject,
-    ]
+    ],
   );
 
   useNonInitialEffect(() => {

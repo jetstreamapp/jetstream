@@ -29,7 +29,7 @@ export const SyncRecordOperationSchemaFillHashedKey = z
             (record as any).data.hashedKey = record.hashedKey;
           }
           return record;
-        })
+        }),
       );
   });
 

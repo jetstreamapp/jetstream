@@ -20,7 +20,7 @@ export const DeployMetadataSelectedItemsBadge: FunctionComponent<DeployMetadataS
           output[row.typeLabel].push(row);
         }
         return output;
-      }, {})
+      }, {}),
     );
   }, [selectedRows]);
 

@@ -21,7 +21,7 @@ export const Tab = ({ tab, isHorizontal, activeId, searchTerm, highlightText, ha
       className={classNames(
         { 'slds-tabs_default__item': isHorizontal, 'slds-vertical-tabs__nav-item': !isHorizontal },
         tab.titleClassName,
-        { 'slds-is-active': activeId === tab.id }
+        { 'slds-is-active': activeId === tab.id },
       )}
       title={tab.titleText || (tab.title as string)}
       role="presentation"

@@ -101,8 +101,8 @@ export const CreateFieldsImportExport = ({ selectedOrg, rows, onImportRows }: Cr
               errorMessage: null,
             };
             return output;
-          }, {} as FieldValues)
-      )
+          }, {} as FieldValues),
+      ),
     );
     popoverRef.current?.close();
   }

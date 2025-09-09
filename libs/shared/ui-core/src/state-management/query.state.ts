@@ -54,7 +54,7 @@ export const selectQueryField = atom<FieldType[]>((get) => {
           relationshipName,
         };
         return getField({ subquery });
-      })
+      }),
   );
   return fields;
 });
@@ -125,7 +125,7 @@ export const selectQueryGroupByBy = atom<(GroupByFieldClause | GroupByFnClause)[
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         field: orderBy.field!,
       };
-    })
+    }),
 );
 
 export const queryHavingState = atomWithReset<ExpressionType>({
@@ -151,7 +151,7 @@ export const selectQueryLimitHasOverride = atom<boolean>((get) => {
     return false;
   }
   const hasRestrictedFieldSelected = (get(selectedQueryFieldsState) || []).some(
-    ({ field }) => field === 'FullName' || field === 'Metadata'
+    ({ field }) => field === 'FullName' || field === 'Metadata',
   );
   return hasRestrictedFieldSelected;
 });
@@ -191,8 +191,8 @@ export const selectQueryOrderBy = atom<OrderByClause[]>((get) =>
         field: orderBy.field!,
         nulls: orderBy.nulls || undefined,
         order: orderBy.order,
-      })
-    )
+      }),
+    ),
 );
 
 export const querySoqlState = atomWithReset<string>('');
@@ -206,18 +206,18 @@ export const hasFiltersConfigured = atom<boolean>(
   (get) =>
     !!get(queryFiltersState)
       .rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
-      .some((row) => queryFilterHasValue(row))
+      .some((row) => queryFilterHasValue(row)),
 );
 
 export const hasHavingConfigured = atom<boolean>(
   (get) =>
     !!get(queryHavingState)
       .rows?.flatMap((row) => (isExpressionConditionType(row) ? row : row.rows.map((row) => row)))
-      .some((row) => queryFilterHasValue(row))
+      .some((row) => queryFilterHasValue(row)),
 );
 
 export const hasGroupByConfigured = atom<boolean>(
-  (get) => get(queryGroupByState)?.filter((groupBy) => !!groupBy.field).length > 0 || false
+  (get) => get(queryGroupByState)?.filter((groupBy) => !!groupBy.field).length > 0 || false,
 );
 
 export const hasOrderByConfigured = atom<boolean>((get) => get(queryOrderByState).some((orderBy) => !!orderBy.field));
@@ -225,7 +225,7 @@ export const hasOrderByConfigured = atom<boolean>((get) => get(queryOrderByState
 export const hasLimitConfigured = atom<boolean>((get) => !!get(queryLimit).trim() || !!get(queryLimitSkip).trim());
 
 export const hasFieldFunctionsConfigured = atom<boolean>((get) =>
-  get(fieldFilterFunctions).some((fn) => !!fn.selectedField && !!fn.selectedFunction)
+  get(fieldFilterFunctions).some((fn) => !!fn.selectedField && !!fn.selectedFunction),
 );
 
 export const hasQueryOptionsConfigured = atom<{ standard: number; advanced: number }>((get) => {

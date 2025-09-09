@@ -56,6 +56,6 @@ export function getApexLogFoldableRegions(log: string): languages.FoldingRange[]
       reachedExecutionLine: false,
       stack: new Stack<{ start: number }>(),
       foldableRegions: [],
-    }
+    },
   ).foldableRegions;
 }

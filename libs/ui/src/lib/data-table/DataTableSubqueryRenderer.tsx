@@ -257,7 +257,7 @@ function ModalDataTable({
     (item: ContextMenuItem<ContextAction>, data: ContextMenuActionData<RowWithKey>) => {
       copySalesforceRecordTableDataToClipboard(item.value, fields, data);
     },
-    [fields]
+    [fields],
   );
 
   const handleColumnReorder = useCallback((columns: string[], columnOrder: number[]) => {

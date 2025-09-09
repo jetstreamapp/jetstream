@@ -24,7 +24,7 @@ export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedO
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState<boolean>(false);
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
   const [fileInfo, setFileInfo] = useState<{ file?: ArrayBuffer; filename?: string; fileContents?: string[]; isSinglePackage?: boolean }>(
-    {}
+    {},
   );
   const [deployOptions, setDeployOptions] = useState<DeployOptions>();
   const [deployResultsData, setDeployResultsData] = useState<Record<string, any[]>>();
@@ -37,7 +37,7 @@ export const DeployMetadataPackage = ({ className, selectedOrg: initialSelectedO
   function handleDeploy(
     fileInfo: { file?: ArrayBuffer; filename?: string; fileContents?: string[]; isSinglePackage?: boolean },
     org: SalesforceOrgUi,
-    deployOptions: DeployOptions
+    deployOptions: DeployOptions,
   ) {
     setFileInfo(fileInfo);
     setDestinationOrg(org);

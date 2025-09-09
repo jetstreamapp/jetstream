@@ -24,7 +24,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
   const [inputId] = useState(uniqueId('object-switcher-input'));
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(
-    () => (initialSelectedItemId && items.find((item) => item.id === initialSelectedItemId)) || items[0]
+    () => (initialSelectedItemId && items.find((item) => item.id === initialSelectedItemId)) || items[0],
   );
 
   function selectItem(item: FormGroupDropdownItem) {

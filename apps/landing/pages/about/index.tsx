@@ -1,11 +1,4 @@
-import {
-  CodeBracketIcon,
-  HeartIcon,
-  LightBulbIcon,
-  ShieldCheckIcon,
-  UserGroupIcon,
-  RocketLaunchIcon,
-} from '@heroicons/react/24/outline';
+import { CodeBracketIcon, HeartIcon, LightBulbIcon, ShieldCheckIcon, UserGroupIcon, RocketLaunchIcon } from '@heroicons/react/24/outline';
 import Layout from '../../components/layouts/Layout';
 
 const values = [
@@ -26,7 +19,7 @@ const values = [
   },
   {
     name: 'Innovation',
-    description: 'Constantly pushing the boundaries of what\'s possible with Salesforce tooling and automation.',
+    description: "Constantly pushing the boundaries of what's possible with Salesforce tooling and automation.",
     icon: LightBulbIcon,
   },
   {
@@ -47,9 +40,7 @@ export default function Page() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Hero Section */}
         <div className="mx-auto max-w-4xl text-center">
-          <p className="mt-2 text-balance text-5xl font-semibold tracking-tight text-white sm:text-6xl">
-            About Jetstream
-          </p>
+          <p className="mt-2 text-balance text-5xl font-semibold tracking-tight text-white sm:text-6xl">About Jetstream</p>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-pretty text-center text-lg font-medium text-gray-400 sm:text-xl/8">
           Empowering Salesforce professionals with tools that make complex tasks simple, secure, and efficient.
@@ -60,14 +51,14 @@ export default function Page() {
           <div className="bg-white/5 rounded-3xl p-8 lg:p-12">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-6">Our Mission</h2>
             <p className="text-lg leading-8 text-gray-300 mb-6">
-              Jetstream exists to bridge the gap between Salesforce's incredible capabilities and the day-to-day challenges 
-              faced by administrators, developers, and analysts. We believe powerful tools shouldn't require compromising 
-              on privacy, security, or ease of use.
+              Jetstream exists to bridge the gap between Salesforce's incredible capabilities and the day-to-day challenges faced by
+              administrators, developers, and analysts. We believe powerful tools shouldn't require compromising on privacy, security, or
+              ease of use.
             </p>
             <p className="text-lg leading-8 text-gray-300">
-              What started as a solution to common workflow frustrations has evolved into a comprehensive platform 
-              trusted by thousands of Salesforce professionals worldwide. We're committed to building tools that 
-              respect your data, enhance your productivity, and grow with your needs.
+              What started as a solution to common workflow frustrations has evolved into a comprehensive platform trusted by thousands of
+              Salesforce professionals worldwide. We're committed to building tools that respect your data, enhance your productivity, and
+              grow with your needs.
             </p>
           </div>
         </div>
@@ -114,13 +105,13 @@ export default function Page() {
                   >
                     Austin Turner
                   </a>
-                  , a passionate Salesforce developer and architect with over a decade of experience building 
-                  enterprise solutions on the platform.
+                  , a passionate Salesforce developer and architect with over a decade of experience building enterprise solutions on the
+                  platform.
                 </p>
                 <p className="text-lg leading-8 text-gray-300">
-                  Austin recognized that while Salesforce provides incredible extensibility, teams often struggled 
-                  with time-consuming manual processes and limited tooling options. Jetstream was born from the 
-                  belief that powerful, privacy-focused tools could transform how professionals interact with their Salesforce data.
+                  Austin recognized that while Salesforce provides incredible extensibility, teams often struggled with time-consuming
+                  manual processes and limited tooling options. Jetstream was born from the belief that powerful, privacy-focused tools
+                  could transform how professionals interact with their Salesforce data.
                 </p>
               </div>
             </div>

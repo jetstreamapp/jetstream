@@ -27,7 +27,7 @@ export function useOrgPermissions(selectedOrg: Maybe<SalesforceOrgUi>) {
       try {
         const { queryResults } = await query<UserPermissionAccess>(
           selectedOrg,
-          'SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess'
+          'SELECT Id, PermissionsModifyAllData, PermissionsModifyMetadata FROM UserPermissionAccess',
         );
         const records = queryResults.records;
         if (records.length > 0) {

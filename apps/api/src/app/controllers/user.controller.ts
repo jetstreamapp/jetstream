@@ -386,7 +386,7 @@ const toggleEnableDisableAuthFactorRoute = createRoute(
       });
       throw new UserFacingError(`There was an error ${action}ing the authentication factor`);
     }
-  }
+  },
 );
 
 const deleteAuthFactorRoute = createRoute(routeDefinition.deleteAuthFactor.validators, async ({ params, user }, req, res) => {

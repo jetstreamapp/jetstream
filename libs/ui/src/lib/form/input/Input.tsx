@@ -88,7 +88,7 @@ export const Input: FunctionComponent<InputProps> = ({
             'slds-input-has-fixed-addon': leftAddon || rightAddon,
             'slds-input-has-icon_group-right': loading,
           },
-          formControlClassName
+          formControlClassName,
         )}
       >
         {!leftAddon && iconLeft && iconLeftType && (

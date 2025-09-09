@@ -207,7 +207,7 @@ export const LoadRecordsBatchApiResults = ({
         (records) => {
           setProcessedRecords((previousProcessedRecords) => previousProcessedRecords.concat(records || []));
         },
-        () => isAborted.current
+        () => isAborted.current,
       );
 
       const dateString = convertDateToLocale(new Date(), { timeStyle: 'medium' });
@@ -253,10 +253,10 @@ export const LoadRecordsBatchApiResults = ({
       notifyUser(`Your ${loadType.toLowerCase()} data load is finished`, {
         body: `${getSuccessOrFailureChar('success', numSuccess)} ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
           'record',
-          numSuccess
+          numSuccess,
         )} loaded successfully ${getSuccessOrFailureChar('failure', numFailure)} ${numFailure.toLocaleString()} ${pluralizeFromNumber(
           'record',
-          numFailure
+          numFailure,
         )} failed`,
         tag: 'load-records',
       });

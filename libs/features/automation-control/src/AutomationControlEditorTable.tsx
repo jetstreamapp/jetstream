@@ -112,7 +112,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
         />
       </div>
     );
-  }
+  },
 );
 
 export default AutomationControlEditorTable;

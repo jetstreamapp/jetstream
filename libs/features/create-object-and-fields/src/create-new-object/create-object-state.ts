@@ -115,7 +115,7 @@ export const isFormValidSelector = atom<{
         permissions.allowEdit ||
         permissions.allowRead ||
         permissions.modifyAllRecords ||
-        permissions.viewAllRecords
+        permissions.viewAllRecords,
     );
   }
 

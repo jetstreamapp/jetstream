@@ -81,7 +81,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
           setFilterFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.filterable))));
           setOrderByFields(getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.sortable))));
           setGroupByFields(
-            getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable || field.type === 'datetime')))
+            getListItemsFromFieldWithRelatedItems(sortQueryFields(fields.filter((field) => field.groupable || field.type === 'datetime'))),
           );
 
           tempQueryFieldsMap[BASE_KEY] = { ...tempQueryFieldsMap[BASE_KEY], loading: false };
@@ -102,7 +102,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg, isTooling]
+    [selectedOrg, isTooling],
   );
 
   const queryRelatedFields = useCallback(
@@ -126,7 +126,7 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg, isTooling]
+    [selectedOrg, isTooling],
   );
 
   function emitSelectedFieldsChanged(fieldsMap: Record<string, QueryFields> = queryFieldsMap) {
@@ -213,10 +213,10 @@ export const QueryFieldsComponent: FunctionComponent<QueryFieldsProps> = ({ sele
                 ['filterText'],
                 filterTerm,
                 (field) =>
-                  !!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded
-              )
+                  !!field.relationshipKey && queryFieldsMap[field.relationshipKey] && queryFieldsMap[field.relationshipKey].expanded,
+              ),
             )
-            .map((field) => field.name)
+            .map((field) => field.name),
         );
       }
       clonedQueryFieldsMap[key] = tempQueryField;

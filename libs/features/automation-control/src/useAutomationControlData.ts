@@ -370,7 +370,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
           description: '',
           additionalData: [],
-        })
+        }),
       );
       break;
     }
@@ -392,7 +392,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
           description: '',
           additionalData: [],
-        })
+        }),
       );
       break;
     }
@@ -417,7 +417,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
             { label: 'Condition', value: record.Metadata.errorConditionFormula },
             { label: 'Message', value: record.ErrorMessage },
           ],
-        })
+        }),
       );
       break;
     }
@@ -439,7 +439,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
           lastModifiedBy: `${record.LastModifiedBy.Name} ${record.LastModifiedDate}`,
           description: record.Metadata.description,
           additionalData: getAdditionalItemsWorkflowRuleText(record.Metadata),
-        })
+        }),
       );
       break;
     }
@@ -459,7 +459,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
               ? `/lightning/setup/ProcessAutomation/home`
               : // For some reason this only works if it is double encoded, as SFDC seems like they do an extra decode during front-door process
                 `/lightning/setup/Flows/page?address=${encodeURIComponent(
-                  encodeURIComponent(`/${record.DurableId}?retUrl=/lightning/setup/Flows/home`)
+                  encodeURIComponent(`/${record.DurableId}?retUrl=/lightning/setup/Flows/home`),
                 )}`,
           sobject: record.TriggerObjectOrEvent?.QualifiedApiName || '',
           readOnly: true,
@@ -502,7 +502,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
                 { label: 'Version', value: `${version.VersionNumber}` },
                 { label: 'API Version', value: version.ApiVersionRuntime },
               ],
-            })
+            }),
           ),
         };
       });
@@ -516,7 +516,7 @@ function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean
 
 function flattenTableRows(
   stateData: StateData,
-  rowsByKeyInit: Record<string, TableRow | TableRowItem | TableRowItemChild>
+  rowsByKeyInit: Record<string, TableRow | TableRowItem | TableRowItemChild>,
 ): {
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
   rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>;
@@ -560,7 +560,7 @@ function flattenTableRows(
 
 function getVisibleRows(
   rows: (TableRow | TableRowItem | TableRowItemChild)[],
-  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>,
 ) {
   return rows.filter((row) => {
     if (isTableRow(row)) {

@@ -47,7 +47,7 @@ describe('utils.getExcelSafeSheetName', () => {
 
   it('should handle truncation and duplicate cases', () => {
     expect(getExcelSafeSheetName('recordsrecordsrecordsrecordsrecordsrecords', ['recordsrecordsrecordsrecordsrec'])).toEqual(
-      'recordsrecordsrecordsrecordsre1'
+      'recordsrecordsrecordsrecordsre1',
     );
     expect(
       getExcelSafeSheetName('recordsrecordsrecordsrecordsrecordsrecords', [
@@ -63,7 +63,7 @@ describe('utils.getExcelSafeSheetName', () => {
         'recordsrecordsrecordsrecordsr10',
         'recordsrecordsrecordsrecordsr11',
         'recordsrecordsrecordsrecordsr12',
-      ])
+      ]),
     ).toEqual('recordsrecordsrecordsrecordsr13');
   });
 });
@@ -75,7 +75,7 @@ describe('utils.getFullNameFromListMetadata', () => {
         fullName: 'SBQQ__AttributeSet__c-Attribute Set Layout',
         metadataType: 'Layout',
         namespace: 'SBQQ',
-      })
+      }),
     ).toEqual('SBQQ__AttributeSet__c-SBQQ__Attribute Set Layout');
   });
   it('Should not double add namespace if already correct', () => {
@@ -84,7 +84,7 @@ describe('utils.getFullNameFromListMetadata', () => {
         fullName: 'SBQQ__AttributeSet__c-SBQQ__Attribute Set Layout',
         metadataType: 'Layout',
         namespace: 'SBQQ',
-      })
+      }),
     ).toEqual('SBQQ__AttributeSet__c-SBQQ__Attribute Set Layout');
   });
   it('Should not add namespace if non-managed', () => {
@@ -93,7 +93,7 @@ describe('utils.getFullNameFromListMetadata', () => {
         fullName: 'AttributeSet__c-Attribute Set Layout',
         metadataType: 'Layout',
         namespace: null,
-      })
+      }),
     ).toEqual('AttributeSet__c-Attribute Set Layout');
   });
   it('Should not apply to other managed package types', () => {
@@ -102,7 +102,7 @@ describe('utils.getFullNameFromListMetadata', () => {
         fullName: 'AttributeSet__c-Attribute Set Layout',
         metadataType: 'ApexClass',
         namespace: 'TEST',
-      })
+      }),
     ).toEqual('AttributeSet__c-Attribute Set Layout');
   });
 });
@@ -1132,7 +1132,7 @@ describe('utils.getRecordIdFromAttributes', () => {
     expect(
       getRecordIdFromAttributes({
         attributes: { type: 'Opportunity', url: '/services/data/v60.0/sobjects/Opportunity/0068c00000lbXugAAE' },
-      })
+      }),
     ).toBe('0068c00000lbXugAAE');
   });
 
@@ -1140,7 +1140,7 @@ describe('utils.getRecordIdFromAttributes', () => {
     expect(
       getRecordIdFromAttributes({
         attributes: { type: 'Opportunity', url: null },
-      })
+      }),
     ).toBe('');
   });
 });
@@ -1150,14 +1150,14 @@ describe('utils.getSObjectNameFromAttributes', () => {
     expect(
       getSObjectNameFromAttributes({
         attributes: { type: 'Opportunity', url: null },
-      })
+      }),
     ).toBe('Opportunity');
   });
   it('gets sobject name from attribute url', () => {
     expect(
       getSObjectNameFromAttributes({
         attributes: { url: '/services/data/v60.0/sobjects/Opportunity/0068c00000lbXugAAE' },
-      })
+      }),
     ).toBe('Opportunity');
   });
   it('returns empty string if no match', () => {

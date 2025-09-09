@@ -73,7 +73,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
               };
             }),
           [(obj) => obj.name.endsWith('__e'), (obj) => obj.name.endsWith('ChangeEvent'), 'label'],
-          ['desc', 'asc', 'asc']
+          ['desc', 'asc', 'asc'],
         );
         if (isMounted.current) {
           setPlatformEvents(platformEvents);
@@ -85,7 +85,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         rollbar.error(`Fetch platform event error`, getErrorMessageAndStackObj(ex));
       }
     },
-    [rollbar, selectedOrg]
+    [rollbar, selectedOrg],
   );
 
   useEffect(() => {
@@ -112,13 +112,13 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
           }, {});
 
           item[channel].messages = orderValues(Object.keys(eventsByEventId)).map(
-            (replayId) => eventsByEventId[replayId as unknown as number]
+            (replayId) => eventsByEventId[replayId as unknown as number],
           );
           return item;
         });
       }
     },
-    []
+    [],
   );
 
   const handleSubscribeError = useCallback((message: EventMessageUnsuccessful) => {
@@ -170,7 +170,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
         fireToast({ type: 'error', message: 'Error connecting to Salesforce' });
       }
     },
-    [defaultApiVersion, handleSubscribeError, onEvent, selectedOrg, serverUrl, trackEvent]
+    [defaultApiVersion, handleSubscribeError, onEvent, selectedOrg, serverUrl, trackEvent],
   );
 
   const unsubscribe = useCallback(
@@ -195,7 +195,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg, trackEvent]
+    [selectedOrg, trackEvent],
   );
 
   const publish = useCallback(
@@ -209,7 +209,7 @@ export function usePlatformEvent({ selectedOrg }: { selectedOrg: SalesforceOrgUi
       // very strange, but the id of the event is in the errors array
       return message;
     },
-    [selectedOrg, trackEvent]
+    [selectedOrg, trackEvent],
   );
 
   const clearAndUnsubscribeFromAll = useCallback(async (): Promise<void> => {

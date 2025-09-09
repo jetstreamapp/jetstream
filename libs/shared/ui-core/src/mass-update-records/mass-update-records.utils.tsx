@@ -101,7 +101,7 @@ export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: 
     await queryAll<SalesforceRecord>(org, standardQuery).then((res) =>
       res.queryResults.records.forEach((record) => {
         recordsById[record.Id] = record;
-      })
+      }),
     );
   }
 
@@ -110,7 +110,7 @@ export async function queryAndPrepareRecordsForUpdate(row: MetadataRow, fields: 
       res.queryResults.records.forEach((record) => {
         recordsById[record.Id] = record;
         customCriteriaRecordIds.add(record.Id);
-      })
+      }),
     );
   }
 
@@ -169,7 +169,7 @@ export function composeSoqlQueryCustomWhereClause(row: MetadataRow, fields: stri
       ({ transformationOptions }) =>
         transformationOptions.criteria === 'custom' &&
         transformationOptions.whereClause &&
-        isQueryValid(`WHERE ${transformationOptions.whereClause}`, { allowPartialQuery: true })
+        isQueryValid(`WHERE ${transformationOptions.whereClause}`, { allowPartialQuery: true }),
     )
     .map(({ transformationOptions }) => `(${transformationOptions.whereClause})`)
     .join(' OR ');
@@ -233,7 +233,7 @@ export async function fetchRecordsWithRequiredFields({
 export function prepareRecords(
   records: SalesforceRecord[],
   configuration: MetadataRowConfiguration[],
-  customCriteriaRecordIds: Set<string> = new Set()
+  customCriteriaRecordIds: Set<string> = new Set(),
 ) {
   return records.map((record) => {
     const newRecord = { ...record };

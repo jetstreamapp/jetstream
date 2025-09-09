@@ -64,7 +64,7 @@ export function useLoadRecordTypeData() {
       const items = await readMetadata<ReadMetadataRecordType>(
         selectedOrg,
         'RecordType',
-        item.map(({ fullName }) => fullName)
+        item.map(({ fullName }) => fullName),
       );
       recordTypes.push(...items.map((recordType) => repairAndEnrichMetadata(recordType)));
     }
@@ -94,7 +94,7 @@ export function useLoadRecordTypeData() {
       setSobjects(_sobjects);
       return _sobjects;
     },
-    [rollbar, selectedOrg]
+    [rollbar, selectedOrg],
   );
 
   const loadData = useCallback(async () => {
@@ -117,7 +117,7 @@ export function useLoadRecordTypeData() {
             (type === 'picklist' || type === 'multipicklist') &&
             !ignoredPicklistFields.has(name) &&
             !ignoredPicklistObjectFields.has(`${sobject.name}.${name}`) &&
-            !ignoredPicklistSuffix.some((suffix) => name.endsWith(suffix))
+            !ignoredPicklistSuffix.some((suffix) => name.endsWith(suffix)),
         );
         const recordTypesForObject = recordTypes.filter((item) => item.sobject === sobject.name);
 
@@ -164,7 +164,7 @@ export function useLoadRecordTypeData() {
                   dirtyValues: new Set<string>(),
                   initialDefaultValue: SFDC_BLANK_PICKLIST_VALUE,
                   defaultValue: SFDC_BLANK_PICKLIST_VALUE,
-                }
+                },
               );
             } else {
               output.recordTypeValues[recordType.recordType].picklistValues[field.name] = {

@@ -27,7 +27,7 @@ export async function cleanUpHistoryState(): Promise<Record<string, SalesforceAp
       const dateCutOff = startOfDay(addDays(new Date(), -1 * DAYS_TO_KEEP));
       const itemsToKeep = groupByFlat(
         Object.values(history).filter((item) => isBefore(dateCutOff, item.lastRun)),
-        'key'
+        'key',
       );
 
       if (Object.keys(history).length === Object.keys(itemsToKeep).length) {

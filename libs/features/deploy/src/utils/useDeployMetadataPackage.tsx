@@ -134,7 +134,7 @@ export function useDeployMetadataPackage(destinationOrg: SalesforceOrgUi, deploy
         }
       }
     },
-    [deployOptions, destinationOrg, file]
+    [deployOptions, destinationOrg, file],
   );
 
   return { deployMetadata, results, deployId, hasLoaded, loading, status, lastChecked, hasError, errorMessage };

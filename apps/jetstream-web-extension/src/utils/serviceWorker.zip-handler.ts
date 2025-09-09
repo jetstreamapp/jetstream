@@ -82,7 +82,7 @@ async function onMessage(
       files: { downloadUrl: string; name: string; size: number }[];
     } | null;
   },
-  port: browser.Runtime.Port
+  port: browser.Runtime.Port,
 ) {
   const handler = messageHandlers[command];
   if (handler) {
@@ -121,7 +121,7 @@ export function handleDownloadZipFiles(url: URL, event: FetchEvent, connections:
         'Content-Disposition': `attachment; filename="${zipItem.name}.zip"`,
         'Content-Length': zipItem.sizeBig.toString(), // This is an approximation, does not take into account the headers
       }),
-    })
+    }),
   );
 
   downloadAllZipFiles(id, event, connections);

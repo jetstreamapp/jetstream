@@ -101,7 +101,7 @@ export function SfdcPageButton() {
   const options = useAtomValue(chromeStorageOptions);
   const { authTokens, buttonPosition } = useAtomValue(chromeSyncStorage);
   const [isOnSalesforcePage] = useState(
-    () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('visualforce.com')
+    () => !!document.querySelector('body.sfdcBody, body.ApexCSIPage, #auraLoadingBox') || location.host.endsWith('.visualforce.com'),
   );
 
   const [sfHost, setSfHost] = useState<Maybe<string>>(null);

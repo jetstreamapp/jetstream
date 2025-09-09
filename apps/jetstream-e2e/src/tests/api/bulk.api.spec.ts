@@ -41,7 +41,7 @@ test.describe('API - Bulk', () => {
       [
         `"LastName";"FirstName";"Title";"Company";"State";"Country";"Email";"LeadSource";"Status"`,
         `"Snyder-${timestamp}";"Kathy";"Regional General Manager ${timestamp}";"TNR Corp. ${timestamp}";"CT";"USA";"ksynder@tnr.${timestamp}.net";"Purchased List";"Working - Contacted"`,
-      ].join('\n')
+      ].join('\n'),
     );
 
     expect(addBatchToJobResponse.id).toBeTruthy();
@@ -81,7 +81,7 @@ test.describe('API - Bulk', () => {
       [
         `"LastName";"FirstName";"Title";"Company";"State";"Country";"Email";"LeadSource";"Status"`,
         `"Snyder-${timestamp}";"Kathy";"Regional General Manager ${timestamp}";"TNR Corp. ${timestamp}";"CT";"USA";"ksynder@tnr.${timestamp}.net";"Purchased List";"Working - Contacted"`,
-      ].join('\n')
+      ].join('\n'),
     );
 
     expect(addBatchToJobResponse.ok()).toBeFalsy();
@@ -109,7 +109,7 @@ test.describe('API - Bulk', () => {
       `/api/bulk/${createJobResponse.id}?${new URLSearchParams({
         closeJob: 'true',
       })}`,
-      `SELECT Id, Name, AnnualRevenue, City, Company, Country, CreatedDate, Description, Email, IsConverted, IsDeleted FROM Lead`
+      `SELECT Id, Name, AnnualRevenue, City, Company, Country, CreatedDate, Description, Email, IsConverted, IsDeleted FROM Lead`,
     );
 
     expect(addBatchToJobResponse.id).toBeTruthy();

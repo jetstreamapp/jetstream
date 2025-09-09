@@ -75,10 +75,10 @@ if (isDarwin && ENV.IS_CODESIGNING_ENABLED) {
   const APPLE_PASSWORD = ENV.APPLE_PASSWORD;
   const APPLE_TEAM_ID = ENV.APPLE_TEAM_ID;
   const PROVISIONING_PROFILE_PATH_DARWIN = path.resolve(
-    ENV.PROVISIONING_PROFILE_PATH_DARWIN || '../../build-resources/Jetstream_Mac_App_Profile.provisionprofile'
+    ENV.PROVISIONING_PROFILE_PATH_DARWIN || '../../build-resources/Jetstream_Mac_App_Profile.provisionprofile',
   );
   const PROVISIONING_PROFILE_PATH_MAS = path.resolve(
-    ENV.PROVISIONING_PROFILE_PATH_MAS || '../../build-resources/Jetstream_Mac_App_Store_Profile.provisionprofile'
+    ENV.PROVISIONING_PROFILE_PATH_MAS || '../../build-resources/Jetstream_Mac_App_Store_Profile.provisionprofile',
   );
 
   if (!APPLE_ID) {
@@ -132,7 +132,7 @@ const config: ForgeConfig = {
       (arch) => ({
         macUpdateManifestBaseUrl: `https://releases.getjetstream.app/jetstream/macos/${arch}`,
       }),
-      ['darwin']
+      ['darwin'],
     ),
     new MakerDMG(
       {
@@ -140,7 +140,7 @@ const config: ForgeConfig = {
         icon: path.resolve('assets/icons/icon.icns'),
         overwrite: true,
       },
-      ['darwin']
+      ['darwin'],
     ),
     new MakerSquirrel(
       (arch) => ({
@@ -157,7 +157,7 @@ const config: ForgeConfig = {
         remoteReleases: `https://releases.getjetstream.app/jetstream/windows/${arch}`,
         noDelta: true,
       }),
-      ['win32']
+      ['win32'],
     ),
   ],
   publishers: [

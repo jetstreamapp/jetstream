@@ -48,26 +48,26 @@ import { RenderCellProps, RenderSummaryCellProps } from 'react-data-grid';
 type PermissionTypeColumn<T> = T extends 'object'
   ? ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>
   : T extends 'field'
-  ? ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
-  : T extends 'tabVisibility'
-  ? ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
-  : never;
+    ? ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>
+    : T extends 'tabVisibility'
+      ? ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>
+      : never;
 
 type PermissionActionType<T> = T extends 'object'
   ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll'
   : T extends 'field'
-  ? 'Read' | 'Edit'
-  : T extends 'tabVisibility'
-  ? 'Available' | 'Visible'
-  : never;
+    ? 'Read' | 'Edit'
+    : T extends 'tabVisibility'
+      ? 'Available' | 'Visible'
+      : never;
 
 type PermissionActionAction<T> = T extends 'object'
   ? ObjectPermissionTypes
   : T extends 'field'
-  ? FieldPermissionTypes
-  : T extends 'tabVisibility'
-  ? TabVisibilityPermissionTypes
-  : never;
+    ? FieldPermissionTypes
+    : T extends 'tabVisibility'
+      ? TabVisibilityPermissionTypes
+      : never;
 
 function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObjectCell, permissionId: string, value: boolean) {
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
@@ -111,7 +111,7 @@ function setTabVisibilityValue(
   which: TabVisibilityPermissionTypes,
   row: PermissionTableTabVisibilityCell,
   permissionId: string,
-  value: boolean
+  value: boolean,
 ) {
   const newRow = { ...row, permissions: { ...row.permissions, [permissionId]: { ...row.permissions[permissionId] } } };
   const permission = newRow.permissions[permissionId];
@@ -132,7 +132,7 @@ function setObjectDependencies(
   permission: PermissionTableObjectCellPermission,
   value: boolean,
   setIfTrue: ObjectPermissionTypes[],
-  setIfFalse: ObjectPermissionTypes[]
+  setIfFalse: ObjectPermissionTypes[],
 ) {
   if (value) {
     setIfTrue.forEach((prop) => (permission[prop] = value));
@@ -154,7 +154,7 @@ function setFieldDependencies(
   permission: PermissionTableFieldCellPermission,
   value: boolean,
   setIfTrue: FieldPermissionTypes[],
-  setIfFalse: FieldPermissionTypes[]
+  setIfFalse: FieldPermissionTypes[],
 ) {
   if (value) {
     setIfTrue.forEach((prop) => (permission[prop] = value));
@@ -169,7 +169,7 @@ function setTabVisibilityDependencies(
   permission: PermissionTableTabVisibilityCellPermission,
   value: boolean,
   setIfTrue: TabVisibilityPermissionTypes[],
-  setIfFalse: TabVisibilityPermissionTypes[]
+  setIfFalse: TabVisibilityPermissionTypes[],
 ) {
   if (value) {
     setIfTrue.forEach((prop) => (permission[prop] = value));
@@ -263,20 +263,20 @@ export function getDirtyObjectPermissions(dirtyRows: Record<string, DirtyRow<Per
         permission.editIsDirty ||
         permission.deleteIsDirty ||
         permission.viewAllIsDirty ||
-        permission.modifyAllIsDirty
-    )
+        permission.modifyAllIsDirty,
+    ),
   );
 }
 
 export function getDirtyFieldPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableFieldCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
-    Object.values(row.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty)
+    Object.values(row.permissions).filter((permission) => permission.readIsDirty || permission.editIsDirty),
   );
 }
 
 export function getDirtyTabVisibilityPermissions(dirtyRows: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) {
   return Object.values(dirtyRows).flatMap(({ row }) =>
-    Object.values(row.permissions).filter((permission) => permission.availableIsDirty || permission.visibleIsDirty)
+    Object.values(row.permissions).filter((permission) => permission.availableIsDirty || permission.visibleIsDirty),
   );
 }
 
@@ -284,7 +284,7 @@ export function getObjectColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
-  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[] = [
     {
@@ -336,7 +336,7 @@ export function getObjectColumns(
           label: profile?.Profile?.Name || '',
           actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
           actionKey: permissionType,
-        })
+        }),
       );
     });
   });
@@ -353,7 +353,7 @@ export function getObjectColumns(
           label: permissionSet?.Name || '',
           actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
           actionKey: permissionType,
-        })
+        }),
       );
     });
   });
@@ -388,7 +388,7 @@ export function getObjectRows(selectedSObjects: string[], objectPermissionMap: R
 function getRowObjectPermissionFromObjectPermissionItem(
   key: string,
   sobject: string,
-  item: ObjectPermissionItem
+  item: ObjectPermissionItem,
 ): PermissionTableObjectCellPermission {
   return {
     rowKey: sobject,
@@ -413,7 +413,7 @@ function getRowObjectPermissionFromObjectPermissionItem(
 
 export function updateObjectRowsAfterSave(
   rows: PermissionTableObjectCell[],
-  objectPermissionMap: Record<string, ObjectPermissionDefinitionMap>
+  objectPermissionMap: Record<string, ObjectPermissionDefinitionMap>,
 ): PermissionTableObjectCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
@@ -434,7 +434,7 @@ export function getFieldColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
-  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[] = [
     {
@@ -509,7 +509,7 @@ export function getFieldColumns(
           label: profile.Profile.Name,
           actionType: startCase(permissionType) as 'Read' | 'Edit',
           actionKey: permissionType,
-        })
+        }),
       );
     });
   });
@@ -526,7 +526,7 @@ export function getFieldColumns(
           label: permissionSet?.Name || '',
           actionType: startCase(permissionType) as 'Read' | 'Edit',
           actionKey: permissionType,
-        })
+        }),
       );
     });
   });
@@ -617,7 +617,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
             actionKey as PermissionActionAction<'tabVisibility'>,
             row as PermissionTableTabVisibilityCell,
             id,
-            value
+            value,
           );
           onRowChange(newRow);
         }
@@ -674,7 +674,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
 export function getFieldRows(
   selectedSObjects: string[],
   fieldsByObject: Record<string, string[]>,
-  fieldPermissionMap: Record<string, FieldPermissionDefinitionMap>
+  fieldPermissionMap: Record<string, FieldPermissionDefinitionMap>,
 ) {
   const rows: PermissionTableFieldCell[] = [];
   orderValues(selectedSObjects).forEach((sobject) => {
@@ -708,7 +708,7 @@ function getRowFieldPermissionFromFieldPermissionItem(
   key: string,
   sobject: string,
   field: string,
-  item: FieldPermissionItem
+  item: FieldPermissionItem,
 ): PermissionTableFieldCellPermission {
   return {
     rowKey: sobject,
@@ -732,7 +732,7 @@ function getRowFieldPermissionFromFieldPermissionItem(
  */
 export function updateFieldRowsAfterSave(
   rows: PermissionTableFieldCell[],
-  fieldPermissionsMap: Record<string, FieldPermissionDefinitionMap>
+  fieldPermissionsMap: Record<string, FieldPermissionDefinitionMap>,
 ): PermissionTableFieldCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
@@ -753,7 +753,7 @@ export function getTabVisibilityColumns(
   selectedProfiles: string[],
   selectedPermissionSets: string[],
   profilesById: Record<string, PermissionSetWithProfileRecord>,
-  permissionSetsById: Record<string, PermissionSetNoProfileRecord>
+  permissionSetsById: Record<string, PermissionSetNoProfileRecord>,
 ) {
   const newColumns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[] = [
     {
@@ -827,7 +827,7 @@ export function getTabVisibilityColumns(
           label: profile.Profile.Name,
           actionType: startCase(actionKey) as 'Available' | 'Visible',
           actionKey,
-        })
+        }),
       );
     });
   });
@@ -844,7 +844,7 @@ export function getTabVisibilityColumns(
           label: permissionSet?.Name || '',
           actionType: startCase(actionKey) as 'Available' | 'Visible',
           actionKey,
-        })
+        }),
       );
     });
   });
@@ -853,7 +853,7 @@ export function getTabVisibilityColumns(
 
 export function getTabVisibilityRows(
   selectedSObjects: string[],
-  tabVisibilityPermissionMap: Record<string, TabVisibilityPermissionDefinitionMap>
+  tabVisibilityPermissionMap: Record<string, TabVisibilityPermissionDefinitionMap>,
 ) {
   const rows: PermissionTableTabVisibilityCell[] = [];
   orderValues(selectedSObjects).forEach((sobject) => {
@@ -881,7 +881,7 @@ export function getTabVisibilityRows(
 
 export function updateTabVisibilityRowsAfterSave(
   rows: PermissionTableTabVisibilityCell[],
-  tabVisibilityPermissionsMap: Record<string, TabVisibilityPermissionDefinitionMap>
+  tabVisibilityPermissionsMap: Record<string, TabVisibilityPermissionDefinitionMap>,
 ): PermissionTableTabVisibilityCell[] {
   return rows.map((oldRow) => {
     const row = { ...oldRow };
@@ -901,7 +901,7 @@ export function updateTabVisibilityRowsAfterSave(
 function getRowTabVisibilityPermissionFromFieldPermissionItem(
   key: string,
   sobject: string,
-  item: TabVisibilityPermissionItem
+  item: TabVisibilityPermissionItem,
 ): PermissionTableTabVisibilityCellPermission {
   return {
     rowKey: sobject,
@@ -970,7 +970,7 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
   action: 'selectAll' | 'unselectAll' | 'reset',
   which: PermissionTypes,
   id: string,
-  rows: TRows[]
+  rows: TRows[],
 ): TRows[] {
   const newRows = [...rows];
   return newRows.map((row, index) => {
@@ -1035,7 +1035,7 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
 export function updateRowsFromRowAction<TRows extends PermissionTableCellExtended>(
   type: PermissionType,
   checkboxesById: Record<string, BulkActionCheckbox>,
-  rows: TRows[]
+  rows: TRows[],
 ): TRows[] {
   const newRows = [...rows];
   return newRows.map((row) => {
@@ -1223,7 +1223,7 @@ export function updateCheckboxDependencies(
   which: PermissionTypes,
   type: PermissionType,
   checkboxesById: Record<string, BulkActionCheckbox>,
-  value: boolean
+  value: boolean,
 ) {
   if (type === 'object') {
     if (which === 'create') {

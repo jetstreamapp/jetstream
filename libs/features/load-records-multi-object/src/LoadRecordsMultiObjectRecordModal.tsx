@@ -101,11 +101,11 @@ export const LoadRecordsMultiObjectRecordModal: FunctionComponent<LoadRecordsMul
     if (isOpen && data) {
       setItems(
         data.data.map(
-          (item, i) => getParentTreeItem(item, data)
+          (item, i) => getParentTreeItem(item, data),
           // item.compositeRequest.length <= 1
           // ? getTreeItem(data.recordWithResponseByRefId[item.compositeRequest[0].referenceId])
           // : getParentTreeItem(item, data)
-        )
+        ),
       );
     } else {
       setItems([]);

@@ -110,15 +110,15 @@ function getNotification(dataToProcess: LoadMultiObjectRequestWithResult[]) {
       }
       return output;
     },
-    { success: 0, failure: 0 }
+    { success: 0, failure: 0 },
   );
 
   return `${getSuccessOrFailureChar('success', success)} ${success.toLocaleString()} ${pluralizeFromNumber(
     'record',
-    success
+    success,
   )} loaded successfully ${getSuccessOrFailureChar('failure', failure)} ${failure.toLocaleString()} ${pluralizeFromNumber(
     'record',
-    failure
+    failure,
   )} failed`;
 }
 
@@ -178,7 +178,7 @@ export const useLoadFile = (org: SalesforceOrgUi, serverUrl: string, apiVersion:
         dispatch({ type: 'FINISHED' });
       }
     },
-    [org, apiVersion]
+    [org, apiVersion],
   );
 
   return { loadFile, reset, loading, data };

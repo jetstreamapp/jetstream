@@ -137,7 +137,7 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
   outputStateItems.selectedSObjectState = data.selectedSobjectMetadata.global;
   outputStateItems.queryFieldsKey = getQueryFieldKey(org, data.selectedSobjectMetadata.global.name);
   outputStateItems.queryChildRelationships = data.selectedSobjectMetadata.sobject.childRelationships.filter(
-    (childRelationship) => !!childRelationship.relationshipName
+    (childRelationship) => !!childRelationship.relationshipName,
   );
   outputStateItems.queryFieldsMapState = {};
   outputStateItems.selectedQueryFieldsState = [];
@@ -159,20 +159,20 @@ async function queryRestoreBuildState(org: SalesforceOrgUi, query: Query, data: 
   outputStateItems.filterQueryFieldsState = unFlattenedListItemsById(
     groupByFlat(
       allListItems.filter((item) => item.meta.filterable),
-      'id'
-    )
+      'id',
+    ),
   );
   outputStateItems.orderByQueryFieldsState = unFlattenedListItemsById(
     groupByFlat(
       allListItems.filter((item) => item.meta.sortable),
-      'id'
-    )
+      'id',
+    ),
   );
   outputStateItems.groupByQueryFieldsState = unFlattenedListItemsById(
     groupByFlat(
       allListItems.filter((item) => item.meta?.groupable || item.meta?.type === 'datetime'),
-      'id'
-    )
+      'id',
+    ),
   );
 
   const fieldWrapperWithParentKey = getFieldWrapperPath(outputStateItems.queryFieldsMapState);
@@ -222,7 +222,7 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
 
     // Set all fields as selected or mark as missing
     const subqueryField = queryFields.find(
-      (field) => field.type === 'FieldSubquery' && field.subquery.relationshipName.toLowerCase() === relationshipName.toLowerCase()
+      (field) => field.type === 'FieldSubquery' && field.subquery.relationshipName.toLowerCase() === relationshipName.toLowerCase(),
     ) as FieldSubquery;
     if (subqueryField) {
       setSelectedFields(
@@ -231,7 +231,7 @@ function processFields(data: SoqlFetchMetadataOutput, stateItems: Partial<QueryR
         subqueryField.subquery.fields || [],
         metadataTree,
         stateItems,
-        relationshipName
+        relationshipName,
       );
     } else {
       // ERROR - this should not happen (confirm if it is possible or not and remove this path if so)
@@ -274,7 +274,7 @@ function processFieldFunctions(stateItems: Partial<QueryRestoreStateItems>, quer
 function processGroupBy(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
 ) {
   if (!query.groupBy) {
     return;
@@ -308,7 +308,7 @@ function processGroupBy(
 function processFilters(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
 ) {
   if (query.where) {
     const condition = query.where;
@@ -322,7 +322,7 @@ function processFilters(
 function processHavingClause(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
 ) {
   if (query.having) {
     const condition = query.having;
@@ -340,7 +340,7 @@ function flattenWhereClause(
   currKey: number,
   rows: (ExpressionConditionType | ExpressionGroupType)[] = [],
   previousCondition?: ExpressionConditionType,
-  currentGroup?: ExpressionGroupType
+  currentGroup?: ExpressionGroupType,
 ) {
   let expressionCondition: ExpressionConditionType | undefined = undefined;
   let expressionGroup: ExpressionGroupType | undefined = currentGroup;
@@ -474,7 +474,7 @@ function removeQuotesAndPercentage(operator: Operator, values: string | string[]
     return unescapeSoqlString(values);
   } else if (Array.isArray(values)) {
     values = (values as any[]).map((value) =>
-      isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value
+      isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value,
     );
   }
   return values;
@@ -483,7 +483,7 @@ function removeQuotesAndPercentage(operator: Operator, values: string | string[]
 function processOrderBy(
   stateItems: Partial<QueryRestoreStateItems>,
   query: Query,
-  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>
+  fieldWrapperWithParentKey: Record<string, FieldWrapperWithParentKey>,
 ) {
   if (query.orderBy) {
     const orderByClauses = (Array.isArray(query.orderBy) ? query.orderBy : [query.orderBy]) as QueryOrderByClause[];
@@ -539,7 +539,7 @@ function setSelectedFields(
   queryFields: QueryFieldType[],
   metadataTree: Record<string, SoqlMetadataTree>,
   stateItems: Partial<QueryRestoreStateItems>,
-  subqueryRelationshipName?: string
+  subqueryRelationshipName?: string,
 ) {
   const {
     missingFields: missingFieldsTemp = [],
@@ -652,7 +652,7 @@ function setSelectedFields(
 function updateQueryFieldsMapForRelatedFields(
   queryFieldsMap: Record<string, QueryFields>,
   baseKey: string,
-  metadataTree: Record<string, SoqlMetadataTree>
+  metadataTree: Record<string, SoqlMetadataTree>,
 ) {
   function traverseChildren(children: SoqlMetadataTree[], parentKey: string) {
     children.forEach((currNode) => {

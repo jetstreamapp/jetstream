@@ -73,7 +73,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(
         {footer && <footer className="slds-card__footer">{footer}</footer>}
       </article>
     );
-  }
+  },
 );
 
 export default Card;

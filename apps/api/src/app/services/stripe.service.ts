@@ -222,7 +222,7 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
             recurringIntervalCount: price.recurring?.interval_count || null,
             quantity: quantity ?? 1,
           })),
-        })
+        }),
       ) || [],
   };
   return customerWithSubscriptions;
@@ -269,7 +269,7 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
       chromeExtension: false,
       recordSync: false,
       desktop: false,
-    }
+    },
   );
 
   const customer = await fetchCustomerWithSubscriptionsById({ customerId });
@@ -501,7 +501,7 @@ export async function saveOrUpdateSubscription({
           customerId: customer.id,
           remedy: 'Manually create a billing account in Jetstream DB for this customer, then retry event or update subscription to re-sync',
         },
-        'Billing Account does not exist, unable to save subscriptions'
+        'Billing Account does not exist, unable to save subscriptions',
       );
       return;
     }

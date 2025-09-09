@@ -50,8 +50,8 @@ export const useDownloadResults = () => {
                   Created: !!created || (operation === 'INSERT' && !!success),
                   Error: errorCode ? `${errorCode}: ${message}` : '',
                 };
-              })
-            ) || []
+              }),
+            ) || [],
       ) || [];
 
     setDownloadModalData({

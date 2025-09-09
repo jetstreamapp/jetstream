@@ -109,7 +109,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         isDragging: !!monitor.isDragging(),
       }),
     }),
-    [row]
+    [row],
   );
 
   useEffect(() => {

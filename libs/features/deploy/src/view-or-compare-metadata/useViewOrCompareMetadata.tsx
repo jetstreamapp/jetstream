@@ -221,7 +221,7 @@ export function useViewOrCompareMetadata({ selectedMetadata }: { selectedMetadat
         dispatch({ type: 'FETCH_ERROR', payload: { which, error: getErrorMessage(ex) } });
       }
     },
-    [notifyUser, selectedMetadata]
+    [notifyUser, selectedMetadata],
   );
 
   return {

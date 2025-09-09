@@ -64,7 +64,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
     hasError,
   } = useListMetadata(selectedOrg);
   const [listMetadataItems, setListMetadataItems] = useState<Record<string, ListMetadataResultItem> | undefined>(
-    listMetadataItemsUnfiltered
+    listMetadataItemsUnfiltered,
   );
 
   // used for manifest or package download
@@ -130,7 +130,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
       dateRangeSelection,
       dateRangeStartState,
       dateRangeEndState,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -175,7 +175,7 @@ export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymen
         setModifiedLabel(
           `Modified between ${formatISODate(dateRangeStartState, { representation: 'date' })} ${formatISODate(dateRangeEndState, {
             representation: 'date',
-          })}`
+          })}`,
         );
       } else if (dateRangeStartState) {
         setModifiedLabel(`Modified since ${formatISODate(dateRangeStartState, { representation: 'date' })}`);

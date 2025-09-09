@@ -52,7 +52,7 @@ export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
       filterFn = (field) => true,
       onSelectField,
     },
-    ref
+    ref,
   ) => {
     const isMounted = useRef(true);
     const [loading, setLoading] = useState<boolean>(false);
@@ -135,7 +135,7 @@ export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
         onSelected={(item) => onSelectField(item.meta)}
       />
     );
-  }
+  },
 );
 
 export default SobjectFieldCombobox;

@@ -61,7 +61,7 @@ export const LoadRecords = () => {
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const googleApiConfig = useMemo(
     () => ({ apiKey: google_apiKey, appId: google_appId, clientId: google_clientId }),
-    [google_apiKey, google_appId, google_clientId]
+    [google_apiKey, google_appId, google_clientId],
   );
   const selectedOrg = useAtomValue(selectedOrgState);
   const orgType = useAtomValue(selectedOrgType);
@@ -357,7 +357,7 @@ export const LoadRecords = () => {
     headers: string[],
     filename: string,
     type: LocalOrGoogle,
-    googleFile?: Maybe<google.picker.DocumentObject>
+    googleFile?: Maybe<google.picker.DocumentObject>,
   ) {
     setInputFileData(data);
     setInputFileHeader(headers);

@@ -3,7 +3,7 @@ import { Maybe } from '@jetstream/types';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 export function useFilename(
-  filename: Maybe<string>
+  filename: Maybe<string>,
 ): [{ managedFilename: string | null; filenameTruncated: string | null }, Dispatch<SetStateAction<string | null>>] {
   const [managedFilename, setManagedFilename] = useState<string | null>(filename || null);
   const [filenameTruncated, setFilenameTruncated] = useState<string | null>(null);

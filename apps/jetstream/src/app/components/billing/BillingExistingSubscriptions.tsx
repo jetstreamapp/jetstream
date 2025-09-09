@@ -29,7 +29,7 @@ export const BillingExistingSubscriptions = ({
   const { trackEvent } = useAmplitude();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(() => {
     const priceId =
-      customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))?.items[0].priceId || null;
+      customerWithSubscriptions.subscriptions.find(({ status }) => ACTIVE_SUBSCRIPTION_STATUSES.has(status))?.items[0].priceId || null;,
     if (priceId) {
       return Object.values(pricesByLookupKey || {}).find((price) => price.id === priceId)?.lookupKey || null;
     }

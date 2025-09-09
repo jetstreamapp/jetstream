@@ -21,7 +21,7 @@ function publishExtension() {
         // You need to specify this one so that your NodeJS application
         // can continue running after web-ext is finished.
         shouldExitProgram: false,
-      }
+      },
     )
     .then((extensionRunner) => {
       // The command has finished. Each command resolves its

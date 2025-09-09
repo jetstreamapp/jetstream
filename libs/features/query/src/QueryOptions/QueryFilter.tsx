@@ -46,7 +46,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
         setFiltersOrHaving(filters);
       }
     },
-    [setFiltersOrHaving]
+    [setFiltersOrHaving],
   );
 
   return (

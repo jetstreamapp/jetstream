@@ -51,7 +51,7 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
       loading: false,
       hasError: false,
       data: [],
-    }
+    },
   );
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export function useWhereIsThisUsed(org: SalesforceOrgUi, sobject: string, field:
         }
       }
     },
-    [org, sobject, field]
+    [org, sobject, field],
   );
 
   return { loadDependencies: load, loading, items: data, hasLoaded, hasError, errorMessage };

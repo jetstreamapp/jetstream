@@ -18,7 +18,7 @@ routes.get(
   '/download/:platform/:arch',
   DownloadRateLimit,
   checkAuth,
-  desktopAssetsController.routeDefinition.getDownloadLink.controllerFn()
+  desktopAssetsController.routeDefinition.getDownloadLink.controllerFn(),
 );
 routes.get('/downloads', DownloadRateLimit, checkAuth, desktopAssetsController.routeDefinition.getAllDownloadLinks.controllerFn());
 

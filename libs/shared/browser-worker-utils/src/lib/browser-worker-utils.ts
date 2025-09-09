@@ -58,7 +58,7 @@ export function prepareCsvFile(data: Record<string, string>[], header: string[])
       data,
       fields: header,
     },
-    { header: true, quotes: true, delimiter: detectDelimiter() }
+    { header: true, quotes: true, delimiter: detectDelimiter() },
   );
 }
 
@@ -93,7 +93,7 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
         XLSX.utils.book_append_sheet(
           workbook,
           XLSX.utils.aoa_to_sheet(isArrayOfArray ? data[sheetName] : convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
-          sheetName
+          sheetName,
         );
       }
     });
@@ -135,7 +135,7 @@ const BACK_OFF_INTERVAL = 25;
 export async function pollRetrieveMetadataResultsUntilDone(
   selectedOrg: SalesforceOrgUi,
   id: string,
-  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void; isCanceled?: () => boolean }
+  options?: { interval?: number; maxAttempts?: number; onChecked?: (retrieveResults: RetrieveResult) => void; isCanceled?: () => boolean },
 ) {
   let { interval, maxAttempts, onChecked } = options || {};
   interval = interval || DEFAULT_INTERVAL_5_SEC;
@@ -174,7 +174,7 @@ export async function pollBulkApiJobUntilDone(
   selectedOrg: SalesforceOrgUi,
   jobInfo: BulkJobWithBatches,
   totalBatches: number,
-  options?: { interval?: number; maxAttempts?: number; onChecked?: (jobInfo: BulkJobWithBatches) => void }
+  options?: { interval?: number; maxAttempts?: number; onChecked?: (jobInfo: BulkJobWithBatches) => void },
 ): Promise<BulkJobWithBatches> {
   let { interval, maxAttempts, onChecked } = options || {};
   interval = interval || DEFAULT_INTERVAL_5_SEC;

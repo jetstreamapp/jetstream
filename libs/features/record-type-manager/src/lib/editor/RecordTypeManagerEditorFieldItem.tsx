@@ -46,7 +46,7 @@ export function RecordTypeManagerEditorFieldItem({
         value: value.value,
       })),
     ],
-    [values]
+    [values],
   );
 
   return (

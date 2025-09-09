@@ -94,7 +94,7 @@ export function FilterRenderer<R, SR, T extends HTMLOrSVGElement>({
     args: HeaderFilterProps & {
       ref?: React.RefObject<T>;
       tabIndex?: number;
-    }
+    },
   ) => React.ReactElement;
 }) {
   const { filters, filterSetValues, updateFilter } = useContext(DataTableFilterContext);

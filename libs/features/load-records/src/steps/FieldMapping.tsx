@@ -89,7 +89,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
     const [staticRowHeaders, setStaticRowHeaders] = useState<string[]>(() =>
       Object.values(fieldMappingInit)
         .filter((item) => item.type === 'STATIC')
-        .map((item) => item.csvField)
+        .map((item) => item.csvField),
     );
     const [activeRowIndex, setActiveRowIndex] = useState(0);
     const [activeRow, setActiveRow] = useState<Record<string, any>>(() => fileData[activeRowIndex]);
@@ -134,7 +134,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
             }
             return output;
           },
-          { labelMapped: false, developerNameMapped: false, externalIdMapped: false }
+          { labelMapped: false, developerNameMapped: false, externalIdMapped: false },
         );
 
         if (isCustomMetadataObject && (!labelMapped || !developerNameMapped)) {
@@ -171,7 +171,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
      */
     function handleFieldMappingChange(csvField: string, fieldMappingItem: FieldMappingItem) {
       setFieldMapping((fieldMapping) =>
-        checkFieldsForMappingError({ ...fieldMapping, [csvField]: fieldMappingItem }, loadType, externalId)
+        checkFieldsForMappingError({ ...fieldMapping, [csvField]: fieldMappingItem }, loadType, externalId),
       );
     }
 
@@ -206,7 +206,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
       setStaticRowHeaders(
         Object.values(newMapping)
           .filter((item) => item.type === 'STATIC')
-          .map((item) => item.csvField)
+          .map((item) => item.csvField),
       );
       trackEvent(ANALYTICS_KEYS.load_SavedMappingLoaded);
       setKeyPrefix(new Date().getTime());
@@ -407,7 +407,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
         </GridCol>
       </Grid>
     );
-  }
+  },
 );
 
 export default LoadRecordsFieldMapping;

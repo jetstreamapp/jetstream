@@ -70,7 +70,7 @@ async function getLatestVersion({ arch, platform }: PlatformArch): Promise<Versi
         new GetObjectCommand({
           Bucket: ENV.BACKBLAZE_BUCKET_NAME,
           Key: `jetstream/${platform}/${arch}/RELEASES`,
-        })
+        }),
       );
 
       if (releaseFile.Body) {
@@ -101,7 +101,7 @@ async function getLatestVersion({ arch, platform }: PlatformArch): Promise<Versi
         new GetObjectCommand({
           Bucket: ENV.BACKBLAZE_BUCKET_NAME,
           Key: `jetstream/${platform}/${arch}/RELEASES.json`,
-        })
+        }),
       );
 
       if (releaseFile.Body) {

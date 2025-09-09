@@ -32,7 +32,7 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     org?: SalesforceOrgUi;
     targetOrg?: SalesforceOrgUi;
   },
-  req: RequestOptions
+  req: RequestOptions,
 ) => Promise<Response> | Response;
 
 export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema extends z.ZodTypeAny, TQuerySchema extends z.ZodTypeAny>(
@@ -53,7 +53,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
   },
-  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>
+  controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
 ) {
   return async (req: RequestOptions) => {
     const url = req.urlOverride || new URL(req.request.url);
@@ -120,6 +120,6 @@ export function handleErrorResponse(error: Error) {
       error: true,
       message: getErrorMessage(error),
     }),
-    { status: 400, statusText: 'Bad Request' }
+    { status: 400, statusText: 'Bad Request' },
   );
 }

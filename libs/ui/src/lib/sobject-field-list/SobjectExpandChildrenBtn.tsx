@@ -38,7 +38,7 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
   const hasMultiple = Array.isArray(field.relatedSobject);
   const showWhich = hasMultiple && allowMultiple ? 'multiple' : 'single';
   const [selectedSObject, setSelectedSObject] = useState<Maybe<string>>(
-    () => initialSelectedSObject || (hasMultiple ? field.relatedSobject?.[0] : (field.relatedSobject as string))
+    () => initialSelectedSObject || (hasMultiple ? field.relatedSobject?.[0] : (field.relatedSobject as string)),
   );
   // const [selectId] = useState(() => `select-${parentKey}-${field.name}`);
   const [relatedObjects, setRelatedObjects] = useState<ListItem[]>([]);
@@ -51,8 +51,8 @@ export const SobjectExpandChildrenBtn: FunctionComponent<SobjectExpandChildrenBt
             id: relationship,
             label: relationship,
             value: relationship,
-          })
-        )
+          }),
+        ),
       );
     } else {
       setRelatedObjects([]);

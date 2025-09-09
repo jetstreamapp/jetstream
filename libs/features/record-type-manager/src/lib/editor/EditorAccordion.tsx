@@ -35,7 +35,7 @@ export function EditorAccordion({
           onChangeDefaultValue,
           onSelect,
           onSelectAll,
-        })
+        }),
       );
     }
     return Object.values(recordTypeValues).map((recordTypeValue) =>
@@ -46,7 +46,7 @@ export function EditorAccordion({
         onChangeDefaultValue,
         onSelect,
         onSelectAll,
-      })
+      }),
     );
   }, [errors, onChangeDefaultValue, onSelect, onSelectAll, picklistValues, recordTypeValues, recordTypes, viewMode]);
 

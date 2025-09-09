@@ -25,7 +25,7 @@ export const AnonymousApexFilter = forwardRef<any, AnonymousApexFilterProps>(
         />
       </div>
     );
-  }
+  },
 );
 
 export default AnonymousApexFilter;

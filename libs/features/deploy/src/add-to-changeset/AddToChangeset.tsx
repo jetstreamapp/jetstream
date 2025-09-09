@@ -53,7 +53,7 @@ export const AddToChangeset = ({ className, selectedOrg, loading, selectedRows }
     packageName: string,
     changesetDescription: string,
     deployOptions: DeployOptions,
-    changeset?: Maybe<ChangeSet>
+    changeset?: Maybe<ChangeSet>,
   ) {
     setChangesetPackageName(packageName);
     setChangesetPackageDescription(changesetDescription);

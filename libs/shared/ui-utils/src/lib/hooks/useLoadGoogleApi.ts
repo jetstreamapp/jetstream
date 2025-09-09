@@ -121,7 +121,7 @@ export function useLoadGoogleApi({
               setError('There was an error initializing Google');
               rollbar?.critical('Error loading Google API', { reason });
             }
-          }
+          },
         );
         initClient(apiConfig.DEFAULT_SCOPE);
       });
@@ -212,7 +212,7 @@ export function useLoadGoogleApi({
         }
       }
     },
-    [authorized, error, hasApisLoaded, hasInitialized, signedIn]
+    [authorized, error, hasApisLoaded, hasInitialized, signedIn],
   );
 
   const signOut = useCallback(() => {

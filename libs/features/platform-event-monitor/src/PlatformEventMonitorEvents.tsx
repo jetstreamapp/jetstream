@@ -124,9 +124,9 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
             payload: JSON.stringify(message.payload),
             uuid: message.event.EventUuid,
             replayId: message.event.replayId,
-          })
-        )
-      )
+          }),
+        ),
+      ),
     );
   }, [messagesByChannel]);
 
@@ -144,7 +144,7 @@ export const PlatformEventMonitorEvents: FunctionComponent<PlatformEventMonitorE
           break;
       }
     },
-    []
+    [],
   );
 
   return (

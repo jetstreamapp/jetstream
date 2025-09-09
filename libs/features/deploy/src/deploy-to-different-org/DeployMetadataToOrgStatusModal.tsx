@@ -37,7 +37,7 @@ export const DeployMetadataToOrgStatusModal: FunctionComponent<DeployMetadataToO
     sourceOrg,
     destinationOrg,
     selectedMetadata,
-    deployOptions
+    deployOptions,
   );
 
   useEffect(() => {

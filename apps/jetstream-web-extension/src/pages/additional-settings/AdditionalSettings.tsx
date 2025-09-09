@@ -18,7 +18,7 @@ import { initAndRenderReact } from '../../utils/web-extension.utils';
 initAndRenderReact(
   <AppWrapper allowWithoutSalesforceOrg>
     <AdditionalSettings />
-  </AppWrapper>
+  </AppWrapper>,
 );
 
 export function AdditionalSettings() {

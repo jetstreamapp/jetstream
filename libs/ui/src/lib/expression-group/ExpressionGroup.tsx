@@ -54,7 +54,7 @@ export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.me
         </fieldset>
       </li>
     );
-  }
+  },
 );
 
 export default ExpressionGroup;

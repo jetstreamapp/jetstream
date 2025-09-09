@@ -17,10 +17,6 @@
             {
               "replace": "apps/jetstream/src/environments/environment.ts",
               "with": "apps/jetstream/src/environments/environment.prod.ts"
-            },
-            {
-              "replace": "libs/ui/.storybook/storybook-styles.scss",
-              "with": "apps/jetstream/src/main.scss"
             }
           ],
           "optimization": true,
@@ -43,10 +39,6 @@
             {
               "replace": "apps/jetstream/src/environments/environment.ts",
               "with": "apps/jetstream/src/environments/environment.prod.ts"
-            },
-            {
-              "replace": "libs/ui/.storybook/storybook-styles.scss",
-              "with": "apps/jetstream/src/main.scss"
             }
           ],
           "optimization": true,
@@ -69,10 +61,6 @@
             {
               "replace": "apps/jetstream/src/environments/environment.ts",
               "with": "apps/jetstream/src/environments/environment.test.ts"
-            },
-            {
-              "replace": "libs/ui/.storybook/storybook-styles.scss",
-              "with": "apps/jetstream/src/main.scss"
             }
           ],
           "optimization": false,

@@ -28,7 +28,7 @@ import { initAndRenderReact } from '../../utils/web-extension.utils';
 initAndRenderReact(
   <AppWrapper>
     <App />
-  </AppWrapper>
+  </AppWrapper>,
 );
 
 const pageUrl = new URL(location.href);

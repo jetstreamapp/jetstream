@@ -47,7 +47,7 @@ export const Settings = () => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   useGlobalEventHandler('keydown', onKeydown);

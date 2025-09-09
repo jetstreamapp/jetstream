@@ -27,7 +27,7 @@ export function useFieldListItemsWithDrillIn(selectedOrg: SalesforceOrgUi) {
 
       return { describe: data, fields: sortedFields };
     },
-    [selectedOrg]
+    [selectedOrg],
   );
 
   const loadChildFields = useCallback(
@@ -51,7 +51,7 @@ export function useFieldListItemsWithDrillIn(selectedOrg: SalesforceOrgUi) {
       });
       return childFields;
     },
-    [selectedOrg]
+    [selectedOrg],
   );
 
   return {

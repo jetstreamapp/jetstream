@@ -41,7 +41,7 @@ export type PreloadableComponent<T extends ComponentType<unknown>> = T & {
  */
 export default function lazyWithPreload<T extends ComponentType<unknown>>(
   componentImport: () => Promise<{ default: T }>,
-  moduleName = 'any'
+  moduleName = 'any',
 ): PreloadableComponent<T> {
   const LazyComponent = lazy(() => lazyRetry(componentImport, moduleName));
   let factoryPromise: Promise<void> | undefined;
@@ -83,7 +83,7 @@ export default function lazyWithPreload<T extends ComponentType<unknown>>(
  */
 const lazyRetry = <T extends ComponentType<unknown>>(
   componentImport: () => Promise<{ default: T }>,
-  name = 'any'
+  name = 'any',
 ): Promise<{ default: T }> => {
   return new Promise((resolve, reject) => {
     // check if the window has already been refreshed

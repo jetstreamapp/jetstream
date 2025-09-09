@@ -207,7 +207,7 @@ export const AuthenticatedUserSchema = z.object({
     z.object({
       type: z.enum(['email', '2fa-otp', '2fa-email']),
       enabled: z.boolean(),
-    })
+    }),
   ),
   teamMembership: z
     .object({
@@ -337,8 +337,8 @@ export const LoginConfigurationSchema = z.object({
             default:
               return '2fa-otp';
           }
-        })
-      )
+        }),
+      ),
   ),
   allowedProviders: z.array(OauthAndLocalProvidersSchema).transform((value) => new Set(value)),
   requireMfa: z.boolean(),

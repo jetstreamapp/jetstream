@@ -360,7 +360,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
         }
       }
     },
-    [org, rollbar]
+    [org, rollbar],
   );
 
   const validateRowRecords = useCallback(
@@ -386,7 +386,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
         }
       }
     },
-    [org, rowsMap]
+    [org, rowsMap],
   );
 
   const validateAllRowRecords = useCallback(async () => {
@@ -432,7 +432,7 @@ export function useMassUpdateFieldItems(org: SalesforceOrgUi, selectedSObjects: 
       dispatch({ type: 'CHILD_FIELDS_LOADED', payload: { sobject, parentId: item.id, childFields } });
       return childFields;
     },
-    [org]
+    [org],
   );
 
   /** Handle added / removed sobjects */

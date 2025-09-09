@@ -49,7 +49,7 @@ export const DeployMetadataResultsTables: FunctionComponent<DeployMetadataResult
   // remove package.xml empty placeholder
   const componentSuccesses = orderObjectsBy(
     (results?.details?.componentSuccesses || []).filter((item) => item.componentType),
-    'fullName'
+    'fullName',
   );
   const componentFailures = orderObjectsBy(results?.details?.componentFailures || [], 'fullName');
   const unitTestFailures = orderObjectsBy(results?.details?.runTestResult?.failures || [], 'packageName');

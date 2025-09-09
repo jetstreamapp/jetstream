@@ -190,14 +190,14 @@ const retrievePackageFromLisMetadataResults = createRoute(
       const types = body;
 
       const results = await jetstreamConn!.metadata.retrieve(
-        getRetrieveRequestFromListMetadata(types, jetstreamConn!.sessionInfo.apiVersion)
+        getRetrieveRequestFromListMetadata(types, jetstreamConn!.sessionInfo.apiVersion),
       );
 
       return handleJsonResponse(results);
     } catch (ex) {
       return handleErrorResponse(ex);
     }
-  }
+  },
 );
 
 const retrievePackageFromExistingServerPackages = createRoute(
@@ -218,7 +218,7 @@ const retrievePackageFromExistingServerPackages = createRoute(
     } catch (ex) {
       return handleErrorResponse(ex);
     }
-  }
+  },
 );
 
 const retrievePackageFromManifest = createRoute(
@@ -233,7 +233,7 @@ const retrievePackageFromManifest = createRoute(
     } catch (ex) {
       return handleErrorResponse(ex);
     }
-  }
+  },
 );
 
 const checkRetrieveStatus = createRoute(routeDefinition.checkRetrieveStatus.validators, async ({ query, jetstreamConn }, req) => {
@@ -271,7 +271,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
               'package.xml',
               `<?xml version="1.0" encoding="UTF-8"?>\n<Package xmlns="http://soap.sforce.com/2006/04/metadata">\n\t<version>${
                 jetstreamConn!.sessionInfo.apiVersion
-              }</version>\n</Package>`
+              }</version>\n</Package>`,
             );
 
           oldPackage.forEach((relativePath, file) => {
@@ -283,7 +283,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
           });
           const deployResults = await targetJetstreamConn!.metadata.deploy(
             await newPackage.generateAsync({ type: 'base64', compression: 'STORE', mimeType: 'application/zip', platform: 'UNIX' }),
-            deployOptions
+            deployOptions,
           );
           return handleJsonResponse({ type: 'deploy', results: deployResults, zipFile: results.zipFile });
         } else {
@@ -298,7 +298,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
     } catch (ex) {
       return handleErrorResponse(ex);
     }
-  }
+  },
 );
 
 const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }, req) => {

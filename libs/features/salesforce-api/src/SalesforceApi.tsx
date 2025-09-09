@@ -79,7 +79,7 @@ export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {
         setLoading(false);
       }
     },
-    [selectedOrg, trackEvent, rollbar]
+    [selectedOrg, trackEvent, rollbar],
   );
 
   return (

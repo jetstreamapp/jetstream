@@ -136,7 +136,7 @@ const createCheckoutSessionHandler = createRoute(
       // Legacy path - TODO: remove once everything is deployed
       redirect(res, session.url);
     }
-  }
+  },
 );
 
 const processCheckoutSuccessHandler = createRoute(
@@ -158,7 +158,7 @@ const processCheckoutSuccessHandler = createRoute(
     }
 
     redirect(res, `${ENV.JETSTREAM_CLIENT_URL}/settings/billing`);
-  }
+  },
 );
 
 const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user, teamMembership }, req, res) => {
@@ -229,5 +229,5 @@ const createBillingPortalSession = createRoute(
     });
 
     redirect(res, sessions.url);
-  }
+  },
 );

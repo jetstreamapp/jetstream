@@ -226,7 +226,7 @@ export function getFlowsQuery(sobjects: string[]) {
       getField('TriggerType'),
       // WARNING - do not add ORDER BY here as it causes versions to not get returned consistently
       getField(
-        '(SELECT Id, ApiVersion, ApiVersionRuntime, DurableId, FORMAT(LastModifiedDate), ProcessType, RunInMode, Description, Label, VersionNumber, Status FROM Versions)'
+        '(SELECT Id, ApiVersion, ApiVersionRuntime, DurableId, FORMAT(LastModifiedDate), ProcessType, RunInMode, Description, Label, VersionNumber, Status FROM Versions)',
       ),
     ],
     sObject: 'FlowDefinitionView',
@@ -289,7 +289,7 @@ export function getProcessBuildersQuery() {
       getField('TriggerType'),
       // WARNING - do not add ORDER BY here as it causes versions to not get returned consistently
       getField(
-        '(SELECT Id, ApiVersion, ApiVersionRuntime, DurableId, FORMAT(LastModifiedDate), ProcessType, RunInMode, Description, Label, VersionNumber, Status FROM Versions)'
+        '(SELECT Id, ApiVersion, ApiVersionRuntime, DurableId, FORMAT(LastModifiedDate), ProcessType, RunInMode, Description, Label, VersionNumber, Status FROM Versions)',
       ),
     ],
     sObject: 'FlowDefinitionView',

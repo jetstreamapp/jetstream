@@ -29,7 +29,7 @@ function updateObjectMetadataStateOnChange(
     | {
         payload: { sobjectName: string; fieldName: string; recordType: string; picklistValue: string; value: boolean };
         isSelectAll: false;
-      }
+      },
 ) {
   const { fieldName, recordType, sobjectName, value } = action.payload;
   const allPicklistValues = objectMetadata[sobjectName].picklistValues[fieldName].values.map((entry) => entry.value);
@@ -87,7 +87,7 @@ function addErrors(
   defaultValue: string,
   hasPriorError: boolean,
   errorsByField: Record<string, Record<string, string[]>>,
-  errorsByRecordType: Record<string, Record<string, string[]>>
+  errorsByRecordType: Record<string, Record<string, string[]>>,
 ) {
   let hasError = hasPriorError;
   if (currentValues.size === 0) {
@@ -156,7 +156,7 @@ function getModifiedPickLists(objectMetadata: Record<string, SobjectWithPicklist
             defaultValue,
             hasError,
             errorsByField,
-            errorsByRecordType
+            errorsByRecordType,
           );
         }
       });

@@ -50,7 +50,7 @@ async function getFileContent(data: JSZip, fileProperties: FilePropertiesWithCon
  */
 export function buildTree(
   sourceResultFiles: FilePropertiesWithContent[] | null,
-  targetResultFiles?: FilePropertiesWithContent[] | null
+  targetResultFiles?: FilePropertiesWithContent[] | null,
 ): TreeItems<FileItemMetadata | null>[] {
   const targetFiles = groupByFlat(targetResultFiles || [], 'fileName');
 

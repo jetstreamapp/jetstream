@@ -67,7 +67,7 @@ app.post(
       res.log.error(getExceptionLog(ex, true), 'Failed to download MaxMind database');
       next(ex);
     }
-  })
+  }),
 );
 
 /**
@@ -89,7 +89,7 @@ app.get(
       res.log.error(getExceptionLog(ex, true), 'Failed to lookup IP address');
       next(ex);
     }
-  })
+  }),
 );
 
 /**
@@ -116,7 +116,7 @@ app.post(
       res.log.error(getExceptionLog(ex, true), 'Failed to lookup IP address');
       next(ex);
     }
-  })
+  }),
 );
 
 app.use((req, res, next) => {

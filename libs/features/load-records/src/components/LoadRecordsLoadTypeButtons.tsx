@@ -25,7 +25,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
       label: field.label,
       value: field.name,
       meta: field,
-    }))
+    })),
   );
   const [externalId, setExternalId] = useState(externalIdInit || '');
   const [externalIdNoItemsText, setExternalIdNoItemsText] = useState('');
@@ -47,7 +47,7 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
         label: field.label,
         value: field.name,
         meta: field,
-      }))
+      })),
     );
   }, [externalId, externalIdFields]);
 

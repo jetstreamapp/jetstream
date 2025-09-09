@@ -128,7 +128,7 @@ export async function createOrUpdateSalesforceOrg(userId: string, salesforceOrgU
   if (salesforceOrgUi.organizationId && salesforceOrgUi.username) {
     orgToDelete = userWithOrgs.salesforceOrgs.find(
       ({ uniqueId, username, jetstreamUrl }) =>
-        uniqueId !== salesforceOrgUi.uniqueId && username === salesforceOrgUi.username && jetstreamUrl === ENV.JETSTREAM_SERVER_URL
+        uniqueId !== salesforceOrgUi.uniqueId && username === salesforceOrgUi.username && jetstreamUrl === ENV.JETSTREAM_SERVER_URL,
     );
   }
 

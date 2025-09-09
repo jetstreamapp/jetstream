@@ -31,7 +31,7 @@ export const PurgeLogsModal: FunctionComponent<PurgeLogsModalProps> = ({ selecte
       setStatus('LOADING');
       const records = await queryAll<{ Id: string }>(
         selectedOrg,
-        getApexLogsToDeleteQuery(whichUsers === 'CURRENT' ? selectedOrg.userId : undefined)
+        getApexLogsToDeleteQuery(whichUsers === 'CURRENT' ? selectedOrg.userId : undefined),
       );
       if (isMounted.current) {
         if (!records.queryResults.records.length) {

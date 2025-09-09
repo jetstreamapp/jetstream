@@ -35,7 +35,7 @@ export const RetrievePackageFromLisMetadataResultsRequestSchema = z.record(
       fullName: z.string(),
       namespacePrefix: z.string().nullish(),
     })
-    .array()
+    .array(),
 );
 export type RetrievePackageFromLisMetadataResultsRequest = z.infer<typeof RetrievePackageFromLisMetadataResultsRequestSchema>;
 
@@ -57,7 +57,7 @@ export const CheckRetrieveStatusAndRedeployRequestSchema = z
   })
   .refine(
     ({ changesetName, replacementPackageXml }) => (replacementPackageXml ? !!changesetName : true),
-    'ChangesetName is required when replacementPackageXml is provided'
+    'ChangesetName is required when replacementPackageXml is provided',
   );
 export type CheckRetrieveStatusAndRedeployRequest = z.infer<typeof CheckRetrieveStatusAndRedeployRequestSchema>;
 
@@ -68,7 +68,7 @@ export const GetPackageXmlSchema = z.object({
         fullName: z.string(),
         namespacePrefix: z.string().nullish(),
       })
-      .array()
+      .array(),
   ), // TODO: define metadata type
   otherFields: z.record(z.string()).nullish(),
 });

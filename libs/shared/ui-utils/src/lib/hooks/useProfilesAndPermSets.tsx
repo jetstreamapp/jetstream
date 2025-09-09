@@ -26,7 +26,7 @@ let _lastRefreshed: string;
 export function useProfilesAndPermSets(
   selectedOrg: SalesforceOrgUi,
   _initProfiles?: ListItem<string, PermissionSetWithProfileRecord>[] | null,
-  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[] | null
+  _initPermissionSets?: ListItem<string, PermissionSetNoProfileRecord>[] | null,
 ) {
   const isMounted = useRef(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>(_lastRefreshed);
@@ -34,7 +34,7 @@ export function useProfilesAndPermSets(
   const [hasError, setHasError] = useState(false);
   const [profiles, setProfiles] = useState<ListItem<string, PermissionSetWithProfileRecord>[] | null>(_initProfiles || null);
   const [permissionSets, setPermissionSets] = useState<ListItem<string, PermissionSetNoProfileRecord>[] | null>(
-    _initPermissionSets || null
+    _initPermissionSets || null,
   );
 
   const [profilesAndPermSetsById, setProfilesAndPermSetsById] = useState<
@@ -101,7 +101,7 @@ export function useProfilesAndPermSets(
 
         const { data, cache } = await queryWithCache<PermissionSetRecord>(
           selectedOrg,
-          getQueryForPermissionSetsWithProfiles(selectedOrg.orgNamespacePrefix)
+          getQueryForPermissionSetsWithProfiles(selectedOrg.orgNamespacePrefix),
         );
         if (isMounted.current) {
           if (cache) {
@@ -124,7 +124,7 @@ export function useProfilesAndPermSets(
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedOrg]
+    [selectedOrg],
   );
 
   return {
@@ -149,7 +149,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
         profiles: ListItem<string, PermissionSetWithProfileRecord>[];
         permissionSets: ListItem<string, PermissionSetNoProfileRecord>[];
       },
-      record
+      record,
     ) => {
       const listItem: ListItem = {
         id: record.Id,
@@ -171,7 +171,7 @@ function getListItemFromQueryResults(records: PermissionSetRecord[]) {
     {
       profiles: [],
       permissionSets: [],
-    }
+    },
   );
 }
 

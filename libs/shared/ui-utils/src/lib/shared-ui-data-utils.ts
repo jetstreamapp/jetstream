@@ -46,14 +46,14 @@ export function getFieldKey(parentKey: string, field: Field) {
 export async function describeSObjectWithExtendedTypes(
   org: SalesforceOrgUi,
   sobject: string,
-  isTooling = false
+  isTooling = false,
 ): Promise<DescribeSObjectResultWithExtendedField> {
   const { data: describeResults } = await describeSObject(org, sobject, isTooling);
   return convertDescribeToDescribeSObjectWithExtendedTypes(describeResults);
 }
 
 export function convertDescribeToDescribeSObjectWithExtendedTypes(
-  describeResults: DescribeSObjectResult
+  describeResults: DescribeSObjectResult,
 ): DescribeSObjectResultWithExtendedField {
   const isCustomMetadata = describeResults.name.endsWith('__mdt');
   const fields: FieldWithExtendedType[] = sortQueryFields(describeResults.fields).map((field: Field) => {
@@ -79,7 +79,7 @@ export async function fetchFields(
   org: SalesforceOrgUi,
   queryFields: QueryFields,
   parentKey: string,
-  isTooling = false
+  isTooling = false,
 ): Promise<QueryFields> {
   const describeResults = await describeSObjectWithExtendedTypes(org, queryFields.sobject, isTooling);
   return fetchFieldsProcessResults(describeResults, queryFields, parentKey);
@@ -88,7 +88,7 @@ export async function fetchFields(
 export function fetchFieldsProcessResults(
   describeResults: DescribeSObjectResultWithExtendedField,
   queryFields: QueryFields,
-  parentKey: string
+  parentKey: string,
 ): QueryFields {
   const { sobject } = queryFields;
 
@@ -123,7 +123,7 @@ export function fetchFieldsProcessResults(
         relationshipKey: isRelationshipField(field) ? getFieldKey(parentKey, field) : undefined,
       };
     }),
-    'name'
+    'name',
   );
 
   return { ...queryFields, fields, visibleFields: new Set(Object.keys(fields)), childRelationships, metadata: describeResults };
@@ -146,14 +146,14 @@ export async function getToolingRecords<T>(
   metadataType: string,
   recordIds: string[],
   apiVersion: string,
-  fields: string[] = ['Id', 'FullName', 'Metadata']
+  fields: string[] = ['Id', 'FullName', 'Metadata'],
 ): Promise<CompositeResponse<T>> {
   const compositeRequests = recordIds.map(
     (id): CompositeRequestBody => ({
       method: 'GET',
       url: `/services/data/${apiVersion}/tooling/sobjects/${metadataType}/${id}?fields=${fields.join(',')}`,
       referenceId: id,
-    })
+    }),
   );
   return await makeToolingRequests<T>(selectedOrg, compositeRequests, apiVersion, false);
 }
@@ -171,7 +171,7 @@ export async function makeToolingRequests<T>(
   selectedOrg: SalesforceOrgUi,
   compositeRequests: CompositeRequestBody[],
   apiVersion,
-  allOrNone = false
+  allOrNone = false,
 ): Promise<CompositeResponse<T>> {
   const compositeRequestSets = splitArrayToMaxSize(compositeRequests, 25);
   let results: CompositeResponse<T> = { compositeResponse: [] };
@@ -202,7 +202,7 @@ export async function createOrExtendDebugTrace(
   org: SalesforceOrgUi,
   numHours: number,
   DebugLevelId: string,
-  trace?: UserTrace
+  trace?: UserTrace,
 ): Promise<{
   trace: UserTrace;
   expirationDate: Date;
@@ -305,7 +305,7 @@ export async function copyRecordsToClipboard(
   recordsToCopy: any,
   copyFormat: CopyAsDataType = 'excel',
   fields?: Maybe<string[]>,
-  includeHeader = true
+  includeHeader = true,
 ) {
   try {
     if (copyFormat === 'excel') {

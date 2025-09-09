@@ -57,11 +57,11 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
   const { loadDescribeMetadata, loading, hasError, metadataItemMap, metadataItems, lastRefreshed } = useDescribeMetadata(
     org,
     initialItems,
-    initialItemMap
+    initialItemMap,
   );
 
   const [itemsWithLabel, setItemsWithLabel] = useState<ItemWithLabel[] | null>(() =>
-    metadataItems ? metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })) : null
+    metadataItems ? metadataItems.map((name) => ({ name, label: getMetadataLabelFromFullName(name) })) : null,
   );
   const [filteredMetadataItems, setFilteredMetadataItems] = useState<ItemWithLabel[] | null | undefined>(() => {
     if (itemsWithLabel && itemsWithLabel.length > 0 && searchTerm) {

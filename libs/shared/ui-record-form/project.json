@@ -15,31 +15,6 @@
         "jestConfig": "libs/shared/ui-record-form/jest.config.ts"
       },
       "outputs": ["{workspaceRoot}/coverage/libs/shared/ui-record-form"]
-    },
-    "storybook": {
-      "executor": "@nx/storybook:storybook",
-      "options": {
-        "port": 4400,
-        "configDir": "libs/shared/ui-record-form/.storybook"
-      },
-      "configurations": {
-        "ci": {
-          "quiet": true
-        }
-      }
-    },
-    "build-storybook": {
-      "executor": "@nx/storybook:build",
-      "options": {
-        "configDir": "libs/shared/ui-record-form/.storybook",
-        "outputDir": "dist/storybook/shared-ui-record-form"
-      },
-      "configurations": {
-        "ci": {
-          "quiet": true
-        }
-      },
-      "outputs": ["{options.outputDir}"]
     }
   }
 }

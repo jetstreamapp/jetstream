@@ -140,7 +140,7 @@ public class AddPrimaryContact implements Queueable {
       file,
       {
         'Content-Type': 'application/zip',
-      }
+      },
     );
 
     expect(results).toBeTruthy();
@@ -192,7 +192,7 @@ public class AddPrimaryContact implements Queueable {
 
     const retrieveResults = await apiRequestUtils.makeRequest<RetrieveResult>(
       'GET',
-      `/api/metadata/retrieve/check-results?id=${results.id}`
+      `/api/metadata/retrieve/check-results?id=${results.id}`,
     );
 
     expect(retrieveResults).toBeTruthy();

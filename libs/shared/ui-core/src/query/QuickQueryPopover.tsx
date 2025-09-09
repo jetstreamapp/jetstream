@@ -59,7 +59,7 @@ export const QuickQueryPopover = () => {
     // Since we want to sort by lastRun, we cannot use a normal where clause
     () => dexieDb.query_history.orderBy('lastRun').reverse().limit(NUM_HISTORY_ITEMS).toArray(),
     [],
-    [] as QueryHistoryItem[]
+    [] as QueryHistoryItem[],
   );
 
   useEffect(() => {

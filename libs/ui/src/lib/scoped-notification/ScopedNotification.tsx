@@ -89,7 +89,7 @@ export const ScopedNotification: FunctionComponent<ScopedNotificationProps> = ({
           'slds-theme_warning': theme === 'warning',
           'slds-theme_error': theme === 'error',
         },
-        className
+        className,
       )}
     >
       <div className="slds-media__figure">{iconEl}</div>

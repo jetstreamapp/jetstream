@@ -85,7 +85,7 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
                   )
                 : baseColumn.renderCell,
           };
-        })
+        }),
       );
     }
   }, [header]);

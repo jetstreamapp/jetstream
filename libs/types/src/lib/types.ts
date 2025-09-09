@@ -340,5 +340,5 @@ export interface FormulaFieldsByType {
 
 export type AddOrgHandlerFn = (
   options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
-  callback: (org: SalesforceOrgUi) => void
+  callback: (org: SalesforceOrgUi) => void,
 ) => void;

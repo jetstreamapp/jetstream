@@ -18,9 +18,9 @@ export const selectJobs = atom(
       newJobs.reduce((newJobObj: Record<string, AsyncJob<unknown>>, job) => {
         newJobObj[job.id] = job;
         return newJobObj;
-      }, {})
+      }, {}),
     );
-  }
+  },
 );
 
 export const selectActiveJobCount = atom((get) => get(selectJobs).filter((job) => activeStatuses.includes(job.status)).length);

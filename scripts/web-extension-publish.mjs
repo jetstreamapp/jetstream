@@ -241,7 +241,7 @@ async function main() {
     const shouldContinue = acceptAll
       ? true
       : await question('Are you sure you want to upload the extension? (y/n) ').then((response) =>
-          response.trim().toLowerCase().startsWith('y')
+          response.trim().toLowerCase().startsWith('y'),
         );
 
     if (!shouldContinue) {
@@ -258,7 +258,7 @@ async function main() {
     const shouldContinue = acceptAll
       ? true
       : await question('Are you sure you want to publish the extension? (y/n) ').then((response) =>
-          response.trim().toLowerCase().startsWith('y')
+          response.trim().toLowerCase().startsWith('y'),
         );
 
     if (!shouldContinue) {

@@ -74,7 +74,7 @@ export const chromeStorageState = unwrap(
     prev ?? {
       sync: { extIdentifier: null, authTokens: null, buttonPosition: DEFAULT_BUTTON_POSITION },
       local: { options: { enabled: true, recordSyncEnabled: false } },
-    }
+    },
 );
 
 export const chromeSyncStorage = atom((get) => get(chromeStorageState).sync);

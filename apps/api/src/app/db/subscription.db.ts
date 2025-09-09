@@ -100,8 +100,8 @@ export const updateSubscriptionStateForCustomer = async ({
           },
           update: { status: subscription.status.toUpperCase() },
           where: { uniqueSubscription: { userId, subscriptionId: subscription.id, priceId: item.price.id } },
-        })
-      )
+        }),
+      ),
     ),
   ]);
 };

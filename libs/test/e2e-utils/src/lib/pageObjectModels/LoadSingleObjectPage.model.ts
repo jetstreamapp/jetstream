@@ -36,7 +36,7 @@ export class LoadSingleObjectPage {
           name: string;
           mimeType: string;
           buffer: Buffer;
-        }
+        },
   ) {
     const fileChooserPromise = this.page.waitForEvent('filechooser');
     await this.page.getByText('Upload File').click();

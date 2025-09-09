@@ -106,7 +106,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
                 label: particle.Label,
                 type: particle.DataType,
                 isExternalId: particle.IsIdLookup,
-              })
+              }),
             );
           }
         });
@@ -162,7 +162,7 @@ export function autoMapFields(
   fields: FieldWithRelatedEntities[],
   binaryBodyField: Maybe<string>,
   loadType: InsertUpdateUpsertDelete,
-  externalId?: Maybe<string>
+  externalId?: Maybe<string>,
 ): FieldMapping {
   const output: FieldMapping = {};
   const fieldVariations: Record<string, FieldWithRelatedEntities> = {};
@@ -221,14 +221,14 @@ export function autoMapFields(
           // find if current related object has field by same related name
           const matchedRelatedField = matchedField.relatedFields?.[key].find(
             (relatedEntityField) =>
-              relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase()
+              relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase(),
           );
           if (matchedRelatedField) {
             output = { relatedObject: key, matchedRelatedField };
           }
           return output;
         },
-        { relatedObject: undefined, matchedRelatedField: undefined }
+        { relatedObject: undefined, matchedRelatedField: undefined },
       );
 
       if (matchedRelatedField) {
@@ -285,7 +285,7 @@ export function loadFieldMappingFromSavedMapping(
   savedMapping: LoadSavedMappingItem,
   inputHeader: string[],
   fields: FieldWithRelatedEntities[],
-  binaryBodyField: Maybe<string>
+  binaryBodyField: Maybe<string>,
 ): FieldMapping {
   const fieldMetadataByName = groupByFlat(fields, 'name');
   const newMapping = inputHeader.reduce((output: FieldMapping, field) => {
@@ -336,7 +336,7 @@ export function loadFieldMappingFromSavedMapping(
 export function checkFieldsForMappingError(
   fieldMapping: FieldMapping,
   loadType: InsertUpdateUpsertDelete,
-  externalId?: Maybe<string>
+  externalId?: Maybe<string>,
 ): FieldMapping {
   fieldMapping = checkForDuplicateFieldMappings(fieldMapping);
   fieldMapping = checkForExternalIdFieldMappingsError(fieldMapping, loadType, externalId);
@@ -372,7 +372,7 @@ export function checkForDuplicateFieldMappings(fieldMapping: FieldMapping): Fiel
 export function checkForExternalIdFieldMappingsError(
   fieldMapping: FieldMapping,
   loadType: InsertUpdateUpsertDelete,
-  externalId?: Maybe<string>
+  externalId?: Maybe<string>,
 ): FieldMapping {
   if (loadType !== 'UPSERT' || !externalId || externalId === 'Id') {
     return fieldMapping;
@@ -558,13 +558,13 @@ export async function transformData({ data, fieldMapping, sObject, insertNulls, 
 export async function fetchMappedRelatedRecords(
   data: any,
   { org, sObject, fieldMapping, apiMode }: PrepareDataPayload,
-  onProgress: (progress: number) => void
+  onProgress: (progress: number) => void,
 ): Promise<PrepareDataResponse> {
   const nonExternalIdFieldMappings = Object.values(fieldMapping).filter(
     (item) =>
       item.mappedToLookup &&
       item.relatedFieldMetadata &&
-      (!item.relatedFieldMetadata.isExternalId || item.relationshipName === SELF_LOOKUP_KEY)
+      (!item.relatedFieldMetadata.isExternalId || item.relationshipName === SELF_LOOKUP_KEY),
   );
 
   const queryErrors: string[] = [];
@@ -634,7 +634,7 @@ export async function fetchMappedRelatedRecords(
               addError(
                 i,
                 record,
-                `Related record not found for relationship "${fieldRelationshipName}" with a value of "${record[targetField]}".`
+                `Related record not found for relationship "${fieldRelationshipName}" with a value of "${record[targetField]}".`,
               );
             }
           } else if (relatedRecords.length > 1 && lookupOptionUseFirstMatch !== 'FIRST') {
@@ -643,7 +643,7 @@ export async function fetchMappedRelatedRecords(
               record,
               `Found ${formatNumber(relatedRecords.length)} related records for relationship "${fieldRelationshipName}" with a value of "${
                 record[targetField]
-              }".`
+              }".`,
             );
           } else {
             /** FOUND 1 MATCH, OR OPTION TO USE FIRST MATCH */
@@ -760,7 +760,7 @@ export function convertCsvToCustomMetadata(
   inputFileData: any[],
   fields: FieldWithRelatedEntities[],
   fieldMapping: FieldMapping,
-  dateFormat?: string
+  dateFormat?: string,
 ): MapOfCustomMetadataRecord {
   const metadataByFullName: MapOfCustomMetadataRecord = {};
 
@@ -865,7 +865,7 @@ export function prepareCustomMetadata(apiVersion, metadata: MapOfCustomMetadataR
       `\t</types>`,
       `\t<version>${apiVersion.replace('v', '')}</version>`,
       `</Package>`,
-    ].join('\n')
+    ].join('\n'),
   );
   Object.keys(metadata).forEach((fullName) => {
     zip.file(`customMetadata/${fullName}.md`, metadata[fullName].metadata);
@@ -878,7 +878,7 @@ export function checkForDuplicateRecords(
   inputFileData: any[],
   loadType: InsertUpdateUpsertDelete,
   isCustomMetadata = false,
-  externalId?: string
+  externalId?: string,
 ): {
   duplicateKey: string;
   duplicateRecords: [string, any[]][];

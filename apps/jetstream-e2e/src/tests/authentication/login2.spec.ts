@@ -24,7 +24,7 @@ test.describe('Login 2', () => {
     // Use uppercase email to ensure case insensitivity
     await authenticationPage.fillOutResetPasswordForm(email.toUpperCase());
     await expect(
-      page.getByText('You will receive an email with instructions if an account exists and is eligible for password reset.')
+      page.getByText('You will receive an email with instructions if an account exists and is eligible for password reset.'),
     ).toBeVisible();
 
     // ensure email verification was sent

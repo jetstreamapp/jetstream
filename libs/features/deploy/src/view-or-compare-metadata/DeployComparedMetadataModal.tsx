@@ -24,7 +24,7 @@ export const DeployComparedMetadataModal = ({ sourceOrg, targetOrg, items, onClo
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [mode, setMode] = useState<'SELECTION' | 'DEPLOY_CONFIG' | 'DEPLOY'>('SELECTION');
   const [selectedItems, setSelectedFiles] = useState<Set<string>>(
-    () => new Set(items.flatMap((parent) => parent.items.filter((item) => !item.sourceAndTargetMatch).map((item) => item.filename)))
+    () => new Set(items.flatMap((parent) => parent.items.filter((item) => !item.sourceAndTargetMatch).map((item) => item.filename))),
   );
   const [metadataToDeploy, setMetadataToDeploy] = useState<Record<string, ListMetadataResult[]>>();
   const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
@@ -75,7 +75,7 @@ export const DeployComparedMetadataModal = ({ sourceOrg, targetOrg, items, onClo
             type: item.type,
           });
           return acc;
-        }, {})
+        }, {}),
     );
   }
 

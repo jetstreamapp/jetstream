@@ -20,5 +20,5 @@ createRoot(container).render(
     <CONFIG.Router basename={CONFIG.baseName}>
       <App />
     </CONFIG.Router>
-  </div>
+  </div>,
 );

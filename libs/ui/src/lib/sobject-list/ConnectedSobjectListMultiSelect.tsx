@@ -61,7 +61,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
       onSelectedSObjects,
       onRefresh,
     },
-    ref
+    ref,
   ) => {
     const isMounted = useRef(true);
     const [loading, setLoading] = useState<boolean>(false);
@@ -180,7 +180,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
         />
       </Fragment>
     );
-  }
+  },
 );
 
 export default ConnectedSobjectListMultiSelect;

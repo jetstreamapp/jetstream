@@ -55,7 +55,7 @@ export function initCometD(user: UserProfileSession, cometd: CometD, jetstreamCo
           '[COMETD][LISTENER][ERROR] %s - %s - %o',
           exception?.message,
           message,
-          subscriptionHandle
+          subscriptionHandle,
         );
       };
     } else {

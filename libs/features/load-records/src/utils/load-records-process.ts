@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
 import { generateCsv } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorStack, getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
@@ -48,7 +48,7 @@ export async function prepareData(payloadData: PrepareDataPayload, progressCallb
 export async function loadBulkApiData(
   { org, data, sObject, type, batchSize, externalId, assignmentRuleId, serialMode }: LoadDataPayload,
   statusCallback: (resultsSummary: LoadDataBulkApiStatusPayload) => void,
-  checkIfAborted: () => boolean
+  checkIfAborted: () => boolean,
 ) {
   try {
     const results = await bulkApiCreateJob(org, { type, sObject, serialMode, assignmentRuleId, externalId });
@@ -127,7 +127,7 @@ export async function loadBulkApiData(
 export async function loadBatchApiData(
   payload: LoadDataPayload,
   statusCallback: (records: RecordResultWithRecord[]) => void,
-  checkIfAborted: () => boolean
+  checkIfAborted: () => boolean,
 ) {
   const { org, sObject, type, externalId, assignmentRuleId } = payload;
   try {
@@ -161,7 +161,7 @@ export async function loadBatchApiData(
             .join(',')}&allOrNone=false`;
           /** Account for records with no mapped id - these records cannot be submitted with the batch API */
           recordIndexesWithMissingIds = new Set(
-            batch.records?.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx)) || []
+            batch.records?.map((record, i) => (!record.Id ? i : undefined)).filter((idx) => Number.isFinite(idx)) || [],
           ) as Set<number>;
           records = records?.filter((record) => record.Id) || [];
         }
@@ -223,7 +223,7 @@ export async function loadBatchApiData(
                 },
               ],
               record: originalBatchRecords[i],
-            })
+            }),
           ) || [];
       } finally {
         // replyToMessage('loadDataStatus', { records: responseWithRecord });
@@ -244,8 +244,8 @@ export async function loadBatchApiData(
               },
             ],
             record,
-          })
-        )
+          }),
+        ),
       );
     }
   } catch (ex) {
@@ -297,6 +297,12 @@ async function getBatchApiBatches({
         }
         batchRecordMap.get(i)?.push(_record);
       } catch (ex) {
+        logger.error(`Error processing record with binary data: ${getErrorMessage(ex)}`, {
+          binaryBodyField,
+          filePath: _record[binaryBodyField],
+          record: _record,
+          stackTrace: getErrorStack(ex),
+        });
         failedRecords.push(_record);
       }
 

@@ -25,7 +25,7 @@ export const DebugLogViewerFilter = forwardRef<any, DebugLogViewerFilterProps>(
         />
       </div>
     );
-  }
+  },
 );
 
 export default DebugLogViewerFilter;

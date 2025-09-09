@@ -35,7 +35,7 @@ function getSalesforceAuthClient(loginUrl: string) {
  */
 export function salesforceOauthInit(
   loginUrl: string,
-  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: string } = {}
+  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: string } = {},
 ) {
   // https://login.salesforce.com/.well-known/openid-configuration
 
@@ -75,7 +75,7 @@ export async function salesforceOauthCallback(
     code_verifier: string;
     nonce: string;
     state: string;
-  }
+  },
 ) {
   const authClient = getSalesforceAuthClient(loginUrl);
 
@@ -112,7 +112,7 @@ export async function initConnectionFromOAuthResponse({
 
   try {
     const { queryResults: results } = await jetstreamConn.query.query<SObjectOrganization>(
-      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`
+      `SELECT Id, Name, Country, OrganizationType, InstanceName, IsSandbox, LanguageLocaleKey, NamespacePrefix, TrialExpirationDate FROM Organization`,
     );
     if (results.totalSize > 0) {
       companyInfoRecord = results.records[0];

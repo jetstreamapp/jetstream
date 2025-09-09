@@ -154,8 +154,8 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
                         uploading: false,
                         url: response.url,
                         deleteToken: response.delete_token,
-                      }
-                )
+                      },
+                ),
               );
             } catch (ex) {
               logger.error('[IMAGE UPLOAD] Failed to load image to cloudinary', ex);
@@ -167,8 +167,8 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
                         ...currImage,
                         uploading: false,
                         error: 'Image upload failed',
-                      }
-                )
+                      },
+                ),
               );
             }
           }

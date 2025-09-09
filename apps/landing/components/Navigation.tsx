@@ -97,7 +97,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                     {
                       'text-gray-400 hover:bg-gray-800 bg-gray-900': inverse,
                       'bg-white  text-gray-400 hover:text-gray-500 hover:bg-gray-100': !inverse,
-                    }
+                    },
                   )}
                   onClick={() => setIsOpen(!isOpen)}
                 >

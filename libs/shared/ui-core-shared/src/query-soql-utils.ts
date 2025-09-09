@@ -62,7 +62,7 @@ async function describeSObjectWithLocalCache(
   org: SalesforceOrgUi,
   SObject: string,
   isTooling = false,
-  describeCache: Record<string, DescribeSObjectResult>
+  describeCache: Record<string, DescribeSObjectResult>,
 ): Promise<DescribeSObjectResult> {
   if (describeCache[SObject]) {
     return describeCache[SObject];
@@ -85,7 +85,7 @@ export async function fetchMetadataFromSoql(
   org: SalesforceOrgUi,
   query: Query,
   includeEntireQuery = false,
-  isTooling = false
+  isTooling = false,
 ): Promise<SoqlFetchMetadataOutput> {
   // fetch initial sobject metadata
   const { data: describeResults } = await describeGlobal(org, isTooling);
@@ -117,7 +117,7 @@ export async function fetchMetadataFromSoql(
 
   for (const childRelationship in parsableFields.subqueries) {
     const foundRelationship = rootSobjectDescribe.childRelationships.find(
-      (currChildRelationship) => currChildRelationship.relationshipName === childRelationship
+      (currChildRelationship) => currChildRelationship.relationshipName === childRelationship,
     );
     if (foundRelationship) {
       const rootSobjectChildDescribe = await describeSObjectWithLocalCache(org, foundRelationship.childSObject, isTooling, describeCache);
@@ -129,7 +129,7 @@ export async function fetchMetadataFromSoql(
           rootSobjectChildDescribe,
           parsableFields.subqueries[childRelationship],
           describeCache,
-          childRelationship
+          childRelationship,
         ),
         lowercaseFieldMap: getLowercaseFieldMap(rootSobjectChildDescribe.fields),
       };
@@ -137,7 +137,7 @@ export async function fetchMetadataFromSoql(
       // add entries to lowercaseFieldMap for all related objects
       getLowercaseFieldMapWithFullPath(
         output.childMetadata[childRelationship].metadataTree,
-        output.childMetadata[childRelationship].lowercaseFieldMap
+        output.childMetadata[childRelationship].lowercaseFieldMap,
       );
     }
   }
@@ -185,14 +185,14 @@ function getParsableFields(fields: QueryFieldType[]): ParsableFields {
       } else if (field.type === 'FieldTypeof') {
         const [firstCondition] = field.conditions;
         firstCondition.fieldList.forEach((typeofField) =>
-          output.fields.push(`${firstCondition.objectType}${TYPEOF_SEPARATOR}${field.field}.${typeofField}`)
+          output.fields.push(`${firstCondition.objectType}${TYPEOF_SEPARATOR}${field.field}.${typeofField}`),
         );
       } else if (field.type === 'FieldSubquery') {
         output.subqueries[field.subquery.relationshipName] = getParsableFields(field.subquery.fields || []).fields;
       }
       return output;
     },
-    { fields: [], subqueries: {} }
+    { fields: [], subqueries: {} },
   );
 
   sortedOutput.fields = orderValues(sortedOutput.fields.map((field) => field.toLowerCase()));
@@ -227,7 +227,7 @@ async function fetchAllMetadata(
   describeSobject: DescribeSObjectResult,
   parsableFields: string[],
   describeCache: Record<string, DescribeSObjectResult>,
-  subqueryRelationshipName?: string
+  subqueryRelationshipName?: string,
 ) {
   const fields = findRequiredRelationships(parsableFields);
   const baseKey = subqueryRelationshipName
@@ -275,7 +275,7 @@ async function fetchRecursiveMetadata(
   parentKey: string,
   describeCache: Record<string, DescribeSObjectResult>,
   output: Record<string, SoqlMetadataTree> = {},
-  parentNode: SoqlMetadataTree | null = null
+  parentNode: SoqlMetadataTree | null = null,
 ): Promise<Record<string, SoqlMetadataTree>> {
   // filter items to keep fields without any children relationships to fetch metadata
   const currRelationships = fieldRelationships.filter((field) => field.indexOf('.') === -1);
@@ -292,7 +292,7 @@ async function fetchRecursiveMetadata(
         currRelationship = relationship;
       }
       const field = parentMetadata.fields.find(
-        (field) => field.relationshipName && field.relationshipName.toLowerCase() === currRelationship
+        (field) => field.relationshipName && field.relationshipName.toLowerCase() === currRelationship,
       );
 
       if (field && Array.isArray(field.referenceTo) && field.referenceTo.length) {
@@ -345,7 +345,7 @@ async function fetchRecursiveMetadata(
             currNode.fieldKey,
             describeCache,
             output,
-            currNode
+            currNode,
           );
         }
       }

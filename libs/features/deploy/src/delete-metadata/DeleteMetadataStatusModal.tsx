@@ -34,7 +34,7 @@ export const DeployMetadataPackageStatusModal: FunctionComponent<DeployMetadataP
   const { deployMetadata, results, deployId, loading, status, lastChecked, hasError, errorMessage } = useDeployMetadataPackage(
     destinationOrg,
     deployOptions,
-    file
+    file,
   );
 
   useEffect(() => {

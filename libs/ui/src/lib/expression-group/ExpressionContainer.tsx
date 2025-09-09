@@ -321,7 +321,7 @@ function initGroup(key: number, rowKey: number): ExpressionGroupType {
 function updateResourcesOnRow(
   expressionRow: ExpressionConditionType,
   selected: ExpressionConditionRowSelectedItems,
-  getResourceTypeFns: ExpressionGetResourceTypeFns
+  getResourceTypeFns: ExpressionGetResourceTypeFns,
 ) {
   if (getResourceTypeFns) {
     try {
@@ -537,7 +537,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
         })}
       </Expression>
     );
-  }
+  },
 );
 
 export default ExpressionContainer;

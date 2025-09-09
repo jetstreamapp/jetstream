@@ -41,7 +41,7 @@ export function buildPackageXml(
   types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
   version: string,
   otherFields: Maybe<Record<string, string>> = {},
-  prettyPrint = true
+  prettyPrint = true,
 ) {
   // prettier-ignore
   const packageNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
@@ -58,7 +58,7 @@ export function buildPackageXml(
             fullName,
             metadataType,
             namespace: namespacePrefix,
-          })
+          }),
         );
       });
       typesNode.ele('name').txt(metadataType);
@@ -78,7 +78,7 @@ export function buildPackageXml(
 
 export function getRetrieveRequestFromListMetadata(
   types: Record<string, Pick<ListMetadataResult, 'fullName' | 'namespacePrefix'>[]>,
-  version: string
+  version: string,
 ) {
   mutateFolderMetadataTypes(types);
   // https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieve_request.htm

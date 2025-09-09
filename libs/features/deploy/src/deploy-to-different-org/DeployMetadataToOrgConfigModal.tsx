@@ -47,7 +47,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
       singlePackage: true,
       testLevel: undefined,
       runTests: [],
-    }
+    },
   );
 
   useNonInitialEffect(() => {
@@ -60,7 +60,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
         Object.keys(selectedMetadata).reduce((output: string[], key) => {
           selectedMetadata[key].forEach((item) => output.push(`${key}: ${decodeURIComponent(item.fullName)}`));
           return output;
-        }, [])
+        }, []),
       );
     }
   }, [selectedMetadata]);

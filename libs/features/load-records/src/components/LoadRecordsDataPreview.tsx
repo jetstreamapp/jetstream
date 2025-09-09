@@ -66,11 +66,11 @@ function getColumnDefinitions(
     key: string;
     label: string;
   }[],
-  numRows: number
+  numRows: number,
 ): Column<RowWithKey>[] {
   return getColumnsForGenericTable(
     [{ key: NUM_COLUMN, label: '#', columnProps: { width: 75, filters: [] } }, ...headers],
-    numRows > MAX_COLUMNS_TO_KEEP_SET_FILTER ? ['TEXT'] : undefined
+    numRows > MAX_COLUMNS_TO_KEEP_SET_FILTER ? ['TEXT'] : undefined,
   );
 }
 
@@ -144,7 +144,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
               acc[headersByOldKey[field].key] = row[field];
             }
             return acc;
-          }, {})
+          }, {}),
         );
       }
       _rows = _rows.map((row, i) => ({ ...row, [NUM_COLUMN]: i + 1 }));

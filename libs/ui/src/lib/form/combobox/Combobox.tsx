@@ -179,7 +179,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       onClose,
       onKeyboardNavigation,
     }: ComboboxProps,
-    ref
+    ref,
   ) => {
     // store keys user typed in so that if typing triggered open, we can ensure input is set to this value
     const inputBuffer = useRef('');
@@ -221,7 +221,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
           });
         },
       }),
-      [isOpen, onClose]
+      [isOpen, onClose],
     );
 
     // when closed, set input value in case user modified
@@ -465,7 +465,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   </PopoverContainer>
                 </div>
               </div>
-            </Fragment>
+            </Fragment>,
           )}
         </div>
         {helpText && <div className="slds-form-element__help">{helpText}</div>}
@@ -476,7 +476,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 export default Combobox;

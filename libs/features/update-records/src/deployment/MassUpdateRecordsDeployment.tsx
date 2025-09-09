@@ -53,14 +53,14 @@ export const MassUpdateRecordsDeployment = () => {
   const getRows = useAtomCallback(
     useCallback((get) => {
       return get(fromMassUpdateState.rowsState);
-    }, [])
+    }, []),
   );
 
   const handleDeployResults = useCallback(
     (sobject: string, deployResults: DeployResults, fatalError?: boolean) => {
       setDeploymentState(updateDeploymentResultsState(sobject, deployResults, fatalError));
     },
-    [setDeploymentState]
+    [setDeploymentState],
   );
 
   const { loadDataForRows, pollResultsUntilDone } = useDeployRecords(selectedOrg, handleDeployResults);

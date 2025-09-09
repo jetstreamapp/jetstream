@@ -30,7 +30,7 @@ export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action
         turnstileRef.current?.reset();
       },
     }),
-    [onStateChange]
+    [onStateChange],
   );
 
   // Skip rendering the captcha if we're running in Playwright or if the key is not set

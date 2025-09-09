@@ -54,7 +54,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
         .replace(SPLIT_LINE_COMMA, ',')
         .split(',')
         .map((val) => val.trim())
-        .filter((val) => val)
+        .filter((val) => val),
     );
   }, [runTestsStr]);
 

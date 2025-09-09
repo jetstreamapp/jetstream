@@ -28,7 +28,7 @@ export const QueryGroupByRow: FunctionComponent<QueryOrderByProps> = ({
 }) => {
   const selectedField = useMemo(
     () => (!groupBy.field ? null : fields.find((field) => field.id === groupBy.field)),
-    [groupBy.field, fields]
+    [groupBy.field, fields],
   );
 
   return (

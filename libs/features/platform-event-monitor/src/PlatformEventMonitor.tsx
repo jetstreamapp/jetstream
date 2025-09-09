@@ -128,7 +128,7 @@ export const PlatformEventMonitor = () => {
 
   useEffect(() => {
     setSubscribedPlatformEventsList(
-      platformEventsListSubscriptions.flatMap((item) => item.items).filter((item) => !!messagesByChannel[item.value])
+      platformEventsListSubscriptions.flatMap((item) => item.items).filter((item) => !!messagesByChannel[item.value]),
     );
   }, [messagesByChannel, platformEventsListSubscriptions]);
 

@@ -128,18 +128,14 @@ export const Popover = ({
   /**
    * Allows a parent component to open or close
    */
-  useImperativeHandle(
-    ref,
-    () => {
-      return {
-        toggle: () => setIsOpen((prev) => !prev),
-        open: () => setIsOpen(true),
-        close: () => setIsOpen(false),
-        isOpen: () => isOpen,
-      };
-    },
-    [isOpen]
-  );
+  useImperativeHandle(ref, () => {
+    return {
+      toggle: () => setIsOpen((prev) => !prev),
+      open: () => setIsOpen(true),
+      close: () => setIsOpen(false),
+      isOpen: () => isOpen,
+    };
+  }, [isOpen]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -247,7 +243,7 @@ export const Popover = ({
                   }
                   ${containerClassName?.includes('_error') &&
                   `&::before {
-              background-color: #ba0517;
+              background-color: var(--slds-g-color-error-base-30, #ba0517);
             }`}
                   ${containerClassName?.includes('_warning') &&
                   `&::before {
@@ -270,7 +266,7 @@ export const Popover = ({
                 {
                   'slds-button_icon-inverse': inverseIcons,
                 },
-                closeBtnClassName
+                closeBtnClassName,
               )}
               title="Close dialog"
               onClick={handleClose}

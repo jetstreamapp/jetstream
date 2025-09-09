@@ -71,7 +71,7 @@ export const Grid: FunctionComponent<GridProps> = ({
         pullPaddedSize ? getClassWithModifier('slds-grid_pull-padded-', pullPaddedSize) : undefined,
         align ? getClassWithModifier('slds-grid_align-', align) : undefined,
         verticalAlign ? getClassWithModifier('slds-grid_vertical-align-', verticalAlign) : undefined,
-        className
+        className,
       )}
       {...divProps}
     >
