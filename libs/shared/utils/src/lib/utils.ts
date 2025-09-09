@@ -560,12 +560,15 @@ export function sanitizeForXml(value: string) {
 }
 
 export function unSanitizeXml(value: string) {
-  return String(value)
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, `'`);
+  return (
+    String(value)
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, `'`)
+      // Ensure this is last so it does not interfere with other cases
+      .replace(/&amp;/g, '&')
+  );
 }
 
 /**
