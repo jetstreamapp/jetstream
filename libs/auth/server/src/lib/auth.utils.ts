@@ -1,8 +1,10 @@
 import { logger } from '@jetstream/api-config';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
+import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
+import { createHmac } from 'node:crypto';
 
 export const REMEMBER_DEVICE_DAYS = 30;
 
@@ -111,6 +113,15 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         maxAge: TIME_15_MIN,
       },
     },
+    doubleCSRFToken: {
+      name: `${useSecureCookies ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`,
+      options: {
+        httpOnly: false, // Must be readable by JavaScript for double CSRF
+        sameSite: 'lax',
+        path: '/',
+        secure: useSecureCookies,
+      },
+    },
   } as const;
 }
 
@@ -134,13 +145,10 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   }
 }
 
-export async function createHash(message: string) {
-  const data = new TextEncoder().encode(message);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .toString();
+export function createHMAC(secret: string, message: string): string {
+  const hmac = createHmac('sha256', secret);
+  hmac.update(message);
+  return hmac.digest('hex');
 }
 
 export function randomString(size: number) {
@@ -150,13 +158,13 @@ export function randomString(size: number) {
   return Array.from(bytes).reduce(r, '');
 }
 
-export async function createCSRFToken({ secret }: CreateCSRFTokenParams) {
+export function createCSRFToken({ secret }: CreateCSRFTokenParams) {
   if (!secret) {
     throw new Error('Secret is required to create a CSRF token');
   }
 
   const csrfToken = randomString(32);
-  const csrfTokenHash = await createHash(`${csrfToken}${secret}`);
+  const csrfTokenHash = createHMAC(secret, csrfToken);
   const cookie = `${csrfToken}|${csrfTokenHash}`;
 
   return { cookie, csrfToken };
@@ -165,14 +173,14 @@ export async function createCSRFToken({ secret }: CreateCSRFTokenParams) {
 /**
  * Verify that the provided Csrf token matches the same token stored in the http only cookie
  */
-export async function validateCSRFToken({ secret, cookieValue, bodyValue }: ValidateCSRFTokenParams): Promise<boolean> {
+export function validateCSRFToken({ secret, cookieValue, bodyValue }: ValidateCSRFTokenParams): boolean {
   if (!cookieValue) {
     logger.debug('No CSRF token found in cookie');
     return false;
   }
   const [csrfToken, csrfTokenHash] = cookieValue.split('|');
 
-  const expectedCsrfTokenHash = await createHash(`${csrfToken}${secret}`);
+  const expectedCsrfTokenHash = createHMAC(secret, csrfToken);
 
   if (csrfTokenHash !== expectedCsrfTokenHash) {
     logger.debug('CSRF token hash does not match');
@@ -214,3 +222,69 @@ export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSes
     authFactors: [],
   };
 };
+
+/**
+ * Generate an HMAC-based double CSRF token for session protection
+ * Returns a token that can be used both as cookie and header value
+ */
+export function generateHMACDoubleCSRFToken(secret: string, sessionId: string): string {
+  const randomValue = randomString(16); // 16 bytes = 32 hex chars
+  const timestamp = Date.now().toString();
+  const payload = `${randomValue}:${timestamp}:${sessionId}`;
+
+  // Create HMAC using the session secret and session ID
+  const hmac = createHMAC(secret, payload);
+
+  // Return the payload and HMAC combined
+  return `${payload}:${hmac}`;
+}
+
+/**
+ * Validate HMAC-based double CSRF token
+ * The token from cookie and header must match and be valid
+ */
+export function validateHMACDoubleCSRFToken(secret: string, cookieToken: string | undefined, headerToken: string | undefined, sessionId: string): boolean {
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    return false;
+  }
+
+  try {
+    const parts = cookieToken.split(':');
+    // Expect format: randomValue:timestamp:sessionId:hmac (4 parts)
+    if (parts.length !== 4) {
+      return false;
+    }
+
+    const [randomValue, timestamp, tokenSessionId, providedHmac] = parts;
+    // Verify session ID matches
+    if (tokenSessionId !== sessionId) {
+      return false;
+    }
+    const payload = `${randomValue}:${timestamp}:${tokenSessionId}`;
+
+    // Recreate HMAC using the same secret
+    const expectedHmac = createHMAC(secret, payload);
+
+    // Compare HMACs using constant-time comparison
+    if (expectedHmac.length !== providedHmac.length) {
+      return false;
+    }
+
+    let isEqual = true;
+    for (let i = 0; i < expectedHmac.length; i++) {
+      if (expectedHmac[i] !== providedHmac[i]) {
+        isEqual = false;
+      }
+    }
+
+    if (!isEqual) {
+      return false;
+    }
+
+    // Token is valid if HMAC matches - session expiration handles timeout
+    // No additional age check needed since sessions use rolling expiration
+    return true;
+  } catch (error) {
+    return false;
+  }
+}

@@ -1,12 +1,13 @@
 import { HTTP } from '@jetstream/shared/constants';
 import { HttpMethod } from '@jetstream/types';
-import { APIRequestContext, APIResponse, Page } from '@playwright/test';
+import { APIRequestContext, APIResponse, Cookie, Page } from '@playwright/test';
 
 export class ApiRequestUtils {
   readonly page: Page;
   readonly BASE_URL: string;
   readonly E2E_LOGIN_USERNAME: string;
 
+  csrfCookie: Cookie | undefined;
   request: APIRequestContext;
 
   selectedOrgId: string;
@@ -46,12 +47,14 @@ export class ApiRequestUtils {
   }
 
   async makeRequestRaw(method: HttpMethod, path: string, data?: unknown, headers?: Record<string, string>): Promise<APIResponse> {
+    await this.ensureCsrfCookieIsSet();
     const url = `${this.BASE_URL}${path}`;
     const options = {
       data,
       headers: {
         [HTTP.HEADERS.ACCEPT]: HTTP.CONTENT_TYPE.JSON,
         [HTTP.HEADERS.X_SFDC_ID]: this.selectedOrgId,
+        [HTTP.HEADERS.X_CSRF_TOKEN]: this.csrfCookie?.value,
         ...headers,
       },
     };
@@ -76,5 +79,15 @@ export class ApiRequestUtils {
         throw new Error('Invalid method');
     }
     return response;
+  }
+
+  async ensureCsrfCookieIsSet(): Promise<void> {
+    if (this.csrfCookie) {
+      return;
+    }
+    this.csrfCookie = await this.page
+      .context()
+      .cookies()
+      .then((cookies) => cookies.find((cookie) => cookie.name.endsWith(HTTP.COOKIE.CSRF_SUFFIX)));
   }
 }

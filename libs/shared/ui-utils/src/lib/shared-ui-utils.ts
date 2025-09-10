@@ -92,14 +92,14 @@ export function parseQueryParams<T = any>(queryString: string): T {
   }, {}) as T;
 }
 
-export function parseCookie<T>(cookieName: string): T | null {
+export function parseJsonCookie<T>(cookieName: string): T | null {
   const cookieStrRegex: RegExpExecArray | null = RegExp(`${cookieName}[^;]+`).exec(document.cookie);
   const cookieStr = decodeURIComponent(cookieStrRegex ? cookieStrRegex.toString().replace(/^[^=]+./, '') : '');
   if (cookieStr.startsWith('j:')) {
     try {
       return JSON.parse(cookieStr.slice(2));
     } catch (ex) {
-      this.log.warn('Could not parse cookie');
+      logger.warn('Could not parse cookie');
       return null;
     }
   }

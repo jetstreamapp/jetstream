@@ -60,6 +60,21 @@ export const AxiosAdapterConfig: { adapter?: (config: InternalAxiosRequestConfig
   adapter: undefined,
 };
 
+/**
+ * Helper function to read a cookie value by name
+ */
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null;
+  }
+  return null;
+}
+
 function getHeader(headers: RawAxiosResponseHeaders | AxiosResponseHeaders, header: string) {
   if (!headers || !header) {
     return null;
@@ -130,6 +145,21 @@ function requestInterceptor<T>(options: RequestOptions) {
 
     if (!config.headers[HTTP.HEADERS.ACCEPT]) {
       config.headers[HTTP.HEADERS.ACCEPT] = HTTP.CONTENT_TYPE.JSON;
+    }
+
+    // Client-side double submit CSRF protection: read cookie and send as header
+    // The server validates that the cookie and header values match (double submit pattern)
+    if (typeof document !== 'undefined' && config.url) {
+      try {
+        const cookieName = `${document.location.protocol === 'https:' ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`;
+        const cookieToken = getCookie(cookieName);
+
+        if (cookieToken) {
+          config.headers[HTTP.HEADERS.X_CSRF_TOKEN] = cookieToken;
+        }
+      } catch (error) {
+        logger.warn('[CSRF] Failed to read CSRF token cookie', error);
+      }
     }
 
     if (org) {

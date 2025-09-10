@@ -15,11 +15,12 @@ import { routeDefinition as queryController } from '../controllers/sf-query.cont
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
-import { addOrgsToLocal, checkAuth, ensureTargetOrgExists, verifyEntitlement } from './route.middleware';
+import { addOrgsToLocal, checkAuth, ensureTargetOrgExists, validateDoubleCSRF, verifyEntitlement } from './route.middleware';
 
 const routes: express.Router = Router();
 
 routes.use(checkAuth);
+routes.use(validateDoubleCSRF);
 routes.use(addOrgsToLocal);
 
 // used to make sure the user is authenticated and can communicate with the server

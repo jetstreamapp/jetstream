@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__nx-mcp__nx_workspace"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
