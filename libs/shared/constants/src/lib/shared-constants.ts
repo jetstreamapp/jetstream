@@ -31,10 +31,12 @@ export const INPUT_ACCEPT_FILETYPES: {
 export const HTTP = {
   COOKIE: {
     JETSTREAM: 'jetstream',
+    CSRF_SUFFIX: 'jetstream-csrf' as const,
   },
   HEADERS: {
     ACCEPT: 'Accept',
     AUTHORIZATION: 'Authorization',
+    X_CSRF_TOKEN: 'X-Csrf-Token',
     X_CLIENT_REQUEST_ID: 'X-Client-Request-Id',
     X_SOURCE: 'X-Source',
     X_REQUEST_ID: 'X-Request-Id',

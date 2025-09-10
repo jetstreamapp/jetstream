@@ -6,12 +6,15 @@ import {
   MissingEntitlement,
   checkUserAgentSimilarity,
   getApiAddressFromReq,
+  getCookieConfig,
+  validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { ApplicationCookie } from '@jetstream/types';
+import { parse as parseCookie } from 'cookie';
 import { getUnixTime } from 'date-fns';
 import * as express from 'express';
 import pino from 'pino';
@@ -376,4 +379,77 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
     .catch(() => {
       next(new InvalidCaptcha());
     });
+}
+
+/**
+ * HMAC Double CSRF Token validation middleware with logging-only mode
+ * This validates the HMAC double CSRF token but only logs violations without blocking requests
+ * Once all client applications are updated, change logOnly to false to start blocking
+ */
+export function validateDoubleCSRF(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const skipMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+  if (skipMethods.has(req.method)) {
+    return next();
+  }
+
+  // Skip if user is not logged in (no session)
+  if (!req.session?.user) {
+    // Log for monitoring
+    (res.log || logger).warn(
+      {
+        path: req.path,
+        method: req.method,
+        hasUser: !!req.session?.user,
+      },
+      '[CSRF][SKIP] No user session',
+    );
+    return next();
+  }
+
+  const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+  const cookies = parseCookie(req.headers.cookie || '');
+  let cookieToken = cookies?.[cookieConfig.doubleCSRFToken.name];
+  const headerToken = decodeURIComponent(req.get(HTTP.HEADERS.X_CSRF_TOKEN) || '');
+
+  try {
+    const isValid = validateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, cookieToken, headerToken, req.session.id);
+
+    if (!isValid) {
+      // Log the CSRF violation
+      (res.log || logger).warn(
+        {
+          hasCookieToken: !!cookieToken,
+          hasHeaderToken: !!headerToken,
+          cookieTokenLength: cookieToken?.length,
+          headerTokenLength: headerToken?.length,
+          tokensMatch: cookieToken === headerToken,
+        },
+        '[CSRF][VIOLATION] HMAC Double CSRF token validation failed',
+      );
+
+      return res.status(403).json({
+        error: true,
+        message: 'Invalid CSRF token',
+      });
+    }
+  } catch (error) {
+    // Log validation errors
+    (res.log || logger).error(
+      {
+        ...getErrorMessageAndStackObj(error),
+        path: req.path,
+        method: req.method,
+        userId: req.session?.user?.id,
+      },
+      '[CSRF][ERROR] Error validating HMAC double CSRF token',
+    );
+
+    return res.status(403).json({
+      error: true,
+      message: 'Invalid CSRF token',
+    });
+  }
+
+  next();
 }

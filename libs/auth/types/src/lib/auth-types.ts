@@ -269,8 +269,9 @@ type RememberDeviceCookie = 'rememberDevice';
 type ReturnUrlCookie = 'returnUrl';
 type StateCookie = 'state';
 type WebauthnChallengeCookie = 'webauthnChallenge';
+type DoubleCSRFTokenCookie = 'doubleCSRFToken';
 
-type AuthCookieConfigKey =
+type CookieConfigKey =
   | CallbackUrlCookie
   | CsrfTokenCookie
   | LinkIdentityCookie
@@ -280,11 +281,15 @@ type AuthCookieConfigKey =
   | RememberDeviceCookie
   | ReturnUrlCookie
   | StateCookie
-  | WebauthnChallengeCookie;
+  | WebauthnChallengeCookie
+  | DoubleCSRFTokenCookie;
 
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
 
-export type CookieConfig = Record<AuthCookieConfigKey, { name: `${cookieNamePrefix}jetstream-auth.${string}`; options: CookieOptions }>;
+export type CookieConfig = Record<
+  CookieConfigKey,
+  { name: `${cookieNamePrefix}jetstream-auth.${string}` | `${cookieNamePrefix}jetstream-csrf`; options: CookieOptions }
+>;
 
 export type ResponseLocalsCookies = Record<
   string,

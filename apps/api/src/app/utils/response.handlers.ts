@@ -27,8 +27,8 @@ export async function healthCheck(req: express.Request, res: express.Response) {
   }
 }
 
-export async function setCsrfCookie(res: Response) {
-  const { csrfToken, cookie: csrfCookie } = await createCSRFToken({ secret: ENV.JETSTREAM_AUTH_SECRET });
+export function setCsrfCookie(res: Response) {
+  const { csrfToken, cookie: csrfCookie } = createCSRFToken({ secret: ENV.JETSTREAM_AUTH_SECRET });
   const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
   res.locals.cookies = res.locals.cookies || {};
   res.locals.cookies[cookieConfig.csrfToken.name] = {

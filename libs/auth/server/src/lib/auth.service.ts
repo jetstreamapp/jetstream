@@ -9,7 +9,7 @@ import { OauthClientProvider, OauthClients } from './OauthClients';
 import { EMAIL_VERIFICATION_TOKEN_DURATION_HOURS, TOKEN_DURATION_MINUTES } from './auth.constants';
 import { findUserById_UNSAFE, getLoginConfiguration, handleSignInOrRegistration } from './auth.db.service';
 import { AuthError, InvalidCsrfToken, InvalidVerificationToken, InvalidVerificationType } from './auth.errors';
-import { getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
+import { generateHMACDoubleCSRFToken, getApiAddressFromReq, getCookieConfig, validateCSRFToken } from './auth.utils';
 
 const oauthPromise = import('oauth4webapi');
 const osloEncodingPromise = import('@oslojs/encoding');
@@ -180,7 +180,7 @@ export async function verifyCSRFFromRequestOrThrow(csrfToken: string, cookieStri
     const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
     const cookies = parseCookie(cookieString);
     const cookieValue = cookies[cookieConfig.csrfToken.name];
-    const validCSRFToken = await validateCSRFToken({
+    const validCSRFToken = validateCSRFToken({
       secret: ENV.JETSTREAM_AUTH_SECRET,
       bodyValue: csrfToken,
       cookieValue,
@@ -334,50 +334,63 @@ export function initSession(
   return new Promise((resolve, reject) => {
     // Regenerate session to avoid session fixation attacks
     req.session.regenerate((error) => {
-      if (error) {
-        logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
+      try {
+        if (error) {
+          logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
+          reject(new AuthError('Error initializing session'));
+          return;
+        }
+
+        // Generate HMAC double CSRF token for this session
+        const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+
+        const userAgent = req.get('User-Agent');
+        if (userAgent) {
+          req.session.userAgent = userAgent;
+        }
+        req.session.ipAddress = getApiAddressFromReq(req);
+        req.session.loginTime = new Date().getTime();
+        req.session.provider = provider;
+        req.session.user = user;
+        req.session.pendingMfaEnrollment = undefined;
+        req.session.pendingVerification = undefined;
+
+        // Generate and set HMAC CSRF token (same token used for both cookie and header validation)
+        const csrfToken = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, req.session.id);
+        req.res?.cookie(cookieConfig.doubleCSRFToken.name, csrfToken, cookieConfig.doubleCSRFToken.options);
+
+        if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
+          req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
+        }
+
+        if (verificationRequired) {
+          const token = generateRandomCode(6);
+          if (isNewUser) {
+            req.session.sendNewUserEmailAfterVerify = true;
+          }
+          if (verificationRequired.email) {
+            const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
+            // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
+            req.session.pendingVerification = [{ type: 'email', exp, token }];
+          } else if (verificationRequired.twoFactor?.length > 0) {
+            const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
+            req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
+              switch (factor.type) {
+                case '2fa-otp':
+                  return { type: '2fa-otp', exp };
+                case '2fa-email':
+                  return { type: '2fa-email', exp, token };
+                default:
+                  throw new InvalidVerificationType('Invalid two factor type');
+              }
+            });
+          }
+        }
+        resolve();
+      } catch (ex) {
+        logger.error({ ...getExceptionLog(ex) }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');
         reject(new AuthError('Error initializing session'));
-        return;
       }
-      const userAgent = req.get('User-Agent');
-      if (userAgent) {
-        req.session.userAgent = userAgent;
-      }
-      req.session.ipAddress = getApiAddressFromReq(req);
-      req.session.loginTime = new Date().getTime();
-      req.session.provider = provider;
-      req.session.user = user;
-      req.session.pendingMfaEnrollment = undefined;
-      req.session.pendingVerification = undefined;
-
-      if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
-        req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
-      }
-
-      if (verificationRequired) {
-        const token = generateRandomCode(6);
-        if (isNewUser) {
-          req.session.sendNewUserEmailAfterVerify = true;
-        }
-        if (verificationRequired.email) {
-          const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
-          // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
-          req.session.pendingVerification = [{ type: 'email', exp, token }];
-        } else if (verificationRequired.twoFactor?.length > 0) {
-          const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
-          req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
-            switch (factor.type) {
-              case '2fa-otp':
-                return { type: '2fa-otp', exp };
-              case '2fa-email':
-                return { type: '2fa-email', exp, token };
-              default:
-                throw new InvalidVerificationType('Invalid two factor type');
-            }
-          });
-        }
-      }
-      resolve();
     });
   });
 }

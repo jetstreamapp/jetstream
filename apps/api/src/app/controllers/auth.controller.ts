@@ -211,7 +211,7 @@ const getProviders = createRoute(routeDefinition.getProviders.validators, async 
 
 const getCsrfToken = createRoute(routeDefinition.getCsrfToken.validators, async (_, req, res, next) => {
   try {
-    const csrfToken = await setCsrfCookie(res);
+    const csrfToken = setCsrfCookie(res);
     sendJson(res, { csrfToken });
   } catch (ex) {
     next(ensureAuthError(ex));
@@ -475,7 +475,7 @@ const callback = createRoute(
           await sendVerificationCode(req.session.user.email, initialVerification.token, TOKEN_DURATION_MINUTES);
         }
 
-        await setCsrfCookie(res);
+        setCsrfCookie(res);
 
         if (provider.type === 'oauth') {
           redirect(res, `/auth/verify`);
