@@ -147,8 +147,8 @@ function requestInterceptor<T>(options: RequestOptions) {
       config.headers[HTTP.HEADERS.ACCEPT] = HTTP.CONTENT_TYPE.JSON;
     }
 
-    // Add HMAC double CSRF token header for authenticated requests
-    // Simply read the cookie value and send it as the header (HMAC double submit pattern)
+    // Client-side double submit CSRF protection: read cookie and send as header
+    // The server validates that the cookie and header values match (double submit pattern)
     if (typeof document !== 'undefined' && config.url) {
       try {
         const cookieName = `${document.location.protocol === 'https:' ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`;
