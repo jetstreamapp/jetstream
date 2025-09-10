@@ -227,12 +227,12 @@ export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSes
  * Generate an HMAC-based double CSRF token for session protection
  * Returns a token that can be used both as cookie and header value
  */
-export function generateHMACDoubleCSRFToken(secret: string): string {
+export function generateHMACDoubleCSRFToken(secret: string, sessionId: string): string {
   const randomValue = randomString(16); // 16 bytes = 32 hex chars
   const timestamp = Date.now().toString();
-  const payload = `${randomValue}:${timestamp}`;
+  const payload = `${randomValue}:${timestamp}:${sessionId}`;
 
-  // Create HMAC using the session secret
+  // Create HMAC using the session secret and session ID
   const hmac = createHMAC(secret, payload);
 
   // Return the payload and HMAC combined
@@ -243,19 +243,24 @@ export function generateHMACDoubleCSRFToken(secret: string): string {
  * Validate HMAC-based double CSRF token
  * The token from cookie and header must match and be valid
  */
-export function validateHMACDoubleCSRFToken(secret: string, cookieToken: string | undefined, headerToken: string | undefined): boolean {
+export function validateHMACDoubleCSRFToken(secret: string, cookieToken: string | undefined, headerToken: string | undefined, sessionId: string): boolean {
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     return false;
   }
 
   try {
     const parts = cookieToken.split(':');
-    if (parts.length !== 3) {
+    // Expect format: randomValue:timestamp:sessionId:hmac (4 parts)
+    if (parts.length !== 4) {
       return false;
     }
 
-    const [randomValue, timestamp, providedHmac] = parts;
-    const payload = `${randomValue}:${timestamp}`;
+    const [randomValue, timestamp, tokenSessionId, providedHmac] = parts;
+    // Verify session ID matches
+    if (tokenSessionId !== sessionId) {
+      return false;
+    }
+    const payload = `${randomValue}:${timestamp}:${tokenSessionId}`;
 
     // Recreate HMAC using the same secret
     const expectedHmac = createHMAC(secret, payload);

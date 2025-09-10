@@ -197,7 +197,7 @@ function initSession(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     // Regenerate session to avoid session fixation attacks
-    req.session.regenerate(async (error) => {
+    req.session.regenerate((error) => {
       try {
         if (error) {
           logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
@@ -220,7 +220,7 @@ function initSession(
         req.session.pendingVerification = null;
 
         // Generate and set HMAC CSRF token (same token used for both cookie and header validation)
-        const csrfToken = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET);
+        const csrfToken = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, req.session.id);
         req.res?.cookie(cookieConfig.doubleCSRFToken.name, csrfToken, cookieConfig.doubleCSRFToken.options);
 
         if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {

@@ -5,6 +5,7 @@ import {
   InvalidCaptcha,
   MissingEntitlement,
   checkUserAgentSimilarity,
+  generateHMACDoubleCSRFToken,
   getCookieConfig,
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
@@ -389,7 +390,7 @@ export function verifyCaptcha(req: express.Request, res: express.Response, next:
  * This validates the HMAC double CSRF token but only logs violations without blocking requests
  * Once all client applications are updated, change logOnly to false to start blocking
  */
-export async function validateDoubleCSRF(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function validateDoubleCSRF(req: express.Request, res: express.Response, next: express.NextFunction) {
   const skipMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 
   if (skipMethods.has(req.method)) {
@@ -412,14 +413,25 @@ export async function validateDoubleCSRF(req: express.Request, res: express.Resp
 
   const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
   const cookies = parseCookie(req.headers.cookie || '');
-  const cookieToken = cookies?.[cookieConfig.doubleCSRFToken.name];
+  let cookieToken = cookies?.[cookieConfig.doubleCSRFToken.name];
   const headerToken = decodeURIComponent(req.get(HTTP.HEADERS.X_CSRF_TOKEN) || '');
 
-  // TODO: Change logOnly to false once all client applications are updated and all users have this header set
-  const logOnly = true;
+  // Migration support: Generate CSRF token for authenticated users who don't have one
+  // This handles existing sessions from before CSRF implementation
+  if (!cookieToken && req.session?.id) {
+    cookieToken = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, req.session.id);
+    res.cookie(cookieConfig.doubleCSRFToken.name, cookieToken, cookieConfig.doubleCSRFToken.options);
+    
+    (res.log || logger).info(
+      {
+        sessionAge: req.session.loginTime ? Date.now() - req.session.loginTime : 'unknown',
+      },
+      '[CSRF][MIGRATION] Generated CSRF token for existing session',
+    );
+  }
 
   try {
-    const isValid = validateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, cookieToken, headerToken);
+    const isValid = validateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, cookieToken, headerToken, req.session.id);
 
     if (!isValid) {
       // Log the CSRF violation
@@ -434,12 +446,10 @@ export async function validateDoubleCSRF(req: express.Request, res: express.Resp
         '[CSRF][VIOLATION] HMAC Double CSRF token validation failed',
       );
 
-      if (!logOnly) {
-        return res.status(403).json({
-          error: true,
-          message: 'Invalid CSRF token',
-        });
-      }
+      return res.status(403).json({
+        error: true,
+        message: 'Invalid CSRF token',
+      });
     }
   } catch (error) {
     // Log validation errors
@@ -453,12 +463,10 @@ export async function validateDoubleCSRF(req: express.Request, res: express.Resp
       '[CSRF][ERROR] Error validating HMAC double CSRF token',
     );
 
-    if (!logOnly) {
-      return res.status(403).json({
-        error: true,
-        message: 'Invalid CSRF token',
-      });
-    }
+    return res.status(403).json({
+      error: true,
+      message: 'Invalid CSRF token',
+    });
   }
 
   next();
