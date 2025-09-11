@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { getErrorMessage } from '@jetstream/shared/utils';
-import { TeamLoginConfigRequest } from '@jetstream/types';
+import { LoginConfigurationIdentityDisplayNames, TeamLoginConfigRequest } from '@jetstream/types';
 import { Card, Checkbox, fireToast, Grid, GridCol, Icon, Input, Spinner } from '@jetstream/ui';
 import { abilityState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -237,7 +237,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
                 id="allowedProviders-credentials"
                 checked={formData.data.allowedProviders.has('credentials')}
                 disabled={isReadOnly}
-                label="Username + Password"
+                label={LoginConfigurationIdentityDisplayNames.credentials}
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedProviders.credentials })}
                 onChange={(value) =>
                   setFormData((prev) => {
@@ -250,7 +250,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
               <Checkbox
                 id="allowedProviders-google"
                 checked={formData.data.allowedProviders.has('google')}
-                label="Google"
+                label={LoginConfigurationIdentityDisplayNames.google}
                 disabled={isReadOnly}
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedProviders.google })}
                 onChange={(value) =>
@@ -265,7 +265,7 @@ export function TeamLoginConfiguration({ loginConfiguration, onUpdate }: TeamLog
                 id="allowedProviders-salesforce"
                 checked={formData.data.allowedProviders.has('salesforce')}
                 disabled={isReadOnly}
-                label="Salesforce"
+                label={LoginConfigurationIdentityDisplayNames.salesforce}
                 labelClassName={classNames({ 'active-item-yellow-bg': dirty.allowedProviders.salesforce })}
                 onChange={(value) =>
                   setFormData((prev) => {

@@ -119,8 +119,8 @@ model TeamMemberInvitation {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  team          Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdByUser User @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@unique([teamId, email], name: "uniqueTeamEmail", map: "unique_team_email")
   @@map("team_member_invitation")

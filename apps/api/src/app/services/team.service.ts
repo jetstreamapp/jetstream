@@ -1,14 +1,17 @@
 import { logger } from '@jetstream/api-config';
 import * as authDbService from '@jetstream/auth/server';
-import { UserProfileSession } from '@jetstream/auth/types';
+import { OauthProviderType, UserProfileSession } from '@jetstream/auth/types';
 import { sendTeamInviteEmail } from '@jetstream/email';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
+  LoginConfigurationIdentityDisplayNames,
+  LoginConfigurationMdaDisplayNames,
   TEAM_MEMBER_STATUS_ACTIVE,
   TEAM_MEMBER_STATUS_INACTIVE,
   TeamInvitationRequest,
   TeamInvitationUpdateRequest,
   TeamInviteUserFacing,
+  TeamInviteVerificationResponse,
   TeamLoginConfigSchema,
   TeamMemberRoleSchema,
   TeamMemberStatusSchema,
@@ -18,6 +21,7 @@ import {
 } from '@jetstream/types';
 import capitalize from 'lodash/capitalize';
 import * as teamDbService from '../db/team.db';
+import { UserFacingError } from '../utils/error-handler';
 import * as stripeService from './stripe.service';
 
 export async function createTeam({
@@ -145,7 +149,108 @@ export async function resendInvitation({
   return invitations;
 }
 
-export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }) {
+export async function verifyTeamInvitation({
+  user: userProfileSession,
+  currentSessionProvider,
+  teamId,
+  token,
+}: {
+  user: UserProfileSession;
+  currentSessionProvider: OauthProviderType | 'credentials';
+  teamId: string;
+  token: string;
+}) {
+  const invitation = await teamDbService.verifyTeamInvitation({ teamId, token, user: userProfileSession });
+  const { user, team } = invitation;
+  const { loginConfig } = team;
+
+  const authFactors = new Set(user.authFactors.map((factor) => factor.type.replace('2fa-', '') as 'otp' | 'email'));
+  const providers = new Set(user.identities.map((identity) => identity.provider as OauthProviderType | 'credentials'));
+
+  if (user.hasPasswordSet) {
+    providers.add('credentials');
+  }
+
+  const allowedProviders = new Set(loginConfig.allowedProviders);
+
+  const teamInviteVerification: TeamInviteVerificationResponse = {
+    teamName: team.name,
+    canEnroll: true,
+    session: {
+      expireOnAcceptance: false,
+      action: 'CURRENT_PROVIDER_INVALID',
+      message: null as string | null,
+    },
+    mfa: {
+      isValid: true,
+      action: 'NONE',
+      message: null as string | null,
+      allowedMethods: loginConfig.allowedMfaMethods || [],
+    },
+    identityProvider: {
+      isValid: true,
+      action: 'NONE',
+      message: null as string | null,
+      allowedProviders: loginConfig.allowedProviders || [],
+    },
+    linkedIdentities: {
+      isValid: true,
+      action: 'NONE',
+      message: null as string | null,
+    },
+  };
+
+  if (loginConfig.requireMfa && authFactors.size === 0) {
+    teamInviteVerification.canEnroll = false;
+    teamInviteVerification.mfa.isValid = false;
+    teamInviteVerification.mfa.action = 'ENROLL';
+    teamInviteVerification.mfa.message = `Before accepting this invitation, you must setup a valid MFA method. This team allows the following MFA methods: ${loginConfig.allowedMfaMethods.map((method) => LoginConfigurationMdaDisplayNames[method]).join(', ')}.`;
+  } else if (loginConfig.requireMfa && loginConfig.allowedMfaMethods.every((method) => !authFactors.has(method))) {
+    teamInviteVerification.canEnroll = false;
+    teamInviteVerification.mfa.isValid = true;
+    teamInviteVerification.mfa.action = 'ENROLL';
+    teamInviteVerification.mfa.message = `Before accepting this invitation, you must setup a valid MFA method. This team allows the following MFA methods: ${loginConfig.allowedMfaMethods.map((method) => LoginConfigurationMdaDisplayNames[method]).join(', ')}.`;
+  }
+
+  if (loginConfig.allowedProviders.every((provider) => !providers.has(provider))) {
+    teamInviteVerification.canEnroll = false;
+    teamInviteVerification.identityProvider.isValid = false;
+    teamInviteVerification.identityProvider.action = 'LINK';
+    teamInviteVerification.mfa.message = `You don't have a valid login method configured, one of the following is required to join this team: ${loginConfig.allowedProviders.map((provider) => LoginConfigurationIdentityDisplayNames[provider]).join(', ')}.`;
+  } else if (!loginConfig.allowedProviders.includes(currentSessionProvider)) {
+    teamInviteVerification.canEnroll = false;
+    teamInviteVerification.session.expireOnAcceptance = true;
+    teamInviteVerification.session.action = 'CURRENT_PROVIDER_INVALID';
+    teamInviteVerification.session.message = `You must be signed in with a different login method to join this team. This team requires one of the following login methods: ${loginConfig.allowedProviders
+      .map((provider) => LoginConfigurationIdentityDisplayNames[provider])
+      .join(', ')}.`;
+  }
+
+  if (Array.from(providers).some((provider) => !allowedProviders.has(provider))) {
+    teamInviteVerification.linkedIdentities.isValid = false;
+    teamInviteVerification.session.message = `You have linked identities that are not allowed on this team. You do not need to take any action, but after joining, you will no longer be able to login using: ${loginConfig.allowedProviders
+      .map((provider) => LoginConfigurationIdentityDisplayNames[provider])
+      .join(', ')}.`;
+  }
+
+  return teamInviteVerification;
+}
+
+export async function acceptTeamInvitation({
+  user,
+  currentSessionProvider,
+  teamId,
+  token,
+}: {
+  user: UserProfileSession;
+  currentSessionProvider: OauthProviderType | 'credentials';
+  teamId: string;
+  token: string;
+}) {
+  const { canEnroll } = await verifyTeamInvitation({ user, currentSessionProvider, teamId, token });
+  if (!canEnroll) {
+    throw new UserFacingError('Please review the enrollment requirements and try again.');
+  }
   const { isBillableAction } = await teamDbService.acceptTeamInvitation({ teamId, token, user });
 
   // side-effect is not awaited, it will never throw

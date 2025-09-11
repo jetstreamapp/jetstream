@@ -116,6 +116,17 @@ export const TeamLoginConfigSchema = z.object({
 });
 export const TeamLoginConfigRequestSchema = TeamLoginConfigSchema;
 
+export const LoginConfigurationMdaDisplayNames: Record<TeamLoginConfigRequest['allowedMfaMethods'][number], string> = {
+  otp: 'Authenticator App',
+  email: 'Email',
+};
+
+export const LoginConfigurationIdentityDisplayNames: Record<TeamLoginConfigRequest['allowedProviders'][number], string> = {
+  credentials: 'Username + Password',
+  google: 'Google',
+  salesforce: 'Salesforce',
+};
+
 export const TeamSubscriptionSchema = z.object({
   id: z.string(),
   teamId: z.string(),
@@ -179,6 +190,33 @@ export const TeamMemberUpdateRequestSchema = z.object({
 });
 export type TeamMemberUpdateRequest = z.infer<typeof TeamMemberUpdateRequestSchema>;
 
+export interface TeamInviteVerificationResponse {
+  teamName: string;
+  canEnroll: boolean;
+  session: {
+    expireOnAcceptance: boolean;
+    action: string;
+    message: string | null;
+  };
+  mfa: {
+    isValid: boolean;
+    action: string;
+    message: string | null;
+    allowedMethods: TeamLoginConfig['allowedMfaMethods'];
+  };
+  identityProvider: {
+    isValid: boolean;
+    action: string;
+    message: string | null;
+    allowedProviders: TeamLoginConfig['allowedProviders'];
+  };
+  linkedIdentities: {
+    isValid: boolean;
+    action: string;
+    message: string | null;
+  };
+}
+
 export type Feature = z.infer<typeof FeatureSchema>;
 export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
 export type TeamStatus = z.infer<typeof TeamStatusSchema>;
@@ -195,4 +233,4 @@ export type TeamUserFacing = z.infer<typeof TeamUserFacingSchema>;
 export type TeamSubscription = z.infer<typeof TeamSubscriptionSchema>;
 export type TeamInviteUserFacing = z.infer<typeof TeamInviteUserFacingSchema>;
 
-export type VerifyInvitationResponse = { success: true; teamName: string } | { success: false };
+export type VerifyInvitationResponse = { success: true; inviteVerification: TeamInviteVerificationResponse } | { success: false };

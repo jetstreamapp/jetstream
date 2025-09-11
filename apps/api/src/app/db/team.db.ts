@@ -15,6 +15,7 @@ import {
   TeamInviteUserFacingSchema,
   TeamLoginConfig,
   TeamLoginConfigRequest,
+  TeamLoginConfigSchema,
   TeamMember,
   TeamMemberRole,
   TeamMemberSchema,
@@ -695,9 +696,55 @@ export async function updateTeamInvitation({ id, teamId, request }: { id: string
   });
 }
 
-export async function verifyTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }) {
+export async function verifyTeamInvitation({
+  user: userProfileSession,
+  teamId,
+  token,
+}: {
+  user: UserProfileSession;
+  teamId: string;
+  token: string;
+}) {
+  const user = await prisma.user.findUniqueOrThrow({
+    select: {
+      id: true,
+      email: true,
+      hasPasswordSet: true,
+      authFactors: {
+        select: {
+          enabled: true,
+          type: true,
+        },
+        where: { enabled: true, type: { not: 'email' } },
+      },
+      identities: {
+        select: {
+          provider: true,
+        },
+      },
+    },
+    where: { id: userProfileSession.id },
+  });
   const existingInvitation = await prisma.teamMemberInvitation.findFirst({
-    select: INVITE_SELECT,
+    select: {
+      ...INVITE_SELECT,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          loginConfig: {
+            select: {
+              allowedMfaMethods: true,
+              allowedProviders: true,
+              allowIdentityLinking: true,
+              autoAddToTeam: true,
+              domains: true,
+              requireMfa: true,
+            },
+          },
+        },
+      },
+    },
     where: { teamId, email: user.email, token, expiresAt: { gte: new Date() } },
   });
 
@@ -705,7 +752,14 @@ export async function verifyTeamInvitation({ user, teamId, token }: { user: User
     throw new NotFoundError(`Invitation Not Found.`);
   }
 
-  return existingInvitation;
+  return {
+    ...existingInvitation,
+    user,
+    team: {
+      ...existingInvitation.team,
+      loginConfig: TeamLoginConfigSchema.parse(existingInvitation.team.loginConfig || {}),
+    },
+  };
 }
 
 export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }): Promise<{

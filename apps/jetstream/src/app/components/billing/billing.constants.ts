@@ -43,3 +43,43 @@ export const enterpriseFeatures = [
   'Advanced security controls',
   'White-glove onboarding',
 ];
+
+export const PLAN_DESCRIPTIONS = {
+  [PRO_MONTHLY_KEY]: {
+    key: 'PRO_MONTHLY',
+    price: '$25',
+    priceSubtext: '/month',
+    description: 'Perfect for individual users',
+    features: professionalFeatures,
+  },
+  [PRO_ANNUAL_KEY]: {
+    key: 'PRO_ANNUAL',
+    price: '$250',
+    priceSubtext: '/year',
+    description: 'Save 2 months with annual billing',
+    features: professionalFeatures,
+  },
+  [TEAM_MONTHLY_KEY]: {
+    key: 'TEAM_MONTHLY',
+    price: '$125',
+    priceSubtext: '/month (includes 5 users)',
+    description: '$25/user/month with 5-user minimum',
+    features: teamFeatures,
+    comingSoonFeatures: teamFeaturesComingSoon,
+  },
+  [TEAM_ANNUAL_KEY]: {
+    key: 'TEAM_ANNUAL',
+    price: '$1,100',
+    priceSubtext: '/year (includes 5 users)',
+    description: '$220/user/year with 5-user minimum',
+    features: teamFeatures,
+    comingSoonFeatures: teamFeaturesComingSoon,
+  },
+  CUSTOM: {
+    key: 'CUSTOM',
+    price: 'Custom',
+    priceSubtext: 'Contact us',
+    description: 'Advanced features for large teams',
+    features: enterpriseFeatures,
+  },
+} as const;

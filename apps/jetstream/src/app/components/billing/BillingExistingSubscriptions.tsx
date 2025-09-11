@@ -5,14 +5,11 @@ import { useState } from 'react';
 import { EnhancedBillingCard } from './EnhancedBillingCard';
 import {
   ACTIVE_SUBSCRIPTION_STATUSES,
-  enterpriseFeatures,
+  PLAN_DESCRIPTIONS,
   PRO_ANNUAL_KEY,
   PRO_MONTHLY_KEY,
-  professionalFeatures,
   TEAM_ANNUAL_KEY,
   TEAM_MONTHLY_KEY,
-  teamFeatures,
-  teamFeaturesComingSoon,
 } from './billing.constants';
 
 interface BillingExistingSubscriptionsProps {
@@ -60,56 +57,56 @@ export const BillingExistingSubscriptions = ({
       >
         <EnhancedBillingCard
           planName="Professional"
-          price="$25"
-          priceSubtext="/month"
-          description="Perfect for individual users"
-          features={professionalFeatures}
+          price={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].price}
+          priceSubtext={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].priceSubtext}
+          description={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].description}
+          features={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].features}
           checked={!hasManualBilling && selectedPlan === PRO_MONTHLY_KEY}
           disabled={hasManualBilling || selectedPlan !== PRO_MONTHLY_KEY}
-          value={PRO_MONTHLY_KEY}
+          value={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].key}
           onChange={setSelectedPlan}
         />
         <EnhancedBillingCard
           planName="Professional"
-          price="$250"
-          priceSubtext="/year"
-          description="Save 2 months with annual billing"
-          features={professionalFeatures}
+          price={PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].price}
+          priceSubtext={PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].priceSubtext}
+          description={PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].description}
+          features={PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].features}
           checked={!hasManualBilling && selectedPlan === PRO_ANNUAL_KEY}
           disabled={hasManualBilling || selectedPlan !== PRO_ANNUAL_KEY}
-          value={PRO_ANNUAL_KEY}
+          value={PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].key}
           onChange={setSelectedPlan}
         />
         <EnhancedBillingCard
           planName="Team"
-          price="$110"
-          priceSubtext="/month (includes 5 users)"
-          description="$22/user/month with 5-user minimum"
-          features={teamFeatures}
-          comingSoonFeatures={teamFeaturesComingSoon}
+          price={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].price}
+          priceSubtext={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].priceSubtext}
+          description={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description}
+          features={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].features}
+          comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].comingSoonFeatures}
           checked={!hasManualBilling && selectedPlan === TEAM_MONTHLY_KEY}
           disabled={hasManualBilling || selectedPlan !== TEAM_MONTHLY_KEY}
-          value={TEAM_MONTHLY_KEY}
+          value={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key}
           onChange={setSelectedPlan}
         />
         <EnhancedBillingCard
           planName="Team"
-          price="$1,100"
-          priceSubtext="/year (includes 5 users)"
-          description="$22/user/month with 5-user minimum"
-          features={teamFeatures}
-          comingSoonFeatures={teamFeaturesComingSoon}
+          price={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].price}
+          priceSubtext={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].priceSubtext}
+          description={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].description}
+          features={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].features}
+          comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].comingSoonFeatures}
           checked={!hasManualBilling && selectedPlan === TEAM_ANNUAL_KEY}
           disabled={hasManualBilling || selectedPlan !== TEAM_ANNUAL_KEY}
-          value={TEAM_ANNUAL_KEY}
+          value={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key}
           onChange={setSelectedPlan}
         />
         <EnhancedBillingCard
           planName="Enterprise"
-          price="Custom"
-          priceSubtext="Contact us"
-          description="Advanced features for large teams"
-          features={enterpriseFeatures}
+          price={PLAN_DESCRIPTIONS.CUSTOM.price}
+          priceSubtext={PLAN_DESCRIPTIONS.CUSTOM.priceSubtext}
+          description={PLAN_DESCRIPTIONS.CUSTOM.description}
+          features={PLAN_DESCRIPTIONS.CUSTOM.features}
           isEnterprise
           disabled
           onEnterpriseContact={handleEnterpriseContact}

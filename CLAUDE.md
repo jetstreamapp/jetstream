@@ -125,6 +125,16 @@ yarn nx affected:test  # Test affected projects
 - **Real-time**: Socket.io for platform events and real-time updates
 - **Job Queue**: Bull/pg-boss for background job processing
 
+## Coding standards
+
+- Make decisions that favor future code readability
+- Add function level or block level comments where it adds to code readability, skip it for trivial functions or things where the function name explains everything a developer would ever need to know
+- For logic (e.g. within a function) don't add trivial comments to every line for no reason, only add comments where warranted to aid in future understanding "at a glance"
+- Avoid single letter variable names and prefer verbose variables names except for `i` as in index.
+  - e.g. `providers.map(provider => provider.value)`
+- Prefer destructuring while looping where it makes sense to avoid having to choose a variable name (favor clarity if needed)
+  - e.g. `providers.map(({value}) => value)`
+
 ## Imports
 
 Never import anything cross-module, always use imports defined in `tsconfig.base.json`

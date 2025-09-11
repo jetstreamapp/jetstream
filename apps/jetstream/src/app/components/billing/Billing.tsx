@@ -23,15 +23,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   ACTIVE_SUBSCRIPTION_STATUSES,
-  enterpriseFeatures,
   PAST_DUE_SUBSCRIPTION_STATUSES,
+  PLAN_DESCRIPTIONS,
   PRO_ANNUAL_KEY,
   PRO_MONTHLY_KEY,
-  professionalFeatures,
   TEAM_ANNUAL_KEY,
   TEAM_MONTHLY_KEY,
-  teamFeatures,
-  teamFeaturesComingSoon,
   UNPAID_SUBSCRIPTION_STATUSES,
 } from './billing.constants';
 import { BillingExistingSubscriptions } from './BillingExistingSubscriptions';
@@ -258,33 +255,41 @@ export const Billing = () => {
                     >
                       <EnhancedBillingCard
                         planName="Professional"
-                        price={isAnnual ? '$250' : '$25'}
-                        priceSubtext={isAnnual ? '/year' : '/month'}
-                        description="Perfect for individual users"
-                        features={professionalFeatures}
-                        checked={selectedPlan === (isAnnual ? PRO_ANNUAL_KEY : PRO_MONTHLY_KEY)}
-                        value={isAnnual ? PRO_ANNUAL_KEY : PRO_MONTHLY_KEY}
+                        price={isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].price : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].price}
+                        priceSubtext={
+                          isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].priceSubtext : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].priceSubtext
+                        }
+                        description={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].description}
+                        features={PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].features}
+                        checked={
+                          selectedPlan === (isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].key)
+                        }
+                        value={isAnnual ? PLAN_DESCRIPTIONS[PRO_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[PRO_MONTHLY_KEY].key}
                         disabled={disableProPlan}
                         disabledReason="You are currently part of a team, contact support if you would like to downgrade to an individual plan."
                         onChange={setSelectedPlan}
                       />
                       <EnhancedBillingCard
                         planName="Team"
-                        price={isAnnual ? '$1,100' : '$110'}
-                        priceSubtext={isAnnual ? '/year (includes 5 users)' : '/month (includes 5 users)'}
-                        description="$22/user/month with 5-user minimum"
-                        features={teamFeatures}
-                        comingSoonFeatures={teamFeaturesComingSoon}
-                        checked={selectedPlan === (isAnnual ? TEAM_ANNUAL_KEY : TEAM_MONTHLY_KEY)}
-                        value={isAnnual ? TEAM_ANNUAL_KEY : TEAM_MONTHLY_KEY}
+                        price={isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].price : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].price}
+                        priceSubtext={
+                          isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].priceSubtext : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].priceSubtext
+                        }
+                        description={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].description}
+                        features={PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].features}
+                        checked={
+                          selectedPlan === (isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key)
+                        }
+                        value={isAnnual ? PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].key : PLAN_DESCRIPTIONS[TEAM_MONTHLY_KEY].key}
+                        comingSoonFeatures={PLAN_DESCRIPTIONS[TEAM_ANNUAL_KEY].comingSoonFeatures}
                         onChange={setSelectedPlan}
                       />
                       <EnhancedBillingCard
                         planName="Enterprise"
-                        price="Custom"
-                        priceSubtext="Contact us"
-                        description="Advanced features for large teams"
-                        features={enterpriseFeatures}
+                        price={PLAN_DESCRIPTIONS.CUSTOM.price}
+                        priceSubtext={PLAN_DESCRIPTIONS.CUSTOM.priceSubtext}
+                        description={PLAN_DESCRIPTIONS.CUSTOM.description}
+                        features={PLAN_DESCRIPTIONS.CUSTOM.features}
                         isEnterprise={true}
                         onEnterpriseContact={handleEnterpriseContact}
                       />

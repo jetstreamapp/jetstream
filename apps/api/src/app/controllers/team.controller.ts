@@ -151,10 +151,10 @@ export const routeDefinition = {
 const verifyInvitation = createRoute(routeDefinition.verifyInvitation.validators, async ({ user, params }, req, res) => {
   const { teamId, token } = params;
 
-  teamDbService
-    .verifyTeamInvitation({ teamId, token, user })
-    .then((invitation) => {
-      sendJson(res, { success: true, teamName: invitation.team.name });
+  teamService
+    .verifyTeamInvitation({ teamId, token, currentSessionProvider: req.session.provider || 'credentials', user })
+    .then((inviteVerification) => {
+      sendJson(res, { success: true, inviteVerification });
     })
     .catch((error) => {
       logger.warn({ error: getErrorMessage(error), teamId, token, userId: user.id }, 'Error verifying team invitation');
@@ -162,10 +162,15 @@ const verifyInvitation = createRoute(routeDefinition.verifyInvitation.validators
     });
 });
 
-const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators, async ({ user, body, params, clearCookie }, req, res) => {
+const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators, async ({ user, params, clearCookie }, req, res) => {
   const { teamId, token } = params;
 
-  await teamService.acceptTeamInvitation({ user, teamId, token });
+  await teamService.acceptTeamInvitation({
+    user,
+    currentSessionProvider: req.session.provider || 'credentials',
+    teamId,
+    token,
+  });
 
   const cookieConfig = authService.getCookieConfig(ENV.USE_SECURE_COOKIES);
   clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
