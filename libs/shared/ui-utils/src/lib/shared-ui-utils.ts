@@ -838,11 +838,11 @@ function convertQueryFilterOperator(operator: Maybe<QueryFilterOperator>): Opera
  * Generate authentication in the url from a salesforce
  * @param org
  */
-export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): string {
+export function getOrgUrlParams(org: SalesforceOrgUi, additionalParams: { [param: string]: string } = {}): URLSearchParams {
   return new URLSearchParams({
     ...additionalParams,
     [HTTP.HEADERS.X_SFDC_ID]: org?.uniqueId || '',
-  }).toString();
+  });
 }
 
 export function getOrgType(org: Maybe<SalesforceOrgUi>): SalesforceOrgUiType | undefined {

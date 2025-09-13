@@ -54,7 +54,7 @@ const zipMap: Map<
 const ACKNOWLEDGE = 'ACKNOWLEDGE';
 const ACTIVE_DOWNLOADS = 'ACTIVE_DOWNLOADS';
 
-const allowedBaseUrls = ['app://jetstream'];
+const allowedBaseUrls = ['app://jetstream', 'https://getjetstream.app', 'http://localhost:3333', 'http://localhost:4200'];
 const allowedPathPrefixes = ['/api/file/stream-download'];
 
 //////// MESSAGE HANDLERS

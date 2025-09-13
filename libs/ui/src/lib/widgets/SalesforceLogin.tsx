@@ -27,11 +27,16 @@ function getLoginUrl({
     return `${org.instanceUrl}${returnUrl}`;
   } else {
     if (serverUrl) {
-      let url = `${serverUrl}/static/sfdc/login?${getOrgUrlParams(org)}`;
+      let url = new URL(`${serverUrl}/static/sfdc/login`);
+      getOrgUrlParams(org).forEach((value, key) => {
+        url.searchParams.set(key, value);
+      });
       if (returnUrl) {
-        url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
+        url.searchParams.set('returnUrl', returnUrl);
       }
-      return url;
+      // Not sure what the source was, but at least one user had `//` at the beginning of the path
+      url.pathname = url.pathname.replace('//', '/');
+      return url.toString();
     }
   }
 }
