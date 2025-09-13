@@ -13,7 +13,7 @@
     "yarn": ">=1.22 <2"
   },
   "scripts": {
-    "postinstall": "prisma generate --sql",
+    "postinstall": "prisma generate",
     "init:project": "zx ./scripts/init-project.mjs",
     "nx": "nx",
     "start": "nx serve",

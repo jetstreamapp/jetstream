@@ -76,6 +76,7 @@ export interface UserSession {
   ipAddress: string;
   provider: OauthProviderType | 'credentials';
   loginTime: string;
+  createdAt: string;
 }
 
 export interface UserSessionWithLocation extends UserSession {
@@ -105,6 +106,7 @@ export interface ExternalTokenSessionWithLocation {
 }
 
 export interface LoginActivityUserFacing {
+  id: number;
   action: string;
   createdAt: string;
   errorMessage: Maybe<string>;

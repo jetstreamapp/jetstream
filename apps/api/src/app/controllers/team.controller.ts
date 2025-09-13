@@ -60,6 +60,11 @@ export const routeDefinition = {
       hasSourceOrg: false,
       params: z.object({
         teamId: z.string().uuid(),
+        userId: z.string().uuid().optional(),
+      }),
+      query: z.object({
+        limit: z.coerce.number().min(1).max(100).optional(),
+        cursorId: z.coerce.string().optional(),
       }),
     },
   },
@@ -69,6 +74,10 @@ export const routeDefinition = {
       hasSourceOrg: false,
       params: z.object({
         teamId: z.string().uuid(),
+      }),
+      query: z.object({
+        limit: z.coerce.number().min(1).max(100).optional(),
+        cursorId: z.coerce.number().optional(),
       }),
     },
   },
@@ -186,29 +195,36 @@ const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user },
   sendJson(res, team);
 });
 
-const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ params, body }, req, res) => {
+const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ params, body, user }, req, res) => {
   const { teamId } = params;
-  const team = await teamDbService.updateTeam({ teamId, payload: body });
+  const team = await teamDbService.updateTeam({ runningUserId: user.id, teamId, payload: body });
   sendJson(res, team);
 });
 
-const getUserSessions = createRoute(routeDefinition.getUserSessions.validators, async ({ params }, req, res) => {
+const getUserSessions = createRoute(routeDefinition.getUserSessions.validators, async ({ params, query }, req, res) => {
   const { teamId } = params;
-  const sessions = await authService.getTeamUserSessions(teamId);
+  const { limit, cursorId: sid } = query || {};
+  const cursor = sid ? { sid } : undefined;
+  const sessions = await authService.getTeamUserSessions({ teamId, limit, cursor });
   sendJson(res, sessions);
 });
 
-const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ params }, req, res) => {
+const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ params, query }, req, res) => {
   const { teamId } = params;
-  const authActivity = await authService.getTeamUserActivity(teamId);
+  const { limit, cursorId: id } = query || {};
+  const cursor = id ? { id } : undefined;
+  const authActivity = await authService.getTeamUserActivity({ teamId, limit, cursor });
   sendJson(res, authActivity);
 });
 
-const updateLoginConfiguration = createRoute(routeDefinition.updateLoginConfiguration.validators, async ({ params, body }, req, res) => {
-  const { teamId } = params;
-  const team = await teamDbService.updateLoginConfiguration({ teamId, loginConfiguration: body });
-  sendJson(res, team);
-});
+const updateLoginConfiguration = createRoute(
+  routeDefinition.updateLoginConfiguration.validators,
+  async ({ params, body, user }, req, res) => {
+    const { teamId } = params;
+    const team = await teamDbService.updateLoginConfiguration({ runningUserId: user.id, teamId, loginConfiguration: body });
+    sendJson(res, team);
+  },
+);
 
 const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators, async ({ params, body, user }, req, res) => {
   const { teamId, userId } = params;
@@ -245,9 +261,10 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
   sendJson(res, invitations);
 });
 
-const resendInvitation = createRoute(routeDefinition.resendInvitation.validators, async ({ params, body }, req, res) => {
+const resendInvitation = createRoute(routeDefinition.resendInvitation.validators, async ({ params, body, user }, req, res) => {
   const { teamId, id } = params;
   const invitations = await teamService.resendInvitation({
+    runningUserId: user.id,
     teamId,
     invitationId: id,
     request: body,

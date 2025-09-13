@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { LoginActivityUserFacing } from '@jetstream/auth/types';
-import { getTeamAuthActivity } from '@jetstream/shared/data';
+import { getTeamAuthActivity, PaginationCursorParams } from '@jetstream/shared/data';
 import { getBrowserInfo } from '@jetstream/shared/ui-utils';
 import { Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
 import { parseISO } from 'date-fns/parseISO';
@@ -15,11 +15,16 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
   const [loading, setLoading] = useState(true);
   const [authActivity, setAuthActivity] = useState<LoginActivityUserFacing[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationCursorParams>({ limit: 25 });
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
-    getTeamAuthActivity(teamId)
-      .then((team) => {
-        setAuthActivity(team);
+    setLoading(true);
+    getTeamAuthActivity(teamId, pagination)
+      .then((authActivity) => {
+        // combine all pages
+        setAuthActivity((prev) => [...prev, ...authActivity]);
+        setHasMore(authActivity.length === (pagination.limit || 25));
       })
       .catch((error) => {
         setLoadingError(error.message);
@@ -27,11 +32,11 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
       .finally(() => {
         setLoading(false);
       });
-  }, [teamId]);
+  }, [teamId, pagination]);
 
   return (
     <Modal
-      header="Auth Activity"
+      header="Authentication Activity"
       size="lg"
       // footer={
       //   <>
@@ -98,6 +103,25 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
             <Row key={i} item={item} />
           ))}
         </tbody>
+        <tfoot>
+          {hasMore && (
+            <tr>
+              <td colSpan={7} css={{ textAlign: 'center' }}>
+                <button
+                  className="slds-button slds-button_neutral"
+                  disabled={loading}
+                  onClick={() => {
+                    const { id } = authActivity[authActivity.length - 1];
+                    setLoading(true);
+                    setPagination((prev) => ({ ...prev, cursorId: id }));
+                  }}
+                >
+                  Load More
+                </button>
+              </td>
+            </tr>
+          )}
+        </tfoot>
       </table>
     </Modal>
   );

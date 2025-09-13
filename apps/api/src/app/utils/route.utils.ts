@@ -7,7 +7,7 @@ import { Maybe } from '@jetstream/types';
 import { NextFunction } from 'express';
 import { z } from 'zod';
 import { findByUniqueId_UNSAFE } from '../db/salesforce-org.db';
-import { UserFacingError } from './error-handler';
+import { isKnownError, UserFacingError } from './error-handler';
 
 // FIXME: when these were used, createRoute did not properly infer types
 // export type RouteValidator = Parameters<typeof createRoute>[0];
@@ -103,6 +103,10 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       try {
         await controllerFn(data, req, res, next);
       } catch (ex) {
+        if (isKnownError(ex)) {
+          return next(ex);
+        }
+        // TODO: could be cases of leaking internal errors here
         next(new UserFacingError(ex));
       }
     } catch (ex) {
@@ -110,6 +114,8 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       if (typeof onErrorHandler === 'function') {
         return onErrorHandler(ex, req, res, next);
       } else {
+        // TODO: format zod errors nicely
+        // TODO: introduce a validation class to handle?
         next(new UserFacingError(ex));
       }
     }

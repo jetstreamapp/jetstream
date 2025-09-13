@@ -70,6 +70,11 @@ import orderBy from 'lodash/orderBy';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 import { getStandardValueSetTypes } from './standardValueSet';
 
+export interface PaginationCursorParams {
+  limit?: number;
+  cursorId?: number | string;
+}
+
 //// LANDING PAGE ROUTES
 
 let cloudinarySignature: CloudinarySignature;
@@ -131,12 +136,12 @@ export async function updateTeam(teamId: string, payload: { name: string }): Pro
   return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}`, data: payload }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getTeamUserSessions(teamId: string): Promise<UserSessionWithLocationAndUser[]> {
-  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sessions` }).then(unwrapResponseIgnoreCache);
+export async function getTeamUserSessions(teamId: string, params?: PaginationCursorParams): Promise<UserSessionWithLocationAndUser[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sessions`, params }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getTeamAuthActivity(teamId: string): Promise<LoginActivityUserFacing[]> {
-  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/auth-activity` }).then(unwrapResponseIgnoreCache);
+export async function getTeamAuthActivity(teamId: string, params?: PaginationCursorParams): Promise<LoginActivityUserFacing[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/auth-activity`, params }).then(unwrapResponseIgnoreCache);
 }
 
 export async function updateTeamLoginConfiguration(teamId: string, data: TeamLoginConfigRequest): Promise<TeamUserFacing> {

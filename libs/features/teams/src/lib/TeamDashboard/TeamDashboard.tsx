@@ -300,6 +300,7 @@ export function TeamDashboard() {
           <div className="slds-m-bottom_medium">
             {team && (
               <TeamMembersTable
+                loginConfiguration={team.loginConfig}
                 billingStatus={team.billingStatus}
                 availableLicenses={availableLicenses}
                 hasManualBilling={!hasManualBilling}

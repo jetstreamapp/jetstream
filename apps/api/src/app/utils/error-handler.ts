@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/api-config';
+import { isPrismaError } from '@jetstream/prisma';
 import { ApiRequestError } from '@jetstream/salesforce-api';
 import { ZodError } from 'zod';
 
@@ -7,6 +8,16 @@ function initStatus(data: unknown, fallback: number) {
     return data.status;
   }
   return fallback;
+}
+
+export function isKnownError(error: unknown) {
+  return (
+    error instanceof UserFacingError ||
+    error instanceof AuthenticationError ||
+    error instanceof NotFoundError ||
+    error instanceof NotAllowedError ||
+    isPrismaError(error)
+  );
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

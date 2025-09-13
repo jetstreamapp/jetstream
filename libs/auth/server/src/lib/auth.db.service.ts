@@ -21,12 +21,13 @@ import {
   UserSessionWithLocation,
   UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
-import { getSessionsForUserIds, Prisma } from '@jetstream/prisma';
+import { Prisma } from '@jetstream/prisma';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
+import { clamp } from 'lodash';
 import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
@@ -459,6 +460,8 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
         sid: true,
         sess: true,
         expire: true,
+        createdAt: true,
+        userId: true,
       },
       where: {
         sess: {
@@ -491,7 +494,17 @@ export async function getUserSessions(userId: string, omitLocationData?: boolean
 /**
  * Return all user sessions for a team, including location data if available.
  */
-export async function getTeamUserSessions(teamId: string, omitLocationData?: boolean): Promise<UserSessionWithLocationAndUser[]> {
+export async function getTeamUserSessions({
+  teamId,
+  omitLocationData,
+  limit,
+  cursor,
+}: {
+  teamId: string;
+  omitLocationData?: boolean;
+  limit?: number;
+  cursor?: { sid: string };
+}): Promise<UserSessionWithLocationAndUser[]> {
   if (!teamId) {
     throw new Error('Invalid teamId');
   }
@@ -515,15 +528,26 @@ export async function getTeamUserSessions(teamId: string, omitLocationData?: boo
   const usersById = groupByFlat(users, 'id');
   const userIds = users.map(({ id }) => id);
 
-  const sessions: UserSessionWithLocationAndUser[] = await prisma.$queryRawTyped(getSessionsForUserIds(userIds)).then((sessions) =>
-    sessions.map((session) => {
-      const userSessionWithLocation = convertSessionToUserSession(session);
-      return {
-        ...userSessionWithLocation,
-        user: usersById[userSessionWithLocation.userId],
-      };
-    }),
-  );
+  const sessions = await prisma.sessions
+    .findMany({
+      select: { sid: true, sess: true, expire: true, createdAt: true, userId: true },
+      orderBy: [{ createdAt: 'desc' }, { sid: 'desc' }],
+      where: {
+        userId: { in: userIds },
+      },
+      cursor,
+      take: clamp(limit ?? 25, 1, 100),
+      skip: cursor ? 1 : 0, // Skip the cursor
+    })
+    .then((sessions) =>
+      sessions.map((session): UserSessionWithLocationAndUser => {
+        const userSessionWithLocation = convertSessionToUserSession(session);
+        return {
+          ...userSessionWithLocation,
+          user: usersById[userSessionWithLocation.userId],
+        };
+      }),
+    );
 
   // Fetch location data and add to each session
   if (!omitLocationData && sessions.length > 0) {
@@ -596,6 +620,7 @@ export async function getUserActivity(userId: string) {
   const recentActivity: LoginActivityUserFacing[] = await prisma.loginActivity
     .findMany({
       select: {
+        id: true,
         action: true,
         createdAt: true,
         errorMessage: true,
@@ -632,7 +657,7 @@ export async function getUserActivity(userId: string) {
   return recentActivity;
 }
 
-export async function getTeamUserActivity(teamId: string) {
+export async function getTeamUserActivity({ teamId, limit, cursor }: { teamId: string; limit?: number; cursor?: { id: number } }) {
   if (!teamId) {
     throw new Error('Invalid teamId');
   }
@@ -644,6 +669,7 @@ export async function getTeamUserActivity(teamId: string) {
   const recentActivity: LoginActivityUserFacing[] = await prisma.loginActivity
     .findMany({
       select: {
+        id: true,
         action: true,
         createdAt: true,
         errorMessage: true,
@@ -660,8 +686,10 @@ export async function getTeamUserActivity(teamId: string) {
         },
       },
       where: { userId: { in: userIds }, method: { notIn: ['OAUTH_INIT', 'DELETE_ACCOUNT'] } },
-      take: 250,
-      orderBy: { createdAt: 'desc' },
+      cursor,
+      take: clamp(limit ?? 25, 1, 100),
+      skip: cursor ? 1 : 0, // Skip the cursor
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     })
     .then((records) =>
       records.map((record) => ({
@@ -861,17 +889,18 @@ export const removePasswordFromUser = async (id: string) => {
     .then((user) => AuthenticatedUserSchema.parse(user));
 };
 
-function convertSessionToUserSession(session: { sid: string; sess: unknown; expire: Date }): UserSession {
-  const { sid, sess, expire } = session;
+function convertSessionToUserSession(session: { sid: string; sess: unknown; expire: Date; createdAt: Date; userId: string }): UserSession {
+  const { sid, sess, expire, createdAt, userId } = session;
   const { ipAddress, loginTime, provider, userAgent, user } = sess as unknown as SessionData;
   return {
-    userId: user.id,
+    userId,
     sessionId: sid,
     expires: expire.toISOString(),
     userAgent,
     ipAddress,
     loginTime: new Date(loginTime).toISOString(),
     provider,
+    createdAt: createdAt.toISOString(),
   };
 }
 

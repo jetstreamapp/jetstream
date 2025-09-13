@@ -10,6 +10,7 @@ import { TeamInviteTable } from './TeamInviteTable';
 import { TeamMemberRow } from './TeamMemberRow';
 
 export interface TeamMembersTableProps {
+  loginConfiguration: TeamUserFacing['loginConfig'];
   billingStatus: TeamUserFacing['billingStatus'];
   availableLicenses: number;
   hasManualBilling: boolean;
@@ -21,6 +22,7 @@ export interface TeamMembersTableProps {
 }
 
 export function TeamMembersTable({
+  loginConfiguration,
   billingStatus,
   teamMembers,
   availableLicenses,
@@ -48,6 +50,11 @@ export function TeamMembersTable({
       licenseMessage = `You can add up to ${formatNumber(availableLicenses)} additional ${pluralizeFromNumber('user', availableLicenses)}.`;
     }
   }
+
+  const allowedMfaMethods = new Set(loginConfiguration?.allowedMfaMethods);
+  const allowedProviders = new Set(loginConfiguration?.allowedProviders);
+  const requireMfa = !!loginConfiguration?.requireMfa;
+  const allowIdentityLinking = !!loginConfiguration?.allowIdentityLinking;
 
   return (
     <Card
@@ -124,6 +131,10 @@ export function TeamMembersTable({
           {teamMembers.map((member) => (
             <TeamMemberRow
               key={member.userId}
+              allowedMfaMethods={allowedMfaMethods}
+              allowedProviders={allowedProviders}
+              requireMfa={requireMfa}
+              allowIdentityLinking={allowIdentityLinking}
               member={member}
               isCurrentUser={userProfile.id === member.userId}
               onUserAction={onUserAction}

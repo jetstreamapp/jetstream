@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { UserSessionWithLocationAndUser } from '@jetstream/auth/types';
-import { getTeamUserSessions } from '@jetstream/shared/data';
+import { getTeamUserSessions, PaginationCursorParams } from '@jetstream/shared/data';
 import { getBrowserInfo } from '@jetstream/shared/ui-utils';
 import { Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
 import { parseISO } from 'date-fns/parseISO';
@@ -16,11 +16,14 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<UserSessionWithLocationAndUser[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationCursorParams>({ limit: 25 });
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
-    getTeamUserSessions(teamId)
-      .then((team) => {
-        setSessions(team);
+    getTeamUserSessions(teamId, pagination)
+      .then((userSessions) => {
+        setSessions((prev) => [...prev, ...userSessions]);
+        setHasMore(userSessions.length === (pagination.limit || 25));
       })
       .catch((error) => {
         setLoadingError(error.message);
@@ -28,7 +31,7 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
       .finally(() => {
         setLoading(false);
       });
-  }, [teamId]);
+  }, [teamId, pagination]);
 
   return (
     <Modal
@@ -100,6 +103,25 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
             <Row key={session.sessionId} session={session} />
           ))}
         </tbody>
+        <tfoot>
+          {hasMore && (
+            <tr>
+              <td colSpan={7} css={{ textAlign: 'center' }}>
+                <button
+                  className="slds-button slds-button_neutral"
+                  disabled={loading}
+                  onClick={() => {
+                    const { sessionId } = sessions[sessions.length - 1];
+                    setLoading(true);
+                    setPagination((prev) => ({ ...prev, cursorId: sessionId }));
+                  }}
+                >
+                  Load More
+                </button>
+              </td>
+            </tr>
+          )}
+        </tfoot>
       </table>
     </Modal>
   );

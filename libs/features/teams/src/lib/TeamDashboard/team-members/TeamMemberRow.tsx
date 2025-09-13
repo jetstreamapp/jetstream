@@ -1,19 +1,27 @@
 import { css } from '@emotion/react';
 import { TwoFactorTypeWithoutEmail } from '@jetstream/auth/types';
 import { orderObjectsBy } from '@jetstream/shared/utils';
-import { DropDownItem, TeamUserAction, TeamUserFacing } from '@jetstream/types';
-import { Badge, DropDown, Grid, GridCol } from '@jetstream/ui';
+import { DropDownItem, TeamLoginConfig, TeamUserAction, TeamUserFacing } from '@jetstream/types';
+import { Badge, DropDown, Grid, GridCol, Icon, Tooltip } from '@jetstream/ui';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
 import { useMemo } from 'react';
 import { TeamMembersTableProps } from './TeamMembersTable';
 
 export const TeamMemberRow = ({
+  allowedMfaMethods,
+  allowedProviders,
+  requireMfa,
+  allowIdentityLinking,
   member,
   isCurrentUser,
   canUpdate,
   onUserAction,
 }: {
+  allowedMfaMethods: Set<TeamLoginConfig['allowedMfaMethods'][number]>;
+  allowedProviders: Set<TeamLoginConfig['allowedProviders'][number]>;
+  requireMfa: TeamLoginConfig['requireMfa'];
+  allowIdentityLinking: TeamLoginConfig['allowIdentityLinking'];
   member: TeamUserFacing['members'][number];
   isCurrentUser: boolean;
   canUpdate: boolean;
@@ -44,10 +52,15 @@ export const TeamMemberRow = ({
         </div>
       </th>
       <td role="gridcell" className="slds-cell-wrap">
-        <Identities identities={member.user.identities} hasPasswordSet={member.user.hasPasswordSet} />
+        <Identities
+          allowedProviders={allowedProviders}
+          allowIdentityLinking={allowIdentityLinking}
+          identities={member.user.identities}
+          hasPasswordSet={member.user.hasPasswordSet}
+        />
       </td>
       <td role="gridcell" className="slds-cell-wrap">
-        <MfaTypes authFactors={member.user.authFactors} />
+        <MfaTypes requireMfa={requireMfa} allowedMfaMethods={allowedMfaMethods} authFactors={member.user.authFactors} />
       </td>
       <td role="gridcell" className="slds-cell-wrap">
         <RoleCell role={member.role} />
@@ -63,13 +76,20 @@ export const TeamMemberRow = ({
 };
 
 const Identities = ({
+  allowedProviders,
+  allowIdentityLinking,
   identities,
   hasPasswordSet,
 }: {
+  allowedProviders: Set<TeamLoginConfig['allowedProviders'][number]>;
+  allowIdentityLinking: TeamLoginConfig['allowIdentityLinking'];
   identities: TeamUserFacing['members'][number]['user']['identities'];
   hasPasswordSet: boolean;
 }) => {
   const sortedIdentities = orderObjectsBy(identities, ['isPrimary', 'provider', 'email', 'username'], ['desc', 'asc', 'asc', 'asc']);
+  const doesNotHaveValidProvider =
+    sortedIdentities.every(({ provider }) => !allowedProviders.has(provider as any)) &&
+    (!allowedProviders.has('credentials') || !hasPasswordSet);
   return (
     <div>
       {sortedIdentities.map((identity) => (
@@ -81,21 +101,85 @@ const Identities = ({
           `}
         >
           {identity.provider} ({identity.username || identity.email})
+          {!allowedProviders.has(identity.provider as any) && (
+            <Tooltip content="This login method is not allowed and will not be available for use even though is it set up.">
+              <Icon
+                type="utility"
+                icon="warning"
+                className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
+                containerClassname="slds-icon_container slds-icon-utility-warning"
+              />
+            </Tooltip>
+          )}
         </p>
       ))}
       {hasPasswordSet && 'Username/Password'}
+      {hasPasswordSet && !allowedProviders.has('credentials') && (
+        <Tooltip content="This login method is not allowed and will not be available for use even though is it set up.">
+          <Icon
+            type="utility"
+            icon="warning"
+            className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
+            containerClassname="slds-icon_container slds-icon-utility-warning"
+          />
+        </Tooltip>
+      )}
+      {doesNotHaveValidProvider && (
+        <Tooltip
+          content={
+            allowIdentityLinking
+              ? 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking, remove the user and re-invite them, or contact support for assistance.'
+              : 'This user does not have a valid login provider and they will not be able to login. Temporarily allow identity linking or contact support for assistance.'
+          }
+        >
+          <Icon
+            type="utility"
+            icon="error"
+            className="slds-icon slds-icon-text-error slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
+            containerClassname="slds-icon_container slds-icon-utility-error"
+          />
+        </Tooltip>
+      )}
     </div>
   );
 };
 
-const MfaTypes = ({ authFactors }: { authFactors: TeamUserFacing['members'][number]['user']['authFactors'] }) => {
+const MfaTypes = ({
+  allowedMfaMethods,
+  authFactors,
+  requireMfa,
+}: {
+  allowedMfaMethods: Set<TeamLoginConfig['allowedMfaMethods'][number]>;
+  requireMfa: boolean;
+  authFactors: TeamUserFacing['members'][number]['user']['authFactors'];
+}) => {
   const enabled2faTypes = authFactors.filter(({ enabled }) => enabled).map(({ type }) => type as TwoFactorTypeWithoutEmail);
 
   return (
     <Grid vertical>
+      {requireMfa && enabled2faTypes.length === 0 && (
+        <Tooltip content="This user will be forced to enroll in a valid MFA method.">
+          <Icon
+            type="utility"
+            icon="warning"
+            className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
+            containerClassname="slds-icon_container slds-icon-utility-warning"
+          />
+        </Tooltip>
+      )}
       {enabled2faTypes.map((type) => (
         <GridCol className="slds-p-bottom_xx-small" key={type}>
           <Badge type="light">{type === '2fa-otp' ? 'Authenticator App' : type === '2fa-email' ? 'Email' : type}</Badge>
+          {requireMfa && !allowedMfaMethods.has(type.split('-')[1] as TeamLoginConfig['allowedMfaMethods'][number]) && (
+            <Tooltip content="This MFA method is not allowed, the user will be asked to enroll if they don't have another allowed MFA type.">
+              <Icon
+                type="utility"
+                icon="warning"
+                className="slds-icon slds-icon-text-warning slds-m-left_x-small slds-m-bottom_xx-small slds-icon_x-small"
+                containerClassname="slds-icon_container slds-icon-utility-warning"
+              />
+            </Tooltip>
+          )}
         </GridCol>
       ))}
     </Grid>

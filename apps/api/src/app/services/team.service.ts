@@ -56,7 +56,7 @@ export async function updateTeamMember({
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<TeamUserFacing> {
-  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberRole({ teamId, userId, data });
+  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberRole({ teamId, userId, data, runningUserId });
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
 
@@ -79,7 +79,7 @@ export async function updateTeamMemberStatus({
   userId: string;
   status: typeof TEAM_MEMBER_STATUS_ACTIVE | typeof TEAM_MEMBER_STATUS_INACTIVE;
 }): Promise<TeamUserFacing> {
-  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberStatus({ teamId, userId, status });
+  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberStatus({ teamId, userId, status, runningUserId });
 
   if (teamMember.status === TEAM_MEMBER_STATUS_INACTIVE) {
     authDbService.revokeAllUserSessions(userId);
@@ -105,7 +105,7 @@ export async function createInvitation({
   request: TeamInvitationRequest;
 }): Promise<TeamInviteUserFacing[]> {
   const { email, token, team } = await teamDbService.createTeamInvitation({
-    createdByUserId: runningUserId,
+    runningUserId,
     teamId,
     request,
   });
@@ -123,10 +123,12 @@ export async function createInvitation({
 }
 
 export async function resendInvitation({
+  runningUserId,
   teamId,
   invitationId,
   request,
 }: {
+  runningUserId: string;
   teamId: string;
   invitationId: string;
   request: TeamInvitationUpdateRequest;
@@ -135,6 +137,7 @@ export async function resendInvitation({
     id: invitationId,
     teamId,
     request,
+    runningUserId,
   });
 
   await sendTeamInviteEmail({

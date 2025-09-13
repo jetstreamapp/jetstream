@@ -1,7 +1,7 @@
 import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
 import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
-import { Prisma, SalesforceOrg } from '@jetstream/prisma';
+import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
 import { serialize } from 'cookie';
@@ -301,24 +301,17 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
   }
 }
 
-function isPrismaError(
-  error: unknown,
-): error is Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError | Prisma.PrismaClientValidationError {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError ||
-    error instanceof Prisma.PrismaClientUnknownRequestError ||
-    error instanceof Prisma.PrismaClientValidationError
-  );
-}
-
 function getPrismaErrorMessage(
   error: Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError | Prisma.PrismaClientValidationError,
 ) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const prismaError = toTypedPrismaError(error);
     logger.error({ error: error.message, code: error.code }, '[DB][PRISMA][ERROR]');
-    if (error.code === 'P2002') {
+    if (prismaError.code === 'P2002') {
       return `A record with the same unique field already exists.`;
-    } else if (error.code === 'P2025') {
+    } else if (prismaError.code === 'P2022') {
+      return `The requested record is ambiguous.`;
+    } else if (prismaError.code === 'P2025') {
       return `The requested record does not exist.`;
     }
   }

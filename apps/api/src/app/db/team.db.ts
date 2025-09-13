@@ -109,12 +109,10 @@ const SELECT_WITH_RELATED = Prisma.validator<Prisma.TeamSelect>()({
   },
   members: {
     select: SELECT_TEAM_MEMBER,
+    orderBy: { user: { name: 'asc' } },
   },
   invitations: {
     select: INVITE_SELECT,
-    where: {
-      expiresAt: { gte: addDays(new Date(), -TEAM_INVITE_EXPIRES_DAYS) }, // Only include active and recently expired invitations
-    },
   },
   loginConfig: {
     select: {
@@ -135,13 +133,27 @@ const SELECT_WITH_RELATED = Prisma.validator<Prisma.TeamSelect>()({
   updatedAt: true,
 });
 
-export const findById = async ({ teamId }: { teamId: string }) => {
+function sortTeamMembers(members: TeamMember[], runningUserId: string) {
+  members.sort((a, b) => {
+    if (a.userId === runningUserId) return -1; // Move current user to the top
+    if (b.userId === runningUserId) return 1; // Move current user to the top
+    return a.user.name.localeCompare(b.user.name);
+  });
+}
+
+export const findById = async ({ teamId, runningUserId }: { teamId: string; runningUserId?: string }) => {
   return await prisma.team
     .findFirstOrThrow({
       select: SELECT_WITH_RELATED,
       where: { id: teamId },
     })
-    .then((team) => team && TeamUserFacingSchema.parse(team));
+    .then((team) => team && TeamUserFacingSchema.parse(team))
+    .then((team) => {
+      if (runningUserId) {
+        sortTeamMembers(team.members, runningUserId);
+      }
+      return team;
+    });
 };
 
 export const findByIdWithBillingInfo_UNSAFE = async ({ teamId }: { teamId: string }) => {
@@ -178,11 +190,7 @@ export const findByUserId = async ({ userId }: { userId: string }) => {
     })
     .then((team) => team && TeamUserFacingSchema.parse(team))
     .then((team) => {
-      team.members = team.members.toSorted((a, b) => {
-        if (a.userId === userId) return -1; // Move current user to the top
-        if (b.userId === userId) return 1; // Move current user to the top
-        return a.user.email.localeCompare(b.user.name);
-      });
+      sortTeamMembers(team.members, userId);
       return team;
     });
 };
@@ -308,10 +316,12 @@ export const createTeam = async ({
             userId,
             role: TEAM_MEMBER_ROLE_ADMIN,
             status: TEAM_MEMBER_STATUS_ACTIVE,
+            createdById: userId,
+            updatedById: userId,
           },
         },
         loginConfig: {
-          create: loginConfiguration,
+          create: { ...loginConfiguration, createdById: userId, updatedById: userId },
         },
         entitlements: {
           create: {
@@ -365,6 +375,7 @@ export const upsertTeamWithBillingAccount = async ({
         billingAccount: existingTeam.team.billingAccount
           ? { update: { manualBilling } }
           : { create: { customerId: billingAccountCustomerId, manualBilling } },
+        updatedById: userId,
       },
       where: { id: existingTeam.teamId },
     });
@@ -380,13 +391,18 @@ export const upsertTeamWithBillingAccount = async ({
           userId,
           role: TEAM_MEMBER_ROLE_ADMIN,
           status: TEAM_MEMBER_STATUS_ACTIVE,
+          createdById: userId,
+          updatedById: userId,
         },
       },
       entitlements: {
         create: {},
       },
       loginConfig: {
-        create: {},
+        create: {
+          createdById: userId,
+          updatedById: userId,
+        },
       },
       billingAccount: {
         create: {
@@ -398,21 +414,35 @@ export const upsertTeamWithBillingAccount = async ({
   });
 };
 
-export const updateTeam = async ({ teamId, payload }: { teamId: string; payload: { name: string } }) => {
+export const updateTeam = async ({
+  teamId,
+  runningUserId,
+  payload,
+}: {
+  teamId: string;
+  runningUserId: string;
+  payload: { name: string };
+}) => {
   return await prisma.team
     .update({
       select: SELECT_WITH_RELATED,
       where: { id: teamId },
-      data: { name: payload.name },
+      data: { name: payload.name, updatedById: runningUserId },
     })
-    .then((team) => team && TeamUserFacingSchema.parse(team));
+    .then((team) => TeamUserFacingSchema.parse(team))
+    .then((team) => {
+      sortTeamMembers(team.members, runningUserId);
+      return team;
+    });
 };
 
 export const updateLoginConfiguration = async ({
   teamId,
+  runningUserId,
   loginConfiguration,
 }: {
   teamId: string;
+  runningUserId: string;
   loginConfiguration: TeamLoginConfigRequest;
 }) => {
   const team = await prisma.team.findFirstOrThrow({
@@ -447,6 +477,8 @@ export const updateLoginConfiguration = async ({
         // TODO: not MVP, ignore these attributes for now
         // autoAddToTeam: loginConfiguration.autoAddToTeam,
         // domains,
+        updatedById: runningUserId,
+        createdById: runningUserId,
         team: {
           connect: { id: team.id },
         },
@@ -462,22 +494,25 @@ export const updateLoginConfiguration = async ({
         requireMfa: loginConfiguration.requireMfa,
         // autoAddToTeam: loginConfiguration.autoAddToTeam,
         // domains,
+        updatedById: runningUserId,
       },
     });
   }
 
   clearLoginConfigurationCacheItem(team.id);
 
-  return findById({ teamId: team.id });
+  return findById({ teamId: team.id, runningUserId });
 };
 
 export async function updateTeamMemberRole({
   teamId,
   userId,
+  runningUserId,
   data,
 }: {
   teamId: string;
   userId: string;
+  runningUserId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<{
   teamMember: TeamMember;
@@ -504,7 +539,7 @@ export async function updateTeamMemberRole({
       .update({
         select: SELECT_TEAM_MEMBER,
         where: { teamId_userId: { teamId, userId } },
-        data: TeamMemberUpdateRequestSchema.parse(data),
+        data: { ...TeamMemberUpdateRequestSchema.parse(data), updatedById: runningUserId },
       })
       .then((member) => TeamMemberSchema.parse(member)),
     isBillableAction: BILLABLE_ROLES.has(teamMember.role),
@@ -514,10 +549,12 @@ export async function updateTeamMemberRole({
 export async function updateTeamMemberStatus({
   teamId,
   userId,
+  runningUserId,
   status,
 }: {
   teamId: string;
   userId: string;
+  runningUserId: string;
   status: TeamMemberStatus;
 }): Promise<{
   teamMember: TeamMember;
@@ -557,7 +594,7 @@ export async function updateTeamMemberStatus({
       .update({
         select: SELECT_TEAM_MEMBER,
         where: { teamId_userId: { teamId, userId } },
-        data: { status },
+        data: { status, updatedById: runningUserId },
       })
       .then((member) => TeamMemberSchema.parse(member)),
     isBillableAction: BILLABLE_ROLES.has(teamMember.role),
@@ -587,11 +624,11 @@ export async function getTeamInvitations({ teamId }: { teamId: string }) {
 
 export async function createTeamInvitation({
   teamId,
-  createdByUserId,
+  runningUserId,
   request,
 }: {
   teamId: string;
-  createdByUserId: string;
+  runningUserId: string;
   request: TeamInvitationRequest;
 }) {
   // User is already part of a different team (for now we don't support this use-case)
@@ -629,7 +666,8 @@ export async function createTeamInvitation({
       data: {
         teamId,
         email: request.email,
-        createdById: createdByUserId,
+        createdById: runningUserId,
+        updatedById: runningUserId,
         role: request.role,
         expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
         features: request.features || ['ALL'],
@@ -674,7 +712,17 @@ export async function canAddBillableMember({
   return { canAdd: true };
 }
 
-export async function updateTeamInvitation({ id, teamId, request }: { id: string; teamId: string; request: TeamInvitationUpdateRequest }) {
+export async function updateTeamInvitation({
+  id,
+  teamId,
+  request,
+  runningUserId,
+}: {
+  id: string;
+  teamId: string;
+  request: TeamInvitationUpdateRequest;
+  runningUserId: string;
+}) {
   const existingInvitation = await prisma.teamMemberInvitation.findFirst({
     select: { id: true, role: true, features: true, expiresAt: true, lastSentAt: true },
     where: { teamId, id },
@@ -692,6 +740,7 @@ export async function updateTeamInvitation({ id, teamId, request }: { id: string
       expiresAt: addDays(new Date(), TEAM_INVITE_EXPIRES_DAYS),
       features: request.features || existingInvitation.features,
       lastSentAt: new Date(),
+      updatedById: runningUserId,
     },
   });
 }
@@ -782,6 +831,8 @@ export async function acceptTeamInvitation({ user, teamId, token }: { user: User
         role: existingInvitation.role,
         status: TEAM_MEMBER_STATUS_ACTIVE,
         features: existingInvitation.features,
+        createdById: user.id,
+        updatedById: user.id,
       },
     }),
   ]);
