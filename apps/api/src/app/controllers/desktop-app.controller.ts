@@ -1,5 +1,5 @@
 import { ENV } from '@jetstream/api-config';
-import { getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
+import { getApiAddressFromReq, getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
 import { NotificationMessageV1Response } from '@jetstream/desktop/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
@@ -12,7 +12,7 @@ import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
 import { redirect, sendJson } from '../utils/response.handlers';
-import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './data-sync.controller';
 
 export const routeDefinition = {

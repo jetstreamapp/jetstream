@@ -370,7 +370,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
               className="slds-input"
               placeholder="Set batch size"
               value={batchSize || ''}
-              aria-describedby={batchSizeError || undefined}
+              aria-describedby={batchSizeError ? 'batch-size-error' : undefined}
               disabled={loading || deployInProgress}
               onChange={handleBatchSize}
             />

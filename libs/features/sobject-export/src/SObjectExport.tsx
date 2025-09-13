@@ -1,8 +1,8 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { INDEXED_DB } from '@jetstream/shared/constants';
+import { INDEXED_DB, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
-import { useRollbar } from '@jetstream/shared/ui-utils';
+import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, Maybe } from '@jetstream/types';
@@ -87,6 +87,7 @@ const DEFAULT_OPTIONS: ExportOptions = {
 export interface SObjectExportProps {}
 
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
+  useTitle(TITLES.EXPORT_OBJECT_METADATA);
   const { trackEvent } = useAmplitude();
   const selectedOrg = useAtomValue(selectedOrgState);
   const rollbar = useRollbar();

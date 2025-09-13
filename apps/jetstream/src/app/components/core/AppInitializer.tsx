@@ -38,12 +38,13 @@ export interface AppInitializerProps {
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
   const userProfile = useAtomValue(fromAppState.userProfileState);
+  const ability = useAtomValue(fromAppState.abilityState);
   const { version, announcements } = useAtomValue(fromAppState.appVersionState);
   const appCookie = useAtomValue(fromAppState.applicationCookieState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
 
-  const recordSyncEntitlementEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
 
   useEffect(() => {

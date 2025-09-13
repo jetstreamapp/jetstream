@@ -18,7 +18,7 @@ import {
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, userProfileState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
-import { useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import LoggerConfig from './LoggerConfig';
@@ -32,7 +32,8 @@ export const Settings = () => {
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
-  const setUserProfile = useSetAtom(userProfileState);
+  const [userProfile, setUserProfile] = useAtom(userProfileState);
+  const ability = useAtomValue(fromAppState.abilityState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
@@ -41,7 +42,7 @@ export const Settings = () => {
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
   // TODO: Give option to disable
-  const recordSyncEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = ability.can('access', 'RecordSync');
 
   useEffect(() => {
     isMounted.current = true;
@@ -129,13 +130,16 @@ export const Settings = () => {
 
     try {
       await deleteUserProfile(reason);
+      eraseCookies();
+
+      window.location.href = '/goodbye/';
     } catch (ex) {
       // error deleting everything from server
+      fireToast({
+        message: 'There was a problem deleting your account. Try again or file a support ticket for assistance.',
+        type: 'error',
+      });
     }
-
-    eraseCookies();
-
-    window.location.href = '/goodbye/';
   }
 
   async function resetSync() {
@@ -251,7 +255,7 @@ export const Settings = () => {
               <LoggerConfig />
             </div>
 
-            <SettingsDeleteAccount onDeleteAccount={handleDelete} />
+            {!userProfile.teamMembership && <SettingsDeleteAccount onDeleteAccount={handleDelete} />}
           </div>
         )}
       </AutoFullHeightContainer>

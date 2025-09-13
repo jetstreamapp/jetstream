@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { LoginConfigAbility } from '@jetstream/acl';
 import { UserProfileIdentity } from '@jetstream/auth/types';
 import { ConfirmationModalPromise } from '@jetstream/ui';
 import { FunctionComponent, useState } from 'react';
@@ -20,10 +21,16 @@ function getProviderName(identity: UserProfileIdentity) {
 export interface ProfileIdentityCardProps {
   identity: UserProfileIdentity;
   omitUnlink?: boolean;
+  loginConfigAbility: LoginConfigAbility;
   onUnlink: (identity: UserProfileIdentity) => void;
 }
 
-export const ProfileIdentityCard: FunctionComponent<ProfileIdentityCardProps> = ({ identity, omitUnlink, onUnlink }) => {
+export const ProfileIdentityCard: FunctionComponent<ProfileIdentityCardProps> = ({
+  identity,
+  omitUnlink,
+  loginConfigAbility,
+  onUnlink,
+}) => {
   const [providerName] = useState<string>(() => getProviderName(identity));
 
   const { name, email, picture } = identity;
