@@ -1,4 +1,5 @@
 import { css } from '@emotion/react';
+import { LoginConfigAbility } from '@jetstream/acl';
 import type { LoginConfigurationUI, UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useCsrfToken, useRollbar } from '@jetstream/shared/ui-utils';
@@ -11,6 +12,7 @@ import { useLinkAccount } from './useLinkAccount';
 export interface ProfileLinkedAccountsProps {
   fullUserProfile: UserProfileUiWithIdentities;
   loginConfiguration: LoginConfigurationUI | null;
+  loginConfigAbility: LoginConfigAbility;
   onUserProfilesChange: (userProfile: UserProfileUiWithIdentities) => void;
 }
 
@@ -22,6 +24,7 @@ const searchParams = new URLSearchParams({
 export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps> = ({
   fullUserProfile,
   loginConfiguration,
+  loginConfigAbility,
   onUserProfilesChange,
 }) => {
   const { trackEvent } = useAmplitude();
@@ -43,13 +46,8 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
     }
   }
 
-  if (loginConfiguration) {
-    if (!loginConfiguration.allowIdentityLinking) {
-      return null;
-    }
-    if (!loginConfiguration.isGoogleAllowed && !loginConfiguration.isSalesforceAllowed) {
-      return null;
-    }
+  if (loginConfigAbility.cannot('link', 'Identity')) {
+    return false;
   }
 
   return (
@@ -60,15 +58,19 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
         {fullUserProfile.identities.map((identity, i) => (
           <ProfileIdentityCard
             key={identity.providerAccountId}
-            omitUnlink={fullUserProfile.identities.length === 1 && !fullUserProfile.hasPasswordSet}
+            omitUnlink={
+              loginConfigAbility.cannot('unlink', { type: 'Identity', provider: identity.provider }) ||
+              (fullUserProfile.identities.length === 1 && !fullUserProfile.hasPasswordSet)
+            }
             identity={identity}
+            loginConfigAbility={loginConfigAbility}
             onUnlink={handleUnlinkAccount}
           />
         ))}
       </ul>
       {providers && csrfToken && (
         <Grid wrap>
-          {loginConfiguration && loginConfiguration.isGoogleAllowed && (
+          {loginConfigAbility.can('link', { type: 'Identity', provider: 'google' }) && (
             <form
               className="w-100"
               css={css`
@@ -93,7 +95,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               </button>
             </form>
           )}
-          {loginConfiguration && loginConfiguration.isSalesforceAllowed && (
+          {loginConfigAbility.can('link', { type: 'Identity', provider: 'google' }) && (
             <form
               className="w-100"
               css={css`

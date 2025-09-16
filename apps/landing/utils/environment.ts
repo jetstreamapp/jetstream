@@ -68,4 +68,5 @@ export const SIGN_IN_ERRORS = {
   InvalidAccessToken: 'Your session is invalid, please sign in again.',
   MissingEntitlement: `You are not permitted to access this feature.`,
   ProviderNotAllowed: `This login method is not allowed, login using an approved method.`,
+  InactiveUser: 'Your account is inactive. Please contact support for assistance.',
 };

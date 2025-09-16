@@ -84,8 +84,9 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
             onSelected={(items) => handleTypeChange(items as unknown as ListItem<ManualFormulaFieldType, ManualFormulaFieldType>)}
           />
           {fieldType === 'string' && (
-            <Input label="Value" className="w-100">
+            <Input id={`field-${field}`} label="Value" className="w-100">
               <input
+                id={`field-${field}`}
                 className="slds-input"
                 value={String(fieldValue)}
                 onChange={(event) => onChange(fieldType, event.target.value)}
@@ -94,8 +95,9 @@ export const CreateFieldsFormulaEditorManualField = forwardRef<unknown, CreateFi
             </Input>
           )}
           {fieldType === 'double' && (
-            <Input label="Value" className="w-100">
+            <Input id={`field-${field}`} label="Value" className="w-100">
               <input
+                id={`field-${field}`}
                 className="slds-input"
                 value={getNumericValue(fieldValue)}
                 onChange={(event) => onChange(fieldType, event.target.value)}

@@ -1,3 +1,4 @@
+import { getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
 import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
@@ -11,19 +12,20 @@ import {
   setItemInSessionStorage,
 } from '@jetstream/shared/ui-utils';
 import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
-import type {
-  Announcement,
-  ApplicationCookie,
-  JetstreamOrganization,
-  JetstreamOrganizationWithOrgs,
-  Maybe,
-  SalesforceOrgUi,
-  SalesforceOrgUiType,
-  UserProfilePreferences,
-  UserProfileUi,
+import {
+  TeamBillingStatusSchema,
+  type Announcement,
+  type ApplicationCookie,
+  type JetstreamOrganization,
+  type JetstreamOrganizationWithOrgs,
+  type Maybe,
+  type SalesforceOrgUi,
+  type SalesforceOrgUiType,
+  type UserProfilePreferences,
+  type UserProfileUi,
 } from '@jetstream/types';
 import { atom, useAtom, useSetAtom } from 'jotai';
-import { atomFamily, unwrap } from 'jotai/utils';
+import { unwrap } from 'jotai/utils';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
 
@@ -182,25 +184,38 @@ export const appVersionState = atom<Promise<{ version: string; announcements?: A
 export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
 
 export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fetchUserProfile());
+
 /**
  * This is for internal use for derived state to avoid async issues.
  * Use `userProfileState` for components.
  */
 export const userProfileSyncState = unwrap(userProfileState, (prev) => prev ?? DEFAULT_PROFILE);
 
-export const userProfileEntitlementState = atomFamily((entitlement: keyof UserProfileUi['entitlements']) =>
-  atom((get) => {
-    const userProfile = get(userProfileSyncState);
-    return userProfile?.entitlements?.[entitlement] ?? false;
-  }),
-);
+export const isReadOnlyUserState = atom((get) => {
+  const userProfile = get(userProfileSyncState);
+  return userProfile.teamMembership?.role === 'BILLING';
+});
+
+export const abilityState = atom((get) => {
+  const userProfile = get(userProfileSyncState);
+  return getUserAbility({
+    isBrowserExtension: isBrowserExtension(),
+    isDesktop: isDesktop(),
+    user: userProfile,
+  });
+});
+
+export const hasPaidPlanState = atom((get) => {
+  const userProfile = get(userProfileSyncState);
+  return userProfile.teamMembership?.team?.billingStatus !== TeamBillingStatusSchema.Enum.PAST_DUE;
+});
 
 export const googleDriveAccessState = atom((get) => {
   const isChromeExtension = get(isBrowserExtensionState);
-  const hasGoogleDriveAccess = get(userProfileEntitlementState('googleDrive'));
+  const ability = get(abilityState);
   return {
-    hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && hasGoogleDriveAccess,
-    googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && !hasGoogleDriveAccess,
+    hasGoogleDriveAccess: !isChromeExtension && !isDesktop() && ability.can('access', 'GoogleDrive'),
+    googleShowUpgradeToPro: !isChromeExtension && !isDesktop() && ability.cannot('access', 'GoogleDrive'),
   };
 });
 

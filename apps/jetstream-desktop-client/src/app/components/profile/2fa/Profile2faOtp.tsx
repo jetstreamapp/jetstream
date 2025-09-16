@@ -151,8 +151,9 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
           <p>
             Or enter the following secret in your authenticator app: <span data-testid="totp-secret">{otp2fa.secretToken}</span>
           </p>
-          <Input label="Enter code">
+          <Input id="otp-code" label="Enter code">
             <input
+              id="otp-code"
               className="slds-input"
               value={twoFaCode}
               required

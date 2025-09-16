@@ -7,6 +7,7 @@ dotenv.config();
 const ONE_SECOND = 1000;
 const THIRTY_SECONDS = 30 * ONE_SECOND;
 
+// FIXME: ideally we could allow 333 or 4200, but the authentication pages are separate from the app. so we would need to sometimes go to 3333 and others to 4200
 // const baseURL = process.env.CI ? 'http://localhost:3333/' : 'http://localhost:4200/';
 const baseURL = 'http://localhost:3333/';
 

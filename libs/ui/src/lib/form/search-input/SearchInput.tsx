@@ -71,6 +71,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
 
   return (
     <Input
+      id={id}
       className={className}
       iconLeft="search"
       iconLeftType="utility"

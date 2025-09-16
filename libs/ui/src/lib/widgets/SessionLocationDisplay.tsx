@@ -1,6 +1,6 @@
 import { SessionIpData } from '@jetstream/auth/types';
 
-export function ProfileSessionLocation({ location }: { location: SessionIpData }) {
+export function SessionLocationDisplay({ location }: { location: SessionIpData }) {
   if (location.status !== 'success') {
     return null;
   }

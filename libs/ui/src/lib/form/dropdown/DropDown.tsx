@@ -26,6 +26,7 @@ import React, {
   useState,
 } from 'react';
 import OutsideClickHandler from '../../utils/OutsideClickHandler';
+import { ConditionalPortal } from '../../widgets/ConditionalPortal';
 import Icon from '../../widgets/Icon';
 
 export interface DropDownProps {
@@ -42,6 +43,8 @@ export interface DropDownProps {
   description?: string; // assistive text, ignored if buttonContent is provided
   initialSelectedId?: string;
   items: DropDownItem[];
+  usePortal?: boolean;
+  portalRef?: HTMLElement | null; // if usePortal is true, this is the optional element to render the dropdown into, otherwise will use the containerRef
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelected: (id: string, metadata?: any) => void;
 }
@@ -60,8 +63,11 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
   initialSelectedId,
   items,
   description,
+  usePortal = false,
+  portalRef,
   onSelected,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const keyBuffer = useRef(new KeyBuffer());
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const scrollLengthClass = useMemo<string | undefined>(
@@ -168,7 +174,10 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
 
   return (
     <OutsideClickHandler onOutsideClick={() => setIsOpen(false)}>
-      <div className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}>
+      <div
+        ref={containerRef}
+        className={classNames('slds-dropdown-trigger slds-dropdown-trigger_click', className, { 'slds-is-open': isOpen })}
+      >
         <button
           data-testid={testId}
           className={buttonClassName || 'slds-button slds-button_icon slds-button_icon-border-filled'}
@@ -198,57 +207,59 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
           )}
         </button>
         {isOpen && (
-          <div
-            className={classNames(
-              'slds-dropdown',
-              {
-                'slds-dropdown_left': position === 'left',
-                'slds-dropdown_right': position === 'right',
-              },
-              scrollLengthClass,
-              dropDownClassName,
-            )}
-          >
-            <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
-              {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
-                <Fragment key={id}>
-                  {subheader && (
-                    <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
-                      <span>{subheader}</span>
+          <ConditionalPortal usePortal={usePortal} portalRef={portalRef || containerRef.current}>
+            <div
+              className={classNames(
+                'slds-dropdown',
+                {
+                  'slds-dropdown_left': position === 'left',
+                  'slds-dropdown_right': position === 'right',
+                },
+                scrollLengthClass,
+                dropDownClassName,
+              )}
+            >
+              <ul className="slds-dropdown__list" role="menu" aria-label={actionText} ref={ulContainerEl}>
+                {items.map(({ id, subheader, value, icon, disabled, title, trailingDivider, metadata }, i) => (
+                  <Fragment key={id}>
+                    {subheader && (
+                      <li className="slds-dropdown__header slds-truncate" title={subheader} role="separator">
+                        <span>{subheader}</span>
+                      </li>
+                    )}
+                    <li className="slds-dropdown__item" role="presentation">
+                      <a
+                        ref={elRefs.current[i]}
+                        role="menuitem"
+                        tabIndex={0}
+                        onKeyDown={handleKeyDown}
+                        onClick={(event) => !disabled && handleSelection(event, id, metadata)}
+                        aria-disabled={disabled}
+                      >
+                        {isString(value) ? (
+                          <span className="slds-truncate" title={title || value}>
+                            {icon && (
+                              <Icon
+                                type={icon.type as IconType}
+                                icon={icon.icon as IconName}
+                                description={icon.description}
+                                omitContainer
+                                className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
+                              />
+                            )}
+                            {value}
+                          </span>
+                        ) : (
+                          value
+                        )}
+                      </a>
                     </li>
-                  )}
-                  <li className="slds-dropdown__item" role="presentation">
-                    <a
-                      ref={elRefs.current[i]}
-                      role="menuitem"
-                      tabIndex={0}
-                      onKeyDown={handleKeyDown}
-                      onClick={(event) => !disabled && handleSelection(event, id, metadata)}
-                      aria-disabled={disabled}
-                    >
-                      {isString(value) ? (
-                        <span className="slds-truncate" title={title || value}>
-                          {icon && (
-                            <Icon
-                              type={icon.type as IconType}
-                              icon={icon.icon as IconName}
-                              description={icon.description}
-                              omitContainer
-                              className="slds-icon slds-icon_x-small slds-icon-text-default slds-m-right_x-small"
-                            />
-                          )}
-                          {value}
-                        </span>
-                      ) : (
-                        value
-                      )}
-                    </a>
-                  </li>
-                  {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
-                </Fragment>
-              ))}
-            </ul>
-          </div>
+                    {trailingDivider && <li className="slds-has-divider_top-space" role="separator"></li>}
+                  </Fragment>
+                ))}
+              </ul>
+            </div>
+          </ConditionalPortal>
         )}
       </div>
     </OutsideClickHandler>

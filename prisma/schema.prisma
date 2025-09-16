@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../libs/prisma/src/lib/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../libs/prisma/src/lib/generated/prisma"
+  previewFeatures = ["typedSql"]
 }
 
 datasource db {
@@ -9,35 +10,48 @@ datasource db {
 }
 
 model User {
-  id                  String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   // TODO: we should deprecate this field - is there a purpose of having two user ids?
   // Might be nice to rename this to something like "legacyId" for reference
-  userId              String                  @unique @db.VarChar
+  userId            String    @unique @db.VarChar
   // TODO: we want to make this unique
-  email               String                  @db.VarChar
-  emailVerified       Boolean                 @default(false)
-  password            String?                 @db.VarChar
-  passwordUpdatedAt   DateTime?
-  name                String                  @db.VarChar
-  nickname            String?                 @db.VarChar
-  picture             String?                 @db.VarChar
-  appMetadata         Json?                   @db.Json
-  lastLoggedIn        DateTime?
-  createdAt           DateTime                @default(now()) @db.Timestamp(6)
-  updatedAt           DateTime                @updatedAt
-  preferences         UserPreference?
-  salesforceOrgs      SalesforceOrg[]
-  organizations       JetstreamOrganization[]
-  identities          AuthIdentity[]
+  email             String    @db.VarChar
+  emailVerified     Boolean   @default(false)
+  password          String?   @db.VarChar
+  passwordUpdatedAt DateTime?
+  name              String    @db.VarChar
+  nickname          String?   @db.VarChar
+  picture           String?   @db.VarChar
+  appMetadata       Json?     @db.Json
+  lastLoggedIn      DateTime?
+  createdAt         DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime  @updatedAt
+  hasPasswordSet    Boolean   @default(dbgenerated())
+
   authFactors         AuthFactors[]
+  billingAccount      BillingAccount?
+  entitlements        Entitlement?
+  identities          AuthIdentity[]
   loginActivity       LoginActivity[]
-  rememberedDevices   RememberedDevice[]
+  organizations       JetstreamOrganization[]
   passwordResetTokens PasswordResetToken[]
+  preferences         UserPreference?
+  rememberedDevices   RememberedDevice[]
+  salesforceOrgs      SalesforceOrg[]
   subscriptions       Subscription[]
   syncData            UserSyncData[]
+  teamMembership      TeamMember?
   webExtensionTokens  WebExtensionToken[]
-  entitlements        Entitlement?
-  billingAccount      BillingAccount?
+  // AuditLog            AuditLog[]
+
+  loginConfigurationCreatedBy   LoginConfiguration[]   @relation("LoginConfigurationCreatedBy")
+  loginConfigurationUpdatedBy   LoginConfiguration[]   @relation("LoginConfigurationUpdatedBy")
+  teamCreatedBy                 Team[]                 @relation("TeamCreatedBy")
+  teamUpdatedBy                 Team[]                 @relation("TeamUpdatedBy")
+  teamMemberCreatedBy           TeamMember[]           @relation("TeamMemberCreatedBy")
+  teamMemberUpdatedBy           TeamMember[]           @relation("TeamMemberUpdatedBy")
+  teamMemberInvitationCreatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationCreatedBy")
+  teamMemberInvitationUpdatedBy TeamMemberInvitation[] @relation("TeamMemberInvitationUpdatedBy")
 }
 
 model AuthFactors {
@@ -54,6 +68,88 @@ model AuthFactors {
   @@id([userId, type])
 }
 
+model Team {
+  id            String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name          String             @db.VarChar(255)
+  loginConfigId String             @unique @db.Uuid
+  loginConfig   LoginConfiguration @relation(fields: [loginConfigId], references: [id], onDelete: Cascade)
+  status        String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
+  billingStatus String             @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'PAST_DUE' | 'MANUAL'
+  createdAt     DateTime           @default(now())
+  createdById   String?            @db.Uuid
+  updatedAt     DateTime           @updatedAt
+  updatedById   String?            @db.Uuid
+
+  members        TeamMember[]
+  sharedOrgs     SalesforceOrg[]        @relation("TeamSharedOrgs")
+  subscriptions  TeamSubscription[]
+  billingAccount TeamBillingAccount?
+  invitations    TeamMemberInvitation[]
+  entitlements   TeamEntitlement?
+
+  createdByUser User? @relation("TeamCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("TeamUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("team")
+}
+
+enum Feature {
+  ALL
+  QUERY
+  UPDATE_RECORDS
+  AUTOMATION_CONTROL
+  PERMISSION_MANAGER
+  DEPLOYMENT
+  DEVELOPER_TOOLS
+}
+
+model TeamMember {
+  teamId   String    @db.Uuid
+  userId   String    @unique @db.Uuid
+  role     String    @default("MEMBER") @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
+  status   String    @default("ACTIVE") @db.VarChar(50) // 'ACTIVE' | 'INACTIVE'
+  features Feature[] @default([ALL])
+
+  createdAt   DateTime @default(now())
+  createdById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdByUser User? @relation("TeamMemberCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("TeamMemberUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@id([teamId, userId])
+  @@map("team_member")
+}
+
+model TeamMemberInvitation {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email      String    @db.VarChar(255)
+  teamId     String    @db.Uuid
+  role       String    @default("MEMBER") @db.VarChar(50) // 'ADMIN' | 'MEMBER' | 'BILLING'
+  features   Feature[] @default([ALL])
+  token      String    @unique @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  expiresAt  DateTime
+  lastSentAt DateTime
+
+  createdAt   DateTime @default(now())
+  createdById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  team          Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdByUser User? @relation("TeamMemberInvitationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("TeamMemberInvitationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, email], name: "uniqueTeamEmail", map: "unique_team_email")
+  // For listing and expiring
+  @@index([teamId, expiresAt])
+  @@map("team_member_invitation")
+}
+
 model LoginConfiguration {
   id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   domains              String[]       @default([]) @db.VarChar(255)
@@ -61,9 +157,16 @@ model LoginConfiguration {
   allowIdentityLinking Boolean        @default(true)
   allowedMfaMethods    AuthFactor[]   @default([otp, email])
   allowedProviders     AuthProvider[] @default([credentials, google, salesforce])
+  autoAddToTeam        Boolean        @default(false)
+  team                 Team?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  createdById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  createdByUser User? @relation("LoginConfigurationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedByUser User? @relation("LoginConfigurationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([domains])
   @@map("login_configuration")
@@ -105,6 +208,22 @@ model Entitlement {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("entitlement")
+}
+
+model TeamEntitlement {
+  id              String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teamId          String  @unique @db.Uuid
+  chromeExtension Boolean @default(false)
+  googleDrive     Boolean @default(false)
+  recordSync      Boolean @default(false)
+  desktop         Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("team_entitlement")
 }
 
 model WebExtensionToken {
@@ -184,6 +303,9 @@ model LoginActivity {
   errorMessage String?
   requestId    String?
   createdAt    DateTime @default(now())
+
+  // For queries filtering by userId and sorting by createdAt,id
+  @@index([userId, createdAt, id])
 }
 
 model EmailActivity {
@@ -235,10 +357,11 @@ model SalesforceApi {
 }
 
 model BillingAccount {
-  userId     String   @unique @db.Uuid
-  customerId String   @unique
-  createdAt  DateTime @default(now()) @db.Timestamp(6)
-  updatedAt  DateTime @updatedAt
+  userId        String   @unique @db.Uuid
+  customerId    String   @unique
+  manualBilling Boolean  @default(false)
+  createdAt     DateTime @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime @updatedAt
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
@@ -263,6 +386,41 @@ model Subscription {
 
   @@unique([userId, subscriptionId, priceId], name: "uniqueSubscription", map: "unique_subscription")
   @@map("subscription")
+}
+
+model TeamBillingAccount {
+  teamId            String   @unique @db.Uuid
+  customerId        String   @unique
+  manualBilling     Boolean  @default(false)
+  licenseCountLimit Int?
+  createdAt         DateTime @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime @updatedAt
+
+  team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  subscriptions TeamSubscription[]
+
+  @@unique([teamId, customerId], name: "uniqueCustomer", map: "unique_team_customer")
+  @@map("team_billing_account")
+}
+
+model TeamSubscription {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  teamId         String   @db.Uuid
+  customerId     String
+  productId      String?  @db.Uuid
+  subscriptionId String
+  priceId        String
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  team               Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamBillingAccount TeamBillingAccount @relation(fields: [customerId], references: [customerId], onDelete: Cascade)
+
+  @@unique([teamId, subscriptionId, priceId], name: "uniqueSubscription", map: "unique_team_subscription")
+  // Speeds filtering active/past-due by team
+  @@index([teamId, status])
+  @@map("team_subscription")
 }
 
 model SalesforceOrg {
@@ -298,6 +456,7 @@ model SalesforceOrg {
   label                   String?                @db.VarChar(100)
   orgOrganizationType     String?                @db.VarChar
   color                   String?                @db.VarChar(10)
+  Team                    Team[]                 @relation("TeamSharedOrgs")
 
   @@unique([jetstreamUserId2, uniqueId], name: "uniqueOrg", map: "unique_org")
   @@map("salesforce_org")
@@ -305,10 +464,15 @@ model SalesforceOrg {
 
 model sessions {
   sid    String   @id(map: "session_pkey") @db.VarChar
-  sess   Json     @db.Json
+  sess   Json     @db.JsonB
   expire DateTime @db.Timestamp(6)
 
+  // Generated from (sess->'user'->>'id')::uuid by the database
+  userId    String   @default(dbgenerated()) @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+
   @@index([expire], map: "IDX_session_expire")
+  @@index([userId, createdAt(sort: Desc), sid(sort: Desc)], map: "idx_sessions_user_expire_sid")
 }
 
 model AnalyticsSummary {

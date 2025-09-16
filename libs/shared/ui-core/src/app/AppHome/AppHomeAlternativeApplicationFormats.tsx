@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { Badge, Icon } from '@jetstream/ui';
-import { userProfileEntitlementState } from '@jetstream/ui/app-state';
+import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Link } from 'react-router-dom';
@@ -15,8 +15,9 @@ const IS_NEW =
 
 export const AppHomeAlternativeApplicationFormats = () => {
   const { trackEvent } = useAmplitude();
-  const hasExtensionAccess = useAtomValue(userProfileEntitlementState('chromeExtension'));
-  const hasDesktopAccess = useAtomValue(userProfileEntitlementState('desktop'));
+  const ability = useAtomValue(fromAppState.abilityState);
+  const hasExtensionAccess = ability.can('access', 'ChromeExtension');
+  const hasDesktopAccess = ability.can('access', 'Desktop');
 
   return (
     <div

@@ -1,4 +1,5 @@
 import { logger } from '@jetstream/api-config';
+import { Request } from '@jetstream/api-types';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
@@ -9,6 +10,7 @@ import { createHmac } from 'node:crypto';
 export const REMEMBER_DEVICE_DAYS = 30;
 
 const TIME_15_MIN = 60 * 15;
+const TIME_1_HOUR = 60 * 60;
 const REMEMBER_DEVICE_MAX_AGE = REMEMBER_DEVICE_DAYS * 24 * 60 * 60;
 
 export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
@@ -107,6 +109,16 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
       name: `jetstream-auth.redirect-url`,
       options: {
         httpOnly: false,
+        sameSite: 'lax',
+        path: '/',
+        secure: useSecureCookies,
+        maxAge: TIME_15_MIN,
+      },
+    },
+    teamInviteState: {
+      name: `jetstream-auth.team-invite`,
+      options: {
+        httpOnly: true,
         sameSite: 'lax',
         path: '/',
         secure: useSecureCookies,
@@ -223,6 +235,19 @@ export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSes
   };
 };
 
+export function getApiAddressFromReq(req: Request<unknown, unknown, unknown>) {
+  try {
+    const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    if (Array.isArray(ipAddress)) {
+      return ipAddress[ipAddress.length - 1];
+    }
+    return ipAddress;
+  } catch (ex) {
+    logger.error('Error fetching IP address', ex);
+    return `unknown-${new Date().getTime()}`;
+  }
+}
+
 /**
  * Generate an HMAC-based double CSRF token for session protection
  * Returns a token that can be used both as cookie and header value
@@ -243,7 +268,12 @@ export function generateHMACDoubleCSRFToken(secret: string, sessionId: string): 
  * Validate HMAC-based double CSRF token
  * The token from cookie and header must match and be valid
  */
-export function validateHMACDoubleCSRFToken(secret: string, cookieToken: string | undefined, headerToken: string | undefined, sessionId: string): boolean {
+export function validateHMACDoubleCSRFToken(
+  secret: string,
+  cookieToken: string | undefined,
+  headerToken: string | undefined,
+  sessionId: string,
+): boolean {
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     return false;
   }

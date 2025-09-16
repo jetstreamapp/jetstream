@@ -1,13 +1,13 @@
 import { ENV, getExceptionLog, logger, prisma, rollbarServer } from '@jetstream/api-config';
+import type { Response } from '@jetstream/api-types';
 import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/server';
-import { SalesforceOrg } from '@jetstream/prisma';
+import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
 import { serialize } from 'cookie';
 import * as express from 'express';
 import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import { Response } from '../types/types';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
 export async function healthCheck(req: express.Request, res: express.Response) {
@@ -217,6 +217,14 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
         message: err.message,
         data: err.additionalData,
       });
+    } else if (isPrismaError(err)) {
+      const message = getPrismaErrorMessage(err);
+      responseLogger.warn({ ...getExceptionLog(err), statusCode: 400 }, '[RESPONSE][ERROR][DATABASE]');
+      res.status(status || 400);
+      return res.json({
+        error: true,
+        message,
+      });
     } else if (err instanceof AuthenticationError) {
       // This error is emitted when a user attempts to make a request taht requires authentication, but the user is not logged in
       responseLogger.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
@@ -291,4 +299,21 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, message: 'Internal Server Error' });
   }
+}
+
+function getPrismaErrorMessage(
+  error: Prisma.PrismaClientKnownRequestError | Prisma.PrismaClientUnknownRequestError | Prisma.PrismaClientValidationError,
+) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const prismaError = toTypedPrismaError(error);
+    logger.error({ error: error.message, code: error.code }, '[DB][PRISMA][ERROR]');
+    if (prismaError.code === 'P2002') {
+      return `A record with the same unique field already exists.`;
+    } else if (prismaError.code === 'P2022') {
+      return `The requested record is ambiguous.`;
+    } else if (prismaError.code === 'P2025') {
+      return `The requested record does not exist.`;
+    }
+  }
+  return `An error occurred while processing your request.`;
 }

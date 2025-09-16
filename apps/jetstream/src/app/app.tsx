@@ -28,6 +28,7 @@ export const App = () => {
               <AppStateResetOnOrgChange />
               <AppToast />
               <LogInitializer />
+              {/* TODO: we don't need/want to show this for read only user (e.g. billing only user) */}
               <NotificationsRequestModal loadDelay={10000} />
               <DownloadFileStream />
               <ViewEditCloneRecordWrapper />

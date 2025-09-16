@@ -9,7 +9,5 @@ export const environment = {
   amplitudeToken: undefined,
   STRIPE_PUBLIC_KEY: '',
   BILLING_ENABLED: false,
-  STRIPE_PRO_ANNUAL_PRICE_ID: '',
-  STRIPE_PRO_MONTHLY_PRICE_ID: '',
   isWebExtension: false,
 };

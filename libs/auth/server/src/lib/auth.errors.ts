@@ -2,6 +2,7 @@ type ErrorType =
   | 'AuthError'
   | 'ExpiredVerificationToken'
   | 'IdentityLinkingNotAllowed'
+  | 'InactiveUser'
   | 'InvalidAccessToken'
   | 'InvalidAction'
   | 'InvalidCaptcha'
@@ -104,6 +105,10 @@ export class InvalidVerificationToken extends AuthError {
 
 export class InvalidOrExpiredResetToken extends AuthError {
   static type: ErrorType = 'InvalidOrExpiredResetToken';
+}
+
+export class InactiveUser extends AuthError {
+  static type: ErrorType = 'InactiveUser';
 }
 
 export class IdentityLinkingNotAllowed extends AuthError {

@@ -1,7 +1,9 @@
 import type { Query } from '@jetstreamapp/soql-parser-js';
+import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from './billing.types';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
+import { TeamBillingStatus, TeamMemberRole, TeamMemberStatus } from './team.types';
 
 export interface Announcement {
   id: string;
@@ -128,6 +130,23 @@ export interface UserProfileUi {
     priceId: string;
     status: 'ACTIVE' | 'CANCELED' | 'INCOMPLETE' | 'INCOMPLETE_EXPIRED' | 'PAST_DUE' | 'PAUSED' | 'TRIALING' | 'UNPAID';
   }[];
+  teamMembership?: {
+    role: TeamMemberRole;
+    status: TeamMemberStatus;
+    team: {
+      id: string;
+      name: string;
+      billingStatus: TeamBillingStatus;
+    };
+  } | null;
+}
+
+export interface SubscriptionsResponse {
+  customer: StripeUserFacingCustomer | null;
+  pricesByLookupKey: JetstreamPricesByLookupKey | null;
+  hasManualBilling: boolean;
+  didUpdate: boolean;
+  userProfile?: Maybe<UserProfileUi>;
 }
 
 export interface SalesforceUserInfo {

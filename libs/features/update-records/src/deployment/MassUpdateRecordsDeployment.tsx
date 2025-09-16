@@ -131,6 +131,7 @@ export const MassUpdateRecordsDeployment = () => {
             onChange={setSerialMode}
           />
           <Input
+            id="batch-size"
             label="Batch Size"
             isRequired={true}
             hasError={!!batchSizeError}

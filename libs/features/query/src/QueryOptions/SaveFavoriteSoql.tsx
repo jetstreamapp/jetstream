@@ -170,8 +170,9 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
                   </button>
                 </div>
                 <hr className="slds-m-vertical_x-small" />
-                <Input label="Saved Query Name" className="slds-grow" isRequired>
+                <Input id="saved-query-name" label="Saved Query Name" className="slds-grow" isRequired>
                   <input
+                    id="saved-query-name"
                     className="slds-input"
                     value={name}
                     placeholder="Choose a name"

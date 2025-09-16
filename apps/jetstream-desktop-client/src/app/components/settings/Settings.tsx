@@ -21,6 +21,7 @@ export const Settings = () => {
   const { trackEvent } = useAmplitude();
   const navigate = useNavigate();
   const setUserProfile = useSetAtom(fromAppState.userProfileState);
+  const ability = useAtomValue(fromAppState.abilityState);
   const [preferences, setPreferences] = useAtom(desktopUserPreferences);
   const [modifiedPreferences, setModifiedPreferences] = useState<DesktopUserPreferences>(() => ({ ...preferences }));
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
@@ -28,7 +29,7 @@ export const Settings = () => {
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
-  const recordSyncEnabled = useAtomValue(fromAppState.userProfileEntitlementState('recordSync'));
+  const recordSyncEnabled = ability.can('access', 'RecordSync');
 
   useEffect(() => {
     isMounted.current = true;
@@ -206,11 +207,12 @@ export const Settings = () => {
 
             <Grid verticalAlign="end">
               <Input
+                id="download-path"
                 label="Save Download Without Prompt Location"
                 labelHelp="Specify the location to download saved files to. If provided, the file save dialog will not be shown."
                 className="slds-grow"
               >
-                <input className="slds-input" value={modifiedPreferences?.fileDownload?.downloadPath || ''} disabled />
+                <input id="download-path" className="slds-input" value={modifiedPreferences?.fileDownload?.downloadPath || ''} disabled />
               </Input>
               <div className="slds-m-left_xx-small">
                 <button

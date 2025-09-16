@@ -10,10 +10,12 @@ import {
 import { GenericEmail } from './email-templates/auth/GenericEmail';
 import { PasswordResetConfirmationEmail } from './email-templates/auth/PasswordResetConfirmationEmail';
 import { PasswordResetEmail } from './email-templates/auth/PasswordResetEmail';
+import { TeamInvitation } from './email-templates/auth/TeamInvitationEmail';
 import { TwoStepVerificationEmail } from './email-templates/auth/TwoStepVerificationEmail';
 import { VerifyEmail } from './email-templates/auth/VerifyEmail';
 import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
 import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
+
 /**
  *
  * TODO:
@@ -186,4 +188,41 @@ export async function sendAuthenticationChangeConfirmation(
     text,
     html,
   });
+}
+
+export async function sendTeamInviteEmail({
+  emailAddress,
+  teamId,
+  teamName,
+  token,
+  expiresInDays,
+}: {
+  emailAddress: string;
+  teamId: string;
+  teamName: string;
+  token: string;
+  expiresInDays: number;
+}) {
+  try {
+    const component = (
+      <TeamInvitation
+        baseUrl={ENV.JETSTREAM_SERVER_URL}
+        teamId={teamId}
+        teamName={teamName}
+        token={token}
+        email={emailAddress}
+        expiresInDays={expiresInDays}
+      />
+    );
+    const [html, text] = await renderComponent(component);
+
+    await sendEmail({
+      to: emailAddress,
+      subject: `You're Invited to Join a Team on Jetstream`,
+      text,
+      html,
+    });
+  } catch (error) {
+    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending user feedback email');
+  }
 }

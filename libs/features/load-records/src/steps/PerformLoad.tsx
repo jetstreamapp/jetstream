@@ -248,6 +248,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         />
 
         <Input
+          id="batch-size"
           label="Batch Size"
           isRequired={true}
           hasError={!!batchSizeError || !!batchApiLimitError}
@@ -318,6 +319,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
             {trialRun && (
               <Input
+                id="trial-run-size"
                 label="Number of Records to load first"
                 isRequired={true}
                 hasError={!!trialRunSizeError}

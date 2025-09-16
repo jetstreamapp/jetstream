@@ -59,6 +59,7 @@ export const SalesforceApiUserInput: FunctionComponent<SalesforceApiUserInputPro
       </GridCol>
       <GridCol grow>
         <Input
+          id="url"
           label="URL Endpoint"
           isRequired
           labelHelp={`The URL entered will be appended to this org instance URL ${selectedOrg.instanceUrl}.`}

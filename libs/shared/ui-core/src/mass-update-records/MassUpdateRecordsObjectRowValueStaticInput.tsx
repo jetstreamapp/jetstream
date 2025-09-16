@@ -142,8 +142,9 @@ export const StaticInputContent: FunctionComponent<
         min-width: 240px;
       `}
     >
-      <Input label="Provided Value" isRequired>
+      <Input id="static-value-option" label="Provided Value" isRequired>
         <ControlledInput
+          id="static-value-option"
           className="slds-input"
           placeholder="Value to set on each record"
           value={value}
