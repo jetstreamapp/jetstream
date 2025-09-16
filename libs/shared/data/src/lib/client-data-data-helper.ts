@@ -131,6 +131,17 @@ export async function handleRequest<T = any>(config: AxiosRequestConfig, options
   return response.data;
 }
 
+export function getCsrfTokenFromCookie(): string | null {
+  try {
+    const cookieName = `${document.location.protocol === 'https:' ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`;
+    const cookieToken = getCookie(cookieName);
+    return cookieToken;
+  } catch (error) {
+    logger.warn('[CSRF] Failed to read CSRF token cookie', error);
+    return null;
+  }
+}
+
 /**
  * Handle requests
  * Add authentication and org info
@@ -151,8 +162,7 @@ function requestInterceptor<T>(options: RequestOptions) {
     // The server validates that the cookie and header values match (double submit pattern)
     if (typeof document !== 'undefined' && config.url) {
       try {
-        const cookieName = `${document.location.protocol === 'https:' ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`;
-        const cookieToken = getCookie(cookieName);
+        const cookieToken = getCsrfTokenFromCookie();
 
         if (cookieToken) {
           config.headers[HTTP.HEADERS.X_CSRF_TOKEN] = cookieToken;

@@ -1,4 +1,5 @@
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { ANALYTICS_KEYS, HTTP } from '@jetstream/shared/constants';
+import { getCsrfTokenFromCookie } from '@jetstream/shared/data';
 import { StripeUserFacingCustomer } from '@jetstream/types';
 import { FeedbackLink } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
@@ -12,6 +13,7 @@ interface BillingExistingSubscriptionsProps {
 
 export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: BillingExistingSubscriptionsProps) => {
   const { trackEvent } = useAmplitude();
+  const [csrfToken] = useState(() => getCsrfTokenFromCookie());
   const [selectedPlan, setSelectedPlan] = useState<string | null>(
     () => customerWithSubscriptions.subscriptions.find((sub) => sub.status === 'ACTIVE')?.items[0].priceId || null,
   );
@@ -44,6 +46,7 @@ export const BillingExistingSubscriptions = ({ customerWithSubscriptions }: Bill
           {/* <BillingPlanCard descriptionTitle="Team - Annual" price="Coming Soon" priceDescription="Billed Annually" disabled /> */}
         </div>
         <form method="POST" action="/api/billing/portal" target="_blank" className="slds-m-bottom_x-small">
+          {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
           <p className="slds-text-body_small">
             To change plans, visit the
             <button className="slds-button slds-m-left_xx-small">billing portal</button>.

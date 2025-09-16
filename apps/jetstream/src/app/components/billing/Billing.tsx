@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
-import { getSubscriptions } from '@jetstream/shared/data';
+import { ANALYTICS_KEYS, HTTP, TITLES } from '@jetstream/shared/constants';
+import { getCsrfTokenFromCookie, getSubscriptions } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import { StripeUserFacingCustomer } from '@jetstream/types';
@@ -40,6 +40,7 @@ export const Billing = () => {
     hasActiveSubscriptions: false,
   });
   const [searchParams, setSearchParams] = useSearchParams();
+  const [csrfToken] = useState(() => getCsrfTokenFromCookie());
 
   const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
@@ -104,6 +105,7 @@ export const Billing = () => {
               target="_blank"
               onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_portal, { action: 'click', location: 'cta_button' })}
             >
+              {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
               <p className="slds-text-heading_small">Visit the Billing Portal to manage your billing information</p>
               <ul className="slds-list_dotted slds-m-bottom_small">
                 <li>Change plans</li>
@@ -166,6 +168,7 @@ export const Billing = () => {
               action="/api/billing/checkout-session"
               onSubmit={() => trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan })}
             >
+              {csrfToken && <input type="hidden" name={HTTP.BODY.CSRF_TOKEN} value={csrfToken} />}
               <fieldset className="slds-form-element" role="radiogroup">
                 <legend className="slds-form-element__legend slds-form-element__label">Select a plan</legend>
                 <div className="slds-form-element__control">

@@ -33,6 +33,9 @@ export const HTTP = {
     JETSTREAM: 'jetstream',
     CSRF_SUFFIX: 'jetstream-csrf' as const,
   },
+  BODY: {
+    CSRF_TOKEN: 'csrfToken',
+  },
   HEADERS: {
     ACCEPT: 'Accept',
     AUTHORIZATION: 'Authorization',
