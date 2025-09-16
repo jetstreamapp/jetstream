@@ -92,8 +92,9 @@ export const QueryFieldFunctionRow = ({
           placement="bottom"
           content={
             <div className="slds-popover__body slds-p-around_none">
-              <Input label="Alias" clearButton={!!alias} onClear={() => setAlias(null)}>
+              <Input id="field-alias" label="Alias" clearButton={!!alias} onClear={() => setAlias(null)}>
                 <input
+                  id="field-alias"
                   className="slds-input"
                   value={alias || ''}
                   onChange={(event) => setAlias(event.target.value.replace(REGEX.NOT_ALPHANUMERIC, ''))}

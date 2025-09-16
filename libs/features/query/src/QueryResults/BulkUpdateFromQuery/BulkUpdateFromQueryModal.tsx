@@ -358,6 +358,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
             onChange={setSerialMode}
           />
           <Input
+            id="batch-size"
             label="Batch Size"
             isRequired={true}
             hasError={!!batchSizeError}

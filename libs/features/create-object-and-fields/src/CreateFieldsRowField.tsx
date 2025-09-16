@@ -226,6 +226,7 @@ export const CreateFieldsRowField = forwardRef<unknown, CreateFieldsRowFieldProp
           >
             {loadingValues && <Spinner size="small" />}
             <Input
+              id={`${id}-${field.label}`}
               label={field.label}
               isRequired={field.required}
               helpText={typeof field.helpText === 'function' ? field.helpText(allValues.type.value as SalesforceFieldType) : field.helpText}

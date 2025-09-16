@@ -372,6 +372,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           />
         )}
         <Input
+          id="download-filename"
           label="Filename"
           isRequired
           rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}

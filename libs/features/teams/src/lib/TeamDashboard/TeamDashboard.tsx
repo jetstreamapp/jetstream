@@ -26,7 +26,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { abilityState, fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -44,6 +44,7 @@ const HEIGHT_BUFFER = 170;
 
 export function TeamDashboard() {
   useTitle(TITLES.TEAM);
+  const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<TeamUserFacing>();
   const [loginConfiguration, setLoginConfiguration] = useState<TeamLoginConfig>();
@@ -55,6 +56,9 @@ export function TeamDashboard() {
   const [teamSessionModalOpen, setTeamSessionModalOpen] = useState(false);
   const [teamAuthActivityModalOpen, setTeamAuthActivityModalOpen] = useState(false);
   const [teamMemberUpdateState, setTeamMemberUpdateState] = useState<TeamMemberEditModalState>({ open: false });
+
+  const canReadAuthActivity = ability.can('read', 'TeamMemberAuthActivity');
+  const canReadSession = ability.can('read', 'TeamMemberSession');
 
   const hasManualBilling = !!team?.billingAccount?.manualBilling;
 
@@ -142,6 +146,7 @@ export function TeamDashboard() {
                       <p className="slds-m-top_x-small">
                         Are you sure you want to deactivate <strong>{action.member.user.name}</strong>?
                       </p>
+                      <p>After deactivating, all sessions will be revoked and this user will no longer be able to login to Jetstream.</p>
                     </>
                   ),
                 })
@@ -226,8 +231,10 @@ export function TeamDashboard() {
           }}
         />
       )}
-      {team && teamSessionModalOpen && <TeamMemberSessionModal teamId={team.id} onClose={() => setTeamSessionModalOpen(false)} />}
-      {team && teamAuthActivityModalOpen && (
+      {canReadSession && team && teamSessionModalOpen && (
+        <TeamMemberSessionModal teamId={team.id} onClose={() => setTeamSessionModalOpen(false)} />
+      )}
+      {canReadAuthActivity && team && teamAuthActivityModalOpen && (
         <TeamMemberAuthActivityModal teamId={team.id} onClose={() => setTeamAuthActivityModalOpen(false)} />
       )}
       {team && teamMemberUpdateState.open && (
@@ -287,7 +294,7 @@ export function TeamDashboard() {
             </>
           )}
 
-          <div className="slds-m-bottom_medium">
+          <div data-testid="team-login-configuration-container" className="slds-m-bottom_medium">
             {loginConfiguration && (
               <TeamLoginConfiguration
                 key={loginConfigurationKey}
@@ -297,7 +304,7 @@ export function TeamDashboard() {
             )}
           </div>
 
-          <div className="slds-m-bottom_medium">
+          <div data-testid="team-member-table-container" className="slds-m-bottom_medium">
             {team && (
               <TeamMembersTable
                 loginConfiguration={team.loginConfig}

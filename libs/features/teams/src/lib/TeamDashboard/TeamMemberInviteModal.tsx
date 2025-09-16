@@ -35,6 +35,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
 
   return (
     <Modal
+      testId="team-member-invite-modal"
       header="Invite Team Member"
       onClose={onClose}
       footer={
@@ -96,6 +97,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
         />
 
         <Input
+          id="invite-email"
           label="Email Address"
           isRequired
           hasError={invalidEmail}
@@ -103,6 +105,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
           errorMessage="Please enter a valid email address"
         >
           <input
+            id="invite-email"
             className="slds-input"
             value={email}
             onChange={(event) => setEmail(event.target.value)}

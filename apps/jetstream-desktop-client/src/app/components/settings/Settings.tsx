@@ -207,11 +207,12 @@ export const Settings = () => {
 
             <Grid verticalAlign="end">
               <Input
+                id="download-path"
                 label="Save Download Without Prompt Location"
                 labelHelp="Specify the location to download saved files to. If provided, the file save dialog will not be shown."
                 className="slds-grow"
               >
-                <input className="slds-input" value={modifiedPreferences?.fileDownload?.downloadPath || ''} disabled />
+                <input id="download-path" className="slds-input" value={modifiedPreferences?.fileDownload?.downloadPath || ''} disabled />
               </Input>
               <div className="slds-m-left_xx-small">
                 <button

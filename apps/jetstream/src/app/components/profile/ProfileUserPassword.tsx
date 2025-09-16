@@ -144,12 +144,14 @@ function SetPassword({ username, onSetPassword }: { username: string; onSetPassw
 
         <FormRowItem>
           <Input
+            id="password"
             label="Password"
             className="slds-form-element_horizontal slds-is-editing"
             hasError={!!errors?.password?.message}
             errorMessage={errors?.password?.message}
           >
             <input
+              id="password"
               className="slds-input"
               required
               type="password"
@@ -163,12 +165,14 @@ function SetPassword({ username, onSetPassword }: { username: string; onSetPassw
 
         <FormRowItem>
           <Input
+            id="confirm-password"
             label="Confirm"
             hasError={!!errors?.confirmPassword?.message}
             errorMessage={errors?.confirmPassword?.message}
             className="slds-form-element_horizontal slds-is-editing"
           >
             <input
+              id="confirm-password"
               className="slds-input"
               required
               type="password"

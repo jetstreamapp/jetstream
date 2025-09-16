@@ -49,6 +49,7 @@ import {
   sendWelcomeEmail,
 } from '@jetstream/email';
 import { ensureBoolean } from '@jetstream/shared/utils';
+import { Maybe } from '@jetstream/types';
 import { parse as parseCookie } from 'cookie';
 import { addMinutes } from 'date-fns/addMinutes';
 import { z } from 'zod';
@@ -315,6 +316,9 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
 const callback = createRoute(
   routeDefinition.callback.validators,
   async ({ body, params, query, setCookie, clearCookie }, req, res, next) => {
+    // TODO: we need to look at team invite - ensure provider is allowed and auto-join team
+    // TODO: handle the sign up process if we need to
+
     let provider: Provider | null = null;
     try {
       const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
@@ -339,12 +343,23 @@ const callback = createRoute(
         returnUrl: returnUrlCookie,
         rememberDevice,
         redirectUrl: redirectUrlCookie,
+        teamInviteState,
       } = getCookieConfig(ENV.USE_SECURE_COOKIES);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const cookies = parseCookie(req.headers.cookie!);
       clearOauthCookies(res);
 
       const returnUrl = returnUrlQuery || cookies[returnUrlCookie.name] || null;
+
+      let teamInvite: Maybe<{ token: string; teamId: string }>;
+      if (cookies[teamInviteState.name]) {
+        const teamInviteParams = new URLSearchParams(cookies[teamInviteState.name]);
+        const token = teamInviteParams.get('token');
+        const teamId = teamInviteParams.get('teamId');
+        if (token && teamId) {
+          teamInvite = { token, teamId };
+        }
+      }
 
       if (provider.type === 'oauth') {
         // oauth flow
@@ -401,6 +416,7 @@ const callback = createRoute(
         }
 
         const sessionData = await handleSignInOrRegistration({
+          teamInvite,
           providerType: provider.type,
           provider: provider.provider,
           providerUser,
@@ -418,12 +434,14 @@ const callback = createRoute(
         const sessionData =
           action === 'login'
             ? await handleSignInOrRegistration({
+                teamInvite,
                 providerType: 'credentials',
                 action,
                 email,
                 password,
               })
             : await handleSignInOrRegistration({
+                teamInvite,
                 providerType: 'credentials',
                 action,
                 email,
@@ -440,6 +458,12 @@ const callback = createRoute(
 
       if (!req.session.user) {
         throw new AuthError('Session not initialized');
+      }
+
+      // Clear team invite cookies if user was added to team
+      if (teamInviteState && req.session.user?.teamMembership) {
+        clearCookie(teamInviteState.name, teamInviteState.options);
+        clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
       }
 
       // check for remembered device - emailVerification cannot be bypassed
@@ -604,6 +628,10 @@ const verification = createRoute(
       }
 
       let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+
+      /**
+       * FIXME: if the user invite works correctly, then we don't need to redirect
+       */
 
       if (cookies[cookieConfig.redirectUrl.name]) {
         const redirectValue = cookies[cookieConfig.redirectUrl.name];

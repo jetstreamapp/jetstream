@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { prisma } from '@jetstream/api-config';
+import { logger, prisma } from '@jetstream/api-config';
 import { clearLoginConfigurationCacheItem } from '@jetstream/auth/server';
-import { UserProfileSession } from '@jetstream/auth/types';
+import { SessionData, UserProfileSession } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import {
   BILLABLE_ROLES,
@@ -29,7 +29,7 @@ import {
   TeamUserFacingSchema,
 } from '@jetstream/types';
 import { addDays, endOfDay } from 'date-fns';
-import { isString } from 'lodash';
+import { groupBy, isString } from 'lodash';
 import { NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export const TEAM_INVITE_EXPIRES_DAYS = 14;
@@ -504,6 +504,74 @@ export const updateLoginConfiguration = async ({
   return findById({ teamId: team.id, runningUserId });
 };
 
+export async function revokeSessionThatViolateLoginConfiguration({ teamId, skipUserIds }: { teamId: string; skipUserIds?: string[] }) {
+  const team = await prisma.team.findFirstOrThrow({
+    select: {
+      loginConfig: {
+        select: {
+          allowedMfaMethods: true,
+          allowedProviders: true,
+          requireMfa: true,
+        },
+      },
+      members: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              authFactors: { select: { type: true, enabled: true } },
+              identities: { select: { provider: true } },
+            },
+          },
+        },
+        where: { userId: { notIn: skipUserIds || [] } },
+      },
+    },
+    where: { id: teamId },
+  });
+
+  if (!team.loginConfig) {
+    return;
+  }
+
+  const { loginConfig, members } = team;
+
+  const userIds = members.map(({ userId }) => userId);
+  const sessions = await prisma.sessions.findMany({ where: { userId: { in: userIds } } }).then((sessions) =>
+    sessions.map((session) => ({
+      ...session,
+      sess: session.sess as unknown as SessionData,
+    })),
+  );
+
+  const sessionsByUserId = groupBy(sessions, 'userId');
+  const sessionsToRevoke = new Set<string>();
+
+  const allowedProviders = new Set(loginConfig.allowedProviders);
+
+  // Revoke all user sessions that are logged in with a provider that is no longer allowed
+  sessions.forEach((session) => {
+    if (!isString(session.sess.provider) || !allowedProviders.has(session.sess.provider)) {
+      sessionsToRevoke.add(session.sid);
+    }
+  });
+
+  // Revoke user sessions for users that do not have a valid mfa factor
+  if (loginConfig.requireMfa) {
+    const allowedAuthFactors = new Set(loginConfig.allowedMfaMethods.map((provider) => `2fa-${provider}`));
+    members
+      .filter((teamMember) => !teamMember.user.authFactors.some((factor) => factor.enabled && allowedAuthFactors.has(factor.type)))
+      .forEach((teamMember) => {
+        (sessionsByUserId[teamMember.userId] || []).forEach((session) => sessionsToRevoke.add(session.sid));
+      });
+  }
+
+  if (sessionsToRevoke.size > 0) {
+    logger.info(`Revoking ${sessionsToRevoke.size} sessions for team ${teamId} that violate login configuration`);
+    await prisma.sessions.deleteMany({ where: { sid: { in: Array.from(sessionsToRevoke) } } });
+  }
+}
+
 export async function updateTeamMemberRole({
   teamId,
   userId,
@@ -811,6 +879,9 @@ export async function verifyTeamInvitation({
   };
 }
 
+/**
+ * NOTE: there is also a path in auth.db.service - ideally we combine to remove code duplication
+ */
 export async function acceptTeamInvitation({ user, teamId, token }: { user: UserProfileSession; teamId: string; token: string }): Promise<{
   /**
    * Indicates if billing needs to be updated due to this action

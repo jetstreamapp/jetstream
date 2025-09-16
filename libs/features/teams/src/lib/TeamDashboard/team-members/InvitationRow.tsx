@@ -16,7 +16,7 @@ export const TeamInviteRow = ({
   onUserAction: TeamMembersTableProps['onUserAction'];
 }) => {
   return (
-    <tr data-testid={`user-row-${invitation.id}`}>
+    <tr data-testid={`team-member-row-invite-${invitation.email}`}>
       <td
         role="gridcell"
         css={css`

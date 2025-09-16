@@ -1,5 +1,12 @@
 import { AbilityBuilder, createMongoAbility, type CreateAbility, type MongoAbility } from '@casl/ability';
-import { TeamBillingStatusSchema, TeamUserFacing, type UserProfileUi } from '@jetstream/types';
+import {
+  TeamBillingStatusSchema,
+  TeamMemberRole,
+  TeamMemberRoleSchema,
+  TeamMemberStatusSchema,
+  TeamUserFacing,
+  type UserProfileUi,
+} from '@jetstream/types';
 
 type Actions = 'read' | 'update';
 // TODO: granular app access
@@ -9,13 +16,24 @@ type EntitlementActions = 'access';
 type EntitlementSubjects = 'GoogleDrive' | 'ChromeExtension' | 'Desktop' | 'RecordSync';
 
 type TeamActions = 'read' | 'update';
-type TeamSubjects = 'Team' | 'TeamUserSessions' | 'TeamAuthActivity' | 'TeamMember';
+type TeamSubjects = 'Team' | 'TeamMember' | { type: 'TeamMember'; role: TeamMemberRole };
 
 type TeamMemberActions = 'invite';
 type TeamMemberSubjects = 'TeamMember' | { type: 'TeamMember'; billingStatus: TeamUserFacing['billingStatus']; availableLicenses: number };
 
+type TeamMemberSessionActions = 'read' | 'delete';
+type TeamMemberSessionSubjects = 'TeamMemberSession';
+
+type TeamMemberAuthActivityActions = 'read';
+type TeamMemberAuthActivitySubjects = 'TeamMemberAuthActivity';
+
 export type AppAbility = MongoAbility<
-  [Actions, Subjects] | [EntitlementActions, EntitlementSubjects] | [TeamActions, TeamSubjects] | [TeamMemberActions, TeamMemberSubjects]
+  | [Actions, Subjects]
+  | [EntitlementActions, EntitlementSubjects]
+  | [TeamActions, TeamSubjects]
+  | [TeamMemberActions, TeamMemberSubjects]
+  | [TeamMemberSessionActions, TeamMemberSessionSubjects]
+  | [TeamMemberAuthActivityActions, TeamMemberAuthActivitySubjects]
 >;
 
 const createAppAbility = createMongoAbility as CreateAbility<AppAbility>;
@@ -40,9 +58,9 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
   }
 
   const isWebApp = !isBrowserExtension && !isDesktop;
-  const activeTeamMembership = user.teamMembership?.status === 'ACTIVE';
-  const isBillingRole = user.teamMembership?.role === 'BILLING';
-  const isAdminRole = user.teamMembership?.role === 'ADMIN';
+  const activeTeamMembership = user.teamMembership?.status === TeamMemberStatusSchema.Enum.ACTIVE;
+  const isBillingRole = user.teamMembership?.role === TeamMemberRoleSchema.Enum.BILLING;
+  const isAdminRole = user.teamMembership?.role === TeamMemberRoleSchema.Enum.ADMIN;
   const isTeamsBillingOrAdmin = isBillingRole || isAdminRole;
 
   // core settings, may be removed later
@@ -62,11 +80,21 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
       can(['read', 'update'], 'Billing');
     }
 
-    if (activeTeamMembership && isTeamsBillingOrAdmin) {
-      can(['read', 'update'], ['Team', 'TeamAuthActivity', 'TeamUserSessions', 'TeamMember']);
-      can('invite', 'TeamMember');
-      cannot('invite', 'TeamMember', { billingStatus: TeamBillingStatusSchema.Enum.PAST_DUE });
-      cannot('invite', 'TeamMember', { availableLicenses: { $lte: 0 } });
+    if (activeTeamMembership) {
+      if (isTeamsBillingOrAdmin) {
+        can(['read'], ['Team', 'TeamMemberSession', 'TeamMemberAuthActivity', 'TeamMember']);
+        can('update', ['Team', 'TeamMember']);
+
+        can('invite', 'TeamMember');
+        cannot('invite', 'TeamMember', { billingStatus: TeamBillingStatusSchema.Enum.PAST_DUE });
+        cannot('invite', 'TeamMember', { availableLicenses: { $lte: 0 } });
+      }
+      if (isBillingRole) {
+        cannot('update', 'TeamMember', { role: TeamMemberRoleSchema.Enum.ADMIN });
+      }
+      if (isAdminRole) {
+        can('delete', 'TeamMemberSession');
+      }
     }
   }
 

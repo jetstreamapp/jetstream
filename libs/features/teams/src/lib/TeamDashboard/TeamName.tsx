@@ -39,7 +39,7 @@ export function TeamName({ team, onSave }: { team: TeamUserFacing; onSave: (name
   }
 
   return (
-    <Form className="slds-m-bottom_x-small" css={{ maxWidth: '200px' }}>
+    <Form data-testid="team-name-form" className="slds-m-bottom_x-small" css={{ maxWidth: '200px' }}>
       <FormRow>
         <FormRowItem>
           {!editMode && (
@@ -49,12 +49,14 @@ export function TeamName({ team, onSave }: { team: TeamUserFacing; onSave: (name
           )}
           {editMode && (
             <Input
+              id="team-name"
               className="slds-is-editing"
               label="Name"
               hasError={invalidName}
               errorMessage="Your name must be between 2 and 255 characters"
             >
               <input
+                id="team-name"
                 className="slds-input"
                 value={value}
                 minLength={2}

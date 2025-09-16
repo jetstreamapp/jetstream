@@ -72,6 +72,38 @@ describe('acl', () => {
       expect(ability.can('read', 'Settings')).toBe(false);
       expect(ability.can('update', 'Settings')).toBe(false);
       expect(ability.can('update', 'Team')).toBe(true);
+      expect(ability.can('delete', 'TeamMemberSession')).toBe(false);
+    });
+
+    describe('team permissions', () => {
+      const user: UserProfileUi = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        emailVerified: true,
+        picture: null,
+        userId: '1',
+        preferences: { skipFrontdoorLogin: false, recordSyncEnabled: false },
+        entitlements: { googleDrive: false, chromeExtension: false, desktop: false, recordSync: false },
+        subscriptions: [],
+        teamMembership: {
+          role: 'ADMIN',
+          status: 'ACTIVE',
+          team: { id: '1', name: 'Test Team', billingStatus: 'ACTIVE' },
+        },
+      };
+
+      it('should grant full permissions to admin users', () => {
+        const ability = getUserAbility({ user });
+        expect(ability.can('read', 'Team')).toBe(true);
+        expect(ability.can('read', 'TeamMemberSession')).toBe(true);
+        expect(ability.can('read', 'TeamMemberAuthActivity')).toBe(true);
+        expect(ability.can('read', 'TeamMember')).toBe(true);
+        expect(ability.can('update', 'Team')).toBe(true);
+        expect(ability.can('update', 'TeamMember')).toBe(true);
+        expect(ability.can('invite', 'TeamMember')).toBe(true);
+        expect(ability.can('delete', 'TeamMemberSession')).toBe(true);
+      });
     });
 
     describe('web app permissions', () => {

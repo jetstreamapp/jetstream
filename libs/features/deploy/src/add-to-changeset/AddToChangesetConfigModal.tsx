@@ -212,6 +212,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
               )}
               {changesetEntryType === 'manual' && (
                 <Input
+                  id="changeset-name"
                   label="Changeset"
                   isRequired
                   labelHelp="This is case-sensitive and must match the exact name of the outbound changeset or package in Salesforce"

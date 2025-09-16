@@ -3,8 +3,10 @@ import { TwoFactorTypeWithoutEmail } from '@jetstream/auth/types';
 import { orderObjectsBy } from '@jetstream/shared/utils';
 import { DropDownItem, TeamLoginConfig, TeamUserAction, TeamUserFacing } from '@jetstream/types';
 import { Badge, DropDown, Grid, GridCol, Icon, Tooltip } from '@jetstream/ui';
+import { abilityState } from '@jetstream/ui/app-state';
 import { isValid } from 'date-fns/isValid';
 import { parseISO } from 'date-fns/parseISO';
+import { useAtomValue } from 'jotai';
 import { useMemo } from 'react';
 import { TeamMembersTableProps } from './TeamMembersTable';
 
@@ -15,7 +17,6 @@ export const TeamMemberRow = ({
   allowIdentityLinking,
   member,
   isCurrentUser,
-  canUpdate,
   onUserAction,
 }: {
   allowedMfaMethods: Set<TeamLoginConfig['allowedMfaMethods'][number]>;
@@ -24,11 +25,12 @@ export const TeamMemberRow = ({
   allowIdentityLinking: TeamLoginConfig['allowIdentityLinking'];
   member: TeamUserFacing['members'][number];
   isCurrentUser: boolean;
-  canUpdate: boolean;
   onUserAction: TeamMembersTableProps['onUserAction'];
 }) => {
+  const ability = useAtomValue(abilityState);
+  const canUpdate = ability.can('update', { type: 'TeamMember', role: member.role });
   return (
-    <tr data-testid={`user-row-${member.userId}`}>
+    <tr data-testid={`team-member-row-${member.userId}`}>
       <td
         role="gridcell"
         css={css`
@@ -168,7 +170,7 @@ const MfaTypes = ({
         </Tooltip>
       )}
       {enabled2faTypes.map((type) => (
-        <GridCol className="slds-p-bottom_xx-small" key={type}>
+        <GridCol data-testid={`mfa-type-${type}`} className="slds-p-bottom_xx-small" key={type}>
           <Badge type="light">{type === '2fa-otp' ? 'Authenticator App' : type === '2fa-email' ? 'Email' : type}</Badge>
           {requireMfa && !allowedMfaMethods.has(type.split('-')[1] as TeamLoginConfig['allowedMfaMethods'][number]) && (
             <Tooltip content="This MFA method is not allowed, the user will be asked to enroll if they don't have another allowed MFA type.">

@@ -124,12 +124,12 @@ export class AuthenticationPage {
     return `PWD-${new Date().getTime()}!${randomBytes(8).toString('hex')}`;
   }
 
-  async signUpWithoutEmailVerification(emailOverride?: string) {
+  async signUpWithoutEmailVerification(emailOverride?: string, initialLoginPage?: string) {
     const email = emailOverride || this.generateTestEmail();
     const name = this.generateTestName();
     const password = this.generateTestPassword();
 
-    await this.fillOutSignUpForm(email, name, password, password);
+    await this.fillOutSignUpForm(email, name, password, password, initialLoginPage);
 
     await expect(this.page.getByText('Verify your email address')).toBeVisible();
 
@@ -143,8 +143,8 @@ export class AuthenticationPage {
     };
   }
 
-  async signUpAndVerifyEmail() {
-    const { email, name, password } = await this.signUpWithoutEmailVerification();
+  async signUpAndVerifyEmail(emailOverride?: string, initialLoginPage?: string) {
+    const { email, name, password } = await this.signUpWithoutEmailVerification(emailOverride, initialLoginPage);
 
     // ensure email verification was sent
     await verifyEmailLogEntryExists(email, 'Verify your email');
@@ -174,8 +174,8 @@ export class AuthenticationPage {
     };
   }
 
-  async signUpAndVerifyEmailPauseBeforeEnrollInOtp(emailOverride?: string) {
-    const { email, name, password } = await this.signUpWithoutEmailVerification(emailOverride);
+  async signUpAndVerifyEmailPauseBeforeEnrollInOtp(emailOverride?: string, initialLoginPage?: string) {
+    const { email, name, password } = await this.signUpWithoutEmailVerification(emailOverride, initialLoginPage);
 
     // ensure email verification was sent
     await verifyEmailLogEntryExists(email, 'Verify your email');
@@ -204,13 +204,32 @@ export class AuthenticationPage {
     };
   }
 
+  async enrollInOtpForLoggedInUser() {
+    const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
+    const { generateTOTP } = await import('@oslojs/otp');
+    // go to profile page
+    await this.page.getByRole('button', { name: 'Avatar' }).click();
+    await this.page.getByRole('menuitem', { name: 'Profile' }).click();
+    // Setup TOTP MFA
+    await this.page.getByRole('button', { name: 'Set Up' }).click();
+    const secret = await this.page.getByTestId('totp-secret').innerText();
+    // save a valid token
+    await this.page.getByTestId('settings-page').getByRole('textbox').click();
+    const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
+    await this.page.getByTestId('settings-page').getByRole('textbox').fill(code);
+    await this.page.getByRole('button', { name: 'Save' }).click();
+    await expect(this.page.getByRole('heading', { name: 'Authenticator App Active' }).locator('span')).toBeVisible();
+
+    return secret;
+  }
+
   async enrollInOtp(email: string) {
     const { decodeBase32IgnorePadding } = await import('@oslojs/encoding');
     const { generateTOTP } = await import('@oslojs/otp');
 
     await expect(this.page.getByRole('heading', { name: 'Scan the QR code with your' })).toBeVisible();
     const { pendingMfaEnrollment } = await getUserSessionByEmail(email);
-    await expect(pendingMfaEnrollment?.factor).toBeTruthy();
+    expect(pendingMfaEnrollment?.factor).toBeTruthy();
 
     const secret = await this.page.getByTestId('totp-secret').textContent();
     const code = await generateTOTP(decodeBase32IgnorePadding(secret), 30, 6);
@@ -223,8 +242,8 @@ export class AuthenticationPage {
     return { secret };
   }
 
-  async signUpAndVerifyEmailAndEnrollInOtp(emailOverride?: string) {
-    const { email, name, password } = await this.signUpAndVerifyEmailPauseBeforeEnrollInOtp(emailOverride);
+  async signUpAndVerifyEmailAndEnrollInOtp(emailOverride?: string, initialLoginPage?: string) {
+    const { email, name, password } = await this.signUpAndVerifyEmailPauseBeforeEnrollInOtp(emailOverride, initialLoginPage);
 
     const { secret } = await this.enrollInOtp(email);
 
@@ -238,7 +257,7 @@ export class AuthenticationPage {
     };
   }
 
-  async loginAndVerifyEmail(email: string, password: string, rememberMe = false) {
+  async loginAndVerifyEmail(email: string, password: string, rememberMe = false, waitForPage = '**/app') {
     await this.fillOutLoginForm(email, password);
 
     await expect(this.page.getByText('Enter verification code')).toBeVisible();
@@ -247,7 +266,7 @@ export class AuthenticationPage {
     // ensure email verification was sent
     await verifyEmailLogEntryExists(email, 'Verify your identity');
 
-    await this.verifyEmail(email, rememberMe);
+    await this.verifyEmail(email, rememberMe, waitForPage);
   }
 
   async loginAndVerifyTotp(email: string, password: string, secret: string, rememberMe = false) {
@@ -354,10 +373,10 @@ export class AuthenticationPage {
     await this.signInButton.click();
   }
 
-  async fillOutSignUpForm(email: string, name: string, password: string, confirmPassword: string) {
+  async fillOutSignUpForm(email: string, name: string, password: string, confirmPassword: string, initialLoginPage?: string) {
     await this.goToSignUp();
 
-    await this.page.goto('/');
+    await this.page.goto(initialLoginPage || '/');
     await this.signUpFromHomePageButton.click();
 
     await expect(this.signInFromFormLink).toBeVisible();

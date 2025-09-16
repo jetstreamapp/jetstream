@@ -9,8 +9,11 @@ import { UserFacingError } from '../utils/error-handler';
 export const routes: express.Router = Router();
 
 routes.get('/', (req, res, next) => {
-  const redirectUrl = req.query.redirectUrl;
+  const action = req.query.action as 'team-invite' | undefined;
+  const teamId = req.query.teamId;
+  const token = req.query.token;
   const email = req.query.email;
+  const redirectUrl = req.query.redirectUrl;
 
   // query params are not set, ignore, which should result in a 404
   if (!isString(redirectUrl)) {
@@ -39,6 +42,13 @@ routes.get('/', (req, res, next) => {
   const params = new URLSearchParams();
   if (isString(email)) {
     params.append('email', email);
+  }
+  // Set cookie to handle team invite state so we can auto-join after sign up/login
+  if (action === 'team-invite' && isString(teamId) && isString(token)) {
+    res.appendHeader(
+      'Set-Cookie',
+      serialize(cookieConfig.teamInviteState.name, new URLSearchParams({ token, teamId }).toString(), cookieConfig.teamInviteState.options),
+    );
   }
 
   res.redirect(`${ENV.JETSTREAM_SERVER_URL}/auth/login/?${params.toString()}`);

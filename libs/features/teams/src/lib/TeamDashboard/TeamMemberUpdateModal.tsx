@@ -36,6 +36,7 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, on
 
   return (
     <Modal
+      testId="team-member-update-modal"
       header="Update Role"
       onClose={() => onClose()}
       footer={
@@ -93,8 +94,16 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, on
           disabled={loading}
         />
 
-        <Input label="Email Address" isRequired>
-          <input className="slds-input" value={teamMember.user.email} disabled type="email" name="email" autoComplete="none" />
+        <Input id="email-input" label="Email Address" isRequired>
+          <input
+            id="email-input"
+            className="slds-input"
+            value={teamMember.user.email}
+            disabled
+            type="email"
+            name="email"
+            autoComplete="none"
+          />
         </Input>
 
         {/* TODO: allow choosing specific features */}

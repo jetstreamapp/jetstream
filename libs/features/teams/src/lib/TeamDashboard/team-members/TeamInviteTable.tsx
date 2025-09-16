@@ -14,7 +14,11 @@ export function TeamInviteTable({ invitations, canUpdate, onUserAction }: TeamIn
   }
 
   return (
-    <table aria-describedby="team-members-heading" className="slds-table slds-table_cell-buffer slds-table_bordered">
+    <table
+      data-testid="team-invite-table"
+      aria-describedby="team-members-heading"
+      className="slds-table slds-table_cell-buffer slds-table_bordered"
+    >
       <thead>
         <tr className="slds-line-height_reset">
           <th

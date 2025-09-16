@@ -269,6 +269,7 @@ type PkceCodeVerifierCookie = 'pkceCodeVerifier';
 type RedirectUrlCookie = 'redirectUrl';
 type RememberDeviceCookie = 'rememberDevice';
 type ReturnUrlCookie = 'returnUrl';
+type TeamInviteCookie = 'teamInviteState';
 type StateCookie = 'state';
 type WebauthnChallengeCookie = 'webauthnChallenge';
 type DoubleCSRFTokenCookie = 'doubleCSRFToken';
@@ -282,6 +283,7 @@ type CookieConfigKey =
   | RedirectUrlCookie
   | RememberDeviceCookie
   | ReturnUrlCookie
+  | TeamInviteCookie
   | StateCookie
   | WebauthnChallengeCookie
   | DoubleCSRFTokenCookie;

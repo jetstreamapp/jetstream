@@ -136,7 +136,14 @@ export async function updateTeam(teamId: string, payload: { name: string }): Pro
   return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}`, data: payload }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getTeamUserSessions(teamId: string, params?: PaginationCursorParams): Promise<UserSessionWithLocationAndUser[]> {
+export async function revokeTeamUserSession(teamId: string, sessionId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/sessions/${sessionId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamUserSessions(
+  teamId: string,
+  params?: PaginationCursorParams,
+): Promise<{ sessions: UserSessionWithLocationAndUser[]; currentSessionId: string }> {
   return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sessions`, params }).then(unwrapResponseIgnoreCache);
 }
 

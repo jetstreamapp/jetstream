@@ -125,9 +125,9 @@ export const MassUpdateRecordsApplyToAllRow: FunctionComponent<MassUpdateRecords
                 onSelected={(item) => setTransformationOption(item.id as TransformationOption)}
               />
               {transformationOption === 'staticValue' && (
-                <Input id={`static-value-option`} label="Provided Value" isRequired>
+                <Input id="static-value-option" label="Provided Value" isRequired>
                   <input
-                    id={`static-value-option`}
+                    id="static-value-option"
                     className="slds-input"
                     value={staticValue}
                     onChange={(event) => setStaticValue(event.target.value)}

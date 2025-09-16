@@ -66,12 +66,14 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
               )}
               {editMode && (
                 <Input
+                  id="name"
                   className="slds-form-element_horizontal slds-is-editing"
                   label="Name"
                   hasError={invalidName}
                   errorMessage="Your name must be between 1 and 255 characters"
                 >
                   <input
+                    id="name"
                     className="slds-input"
                     value={name}
                     minLength={1}

@@ -46,8 +46,9 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
   return (
     <Grid wrap guttersDirect verticalAlign="start">
       <GridCol size={12} sizeMedium={6}>
-        <Input label="Label" isRequired>
+        <Input id="label" label="Label" isRequired>
           <input
+            id="label"
             className="slds-input"
             value={label}
             onChange={(event) => setLabel(event.target.value)}
@@ -75,8 +76,9 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
       </GridCol>
 
       <GridCol size={12} sizeMedium={6}>
-        <Input label="Plural Label" isRequired>
+        <Input id="plural-label" label="Plural Label" isRequired>
           <input
+            id="plural-label"
             className="slds-input"
             value={pluralLabel}
             onChange={(event) => setPluralLabel(event.target.value)}
@@ -88,8 +90,9 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
       </GridCol>
 
       <GridCol size={12} sizeMedium={6}>
-        <Input label="Api Name" isRequired>
+        <Input id="api-name" label="Api Name" isRequired>
           <input
+            id="api-name"
             className="slds-input"
             value={apiName}
             onChange={(event) => setApiName(event.target.value)}
@@ -116,8 +119,9 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
       </GridCol>
 
       <GridCol size={12} sizeMedium={6}>
-        <Input label="Record Name" isRequired>
+        <Input id="record-name" label="Record Name" isRequired>
           <input
+            id="record-name"
             className="slds-input"
             value={recordName}
             onChange={(event) => setRecordName(event.target.value)}
@@ -154,6 +158,7 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
           <Grid wrap gutters>
             <GridCol size={12} sizeSmall={6}>
               <Input
+                id="display-format"
                 label="Display Format"
                 isRequired
                 labelHelp={
@@ -179,6 +184,7 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
                 }
               >
                 <input
+                  id="display-format"
                   className="slds-input"
                   placeholder="A-{0000}"
                   value={displayFormat}
@@ -190,8 +196,9 @@ export const CreateNewObjectForm: FunctionComponent<CreateNewObjectFormProps> = 
               </Input>
             </GridCol>
             <GridCol size={12} sizeSmall={6}>
-              <Input label="Starting Number" isRequired>
+              <Input id="starting-number" label="Starting Number" isRequired>
                 <input
+                  id="starting-number"
                   className="slds-input"
                   value={startingNumber}
                   pattern="[0-9]+"

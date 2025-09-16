@@ -24,7 +24,7 @@ import {
 import { Prisma } from '@jetstream/prisma';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
-import { Maybe } from '@jetstream/types';
+import { Maybe, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
 import { clamp } from 'lodash';
@@ -568,6 +568,41 @@ export async function getTeamUserSessions({
   return sessions;
 }
 
+export async function revokeTeamUserSession({ sessionId, teamId }: { teamId: string; sessionId: string }) {
+  if (!teamId) {
+    throw new Error('Invalid teamId');
+  }
+
+  if (!sessionId) {
+    throw new Error('Invalid sessionId');
+  }
+
+  const session = await prisma.sessions.findFirst({
+    select: { sid: true, userId: true },
+    where: {
+      sid: sessionId,
+    },
+  });
+
+  if (!session) {
+    throw new Error('Session not found');
+  }
+
+  const isValidSession = await prisma.teamMember
+    .count({
+      where: { teamId, userId: session.userId },
+    })
+    .then((count) => count === 1);
+
+  if (!isValidSession) {
+    throw new Error('Invalid sessionId');
+  }
+
+  await prisma.sessions.delete({
+    where: { sid: sessionId },
+  });
+}
+
 export async function getUserWebExtensionSessions(userId: string, omitLocationData?: boolean): Promise<ExternalTokenSessionWithLocation[]> {
   if (!userId) {
     throw new Error('Invalid userId');
@@ -746,10 +781,10 @@ export async function revokeAllUserSessions(userId: string, exceptId?: Maybe<str
   await prisma.sessions.deleteMany({
     where: exceptId
       ? {
-          sess: { path: ['user', 'id'], equals: userId },
+          userId: { equals: userId },
           NOT: { sid: exceptId },
         }
-      : { sess: { path: ['user', 'id'], equals: userId } },
+      : { userId },
   });
   await prisma.webExtensionToken.deleteMany({
     where: exceptId ? { userId, NOT: { id: exceptId } } : { userId },
@@ -1211,18 +1246,62 @@ function throwIfInactiveUser(user: AuthenticatedUser | null) {
   }
 }
 
+async function getTeamInviteConfiguration({ email, teamInvite }: { email: string; teamInvite: Maybe<{ token: string; teamId: string }> }) {
+  if (!teamInvite || !email) {
+    return null;
+  }
+  // const email = providerType === 'oauth' ? payload.providerUser.email : payload.email.toLowerCase();
+  const invite = await prisma.teamMemberInvitation.findFirst({
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      features: true,
+      createdById: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          loginConfig: {
+            select: {
+              id: true,
+              allowedMfaMethods: true,
+              allowedProviders: true,
+              allowIdentityLinking: true,
+              autoAddToTeam: true,
+              domains: true,
+              requireMfa: true,
+              team: { select: { id: true } },
+            },
+          },
+        },
+      },
+    },
+    where: { teamId: teamInvite.teamId, email, token: teamInvite.token, expiresAt: { gte: new Date() } },
+  });
+  if (!invite) {
+    return null;
+  }
+  return {
+    ...invite,
+    loginConfiguration: LoginConfigurationSchema.parse(invite.team.loginConfig),
+  };
+}
+
 export async function handleSignInOrRegistration(
   payload:
     | {
         providerType: ProviderTypeOauth;
         provider: OauthProviderType;
         providerUser: ProviderUser;
+        teamInvite: Maybe<{ token: string; teamId: string }>;
       }
     | {
         providerType: ProviderTypeCredentials;
         action: 'login';
         email: string;
         password: string;
+        teamInvite: Maybe<{ token: string; teamId: string }>;
       }
     | {
         providerType: ProviderTypeCredentials;
@@ -1230,12 +1309,14 @@ export async function handleSignInOrRegistration(
         email: string;
         name: string;
         password: string;
+        teamInvite: Maybe<{ token: string; teamId: string }>;
       },
 ): Promise<{
   user: AuthenticatedUser;
   providerType: ProviderTypeOauth | ProviderTypeCredentials;
   provider: OauthProviderType | 'credentials';
   isNewUser: boolean;
+  teamInviteResponse: Awaited<ReturnType<typeof getTeamInviteConfiguration>>;
   mfaEnrollmentRequired:
     | {
         factor: TwoFactorTypeOtp;
@@ -1260,15 +1341,6 @@ export async function handleSignInOrRegistration(
     let provider: OauthProviderType | 'credentials' = 'credentials';
     let mfaEnrollmentRequired: { factor: TwoFactorTypeOtp } | false = false;
 
-    // FIXME: we need to validate isProviderAllowed here (we used to do in the controller)
-    //     const providerAllowed = req.session.teamMembership
-    //   ? await isProviderAllowed({ teamId: req.session.teamMembership.teamId, provider: provider.provider })
-    //   : await isProviderAllowed({ email: userInfo.email, provider: provider.provider });
-
-    // if (!providerAllowed) {
-    //   throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
-    // }
-
     /**
      * Flow for Oauth - we allow both login and registration in one flow
      *
@@ -1276,14 +1348,21 @@ export async function handleSignInOrRegistration(
      * * If no match, find user by email address
      *
      */
-    const { providerType } = payload;
+    const { providerType, teamInvite } = payload;
+    // get preliminary team invite configuration if there is a team invite - returns null if there is not a pending invite
+    const teamInviteResponse = await getTeamInviteConfiguration({
+      email: providerType === 'oauth' ? payload.providerUser.email : payload.email.toLowerCase(),
+      teamInvite,
+    });
 
-    // Don't allow login/register is login configuration disallows it
+    // Don't allow login/register if login configuration disallows it
     // this will be checked again in case there is a team without domains configured
     let loginConfiguration =
-      providerType === 'oauth'
+      teamInviteResponse?.loginConfiguration ||
+      (providerType === 'oauth'
         ? await getLoginConfiguration({ email: payload.providerUser.email })
-        : await getLoginConfiguration({ email: payload.email });
+        : await getLoginConfiguration({ email: payload.email }));
+
     if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
       throw new ProviderNotAllowed();
     }
@@ -1356,11 +1435,6 @@ export async function handleSignInOrRegistration(
 
       const loginConfiguration = await getLoginConfiguration({ email });
 
-      // Don't allow provider for login or sign up if not allowed
-      if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
-        throw new ProviderNotAllowed();
-      }
-
       if (action === 'login') {
         const userOrError = await getUserAndVerifyPassword(email, password);
         if (userOrError.error) {
@@ -1396,14 +1470,16 @@ export async function handleSignInOrRegistration(
       throw new InvalidCredentials('User not initialized');
     }
 
-    loginConfiguration = user.teamMembership?.teamId
-      ? await getLoginConfiguration({ teamId: user.teamMembership.teamId })
-      : await getLoginConfiguration({ email: user.email });
+    loginConfiguration =
+      teamInviteResponse?.loginConfiguration ||
+      (user.teamMembership?.teamId
+        ? await getLoginConfiguration({ teamId: user.teamMembership.teamId })
+        : await getLoginConfiguration({ email: user.email }));
 
     /**
      * Check if login is allowed for the provider
      * If user is part of a team without domains configured, we need to re-check the login configuration
-     * as we would not have enough information previously to determine if the provider is allowed
+     * as we would not have enough information previously to determine if the provider was allowed
      */
     if (loginConfiguration && !loginConfiguration.allowedProviders.has(provider)) {
       throw new ProviderNotAllowed();
@@ -1439,12 +1515,21 @@ export async function handleSignInOrRegistration(
       twoFactor.push({ enabled: true, type: '2fa-email' });
     }
 
+    /**
+     * TODO: ideally this code would live in team.db.ts but the code needs to move around
+     * since that is in API application and this is in another library
+     */
+    if (teamInviteResponse?.team) {
+      user = (await acceptInviteAndAddUserToTeam(user.id, teamInviteResponse)) || user;
+    }
+
     return {
       user,
       isNewUser,
       providerType,
       provider,
       mfaEnrollmentRequired,
+      teamInviteResponse,
       verificationRequired: {
         email: !user.emailVerified,
         twoFactor,
@@ -1454,6 +1539,51 @@ export async function handleSignInOrRegistration(
     logger.error({ ...getErrorMessageAndStackObj(ex) }, 'Error handling sign in or registration');
     throw ensureAuthError(ex, new InvalidCredentials('Unexpected error'));
   }
+}
+
+async function acceptInviteAndAddUserToTeam(
+  userId: string,
+  teamInviteResponse: NonNullable<Awaited<ReturnType<typeof getTeamInviteConfiguration>>>,
+) {
+  try {
+    return await prisma
+      .$transaction([
+        prisma.teamMemberInvitation.delete({
+          where: { id: teamInviteResponse.id },
+        }),
+        prisma.teamMember.create({
+          select: { role: true, status: true, teamId: true, userId: true },
+          data: {
+            teamId: teamInviteResponse.team.id,
+            userId,
+            role: teamInviteResponse.role,
+            status: TEAM_MEMBER_STATUS_ACTIVE,
+            features: teamInviteResponse.features,
+            createdById: teamInviteResponse.createdById,
+            updatedById: teamInviteResponse.createdById,
+          },
+        }),
+      ])
+      .then(() =>
+        prisma.user
+          .findFirstOrThrow({
+            select: AuthenticatedUserSelect,
+            where: { id: userId },
+          })
+          .then((user) => AuthenticatedUserSchema.parse(user)),
+      );
+  } catch (ex) {
+    logger.error(
+      {
+        userId,
+        teamId: teamInviteResponse.team.id,
+        inviteId: teamInviteResponse.id,
+        ...getErrorMessageAndStackObj(ex),
+      },
+      'Error adding user to team from invite',
+    );
+  }
+  return null;
 }
 
 export async function setLastLoginDate(userId: string) {

@@ -115,6 +115,16 @@ export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
         maxAge: TIME_15_MIN,
       },
     },
+    teamInviteState: {
+      name: `jetstream-auth.team-invite`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: useSecureCookies,
+        maxAge: TIME_15_MIN,
+      },
+    },
     doubleCSRFToken: {
       name: `${useSecureCookies ? '__Host-' : ''}${HTTP.COOKIE.CSRF_SUFFIX}`,
       options: {

@@ -252,8 +252,14 @@ export const HeaderTextFilter = memo(({ columnKey, filter, autoFocus = false, up
   }, [updateFilter, debouncedValue, columnKey, filter]);
 
   return (
-    <Input className="slds-grow" label="Contains" clearButton={!!value} onClear={() => setValue('')}>
-      <input className="slds-input" value={value} onChange={(ev) => setValue(ev.target.value)} autoFocus={autoFocus} />
+    <Input id={`filter-${columnKey}`} className="slds-grow" label="Contains" clearButton={!!value} onClear={() => setValue('')}>
+      <input
+        id={`filter-${columnKey}`}
+        className="slds-input"
+        value={value}
+        onChange={(ev) => setValue(ev.target.value)}
+        autoFocus={autoFocus}
+      />
     </Input>
   );
 });

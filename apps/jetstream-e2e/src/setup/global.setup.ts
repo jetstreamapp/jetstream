@@ -40,4 +40,5 @@ setup('login and ensure org exists', async ({ page, request }) => {
   console.log(`Saving storage state: ${authFile}\n`);
 
   await page.context().storageState({ path: authFile });
+  await page.close();
 });

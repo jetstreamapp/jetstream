@@ -1,9 +1,11 @@
 import { css } from '@emotion/react';
 import { UserSessionWithLocationAndUser } from '@jetstream/auth/types';
-import { getTeamUserSessions, PaginationCursorParams } from '@jetstream/shared/data';
+import { getTeamUserSessions, PaginationCursorParams, revokeTeamUserSession } from '@jetstream/shared/data';
 import { getBrowserInfo } from '@jetstream/shared/ui-utils';
-import { Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
+import { DropDown, fireToast, Modal, ScopedNotification, SessionLocationDisplay, Spinner } from '@jetstream/ui';
+import { abilityState } from '@jetstream/ui/app-state';
 import { parseISO } from 'date-fns/parseISO';
+import { useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -13,17 +15,22 @@ export interface TeamMemberSessionModalProps {
 }
 
 export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionModalProps) {
+  const ability = useAtomValue(abilityState);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<UserSessionWithLocationAndUser[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationCursorParams>({ limit: 25 });
+  const [currentSessionId, setCurrentSessionId] = useState<string>();
   const [hasMore, setHasMore] = useState(false);
+
+  const canRevokeSession = ability.can('delete', 'TeamMemberSession');
 
   useEffect(() => {
     getTeamUserSessions(teamId, pagination)
-      .then((userSessions) => {
-        setSessions((prev) => [...prev, ...userSessions]);
-        setHasMore(userSessions.length === (pagination.limit || 25));
+      .then(({ sessions, currentSessionId }) => {
+        setCurrentSessionId(currentSessionId);
+        setSessions((prev) => [...prev, ...sessions]);
+        setHasMore(sessions.length === (pagination.limit || 25));
       })
       .catch((error) => {
         setLoadingError(error.message);
@@ -33,8 +40,27 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
       });
   }, [teamId, pagination]);
 
+  function handleRevokeSession(session: UserSessionWithLocationAndUser) {
+    if (!canRevokeSession) {
+      return;
+    }
+    const priorSessions = sessions;
+    // Optimistic update
+    setSessions((prev) => prev.filter((s) => s.sessionId !== session.sessionId));
+    revokeTeamUserSession(teamId, session.sessionId)
+      .then(() => {
+        fireToast({ message: 'Session revoked successfully.', type: 'success' });
+      })
+      .catch(() => {
+        // Revert optimistic update
+        setSessions(priorSessions);
+        fireToast({ message: 'Failed to revoke session, please try again or contact support for assistance.', type: 'error' });
+      });
+  }
+
   return (
     <Modal
+      testId="user-session-modal"
       header="User Sessions"
       size="lg"
       // TODO: revoke sessions, download sessions
@@ -45,6 +71,7 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
       //     </button>
       //   </>
       // }
+      className="slds-scrollable"
       onClose={onClose}
     >
       {loading && <Spinner />}
@@ -53,7 +80,10 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
           There was a problem getting your team's sessions. File a support ticket if you need additional assistance.
         </ScopedNotification>
       )}
-      <table aria-describedby="team-members-heading" className="slds-table slds-table_cell-buffer slds-table_bordered">
+      <table
+        aria-describedby="team-members-heading"
+        className="slds-table slds-table_cell-buffer slds-table_bordered slds-m-bottom_x-large"
+      >
         <thead>
           <tr className="slds-line-height_reset">
             <th
@@ -96,11 +126,17 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
                 Provider
               </span>
             </th>
+            {canRevokeSession && <th />}
           </tr>
         </thead>
         <tbody>
           {sessions.map((session) => (
-            <Row key={session.sessionId} session={session} />
+            <Row
+              key={session.sessionId}
+              canRevokeSession={canRevokeSession && currentSessionId !== session.sessionId}
+              session={session}
+              onRevoke={handleRevokeSession}
+            />
           ))}
         </tbody>
         <tfoot>
@@ -127,7 +163,15 @@ export function TeamMemberSessionModal({ teamId, onClose }: TeamMemberSessionMod
   );
 }
 
-const Row = ({ session }: { session: UserSessionWithLocationAndUser }) => {
+const Row = ({
+  canRevokeSession,
+  session,
+  onRevoke,
+}: {
+  canRevokeSession: boolean;
+  session: UserSessionWithLocationAndUser;
+  onRevoke: (session: UserSessionWithLocationAndUser) => void;
+}) => {
   const { expires, ipAddress, loginTime, provider, user, userAgent, location } = session;
 
   const { browserName, browserVersion, osName } = useMemo(() => getBrowserInfo(userAgent), [userAgent]);
@@ -138,13 +182,13 @@ const Row = ({ session }: { session: UserSessionWithLocationAndUser }) => {
         {/* Revoke */}
         {/* <UserActionCell isCurrentUser={isCurrentUser} member={member} onUserAction={onUserAction} /> */}
       </td>
-      <th scope="row">
+      <th scope="row" className="slds-cell-wrap">
         <div title={user.name}>
           <div>{user.name}</div>
           <div>{user.email}</div>
         </div>
       </th>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
         {browserName && (
           <>
             <p>{osName}</p>
@@ -154,7 +198,7 @@ const Row = ({ session }: { session: UserSessionWithLocationAndUser }) => {
           </>
         )}
       </td>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
         {ipAddress}
         {location && (
           <div>
@@ -162,13 +206,39 @@ const Row = ({ session }: { session: UserSessionWithLocationAndUser }) => {
           </div>
         )}
       </td>
-      <td role="gridcell">{parseISO(loginTime).toLocaleString()}</td>
-      <td role="gridcell">{parseISO(expires).toLocaleString()}</td>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
+        {parseISO(loginTime).toLocaleString()}
+      </td>
+      <td role="gridcell" className="slds-cell-wrap">
+        {parseISO(expires).toLocaleString()}
+      </td>
+      <td role="gridcell" className="slds-cell-wrap">
         {provider && (
           <p className="slds-text-color_weak">Logged in via {provider === 'credentials' ? 'Email & Password' : startCase(provider)}</p>
         )}
       </td>
+      {canRevokeSession && (
+        <td>
+          <DropDown
+            testId="user-session-row-actions"
+            dropDownClassName="slds-dropdown_actions"
+            buttonClassName="slds-button slds-button_icon slds-button_icon-border-filled slds-button_icon-x-small"
+            position="right"
+            items={[
+              {
+                id: 'revoke',
+                value: 'Revoke Session',
+                icon: { type: 'utility', icon: 'delete', description: 'Revoke Session' },
+              },
+            ]}
+            onSelected={(id) => {
+              if (id === 'revoke') {
+                onRevoke(session);
+              }
+            }}
+          />
+        </td>
+      )}
     </tr>
   );
 };

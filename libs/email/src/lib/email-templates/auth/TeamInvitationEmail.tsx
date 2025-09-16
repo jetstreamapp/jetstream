@@ -15,9 +15,23 @@ interface TeamInvitationProps {
   expiresInDays: number;
 }
 
+export function getTeamInviteLink({ baseUrl, teamId, token, email }: Omit<TeamInvitationProps, 'teamName' | 'expiresInDays'>) {
+  const url = new URL(`${baseUrl}/redirect`);
+  url.searchParams.set('action', 'team-invite');
+  url.searchParams.set('email', email);
+  url.searchParams.set('teamId', teamId);
+  url.searchParams.set('token', token);
+  url.searchParams.set('redirectUrl', `/app/teams/invite?teamId=${teamId}&token=${token}`);
+  return url.toString();
+}
+
 export const TeamInvitation = ({ baseUrl, teamId, teamName, token, email, expiresInDays }: TeamInvitationProps) => {
-  const redirectUrl = encodeURIComponent(`/app/teams/invite?teamId=${teamId}&token=${token}`);
-  const link = `${baseUrl}/redirect?redirectUrl=${redirectUrl}&email=${encodeURIComponent(email)}`;
+  const url = new URL(`${baseUrl}/redirect`);
+  url.searchParams.set('action', 'team-invite');
+  url.searchParams.set('email', email);
+  url.searchParams.set('teamId', teamId);
+  url.searchParams.set('token', token);
+  url.searchParams.set('redirectUrl', `/app/teams/invite?teamId=${teamId}&token=${token}`);
   return (
     <Html>
       <Head />
@@ -30,13 +44,13 @@ export const TeamInvitation = ({ baseUrl, teamId, teamName, token, email, expire
           <Text style={EMAIL_STYLES.codeDescription}>This invitation expires in {expiresInDays} days.</Text>
 
           <Section style={EMAIL_STYLES.buttonContainer}>
-            <Button href={link} style={EMAIL_STYLES.button}>
+            <Button href={url.toString()} style={EMAIL_STYLES.button}>
               Join your teammates
             </Button>
           </Section>
 
           <Text style={EMAIL_STYLES.paragraphHeading}>If the button doesn't work, you can copy and paste this link:</Text>
-          <Text style={EMAIL_STYLES.paragraph}>{link}</Text>
+          <Text style={EMAIL_STYLES.paragraph}>{url.toString()}</Text>
         </Container>
       </Body>
       <EmailFooter />

@@ -64,6 +64,11 @@ routes.get(
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),
   teamController.getUserSessions.controllerFn(),
 );
+routes.delete(
+  '/:teamId/sessions/:sessionId',
+  validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN]),
+  teamController.revokeUserSession.controllerFn(),
+);
 routes.get(
   '/:teamId/auth-activity',
   validateTeamRoleMiddlewareFn([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING]),

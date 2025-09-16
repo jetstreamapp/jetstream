@@ -12,6 +12,7 @@ import {
   TeamInvitationUpdateRequest,
   TeamInviteUserFacing,
   TeamInviteVerificationResponse,
+  TeamLoginConfigRequest,
   TeamLoginConfigSchema,
   TeamMemberRoleSchema,
   TeamMemberStatusSchema,
@@ -23,6 +24,11 @@ import capitalize from 'lodash/capitalize';
 import * as teamDbService from '../db/team.db';
 import { UserFacingError } from '../utils/error-handler';
 import * as stripeService from './stripe.service';
+
+export async function getTeamByUserId({ userId }: { userId: string }): Promise<TeamUserFacing> {
+  const team = await teamDbService.findByUserId({ userId });
+  return team;
+}
 
 export async function createTeam({
   userId,
@@ -43,6 +49,37 @@ export async function createTeam({
     name: teamName,
     status,
   });
+}
+
+export async function updateTeam({
+  teamId,
+  runningUserId,
+  payload,
+}: {
+  teamId: string;
+  runningUserId: string;
+  payload: { name: string };
+}): Promise<TeamUserFacing> {
+  const team = await teamDbService.updateTeam({ runningUserId, teamId, payload });
+  return team;
+}
+
+export async function updateLoginConfiguration({
+  teamId,
+  runningUserId,
+  loginConfiguration,
+}: {
+  teamId: string;
+  runningUserId: string;
+  loginConfiguration: TeamLoginConfigRequest;
+}): Promise<TeamUserFacing> {
+  const team = await teamDbService.updateLoginConfiguration({ runningUserId, teamId, loginConfiguration });
+
+  await teamDbService.revokeSessionThatViolateLoginConfiguration({ teamId, skipUserIds: [runningUserId] }).catch((ex) => {
+    logger.error({ teamId, error: getErrorMessage(ex) }, 'Error revoking sessions that violate updated login configuration');
+  });
+
+  return team;
 }
 
 export async function updateTeamMember({
@@ -82,7 +119,9 @@ export async function updateTeamMemberStatus({
   const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberStatus({ teamId, userId, status, runningUserId });
 
   if (teamMember.status === TEAM_MEMBER_STATUS_INACTIVE) {
-    authDbService.revokeAllUserSessions(userId);
+    await authDbService.revokeAllUserSessions(userId).catch((ex) => {
+      logger.error({ userId, error: getErrorMessage(ex) }, 'Error revoking user sessions after deactivating team member');
+    });
   }
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
@@ -93,6 +132,11 @@ export async function updateTeamMemberStatus({
   }
 
   return team;
+}
+
+export async function getTeamInvitations({ teamId }: { teamId: string }) {
+  const invitations = await teamDbService.getTeamInvitations({ teamId });
+  return invitations;
 }
 
 export async function createInvitation({
@@ -237,6 +281,12 @@ export async function verifyTeamInvitation({
   }
 
   return teamInviteVerification;
+}
+
+export async function revokeTeamInvitation({ id, teamId }: { id: string; teamId: string }) {
+  await teamDbService.revokeTeamInvitation({ id, teamId });
+  const invitations = await teamDbService.getTeamInvitations({ teamId });
+  return invitations;
 }
 
 export async function acceptTeamInvitation({

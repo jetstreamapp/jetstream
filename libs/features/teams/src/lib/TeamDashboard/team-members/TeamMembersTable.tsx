@@ -34,6 +34,8 @@ export function TeamMembersTable({
 }: TeamMembersTableProps) {
   const ability = useAtomValue(abilityState);
 
+  const canReadAuthActivity = ability.can('read', 'TeamMemberAuthActivity');
+  const canReadSession = ability.can('read', 'TeamMemberSession');
   const canUpdate = ability.can('update', 'TeamMember');
   const canInvite = ability.can('invite', { type: 'TeamMember', billingStatus, availableLicenses });
 
@@ -64,12 +66,12 @@ export function TeamMembersTable({
       footer={licenseMessage}
       actions={
         <ButtonGroupContainer>
-          {ability.can('read', 'TeamAuthActivity') && (
+          {canReadAuthActivity && (
             <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-auth-activity')}>
               View Auth Activity
             </button>
           )}
-          {ability.can('read', 'TeamUserSessions') && (
+          {canReadSession && (
             <button className="slds-button slds-button_neutral" onClick={() => onGlobalAction('view-user-sessions')}>
               View User Sessions
             </button>
@@ -82,7 +84,11 @@ export function TeamMembersTable({
         </ButtonGroupContainer>
       }
     >
-      <table aria-describedby="team-members-heading" className="slds-table slds-table_cell-buffer slds-table_bordered">
+      <table
+        data-testid="team-member-table"
+        aria-describedby="team-members-heading"
+        className="slds-table slds-table_cell-buffer slds-table_bordered"
+      >
         <thead>
           <tr className="slds-line-height_reset">
             <th
@@ -138,7 +144,6 @@ export function TeamMembersTable({
               member={member}
               isCurrentUser={userProfile.id === member.userId}
               onUserAction={onUserAction}
-              canUpdate={canUpdate}
             />
           ))}
         </tbody>

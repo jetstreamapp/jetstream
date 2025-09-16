@@ -36,6 +36,7 @@ export function TeamMemberAuthActivityModal({ teamId, onClose }: TeamMemberAuthA
 
   return (
     <Modal
+      testId="team-member-auth-activity-modal"
       header="Authentication Activity"
       size="lg"
       // footer={
@@ -137,11 +138,11 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
 
   return (
     <tr>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
         {/* Revoke */}
         {/* <UserActionCell isCurrentUser={isCurrentUser} member={member} onUserAction={onUserAction} /> */}
       </td>
-      <th scope="row">
+      <th scope="row" className="slds-cell-wrap">
         {user && (
           <div title={user.name}>
             <div>{user.name}</div>
@@ -149,7 +150,7 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
           </div>
         )}
       </th>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
         {browserName && (
           <>
             <p>{osName}</p>
@@ -159,7 +160,7 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
           </>
         )}
       </td>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
         {ipAddress}
         {location && (
           <div>
@@ -167,9 +168,13 @@ const Row = ({ item }: { item: LoginActivityUserFacing }) => {
           </div>
         )}
       </td>
-      <td role="gridcell">{action}</td>
-      <td role="gridcell">{parseISO(createdAt).toLocaleString()}</td>
-      <td role="gridcell">
+      <td role="gridcell" className="slds-cell-wrap">
+        {action}
+      </td>
+      <td role="gridcell" className="slds-cell-wrap">
+        {parseISO(createdAt).toLocaleString()}
+      </td>
+      <td role="gridcell" className="slds-cell-wrap">
         {success ? <p className="slds-text-color_success">Successful</p> : <p className="slds-text-color_error">Failed</p>}
       </td>
     </tr>

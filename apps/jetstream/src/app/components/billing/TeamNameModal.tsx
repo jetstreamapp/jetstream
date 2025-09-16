@@ -40,8 +40,9 @@ const TeamNameModal: FunctionComponent<TeamNameModalProps> = ({ isOpen, email, o
       }
       onClose={() => onResolve({ cancelled: true })}
     >
-      <Input label="Team Name">
+      <Input label="Team Name" id="team-name">
         <input
+          id="team-name"
           className="slds-input"
           required
           value={teamName}

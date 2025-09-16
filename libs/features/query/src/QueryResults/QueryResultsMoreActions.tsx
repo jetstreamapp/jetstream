@@ -23,6 +23,7 @@ const BatchSize = ({ type = 'BULK', onBatchSizeChange }: { type?: 'BATCH' | 'BUL
 
   return (
     <Input
+      id="batch-size"
       label="Batch Size"
       isRequired={true}
       hasError={!batchSize || batchSize > maxSize || batchSize < 1}
