@@ -132,7 +132,7 @@ const config: ForgeConfig = {
       (arch) => ({
         macUpdateManifestBaseUrl: `https://releases.getjetstream.app/jetstream/macos/${arch}`,
       }),
-      ['darwin'],
+      ['darwin', 'win32'],
     ),
     new MakerDMG(
       {
