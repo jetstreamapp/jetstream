@@ -1,6 +1,6 @@
 import { SalesforceApiRequest } from '@jetstream/api-types';
 import { ApiConnection } from './connection';
-import { ApiRequestOutputType } from './types';
+import { ApiRequestOptions, ApiRequestOutputType } from './types';
 import { SalesforceApi } from './utils';
 
 export class ApiRequest extends SalesforceApi {
@@ -9,7 +9,7 @@ export class ApiRequest extends SalesforceApi {
   }
 
   async manualRequest<T = unknown>(
-    { method, url, body, headers = {}, options }: SalesforceApiRequest,
+    { method, url, body, headers = {}, options, rawBody, duplex }: SalesforceApiRequest & Pick<ApiRequestOptions, 'rawBody' | 'duplex'>,
     outputType: ApiRequestOutputType = 'text',
     ensureRestUrl = false,
   ): Promise<T> {
@@ -28,6 +28,8 @@ export class ApiRequest extends SalesforceApi {
       body: body,
       headers: headers || {},
       outputType,
+      rawBody,
+      duplex,
     });
 
     return data;

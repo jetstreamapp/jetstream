@@ -91,6 +91,7 @@ router.post('/api/request-manual', miscController.salesforceRequestManual.contro
  * recordController Routes
  * ************************************
  */
+router.post('/api/record/upload', recordController.binaryUpload.controllerFn());
 router.post('/api/record/:operation/:sobject', recordController.recordOperation.controllerFn());
 
 /**

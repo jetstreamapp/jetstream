@@ -31,6 +31,7 @@ import {
   DescribeSObjectResult,
   GenericRequestPayload,
   GoogleFileApiResponse,
+  HttpMethod,
   JetstreamOrganization,
   ListMetadataQuery,
   ListMetadataResult,
@@ -46,6 +47,7 @@ import {
   RetrieveResult,
   SalesforceApiRequest,
   SalesforceOrgUi,
+  SobjectCollectionResponse,
   SobjectOperation,
   StripeUserFacingCustomer,
   SyncRecord,
@@ -694,6 +696,21 @@ export async function queryAllUsingOffset<T = any>(
   return results;
 }
 
+export async function sobjectUploadBinaryUpload(
+  org: SalesforceOrgUi,
+  body: FormData,
+  options: {
+    url: string;
+    method: HttpMethod;
+    isTooling?: Maybe<boolean>;
+    assignmentRuleId?: Maybe<string>;
+  },
+): Promise<SobjectCollectionResponse> {
+  return handleRequest({ method: 'POST', url: `/api/record/upload`, params: { ...options }, data: body }, { org }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
 export async function sobjectOperation<O extends SobjectOperation>(
   org: SalesforceOrgUi,
   sobject: string,
@@ -708,9 +725,18 @@ export async function sobjectOperation<O extends SobjectOperation>(
   } = {},
 ): Promise<OperationReturnType<O, any>> {
   // FIXME: add type for R as the first generic type in function
-  return handleRequest({ method: 'POST', url: `/api/record/${operation}/${sobject}`, params: { ...query }, data: body }, { org }).then(
-    unwrapResponseIgnoreCache,
-  );
+  return handleRequest(
+    {
+      method: 'POST',
+      url: `/api/record/${operation}/${sobject}`,
+      params: { ...query },
+      data: body,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+    { org },
+  ).then(unwrapResponseIgnoreCache);
 }
 
 export async function describeMetadata(org: SalesforceOrgUi): Promise<ApiResponse<DescribeMetadataResult>> {

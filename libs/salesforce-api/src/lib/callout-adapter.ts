@@ -38,7 +38,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
     logger: Logger = console,
   ) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
-      let { url, body, outputType } = options;
+      let { url, body, outputType, duplex } = options;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
       const { accessToken, instanceUrl } = sessionInfo;
       url = `${instanceUrl}${url}`;
@@ -52,11 +52,14 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
       return fetch(url, {
         method,
         body,
+        duplex,
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          // default headers, can be overridden by caller
           [HTTP.HEADERS.CONTENT_TYPE]: 'application/json; charset=UTF-8',
           [HTTP.HEADERS.ACCEPT]: 'application/json; charset=UTF-8',
           [HTTP.HEADERS.X_SFDC_Session]: accessToken,
+          // caller provided headers
           ...headers,
         },
       })
