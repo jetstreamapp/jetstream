@@ -731,9 +731,6 @@ export async function sobjectOperation<O extends SobjectOperation>(
       url: `/api/record/${operation}/${sobject}`,
       params: { ...query },
       data: body,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
     },
     { org },
   ).then(unwrapResponseIgnoreCache);
