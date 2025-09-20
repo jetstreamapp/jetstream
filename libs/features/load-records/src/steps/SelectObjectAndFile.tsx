@@ -102,7 +102,7 @@ export const LoadRecordsSelectObjectAndFile = ({
     hasGoogleDriveAccess && !!googleApiConfig?.apiKey && !!googleApiConfig?.appId && !!googleApiConfig?.clientId;
 
   // Desktop and browser extension have unlimited, pro users have 1GB, free users have 10MB
-  const filesizeLimit = isDesktop() || isBrowserExtension() ? Infinity : hasGoogleDriveAccess ? 1000 : 10;
+  const filesizeLimit = isDesktop() || isBrowserExtension() ? Infinity : hasGoogleDriveAccess ? 1000 : 50;
 
   async function handleFile({ content, filename, isPasteFromClipboard, extension }: InputReadFileContent) {
     try {
