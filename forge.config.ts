@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
+import { MakerWix } from '@electron-forge/maker-wix';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -142,14 +143,34 @@ const config: ForgeConfig = {
       },
       ['darwin'],
     ),
+    new MakerWix(
+      {
+        appUserModelId: 'com.getjetstream.app',
+        arch: 'x64',
+        description: 'The ultimate Salesforce administrator companion.',
+        exe: 'Jetstream.exe',
+        // Makes options available during installation
+        features: { autoLaunch: true, autoUpdate: true },
+        icon: path.resolve('assets/icons/icon.ico'),
+        manufacturer: 'Jetstream Solutions, LLC',
+        name: 'Jetstream',
+        language: 1033,
+        shortcutFolderName: 'Jetstream',
+        ui: {
+          chooseDirectory: true,
+        },
+        upgradeCode: '0111b482-a103-4a0b-b30d-ee78dd7c43af',
+        windowsSign: ENV.IS_CODESIGNING_ENABLED ? (windowsSign as any) : undefined,
+      },
+      ['win32'],
+    ),
     new MakerSquirrel(
       (arch) => ({
         name: 'Jetstream',
         authors: 'Jetstream Solutions, LLC',
         exe: 'jetstream.exe',
         noMsi: true,
-        description:
-          'The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.',
+        description: 'The ultimate Salesforce administrator companion.',
         // iconUrl: 'https://getjetstream.app/assets/icons/icon_256x256.png',
         setupIcon: path.resolve('assets/icons/icon.ico'),
         loadingGif: path.resolve('assets/images/jetstream-icon.gif'),
