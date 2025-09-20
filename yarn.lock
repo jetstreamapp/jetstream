@@ -4414,6 +4414,11 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
+"@bitdisaster/exe-icon-extractor@^1.0.10":
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/@bitdisaster/exe-icon-extractor/-/exe-icon-extractor-1.0.10.tgz#3f5107864254c351db1db5c5922452d9d4154e8f"
+  integrity sha512-iTZ8cVGZ5dglNRyFdSj8U60mHIrC8XNIuOHN/NkM5/dQP4nsmpyqeQTAADLLQgoFCNJD+DiwQCv8dR2cCeWP4g==
+
 "@bufbuild/protobuf@^2.0.0":
   version "2.5.2"
   resolved "https://registry.yarnpkg.com/@bufbuild/protobuf/-/protobuf-2.5.2.tgz#9b6cf005c50fdda72701da82f8db44635463d730"
@@ -4699,6 +4704,15 @@
     fs-extra "^10.0.0"
     which "^2.0.2"
 
+"@electron-forge/maker-base@7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@electron-forge/maker-base/-/maker-base-7.9.0.tgz#0bcdac4573f88ba493beb2c42b382fc6f010f095"
+  integrity sha512-u0jo2kaYRxh/Rai6DyFSGJcNLRVWxiKaGUjMhX1LrKolufUkCxxR4TEmv4Hvl03WTr9pQb06umlIrVMaNb+j9A==
+  dependencies:
+    "@electron-forge/shared-types" "7.9.0"
+    fs-extra "^10.0.0"
+    which "^2.0.2"
+
 "@electron-forge/maker-deb@^7.8.1":
   version "7.8.1"
   resolved "https://registry.yarnpkg.com/@electron-forge/maker-deb/-/maker-deb-7.8.1.tgz#814edb21b8d59a4248c1f1727662874e6142c95d"
@@ -4749,6 +4763,19 @@
     fs-extra "^10.0.0"
   optionalDependencies:
     electron-winstaller "^5.3.0"
+
+"@electron-forge/maker-wix@^7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@electron-forge/maker-wix/-/maker-wix-7.9.0.tgz#ac15636b5462ef73d13e256d0eb3ed6bfe264ecc"
+  integrity sha512-Sve5ewRV3dhy1EIVNjLvc/3wYuTBqb2L0jtrcXuDYtX58bc4wFuHmDXkp5EwuNMx2QS+VPNfd1KCGWBV1ybj7w==
+  dependencies:
+    "@electron-forge/maker-base" "7.9.0"
+    "@electron-forge/shared-types" "7.9.0"
+    chalk "^4.0.0"
+    electron-wix-msi "^5.1.3"
+    log-symbols "^4.0.0"
+    parse-author "^2.0.0"
+    semver "^7.2.1"
 
 "@electron-forge/maker-zip@^7.8.1":
   version "7.8.1"
@@ -4856,6 +4883,16 @@
     "@electron/rebuild" "^3.7.0"
     listr2 "^7.0.2"
 
+"@electron-forge/shared-types@7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@electron-forge/shared-types/-/shared-types-7.9.0.tgz#ac3dd22da586957fcd6fb1c035155bd65bf2ffd3"
+  integrity sha512-6jZF+zq3SYMnweQpgr5fwlSgOd2yOZ5qlfz/CgXyVljiv0e0UThzpOjfTLuwuVgZX7a60xV+h0mg1h82Glu3wQ==
+  dependencies:
+    "@electron-forge/tracer" "7.9.0"
+    "@electron/packager" "^18.3.5"
+    "@electron/rebuild" "^3.7.0"
+    listr2 "^7.0.2"
+
 "@electron-forge/template-base@7.8.1":
   version "7.8.1"
   resolved "https://registry.yarnpkg.com/@electron-forge/template-base/-/template-base-7.8.1.tgz#81da376241355c559744fad8c43c3012096d420d"
@@ -4915,6 +4952,13 @@
   version "7.8.2"
   resolved "https://registry.yarnpkg.com/@electron-forge/tracer/-/tracer-7.8.2.tgz#cb48e9c51e242d462d5266105a39a3b749cf7bad"
   integrity sha512-59M5PJT9otyVBtenZnOvjZLyB5H1JPqvrY4r9n9V7uFyuAI52a0TYyaCIcfzLchb/k+aDyeozfrqNFwvS6wTSA==
+  dependencies:
+    chrome-trace-event "^1.0.3"
+
+"@electron-forge/tracer@7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@electron-forge/tracer/-/tracer-7.9.0.tgz#a512ea5e0c4564ace978546b50e8ec1aa150fa68"
+  integrity sha512-7itsjW1WJQADg7Ly61ggI5CCRt+QDVx3HOZC1w69jMUtnipKyPRCbvTBf1oplsNqbIzZxceXdfex6W53YNehvA==
   dependencies:
     chrome-trace-event "^1.0.3"
 
@@ -6692,7 +6736,7 @@
   resolved "https://registry.yarnpkg.com/@lukeed/ms/-/ms-2.0.2.tgz#07f09e59a74c52f4d88c6db5c1054e819538e2a8"
   integrity sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==
 
-"@malept/cross-spawn-promise@^1.0.0":
+"@malept/cross-spawn-promise@^1.0.0", "@malept/cross-spawn-promise@^1.1.0":
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@malept/cross-spawn-promise/-/cross-spawn-promise-1.1.1.tgz#504af200af6b98e198bce768bc1730c6936ae01d"
   integrity sha512-RTBGWL5FWQcg9orDOCcp4LvItNzUPcyEU9bwaeJX0rJ1IQxzucC48Y0/sQLp/g6t99IQgAlGIaesJS+gTn7tVQ==
@@ -14908,6 +14952,15 @@ cross-env@^7.0.3:
   dependencies:
     cross-spawn "^7.0.1"
 
+cross-spawn-windows-exe@^1.1.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/cross-spawn-windows-exe/-/cross-spawn-windows-exe-1.2.0.tgz#46253b0f497676e766faf4a7061004618b5ac5ec"
+  integrity sha512-mkLtJJcYbDCxEG7Js6eUnUNndWjyUZwJ3H7bErmmtOYU/Zb99DyUkpamuIZE0b3bhmJyZ7D90uS6f+CGxRRjOw==
+  dependencies:
+    "@malept/cross-spawn-promise" "^1.1.0"
+    is-wsl "^2.2.0"
+    which "^2.0.2"
+
 cross-spawn@^6.0.0:
   version "6.0.6"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-6.0.6.tgz#30d0efa0712ddb7eb5a76e1e8721bffafa6b5d57"
@@ -16110,6 +16163,22 @@ electron-winstaller@^5.3.0:
     temp "^0.9.0"
   optionalDependencies:
     "@electron/windows-sign" "^1.1.2"
+
+electron-wix-msi@^5.1.3:
+  version "5.1.3"
+  resolved "https://registry.yarnpkg.com/electron-wix-msi/-/electron-wix-msi-5.1.3.tgz#ab85dc1145a7ce7ae7724ed3ca3f92c447988c9a"
+  integrity sha512-EYj1cm1nZoVHmIIx3o0aKt784lxdEpJnXbEnyypklUCnglqSb7ni+1xi1Vp/gtrGS/mzIxnWBT+x5fIfuDjhvA==
+  dependencies:
+    "@electron/windows-sign" "^1.1.2"
+    debug "^4.3.4"
+    fs-extra "^10.1.0"
+    klaw "^4.1.0"
+    lodash "^4.17.21"
+    rcedit "^4.0.1"
+    rcinfo "^0.1.3"
+    semver "^7.6.0"
+  optionalDependencies:
+    "@bitdisaster/exe-icon-extractor" "^1.0.10"
 
 electron@^36.2.0:
   version "36.2.0"
@@ -21633,6 +21702,11 @@ kind-of@^6.0.2:
   resolved "https://registry.npmjs.org/kind-of/-/kind-of-6.0.3.tgz"
   integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
 
+klaw@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/klaw/-/klaw-4.1.0.tgz#5df608067d8cb62bbfb24374f8e5d956323338f3"
+  integrity sha512-1zGZ9MF9H22UnkpVeuaGKOjfA2t6WrfdrJmGjy16ykcjnKQDmHVX+KI477rpbGevz/5FD4MC3xf1oxylBgcaQw==
+
 klona@^2.0.5:
   version "2.0.5"
   resolved "https://registry.npmjs.org/klona/-/klona-2.0.5.tgz"
@@ -25874,6 +25948,18 @@ rc@1.2.8:
     ini "~1.3.0"
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
+
+rcedit@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/rcedit/-/rcedit-4.0.1.tgz#892ac47a19204a380f49e00ea38ce070443343c2"
+  integrity sha512-bZdaQi34krFWhrDn+O53ccBDw0MkAT2Vhu75SqhtvhQu4OPyFM4RoVheyYiVQYdjhUi6EJMVWQ0tR6bCIYVkUg==
+  dependencies:
+    cross-spawn-windows-exe "^1.1.0"
+
+rcinfo@^0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/rcinfo/-/rcinfo-0.1.3.tgz#ac36832d1f1e5970c6379e571480ea5826511fc6"
+  integrity sha512-c2XV2aYgY7x3BscO+/B/nCTtMvnclZ8w5D7R6zgK4sGOQnE0MjlXhOPynno7yp6Iw1RPNSXBwXwB1svZVRfcSw==
 
 react-data-grid@7.0.0-beta.56:
   version "7.0.0-beta.56"

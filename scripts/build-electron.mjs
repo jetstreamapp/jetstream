@@ -70,6 +70,7 @@ const yarnAddDevDeps = () => {
     '@electron-forge/maker-pkg',
     '@electron-forge/maker-rpm',
     '@electron-forge/maker-squirrel',
+    '@electron-forge/maker-wix',
     '@electron-forge/maker-zip',
     '@electron-forge/plugin-auto-unpack-natives',
     '@electron-forge/plugin-fuses',

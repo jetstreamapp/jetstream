@@ -271,6 +271,7 @@
   "dependencies": {
     "@amplitude/analytics-browser": "2.9.2",
     "@aws-sdk/client-s3": "^3.859.0",
+    "@electron-forge/maker-wix": "^7.9.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@express-rate-limit/cluster-memory-store": "^0.3.0",
