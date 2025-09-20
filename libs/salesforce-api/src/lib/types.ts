@@ -48,6 +48,7 @@ export interface FetchOptions {
   method?: FetchMethod;
   body?: BodyInit | null;
   headers?: [string, string][] | Record<string, string> | Headers;
+  duplex?: ApiRequestOptions['duplex'];
 }
 
 export interface FetchResponse<T = unknown> {
@@ -72,7 +73,14 @@ export interface ApiRequestOptions {
   headers?: Record<string, string>;
   sessionInfo: SessionInfo;
   outputType?: ApiRequestOutputType;
+  /**
+   * Indicates that the body is already serialized (e.g. string or stream) and should not be JSON.stringified
+   */
   rawBody?: boolean;
+  /**
+   * Used when streaming requests (e.g. file uploads)
+   */
+  duplex?: 'half';
 }
 
 export type ApiRequestOutputType = 'json' | 'text' | 'xml' | 'soap' | 'arrayBuffer' | 'stream' | 'void' | 'response';

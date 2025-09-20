@@ -61,7 +61,9 @@ export interface SobjectCollectionRequest {
   records?: SobjectCollectionRequestRecord[];
 }
 
-export type SobjectCollectionRequestRecord<T = { [field: string]: any }> = T & { attributes: { type: string } };
+export type SobjectCollectionRequestRecord<T = { [field: string]: any }> = T & {
+  attributes: { type: string; binaryPartName?: string; binaryPartNameAlias?: string };
+};
 
 export type SobjectCollectionResponse = RecordResult[];
 

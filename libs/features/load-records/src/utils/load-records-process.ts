@@ -1,7 +1,14 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { bulkApiAddBatchToJob, bulkApiCloseJob, bulkApiCreateJob, bulkApiGetJob, genericRequest } from '@jetstream/shared/data';
+import {
+  bulkApiAddBatchToJob,
+  bulkApiCloseJob,
+  bulkApiCreateJob,
+  bulkApiGetJob,
+  genericRequest,
+  sobjectUploadBinaryUpload,
+} from '@jetstream/shared/data';
 import { generateCsv } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorStack, getHttpMethod, getSizeInMbFromBase64, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorStack, getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
@@ -131,7 +138,7 @@ export async function loadBatchApiData(
 ) {
   const { org, sObject, type, externalId, assignmentRuleId } = payload;
   try {
-    const { batchRecordMap, batches, failedRecords } = await getBatchApiBatches(payload);
+    const { batchRecordMap, batchRecordBlobMap, batchRecordBlobNameMap, batches, failedRecords } = await getBatchApiBatches(payload);
 
     let url = `/composite/sobjects`;
     if (type === 'UPSERT' && externalId) {
@@ -148,6 +155,7 @@ export async function loadBatchApiData(
       /** This stores the original record before adding {attribute} tag and before adding base64 zip */
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const originalBatchRecords = batchRecordMap.get(batchIndex)!;
+      const blobs = batchRecordBlobMap.get(batchIndex);
       let recordIndexesWithMissingIds: Set<number> = new Set();
 
       try {
@@ -169,16 +177,43 @@ export async function loadBatchApiData(
         // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
         // default is true
         const autoAssignHeader = { 'Sforce-Auto-Assign': assignmentRuleId || 'FALSE' };
+        let response: SobjectCollectionResponse = [];
 
-        const response = await genericRequest<SobjectCollectionResponse>(org, {
-          method,
-          url: `${url}${queryParams}`,
-          body: batch,
-          isTooling: false,
-          headers: {
-            ...autoAssignHeader,
-          },
-        });
+        // Upload binary data
+        if (blobs && blobs.length) {
+          // TODO: if the user is trying to upload really large files, we need to use individual record API instead of collection api
+          // collection API supports up to 500mb total in one request, single record API supports up to 2GB
+          // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_sobject_insert_update_blob.htm
+          const formData = new FormData();
+          formData.append('collection', new Blob([JSON.stringify(batch)], { type: 'application/json' }));
+          originalBatchRecords.forEach((_, i) => {
+            const blob = blobs[i];
+            const blobData = batchRecordBlobNameMap.get(blob);
+            if (!blob || !blobData) {
+              return;
+            }
+            const { binaryPartName, filename } = blobData;
+            formData.append(binaryPartName, blob, filename);
+          });
+
+          response = await sobjectUploadBinaryUpload(org, formData, {
+            url,
+            method,
+            isTooling: false,
+            assignmentRuleId,
+          });
+        } else {
+          response = await genericRequest<SobjectCollectionResponse>(org, {
+            method,
+            url: `${url}${queryParams}`,
+            body: batch,
+            isTooling: false,
+            headers: {
+              ...autoAssignHeader,
+            },
+          });
+        }
+
         responseWithRecord = response.reduce((output: RecordResultWithRecord[], response, i) => {
           // If record was skipped, add it to the list
           if (recordIndexesWithMissingIds.has(i)) {
@@ -254,25 +289,27 @@ export async function loadBatchApiData(
   }
 }
 
-async function getBatchApiBatches({
-  data,
-  sObject,
-  batchSize,
-  zipData,
-  binaryBodyField,
-}: LoadDataPayload): Promise<{ batches: SobjectCollectionRequest[]; batchRecordMap: Map<number, any[]>; failedRecords: any[] }> {
+async function getBatchApiBatches({ data, sObject, batchSize, zipData, binaryBodyField }: LoadDataPayload): Promise<{
+  batches: SobjectCollectionRequest[];
+  batchRecordMap: Map<number, any[]>;
+  batchRecordBlobMap: Map<number, Blob[]>;
+  batchRecordBlobNameMap: WeakMap<Blob, { filename: string; binaryPartName: string }>;
+  failedRecords: any[];
+}> {
   let batches: SobjectCollectionRequest[] = [];
-  // used to ensure we don't send base64 (huge) back to browser
-  const batchRecordMap: Map<number, any[]> = new Map();
+  const batchRecordMap = new Map<number, any[]>();
+  const batchRecordBlobMap = new Map<number, Blob[]>();
+  const batchRecordBlobNameMap = new WeakMap<Blob, { filename: string; binaryPartName: string }>();
   const failedRecords: any[] = [];
 
   /** Batch size is auto-detected when there are attachments to ensure that the load is not too large */
   if (zipData && binaryBodyField) {
     // Get file from zip and convert to base64
     const zip = await JSZip.loadAsync(zipData);
-    const THRESHOLD_SIZE_MB = 5;
+    const THRESHOLD_SIZE_MB = 50;
     const THRESHOLD_RECORDS = 200;
     let i = 0;
+    let binaryIdx = 0;
     let currentSize = 0;
     let request: Required<SobjectCollectionRequest> = {
       allOrNone: false,
@@ -281,14 +318,33 @@ async function getBatchApiBatches({
     // auto-detect batch size based on size of attachments
     for (const _record of data) {
       try {
-        const record: SobjectCollectionRequestRecord = { attributes: { type: sObject }, ..._record };
+        const record: SobjectCollectionRequestRecord = {
+          attributes: { type: sObject },
+          [binaryBodyField]: undefined,
+          ..._record,
+        };
+        // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_sobject_insert_update_blob.htm
         if (_record[binaryBodyField]) {
           const foundFile = zip.file(record[binaryBodyField]);
           if (foundFile) {
-            record[binaryBodyField] = await foundFile.async('base64');
-            currentSize += getSizeInMbFromBase64(record[binaryBodyField]);
-          } else {
-            record[binaryBodyField] = null;
+            const binaryPartName = `binaryPart${++binaryIdx}`;
+            record.attributes = { type: sObject, binaryPartName, binaryPartNameAlias: binaryBodyField };
+
+            // Load as ArrayBuffer, then create a File with proper name and MIME
+            const buffer = await foundFile.async('arraybuffer');
+            const originalName = foundFile.name;
+            const inferredExt = extname(originalName);
+            const finalName = ensureExtension(originalName, inferredExt);
+            const mimeType = mimeFromExtension(inferredExt);
+
+            const file = new File([buffer], finalName, { type: mimeType });
+
+            currentSize += file.size / (1024 * 1024);
+            if (!Array.isArray(batchRecordBlobMap.get(i))) {
+              batchRecordBlobMap.set(i, []);
+            }
+            batchRecordBlobMap.get(i)?.push(file);
+            batchRecordBlobNameMap.set(file, { filename: foundFile.name, binaryPartName });
           }
         }
         request.records.push(record);
@@ -329,7 +385,7 @@ async function getBatchApiBatches({
       };
     });
   }
-  return { batches, batchRecordMap, failedRecords };
+  return { batches, batchRecordMap, batchRecordBlobMap, batchRecordBlobNameMap, failedRecords };
 }
 
 function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]): LoadDataBulkApiStatusPayload {
@@ -338,4 +394,41 @@ function getBatchSummary(results: BulkJobWithBatches, batches: LoadDataBulkApi[]
     totalBatches: batches.length,
     batchSummary: batches.map(({ id, batchNumber, completed, success }) => ({ id, batchNumber, completed, success })),
   };
+}
+
+function extname(name: string): string | undefined {
+  const m = /(?:\.([^.\/\\]+))$/.exec(name);
+  return m?.[1]?.toLowerCase();
+}
+
+function ensureExtension(name: string, ext?: string): string {
+  if (!ext) {
+    return name;
+  }
+  if (name.toLowerCase().endsWith(`.${ext.toLowerCase()}`)) {
+    return name;
+  }
+  return `${name}.${ext}`;
+}
+
+function mimeFromExtension(ext?: string): string {
+  switch ((ext || '').toLowerCase()) {
+    case 'pdf':
+      return 'application/pdf';
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'csv':
+      return 'text/csv';
+    case 'txt':
+      return 'text/plain';
+    case 'json':
+      return 'application/json';
+    default:
+      return 'application/octet-stream';
+  }
 }

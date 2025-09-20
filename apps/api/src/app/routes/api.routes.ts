@@ -148,6 +148,8 @@ routes.post('/request-manual', miscController.salesforceRequestManual.controller
  * recordController Routes
  * ************************************
  */
+// handle multipart/form-data for binary uploads
+routes.post('/record/upload', recordController.binaryUpload.controllerFn());
 routes.post('/record/:operation/:sobject', recordController.recordOperation.controllerFn());
 
 /**
