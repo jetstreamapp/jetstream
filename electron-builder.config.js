@@ -10,7 +10,7 @@ const ENV = {
   PROVISIONING_PROFILE_PATH_MAS: process.env.PROVISIONING_PROFILE_PATH_MAS,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-  WINDOWS_CERT_SHA1: process.env.WINDOWS_CERT_SHA1 || '6526a53309171bf43d3321cee5719c06b2ba28e9',
+  WINDOWS_CERT_SHA1: process.env.WINDOWS_CERT_SHA1,
 };
 
 /** @type {Configuration['mac']} */
@@ -37,7 +37,7 @@ if (ENV.IS_CODESIGNING_ENABLED) {
   winSigningConfig = {
     forceCodeSigning: true,
     signtoolOptions: {
-      certificateSha1: '6526a53309171bf43d3321cee5719c06b2ba28e9',
+      certificateSha1: ENV.WINDOWS_CERT_SHA1,
       signingHashAlgorithms: ['sha256'],
       sign: './windows-sign.js',
     },

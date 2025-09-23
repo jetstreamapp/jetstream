@@ -9,11 +9,11 @@ autoUpdater.logger = logger;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-let updateWindow: BrowserWindow | null = null;
+function getFocusedRoFirstWindow(): BrowserWindow | null {
+  return BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+}
 
-export function initializeAutoUpdater(mainWindow: BrowserWindow) {
-  updateWindow = mainWindow;
-
+export function initializeAutoUpdater() {
   // Check for updates on startup (after 30 seconds)
   setTimeout(() => {
     checkForUpdates(true);
@@ -21,10 +21,8 @@ export function initializeAutoUpdater(mainWindow: BrowserWindow) {
 
   // Check for updates every 4 hours
   setInterval(
-    () => {
-      checkForUpdates(true);
-    },
-    4 * 60 * 60 * 1000,
+    () => checkForUpdates(true),
+    4 * 60 * 60 * 1000, // 4 hours
   );
 
   setupAutoUpdaterListeners();
@@ -40,8 +38,13 @@ function setupAutoUpdaterListeners() {
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     logger.info('Update available:', info);
 
+    const updateWindow = getFocusedRoFirstWindow();
+    if (!updateWindow) {
+      return;
+    }
+
     dialog
-      .showMessageBox(updateWindow!, {
+      .showMessageBox(updateWindow, {
         type: 'info',
         title: 'Update Available',
         message: `A new version ${info.version} is available. Would you like to download it now?`,
@@ -70,6 +73,7 @@ function setupAutoUpdaterListeners() {
     logMessage = logMessage + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
     logger.info(logMessage);
 
+    const updateWindow = getFocusedRoFirstWindow();
     // Send progress to renderer
     if (updateWindow) {
       updateWindow.webContents.send('update-download-progress', progressObj);
@@ -79,8 +83,13 @@ function setupAutoUpdaterListeners() {
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
     logger.info('Update downloaded:', info);
 
+    const updateWindow = getFocusedRoFirstWindow();
+    if (!updateWindow) {
+      return;
+    }
+
     dialog
-      .showMessageBox(updateWindow!, {
+      .showMessageBox(updateWindow, {
         type: 'info',
         title: 'Update Ready',
         message: 'Update downloaded',
@@ -98,7 +107,9 @@ function setupAutoUpdaterListeners() {
 
 export function checkForUpdates(silent = false) {
   if (!silent) {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      logger.error('Update check failed:', err);
+    });
   } else {
     autoUpdater
       .checkForUpdates()
@@ -111,16 +122,4 @@ export function checkForUpdates(silent = false) {
         logger.error('Update failure', error);
       });
   }
-}
-
-// Export for menu actions
-export function checkForUpdatesMenuItem() {
-  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-    dialog.showMessageBox(updateWindow!, {
-      type: 'error',
-      title: 'Update Check Failed',
-      message: 'Unable to check for updates',
-      detail: err.message,
-    });
-  });
 }

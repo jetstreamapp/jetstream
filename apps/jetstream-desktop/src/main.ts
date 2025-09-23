@@ -39,12 +39,11 @@ app.whenReady().then(async () => {
 
   let mainWindow = Browser.create(() => registerIpc());
 
-  initializeAutoUpdater(mainWindow);
+  initializeAutoUpdater();
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0 || !mainWindow || mainWindow.isDestroyed()) {
       mainWindow = Browser.create();
-      initializeAutoUpdater(mainWindow);
     }
   });
 

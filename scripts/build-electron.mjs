@@ -163,14 +163,20 @@ async function build() {
     'WINDOWS_CERT_SHA1',
     'BACKBLAZE_ACCESS_KEY_ID',
     'BACKBLAZE_SECRET_ACCESS_KEY',
+    // Optional, will fall back to Backblaze keys if not provided
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
   ]
     .filter((key) => process.env[key])
     .map((key) => `${key}=${process.env[key] ?? ''}`)
     .join('\n');
 
-  envContent = envContent
-    .replace('BACKBLAZE_ACCESS_KEY_ID', 'AWS_ACCESS_KEY_ID')
-    .replace('BACKBLAZE_SECRET_ACCESS_KEY', 'AWS_SECRET_ACCESS_KEY');
+  if (envContent.includes('BACKBLAZE_ACCESS_KEY_ID') && !envContent.includes('AWS_ACCESS_KEY_ID')) {
+    envContent += `\nAWS_ACCESS_KEY_ID=${process.env.BACKBLAZE_ACCESS_KEY_ID}`;
+  }
+  if (envContent.includes('BACKBLAZE_SECRET_ACCESS_KEY') && !envContent.includes('AWS_SECRET_ACCESS_KEY')) {
+    envContent += `\nAWS_SECRET_ACCESS_KEY=${process.env.BACKBLAZE_SECRET_ACCESS_KEY}`;
+  }
 
   writeFileSync('.env', envContent);
 
