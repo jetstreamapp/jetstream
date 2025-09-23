@@ -348,7 +348,7 @@ export function getUpdatedObjectPermissions(
         PermissionsRead: dirtyPermission.read,
         PermissionsEdit: dirtyPermission.edit,
         PermissionsDelete: dirtyPermission.delete,
-        PermissionsViewAllRecords: dirtyPermission.viewAllIsDirty,
+        PermissionsViewAllRecords: dirtyPermission.viewAll,
         PermissionsModifyAllRecords: dirtyPermission.modifyAll,
         PermissionsViewAllFields: dirtyPermission.viewAllFields,
         SobjectType: dirtyPermission.sobject,
