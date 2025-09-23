@@ -1,24 +1,19 @@
 {
   "name": "jetstream",
-  "description": "The Jetstream platform makes managing your Salesforce instances a breeze. Use Jetstream to work with your data and metadata to get your work done faster.",
+  "description": "The ultimate Salesforce administrator companion.",
   "version": "2.0.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/jetstreamapp/jetstream"
   },
-  "author": "Jetstream",
+  "author": "Jetstream Solutions, LLC",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "package:macos": "electron-forge package --platform=darwin --arch=arm64",
-    "package:windows": "electron-forge package --platform=win32 --arch=x64",
-    "build:macos:x64": "electron-forge make --platform=darwin --arch=x64 --overwrite",
-    "build:macos:arm64": "electron-forge make --platform=darwin --arch=arm64 --overwrite",
-    "build:macos:mas": "electron-forge make --platform=mas --arch=universal",
-    "build:windows:x64": "electron-forge make --platform=win32 --arch=x64",
-    "publish:macos:arm64": "electron-forge publish --platform=darwin --arch=arm64 --overwrite",
-    "publish:macos:x64": "electron-forge publish --platform=darwin --arch=x64 --overwrite",
-    "publish:windows:arm64": "electron-forge publish --platform=win32 --arch=arm64 --overwrite",
-    "publish:windows:x64": "electron-forge publish --platform=win32 --arch=x64 --overwrite"
+    "postinstall": "electron-builder install-app-deps",
+    "build:mac": "electron-builder build --mac --config electron-builder.config.js",
+    "build:win": "electron-builder build --win --config electron-builder.config.js",
+    "publish:mac": "electron-builder build --mac --config electron-builder.config.js -p always",
+    "publish:win": "electron-builder build --win --config electron-builder.config.js -p always"
   },
   "devDependencies": {},
   "dependencies": {}

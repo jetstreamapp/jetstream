@@ -1,150 +1,176 @@
-/**
- * @type {import('electron-builder').Configuration}
- */
+require('dotenv/config');
+const path = require('node:path');
+
+/** @typedef {import('electron-builder').Configuration} Configuration */
+
+const ENV = {
+  IS_CODESIGNING_ENABLED: process.env.IS_CODESIGNING_ENABLED === 'true',
+  APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
+  PROVISIONING_PROFILE_PATH_DARWIN: process.env.PROVISIONING_PROFILE_PATH_DARWIN,
+  PROVISIONING_PROFILE_PATH_MAS: process.env.PROVISIONING_PROFILE_PATH_MAS,
+  AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+  WINDOWS_CERT_SHA1: process.env.WINDOWS_CERT_SHA1 || '6526a53309171bf43d3321cee5719c06b2ba28e9',
+};
+
+/** @type {Configuration['mac']} */
+let macSigningConfig = {
+  identity: null,
+};
+
+/** @type {Configuration['win']} */
+let winSigningConfig = {};
+
+if (ENV.IS_CODESIGNING_ENABLED) {
+  macSigningConfig = {
+    forceCodeSigning: true,
+    identity: `JETSTREAM SOLUTIONS, LLC (${ENV.APPLE_TEAM_ID})`,
+    provisioningProfile: path.resolve(
+      ENV.PROVISIONING_PROFILE_PATH_DARWIN || '../../build-resources/Jetstream_Mac_App_Profile.provisionprofile',
+    ),
+    // Relies on env vars: APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER
+    // https://github.com/electron/notarize
+    notarize: true,
+    requirements: null,
+    signIgnore: null,
+  };
+  winSigningConfig = {
+    forceCodeSigning: true,
+    signtoolOptions: {
+      certificateSha1: '6526a53309171bf43d3321cee5719c06b2ba28e9',
+      signingHashAlgorithms: ['sha256'],
+      sign: './windows-sign.js',
+    },
+  };
+}
+
+/** @type {Configuration} */
 const config = {
-  // Application metadata
   appId: 'app.getjetstream',
   productName: 'Jetstream',
-  copyright: `Copyright ©${new Date().getFullYear()} Jetstream Solutions`,
+  copyright: `Copyright © ${new Date().getFullYear()} Jetstream Solutions`,
 
-  // Directories
   directories: {
-    output: 'dist/desktop-build', // Where the build output is stored
-    // buildResources: 'desktop-build', // Resources needed for building
-    // app: 'app', // Source directory (where package.json is located)
+    output: 'out',
+    buildResources: 'assets',
   },
 
-  // Files to include in the build
   files: [
-    {
-      from: 'dist/apps/jetstream-desktop/**/*',
-      to: '.',
-    },
-    {
-      from: 'dist/apps/jetstream-desktop-client/**/*',
-      to: 'client',
-    },
-    '!package.json',
-    // Add any other files you need
+    '**/*',
+    '!.env',
+    '!**/*.map',
+    '!**/*.ts',
+    '!electron-builder.config.js',
+    '!windows-sign.js',
+    '!yarn.lock',
+    '!node_modules/.cache',
+    '!node_modules/.prisma',
   ],
 
-  // forceCodeSigning: true,
-  // generateUpdatesFilesForAllChannels: true,
+  electronFuses: {
+    runAsNode: true,
+    enableCookieEncryption: true,
+    enableNodeOptionsEnvironmentVariable: false,
+    enableNodeCliInspectArguments: false,
+    enableEmbeddedAsarIntegrityValidation: true,
+    onlyLoadAppFromAsar: true,
+    grantFileProtocolExtraPrivileges: false,
+  },
 
-  // TODO:
-  icon: 'build/icon.png',
+  asar: true,
+  compression: ENV.IS_CODESIGNING_ENABLED ? 'store' : 'normal',
+  npmRebuild: true,
+  nodeGypRebuild: false,
 
-  // The icons/resources used for the application
-  extraResources: ['desktop-build/**/*'],
-
-  // macOS specific configuration
+  // macOS Configuration
   mac: {
-    category: 'public.app-category.productivity',
-    target: ['dmg', 'zip'],
-    icon: 'build/icon.icns',
-    darkModeSupport: true,
+    category: 'public.app-category.business',
+    icon: 'assets/icons/icon.icns',
     hardenedRuntime: true,
     gatekeeperAssess: false,
-    entitlements: 'build/entitlements.mac.plist',
-    entitlementsInherit: 'build/entitlements.mac.plist',
-    // notarize: true,
-    // publish: {
-    //   provider: 'github',
-    //   repo: 'jetstream',
-    //   owner: 'yourname',
-    //   private: false,
-    //   releaseType: 'release',
-    // },
-  },
-
-  // Windows specific configuration
-  // win: {
-  //   target: ['nsis', 'msi', 'portable'],
-  //   icon: 'build/icon.ico',
-  //   // publish: {
-  //   //   publisherName: ['Jetstream Solutions'],
-  //   // },
-  // },
-
-  // NSIS installer configuration (Windows)
-  // nsis: {
-  //   oneClick: false,
-  //   allowToChangeInstallationDirectory: true,
-  //   createDesktopShortcut: true,
-  //   createStartMenuShortcut: true,
-  //   shortcutName: 'Jetstream',
-  // },
-
-  // Linux specific configuration
-  // linux: {
-  //   target: ['AppImage', 'deb', 'rpm'],
-  //   category: 'Development',
-  //   icon: 'build/icons',
-  // },
-
-  // Auto-update configuration
-  // publish: {
-  //   provider: 'github', // or other providers like 's3', 'spaces', etc.
-  //   repo: 'jetstream',
-  //   owner: 'yourname',
-  //   private: false,
-  //   releaseType: 'release',
-  // },
-
-  // Configuration for the "afterSign" hook
-  // afterSign: 'scripts/notarize.js',
-
-  // Artifacts configuration
-  artifactName: '${productName}-${version}-${arch}.${ext}',
-
-  // DMG configuration (macOS)
-  dmg: {
-    background: 'build/background.png',
-    icon: 'build/icon.icns',
-    iconSize: 100,
-    window: {
-      width: 540,
-      height: 380,
+    darkModeSupport: false,
+    target: [
+      { target: 'dmg', arch: ['x64', 'arm64'] },
+      { target: 'zip', arch: ['x64', 'arm64'] },
+    ],
+    extendInfo: {
+      CFBundleDocumentTypes: [
+        {
+          CFBundleTypeName: 'CSV File',
+          CFBundleTypeRole: 'Viewer',
+          LSHandlerRank: 'Alternate',
+          LSItemContentTypes: ['public.comma-separated-values-text'],
+          CFBundleTypeExtensions: ['csv'],
+        },
+        {
+          CFBundleTypeName: 'Excel File',
+          CFBundleTypeRole: 'Viewer',
+          LSHandlerRank: 'Alternate',
+          LSItemContentTypes: ['org.openxmlformats.spreadsheetml.sheet'],
+          CFBundleTypeExtensions: ['xlsx'],
+        },
+      ],
     },
+    ...macSigningConfig,
   },
 
-  // MAS (Mac App Store) configuration
-  mas: {
-    entitlements: 'build/entitlements.mas.plist',
-    entitlementsInherit: 'build/entitlements.mas.inherit.plist',
-    provisioningProfile: 'build/embedded.provisionprofile',
+  // Windows Configuration
+  win: {
+    target: [
+      { target: 'nsis', arch: ['x64'] }, // Allows installing for user or for all users
+      { target: 'portable', arch: ['x64'] }, // For restricted enterprise environments - does not require installation
+    ],
+    icon: 'assets/icons/icon.png',
+    legalTrademarks: 'Jetstream Solutions, LLC',
+    ...winSigningConfig,
   },
 
-  // AppX configuration (Windows Store)
-  // appx: {
-  //   identityName: 'YourCompany.Jetstream',
-  //   publisherDisplayName: 'Your Company',
-  //   publisher: 'CN=Your-Publisher-ID',
-  //   applicationId: 'Jetstream',
-  // },
+  // NSIS Installer Configuration (replaces both WiX and Squirrel)
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    allowElevation: true,
+    license: 'DESKTOP_EULA.md',
+    warningsAsErrors: false,
+    createStartMenuShortcut: true,
+    shortcutName: 'Jetstream',
+    deleteAppDataOnUninstall: false,
+    differentialPackage: true, // Enable delta updates
+    include: 'assets/installer.nsh',
+  },
 
-  // // Snap configuration (Linux)
-  // snap: {
-  //   confinement: 'strict',
-  //   grade: 'stable',
-  // },
+  // Portable app for restricted environments
+  portable: {
+    requestExecutionLevel: 'user',
+    unpackDirName: 'jetstream-portable',
+  },
 
-  // // AppImage configuration (Linux)
-  // appImage: {
-  //   license: 'LICENSE.md',
-  // },
+  // Protocol Handlers
+  protocols: [
+    {
+      name: 'Jetstream Protocol',
+      schemes: ['jetstream'],
+    },
+  ],
 
-  // Build-time scripts
-  beforeBuild: () => console.log('Before build...'),
-  // afterBuild: () => console.log('After build...'),
-  afterSign: () => console.log('After sign...'),
-  afterPack: () => console.log('After pack...'),
-  // afterAllArtifactBuild: () => console.log('After all artifact build...'),
+  publish:
+    ENV.IS_CODESIGNING_ENABLED && ENV.AWS_ACCESS_KEY_ID && ENV.AWS_SECRET_ACCESS_KEY
+      ? [
+          {
+            provider: 's3',
+            // Local testing with MinIO
+            // endpoint: 'http://localhost:9000',
+            endpoint: 'https://s3.us-east-005.backblazeb2.com',
+            bucket: 'desktop-updates',
+            path: `jetstream/releases`,
+          },
+        ]
+      : null,
 
-  // Build configuration for all platforms
-  asar: true, // Whether to use ASAR archive
-  compression: 'normal', // Compression level
-  removePackageScripts: true, // Remove package.json scripts
+  // Auto-updater configuration
+  generateUpdatesFilesForAllChannels: false,
+  detectUpdateChannel: false,
 };
 
 module.exports = config;

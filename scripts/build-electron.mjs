@@ -12,24 +12,32 @@ if (process.platform === 'win32') {
 }
 
 const argv = minimist(process.argv.slice(2), {
-  boolean: ['help'],
+  boolean: ['help', 'publish'],
+  string: ['platform', 'arch'],
   default: {
     help: false,
+    publish: false,
+    platform: process.platform,
+    arch: process.arch,
   },
   alias: {
     h: 'help',
+    p: 'publish',
   },
 });
 
 if (argv.help) {
   console.log(`
-    Usage: build-electron [options]
+    Usage: build-electron-builder [options]
 
-    To build new extension zip:
-    yarn build:desktop or node scripts/build-electron.mjs"
+    To build new electron app:
+    yarn build:desktop:builder or node scripts/build-electron-builder.mjs"
 
     Options:
-      -h, --help    display help for command
+      -h, --help       display help for command
+      -p, --publish    publish to configured destination
+      --platform       target platform (darwin, win32, linux)
+      --arch           target architecture (x64, arm64)
   `);
   process.exit(0);
 }
@@ -41,6 +49,8 @@ const TARGET_CLIENT_DIR = join(TARGET_DIR, 'client');
 const MAIN_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop');
 const DOWNZIP_SW_BUILD_DIR = join(process.cwd(), 'dist/apps/download-zip-sw');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
+const WINDOWS_SIGN_SCRIPT = join(process.cwd(), 'scripts/windows-sign.js');
+const WINDOWS_SIGN_SCRIPT_DEST = join(TARGET_DIR, 'windows-sign.js');
 
 // NX calculates these dependencies, but they are not used in the final build
 const yarnRemoveDeps = () => {
@@ -50,7 +60,7 @@ const yarnRemoveDeps = () => {
   return ['react', 'tslib', 'xlsx', 'stripe'].filter((dep) => {
     const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
     if (!matchingDependency) {
-      console.warn(`${dep} not found in root package.json, skipping removal`);
+      console.warn(`${dep} not found in package.json, skipping removal`);
     }
     return matchingDependency;
   });
@@ -58,25 +68,18 @@ const yarnRemoveDeps = () => {
 
 /**
  * Look at root package.json for version of all dependencies to install
- * This enabled us to avoid having to keep the version numbers in sync manually
+ * This enables us to avoid having to keep the version numbers in sync manually
  */
 const yarnAddDevDeps = () => {
   const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
   const allDependencies = { ...devDependencies, ...dependencies };
+
   return [
-    '@electron-forge/cli',
-    '@electron-forge/maker-deb',
-    '@electron-forge/maker-dmg',
-    '@electron-forge/maker-pkg',
-    '@electron-forge/maker-rpm',
-    '@electron-forge/maker-squirrel',
-    '@electron-forge/maker-wix',
-    '@electron-forge/maker-zip',
-    '@electron-forge/plugin-auto-unpack-natives',
-    '@electron-forge/plugin-fuses',
-    '@electron-forge/publisher-github',
-    '@electron-forge/publisher-s3',
+    // electron-builder and related packages
+    'electron-builder',
+    '@electron/notarize',
     '@electron/fuses',
+    // Build utilities
     'dotenv',
     'electron',
     'ts-node',
@@ -84,8 +87,25 @@ const yarnAddDevDeps = () => {
   ].map((dep) => {
     const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
     if (!matchingDependency) {
-      console.error(`${dep} not found in root package.json`);
-      throw new Error(`Missing dependency: ${dep}`);
+      // For packages not in root, use latest
+      console.warn(`${dep} not found in root package.json, will install latest version`);
+      return dep;
+    }
+    const [packageName, packageVersion] = matchingDependency;
+    return `${packageName}@${packageVersion}`;
+  });
+};
+
+const yarnAddProdDeps = () => {
+  const { devDependencies, dependencies } = JSON.parse(readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf-8'));
+  const allDependencies = { ...devDependencies, ...dependencies };
+
+  return ['electron-updater'].map((dep) => {
+    const matchingDependency = Object.entries(allDependencies).find(([packageName]) => packageName === dep);
+    if (!matchingDependency) {
+      // For packages not in root, use latest
+      console.warn(`${dep} not found in root package.json, will install latest version`);
+      return dep;
     }
     const [packageName, packageVersion] = matchingDependency;
     return `${packageName}@${packageVersion}`;
@@ -107,33 +127,58 @@ async function build() {
   await copy(MAIN_BUILD_DIR, TARGET_DIR);
   await copy(RENDERER_BUILD_DIR, TARGET_CLIENT_DIR);
   await copy(DOWNZIP_SW_BUILD_DIR, TARGET_DIR);
+  await copy(WINDOWS_SIGN_SCRIPT, WINDOWS_SIGN_SCRIPT_DEST);
 
-  await copy('forge.config.ts', join(TARGET_DIR, 'forge.config.ts'));
-  await copy('LICENSE.md', join(TARGET_DIR, 'LICENSE.md'));
+  // Copy electron-builder config and assets
+  await copy('electron-builder.config.js', join(TARGET_DIR, 'electron-builder.config.js'));
+  await copy('DESKTOP_EULA.md', join(TARGET_DIR, 'DESKTOP_EULA.md'));
 
   cd(TARGET_DIR);
 
-  // install dependencies
-  // These MUST be dev dependencies for electron-forge to work properly and we cannot include them in the generated package.json since that only includes production dependencies
-  await $`yarn add -D ${yarnAddDevDeps()}`;
+  // Install missing dependencies
+  console.log(chalk.blue('Installing dependencies...'));
+  await $`yarn add -D ${yarnAddDevDeps()}`; // this is required to be first because postInstall script depends on it
+  await $`yarn add ${yarnAddProdDeps()}`;
 
   // Remove extra dependencies
-  // Some dependencies are pulled in because we use their types, but we don't actually need them
-  await $`yarn remove ${yarnRemoveDeps()}`;
-  await remove(join(TARGET_DIR, 'node_modules/.prisma'));
+  console.log(chalk.blue('Removing unnecessary dependencies...'));
+  const depsToRemove = yarnRemoveDeps();
+  if (depsToRemove.length > 0) {
+    await $`yarn remove ${depsToRemove}`;
+  }
 
-  const envContent = [
+  // Clean up unnecessary files
+  await remove(join(TARGET_DIR, 'node_modules/.prisma'));
+  await remove(join(TARGET_DIR, 'node_modules/.cache'));
+
+  // Create .env file with necessary environment variables
+  let envContent = [
     'IS_CODESIGNING_ENABLED',
-    'APPLE_ID',
-    'APPLE_PASSWORD',
     'APPLE_TEAM_ID',
+    'APPLE_API_KEY',
+    'APPLE_API_KEY_ID',
+    'APPLE_API_ISSUER',
+    'PROVISIONING_PROFILE_PATH_DARWIN',
+    'PROVISIONING_PROFILE_PATH_MAS',
+    'WINDOWS_CERT_SHA1',
     'BACKBLAZE_ACCESS_KEY_ID',
     'BACKBLAZE_SECRET_ACCESS_KEY',
   ]
     .filter((key) => process.env[key])
     .map((key) => `${key}=${process.env[key] ?? ''}`)
     .join('\n');
+
+  envContent = envContent
+    .replace('BACKBLAZE_ACCESS_KEY_ID', 'AWS_ACCESS_KEY_ID')
+    .replace('BACKBLAZE_SECRET_ACCESS_KEY', 'AWS_SECRET_ACCESS_KEY');
+
   writeFileSync('.env', envContent);
+
+  // Build with electron-builder
+  console.log(chalk.green('Ready to build with electron-builder!'));
+  console.log(chalk.green('Publish your artifacts by running:'));
+  console.log(chalk.blue('cd dist/desktop-build && yarn publish:mac'));
+  console.log(chalk.blue('cd dist/desktop-build && yarn publish:win'));
 }
 
 async function main() {

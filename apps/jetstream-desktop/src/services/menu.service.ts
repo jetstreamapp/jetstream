@@ -1,5 +1,6 @@
 import { app, Menu, shell } from 'electron';
 import { Browser } from '../browser/browser';
+import { checkForUpdates } from '../config/auto-updater';
 import { isMac } from '../utils/utils';
 
 type MenuItem = Parameters<typeof Menu.buildFromTemplate>[0][0];
@@ -15,6 +16,10 @@ export function initAppMenu() {
             label: app.name,
             submenu: [
               { role: 'about' },
+              {
+                label: 'Check for Updates',
+                click: () => checkForUpdates(),
+              },
               { type: 'separator' },
               { role: 'services' },
               { type: 'separator' },
@@ -36,6 +41,14 @@ export function initAppMenu() {
           accelerator: 'CmdOrCtrl+N',
           click: () => Browser.create(),
         },
+        ...((isMac()
+          ? []
+          : [
+              {
+                label: 'Check for Updates',
+                click: () => checkForUpdates(),
+              },
+            ]) as any[]),
         { type: 'separator' },
         { role: isMac() ? 'close' : 'quit' },
       ],
