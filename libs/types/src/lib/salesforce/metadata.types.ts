@@ -93,6 +93,7 @@ export interface ProfileObjectPermissions {
   modifyAllRecords?: boolean | undefined;
   object: string;
   viewAllRecords?: boolean | undefined;
+  viewAllFields?: boolean | undefined;
 }
 
 export interface RetrieveRequest {

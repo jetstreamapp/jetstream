@@ -187,6 +187,7 @@ function getObjectPermissionMap(
           delete: permissionRecord.PermissionsDelete,
           viewAll: permissionRecord.PermissionsViewAllRecords,
           modifyAll: permissionRecord.PermissionsModifyAllRecords,
+          viewAllFields: permissionRecord.PermissionsViewAllFields,
           record: permissionRecord,
         };
       } else {
@@ -197,6 +198,7 @@ function getObjectPermissionMap(
           delete: false,
           viewAll: false,
           modifyAll: false,
+          viewAllFields: false,
           record: null,
         };
       }

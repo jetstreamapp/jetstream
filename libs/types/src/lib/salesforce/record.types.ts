@@ -211,6 +211,7 @@ export interface ObjectPermissionRecord {
   PermissionsDelete: boolean;
   PermissionsModifyAllRecords: boolean;
   PermissionsViewAllRecords: boolean;
+  PermissionsViewAllFields: boolean;
   ParentId: string;
   Parent: PermissionPermissionSetRecord;
 }
@@ -412,6 +413,7 @@ export interface ObjectPermission {
   modifyAllRecords: string;
   object: string;
   viewAllRecords: string;
+  viewAllFields: string;
 }
 
 export interface PageAccess {

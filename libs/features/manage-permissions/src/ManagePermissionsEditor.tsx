@@ -248,8 +248,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         const row = rows[rowIndex];
         const rowKey = row.key; // e.x. Obj__c.Field__c
         const dirtyCount = Object.values(row.permissions).reduce(
-          (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty }) => {
-            output += createIsDirty || readIsDirty || editIsDirty || deleteIsDirty || viewAllIsDirty || modifyAllIsDirty ? 1 : 0;
+          (output, { createIsDirty, readIsDirty, editIsDirty, deleteIsDirty, viewAllIsDirty, modifyAllIsDirty, viewAllFieldsIsDirty }) => {
+            output +=
+              createIsDirty || readIsDirty || editIsDirty || deleteIsDirty || viewAllIsDirty || modifyAllIsDirty || viewAllFieldsIsDirty
+                ? 1
+                : 0;
             return output;
           },
           0,
