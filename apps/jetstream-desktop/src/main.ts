@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron';
+import logger from 'electron-log';
 import { Browser } from './browser/browser';
-import { handleSquirrelEvent } from './config/squirrel-startup';
-import { setupAutoUpdater } from './config/updater';
+import { initializeAutoUpdater } from './config/auto-updater';
 import { initDeepLink } from './services/deep-link.service';
 import { registerIpc } from './services/ipc.service';
 import { initAppMenu } from './services/menu.service';
@@ -14,32 +14,42 @@ import {
 } from './services/protocol.service';
 import { isMac } from './utils/utils';
 
-if (!handleSquirrelEvent()) {
-  setupAutoUpdater();
-  initDeepLink();
-  initAppMenu();
+logger.transports.file.level = 'info';
+logger.transports.console.level = 'debug';
+logger.transports.file.maxSize = 10 * 1024 * 1024; // 10 MB
 
-  app.on('window-all-closed', () => {
-    if (!isMac()) {
-      app.quit();
+logger.info('App starting...');
+
+initDeepLink();
+initAppMenu();
+
+app.on('window-all-closed', () => {
+  if (!isMac()) {
+    app.quit();
+  }
+});
+
+logger.info('Current app version:', app.getVersion());
+logger.info('App name:', app.getName());
+logger.info('App path:', app.getAppPath());
+logger.info('User data path:', app.getPath('userData'));
+
+app.whenReady().then(async () => {
+  registerProtocols();
+
+  let mainWindow = Browser.create(() => registerIpc());
+
+  initializeAutoUpdater();
+
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0 || !mainWindow || mainWindow.isDestroyed()) {
+      mainWindow = Browser.create();
     }
   });
 
-  app.whenReady().then(async () => {
-    registerProtocols();
+  registerWebRequestHandlers();
+  registerDownloadHandler();
+  registerFileOpenHandler();
 
-    const mainWindow = Browser.create(() => registerIpc());
-
-    app.on('activate', function () {
-      if (BrowserWindow.getAllWindows().length === 0 || !mainWindow || mainWindow.isDestroyed()) {
-        Browser.create();
-      }
-    });
-
-    registerWebRequestHandlers();
-    registerDownloadHandler();
-    registerFileOpenHandler();
-
-    registerNotificationPoller();
-  });
-}
+  registerNotificationPoller();
+});
