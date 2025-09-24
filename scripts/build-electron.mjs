@@ -184,7 +184,7 @@ async function build() {
   console.log(chalk.green('Ready to build with electron-builder!'));
   console.log(chalk.green('Publish your artifacts by running:'));
   console.log(chalk.blue('cd dist/desktop-build && yarn publish:mac'));
-  console.log(chalk.blue('cd dist/desktop-build && yarn publish:win'));
+  console.log(chalk.blue('cd dist/desktop-build; yarn publish:win'));
 }
 
 async function main() {
