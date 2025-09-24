@@ -106,11 +106,7 @@ function setupAutoUpdaterListeners() {
 }
 
 export function checkForUpdates(silent = false) {
-  if (!silent) {
-    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-      logger.error('Update check failed:', err);
-    });
-  } else {
+  if (silent) {
     autoUpdater
       .checkForUpdates()
       .then((result) => {
@@ -120,6 +116,17 @@ export function checkForUpdates(silent = false) {
       })
       .catch((error) => {
         logger.error('Update failure', error);
+      });
+  } else {
+    autoUpdater
+      .checkForUpdatesAndNotify()
+      .then((result) => {
+        if (result?.isUpdateAvailable) {
+          logger.info('Update available', result?.isUpdateAvailable);
+        }
+      })
+      .catch((err) => {
+        logger.error('Update check failed:', err);
       });
   }
 }

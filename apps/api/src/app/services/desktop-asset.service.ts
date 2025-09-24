@@ -76,7 +76,7 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
       getAndParseVersionFile(s3Client, `${ASSET_FOLDER}/latest-mac.yml`),
     ]);
 
-    if (!!winRelease?.files.length) {
+    if (winRelease?.files.length) {
       const version = winRelease.version;
       const { sha512, url: filename } = winRelease?.files[0];
       versionCache.set('windows-x64', {
