@@ -60,4 +60,5 @@ export interface CreateObjectPermissions {
   allowRead: boolean;
   modifyAllRecords: boolean;
   viewAllRecords: boolean;
+  viewAllFields: boolean;
 }

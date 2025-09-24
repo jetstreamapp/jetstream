@@ -16,7 +16,8 @@ export const CreateNewObjectPermissionsCheckboxes = ({ label, objectPermissions,
     objectPermissions.allowEdit &&
     objectPermissions.allowRead &&
     objectPermissions.modifyAllRecords &&
-    objectPermissions.viewAllRecords;
+    objectPermissions.viewAllRecords &&
+    objectPermissions.viewAllFields;
 
   const noneSelected =
     !objectPermissions.allowCreate &&
@@ -24,7 +25,8 @@ export const CreateNewObjectPermissionsCheckboxes = ({ label, objectPermissions,
     !objectPermissions.allowEdit &&
     !objectPermissions.allowRead &&
     !objectPermissions.modifyAllRecords &&
-    !objectPermissions.viewAllRecords;
+    !objectPermissions.viewAllRecords &&
+    !objectPermissions.viewAllFields;
 
   function handleSelectAll(value: boolean) {
     onChange({
@@ -34,6 +36,7 @@ export const CreateNewObjectPermissionsCheckboxes = ({ label, objectPermissions,
       allowRead: value,
       modifyAllRecords: value,
       viewAllRecords: value,
+      viewAllFields: value,
     });
   }
 
@@ -102,6 +105,13 @@ export const CreateNewObjectPermissionsCheckboxes = ({ label, objectPermissions,
         label="View All Records"
         checked={objectPermissions.viewAllRecords}
         onChange={(value) => onChange(setSObjectPermissionDependencies(objectPermissions, 'viewAllRecords', value))}
+        disabled={loading}
+      />
+      <Checkbox
+        id={`${label}-objectPermissions.viewAllFields`}
+        label="View All Fields"
+        checked={objectPermissions.viewAllFields}
+        onChange={(value) => onChange(setSObjectPermissionDependencies(objectPermissions, 'viewAllFields', value))}
         disabled={loading}
       />
     </>

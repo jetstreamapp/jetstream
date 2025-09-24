@@ -41,6 +41,10 @@ export function setSObjectPermissionDependencies(
     output.modifyAllRecords = newValue;
     fieldsToSetIfTrue = ['allowRead', 'allowEdit', 'allowDelete', 'viewAllRecords'];
     fieldsToSetIfFalse = [];
+  } else if (modifiedKey === 'viewAllFields') {
+    output.viewAllFields = newValue;
+    fieldsToSetIfTrue = [];
+    fieldsToSetIfFalse = [];
   }
   if (newValue) {
     fieldsToSetIfTrue.forEach((prop) => (output[prop] = newValue));
@@ -87,6 +91,7 @@ export function getObjectAndTabPermissionRecords(
       PermissionsModifyAllRecords: permissions.modifyAllRecords,
       PermissionsRead: permissions.allowRead,
       PermissionsViewAllRecords: permissions.viewAllRecords,
+      PermissionsViewAllFields: permissions.viewAllFields,
       SobjectType: apiName,
     });
     if (createTab) {
@@ -110,6 +115,7 @@ export function getObjectAndTabPermissionRecords(
       PermissionsModifyAllRecords: permissions.modifyAllRecords,
       PermissionsRead: permissions.allowRead,
       PermissionsViewAllRecords: permissions.viewAllRecords,
+      PermissionsViewAllFields: permissions.viewAllFields,
       SobjectType: apiName,
     });
     if (createTab) {

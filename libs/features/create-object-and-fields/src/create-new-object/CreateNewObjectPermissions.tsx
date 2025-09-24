@@ -15,6 +15,7 @@ function getDefaultPermissions(): CreateObjectPermissions {
     allowRead: true,
     modifyAllRecords: true,
     viewAllRecords: true,
+    viewAllFields: true,
   };
 }
 

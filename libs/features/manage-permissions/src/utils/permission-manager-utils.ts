@@ -78,6 +78,7 @@ export function prepareObjectPermissionSaveData(dirtyPermissions: PermissionTabl
         PermissionsDelete: perm.delete,
         PermissionsViewAllRecords: perm.viewAll,
         PermissionsModifyAllRecords: perm.modifyAll,
+        PermissionsViewAllFields: perm.viewAllFields,
         ParentId: perm.parentId,
       };
       let recordIdx: number;
@@ -347,8 +348,9 @@ export function getUpdatedObjectPermissions(
         PermissionsRead: dirtyPermission.read,
         PermissionsEdit: dirtyPermission.edit,
         PermissionsDelete: dirtyPermission.delete,
-        PermissionsViewAllRecords: dirtyPermission.viewAllIsDirty,
+        PermissionsViewAllRecords: dirtyPermission.viewAll,
         PermissionsModifyAllRecords: dirtyPermission.modifyAll,
+        PermissionsViewAllFields: dirtyPermission.viewAllFields,
         SobjectType: dirtyPermission.sobject,
         // missing Parent related lookup, as we do not have data for it
       };
@@ -364,6 +366,7 @@ export function getUpdatedObjectPermissions(
               delete: dirtyPermission.delete,
               viewAll: dirtyPermission.viewAll,
               modifyAll: dirtyPermission.modifyAll,
+              viewAllFields: dirtyPermission.viewAllFields,
               record: fieldPermission as ObjectPermissionRecord,
             },
           },
@@ -381,6 +384,7 @@ export function getUpdatedObjectPermissions(
               delete: dirtyPermission.delete,
               viewAll: dirtyPermission.viewAll,
               modifyAll: dirtyPermission.modifyAll,
+              viewAllFields: dirtyPermission.viewAllFields,
               record: isDelete ? null : (fieldPermission as ObjectPermissionRecord),
             },
           },
@@ -678,6 +682,7 @@ export function getQueryObjectPermissions(allSobjects: string[], permSetIds: str
         getField('PermissionsDelete'),
         getField('PermissionsModifyAllRecords'),
         getField('PermissionsViewAllRecords'),
+        getField('PermissionsViewAllFields'),
         getField('ParentId'),
         getField('Parent.Id'),
         getField('Parent.Name'),

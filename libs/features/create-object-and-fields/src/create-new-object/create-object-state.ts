@@ -38,6 +38,7 @@ export const objectPermissionsState = atomWithReset<ObjectPermissionState>({
     allowRead: true,
     modifyAllRecords: true,
     viewAllRecords: true,
+    viewAllFields: true,
   },
 });
 
@@ -115,7 +116,8 @@ export const isFormValidSelector = atom<{
         permissions.allowEdit ||
         permissions.allowRead ||
         permissions.modifyAllRecords ||
-        permissions.viewAllRecords,
+        permissions.viewAllRecords ||
+        permissions.viewAllFields,
     );
   }
 

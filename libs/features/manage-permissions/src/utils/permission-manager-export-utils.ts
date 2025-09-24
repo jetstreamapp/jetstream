@@ -50,9 +50,10 @@ function generateObjectWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], 
       header1.push('');
       header1.push('');
       header1.push('');
+      header1.push('');
       // merge the added cells
       merges.push({
-        s: { r: 0, c: header1.length - 6 },
+        s: { r: 0, c: header1.length - 7 },
         e: { r: 0, c: header1.length - 1 },
       });
       // header 2
@@ -62,6 +63,7 @@ function generateObjectWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], 
       header2.push('Delete');
       header2.push('View All');
       header2.push('Modify All');
+      header2.push('View All Fields');
       // keep track of group order to ensure same across all rows
       permissionKeys.push(col.key.split('-')[0]);
     });
@@ -76,6 +78,7 @@ function generateObjectWorksheet(columns: ObjectOrFieldOrTabVisibilityColumn[], 
       currRow.push(permission.delete ? 'TRUE' : 'FALSE');
       currRow.push(permission.viewAll ? 'TRUE' : 'FALSE');
       currRow.push(permission.modifyAll ? 'TRUE' : 'FALSE');
+      currRow.push(permission.viewAllFields ? 'TRUE' : 'FALSE');
     });
     excelRows.push(currRow);
   });

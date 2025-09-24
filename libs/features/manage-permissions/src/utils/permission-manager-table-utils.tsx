@@ -54,7 +54,7 @@ type PermissionTypeColumn<T> = T extends 'object'
       : never;
 
 type PermissionActionType<T> = T extends 'object'
-  ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll'
+  ? 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields'
   : T extends 'field'
     ? 'Read' | 'Edit'
     : T extends 'tabVisibility'
@@ -90,6 +90,9 @@ function setObjectValue(which: ObjectPermissionTypes, row: PermissionTableObject
   } else if (which === 'modifyAll') {
     permission.modifyAll = value;
     setObjectDependencies(permission, value, ['read', 'edit', 'delete', 'viewAll'], []);
+  } else if (which === 'viewAllFields') {
+    permission.viewAllFields = value;
+    setObjectDependencies(permission, value, [], []);
   }
   return newRow;
 }
@@ -145,6 +148,7 @@ function setObjectDependencies(
   permission.deleteIsDirty = permission.delete !== permission.record.delete;
   permission.viewAllIsDirty = permission.viewAll !== permission.record.viewAll;
   permission.modifyAllIsDirty = permission.modifyAll !== permission.record.modifyAll;
+  permission.viewAllFieldsIsDirty = permission.viewAllFields !== permission.record.viewAllFields;
 }
 
 /**
@@ -203,7 +207,8 @@ export function resetGridChanges({
           permission.editIsDirty ||
           permission.deleteIsDirty ||
           permission.viewAllIsDirty ||
-          permission.modifyAllIsDirty
+          permission.modifyAllIsDirty ||
+          permission.viewAllFieldsIsDirty
         ) {
           permission.create = permission.createIsDirty ? !permission.create : permission.create;
           permission.read = permission.readIsDirty ? !permission.read : permission.read;
@@ -211,12 +216,14 @@ export function resetGridChanges({
           permission.delete = permission.deleteIsDirty ? !permission.delete : permission.delete;
           permission.viewAll = permission.viewAllIsDirty ? !permission.viewAll : permission.viewAll;
           permission.modifyAll = permission.modifyAllIsDirty ? !permission.modifyAll : permission.modifyAll;
+          permission.viewAllFields = permission.viewAllFieldsIsDirty ? !permission.viewAllFields : permission.viewAllFields;
           permission.createIsDirty = false;
           permission.readIsDirty = false;
           permission.editIsDirty = false;
           permission.deleteIsDirty = false;
           permission.viewAllIsDirty = false;
           permission.modifyAllIsDirty = false;
+          permission.viewAllFieldsIsDirty = false;
         }
       });
       return row;
@@ -263,7 +270,8 @@ export function getDirtyObjectPermissions(dirtyRows: Record<string, DirtyRow<Per
         permission.editIsDirty ||
         permission.deleteIsDirty ||
         permission.viewAllIsDirty ||
-        permission.modifyAllIsDirty,
+        permission.modifyAllIsDirty ||
+        permission.viewAllFieldsIsDirty,
     ),
   );
 }
@@ -326,7 +334,7 @@ export function getObjectColumns(
   // Create column groups for profiles
   selectedProfiles.forEach((profileId) => {
     const profile = profilesById[profileId];
-    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType, i) => {
+    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll', 'viewAllFields'] as const).forEach((permissionType, i) => {
       newColumns.push(
         getColumnForProfileOrPermSet({
           isFirstItem: i === 0,
@@ -334,7 +342,7 @@ export function getObjectColumns(
           id: profileId,
           type: 'Profile',
           label: profile?.Profile?.Name || '',
-          actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
+          actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields',
           actionKey: permissionType,
         }),
       );
@@ -343,7 +351,7 @@ export function getObjectColumns(
   // Create column groups for permission sets
   selectedPermissionSets.forEach((permissionSetId) => {
     const permissionSet = permissionSetsById[permissionSetId];
-    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll'] as const).forEach((permissionType, i) => {
+    (['read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll', 'viewAllFields'] as const).forEach((permissionType, i) => {
       newColumns.push(
         getColumnForProfileOrPermSet({
           isFirstItem: i === 0,
@@ -351,7 +359,7 @@ export function getObjectColumns(
           id: permissionSetId,
           type: 'Permission Set',
           label: permissionSet?.Name || '',
-          actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll',
+          actionType: startCase(permissionType) as 'Create' | 'Read' | 'Edit' | 'Delete' | 'ViewAll' | 'ModifyAll' | 'ViewAllFields',
           actionKey: permissionType,
         }),
       );
@@ -400,6 +408,7 @@ function getRowObjectPermissionFromObjectPermissionItem(
     delete: item.delete,
     viewAll: item.viewAll,
     modifyAll: item.modifyAll,
+    viewAllFields: item.viewAllFields,
     record: item,
     createIsDirty: false,
     readIsDirty: false,
@@ -407,6 +416,7 @@ function getRowObjectPermissionFromObjectPermissionItem(
     deleteIsDirty: false,
     viewAllIsDirty: false,
     modifyAllIsDirty: false,
+    viewAllFieldsIsDirty: false,
     errorMessage: item.errorMessage,
   };
 }
@@ -550,7 +560,7 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   actionType: PermissionActionType<T>;
   actionKey: PermissionActionAction<T>;
 }): PermissionTypeColumn<T> {
-  const numItems = permissionType === 'object' ? 6 : 2;
+  const numItems = permissionType === 'object' ? 7 : 2;
   const colWidth = Math.max(116, (`${label} (${type})`.length * 7.5) / numItems);
   const column: ColumnWithFilter<PermissionTableCellExtended, PermissionTableSummaryRow> = {
     name: `${label} (${type})`,
@@ -566,7 +576,8 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
           (actionKey === 'edit' && permission.editIsDirty) ||
           (actionKey === 'delete' && permission.deleteIsDirty) ||
           (actionKey === 'viewAll' && permission.viewAllIsDirty) ||
-          (actionKey === 'modifyAll' && permission.modifyAllIsDirty)
+          (actionKey === 'modifyAll' && permission.modifyAllIsDirty) ||
+          (actionKey === 'viewAllFields' && permission.viewAllFieldsIsDirty)
         ) {
           return 'active-item-yellow-bg';
         }
@@ -1004,6 +1015,11 @@ export function updateRowsFromColumnAction<TRows extends PermissionTableCellExte
         newValue = action === 'reset' ? permission.record.modifyAll : newValue;
         permission.modifyAll = newValue;
         setObjectDependencies(permission, newValue, ['read', 'edit', 'delete', 'viewAll'], []);
+      } else if (which === 'viewAllFields') {
+        newValue = action === 'reset' ? permission.record.viewAllFields : newValue;
+        permission.viewAllFields = newValue;
+        permission.viewAllFieldsIsDirty = permission.viewAllFields !== permission.record.viewAllFields;
+        setObjectDependencies(permission, newValue, [], []);
       }
     } else if (type === 'field') {
       const permission = row.permissions[id] as PermissionTableFieldCellPermission;
@@ -1052,6 +1068,7 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
         permission.delete = checkboxesById['delete'].value;
         permission.viewAll = checkboxesById['viewAll'].value;
         permission.modifyAll = checkboxesById['modifyAll'].value;
+        permission.viewAllFields = checkboxesById['viewAllFields'].value;
 
         permission.createIsDirty = permission.create !== permission.record.create;
         permission.readIsDirty = permission.read !== permission.record.read;
@@ -1059,6 +1076,7 @@ export function updateRowsFromRowAction<TRows extends PermissionTableCellExtende
         permission.deleteIsDirty = permission.delete !== permission.record.delete;
         permission.viewAllIsDirty = permission.viewAll !== permission.record.viewAll;
         permission.modifyAllIsDirty = permission.modifyAll !== permission.record.modifyAll;
+        permission.viewAllFieldsIsDirty = permission.viewAllFields !== permission.record.viewAllFields;
       } else if (type === 'field') {
         const permission = row.permissions[permissionId] as PermissionTableFieldCellPermission;
         permission.read = checkboxesById['read'].value;
@@ -1108,6 +1126,9 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
         if (permission.modifyAllIsDirty) {
           permission.modifyAll = !permission.modifyAll;
         }
+        if (permission.viewAllFieldsIsDirty) {
+          permission.viewAllFields = !permission.viewAllFields;
+        }
 
         permission.createIsDirty = false;
         permission.readIsDirty = false;
@@ -1115,6 +1136,7 @@ export function resetRow<TRows extends PermissionTableCellExtended>(type: Permis
         permission.deleteIsDirty = false;
         permission.viewAllIsDirty = false;
         permission.modifyAllIsDirty = false;
+        permission.viewAllFieldsIsDirty = false;
       } else if (type === 'field') {
         const permission = row.permissions[permissionId] as PermissionTableFieldCellPermission;
         if (permission.readIsDirty) {
@@ -1203,6 +1225,7 @@ function defaultRowActionCheckboxes(type: PermissionType, allowEditPermission: b
       { id: 'delete', label: 'Delete', value: false, disabled: false },
       { id: 'viewAll', label: 'View All', value: false, disabled: false },
       { id: 'modifyAll', label: 'Modify All', value: false, disabled: false },
+      { id: 'viewAllFields', label: 'View All Fields', value: false, disabled: false },
     ];
   } else if (type === 'field') {
     return [
@@ -1271,6 +1294,8 @@ export function updateCheckboxDependencies(
         checkboxesById['delete'].value = true;
         checkboxesById['viewAll'].value = true;
       }
+    } else if (which === 'viewAllFields') {
+      checkboxesById['viewAllFields'] = { ...checkboxesById['viewAllFields'], value: value };
     }
   } else if (type === 'field') {
     if (which === 'read') {
@@ -1331,6 +1356,7 @@ export const RowActionRenderer = ({
         checkboxesById['delete'],
         checkboxesById['viewAll'],
         checkboxesById['modifyAll'],
+        checkboxesById['viewAllFields'],
       ]);
     } else if (type === 'field') {
       setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);
@@ -1460,6 +1486,7 @@ export const BulkActionRenderer = () => {
         checkboxesById['delete'],
         checkboxesById['viewAll'],
         checkboxesById['modifyAll'],
+        checkboxesById['viewAllFields'],
       ]);
     } else if (type === 'field') {
       setCheckboxes([checkboxesById['read'], checkboxesById['edit']]);

@@ -9,7 +9,7 @@ import {
 import { Maybe } from '../types';
 
 export type PermissionType = 'object' | 'field' | 'tabVisibility';
-export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll';
+export type ObjectPermissionTypes = 'create' | 'read' | 'edit' | 'delete' | 'viewAll' | 'modifyAll' | 'viewAllFields';
 export type FieldPermissionTypes = 'read' | 'edit';
 export type TabVisibilityPermissionTypes = 'available' | 'visible';
 
@@ -40,6 +40,7 @@ export interface ObjectPermissionItem {
   delete: boolean;
   viewAll: boolean;
   modifyAll: boolean;
+  viewAllFields: boolean;
   record?: Maybe<ObjectPermissionRecord>;
   errorMessage?: string;
 }
@@ -154,12 +155,14 @@ export interface PermissionTableObjectCellPermission extends PermissionTableObje
   delete: boolean;
   viewAll: boolean;
   modifyAll: boolean;
+  viewAllFields: boolean;
   createIsDirty: boolean;
   readIsDirty: boolean;
   editIsDirty: boolean;
   deleteIsDirty: boolean;
   viewAllIsDirty: boolean;
   modifyAllIsDirty: boolean;
+  viewAllFieldsIsDirty: boolean;
 }
 export interface PermissionTableFieldCellPermission extends PermissionTableObjectCellPermissionBase<FieldPermissionItem> {
   field: string;
