@@ -87,7 +87,7 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
 
     if (macRelease?.files.length) {
       const arm64 = macRelease.files.find(({ url }) => url.endsWith('arm64.dmg'));
-      const x64 = macRelease.files.find(({ url }) => !url.endsWith('arm64.dmg'));
+      const x64 = macRelease.files.find(({ url }) => url.endsWith('dmg') && !url.endsWith('arm64.dmg'));
       if (arm64) {
         const version = macRelease.version;
         const { sha512, url: filename } = arm64;
