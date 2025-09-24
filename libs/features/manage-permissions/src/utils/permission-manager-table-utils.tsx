@@ -561,7 +561,9 @@ function getColumnForProfileOrPermSet<T extends PermissionType>({
   actionKey: PermissionActionAction<T>;
 }): PermissionTypeColumn<T> {
   const numItems = permissionType === 'object' ? 7 : 2;
-  const colWidth = Math.max(116, (`${label} (${type})`.length * 7.5) / numItems);
+  const maxLabelWidth = Math.max((actionType.length + 3) * 7.5, 116);
+  const profileOrPermSetWidth = (`${label} (${type})`.length * 7.5) / numItems;
+  const colWidth = Math.max(maxLabelWidth, profileOrPermSetWidth);
   const column: ColumnWithFilter<PermissionTableCellExtended, PermissionTableSummaryRow> = {
     name: `${label} (${type})`,
     key: `${id}-${actionKey}`,
