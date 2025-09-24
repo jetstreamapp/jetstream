@@ -17,6 +17,7 @@
         "main": "apps/jetstream-desktop/src/main.ts",
         "additionalEntryPoints": ["apps/jetstream-desktop/src/preload.ts"],
         "tsConfig": "apps/jetstream-desktop/tsconfig.app.json",
+        "external": ["electron", "electron-log", "electron-updater", "electron-builder"],
         "assets": [
           {
             "input": "apps/jetstream-desktop/src/assets",
