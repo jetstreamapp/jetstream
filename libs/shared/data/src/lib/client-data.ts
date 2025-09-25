@@ -11,10 +11,10 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
 import { splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
-  Announcement,
   AnonymousApexResponse,
   ApexCompletionResponse,
   ApiResponse,
+  AppInfo,
   AsyncResult,
   BulkApiCreateJobRequestPayload,
   BulkApiDownloadType,
@@ -84,10 +84,11 @@ function convertDateToLocale(dateOrIsoDateString?: string | Date, options?: Intl
 
 //// APPLICATION ROUTES
 
-export async function checkHeartbeat(): Promise<{ version: string; announcements?: Announcement[] }> {
-  const heartbeat = await handleRequest<{ version: string; announcements?: Announcement[] }>({ method: 'GET', url: '/api/heartbeat' }).then(
-    unwrapResponseIgnoreCache,
-  );
+export async function checkHeartbeat(): Promise<AppInfo> {
+  const heartbeat = await handleRequest<AppInfo>({
+    method: 'GET',
+    url: '/api/heartbeat',
+  }).then(unwrapResponseIgnoreCache);
   try {
     heartbeat?.announcements?.forEach((item) => {
       item?.replacementDates?.forEach(({ key, value }) => {

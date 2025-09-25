@@ -12,7 +12,6 @@ const API: ElectronAPI = {
   // Request / Response
   checkAuth: () => ipcRenderer.invoke('checkAuth'),
   addOrg: (payload) => ipcRenderer.invoke('addOrg', payload),
-  getAppCookie: () => ipcRenderer.invoke('getAppCookie'),
   selectFolder: () => ipcRenderer.invoke('selectFolder'),
   getPreferences: () => ipcRenderer.invoke('getPreferences'),
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import * as amplitude from '@amplitude/analytics-browser';
 import { logger } from '@jetstream/shared/client-logger';
-import { ApplicationCookie } from '@jetstream/types';
+import { ApplicationState } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import isBoolean from 'lodash/isBoolean';
@@ -12,13 +12,13 @@ const amplitudeToken = import.meta.env.NX_PUBLIC_AMPLITUDE_KEY;
 let hasInit = false;
 let hasProfileInit = false;
 
-function init(appCookie: ApplicationCookie, version: string) {
+function init(appState: ApplicationState, version: string) {
   hasInit = true;
   if (!amplitudeToken) {
     return;
   }
   amplitude.init(amplitudeToken, {
-    serverUrl: `${appCookie.serverUrl}/analytics`,
+    serverUrl: `${appState.serverUrl}/analytics`,
     appVersion: version || 'unknown',
     autocapture: {
       attribution: true,
@@ -31,9 +31,8 @@ function init(appCookie: ApplicationCookie, version: string) {
 }
 
 export function useAmplitude(optOut?: boolean) {
-  const appCookie = useAtomValue(fromAppState.applicationCookieState);
+  const { appInfo, version } = useAtomValue(fromAppState.appInfoState);
   const userProfile = useAtomValue(fromAppState.userProfileState);
-  const { version } = useAtomValue(fromAppState.appVersionState);
   const userPreferences = useAtomValue(fromAppState.selectUserPreferenceState);
 
   useEffect(() => {
@@ -47,21 +46,21 @@ export function useAmplitude(optOut?: boolean) {
   }, [optOut]);
 
   useEffect(() => {
-    if (!hasInit && appCookie) {
-      init(appCookie, version);
+    if (!hasInit && appInfo) {
+      init(appInfo, version);
     }
-  }, [appCookie, version]);
+  }, [appInfo, version]);
 
   useEffect(() => {
     if (!amplitudeToken) {
       return;
     }
-    if (!hasProfileInit && userProfile && appCookie) {
+    if (!hasProfileInit && userProfile && appInfo) {
       hasProfileInit = true;
       const identify = new amplitude.Identify()
         .set('id', userProfile.id)
         .set('email-verified', userProfile.emailVerified)
-        .set('environment', appCookie.environment)
+        .set('environment', appInfo.environment)
         .add('app-init-count', 1)
         .set('application-type', 'web');
 
@@ -72,7 +71,7 @@ export function useAmplitude(optOut?: boolean) {
       amplitude.identify(identify);
       amplitude.setUserId(userProfile.id);
     }
-  }, [userProfile, appCookie, userPreferences]);
+  }, [userProfile, appInfo, userPreferences]);
 
   return {
     trackEvent: track,

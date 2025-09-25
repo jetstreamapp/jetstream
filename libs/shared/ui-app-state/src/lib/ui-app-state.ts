@@ -10,10 +10,11 @@ import {
   setItemInLocalStorage,
   setItemInSessionStorage,
 } from '@jetstream/shared/ui-utils';
-import { groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
+import { getDefaultAppState, groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import type {
   Announcement,
-  ApplicationCookie,
+  AppInfo,
+  ApplicationState,
   JetstreamOrganization,
   JetstreamOrganizationWithOrgs,
   Maybe,
@@ -59,26 +60,9 @@ export const STORAGE_KEYS = {
 /**
  * Parse application state with a fallback in case there is an issue parsing
  */
-function getAppCookie(): ApplicationCookie {
-  let appState = parseJsonCookie<ApplicationCookie>(HTTP.COOKIE.JETSTREAM);
-  appState = appState
-    ? { ...appState }
-    : {
-        serverUrl: 'http://localhost:3333',
-        environment: 'development',
-        defaultApiVersion: 'v60.0',
-        google_appId: '1071580433137',
-        google_apiKey: 'invalid',
-        google_clientId: '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com',
-      };
-  appState.serverUrl = appState.serverUrl || 'https://getjetstream.app/';
-  appState.environment = appState.environment || 'production';
-  appState.defaultApiVersion = appState.defaultApiVersion || 'v60.0';
-  appState.google_appId = appState.google_appId || '1071580433137';
-  appState.google_apiKey = appState.google_apiKey || 'invalid';
-  appState.google_clientId = appState.google_clientId || '1094188928456-fp5d5om6ar9prdl7ak03fjkqm4fgagoj.apps.googleusercontent.com';
-
-  return appState;
+function getAppInfo(): ApplicationState {
+  let appState = parseJsonCookie<ApplicationState>(HTTP.COOKIE.JETSTREAM);
+  return getDefaultAppState(appState);
 }
 
 function ensureUserProfileInit(pref?: Maybe<UserProfilePreferences>): UserProfilePreferences {
@@ -153,11 +137,15 @@ function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
   }
 }
 
-async function fetchAppVersion() {
+const DEFAULT_APP_INFO: AppInfo = { appInfo: getAppInfo(), version: 'unknown', announcements: [] as Announcement[] };
+
+async function fetchAppInfo(): Promise<AppInfo> {
   try {
-    return isBrowserExtension() ? { version: getBrowserExtensionVersion(), announcements: [] } : await checkHeartbeat();
+    return isBrowserExtension()
+      ? { appInfo: getAppInfo(), version: getBrowserExtensionVersion(), announcements: [] }
+      : await checkHeartbeat();
   } catch (ex) {
-    return { version: 'unknown' };
+    return DEFAULT_APP_INFO;
   }
 }
 
@@ -175,9 +163,12 @@ const userPreferenceState = atom<Promise<UserProfilePreferences>>(getUserPrefere
 
 export const actionInProgressState = atom<boolean>(false);
 
-export const applicationCookieState = atom<ApplicationCookie>(getAppCookie());
+export const appInfoState = atom<Promise<AppInfo> | AppInfo>(fetchAppInfo());
+export const appInfoSyncState = unwrap(appInfoState, (prev) => prev ?? DEFAULT_APP_INFO);
 
-export const appVersionState = atom<Promise<{ version: string; announcements?: Announcement[] }>>(fetchAppVersion());
+export const applicationCookieState = atom((get) => get(appInfoSyncState).appInfo);
+export const appVersionState = atom((get) => get(appInfoSyncState).version);
+export const AnnouncementState = atom((get) => get(appInfoSyncState).announcements);
 
 export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
 

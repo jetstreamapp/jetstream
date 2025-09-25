@@ -1,4 +1,4 @@
-import { ApplicationCookie, InputReadFileContent, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { InputReadFileContent, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 /**
@@ -18,7 +18,6 @@ export interface ElectronApiRequestResponse {
   logout: () => void;
   addOrg: (payload: { loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> }) => void;
   checkAuth: () => Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined>;
-  getAppCookie: () => Promise<ApplicationCookie>;
   selectFolder: () => Promise<Maybe<string>>;
   getPreferences: () => Promise<DesktopUserPreferences>;
   setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;

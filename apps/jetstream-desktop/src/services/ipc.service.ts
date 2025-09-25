@@ -7,7 +7,7 @@ import {
 } from '@jetstream/desktop/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
-import { ApplicationCookie, UserProfileUi } from '@jetstream/types';
+import { UserProfileUi } from '@jetstream/types';
 import { addDays } from 'date-fns';
 import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
@@ -42,25 +42,12 @@ export function registerIpc(): void {
   registerHandler('logout', handleLogoutEvent);
   registerHandler('addOrg', handleAddOrgEvent);
   registerHandler('checkAuth', handleCheckAuthEvent);
-  registerHandler('getAppCookie', handleGetAppCookieEvent);
   registerHandler('selectFolder', handleSelectFolderEvent);
   registerHandler('getPreferences', handleGetPreferences);
   registerHandler('setPreferences', handleSetPreferences);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
 }
-
-const handleGetAppCookieEvent: MainIpcHandler<'getAppCookie'> = async (event) => {
-  const appCookie: ApplicationCookie = {
-    serverUrl: ENV.SERVER_URL,
-    environment: ENV.ENVIRONMENT,
-    defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
-    google_appId: '1071580433137',
-    google_apiKey: 'invalid',
-    google_clientId: '1046118608516-lstbl00607e43hev2abfh9hegbv7iuav.apps.googleusercontent.com',
-  };
-  return appCookie;
-};
 
 const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async (event) => {
   const result = await dialog.showOpenDialog({

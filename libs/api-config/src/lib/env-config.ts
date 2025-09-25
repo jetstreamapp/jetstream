@@ -99,11 +99,11 @@ const envSchema = z.object({
   IS_LOCAL_DOCKER: booleanSchema,
   // SYSTEM
   NODE_ENV: z
-    .enum(['development', 'test', 'staging', 'production'])
+    .enum(['development', 'production'])
     .optional()
     .transform((value) => value ?? 'production'),
   ENVIRONMENT: z
-    .enum(['development', 'test', 'staging', 'production'])
+    .enum(['development', 'production'])
     .optional()
     .transform((value) => value ?? 'production'),
   PORT: numberSchema.default(3333),
