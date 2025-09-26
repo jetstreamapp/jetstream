@@ -8,9 +8,8 @@ export const routeDefinition = {
   binaryUpload: {
     controllerFn: () => binaryUpload,
     validators: {
-      skipBodyParse: true,
-      // ideally we would stream this
-      body: z.string(),
+      skipBodyParsing: true,
+      body: z.any(),
       query: z.object({
         url: z.string(),
         method: SalesforceApiRequestSchema.shape.method,
@@ -35,13 +34,17 @@ export const routeDefinition = {
   },
 };
 
-const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async ({ query, body, jetstreamConn }, req) => {
+const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async ({ query, jetstreamConn }, req) => {
   try {
     const { assignmentRuleId, isTooling, method, url } = query;
+    const body = req.request.body;
 
     const contentType = req.request.headers.get('content-type');
     if (!contentType?.startsWith('multipart/form-data')) {
       return handleErrorResponse(new Error('Expected multipart/form-data'));
+    }
+    if (!body) {
+      return handleErrorResponse(new Error('Missing request body'));
     }
 
     // Proxy request to Salesforce
@@ -49,8 +52,7 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
       {
         method,
         url,
-        // Browsers add filename="blob" to json multipart form data parts, but Salesforce chokes on it.
-        body: body.replace(/name="collection"; filename="blob"/, 'name="collection"'),
+        body,
         headers: {
           [HTTP.HEADERS.CONTENT_TYPE]: contentType,
           // https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/headers_autoassign.htm
@@ -59,6 +61,7 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
         },
         isTooling,
         rawBody: true,
+        duplex: 'half',
       },
       'json',
       true,

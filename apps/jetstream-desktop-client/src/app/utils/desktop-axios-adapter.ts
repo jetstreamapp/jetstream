@@ -16,16 +16,14 @@ interface IcpResponse {
 }
 
 /**
- * Axios normally handles FormData automatically in the browser, but since we're
- * using a custom adapter to route requests through Electron's IPC, we need to manually
- * handle FormData
+ * Creates a multipart/form-data body from a FormData object.
+ *
  */
-async function formDataToMultipart(formData: FormData, boundary: string): Promise<Uint8Array> {
-  const carriageNewLine = '\r\n';
+async function createMultipartFromFormData(formData: FormData): Promise<{ body: ArrayBuffer; boundary: string }> {
+  const boundary = '----electronBoundary' + Math.random().toString(16).slice(2);
   const encoder = new TextEncoder();
-  const parts: Uint8Array[] = [];
+  const chunks: Uint8Array[] = [];
 
-  // Helper to escape field names
   const escapeName = (name: string) => {
     return name.replace(
       /[\r\n"]/g,
@@ -38,42 +36,42 @@ async function formDataToMultipart(formData: FormData, boundary: string): Promis
     );
   };
 
-  // Process each form field
-  for (const [name, _value] of formData.entries()) {
-    const boundaryBytes = encoder.encode(`--${boundary}\r\n`);
-    parts.push(boundaryBytes);
+  function pushString(str: string) {
+    chunks.push(encoder.encode(str));
+  }
 
-    if (_value instanceof File || (_value as any) instanceof Blob) {
-      const value = _value as File | Blob;
-      const fileName = value instanceof File ? value.name : 'blob';
-      const headerStr =
-        `Content-Disposition: form-data; name="${escapeName(name)}"; filename="${escapeName(fileName)}"${carriageNewLine}` +
-        `Content-Type: ${value.type || 'application/octet-stream'}${carriageNewLine}${carriageNewLine}`;
-      parts.push(encoder.encode(headerStr));
+  for (const [name, value] of formData.entries()) {
+    pushString(`--${boundary}\r\n`);
 
-      const arrayBuffer = await value.arrayBuffer();
-      parts.push(new Uint8Array(arrayBuffer));
-      parts.push(encoder.encode(carriageNewLine));
+    if (typeof value === 'string') {
+      // Plain string field
+      pushString(`Content-Disposition: form-data; name="${escapeName(name)}"\r\n\r\n`);
+      pushString(value + '\r\n');
     } else {
-      const headerStr = `Content-Disposition: form-data; name="${escapeName(name)}"${carriageNewLine}${carriageNewLine}`;
-      parts.push(encoder.encode(headerStr));
-      parts.push(encoder.encode(String(_value)));
-      parts.push(encoder.encode(carriageNewLine));
+      // File/Blob field
+      const filename = value.type === 'application/json' ? '' : ` filename="${escapeName(value.name || 'blob')}"`;
+      const type = value.type || 'application/octet-stream';
+
+      pushString(`Content-Disposition: form-data; name="${escapeName(name)}";${filename}\r\n`);
+      pushString(`Content-Type: ${type}\r\n\r\n`);
+      chunks.push(new Uint8Array(await value.arrayBuffer()));
+      pushString('\r\n');
     }
   }
 
-  // Add closing boundary
-  parts.push(encoder.encode(`--${boundary}--\r\n`));
-  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
-  // Combine all parts
-  const combined = new Uint8Array(totalLength);
+  // Closing boundary
+  pushString(`--${boundary}--\r\n`);
+
+  // Concatenate into buffer
+  const size = chunks.reduce((s, c) => s + c.byteLength, 0);
+  const byteArray = new Uint8Array(size);
   let offset = 0;
-  for (const part of parts) {
-    combined.set(part, offset);
-    offset += part.length;
+  for (const chunk of chunks) {
+    byteArray.set(chunk, offset);
+    offset += chunk.byteLength;
   }
 
-  return combined;
+  return { body: byteArray.buffer, boundary };
 }
 
 export async function desktopExtensionAxiosAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
@@ -98,13 +96,11 @@ export async function desktopExtensionAxiosAdapter(config: InternalAxiosRequestC
 
     // Handle FormData
     if (data instanceof FormData) {
-      const boundary = `----jetstream-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-
-      const multipartData = await formDataToMultipart(data, boundary);
-      body = multipartData.buffer;
+      const { body: formBody, boundary } = await createMultipartFromFormData(data);
+      body = formBody;
 
       headers.set('Content-Type', `multipart/form-data; boundary=${boundary}`);
-      headers.set('Content-Length', String(multipartData.length));
+      headers.set('Content-Length', String(formBody.byteLength));
     } else if (data && typeof data !== 'string' && headers.get('content-type') === 'application/json') {
       body = JSON.stringify(data);
     }

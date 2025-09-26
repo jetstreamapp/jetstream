@@ -45,6 +45,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     query,
     hasSourceOrg = true,
     hasTargetOrg = false,
+    skipBodyParsing = false,
   }: {
     params?: TParamsSchema;
     body?: TBodySchema;
@@ -55,6 +56,12 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
      */
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
+    /**
+     * Set to true to skip parsing the body of the request
+     * This is useful for endpoints that handle their own body parsing or us streaming
+     * @default false
+     */
+    skipBodyParsing?: boolean;
   },
   controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
 ) {
@@ -64,14 +71,17 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
 
     let parsedBody: unknown = undefined;
 
-    if (req.request.method !== 'GET') {
-      if (req.request.headers.get('content-type') === 'application/json') {
+    if (req.request.method !== 'GET' && !skipBodyParsing && req.request.body) {
+      if (req.request.headers.get('content-type')?.startsWith('application/json')) {
         try {
           parsedBody = await req.request.json();
         } catch (ex) {
           // headers may not have been correct, just ignore and continue
         }
-      } else if (req.request.headers.get('content-type') === 'application/zip') {
+      } else if (
+        req.request.headers.get('content-type')?.startsWith('application/zip') ||
+        req.request.headers.get('content-type')?.startsWith('multipart/form-data;')
+      ) {
         parsedBody = await req.request.arrayBuffer();
       } else {
         parsedBody = await req.request.text();
