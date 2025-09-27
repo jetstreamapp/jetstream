@@ -16,6 +16,9 @@ on:
       - "prisma/**"
       - ".github/workflows/cron-tests.yml"
 
+permissions:
+  contents: read
+
 env:
   NODE_OPTIONS: "--max_old_space_size=4096"
   LOG_LEVEL: warn
