@@ -1,0 +1,67 @@
+name: Cron Tests CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/cron-tasks/**"
+      - "libs/**"
+      - "prisma/**"
+      - ".github/workflows/cron-tests.yml"
+  pull_request:
+    paths:
+      - "apps/cron-tasks/**"
+      - "libs/**"
+      - "prisma/**"
+      - ".github/workflows/cron-tests.yml"
+
+env:
+  NODE_OPTIONS: "--max_old_space_size=4096"
+  LOG_LEVEL: warn
+  PRISMA_TEST_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
+  JETSTREAM_POSTGRES_DBURI: postgres://postgres:postgres@localhost:5432/postgres
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Run database migrations
+      - name: Generate database
+        run: yarn db:generate
+
+      - name: Run database migration
+        run: yarn db:migrate
+
+      - name: Test cron-tasks
+        run: yarn test:cron
