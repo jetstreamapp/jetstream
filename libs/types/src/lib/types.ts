@@ -3,6 +3,12 @@ import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
 
+export interface AppInfo {
+  announcements: Announcement[];
+  appInfo: ApplicationState;
+  version: string;
+}
+
 export interface Announcement {
   id: string;
   title: string;
@@ -78,7 +84,7 @@ export type Environment = Production | Test | Development;
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export interface ApplicationCookie {
+export interface ApplicationState {
   serverUrl: string;
   environment: Environment;
   defaultApiVersion: string;

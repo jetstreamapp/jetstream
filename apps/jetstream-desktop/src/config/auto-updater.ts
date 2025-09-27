@@ -127,6 +127,7 @@ export function checkForUpdates(silent = false) {
       })
       .catch((err) => {
         logger.error('Update check failed:', err);
+        dialog.showErrorBox('Update Error', `Failed to check for updates: ${err.message}`);
       });
   }
 }

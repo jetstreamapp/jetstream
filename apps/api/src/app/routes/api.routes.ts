@@ -1,4 +1,6 @@
 import { ENV } from '@jetstream/api-config';
+import { getDefaultAppState } from '@jetstream/shared/utils';
+import { AppInfo } from '@jetstream/types';
 import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
@@ -25,8 +27,20 @@ routes.use(addOrgsToLocal);
 
 // used to make sure the user is authenticated and can communicate with the server
 routes.get('/heartbeat', (req: express.Request, res: express.Response) => {
+  const result: AppInfo = {
+    version: ENV.VERSION || 'unknown',
+    announcements: getAnnouncements(),
+    appInfo: getDefaultAppState({
+      serverUrl: ENV.JETSTREAM_SERVER_URL,
+      environment: ENV.ENVIRONMENT,
+      defaultApiVersion: `v${ENV.SFDC_API_VERSION}`,
+      google_appId: ENV.GOOGLE_APP_ID || 'unset',
+      google_apiKey: ENV.GOOGLE_API_KEY || 'unset',
+      google_clientId: ENV.GOOGLE_CLIENT_ID || 'unset',
+    }),
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sendJson(res as any, { version: ENV.VERSION || null, announcements: getAnnouncements() });
+  sendJson(res as any, result);
 });
 
 /**

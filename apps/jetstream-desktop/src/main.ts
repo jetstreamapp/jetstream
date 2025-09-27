@@ -29,10 +29,16 @@ app.on('window-all-closed', () => {
   }
 });
 
-logger.info('Current app version:', app.getVersion());
-logger.info('App name:', app.getName());
-logger.info('App path:', app.getAppPath());
-logger.info('User data path:', app.getPath('userData'));
+logger.info({
+  name: app.getName(),
+  version: app.getVersion(),
+  electron: process.versions.electron,
+  chrome: process.versions.chrome,
+  node: process.versions.node,
+  v8: process.versions.v8,
+  appLocation: app.getAppPath(),
+  userData: app.getPath('userData'),
+});
 
 app.whenReady().then(async () => {
   registerProtocols();

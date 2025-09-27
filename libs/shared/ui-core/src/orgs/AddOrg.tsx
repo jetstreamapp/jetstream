@@ -5,7 +5,7 @@ import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Checkbox, CheckboxToggle, Grid, GridCol, Icon, Input, Popover, PopoverRef, Radio, RadioGroup } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useAmplitude } from '..';
 
@@ -51,7 +51,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
   const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);
   const [addLoginTrue, setAddLoginTrue] = useState(false);
   const [addToActiveOrganization, setAddToActiveOrganization] = useState(true);
-  const [applicationState] = useAtom(fromAppState.applicationCookieState);
+  const applicationState = useAtomValue(fromAppState.applicationCookieState);
   const jetstreamOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
 
   useEffect(() => {

@@ -1,5 +1,8 @@
-import { UserProfileUi } from '@jetstream/types';
+import { getBrowserExtensionVersion } from '@jetstream/shared/ui-utils';
+import { getDefaultAppState } from '@jetstream/shared/utils';
+import { AppInfo, UserProfileUi } from '@jetstream/types';
 import { Router } from 'tiny-request-router';
+import { environment } from '../environments/environment';
 import { routeDefinition as dataSyncController } from './jetstream-data-sync.web-ext.controller';
 import { handleJsonResponse, RequestOptions } from './route.utils';
 import { routeDefinition as bulkApiController } from './sf-bulk-api.web-ext.controller';
@@ -13,7 +16,15 @@ const router = new Router<(req: RequestOptions) => Promise<Response>>();
 export const extensionRoutes = router;
 
 router.get('/api/heartbeat', async (req) => {
-  return handleJsonResponse({ version: 'unknown' });
+  const result: AppInfo = {
+    version: getBrowserExtensionVersion(),
+    announcements: [],
+    appInfo: getDefaultAppState({
+      serverUrl: environment.serverUrl,
+      environment: environment.production ? 'production' : 'development',
+    }),
+  };
+  return handleJsonResponse(result);
 });
 router.get('/api/me', async (req) => {
   return handleJsonResponse({

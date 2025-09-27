@@ -1,4 +1,8 @@
+import { getDefaultAppState } from '@jetstream/shared/utils';
+import { AppInfo } from '@jetstream/types';
+import { app } from 'electron';
 import { Router } from 'tiny-request-router';
+import { ENV } from '../config/environment';
 import { handleJsonResponse, RequestOptions } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './jetstream-data-sync.desktop.controller';
 import { routeDefinition as jetstreamOrganizationsController } from './jetstream-orgs.desktop.controller';
@@ -15,7 +19,15 @@ const router = new Router<(req: RequestOptions) => Promise<Response>>();
 export const desktopRoutes = router;
 
 router.get('/api/heartbeat', async (req) => {
-  return handleJsonResponse({ version: 'unknown' });
+  const result: AppInfo = {
+    version: app.getVersion(),
+    announcements: [],
+    appInfo: getDefaultAppState({
+      serverUrl: ENV.SERVER_URL,
+      environment: ENV.ENVIRONMENT,
+    }),
+  };
+  return handleJsonResponse(result);
 });
 router.get('/api/me', userController.getUserProfile.controllerFn());
 router.get('/api/me/profile', userController.getFullUserProfile.controllerFn());

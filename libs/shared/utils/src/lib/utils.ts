@@ -1,5 +1,6 @@
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import {
+  ApplicationState,
   BulkJob,
   BulkJobBatchInfo,
   BulkJobBatchInfoUntyped,
@@ -33,6 +34,18 @@ import { REGEX } from './regex';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 export function NOOP() {}
+
+export function getDefaultAppState(initial?: Maybe<Partial<ApplicationState>>): ApplicationState {
+  return {
+    serverUrl: 'https://getjetstream.app',
+    environment: 'production',
+    defaultApiVersion: 'v64.0',
+    google_appId: 'unset',
+    google_apiKey: 'unset',
+    google_clientId: 'unset',
+    ...initial,
+  };
+}
 
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) {

@@ -12,8 +12,7 @@ import {
 import { UserProfileSession } from '@jetstream/auth/types';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureBoolean, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { ApplicationCookie } from '@jetstream/types';
+import { ensureBoolean, getDefaultAppState, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parse as parseCookie } from 'cookie';
 import { getUnixTime } from 'date-fns';
 import * as express from 'express';
@@ -42,7 +41,7 @@ export function addContextMiddleware(req: express.Request, res: express.Response
  * @param next
  */
 export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const appCookie: ApplicationCookie = {
+  const appCookie = getDefaultAppState({
     serverUrl: ENV.JETSTREAM_SERVER_URL,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     environment: ENV.ENVIRONMENT as any,
@@ -53,7 +52,7 @@ export function setApplicationCookieMiddleware(req: express.Request, res: expres
     google_apiKey: ENV.GOOGLE_API_KEY!,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     google_clientId: ENV.GOOGLE_CLIENT_ID!,
-  };
+  });
   res.cookie(HTTP.COOKIE.JETSTREAM, appCookie, { httpOnly: false, sameSite: 'strict' });
   next();
 }

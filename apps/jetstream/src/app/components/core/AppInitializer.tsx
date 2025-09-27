@@ -38,8 +38,7 @@ export interface AppInitializerProps {
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnouncements, children }) => {
   const userProfile = useAtomValue(fromAppState.userProfileState);
-  const { version, announcements } = useAtomValue(fromAppState.appVersionState);
-  const appCookie = useAtomValue(fromAppState.applicationCookieState);
+  const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
 
@@ -69,14 +68,14 @@ APP VERSION ${version}
 
   useEffect(() => {
     if (recordSyncEnabled) {
-      initSocket(appCookie.serverUrl);
+      initSocket(appInfo.serverUrl);
     } else {
       disconnectSocket();
     }
     initDexieDb({ recordSyncEnabled }).catch((ex) => {
       logger.error('[DB] Error initializing db', ex);
     });
-  }, [appCookie.serverUrl, recordSyncEnabled]);
+  }, [appInfo.serverUrl, recordSyncEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);
@@ -84,7 +83,7 @@ APP VERSION ${version}
 
   useRollbar({
     accessToken: environment.rollbarClientAccessToken,
-    environment: appCookie.environment,
+    environment: appInfo.environment,
     userProfile: userProfile,
     version,
   });

@@ -1,3 +1,4 @@
+import { getDefaultAppState } from '@jetstream/shared/utils';
 import type { Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import { app } from 'electron';
@@ -15,11 +16,13 @@ for (const arg of args) {
   }
 }
 
+const { defaultApiVersion } = getDefaultAppState();
+
 const ENV_INTERNAL_DEV = {
   ENVIRONMENT: 'development',
   CLIENT_URL: 'http://localhost:4200',
   SERVER_URL: 'http://localhost:3333',
-  SFDC_API_VERSION: '64.0',
+  SFDC_API_VERSION: defaultApiVersion.replace('v', ''),
   DESKTOP_SFDC_CALLBACK_URL: 'jetstream://addOrg/oauth/sfdc/callback',
   DESKTOP_SFDC_CLIENT_ID: '3MVG94YrNIs0WS4d2PK0lDfKIz_loKEkofpaTrvi7_3g_tLRZSQ9_XNQpSmtNVMs7hnO77x3RqRGaxy86vnK_',
 };
