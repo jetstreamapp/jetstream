@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        name: Checkout
+        name: Checkout [master]
         with:
           fetch-depth: 0
 
@@ -56,7 +56,7 @@ jobs:
           node-version: "22"
           cache: "yarn"
 
-      - name: install dependencies
+      - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       # Run database migrations
