@@ -285,7 +285,7 @@ export async function getOrgForRequest(
   requestId?: string,
 ) {
   const org = await salesforceOrgsDb.findByUniqueId_UNSAFE(user.id, uniqueId);
-  if (!org) {
+  if (!org || org.jetstreamUserId2 !== user.id) {
     throw new NotFoundError('An org with the provided id does not exist');
   }
 

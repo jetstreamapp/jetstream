@@ -179,7 +179,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
           baseUri: ["'self'"],
           blockAllMixedContent: [],
           fontSrc: ["'self'", 'https:', "'unsafe-inline'", 'data:', '*.gstatic.com', 'https://checkout.stripe.com'],
-          frameAncestors: ["'self'", '*.google.com'],
+          frameAncestors: ["'self'"],
           imgSrc: [
             "'self'",
             'data:',
@@ -221,6 +221,14 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
           upgradeInsecureRequests: ENV.ENVIRONMENT === 'development' ? null : [],
         },
       },
+      hsts:
+        ENV.ENVIRONMENT === 'production'
+          ? {
+              maxAge: 15_552_000, // 180 days in seconds
+              includeSubDomains: true,
+              preload: true,
+            }
+          : false,
     }),
   );
 
@@ -305,13 +313,9 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     });
     app.options(
       '/{*splat}',
-      (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        next();
-      },
       cors({
         origin: true,
+        credentials: true,
         exposedHeaders: [
           'BAYEUX_BROWSER',
           HTTP.HEADERS.X_LOGOUT,
@@ -382,6 +386,11 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       '/app',
       redirectIfPendingVerificationMiddleware,
       redirectIfMfaEnrollmentRequiredMiddleware,
+      // Allow Google to frame /app routes for Google Picker functionality
+      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.google.com *.googleusercontent.com accounts.google.com;");
+        next();
+      },
       (req: express.Request, res: express.Response) => {
         res.sendFile(join(__dirname, '../jetstream/index.html'));
       },

@@ -24,7 +24,13 @@ export const routeDefinition = {
     controllerFn: () => salesforceOauthInitAuth,
     validators: {
       query: z.object({
-        loginUrl: z.string().min(1),
+        loginUrl: z.union([
+          z.literal('https://login.salesforce.com'),
+          z.literal('https://test.salesforce.com'),
+          z.literal('https://welcome.salesforce.com'),
+          z.literal('https://prerellogin.pre.salesforce.com'),
+          z.string().regex(/^https:\/\/[a-zA-Z0-9.-]+\.my\.salesforce\.com$/),
+        ]),
         addLoginParam: z
           .enum(['true', 'false'])
           .nullish()
