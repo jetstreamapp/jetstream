@@ -1,6 +1,11 @@
-import { Maybe } from '@jetstream/types';
+import { Maybe, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatusSchema } from '@jetstream/types';
 import type { CookieSerializeOptions } from 'cookie';
 import { z } from 'zod';
+
+export interface Team {
+  id: string;
+  name: string;
+}
 
 // TODO: we might want a SessionUser (this) and a UserProfile with a few extra fields, like photo
 export interface UserProfile {
@@ -11,9 +16,7 @@ export interface UserProfile {
   emailVerified: boolean;
 }
 
-export interface UserProfileSession extends UserProfile {
-  authFactors?: UserProfileAuthFactor[];
-}
+export type UserProfileSession = AuthenticatedUser;
 
 export interface UserProfileUiWithIdentities extends UserProfile {
   name: string;
@@ -31,6 +34,7 @@ export interface UserProfileUiWithIdentities extends UserProfile {
   } | null;
   identities: UserProfileIdentity[];
   authFactors: UserProfileAuthFactor[];
+  teamMembership?: Maybe<UserProfileTeamMemberships>;
 }
 
 export interface UserProfileIdentity {
@@ -56,17 +60,35 @@ export interface UserProfileAuthFactor {
   updatedAt?: string;
 }
 
+export interface UserProfileTeamMemberships {
+  role: TeamMemberRole;
+  team: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface UserSession {
+  userId: string;
   sessionId: string;
   expires: string;
   userAgent: string;
   ipAddress: string;
   provider: OauthProviderType | 'credentials';
   loginTime: string;
+  createdAt: string;
 }
 
 export interface UserSessionWithLocation extends UserSession {
   location?: Maybe<SessionIpData>;
+}
+
+export interface UserSessionWithLocationAndUser extends UserSessionWithLocation {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export type TokenSourceBrowserExtensions = 'BROWSER_EXTENSION';
@@ -84,6 +106,7 @@ export interface ExternalTokenSessionWithLocation {
 }
 
 export interface LoginActivityUserFacing {
+  id: number;
   action: string;
   createdAt: string;
   errorMessage: Maybe<string>;
@@ -92,6 +115,11 @@ export interface LoginActivityUserFacing {
   success: boolean;
   userAgent: Maybe<string>;
   location?: Maybe<SessionIpData>;
+  user?: Maybe<{
+    id: string;
+    name: string;
+    email: string;
+  }>;
 }
 
 export interface UserSessionAndExtTokensAndActivityWithLocation {
@@ -183,6 +211,13 @@ export const AuthenticatedUserSchema = z.object({
       enabled: z.boolean(),
     }),
   ),
+  teamMembership: z
+    .object({
+      teamId: z.string(),
+      role: TeamMemberRoleSchema,
+      status: TeamMemberStatusSchema,
+    })
+    .nullish(),
 });
 
 export type AuthenticatedUser = z.infer<typeof AuthenticatedUserSchema>;
@@ -225,29 +260,32 @@ export type HostCookieConstraint = {
 };
 export type CookiePrefixOptions = 'host' | 'secure';
 
+// Auth Related Cookies
 type CallbackUrlCookie = 'callbackUrl';
 type CsrfTokenCookie = 'csrfToken';
-type PkceCodeVerifierCookie = 'pkceCodeVerifier';
 type LinkIdentityCookie = 'linkIdentity';
-type ReturnUrlCookie = 'returnUrl';
-type StateCookie = 'state';
 type NonceCookie = 'nonce';
-type WebauthnChallengeCookie = 'webauthnChallenge';
+type PkceCodeVerifierCookie = 'pkceCodeVerifier';
+type RedirectUrlCookie = 'redirectUrl';
 type RememberDeviceCookie = 'rememberDevice';
-type RedirectUrl = 'redirectUrl';
+type ReturnUrlCookie = 'returnUrl';
+type TeamInviteCookie = 'teamInviteState';
+type StateCookie = 'state';
+type WebauthnChallengeCookie = 'webauthnChallenge';
 type DoubleCSRFTokenCookie = 'doubleCSRFToken';
 
 type CookieConfigKey =
   | CallbackUrlCookie
   | CsrfTokenCookie
-  | PkceCodeVerifierCookie
   | LinkIdentityCookie
-  | ReturnUrlCookie
-  | StateCookie
   | NonceCookie
-  | WebauthnChallengeCookie
+  | PkceCodeVerifierCookie
+  | RedirectUrlCookie
   | RememberDeviceCookie
-  | RedirectUrl
+  | ReturnUrlCookie
+  | TeamInviteCookie
+  | StateCookie
+  | WebauthnChallengeCookie
   | DoubleCSRFTokenCookie;
 
 type cookieNamePrefix = '__Host-' | '__Secure-' | '';
@@ -314,6 +352,8 @@ export const LoginConfigurationSchema = z.object({
   allowedProviders: z.array(OauthAndLocalProvidersSchema).transform((value) => new Set(value)),
   requireMfa: z.boolean(),
   allowIdentityLinking: z.boolean(),
+  autoAddToTeam: z.boolean().optional().default(false),
+  team: z.object({ id: z.string() }).nullish(),
 });
 export type LoginConfiguration = z.infer<typeof LoginConfigurationSchema>;
 

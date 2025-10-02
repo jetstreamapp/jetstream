@@ -74,8 +74,10 @@ export class OauthClients {
   }
 }
 
-// eager init
-OauthClients.getInstance().catch((err) => {
-  logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load oauth clients');
-  process.exit(1);
-});
+// eager init, skip in jest tests
+if (!process.env.JEST_WORKER_ID) {
+  OauthClients.getInstance().catch((err) => {
+    logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load oauth clients');
+    process.exit(1);
+  });
+}
