@@ -29,8 +29,9 @@ export function SfdcPageButtonRecordSearch({ sfHost }: SfdcPageButtonRecordSearc
 
   return (
     <form onSubmit={handleSubmit}>
-      <Input label="Open record in Jetstream">
+      <Input id="record-id" label="Open record in Jetstream">
         <input
+          id="record-id"
           className="slds-input"
           autoFocus
           placeholder="Enter a record id"

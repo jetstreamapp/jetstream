@@ -15,12 +15,7 @@ module.exports = [
   {
     files: ['**/*.ts', '**/*.tsx'],
     rules: {
-      'react-hooks/exhaustive-deps': [
-        'warn',
-        {
-          additionalHooks: '(useRecoilCallback|useNonInitialEffect)',
-        },
-      ],
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {
