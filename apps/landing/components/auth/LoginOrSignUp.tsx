@@ -2,8 +2,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Providers } from '@jetstream/auth/types';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
@@ -54,6 +55,10 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const [showPasswordActive, setShowPasswordActive] = useState(false);
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const captchaRef = useRef<{ reset: () => void }>(null);
+  const searchParams = useSearchParams();
+
+  const emailHint = searchParams.get('email');
+  const returnUrl = searchParams.get('returnUrl');
 
   const {
     register,
@@ -64,7 +69,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
     resolver: zodResolver(FormSchema),
     defaultValues: {
       action,
-      email: '',
+      email: emailHint || '',
       name: '',
       password: '',
       confirmPassword: '',
@@ -73,11 +78,37 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
     },
   });
 
+  const googleOauthUrl = useMemo(() => {
+    if (!providers?.google?.signinUrl) {
+      return undefined;
+    }
+    const url = new URL(providers?.google.signinUrl);
+    if (returnUrl) {
+      url.searchParams.set('returnUrl', returnUrl);
+    }
+    return url.toString();
+  }, [providers?.google.signinUrl, returnUrl]);
+
+  const salesforceOauthUrl = useMemo(() => {
+    if (!providers?.salesforce?.signinUrl) {
+      return undefined;
+    }
+    const url = new URL(providers?.salesforce.signinUrl);
+    if (returnUrl) {
+      url.searchParams.set('returnUrl', returnUrl);
+    }
+    return url.toString();
+  }, [providers?.salesforce.signinUrl, returnUrl]);
+
   const onSubmit = async (payload: Form) => {
     if (!providers) {
       return;
     }
-    const response = await fetch(providers.credentials.callbackUrl, {
+    const url = new URL(providers.credentials.callbackUrl);
+    if (returnUrl) {
+      url.searchParams.set('returnUrl', returnUrl);
+    }
+    const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
       body: new URLSearchParams(payload).toString(),
@@ -136,7 +167,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
           <div className="grid grid-cols-2 gap-4">
-            <form action={providers?.google.signinUrl} method="POST">
+            <form action={googleOauthUrl} method="POST">
               <input type="hidden" name="csrfToken" value={csrfToken} />
 
               {providers?.google.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.google.callbackUrl} />}
@@ -152,7 +183,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
                 <span className="text-sm font-semibold leading-6">Google</span>
               </button>
             </form>
-            <form action={providers?.salesforce.signinUrl} method="POST">
+            <form action={salesforceOauthUrl} method="POST">
               <input type="hidden" name="csrfToken" value={csrfToken} />
 
               {providers?.salesforce.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.salesforce.callbackUrl} />}
@@ -282,7 +313,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             </div>
           </form>
 
-          <RegisterOrSignUpLink action={action} />
+          <RegisterOrSignUpLink action={action} emailHint={emailHint} />
         </div>
       </div>
     </Fragment>

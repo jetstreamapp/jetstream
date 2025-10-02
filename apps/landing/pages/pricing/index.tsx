@@ -32,49 +32,68 @@ const tiers = [
       'Developer Tools',
     ],
     mostPopular: false,
-    comingSoon: false,
   },
   {
     name: 'Professional',
     id: 'tier-professional',
     href: '#',
     price: { monthly: { price: '$25', suffix: 'month' }, annually: { price: '$250', suffix: 'year' } },
-    description: 'Get the most out of Jetstream.',
+    description: 'Perfect for individual users',
     features: [
       'Everything in Free plan',
-      <>
-        <Link href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
-          Browser Extensions
-        </Link>
-      </>,
       <>
         <Link href={ROUTES.DESKTOP} className="text-cyan-500 hover:underline">
           Desktop Application
         </Link>
       </>,
-      'Save history across devices',
+      <>
+        <Link href={ROUTES.BROWSER_EXTENSIONS} className="text-cyan-500 hover:underline">
+          Browser Extensions (Chrome & Firefox)
+        </Link>
+      </>,
+      'Save query history across devices',
       'Save downloads to Google Drive',
       'Load data from Google Drive',
+      'Priority support',
     ],
     mostPopular: true,
-    comingSoon: false,
   },
   {
     name: 'Team',
     id: 'tier-team',
     href: '#',
-    price: { monthly: { price: 'Coming Soon', suffix: null }, annually: { price: 'Coming Soon', suffix: null } },
-    description: `Manage your team's access for your enterprise.`,
+    price: { monthly: { price: '$125', suffix: 'month' }, annually: { price: '$1,100', suffix: 'year' } },
+    description: { monthly: `Includes 5 users ($25/user/month)`, annually: `Includes 5 users ($22/user/month)` },
     features: [
-      'Everything in Professional plan',
-      'Team management',
-      'Access Control',
-      'Priority support',
-      'Audit Logs',
-      'SOC II Compliance',
+      'Everything in Professional',
+      'Manage team members',
+      'Up to 20 team members',
+      'View & Manage team member session activity',
+      'Role-based access control',
+    ],
+    comingSoonFeatures: [
+      'SOC 2 compliance',
+      'SSO via Okta',
+      'Share orgs between team members',
+      'Audit logs',
     ],
     mostPopular: false,
-    comingSoon: true,
+  },
+  {
+    name: 'Enterprise',
+    id: 'tier-enterprise',
+    href: 'mailto:sales@getjetstream.app?subject=Enterprise Plan Inquiry',
+    price: { monthly: { price: 'Custom', suffix: null }, annually: { price: 'Custom', suffix: null } },
+    description: 'Advanced features for large teams',
+    features: [
+      'Everything in Team',
+      'Unlimited team members',
+      'Custom agreements and terms',
+      'Dedicated account manager',
+      'White-glove onboarding',
+    ],
+    mostPopular: false,
+    isEnterprise: true,
   },
 ];
 
@@ -111,7 +130,7 @@ export default function Page() {
             </div>
           </fieldset>
         </div>
-        <div className="isolate mx-auto mt-10 grid max-w-md grid-cols-1 gap-8 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+        <div className="isolate mx-auto mt-10 grid max-w-md grid-cols-1 gap-8 lg:mx-0 lg:max-w-none lg:grid-cols-2 xl:grid-cols-4">
           {tiers.map((tier) => (
             <div
               key={tier.id}
@@ -124,11 +143,10 @@ export default function Page() {
                 <h3 id={tier.id} className="text-lg/8 font-semibold text-white">
                   {tier.name}
                 </h3>
-                {tier.mostPopular ? (
-                  <p className="rounded-full bg-cyan-500 px-2.5 py-1 text-xs/5 font-semibold text-white">Most popular</p>
-                ) : null}
               </div>
-              <p className="mt-4 text-sm/6 text-gray-300">{tier.description}</p>
+              <p className="mt-4 text-sm/6 text-gray-300">
+                {typeof tier.description === 'string' ? tier.description : tier.description[frequency.value]}
+              </p>
               <p className="mt-6 flex items-baseline gap-x-1">
                 <span className="text-4xl font-semibold tracking-tight text-white">{tier.price[frequency.value].price}</span>
                 {tier.price[frequency.value]?.suffix && (
@@ -136,9 +154,12 @@ export default function Page() {
                 )}
               </p>
               <div className="mt-6 min-h-10">
-                {!tier.comingSoon && (
-                  <Link
-                    href={`${ROUTES.AUTH.signup}?plan=${tier.name.toLowerCase()}&frequency=${frequency.value.toLowerCase()}`}
+                <Link
+                    href={
+                      tier.isEnterprise
+                        ? tier.href
+                        : `${ROUTES.AUTH.signup}?plan=${tier.name.toLowerCase()}&frequency=${frequency.value.toLowerCase()}`
+                    }
                     aria-describedby={tier.id}
                     className={classNames(
                       tier.mostPopular
@@ -147,9 +168,8 @@ export default function Page() {
                       'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
                     )}
                   >
-                    Start Free
-                  </Link>
-                )}
+                    {tier.isEnterprise ? 'Contact Sales' : 'Start Free'}
+                </Link>
               </div>
               <ul className="mt-8 space-y-3 text-sm/6 text-gray-300 xl:mt-10">
                 {tier.features.map((feature) => (
@@ -159,6 +179,19 @@ export default function Page() {
                   </li>
                 ))}
               </ul>
+              {tier.comingSoonFeatures && (
+                <>
+                  <p className="mt-6 text-sm/6 font-semibold text-gray-400 uppercase tracking-wide">Coming Soon</p>
+                  <ul className="mt-3 space-y-3 text-sm/6 text-gray-400">
+                    {tier.comingSoonFeatures.map((feature) => (
+                      <li key={feature} className="flex gap-x-3">
+                        <CheckIcon aria-hidden="true" className="h-6 w-5 flex-none text-gray-500" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
           ))}
         </div>

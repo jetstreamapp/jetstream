@@ -1,4 +1,5 @@
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns/format';
+import { parseISO } from 'date-fns/parseISO';
 import Head from 'next/head';
 import { renderBlogPostRichText } from '../../../components/blog-post-renderers';
 import Footer from '../../../components/Footer';

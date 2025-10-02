@@ -87,23 +87,21 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       },
     });
 
-    const data = (await response.json()) as {
-      error: boolean;
-      errorType?: string;
-      redirect?: string;
-    };
+    const { error, errorType, redirect } = await response
+      .json()
+      .then((res: { data: { error: boolean; errorType?: string; redirect?: string } }) => res.data);
 
-    if (!response.ok || data.error) {
-      setError(data.errorType || 'UNKNOWN_ERROR');
+    if (!response.ok || error) {
+      setError(errorType || 'UNKNOWN_ERROR');
       return;
     }
 
-    if (data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
-      router.push(data.redirect);
+    if (redirect?.startsWith(ROUTES.AUTH._root_path)) {
+      router.push(redirect);
       return;
     }
 
-    window.location.href = data.redirect || ENVIRONMENT.CLIENT_URL;
+    window.location.href = redirect || ENVIRONMENT.CLIENT_URL;
   };
 
   const handleResendEmailVerification = async (event: FormEvent<HTMLFormElement>) => {
