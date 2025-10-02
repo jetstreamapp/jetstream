@@ -1,5 +1,6 @@
 export * from './analytics';
 export * from './app/AppHome/AppHome';
+export * from './app/AppHome/AppHomeBillingUser';
 export * from './app/AppLoading';
 export * from './app/ConfirmPageChange';
 export * from './app/DownloadFileStream';

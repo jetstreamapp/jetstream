@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
+  LoginActivityUserFacing,
   LoginConfigurationUI,
   Providers,
   TwoFactorTypeWithoutEmail,
   UserProfileAuthFactor,
   UserProfileUiWithIdentities,
   UserSessionAndExtTokensAndActivityWithLocation,
+  UserSessionWithLocationAndUser,
 } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, MIME_TYPES } from '@jetstream/shared/constants';
@@ -33,6 +35,7 @@ import {
   GoogleFileApiResponse,
   HttpMethod,
   JetstreamOrganization,
+  JetstreamPricesByLookupKey,
   ListMetadataQuery,
   ListMetadataResult,
   ListMetadataResultRaw,
@@ -49,10 +52,19 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
   SobjectOperation,
+  StripePriceKey,
   StripeUserFacingCustomer,
   SyncRecord,
   SyncRecordOperation,
+  TeamInvitationRequest,
+  TeamInviteUserFacing,
+  TeamLoginConfigRequest,
+  TeamMemberRole,
+  TeamMemberStatus,
+  TeamMemberUpdateRequest,
+  TeamUserFacing,
   UserProfileUi,
+  VerifyInvitationResponse,
 } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
 import isFunction from 'lodash/isFunction';
@@ -60,6 +72,11 @@ import isNil from 'lodash/isNil';
 import orderBy from 'lodash/orderBy';
 import { handleExternalRequest, handleRequest, transformListMetadataResponse } from './client-data-data-helper';
 import { getStandardValueSetTypes } from './standardValueSet';
+
+export interface PaginationCursorParams {
+  limit?: number;
+  cursorId?: number | string;
+}
 
 //// LANDING PAGE ROUTES
 
@@ -99,6 +116,75 @@ export async function checkHeartbeat(): Promise<AppInfo> {
     logger.warn('Unable to parse announcements');
   }
   return heartbeat;
+}
+
+export async function verifyInvitation({ teamId, token }: { teamId: string; token: string }): Promise<VerifyInvitationResponse> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/invitations/${token}/verify` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function acceptInvitation({
+  teamId,
+  token,
+}: {
+  teamId: string;
+  token: string;
+}): Promise<{ success: true; redirectUrl: string } | { error: true; message: string; data: unknown }> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/invitations/${token}/accept` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeam(teamId: string): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeam(teamId: string, payload: { name: string }): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}`, data: payload }).then(unwrapResponseIgnoreCache);
+}
+
+export async function revokeTeamUserSession(teamId: string, sessionId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/sessions/${sessionId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamUserSessions(
+  teamId: string,
+  params?: PaginationCursorParams,
+): Promise<{ sessions: UserSessionWithLocationAndUser[]; currentSessionId: string }> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/sessions`, params }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getTeamAuthActivity(teamId: string, params?: PaginationCursorParams): Promise<LoginActivityUserFacing[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/auth-activity`, params }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamLoginConfiguration(teamId: string, data: TeamLoginConfigRequest): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/login-configuration`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamMember(teamId: string, userId: string, data: TeamMemberUpdateRequest): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/members/${userId}`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function updateTeamMemberStatus(
+  teamId: string,
+  userId: string,
+  data: { status: TeamMemberStatus; role?: Maybe<TeamMemberRole> },
+): Promise<TeamUserFacing> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/members/${userId}/status`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function getInvitations(teamId: string): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'GET', url: `/api/teams/${teamId}/invitations` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function createInvitation(teamId: string, data: TeamInvitationRequest): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'POST', url: `/api/teams/${teamId}/invitations`, data }).then(unwrapResponseIgnoreCache);
+}
+
+export async function resendInvitation(teamId: string, invitationId: string): Promise<TeamInviteUserFacing[]> {
+  return handleRequest({ method: 'PUT', url: `/api/teams/${teamId}/invitations/${invitationId}` }).then(unwrapResponseIgnoreCache);
+}
+
+export async function cancelInvitation(teamId: string, invitationId: string): Promise<void> {
+  return handleRequest({ method: 'DELETE', url: `/api/teams/${teamId}/invitations/${invitationId}` }).then(unwrapResponseIgnoreCache);
 }
 
 export async function getUserProfile(): Promise<UserProfileUi> {
@@ -191,8 +277,22 @@ export async function resendVerificationEmail(identity: { provider: string; user
   return handleRequest({ method: 'POST', url: '/api/me/profile/identity/verify-email', params: identity }).then(unwrapResponseIgnoreCache);
 }
 
+export async function initCheckoutSession({
+  priceLookupKey,
+  teamName,
+}: {
+  priceLookupKey: StripePriceKey;
+  teamName?: string;
+}): Promise<{ url: string }> {
+  return handleRequest({ method: 'POST', url: '/api/billing/checkout-session', data: { priceLookupKey, teamName } }).then(
+    unwrapResponseIgnoreCache,
+  );
+}
+
 export async function getSubscriptions(): Promise<{
   customer: StripeUserFacingCustomer | null;
+  pricesByLookupKey: JetstreamPricesByLookupKey | null;
+  hasManualBilling: boolean;
   didUpdate: boolean;
   userProfile?: Maybe<UserProfileUi>;
 }> {

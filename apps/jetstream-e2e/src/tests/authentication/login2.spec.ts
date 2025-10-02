@@ -59,7 +59,7 @@ test.describe('Login 2', () => {
     await page.getByTestId('settings-page').getByRole('textbox').click();
     await page.getByTestId('settings-page').getByRole('textbox').fill('123456');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(page.getByText('Failed to save 2fa settings')).toBeVisible();
+    await expect(page.getByText('Your verification code is invalid or has expired. Please try again.')).toBeVisible();
     await page.getByTestId('toast-notify-container').getByRole('button', { name: 'Close' }).click();
 
     // save a valid token

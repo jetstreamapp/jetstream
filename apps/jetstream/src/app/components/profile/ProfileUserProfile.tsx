@@ -1,14 +1,18 @@
 import { css } from '@emotion/react';
-import type { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import { LoginConfigAbility } from '@jetstream/acl';
+import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { Form, FormRow, FormRowItem, Input, ReadOnlyFormItem } from '@jetstream/ui';
+import { abilityState } from '@jetstream/ui/app-state';
+import { useAtomValue } from 'jotai';
 import { FunctionComponent, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { ProfileUserPassword } from './ProfileUserPassword';
 
 export interface ProfileUserProfileProps {
   fullUserProfile: UserProfileUiWithIdentities;
   name: string;
   editMode: boolean;
-  loginConfiguration: LoginConfigurationUI | null;
+  loginConfigAbility: LoginConfigAbility;
   onEditMode: (value: true) => void;
   onChange: (value: { name: string }) => void;
   onSave: () => void;
@@ -22,7 +26,7 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
   fullUserProfile,
   name,
   editMode,
-  loginConfiguration,
+  loginConfigAbility,
   onEditMode,
   onChange,
   onSave,
@@ -31,6 +35,7 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
   onResetPassword,
   onRemovePassword,
 }) => {
+  const ability = useAtomValue(abilityState);
   const invalidName = !name || name.length > 255;
 
   const blockNameEdit = useMemo(
@@ -55,12 +60,14 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
             )}
             {editMode && (
               <Input
+                id="name"
                 className="slds-form-element_horizontal slds-is-editing"
                 label="Name"
                 hasError={invalidName}
                 errorMessage="Your name must be between 1 and 255 characters"
               >
                 <input
+                  id="name"
                   className="slds-input"
                   value={name}
                   minLength={1}
@@ -75,13 +82,27 @@ export const ProfileUserProfile: FunctionComponent<ProfileUserProfileProps> = ({
               {fullUserProfile.email}
             </ReadOnlyFormItem>
           </FormRowItem>
-          {(!loginConfiguration || loginConfiguration.isPasswordAllowed) && (
+          {loginConfigAbility.can('read', 'Password') && (
             <ProfileUserPassword
               fullUserProfile={fullUserProfile}
+              loginConfigAbility={loginConfigAbility}
               onResetPassword={onResetPassword}
               onSetPassword={onSetPassword}
               onRemovePassword={onRemovePassword}
             />
+          )}
+          {fullUserProfile.teamMembership?.team && (
+            <FormRowItem>
+              <ReadOnlyFormItem label="Team" horizontal omitEdit>
+                {ability.can('read', 'Team') ? (
+                  <Link to="/teams" className="slds-button">
+                    {fullUserProfile.teamMembership.team.name}
+                  </Link>
+                ) : (
+                  fullUserProfile.teamMembership.team.name
+                )}
+              </ReadOnlyFormItem>
+            </FormRowItem>
           )}
         </FormRow>
         {editMode && (
