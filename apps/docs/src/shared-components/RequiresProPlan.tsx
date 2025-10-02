@@ -7,7 +7,7 @@ export const RequiresProPlan = () => {
       <p>
         This feature is only available on the Pro plan.{' '}
         <a href="https://getjetstream.app/pricing/" target="_blank" rel="noopener noreferrer">
-          Upgrade to Pro
+          Upgrade
         </a>
         .
       </p>
