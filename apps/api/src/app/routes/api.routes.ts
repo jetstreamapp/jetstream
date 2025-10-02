@@ -5,7 +5,6 @@ import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
-import { routeDefinition as imageController } from '../controllers/image.controller';
 import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
 import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
@@ -110,8 +109,9 @@ routes.delete('/jetstream-organizations/:id', jetstreamOrganizationsController.d
  * ************************************
  * imageController Routes
  * ************************************
+ * Deprecated - re-implement if required - review this commit for prior implementation
  */
-routes.get('/images/upload-signature', imageController.getUploadSignature.controllerFn());
+// routes.get('/images/upload-signature', imageController.getUploadSignature.controllerFn());
 
 /**
  * ************************************
