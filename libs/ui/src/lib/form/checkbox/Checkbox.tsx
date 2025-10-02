@@ -10,6 +10,7 @@ export interface CheckboxProps {
   checked: boolean;
   indeterminate?: boolean;
   label: ReactNode;
+  labelClassName?: string;
   hideLabel?: boolean;
   labelHelp?: string | React.ReactNode | null;
   helpText?: React.ReactNode | string;
@@ -33,6 +34,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
   checked,
   indeterminate,
   label,
+  labelClassName,
   labelHelp,
   helpText,
   hasError = false,
@@ -66,7 +68,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {isStandAlone && (
         <Fragment>
-          <label className="slds-form-element__label" htmlFor={id}>
+          <label className={classNames('slds-form-element__label', labelClassName)} htmlFor={id}>
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
@@ -102,7 +104,7 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
           {isStandAlone && <span className="slds-checkbox_faux"></span>}
           {!isStandAlone && (
             <Fragment>
-              <label className="slds-checkbox__label" htmlFor={id}>
+              <label className={classNames('slds-checkbox__label', labelClassName)} htmlFor={id}>
                 <span className="slds-checkbox_faux"></span>
                 <span className={classNames('slds-form-element__label', { 'slds-assistive-text': hideLabel })}>{label}</span>
               </label>

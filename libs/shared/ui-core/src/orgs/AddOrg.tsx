@@ -132,6 +132,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
 
           {orgType === 'custom' && (
             <Input
+              id="org-custom-url"
               label="Custom Salesforce Url"
               isRequired={false}
               hasError={false}

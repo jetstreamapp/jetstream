@@ -4,6 +4,8 @@ import { EmailFooter } from '../../components/EmailFooter';
 import { EmailProLogo } from '../../components/EmailProLogo';
 import { EMAIL_STYLES } from '../../shared-styles';
 
+void React.createElement;
+
 export const WelcomeToProEmail = () => (
   <Html>
     <Head />
@@ -28,6 +30,12 @@ export const WelcomeToProEmail = () => (
               </Text>
             </Row>
           </Section>
+          <Section>
+            <Row>
+              <Text style={mainHeading}>Desktop Application</Text>
+              <Text style={SectionDetail}>Our desktop application provides the most secure access of your Salesforce data.</Text>
+            </Row>
+          </Section>
           <Hr style={horizontalRule} />
           <Section>
             <Row>
@@ -36,8 +44,8 @@ export const WelcomeToProEmail = () => (
                 Synchronize your Query History and Saved Load Mappings across all your devices and the browser extension!
               </Text>
               <Text style={SectionDetail}>
-                <strong>Note:</strong> This setting is opt-in for the browser extension. Enable it in the extension settings to share your
-                data through the Jetstream server.
+                <strong>Note:</strong> This setting is opt-in for the browser extension and desktop application. Enable it in the extension
+                settings to share your data through the Jetstream server.
               </Text>
             </Row>
           </Section>

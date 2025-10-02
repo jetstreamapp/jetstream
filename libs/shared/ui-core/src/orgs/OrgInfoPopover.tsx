@@ -257,8 +257,9 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
                     </td>
                     <td>
                       <div className="slds-p-right_small">
-                        <Input>
+                        <Input id="org-label" hideLabel label="Label">
                           <input
+                            id="org-label"
                             className="slds-input"
                             onChange={handleLabelChange}
                             value={orgLabel}

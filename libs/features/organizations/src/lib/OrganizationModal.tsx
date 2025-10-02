@@ -70,7 +70,7 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
             handleSubmit();
           }}
         >
-          <Input label="Name" isRequired hasError={false} errorMessageId="Error" errorMessage="This is not valid">
+          <Input id="organization-name" label="Name" isRequired hasError={false} errorMessageId="Error" errorMessage="This is not valid">
             <input
               id="organization-name"
               className="slds-input"
@@ -82,7 +82,7 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
               disabled={loading}
             />
           </Input>
-          <Textarea id="org-description" label="Description">
+          <Textarea id="organization-description" label="Description">
             <textarea
               id="organization-description"
               className="slds-input"

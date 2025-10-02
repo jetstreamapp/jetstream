@@ -80,8 +80,9 @@ export function DataTableEditorText<TRow extends { _idx: number }, TSummaryRow>(
 }: RenderEditCellProps<TRow, TSummaryRow>) {
   return (
     <DataTableEditorPopover rowIdx={row._idx} colIdx={column.idx} onClose={onClose}>
-      <Input hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
+      <Input id={`edit-${column.key}`} hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
         <input
+          id={`edit-${column.key}`}
           className="slds-input"
           ref={autoFocusAndSelect}
           value={(row[column.key as keyof TRow] as unknown as string) || ''}
@@ -355,8 +356,9 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
               id: 'text',
               title: 'Text',
               content: (
-                <Input hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
+                <Input id={`edit-${column.key}`} hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
                   <input
+                    id={`edit-${column.key}`}
                     className="slds-input"
                     ref={autoFocusAndSelect}
                     value={(row[column.key as keyof TRow] as unknown as string) || ''}

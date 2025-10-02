@@ -521,6 +521,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
               </>
             )}
             <Input
+              id="download-filename"
               label="Filename"
               isRequired
               rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}

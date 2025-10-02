@@ -53,12 +53,14 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
     <Grid gutters wrap>
       <GridCol size={12} sizeMedium={6}>
         <Input
+          id="field-label"
           label="Field Label"
           isRequired
           errorMessage={field.label.errorMessage}
           hasError={!field.label.isValid && !!field.label.errorMessage}
         >
           <input
+            id="field-label"
             className="slds-input"
             required
             minLength={1}
@@ -73,12 +75,14 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
 
       <GridCol size={12} sizeMedium={6}>
         <Input
+          id="field-name"
           label="Field Name"
           isRequired
           errorMessage={field.fullName.errorMessage}
           hasError={!field.fullName.isValid && !!field.fullName.errorMessage}
         >
           <input
+            id="field-name"
             className="slds-input"
             required
             minLength={3}
@@ -138,11 +142,13 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
         <>
           <GridCol size={12} sizeMedium={6}>
             <Input
+              id="field-precision"
               label="Length"
               errorMessage={field.precision.errorMessage}
               hasError={!field.precision.isValid && !!field.precision.errorMessage}
             >
               <input
+                id="field-precision"
                 className="slds-input"
                 value={(field.precision.value as string) ?? ''}
                 autoComplete="off"
@@ -153,11 +159,13 @@ export function FormulaEvaluatorFields({ formula, field, loading, onFieldChange 
 
           <GridCol size={12} sizeMedium={6}>
             <Input
+              id="field-scale"
               label="Decimal Places"
               errorMessage={field.scale.errorMessage}
               hasError={!field.scale.isValid && !!field.scale.errorMessage}
             >
               <input
+                id="field-scale"
                 className="slds-input"
                 value={(field.scale.value as string) ?? ''}
                 autoComplete="off"

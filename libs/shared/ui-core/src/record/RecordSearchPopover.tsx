@@ -127,8 +127,9 @@ export const RecordSearchPopover: FunctionComponent = () => {
             )}
             <form onSubmit={handleSubmit}>
               <Grid verticalAlign="end">
-                <Input label="Record Id" className="slds-grow">
+                <Input id="record-id" label="Record Id" className="slds-grow">
                   <input
+                    id="record-id-input"
                     className="slds-input"
                     max={18}
                     min={15}
