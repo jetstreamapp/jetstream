@@ -12,11 +12,6 @@ export interface NotificationsRequestModalProps {
   onClose?: (isEnabled: boolean) => void;
 }
 
-/**
- * Regular file download modal, but does not actually download any file
- * This is useful if the file takes a while to generate and we allow the user
- * to choose the filename upfront, then we can use it later
- */
 export const NotificationsRequestModal: FunctionComponent<NotificationsRequestModalProps> = ({
   loadDelay = 0,
   userInitiated = false,
