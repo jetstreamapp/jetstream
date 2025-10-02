@@ -11,6 +11,7 @@ export * from './lib/salesforce/sobject.types';
 export * from './lib/salesforce/tooling.types';
 export * from './lib/socket.types';
 export * from './lib/sync/sync.types';
+export * from './lib/team.types';
 export * from './lib/types';
 export * from './lib/ui/deploy-types';
 export * from './lib/ui/load-records-results-types';

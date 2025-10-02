@@ -1,5 +1,6 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import {
+  AuthError,
   clearOauthCookies,
   convertBase32ToHex,
   createOrUpdateOtpAuthFactor,
@@ -12,6 +13,7 @@ import {
   getAuthorizationUrl,
   getCookieConfig,
   getLoginConfiguration,
+  InvalidVerificationToken,
   PASSWORD_RESET_DURATION_MINUTES,
   removeIdentityFromUser,
   removePasswordFromUser,
@@ -284,35 +286,40 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
   });
 });
 
-const getUserLoginConfiguration = createRoute(routeDefinition.getUserLoginConfiguration.validators, async ({ user }, req, res) => {
-  const loginConfiguration = await getLoginConfiguration(user.email).then((response): LoginConfigurationUI => {
-    if (!response) {
-      return {
-        isPasswordAllowed: true,
-        isGoogleAllowed: true,
-        isSalesforceAllowed: true,
-        requireMfa: false,
-        allowIdentityLinking: true,
-        allowedMfaMethods: {
-          email: true,
-          otp: true,
-        },
-      };
-    }
-    return {
-      isPasswordAllowed: response.allowedProviders.has('credentials'),
-      isGoogleAllowed: response.allowedProviders.has('google'),
-      isSalesforceAllowed: response.allowedProviders.has('salesforce'),
-      requireMfa: response.requireMfa,
-      allowIdentityLinking: response.allowIdentityLinking,
-      allowedMfaMethods: {
-        email: response.allowedMfaMethods.has('2fa-email'),
-        otp: response.allowedMfaMethods.has('2fa-otp'),
+const getUserLoginConfiguration = createRoute(
+  routeDefinition.getUserLoginConfiguration.validators,
+  async ({ user, teamMembership }, req, res) => {
+    const loginConfiguration = await getLoginConfiguration({ teamId: teamMembership?.teamId, email: user.email }).then(
+      (response): LoginConfigurationUI => {
+        if (!response) {
+          return {
+            isPasswordAllowed: true,
+            isGoogleAllowed: true,
+            isSalesforceAllowed: true,
+            requireMfa: false,
+            allowIdentityLinking: true,
+            allowedMfaMethods: {
+              email: true,
+              otp: true,
+            },
+          };
+        }
+        return {
+          isPasswordAllowed: response.allowedProviders.has('credentials'),
+          isGoogleAllowed: response.allowedProviders.has('google'),
+          isSalesforceAllowed: response.allowedProviders.has('salesforce'),
+          requireMfa: response.requireMfa,
+          allowIdentityLinking: response.allowIdentityLinking,
+          allowedMfaMethods: {
+            email: response.allowedMfaMethods.has('2fa-email'),
+            otp: response.allowedMfaMethods.has('2fa-otp'),
+          },
+        };
       },
-    };
-  });
-  sendJson(res, loginConfiguration);
-});
+    );
+    sendJson(res, loginConfiguration);
+  },
+);
 
 const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {
   const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
@@ -343,6 +350,9 @@ const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validato
       method: '2FA-OTP',
       success: false,
     });
+    if (ex instanceof InvalidVerificationToken) {
+      throw new UserFacingError('Your verification code is invalid or has expired. Please try again.');
+    }
     throw new UserFacingError('There was an error setting up the 2FA method');
   }
 });
@@ -379,7 +389,10 @@ const toggleEnableDisableAuthFactorRoute = createRoute(
         method: type.toUpperCase(),
         success: false,
       });
-      throw new UserFacingError(`There was an error ${action}ing the authentication factor`);
+      if (ex instanceof AuthError) {
+        throw ex;
+      }
+      throw new UserFacingError(`There was an error ${action === 'enable' ? 'enabling' : 'disabling'} the authentication factor`);
     }
   },
 );
@@ -406,6 +419,9 @@ const deleteAuthFactorRoute = createRoute(routeDefinition.deleteAuthFactor.valid
       method: type?.toUpperCase(),
       success: false,
     });
+    if (ex instanceof AuthError) {
+      throw ex;
+    }
     throw new UserFacingError('There was an error removing the authentication factor');
   }
 });
@@ -483,6 +499,10 @@ const deleteAccount = createRoute(routeDefinition.deleteAccount.validators, asyn
     const reason = body.reason;
     let billingResultsJson = '';
     let billingPortalLinkText = '';
+
+    if (req.session.user?.teamMembership) {
+      throw new UserFacingError('You cannot delete your account while you are a member of a team. Contact support for assistance.');
+    }
 
     const userWithSubscriptions = await userDbService.findByIdWithSubscriptions(user.id);
     if (userWithSubscriptions.billingAccount?.customerId) {

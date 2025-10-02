@@ -6,6 +6,7 @@ import {
   MissingEntitlement,
   checkUserAgentSimilarity,
   generateHMACDoubleCSRFToken,
+  getApiAddressFromReq,
   getCookieConfig,
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
@@ -22,7 +23,6 @@ import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
-import { getApiAddressFromReq } from '../utils/route.utils';
 
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || req.get('rndr-id') || uuid();
@@ -162,9 +162,6 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
       return;
     }
   }
-
-  // TODO: consider adding a check for IP address - but should allow some buffer in case people change networks
-  // especially if the ip addresses are very far away
 
   if (user && !pendingVerification) {
     telemetryAddUserToAttributes(user);
