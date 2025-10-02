@@ -21,359 +21,359 @@ export class PrismaError extends PrismaClientKnownRequestError {
 }
 
 export class PrismaAuthenticationFailedError extends PrismaError {
-  code = 'P1000';
+  override code = 'P1000';
 }
 
 export class PrismaDatabaseUnreachableError extends PrismaError {
-  code = 'P1001';
+  override code = 'P1001';
 }
 
 export class PrismaDatabaseTimeoutError extends PrismaError {
-  code = 'P1002';
+  override code = 'P1002';
 }
 
 export class PrismaDatabaseDoesNotExistError extends PrismaError {
-  code = 'P1003';
+  override code = 'P1003';
 }
 
 export class PrismaOperationTimeoutError extends PrismaError {
-  code = 'P1008';
+  override code = 'P1008';
 }
 
 export class PrismaDatabaseAlreadyExistsError extends PrismaError {
-  code = 'P1009';
+  override code = 'P1009';
 }
 
 export class PrismaUserAccessDeniedError extends PrismaError {
-  code = 'P1010';
+  override code = 'P1010';
 }
 
 export class PrismaTlsConnectionError extends PrismaError {
-  code = 'P1011';
+  override code = 'P1011';
 }
 
 export class PrismaSchemaValidationError extends PrismaError {
-  code = 'P1012';
+  override code = 'P1012';
 }
 
 export class PrismaInvalidDatabaseStringError extends PrismaError {
-  code = 'P1013';
+  override code = 'P1013';
 }
 
 export class PrismaUnderlyingModelError extends PrismaError {
-  code = 'P1014';
+  override code = 'P1014';
 }
 
 export class PrismaUnsupportedDatabaseVersionError extends PrismaError {
-  code = 'P1015';
+  override code = 'P1015';
 }
 
 export class PrismaIncorrectParametersError extends PrismaError {
-  code = 'P1016';
+  override code = 'P1016';
 }
 
 export class PrismaServerClosedConnectionError extends PrismaError {
-  code = 'P1017';
+  override code = 'P1017';
 }
 
 export class PrismaValueTooLongError extends PrismaError {
-  code = 'P2000';
+  override code = 'P2000';
 }
 
 export class PrismaRecordDoesNotExistError extends PrismaError {
-  code = 'P2001';
+  override code = 'P2001';
 }
 
 export class PrismaUniqueConstraintError extends PrismaError {
-  code = 'P2002';
+  override code = 'P2002';
 }
 
 export class PrismaForeignKeyConstraintError extends PrismaError {
-  code = 'P2003';
+  override code = 'P2003';
 }
 
 export class PrismaDatabaseConstraintError extends PrismaError {
-  code = 'P2004';
+  override code = 'P2004';
 }
 
 export class PrismaInvalidFieldValueError extends PrismaError {
-  code = 'P2005';
+  override code = 'P2005';
 }
 
 export class PrismaInvalidValueError extends PrismaError {
-  code = 'P2006';
+  override code = 'P2006';
 }
 
 export class PrismaDataValidationError extends PrismaError {
-  code = 'P2007';
+  override code = 'P2007';
 }
 
 export class PrismaQueryParsingError extends PrismaError {
-  code = 'P2008';
+  override code = 'P2008';
 }
 
 export class PrismaQueryValidationError extends PrismaError {
-  code = 'P2009';
+  override code = 'P2009';
 }
 
 export class PrismaRawQueryFailedError extends PrismaError {
-  code = 'P2010';
+  override code = 'P2010';
 }
 
 export class PrismaNullConstraintViolationError extends PrismaError {
-  code = 'P2011';
+  override code = 'P2011';
 }
 
 export class PrismaMissingRequiredValueError extends PrismaError {
-  code = 'P2012';
+  override code = 'P2012';
 }
 
 export class PrismaMissingRequiredArgumentError extends PrismaError {
-  code = 'P2013';
+  override code = 'P2013';
 }
 
 export class PrismaRelationViolationError extends PrismaError {
-  code = 'P2014';
+  override code = 'P2014';
 }
 
 export class PrismaRelatedRecordNotFoundError extends PrismaError {
-  code = 'P2015';
+  override code = 'P2015';
 }
 
 export class PrismaQueryInterpretationError extends PrismaError {
-  code = 'P2016';
+  override code = 'P2016';
 }
 
 export class PrismaRecordsNotConnectedError extends PrismaError {
-  code = 'P2017';
+  override code = 'P2017';
 }
 
 export class PrismaConnectedRecordsNotFoundError extends PrismaError {
-  code = 'P2018';
+  override code = 'P2018';
 }
 
 export class PrismaInputError extends PrismaError {
-  code = 'P2019';
+  override code = 'P2019';
 }
 
 export class PrismaValueOutOfRangeError extends PrismaError {
-  code = 'P2020';
+  override code = 'P2020';
 }
 
 export class PrismaTableDoesNotExistError extends PrismaError {
-  code = 'P2021';
+  override code = 'P2021';
 }
 
 export class PrismaColumnDoesNotExistError extends PrismaError {
-  code = 'P2022';
+  override code = 'P2022';
 }
 
 export class PrismaInconsistentColumnDataError extends PrismaError {
-  code = 'P2023';
+  override code = 'P2023';
 }
 
 export class PrismaConnectionPoolTimeoutError extends PrismaError {
-  code = 'P2024';
+  override code = 'P2024';
 }
 
 export class PrismaOperationFailedError extends PrismaError {
-  code = 'P2025';
+  override code = 'P2025';
 }
 
 export class PrismaUnsupportedFeatureError extends PrismaError {
-  code = 'P2026';
+  override code = 'P2026';
 }
 
 export class PrismaDatabaseQueryExecutionErrors extends PrismaError {
-  code = 'P2027';
+  override code = 'P2027';
 }
 
 export class PrismaTransactionApiError extends PrismaError {
-  code = 'P2028';
+  override code = 'P2028';
 }
 
 export class PrismaFulltextIndexNotFoundError extends PrismaError {
-  code = 'P2030';
+  override code = 'P2030';
 }
 
 export class PrismaMongoDBReplicaSetError extends PrismaError {
-  code = 'P2031';
+  override code = 'P2031';
 }
 
 export class PrismaNumberOutOfRangeError extends PrismaError {
-  code = 'P2033';
+  override code = 'P2033';
 }
 
 export class PrismaTransactionConflictError extends PrismaError {
-  code = 'P2034';
+  override code = 'P2034';
 }
 
 export class PrismaDatabaseCreationFailedError extends PrismaError {
-  code = 'P3000';
+  override code = 'P3000';
 }
 
 export class PrismaMigrationDestructiveChangesError extends PrismaError {
-  code = 'P3001';
+  override code = 'P3001';
 }
 
 export class PrismaMigrationRollbackError extends PrismaError {
-  code = 'P3002';
+  override code = 'P3002';
 }
 
 export class PrismaMigrationFormatChangedError extends PrismaError {
-  code = 'P3003';
+  override code = 'P3003';
 }
 
 export class PrismaSystemDatabaseAlterationError extends PrismaError {
-  code = 'P3004';
+  override code = 'P3004';
 }
 
 export class PrismaNonEmptySchemaError extends PrismaError {
-  code = 'P3005';
+  override code = 'P3005';
 }
 
 export class PrismaFailedMigrationError extends PrismaError {
-  code = 'P3006';
+  override code = 'P3006';
 }
 
 export class PrismaPreviewFeaturesBlockedError extends PrismaError {
-  code = 'P3007';
+  override code = 'P3007';
 }
 
 export class PrismaMigrationAlreadyAppliedError extends PrismaError {
-  code = 'P3008';
+  override code = 'P3008';
 }
 
 export class PrismaFailedMigrationsError extends PrismaError {
-  code = 'P3009';
+  override code = 'P3009';
 }
 
 export class PrismaMigrationNameTooLongError extends PrismaError {
-  code = 'P3010';
+  override code = 'P3010';
 }
 
 export class PrismaMigrationNotFoundForRollbackError extends PrismaError {
-  code = 'P3011';
+  override code = 'P3011';
 }
 
 export class PrismaMigrationNotInFailedStateError extends PrismaError {
-  code = 'P3012';
+  override code = 'P3012';
 }
 
 export class PrismaProviderArraysNotSupportedError extends PrismaError {
-  code = 'P3013';
+  override code = 'P3013';
 }
 
 export class PrismaShadowDatabaseCreationError extends PrismaError {
-  code = 'P3014';
+  override code = 'P3014';
 }
 
 export class PrismaMigrationFileNotFoundError extends PrismaError {
-  code = 'P3015';
+  override code = 'P3015';
 }
 
 export class PrismaDatabaseResetFallbackFailedError extends PrismaError {
-  code = 'P3016';
+  override code = 'P3016';
 }
 
 export class PrismaMigrationNotFoundError extends PrismaError {
-  code = 'P3017';
+  override code = 'P3017';
 }
 
 export class PrismaMigrationFailedToApplyError extends PrismaError {
-  code = 'P3018';
+  override code = 'P3018';
 }
 
 export class PrismaProviderMismatchError extends PrismaError {
-  code = 'P3019';
+  override code = 'P3019';
 }
 
 export class PrismaShadowDatabaseDisabledError extends PrismaError {
-  code = 'P3020';
+  override code = 'P3020';
 }
 
 export class PrismaNoForeignKeysError extends PrismaError {
-  code = 'P3021';
+  override code = 'P3021';
 }
 
 export class PrismaNoDirectDdlError extends PrismaError {
-  code = 'P3022';
+  override code = 'P3022';
 }
 
 export class PrismaIntrospectionFailedError extends PrismaError {
-  code = 'P4000';
+  override code = 'P4000';
 }
 
 export class PrismaEmptyIntrospectedDatabaseError extends PrismaError {
-  code = 'P4001';
+  override code = 'P4001';
 }
 
 export class PrismaInconsistentIntrospectedSchemaError extends PrismaError {
-  code = 'P4002';
+  override code = 'P4002';
 }
 
 export class PrismaDataProxyRequestError extends PrismaError {
-  code = 'P5000';
+  override code = 'P5000';
 }
 
 export class PrismaDataProxyRetryRequestError extends PrismaError {
-  code = 'P5001';
+  override code = 'P5001';
 }
 
 export class PrismaDataProxyInvalidDatasourceError extends PrismaError {
-  code = 'P5002';
+  override code = 'P5002';
 }
 
 export class PrismaDataProxyResourceNotFoundError extends PrismaError {
-  code = 'P5003';
+  override code = 'P5003';
 }
 
 export class PrismaDataProxyFeatureNotImplementedError extends PrismaError {
-  code = 'P5004';
+  override code = 'P5004';
 }
 
 export class PrismaDataProxySchemaUploadError extends PrismaError {
-  code = 'P5005';
+  override code = 'P5005';
 }
 
 export class PrismaDataProxyUnknownServerError extends PrismaError {
-  code = 'P5006';
+  override code = 'P5006';
 }
 
 export class PrismaDataProxyUnauthorizedError extends PrismaError {
-  code = 'P5007';
+  override code = 'P5007';
 }
 
 export class PrismaDataProxyUsageExceededError extends PrismaError {
-  code = 'P5008';
+  override code = 'P5008';
 }
 
 export class PrismaDataProxyRequestTimeoutError extends PrismaError {
-  code = 'P5009';
+  override code = 'P5009';
 }
 
 export class PrismaDataProxyFetchError extends PrismaError {
-  code = 'P5010';
+  override code = 'P5010';
 }
 
 export class PrismaDataProxyInvalidRequestParametersError extends PrismaError {
-  code = 'P5011';
+  override code = 'P5011';
 }
 
 export class PrismaDataProxyUnsupportedEngineVersionError extends PrismaError {
-  code = 'P5012';
+  override code = 'P5012';
 }
 
 export class PrismaDataProxyEngineStartupError extends PrismaError {
-  code = 'P5013';
+  override code = 'P5013';
 }
 
 export class PrismaDataProxyUnknownEngineStartupError extends PrismaError {
-  code = 'P5014';
+  override code = 'P5014';
 }
 
 export class PrismaDataProxyInteractiveTransactionError extends PrismaError {
-  code = 'P5015';
+  override code = 'P5015';
 }
 
 const errorCodeToClass = {
