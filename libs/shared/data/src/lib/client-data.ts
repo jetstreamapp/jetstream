@@ -363,7 +363,7 @@ export async function deleteJetstreamOrganization(id: string): Promise<void> {
  * Then images are uploaded directly to cloudinary
  *
  * https://cloudinary.com/documentation/upload_images#example_2_upload_multiple_files_using_a_form_signed
- *
+ * @warn The server implementation is disabled - re-implement if this capability is required
  * @param files
  * @returns
  */
