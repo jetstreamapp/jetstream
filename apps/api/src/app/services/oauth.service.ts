@@ -3,6 +3,10 @@ import { SalesforceUserInfo } from '@jetstream/types';
 import { AuthorizationParameters, CallbackParamsType, Issuer, generators } from 'openid-client';
 
 function getSalesforceAuthClient(loginUrl: string) {
+  const url = new URL(loginUrl);
+  if (!url.hostname.endsWith('.salesforce.com')) {
+    throw new Error('Invalid Salesforce login URL');
+  }
   const { Client } = new Issuer({
     authorization_endpoint: `${loginUrl}/services/oauth2/authorize`,
     end_session_endpoint: `${loginUrl}/services/oauth2/logout`,
