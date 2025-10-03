@@ -99,7 +99,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               </button>
             </form>
           )}
-          {loginConfigAbility.can('link', { type: 'Identity', provider: 'google' }) && (
+          {loginConfigAbility.can('link', { type: 'Identity', provider: 'salesforce' }) && (
             <form
               className="w-100"
               css={css`

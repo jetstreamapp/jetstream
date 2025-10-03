@@ -25,7 +25,8 @@ export function TeamMemberStatusUpdateModal({ teamId, teamMember, action, hasMan
     setErrorMessage(null);
     setLoading(true);
     try {
-      const updatedTeam = await updateTeamMemberStatus(teamId, teamMember.userId, { status: 'ACTIVE', role });
+      const status = action === 'deactivate' ? 'INACTIVE' : 'ACTIVE';
+      const updatedTeam = await updateTeamMemberStatus(teamId, teamMember.userId, { status, role });
       onClose(updatedTeam);
       fireToast({
         message: action === 'deactivate' ? `Successfully deactivated member` : `Successfully reactivated member`,

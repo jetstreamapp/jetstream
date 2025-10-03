@@ -247,11 +247,11 @@ test.describe('Team Dashboard', () => {
       await row.getByTestId('user-row-actions').click();
       await row.getByRole('menuitem', { name: 'Deactivate' }).click();
 
-      const confirmationModal = page.getByTestId('confirmation-modal');
+      const updateModal = page.getByTestId('team-member-status-update-modal');
 
-      await expect(confirmationModal.getByText('Once deactivated, this user')).toBeVisible();
-      await expect(confirmationModal.getByText(member2.teamMembership.user.name)).toBeVisible();
-      await confirmationModal.getByRole('button', { name: 'Continue' }).click();
+      await expect(updateModal.getByText('Once deactivated, this user')).toBeVisible();
+      await expect(updateModal.getByText(member2.teamMembership.user.name)).toBeVisible();
+      await updateModal.getByRole('button', { name: 'Save' }).click();
 
       await expect(page.getByRole('heading', { name: 'Successfully deactivated' })).toBeVisible();
     });
@@ -261,8 +261,8 @@ test.describe('Team Dashboard', () => {
       await expect(member2Page.url()).toContain('/auth/login');
       const authenticationPage = new AuthenticationPage(member2Page);
       await authenticationPage.fillOutLoginForm(member2.user.email, member2.user.password);
-      expect(member2Page.url()).toContain('/auth/login');
-      expect(member2Page.getByRole('heading', { name: 'Your account is inactive' })).toBeVisible();
+      await expect(member2Page.url()).toContain('/auth/login');
+      await expect(member2Page.getByText('Your account is inactive.')).toBeVisible();
       await member2Page.close();
     });
   });
