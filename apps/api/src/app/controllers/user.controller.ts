@@ -44,6 +44,7 @@ export const routeDefinition = {
     controllerFn: () => getUserProfile,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   initPassword: {
@@ -53,30 +54,35 @@ export const routeDefinition = {
         password: z.string().min(8).max(255),
       }),
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   initResetPassword: {
     controllerFn: () => initResetPassword,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   deletePassword: {
     controllerFn: () => deletePassword,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   getFullUserProfile: {
     controllerFn: () => getFullUserProfile,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   getSessions: {
     controllerFn: () => getSessions,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   revokeSession: {
@@ -89,6 +95,7 @@ export const routeDefinition = {
         type: z.enum(['SESSION', 'EXTERNAL_SESSION']).optional().default('SESSION'),
       }),
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   revokeAllSessions: {
@@ -100,12 +107,14 @@ export const routeDefinition = {
         })
         .nullish(),
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   updateProfile: {
     controllerFn: () => updateProfile,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       body: z.object({
         name: z.string().min(1).max(255).trim().optional(),
         preferences: z
@@ -121,12 +130,14 @@ export const routeDefinition = {
     controllerFn: () => getUserLoginConfiguration,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   getOtpQrCode: {
     controllerFn: () => getOtpQrCode,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   saveOtpAuthFactor: {
@@ -147,6 +158,7 @@ export const routeDefinition = {
         action: z.enum(['enable', 'disable']),
       }),
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   deleteAuthFactor: {
@@ -156,12 +168,14 @@ export const routeDefinition = {
         type: z.enum(['2fa-otp', '2fa-email']),
       }),
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   unlinkIdentity: {
     controllerFn: () => unlinkIdentity,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       query: z.object({
         provider: OauthProviderTypeSchema,
         providerAccountId: z.string().min(1),
@@ -172,6 +186,7 @@ export const routeDefinition = {
     controllerFn: () => linkIdentity,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       query: z.object({
         provider: OauthProviderTypeSchema,
       }),
@@ -181,6 +196,7 @@ export const routeDefinition = {
     controllerFn: () => deleteAccount,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       body: z.object({
         reason: z.string().nullish(),
       }),

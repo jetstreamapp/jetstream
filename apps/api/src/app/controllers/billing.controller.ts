@@ -16,18 +16,21 @@ export const routeDefinition = {
     controllerFn: () => stripeWebhookHandler,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   fetchPrices: {
     controllerFn: () => fetchPrices,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   createCheckoutSession: {
     controllerFn: () => createCheckoutSessionHandler,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       body: z.object({
         priceLookupKey: z.enum(STRIPE_PRICE_KEYS),
       }),
@@ -37,6 +40,7 @@ export const routeDefinition = {
     controllerFn: () => processCheckoutSuccessHandler,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         action: z.enum(['complete', 'cancel']),
       }),
@@ -53,12 +57,14 @@ export const routeDefinition = {
     controllerFn: () => getSubscriptionsHandler,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   createBillingPortalSession: {
     controllerFn: () => createBillingPortalSession,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
 };

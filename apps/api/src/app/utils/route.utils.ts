@@ -1,4 +1,4 @@
-import { getExceptionLog } from '@jetstream/api-config';
+import { getExceptionLog, rollbarServer } from '@jetstream/api-config';
 import { Request, Response } from '@jetstream/api-types';
 import { getApiAddressFromReq } from '@jetstream/auth/server';
 import { AuthenticatedUser, CookieOptions, UserProfileSession } from '@jetstream/auth/types';
@@ -44,6 +44,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     query,
     hasSourceOrg = true,
     hasTargetOrg = false,
+    logErrorToBugTracker = false,
   }: {
     params?: TParamsSchema;
     body?: TBodySchema;
@@ -54,6 +55,10 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
      */
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
+    /**
+     * If provided, this message will be logged to the bug tracker along with the error when an unknown error occurs
+     */
+    logErrorToBugTracker?: boolean;
   },
   controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
   /**
@@ -103,6 +108,9 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       try {
         await controllerFn(data, req, res, next);
       } catch (ex) {
+        if (logErrorToBugTracker) {
+          rollbarServer.error(ex, req);
+        }
         if (isKnownError(ex)) {
           return next(ex);
         }
@@ -111,6 +119,9 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       }
     } catch (ex) {
       req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
+      if (logErrorToBugTracker) {
+        rollbarServer.error(ex, req);
+      }
       if (typeof onErrorHandler === 'function') {
         return onErrorHandler(ex, req, res, next);
       } else {

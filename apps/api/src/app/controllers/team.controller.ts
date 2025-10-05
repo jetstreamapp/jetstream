@@ -18,6 +18,7 @@ export const routeDefinition = {
     controllerFn: () => verifyInvitation,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         token: z.string().uuid(),
@@ -28,6 +29,7 @@ export const routeDefinition = {
     controllerFn: () => acceptInvitation,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         token: z.string().uuid(),
@@ -38,12 +40,14 @@ export const routeDefinition = {
     controllerFn: () => getTeam,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
     },
   },
   updateTeam: {
     controllerFn: () => updateTeam,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
       }),
@@ -56,6 +60,7 @@ export const routeDefinition = {
     controllerFn: () => getUserSessions,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
       }),
@@ -69,6 +74,7 @@ export const routeDefinition = {
     controllerFn: () => revokeUserSession,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         sessionId: z.string(),
@@ -79,6 +85,7 @@ export const routeDefinition = {
     controllerFn: () => getUserAuthActivity,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
       }),
@@ -92,6 +99,7 @@ export const routeDefinition = {
     controllerFn: () => updateLoginConfiguration,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
       }),
@@ -102,6 +110,7 @@ export const routeDefinition = {
     controllerFn: () => updateTeamMember,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         userId: z.string().uuid(),
@@ -113,6 +122,7 @@ export const routeDefinition = {
     controllerFn: () => updateTeamMemberStatusAndRole,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         userId: z.string().uuid(),
@@ -124,6 +134,7 @@ export const routeDefinition = {
     controllerFn: () => getInvitations,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
       }),
@@ -133,6 +144,7 @@ export const routeDefinition = {
     controllerFn: () => createInvitation,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
       }),
@@ -143,6 +155,7 @@ export const routeDefinition = {
     controllerFn: () => resendInvitation,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         id: z.string().uuid(),
@@ -154,6 +167,7 @@ export const routeDefinition = {
     controllerFn: () => cancelInvitation,
     validators: {
       hasSourceOrg: false,
+      logErrorToBugTracker: true,
       params: z.object({
         teamId: z.string().uuid(),
         id: z.string().uuid(),

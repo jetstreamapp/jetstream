@@ -113,7 +113,10 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
   const groupedPrices = groupByFlat(prices, 'lookup_key');
 
   function getPrice(key: string): JetstreamPrice {
-    const price = groupedPrices[key]!;
+    const price = groupedPrices[key];
+    if (!price) {
+      throw new Error(`Price not found for lookup key: ${key}`);
+    }
     const product = price.product as Stripe.Product;
     return {
       id: price.id,
