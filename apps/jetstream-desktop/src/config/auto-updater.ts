@@ -9,7 +9,7 @@ autoUpdater.logger = logger;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-function getFocusedRoFirstWindow(): BrowserWindow | null {
+function getFocusedOrFirstWindow(): BrowserWindow | null {
   return BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
 }
 
@@ -38,7 +38,7 @@ function setupAutoUpdaterListeners() {
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     logger.info('Update available:', info);
 
-    const updateWindow = getFocusedRoFirstWindow();
+    const updateWindow = getFocusedOrFirstWindow();
     if (!updateWindow) {
       return;
     }
@@ -73,7 +73,7 @@ function setupAutoUpdaterListeners() {
     logMessage = logMessage + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
     logger.info(logMessage);
 
-    const updateWindow = getFocusedRoFirstWindow();
+    const updateWindow = getFocusedOrFirstWindow();
     // Send progress to renderer
     if (updateWindow) {
       updateWindow.webContents.send('update-download-progress', progressObj);
@@ -83,7 +83,7 @@ function setupAutoUpdaterListeners() {
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
     logger.info('Update downloaded:', info);
 
-    const updateWindow = getFocusedRoFirstWindow();
+    const updateWindow = getFocusedOrFirstWindow();
     if (!updateWindow) {
       return;
     }
@@ -99,7 +99,9 @@ function setupAutoUpdaterListeners() {
       })
       .then((result) => {
         if (result.response === 0) {
-          autoUpdater.quitAndInstall(false, true);
+          // Use default behavior for NSIS installers on Windows
+          // This ensures proper quit sequence and allows installer to complete
+          autoUpdater.quitAndInstall();
         }
       });
   });

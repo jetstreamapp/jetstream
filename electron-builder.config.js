@@ -136,8 +136,9 @@ const config = {
     createStartMenuShortcut: true,
     shortcutName: 'Jetstream',
     deleteAppDataOnUninstall: false,
-    differentialPackage: true, // Enable delta updates
+    differentialPackage: false, // Enable delta updates
     include: 'assets/installer.nsh',
+    runAfterFinish: true, // Auto-restart app after successful installation
   },
 
   // Portable app for restricted environments
