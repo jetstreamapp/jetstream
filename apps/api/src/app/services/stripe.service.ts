@@ -13,7 +13,7 @@ import {
   StripeUserFacingSubscriptionItem,
 } from '@jetstream/types';
 import { formatISO, fromUnixTime } from 'date-fns';
-import { isString } from 'lodash';
+import { isObject, isString } from 'lodash';
 import Stripe from 'stripe';
 import * as subscriptionDbService from '../db/subscription.db';
 import * as teamDbService from '../db/team.db';
@@ -249,6 +249,29 @@ export async function createCustomer(user: Pick<UserProfile, 'id' | 'name' | 'em
   return customer;
 }
 
+/**
+ * Update customer metadata to ensure that it matches based on the current state of Jetstream
+ */
+export async function updateCustomerMetadata(
+  customerId: string,
+  metadata: { userId: string; teamId: string | null; type: 'TEAM' | 'USER' },
+) {
+  const { type } = metadata;
+  const customer = await stripe.customers.update(customerId, {
+    metadata,
+  });
+  if (type === 'TEAM') {
+    await stripe.customers.createFundingInstructions(customer.id, {
+      currency: 'usd',
+      funding_type: 'bank_transfer',
+      bank_transfer: {
+        type: 'us_bank_transfer',
+      },
+    });
+  }
+  return customer;
+}
+
 export async function updateEntitlementsFromWebhook(eventData: Stripe.Entitlements.ActiveEntitlementSummary) {
   const { customer, entitlements } = eventData;
   await updateEntitlements(customer, entitlements.data);
@@ -291,7 +314,7 @@ export async function updateEntitlements(customerId: string, entitlements: Strip
  * Synchronize subscription state
  */
 export async function saveSubscriptionFromCompletedSession({ sessionId }: { sessionId: string }) {
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['customer', 'subscription'] });
 
   if (!session.customer) {
     throw new Error('Invalid checkout session - a customer is required to be associated with the session');
@@ -303,6 +326,12 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   const userId = session.client_reference_id as string;
   let teamId = metadata.teamId || null;
   let type = metadata.type || 'USER';
+  const subscription = session.subscription;
+
+  // If user has a team subscription, ensure that we treat as a team even if they did not initially have a teamId in metadata
+  if (isObject(subscription) && subscription.items.data.find((item) => item.price.lookup_key?.startsWith('TEAM_'))) {
+    type = 'TEAM';
+  }
 
   if (type === 'TEAM') {
     // upsert team (in case webhook is being processed at about the same time - this function needs to be idempotent)
@@ -314,7 +343,7 @@ export async function saveSubscriptionFromCompletedSession({ sessionId }: { sess
   }
 
   // ensure stripe has proper metadata
-  await stripe.customers.update(customerId, { metadata: { userId, teamId, type } });
+  await updateCustomerMetadata(customerId, { userId, teamId, type });
 
   // Update customer subscriptions - will also be updated via webhook
   const customer = await fetchCustomerWithSubscriptionsById({ customerId });
@@ -491,9 +520,18 @@ export async function saveOrUpdateSubscription({
     return;
   }
 
-  // eslint-disable-next-line prefer-const
   let { userId, teamId, type = 'USER' } = customer.metadata;
   const subscriptions = customer.subscriptions?.data ?? [];
+  const hasTeamPlan = subscriptions.find(({ items }) => items.data.find((item) => item.price.lookup_key?.startsWith('TEAM_')));
+
+  // Ensure team is auto-created if required and Stripe is updated to reflect this
+  if (hasTeamPlan && userId && (!teamId || type !== 'TEAM')) {
+    type = 'TEAM';
+    const team = await teamDbService.upsertTeamWithBillingAccount({ userId, billingAccountCustomerId: customer.id });
+    teamId = team.id;
+    // ensure stripe has proper metadata
+    await updateCustomerMetadata(customer.id, { userId, teamId, type: 'TEAM' });
+  }
 
   // customer does not have Jetstream id attached - update Stripe to ensure data integrity (if possible)
   if (!userId && type === 'USER') {

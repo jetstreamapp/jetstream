@@ -53,7 +53,7 @@ async function run() {
     throw new Error('No default billing portal found');
   }
 
-  defaultBillingPortal = await upsertProBillingPortal(defaultBillingPortal?.id, proPriceIds, proProductId);
+  defaultBillingPortal = await upsertProBillingPortal(defaultBillingPortal?.id, proPriceIds, proProductId, teamPriceIds, teamProductId);
   console.log('Updated main billing portal configuration', defaultBillingPortal.id);
 
   teamBillingPortal = await upsertTeamBillingPortal(teamBillingPortal?.id, teamPriceIds, teamProductId);
@@ -79,8 +79,10 @@ async function run() {
  * @param {string | undefined} existingPortalId
  * @param {string[]} proPriceIds
  * @param {string} proProductId
+ * @param {string[]} teamPriceIds
+ * @param {string} teamProductId
  */
-async function upsertProBillingPortal(existingPortalId, proPriceIds, proProductId) {
+async function upsertProBillingPortal(existingPortalId, proPriceIds, proProductId, teamPriceIds, teamProductId) {
   /**
    * @type {Parameters<typeof stripe.billingPortal.configurations.create>[0]}
    */
@@ -115,6 +117,10 @@ async function upsertProBillingPortal(existingPortalId, proPriceIds, proProductI
           {
             prices: proPriceIds,
             product: proProductId,
+          },
+          {
+            prices: teamPriceIds,
+            product: teamProductId,
           },
         ],
         proration_behavior: 'always_invoice',

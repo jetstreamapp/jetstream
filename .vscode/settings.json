@@ -62,7 +62,7 @@
   "editor.tabCompletion": "on",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "git.branchProtection": ["main", "release"],
-  "eslint.validate": ["json"],
+  "eslint.useFlatConfig": true,
   "typescript.preferences.importModuleSpecifier": "project-relative",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#111827",
