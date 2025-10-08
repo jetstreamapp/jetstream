@@ -11,10 +11,10 @@ import {
   ensureAuthError,
   ExpiredVerificationToken,
   generate2faTotpUrl,
-  generateHMACDoubleCSRFToken,
   generatePasswordResetToken,
   generateRandomCode,
   generateRandomString,
+  getApiAddressFromReq,
   getAuthorizationUrl,
   getCookieConfig,
   getLoginConfiguration,
@@ -22,16 +22,16 @@ import {
   handleSignInOrRegistration,
   hasRememberDeviceRecord,
   IdentityLinkingNotAllowed,
+  initSession,
   InvalidAction,
   InvalidParameters,
   InvalidProvider,
   InvalidSession,
   InvalidVerificationToken,
-  InvalidVerificationType,
-  isProviderAllowed,
   linkIdentityToUser,
   getProviders as listProviders,
   PASSWORD_RESET_DURATION_MINUTES,
+  ProviderEmailNotVerified,
   ProviderNotAllowed,
   resetUserPassword,
   setUserEmailVerified,
@@ -48,13 +48,13 @@ import {
   sendVerificationCode,
   sendWelcomeEmail,
 } from '@jetstream/email';
-import { ensureBoolean } from '@jetstream/shared/utils';
+import { ensureBoolean, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { Maybe } from '@jetstream/types';
 import { parse as parseCookie } from 'cookie';
-import { addHours, addMinutes } from 'date-fns';
+import { addMinutes } from 'date-fns/addMinutes';
 import { z } from 'zod';
-import { Request } from '../types/types';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
-import { createRoute, getApiAddressFromReq } from '../utils/route.utils';
+import { createRoute } from '../utils/route.utils';
 
 export const routeDefinition = {
   logout: {
@@ -191,74 +191,6 @@ export const routeDefinition = {
   },
 };
 
-function initSession(
-  req: Request<unknown, unknown, unknown>,
-  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Regenerate session to avoid session fixation attacks
-    req.session.regenerate((error) => {
-      try {
-        if (error) {
-          logger.error({ ...getExceptionLog(error) }, '[AUTH][INIT_SESSION][ERROR] Error regenerating session');
-          reject(new AuthError('Error initializing session'));
-          return;
-        }
-
-        // Generate HMAC double CSRF token for this session
-        const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
-
-        const userAgent = req.get('User-Agent');
-        if (userAgent) {
-          req.session.userAgent = userAgent;
-        }
-        req.session.ipAddress = getApiAddressFromReq(req);
-        req.session.loginTime = new Date().getTime();
-        req.session.provider = provider;
-        req.session.user = user as UserProfileSession;
-        req.session.pendingMfaEnrollment = null;
-        req.session.pendingVerification = null;
-
-        // Generate and set HMAC CSRF token (same token used for both cookie and header validation)
-        const csrfToken = generateHMACDoubleCSRFToken(ENV.JETSTREAM_SESSION_SECRET, req.session.id);
-        req.res?.cookie(cookieConfig.doubleCSRFToken.name, csrfToken, cookieConfig.doubleCSRFToken.options);
-
-        if (mfaEnrollmentRequired && mfaEnrollmentRequired.factor === '2fa-otp') {
-          req.session.pendingMfaEnrollment = mfaEnrollmentRequired;
-        }
-
-        if (verificationRequired) {
-          const token = generateRandomCode(6);
-          if (isNewUser) {
-            req.session.sendNewUserEmailAfterVerify = true;
-          }
-          if (verificationRequired.email) {
-            const exp = addHours(new Date(), EMAIL_VERIFICATION_TOKEN_DURATION_HOURS).getTime();
-            // If email verification is required, we can consider that as 2fa as well, so do not need to combine with other 2fa factors
-            req.session.pendingVerification = [{ type: 'email', exp, token }];
-          } else if (verificationRequired.twoFactor?.length > 0) {
-            const exp = addMinutes(new Date(), TOKEN_DURATION_MINUTES).getTime();
-            req.session.pendingVerification = verificationRequired.twoFactor.map((factor) => {
-              switch (factor.type) {
-                case '2fa-otp':
-                  return { type: '2fa-otp', exp };
-                case '2fa-email':
-                  return { type: '2fa-email', exp, token };
-                default:
-                  throw new InvalidVerificationType('Invalid two factor type');
-              }
-            });
-          }
-        }
-        resolve();
-      } catch (ex) {
-        logger.error({ ...getExceptionLog(ex) }, '[AUTH][INIT_SESSION][ERROR] Error initializing session');
-        reject(new AuthError('Error initializing session'));
-      }
-    });
-  });
-}
-
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -336,7 +268,10 @@ const signin = createRoute(routeDefinition.signin.validators, async ({ body, par
         if (!req.session.user) {
           throw new InvalidSession('Cannot link account without an active session');
         }
-        const loginConfiguration = await getLoginConfiguration(req.session.user.email);
+
+        const loginConfiguration = req.session.user?.teamMembership
+          ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
+          : await getLoginConfiguration({ email: req.session.user.email });
         if (loginConfiguration && !loginConfiguration.allowIdentityLinking) {
           throw new IdentityLinkingNotAllowed();
         }
@@ -383,6 +318,13 @@ const callback = createRoute(
   async ({ body, params, query, setCookie, clearCookie }, req, res, next) => {
     let provider: Provider | null = null;
     try {
+      const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
+      const { returnUrl: returnUrlQuery } = query;
+
+      if (returnUrlQuery) {
+        setCookie(cookieConfig.returnUrl.name, returnUrlQuery, cookieConfig.returnUrl.options);
+      }
+
       const providers = listProviders();
 
       provider = providers[params.provider];
@@ -395,13 +337,26 @@ const callback = createRoute(
         pkceCodeVerifier,
         nonce,
         linkIdentity: linkIdentityCookie,
-        returnUrl,
+        returnUrl: returnUrlCookie,
         rememberDevice,
         redirectUrl: redirectUrlCookie,
+        teamInviteState,
       } = getCookieConfig(ENV.USE_SECURE_COOKIES);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const cookies = parseCookie(req.headers.cookie!);
       clearOauthCookies(res);
+
+      const returnUrl = returnUrlQuery || cookies[returnUrlCookie.name] || null;
+
+      let teamInvite: Maybe<{ token: string; teamId: string }>;
+      if (cookies[teamInviteState.name]) {
+        const teamInviteParams = new URLSearchParams(cookies[teamInviteState.name]);
+        const token = teamInviteParams.get('token');
+        const teamId = teamInviteParams.get('teamId');
+        if (token && teamId) {
+          teamInvite = { token, teamId };
+        }
+      }
 
       if (provider.type === 'oauth') {
         // oauth flow
@@ -414,10 +369,6 @@ const callback = createRoute(
 
         if (!userInfo.email) {
           throw new InvalidParameters('Missing email from OAuth provider');
-        }
-
-        if (!(await isProviderAllowed(userInfo.email, provider.provider))) {
-          throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
         }
 
         const providerUser = {
@@ -433,9 +384,30 @@ const callback = createRoute(
           picture: (userInfo.picture_thumbnail as string | undefined) || userInfo.picture,
         };
 
-        // If user has an active session and user is linking an identity to an existing account
-        // link and redirect to profile page
+        /**
+         * IDENTITY LINKING
+         * If user has an active session and user is linking an identity to an existing account
+         * link and redirect to profile page
+         */
         if (req.session.user && cookies[linkIdentityCookie.name] === 'true') {
+          const loginConfiguration = req.session.user?.teamMembership
+            ? await getLoginConfiguration({ teamId: req.session.user.teamMembership.teamId })
+            : await getLoginConfiguration({ email: userInfo.email });
+
+          const providerAllowed = !loginConfiguration || loginConfiguration.allowedProviders.has(provider.provider);
+
+          if (!providerAllowed) {
+            throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for user ${userInfo.email}`);
+          }
+
+          if (loginConfiguration && !loginConfiguration?.allowIdentityLinking) {
+            throw new IdentityLinkingNotAllowed();
+          }
+
+          if (!providerUser.emailVerified) {
+            throw new ProviderEmailNotVerified();
+          }
+
           await linkIdentityToUser({
             userId: req.session.user.id,
             provider: provider.provider,
@@ -451,6 +423,7 @@ const callback = createRoute(
         }
 
         const sessionData = await handleSignInOrRegistration({
+          teamInvite,
           providerType: provider.type,
           provider: provider.provider,
           providerUser,
@@ -465,19 +438,17 @@ const callback = createRoute(
         const { action, csrfToken, email, password } = body;
         await verifyCSRFFromRequestOrThrow(csrfToken, req.headers.cookie || '');
 
-        if (!(await isProviderAllowed(email, provider.provider))) {
-          throw new ProviderNotAllowed(`Provider ${provider.provider} is not allowed for ${email}`);
-        }
-
         const sessionData =
           action === 'login'
             ? await handleSignInOrRegistration({
+                teamInvite,
                 providerType: 'credentials',
                 action,
                 email,
                 password,
               })
             : await handleSignInOrRegistration({
+                teamInvite,
                 providerType: 'credentials',
                 action,
                 email,
@@ -494,6 +465,12 @@ const callback = createRoute(
 
       if (!req.session.user) {
         throw new AuthError('Session not initialized');
+      }
+
+      // Clear team invite cookies if user was added to team
+      if (teamInviteState && req.session.user?.teamMembership) {
+        clearCookie(teamInviteState.name, teamInviteState.options);
+        clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
       }
 
       // check for remembered device - emailVerification cannot be bypassed
@@ -547,11 +524,14 @@ const callback = createRoute(
           await sendWelcomeEmail(req.session.user.email);
         }
 
-        let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
+        let redirectUrl = returnUrl || ENV.JETSTREAM_CLIENT_URL;
 
-        if (cookies[redirectUrlCookie.name]) {
+        if (!returnUrl && cookies[redirectUrlCookie.name]) {
           const redirectValue = cookies[redirectUrlCookie.name];
           redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+          redirectUrl = redirectUrl.replace('/app/app', '/app');
+          clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
+        } else if (cookies[redirectUrlCookie.name]) {
           clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
         }
 
@@ -656,9 +636,14 @@ const verification = createRoute(
 
       let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
 
+      /**
+       * FIXME: if the user invite works correctly, then we don't need to redirect
+       */
+
       if (cookies[cookieConfig.redirectUrl.name]) {
         const redirectValue = cookies[cookieConfig.redirectUrl.name];
         redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+        redirectUrl = redirectUrl.replace('/app/app', '/app');
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
 
@@ -768,9 +753,7 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
 
       sendJson(res, { error: false });
     } catch (ex) {
-      res.log.warn('[AUTH][PASSWORD_RESET] Attempt to reset a password for an email that does not exist or no password is set %o', {
-        email,
-      });
+      res.log.warn({ email }, `[AUTH][PASSWORD_RESET] ${getErrorMessage(ex)}`);
       success = false;
       sendJson(res, { error: false });
     }
@@ -783,6 +766,7 @@ const requestPasswordReset = createRoute(routeDefinition.requestPasswordReset.va
       success,
     });
   } catch (ex) {
+    res.log.warn(getErrorMessageAndStackObj(ex), `[AUTH][PASSWORD_RESET] Fatal error when processing password reset`);
     createUserActivityFromReqWithError(req, res, ex, {
       action: 'PASSWORD_RESET_REQUEST',
       method: 'UNAUTHENTICATED',
@@ -845,6 +829,7 @@ const verifyEmailViaLink = createRoute(
       if (cookies[cookieConfig.redirectUrl.name]) {
         const redirectValue = cookies[cookieConfig.redirectUrl.name];
         redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+        redirectUrl = redirectUrl.replace('/app/app', '/app');
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
 
@@ -957,6 +942,7 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     if (cookies[cookieConfig.redirectUrl.name]) {
       const redirectValue = cookies[cookieConfig.redirectUrl.name];
       redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
+      redirectUrl = redirectUrl.replace('/app/app', '/app');
       clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
     }
 

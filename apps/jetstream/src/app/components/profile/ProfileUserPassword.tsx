@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { LoginConfigAbility } from '@jetstream/acl';
 import type { UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { DropDownItem } from '@jetstream/types';
 import { ConfirmationModalPromise, DropDown, FormRowItem, Input, ReadOnlyFormItem, Spinner } from '@jetstream/ui';
@@ -25,6 +26,7 @@ type Form = z.infer<typeof FormSchema>;
 
 export interface ProfileUserPasswordProps {
   fullUserProfile: UserProfileUiWithIdentities;
+  loginConfigAbility: LoginConfigAbility;
   onSetPassword: (password: string) => Promise<void>;
   onResetPassword: () => Promise<void>;
   onRemovePassword: () => Promise<void>;
@@ -32,20 +34,23 @@ export interface ProfileUserPasswordProps {
 
 export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = ({
   fullUserProfile,
+  loginConfigAbility,
   onResetPassword,
   onRemovePassword,
   onSetPassword,
 }) => {
   const items = useMemo(() => {
-    const items: DropDownItem[] = [
-      {
+    const items: DropDownItem[] = [];
+
+    if (loginConfigAbility.can('update', 'Password')) {
+      items.push({
         id: 'reset-password',
         value: 'Reset Password',
         icon: { type: 'utility', icon: 'refresh', description: 'Reset password' },
-      },
-    ];
+      });
+    }
 
-    if (fullUserProfile.identities.some((i) => i.type === 'oauth')) {
+    if (loginConfigAbility.can('remove', 'Password') && fullUserProfile.identities.some(({ type }) => type === 'oauth')) {
       items.push({
         id: 'remove-password',
         value: 'Remove Password',
@@ -80,7 +85,7 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
     }
   }
 
-  if (fullUserProfile.hasPasswordSet) {
+  if (fullUserProfile.hasPasswordSet && items.length > 0) {
     return (
       <FormRowItem>
         <ReadOnlyFormItem label="Password" horizontal omitEdit>
@@ -90,7 +95,11 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
     );
   }
 
-  return <SetPassword username={fullUserProfile.email} onSetPassword={onSetPassword} />;
+  if (loginConfigAbility.can('update', 'Password')) {
+    return <SetPassword username={fullUserProfile.email} onSetPassword={onSetPassword} />;
+  }
+
+  return null;
 };
 
 function SetPassword({ username, onSetPassword }: { username: string; onSetPassword: (password: string) => Promise<void> }) {
@@ -135,12 +144,14 @@ function SetPassword({ username, onSetPassword }: { username: string; onSetPassw
 
         <FormRowItem>
           <Input
+            id="password"
             label="Password"
             className="slds-form-element_horizontal slds-is-editing"
             hasError={!!errors?.password?.message}
             errorMessage={errors?.password?.message}
           >
             <input
+              id="password"
               className="slds-input"
               required
               type="password"
@@ -154,12 +165,14 @@ function SetPassword({ username, onSetPassword }: { username: string; onSetPassw
 
         <FormRowItem>
           <Input
+            id="confirm-password"
             label="Confirm"
             hasError={!!errors?.confirmPassword?.message}
             errorMessage={errors?.confirmPassword?.message}
             className="slds-form-element_horizontal slds-is-editing"
           >
             <input
+              id="confirm-password"
               className="slds-input"
               required
               type="password"

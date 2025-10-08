@@ -1,3 +1,4 @@
+import { getLoginConfigurationAbility, LoginConfigAbility } from '@jetstream/acl';
 import type { LoginConfigurationUI, UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
@@ -14,6 +15,7 @@ import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
 import {
   AutoFullHeightContainer,
+  fireToast,
   Grid,
   GridCol,
   Page,
@@ -22,11 +24,10 @@ import {
   PageHeaderTitle,
   ScopedNotification,
   Spinner,
-  fireToast,
 } from '@jetstream/ui';
 import { useAmplitude } from '@jetstream/ui-core';
 import { userProfileState } from '@jetstream/ui/app-state';
-import { useSetAtom } from 'jotai';
+import { useAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { Profile2fa } from './2fa/Profile2fa';
 import { ProfileLinkedAccounts } from './ProfileLinkedAccounts';
@@ -38,16 +39,17 @@ import { useSessionData } from './useSessionData';
 const HEIGHT_BUFFER = 170;
 
 export const Profile = () => {
-  useTitle(TITLES.SETTINGS);
+  useTitle(TITLES.PROFILE);
   const isMounted = useRef(true);
   const { trackEvent } = useAmplitude();
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(false);
-  const setUserProfile = useSetAtom(userProfileState);
+  const [userProfile, setUserProfile] = useAtom(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
   const [loginConfiguration, setLoginConfiguration] = useState<LoginConfigurationUI | null>(null);
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
+  const [loginConfigAbility, setLoginConfigAbility] = useState<LoginConfigAbility>();
   const [editMode, setEditMode] = useState(false);
 
   const sessionData = useSessionData();
@@ -64,8 +66,10 @@ export const Profile = () => {
       setLoading(true);
       try {
         setLoadingError(false);
+        const loginConfiguration = await getLoginConfiguration();
+        setLoginConfiguration(loginConfiguration);
         setFullUserProfile(await getFullUserProfile());
-        setLoginConfiguration(await getLoginConfiguration());
+        setLoginConfigAbility(getLoginConfigurationAbility({ user: userProfile, loginConfiguration }));
       } catch (ex) {
         rollbar.error('Settings: Error fetching user', { stack: ex.stack, message: ex.message });
         setLoadingError(true);
@@ -186,14 +190,14 @@ export const Profile = () => {
             need additional assistance.
           </ScopedNotification>
         )}
-        {fullUserProfile && (
+        {fullUserProfile && loginConfigAbility && (
           <Grid wrap gutters>
             <GridCol className="slds-m-bottom_large" size={12} sizeMedium={6} sizeLarge={4}>
               <ProfileUserProfile
                 fullUserProfile={fullUserProfile}
                 name={modifiedUser?.name || ''}
                 editMode={editMode}
-                loginConfiguration={loginConfiguration}
+                loginConfigAbility={loginConfigAbility}
                 onEditMode={setEditMode}
                 onChange={handleProfileChange}
                 onSave={handleSave}
@@ -206,12 +210,14 @@ export const Profile = () => {
               <Profile2fa
                 authFactors={fullUserProfile.authFactors}
                 loginConfiguration={loginConfiguration}
+                loginConfigAbility={loginConfigAbility}
                 onUpdate={handleUpdatedAuthFactors}
               />
 
               <ProfileLinkedAccounts
                 fullUserProfile={fullUserProfile}
                 loginConfiguration={loginConfiguration}
+                loginConfigAbility={loginConfigAbility}
                 onUserProfilesChange={setFullUserProfile}
               />
             </GridCol>

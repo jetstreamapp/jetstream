@@ -261,6 +261,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
           />
         )}
         <Input
+          id="download-filename"
           label="Filename"
           isRequired
           rightAddon={fileFormat !== RADIO_FORMAT_GDRIVE ? `.${fileFormat}` : undefined}

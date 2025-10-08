@@ -1,10 +1,8 @@
 import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, getExceptionLog, httpLogger, logger, pgPool, prisma } from '@jetstream/api-config';
-import { hashPassword, pruneExpiredRecords } from '@jetstream/auth/server';
-import { SessionData as JetstreamSessionData, UserProfileSession } from '@jetstream/auth/types';
+import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
-import { AsyncIntervalTimer } from '@jetstream/shared/node-utils';
 import { setupPrimary } from '@socket.io/cluster-adapter';
 import { setupMaster } from '@socket.io/sticky';
 import { json, raw, urlencoded } from 'body-parser';
@@ -16,17 +14,20 @@ import session from 'express-session';
 import helmet from 'helmet';
 import cluster from 'node:cluster';
 import http from 'node:http';
-import { cpus } from 'os';
-import { join } from 'path';
+import { cpus } from 'node:os';
+import { join } from 'node:path';
 import { initSocketServer } from './app/controllers/socket.controller';
 import {
   apiRoutes,
   authRoutes,
+  billingRoutes,
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,
   platformEventRoutes,
+  redirectRoutes,
   staticAuthenticatedRoutes,
+  teamRoutes,
   testRoutes,
   webExtensionRoutes,
   webhookRoutes,
@@ -41,51 +42,14 @@ import {
   setApplicationCookieMiddleware,
 } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
+import { primaryClusterInitSideEffects } from './app/utils/server-process.utils';
 import { environment } from './environments/environment';
-
-declare module 'express' {
-  interface Request {
-    /**
-     * Authenticated user for external authenticated routes (e.g. web extension, desktop app)
-     * populated in externalAuthService.getExternalAuthMiddleware
-     */
-    externalAuth?: {
-      user: UserProfileSession;
-      deviceId?: string;
-    };
-  }
-}
-
-declare module 'express-session' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
-  interface SessionData extends JetstreamSessionData {}
-}
 
 // NOTE: render reports more CPUs than are actually available
 const CPU_COUNT = Math.min(cpus().length, 3);
 
-if (ENV.NODE_ENV !== 'production' || cluster.isPrimary) {
-  setTimeout(() => {
-    new AsyncIntervalTimer(pruneExpiredRecords, { name: 'pruneExpiredRecords', intervalMs: /** 1 hour */ 60 * 60 * 1000, runOnInit: true });
-  }, 1000 * 5); // Delay 5 seconds to allow for other services to start
-}
-
 if (cluster.isPrimary) {
-  console.log(`
-     ██╗███████╗████████╗███████╗████████╗██████╗ ███████╗ █████╗ ███╗   ███╗
-     ██║██╔════╝╚══██╔══╝██╔════╝╚══██╔══╝██╔══██╗██╔════╝██╔══██╗████╗ ████║
-     ██║█████╗     ██║   ███████╗   ██║   ██████╔╝█████╗  ███████║██╔████╔██║
-██   ██║██╔══╝     ██║   ╚════██║   ██║   ██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║
-╚█████╔╝███████╗   ██║   ███████║   ██║   ██║  ██║███████╗██║  ██║██║ ╚═╝ ██║
- ╚════╝ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
-
-NODE_ENV=${ENV.NODE_ENV}
-ENVIRONMENT=${ENV.ENVIRONMENT}
-VERSION=${ENV.VERSION ?? '<unspecified>'}
-LOG_LEVEL=${ENV.LOG_LEVEL}
-JETSTREAM_SERVER_URL=${ENV.JETSTREAM_SERVER_URL}
-JETSTREAM_CLIENT_URL=${ENV.JETSTREAM_CLIENT_URL}
-  `);
+  primaryClusterInitSideEffects();
 }
 
 if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
@@ -350,7 +314,10 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(destroySessionIfPendingVerificationIsExpired);
 
   app.use('/healthz', healthCheck);
+  app.use('/redirect', redirectRoutes);
   app.use('/api/auth', authRoutes);
+  app.use('/api/teams', teamRoutes);
+  app.use('/api/billing', billingRoutes);
   app.use('/api', apiRoutes);
   app.use('/desktop-assets', desktopAssetsRoutes);
   app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
@@ -451,44 +418,4 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       }, 30_000);
     });
   }
-}
-
-/**
- * FIXME: Should this live somewhere else and be de-coupled with application?
- */
-try {
-  (async () => {
-    if (ENV.EXAMPLE_USER && ENV.EXAMPLE_USER_PASSWORD && (ENV.ENVIRONMENT !== 'production' || ENV.CI)) {
-      const passwordHash = await hashPassword(ENV.EXAMPLE_USER_PASSWORD);
-      const user = ENV.EXAMPLE_USER;
-      logger.info('Upserting example user. id: %s', user.id);
-      await prisma.user.upsert({
-        create: {
-          id: user.id,
-          userId: user.userId,
-          email: user.email,
-          emailVerified: user.emailVerified,
-          name: user.name,
-          password: passwordHash,
-          passwordUpdatedAt: new Date(),
-          lastLoggedIn: new Date(),
-          preferences: { create: { skipFrontdoorLogin: false } },
-          authFactors: { create: { type: '2fa-email', enabled: false } },
-          entitlements: { create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false } },
-        },
-        update: {
-          entitlements: {
-            upsert: {
-              create: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false },
-              update: { chromeExtension: false, recordSync: false, googleDrive: false, desktop: false },
-            },
-          },
-        },
-        where: { id: user.id },
-      });
-    }
-  })();
-} catch (ex) {
-  logger.error(getExceptionLog(ex), '[EXAMPLE_USER][ERROR] Fatal error, could not upsert example user');
-  process.exit(1);
 }

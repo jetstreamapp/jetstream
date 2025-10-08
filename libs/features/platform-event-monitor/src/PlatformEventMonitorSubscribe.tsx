@@ -79,6 +79,7 @@ export const PlatformEventMonitorSubscribe: FunctionComponent<PlatformEventMonit
       </div>
       <div className="slds-m-horizontal_x-small">
         <Input
+          id="replay-id"
           label="Replay Id"
           labelHelp="-1 or blank to receive new events, -2 to replay all events within retention window, or provide a specific replayId to get all events starting with the replayed event."
           css={css`

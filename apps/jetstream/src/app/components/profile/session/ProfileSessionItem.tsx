@@ -1,12 +1,11 @@
 import { css } from '@emotion/react';
 import { SessionIpData, TokenSource, UserSessionWithLocation } from '@jetstream/auth/types';
+import { getBrowserInfo } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { Badge, Card, Grid } from '@jetstream/ui';
+import { Badge, Card, Grid, SessionLocationDisplay } from '@jetstream/ui';
 import { parseISO } from 'date-fns/parseISO';
 import startCase from 'lodash/startCase';
 import { FunctionComponent, useMemo } from 'react';
-import { getBrowserInfo } from './browser-session.utils';
-import { ProfileSessionLocation } from './ProfileSessionLocation';
 
 export interface ProfileSessionItemProps {
   isCurrentSession?: boolean;
@@ -79,7 +78,7 @@ export const ProfileSessionItem: FunctionComponent<ProfileSessionItemProps> = ({
         {browserName} {browserVersion}
       </p>
       <p className="slds-text-color_weak">
-        {ipAddress} {location && <ProfileSessionLocation location={location} />}
+        {ipAddress} {location && <SessionLocationDisplay location={location} />}
       </p>
       {provider && (
         <p className="slds-text-color_weak">Logged in via {provider === 'credentials' ? 'Email & Password' : startCase(provider)}</p>

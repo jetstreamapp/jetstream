@@ -1,7 +1,9 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { formatISO, parse as parseDate, parseISO } from 'date-fns';
 import { formatDate } from 'date-fns/format';
+import { formatISO } from 'date-fns/formatISO';
+import { parse as parseDate } from 'date-fns/parse';
+import { parseISO } from 'date-fns/parseISO';
 import { FunctionComponent, useState } from 'react';
 import DatePicker, { DatePickerProps } from '../date/DatePicker';
 import TimePicker, { TimePickerProps } from '../time-picker/TimePicker';

@@ -7,9 +7,9 @@ type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | '
 export interface ConfirmationModalProps extends CommonModalProps {
   isOpen: boolean;
   instanceId: any;
-  content: string | React.ReactNode;
-  confirm?: string | React.ReactNode;
-  cancel?: string | React.ReactNode;
+  content: React.ReactNode;
+  confirm?: React.ReactNode;
+  cancel?: React.ReactNode;
   onResolve: (result: boolean) => void;
 }
 const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
@@ -29,6 +29,7 @@ const ConfirmationModal: FunctionComponent<ConfirmationModalProps> = ({
 
   return (
     <Modal
+      testId="confirmation-modal"
       header={header}
       tagline={tagline}
       closeOnEsc={closeOnEsc}

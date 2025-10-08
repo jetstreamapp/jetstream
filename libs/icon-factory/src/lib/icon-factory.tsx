@@ -35,6 +35,7 @@ import StandardIcon_Formula from './icons/standard/Formula';
 import StandardIcon_MultiPicklist from './icons/standard/MultiPicklist';
 import StandardIcon_Opportunity from './icons/standard/Opportunity';
 import StandardIcon_Outcome from './icons/standard/Outcome';
+import StandardIcon_People from './icons/standard/People';
 import StandardIcon_PicklistChoice from './icons/standard/PicklistChoice';
 import StandardIcon_Portal from './icons/standard/Portal';
 import StandardIcon_PortalRolesAndSubordinates from './icons/standard/PortalRolesAndSubordinates';
@@ -47,6 +48,7 @@ import StandardIcon_RecordUpdate from './icons/standard/RecordUpdate';
 import StandardIcon_RelatedList from './icons/standard/RelatedList';
 import StandardIcon_Screen from './icons/standard/Screen';
 import StandardIcon_Settings from './icons/standard/Settings';
+import StandardIcon_TeamMember from './icons/standard/TeamMember';
 import StandardIcon_User from './icons/standard/User';
 import StandardIcon_YourAccount from './icons/standard/YourAccount';
 import UtilityIcon_Add from './icons/utility/Add';
@@ -93,6 +95,7 @@ import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
 import UtilityIcon_HelpDocExt from './icons/utility/HelpDocExt';
 import UtilityIcon_Home from './icons/utility/Home';
+import UtilityIcon_Identity from './icons/utility/Identity';
 import UtilityIcon_Image from './icons/utility/Image';
 import UtilityIcon_Info from './icons/utility/Info';
 import UtilityIcon_InsertTagField from './icons/utility/InsertTagField';
@@ -133,6 +136,7 @@ import UtilityIcon_Rotate from './icons/utility/Rotate';
 import UtilityIcon_Salesforce1 from './icons/utility/Salesforce1';
 import UtilityIcon_Save from './icons/utility/Save';
 import UtilityIcon_Search from './icons/utility/Search';
+import UtilityIcon_Send from './icons/utility/Send';
 import UtilityIcon_Settings from './icons/utility/Settings';
 import UtilityIcon_Setup from './icons/utility/Setup';
 import UtilityIcon_SetupAssistantGuide from './icons/utility/SetupAssistantGuide';
@@ -205,6 +209,7 @@ const standardIcons = {
   multi_picklist: StandardIcon_MultiPicklist,
   opportunity: StandardIcon_Opportunity,
   outcome: StandardIcon_Outcome,
+  people: StandardIcon_People,
   picklist_choice: StandardIcon_PicklistChoice,
   portal: StandardIcon_Portal,
   portal_roles_and_subordinates: StandardIcon_PortalRolesAndSubordinates,
@@ -217,6 +222,7 @@ const standardIcons = {
   related_list: StandardIcon_RelatedList,
   screen: StandardIcon_Screen,
   settings: StandardIcon_Settings,
+  team_member: StandardIcon_TeamMember,
   user: StandardIcon_User,
   your_account: StandardIcon_YourAccount,
 } as const;
@@ -281,6 +287,7 @@ const utilityIcons = {
   help_doc_ext: UtilityIcon_HelpDocExt,
   help: UtilityIcon_Help,
   home: UtilityIcon_Home,
+  identity: UtilityIcon_Identity,
   image: UtilityIcon_Image,
   info: UtilityIcon_Info,
   insert_tag_field: UtilityIcon_InsertTagField,
@@ -320,6 +327,7 @@ const utilityIcons = {
   rotate: UtilityIcon_Rotate,
   salesforce1: UtilityIcon_Salesforce1,
   save: UtilityIcon_Save,
+  send: UtilityIcon_Send,
   search: UtilityIcon_Search,
   settings: UtilityIcon_Settings,
   setup: UtilityIcon_Setup,

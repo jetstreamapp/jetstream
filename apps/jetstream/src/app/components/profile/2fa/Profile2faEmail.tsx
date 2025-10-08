@@ -1,5 +1,6 @@
 import { UserProfileAuthFactor } from '@jetstream/auth/types';
 import { toggleEnableDisableAuthFactor } from '@jetstream/shared/data';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Spinner } from '@jetstream/ui';
 import { FunctionComponent, useMemo, useState } from 'react';
@@ -30,7 +31,7 @@ export const Profile2faEmail: FunctionComponent<Profile2faEmailProps> = ({ isEna
         onUpdate(await toggleEnableDisableAuthFactor('2fa-email', 'enable'));
       }
     } catch (ex) {
-      fireToast({ message: 'Failed to save 2fa settings', type: 'error' });
+      fireToast({ message: getErrorMessage(ex), type: 'error' });
     } finally {
       setIsLoading(false);
     }

@@ -4,12 +4,15 @@ import Icon from './Icon';
 import Tooltip from './Tooltip';
 
 export interface HelpTextProps {
-  id: string;
+  /**
+   * @deprecated - the aria attributes are computed internally
+   */
+  id?: string;
   content: string | React.ReactNode;
   className?: string;
 }
 
-export const HelpText: FunctionComponent<HelpTextProps> = ({ id, content, className }) => {
+export const HelpText: FunctionComponent<HelpTextProps> = ({ content, className }) => {
   return (
     <div className={classNames('slds-form-element__icon', className)}>
       <Tooltip content={content}>

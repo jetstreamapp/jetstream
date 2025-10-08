@@ -1,0 +1,16 @@
+{
+  "name": "acl",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/auth/acl/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/auth/acl/jest.config.ts"
+      }
+    }
+  }
+}

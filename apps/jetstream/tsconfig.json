@@ -20,7 +20,7 @@
     "useDefineForClassFields": true
   },
   "files": [],
-  "include": ["src"],
+  "include": ["src", "../../libs/ui/src/lib/widgets/SessionLocationDisplay.tsx"],
   "exclude": ["**/*.js/*.worker.ts"],
   "references": [
     {

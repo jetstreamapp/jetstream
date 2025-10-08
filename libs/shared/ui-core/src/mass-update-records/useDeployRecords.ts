@@ -317,7 +317,7 @@ export function useDeployRecords(
    * Result will be polled until all jobs are done
    * All saving needs to happen in the parent component
    *
-   * getRows() should use recoil to store data since the fn will be called multiple times
+   * getRows() should use jotai to store data since the fn will be called multiple times
    * and the data it depends on will have been updated each time the polling happens
    *
    * and onDeployResults() will be called with the modified rows

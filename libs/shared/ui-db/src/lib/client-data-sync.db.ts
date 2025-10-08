@@ -13,7 +13,7 @@ import {
   SyncRecordOperation,
   SyncType,
 } from '@jetstream/types';
-import { parseISO } from 'date-fns';
+import { parseISO } from 'date-fns/parseISO';
 import Dexie from 'dexie';
 import type { ICreateChange, IDatabaseChange, IDeleteChange, IUpdateChange } from 'dexie-observable/api';
 import { ApplyRemoteChangesFunction } from 'dexie-syncable/api';

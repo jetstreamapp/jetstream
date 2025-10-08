@@ -15,15 +15,6 @@ if (ENV.PRISMA_DEBUG) {
 
 export const prisma = new PrismaClient({
   log,
-}).$extends({
-  result: {
-    user: {
-      hasPasswordSet: {
-        needs: { password: true },
-        compute: (user) => !!user.password,
-      },
-    },
-  },
 });
 
 export const pgPool = new Pool({

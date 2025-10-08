@@ -93,8 +93,9 @@ export const SaveMappingPopover: FunctionComponent<SaveMappingPopoverProps> = ({
               {formatNumber(currentSavedMapping.csvFields.length)} Mapped {pluralizeIfMultiple('Field', currentSavedMapping.csvFields)}
             </span>
           </Grid>
-          <Input label="Mapping Name" className="slds-grow">
+          <Input id="mapping-name" label="Mapping Name" className="slds-grow">
             <input
+              id="mapping-name"
               className="slds-input"
               value={mappingName}
               maxLength={80}

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
-import Profile from './components/profile/Profile';
 import { addDesktopOrg } from './utils/utils';
 
 const Organizations = lazy(() => import('@jetstream/feature/organizations').then((module) => ({ default: module.Organizations })));
@@ -280,7 +279,6 @@ export const AppRoutes = () => {
         }
       />
       <Route path={APP_ROUTES.FEEDBACK_SUPPORT.ROUTE} element={<Feedback />} />
-      <Route path={APP_ROUTES.PROFILE.ROUTE} element={<Profile />} />
       <Route path={APP_ROUTES.SETTINGS.ROUTE} element={<Settings />} />
       <Route path="*" element={<Navigate to={APP_ROUTES.HOME.ROUTE} />} />
     </Routes>

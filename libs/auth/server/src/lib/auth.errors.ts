@@ -2,6 +2,7 @@ type ErrorType =
   | 'AuthError'
   | 'ExpiredVerificationToken'
   | 'IdentityLinkingNotAllowed'
+  | 'InactiveUser'
   | 'InvalidAccessToken'
   | 'InvalidAction'
   | 'InvalidCaptcha'
@@ -16,7 +17,8 @@ type ErrorType =
   | 'InvalidVerificationType'
   | 'LoginWithExistingIdentity'
   | 'MissingEntitlement'
-  | 'ProviderNotAllowed';
+  | 'ProviderNotAllowed'
+  | 'ProviderEmailNotVerified';
 
 type ErrorOptions = Error | Record<string, unknown>;
 
@@ -106,6 +108,10 @@ export class InvalidOrExpiredResetToken extends AuthError {
   static type: ErrorType = 'InvalidOrExpiredResetToken';
 }
 
+export class InactiveUser extends AuthError {
+  static type: ErrorType = 'InactiveUser';
+}
+
 export class IdentityLinkingNotAllowed extends AuthError {
   static type: ErrorType = 'IdentityLinkingNotAllowed';
 }
@@ -120,4 +126,8 @@ export class MissingEntitlement extends AuthError {
 
 export class ProviderNotAllowed extends AuthError {
   static type: ErrorType = 'ProviderNotAllowed';
+}
+
+export class ProviderEmailNotVerified extends AuthError {
+  static type: ErrorType = 'ProviderEmailNotVerified';
 }

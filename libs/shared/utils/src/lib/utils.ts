@@ -20,9 +20,12 @@ import {
   FieldType as jetstreamFieldType,
 } from '@jetstream/types';
 import { ComposeFieldTypeof, FieldSubquery, FieldType, getField } from '@jetstreamapp/soql-parser-js';
-import { formatISO as formatISODate, parse as parseDate, parseISO as parseISODate, startOfDay as startOfDayDate } from 'date-fns';
+import { formatISO } from 'date-fns/formatISO';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isMatch } from 'date-fns/isMatch';
+import { parse as parseDate } from 'date-fns/parse';
+import { parseISO } from 'date-fns/parseISO';
+import { startOfDay } from 'date-fns/startOfDay';
 import lodashGet from 'lodash/get';
 import isBoolean from 'lodash/isBoolean';
 import isNil from 'lodash/isNil';
@@ -154,7 +157,6 @@ export function multiWordStringFilter(value: string): (value: string, index: num
  * Strings are sorted in a case-insensitive manner
  */
 export function orderObjectsBy<T>(items: T[], fields: keyof T | Array<keyof T>, order: 'asc' | 'desc' | ('asc' | 'desc')[] = 'asc'): T[] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fields = Array.isArray(fields) ? fields : [fields];
   order = Array.isArray(order) ? order : [order];
   const orderByItereeFn = fields.map((field) => (item: T) => (isString(item[field]) ? (item[field] as any).toLowerCase() : item[field]));
@@ -626,7 +628,7 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
   if (value instanceof Date) {
     if (!isNaN(value.getTime())) {
       try {
-        return formatISODate(value, { representation: 'date' });
+        return formatISO(value, { representation: 'date' });
       } catch (ex) {
         throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
@@ -637,7 +639,7 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
   } else if (isString(value)) {
     if (REGEX.ISO_DATE.test(value)) {
       try {
-        return formatISODate(parseISODate(value), { representation: 'date' });
+        return formatISO(parseISO(value), { representation: 'date' });
       } catch (ex) {
         throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
@@ -658,7 +660,7 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
   if (value instanceof Date) {
     if (!isNaN(value.getTime())) {
       try {
-        return formatISODate(value, { representation: 'complete' });
+        return formatISO(value, { representation: 'complete' });
       } catch (ex) {
         throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
@@ -669,16 +671,16 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
   } else if (isString(value)) {
     try {
       try {
-        return formatISODate(parseISODate(value), { representation: 'complete' });
+        return formatISO(parseISO(value), { representation: 'complete' });
       } catch (ex) {
         // Date not in ISO8601 compatible format, attempt to auto-detect
       }
       // Check if formatted in local date format, which is most likely if not ISO
       if (isMatch('Pp', value)) {
-        return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+        return formatISO(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
       }
       if (isMatch('PPpp', value)) {
-        return formatISODate(parseDate(value, 'PPpp', new Date()), { representation: 'complete' });
+        return formatISO(parseDate(value, 'PPpp', new Date()), { representation: 'complete' });
       }
 
       value = value.replace('T', ' ');
@@ -707,7 +709,7 @@ function transformTime(value: string | null) {
     }
     // match local format first and convert to ISO
     if (isMatch('p', value) || isMatch('pp', value)) {
-      return formatISODate(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
+      return formatISO(parseDate(value, 'Pp', new Date()), { representation: 'complete' });
     }
     // Try various formats and convert to ISO, or return original value
     return getIsoFormattedTimeFromString(value) || value;
@@ -717,7 +719,7 @@ function transformTime(value: string | null) {
 }
 
 export function buildDateFromString(value: string, dateFormat: string, representation: 'date' | 'complete') {
-  const refDate = startOfDayDate(new Date());
+  const refDate = startOfDay(new Date());
   let tempValue = value.replace(REGEX.NOT_NUMERIC, '-'); // FIXME: some date formats are 'd. m. yyyy' like 'sk-SK'
   tempValue = representation === 'date' ? tempValue.substring(0, 10) : tempValue;
   let [first, middle, end] = tempValue.split('-');
@@ -732,19 +734,19 @@ export function buildDateFromString(value: string, dateFormat: string, represent
       first = first.padStart(2, '0');
       middle = middle.padStart(2, '0');
       end = end.padStart(4, '20');
-      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'MM-dd-yyyy', refDate), { representation });
+      return formatISO(parseDate(`${first}-${middle}-${end}`, 'MM-dd-yyyy', refDate), { representation });
     }
     case DATE_FORMATS.DD_MM_YYYY: {
       first = first.padStart(2, '0');
       middle = middle.padStart(2, '0');
       end = end.padStart(4, '20');
-      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'dd-MM-yyyy', refDate), { representation });
+      return formatISO(parseDate(`${first}-${middle}-${end}`, 'dd-MM-yyyy', refDate), { representation });
     }
     case DATE_FORMATS.YYYY_MM_DD: {
       first = first.padStart(4, '20');
       middle = middle.padStart(2, '0');
       end = end.padStart(2, '0');
-      return formatISODate(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
+      return formatISO(parseDate(`${first}-${middle}-${end}`, 'yyyy-MM-dd', refDate), { representation });
     }
     default:
       return null;
@@ -764,7 +766,7 @@ function getIsoFormattedTimeFromString(time: string) {
     'HH:mm',
     'HH:mm:ss',
   ].find((format) => isMatch(time, format));
-  const formattedTime = timeFormat ? formatISODate(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : null;
+  const formattedTime = timeFormat ? formatISO(parseDate(time, timeFormat, new Date()), { representation: 'time' }) : null;
   return formattedTime;
 }
 

@@ -1,6 +1,7 @@
 import { OtpEnrollmentData, UserProfileAuthFactor } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { deleteAuthFactor, getOtpQrCode, saveOtpAuthFactor, toggleEnableDisableAuthFactor } from '@jetstream/shared/data';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { DropDownItem } from '@jetstream/types';
 import { Badge, Card, ConfirmationModalPromise, DropDown, fireToast, Input, Spinner } from '@jetstream/ui';
 import { FormEvent, FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
@@ -63,7 +64,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
       }
     } catch (ex) {
       logger.error('Failed to save 2fa', ex);
-      fireToast({ message: 'Failed to save 2fa settings', type: 'error' });
+      fireToast({ message: getErrorMessage(ex), type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +80,7 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
       onUpdate(await saveOtpAuthFactor(otp2fa.secretToken, twoFaCode));
     } catch (ex) {
       logger.error('Failed to save 2fa', ex);
-      fireToast({ message: 'Failed to save 2fa settings', type: 'error' });
+      fireToast({ message: getErrorMessage(ex), type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -161,8 +162,9 @@ export const Profile2faOtp: FunctionComponent<Profile2faOtpProps> = ({ isConfigu
           <p>
             Or enter the following secret in your authenticator app: <span data-testid="totp-secret">{otp2fa.secretToken}</span>
           </p>
-          <Input label="Enter code">
+          <Input id="otp-code" label="Enter code">
             <input
+              id="otp-code"
               className="slds-input"
               value={twoFaCode}
               required

@@ -1,7 +1,10 @@
 import type { Query } from '@jetstreamapp/soql-parser-js';
+import { z } from 'zod';
+import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from './billing.types';
 import { SalesforceOrgEdition } from './salesforce/misc.types';
 import { QueryResult } from './salesforce/query.types';
 import { InsertUpdateUpsertDeleteQuery } from './salesforce/record.types';
+import { TeamBillingStatusSchema, TeamMemberRoleSchema, TeamMemberStatusSchema } from './team.types';
 
 export interface AppInfo {
   announcements: Announcement[];
@@ -106,34 +109,60 @@ export interface UserProfilePreferences {
   deniedNotifications?: boolean;
 }
 
-export interface UserProfileUi {
-  id: string;
+export const UserProfileUiSchema = z.object({
+  id: z.string(),
   /** @deprecated */
-  userId?: string;
-  email: string;
-  name: string;
-  emailVerified: boolean;
-  picture?: Maybe<string>;
-  preferences: {
-    skipFrontdoorLogin: boolean;
-    recordSyncEnabled: boolean;
-  };
-  billingAccount?: Maybe<{
-    customerId: string;
-  }>;
-  entitlements: {
-    googleDrive: boolean;
-    chromeExtension: boolean;
-    desktop: boolean;
-    recordSync: boolean;
-  };
-  subscriptions: {
-    id: string;
-    productId?: Maybe<string>;
-    subscriptionId: string;
-    priceId: string;
-    status: 'ACTIVE' | 'CANCELED' | 'INCOMPLETE' | 'INCOMPLETE_EXPIRED' | 'PAST_DUE' | 'PAUSED' | 'TRIALING' | 'UNPAID';
-  }[];
+  userId: z.string().optional(),
+  email: z.string(),
+  name: z.string(),
+  emailVerified: z.boolean().default(false),
+  picture: z.string().nullish(),
+  preferences: z.object({
+    skipFrontdoorLogin: z.boolean().default(false),
+    recordSyncEnabled: z.boolean().default(false),
+  }),
+  billingAccount: z.object({ customerId: z.string() }).nullish(),
+  entitlements: z
+    .object({
+      googleDrive: z.boolean().default(false),
+      chromeExtension: z.boolean().default(false),
+      desktop: z.boolean().default(false),
+      recordSync: z.boolean().default(false),
+    })
+    .default({}),
+  subscriptions: z
+    .array(
+      z.object({
+        id: z.string(),
+        productId: z.string().nullish(),
+        subscriptionId: z.string(),
+        priceId: z.string(),
+        status: z.enum(['ACTIVE', 'CANCELED', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', 'PAST_DUE', 'PAUSED', 'TRIALING', 'UNPAID']),
+      }),
+    )
+    .optional()
+    .default([]),
+  teamMembership: z
+    .object({
+      role: TeamMemberRoleSchema,
+      status: TeamMemberStatusSchema,
+      team: z.object({
+        id: z.string(),
+        name: z.string(),
+        billingStatus: TeamBillingStatusSchema,
+      }),
+    })
+    .nullish(),
+});
+
+export type UserProfileUi = z.infer<typeof UserProfileUiSchema>;
+
+export interface SubscriptionsResponse {
+  customer: StripeUserFacingCustomer | null;
+  pricesByLookupKey: JetstreamPricesByLookupKey | null;
+  hasManualBilling: boolean;
+  didUpdate: boolean;
+  userProfile?: Maybe<UserProfileUi>;
 }
 
 export interface SalesforceUserInfo {
