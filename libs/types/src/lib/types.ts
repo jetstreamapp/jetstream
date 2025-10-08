@@ -109,6 +109,18 @@ export interface UserProfilePreferences {
   deniedNotifications?: boolean;
 }
 
+const PreferencesSchema = z.object({
+  skipFrontdoorLogin: z.boolean().default(false),
+  recordSyncEnabled: z.boolean().default(false),
+});
+
+const EntitlementsSchema = z.object({
+  googleDrive: z.boolean().default(false),
+  chromeExtension: z.boolean().default(false),
+  desktop: z.boolean().default(false),
+  recordSync: z.boolean().default(false),
+});
+
 export const UserProfileUiSchema = z.object({
   id: z.string(),
   /** @deprecated */
@@ -117,19 +129,13 @@ export const UserProfileUiSchema = z.object({
   name: z.string(),
   emailVerified: z.boolean().default(false),
   picture: z.string().nullish(),
-  preferences: z.object({
-    skipFrontdoorLogin: z.boolean().default(false),
-    recordSyncEnabled: z.boolean().default(false),
-  }),
+  preferences: PreferencesSchema.nullable()
+    .default({})
+    .transform((preferences) => (!preferences ? PreferencesSchema.parse({}) : preferences)),
   billingAccount: z.object({ customerId: z.string() }).nullish(),
-  entitlements: z
-    .object({
-      googleDrive: z.boolean().default(false),
-      chromeExtension: z.boolean().default(false),
-      desktop: z.boolean().default(false),
-      recordSync: z.boolean().default(false),
-    })
-    .default({}),
+  entitlements: EntitlementsSchema.nullable()
+    .default({})
+    .transform((entitlement) => (!entitlement ? EntitlementsSchema.parse({}) : entitlement)),
   subscriptions: z
     .array(
       z.object({
@@ -140,7 +146,6 @@ export const UserProfileUiSchema = z.object({
         status: z.enum(['ACTIVE', 'CANCELED', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', 'PAST_DUE', 'PAUSED', 'TRIALING', 'UNPAID']),
       }),
     )
-    .optional()
     .default([]),
   teamMembership: z
     .object({
