@@ -192,16 +192,18 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
         </legend>
         <Grid gutters guttersSize="xx-small" wrap={wrap} verticalAlign="end">
           {showDragHandles && (
-            <button
+            <span
               ref={drag as any}
               css={css`
                 cursor: grab;
+                user-select: none;
+                -moz-user-select: none;
               `}
               className="slds-button slds-button_icon"
               title="Drag row between groups or out of the group"
             >
               <Icon icon="drag_and_drop" type="utility" className="slds-button__icon" omitContainer description="Drag filter row" />
-            </button>
+            </span>
           )}
           {/* Resource */}
           <GridCol grow>
