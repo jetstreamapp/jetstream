@@ -106,7 +106,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         return next(new UserFacingError('A source and target org are required for this action'));
       }
       try {
-        await controllerFn(data, req, res, next);
+        await controllerFn(data as any, req, res, next);
       } catch (ex) {
         if (logErrorToBugTracker) {
           rollbarServer.error(ex, req);

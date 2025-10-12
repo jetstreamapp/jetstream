@@ -72,7 +72,7 @@ export const routeDefinition = {
   getCsrfToken: {
     controllerFn: () => getCsrfToken,
     validators: {
-      query: z.record(z.any()),
+      query: z.record(z.string(), z.any()),
       hasSourceOrg: false,
     },
   },
@@ -94,7 +94,7 @@ export const routeDefinition = {
   callback: {
     controllerFn: () => callback,
     validators: {
-      query: z.record(z.any()),
+      query: z.record(z.string(), z.any()),
       params: z.object({ provider: ProviderKeysSchema }),
       body: z.union([
         z.discriminatedUnion('action', [
@@ -122,6 +122,7 @@ export const routeDefinition = {
   verification: {
     controllerFn: () => verification,
     validators: {
+      query: z.object({ code: z.string() }),
       body: z.object({
         csrfToken: z.string(),
         captchaToken: z.string().nullish(),

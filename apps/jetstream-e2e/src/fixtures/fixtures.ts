@@ -27,9 +27,9 @@ dotenv.config();
 
 const environmentSchema = z.object({
   E2E_LOGIN_USERNAME: z.string(),
-  TEST_ORG_2: z.string().optional().default('support+test2@getjetstream.app'),
-  TEST_ORG_3: z.string().optional().default('support+test3@getjetstream.app'),
-  TEST_ORG_4: z.string().optional().default('support+test4@getjetstream.app'),
+  TEST_ORG_2: z.string().optional().prefault('support+test2@getjetstream.app'),
+  TEST_ORG_3: z.string().optional().prefault('support+test3@getjetstream.app'),
+  TEST_ORG_4: z.string().optional().prefault('support+test4@getjetstream.app'),
   E2E_LOGIN_PASSWORD: z.string(),
   E2E_LOGIN_URL: z.string(),
   JETSTREAM_SESSION_SECRET: z.string(),

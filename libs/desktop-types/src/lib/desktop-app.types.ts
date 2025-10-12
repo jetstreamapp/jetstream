@@ -77,15 +77,14 @@ export const AppDataSchema = z.object({
   deviceId: z
     .string()
     .optional()
-    .default(() => crypto.randomUUID()),
+    .prefault(() => crypto.randomUUID()),
   accessToken: z.string().nullish(),
   userProfile: z
-    .object({
+    .looseObject({
       id: z.string(),
       name: z.string(),
       email: z.string(),
     })
-    .passthrough()
     .nullish(),
   expiresAt: z.number().nullish(),
   lastChecked: z.number().nullish(),
@@ -93,12 +92,12 @@ export const AppDataSchema = z.object({
 export type AppData = z.infer<typeof AppDataSchema>;
 
 export const DesktopUserPreferencesSchema = z.object({
-  skipFrontdoorLogin: z.boolean().optional().default(false),
-  recordSyncEnabled: z.boolean().optional().default(false),
+  skipFrontdoorLogin: z.boolean().optional().prefault(false),
+  recordSyncEnabled: z.boolean().optional().prefault(false),
   fileDownload: z
     .object({
-      omitPrompt: z.boolean().optional().default(true),
-      downloadPath: z.string().optional().default(''),
+      omitPrompt: z.boolean().optional().prefault(true),
+      downloadPath: z.string().optional().prefault(''),
     })
     .optional(),
 });
@@ -145,7 +144,7 @@ export const JetstreamOrganizationSchema = z.object({
     .string()
     .optional()
     .nullable()
-    .default(null)
+    .prefault(null)
     .transform((val) => (val === '' ? null : val)),
   createdAt: z.string(),
   updatedAt: z.string(),

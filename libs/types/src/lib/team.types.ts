@@ -100,19 +100,19 @@ export const TeamMemberSchema = z.object({
 });
 
 export const TeamEntitlementSchema = z.object({
-  chromeExtension: z.boolean().optional().default(false),
-  googleDrive: z.boolean().optional().default(false),
-  desktop: z.boolean().optional().default(false),
-  recordSync: z.boolean().optional().default(false),
+  chromeExtension: z.boolean().optional().prefault(false),
+  googleDrive: z.boolean().optional().prefault(false),
+  desktop: z.boolean().optional().prefault(false),
+  recordSync: z.boolean().optional().prefault(false),
 });
 
 export const TeamLoginConfigSchema = z.object({
-  allowedMfaMethods: z.enum(['otp', 'email']).array().optional().default(['email', 'otp']),
-  allowedProviders: z.enum(['credentials', 'google', 'salesforce']).array().optional().default(['credentials', 'google', 'salesforce']),
-  allowIdentityLinking: z.boolean().optional().default(true),
-  domains: z.string().toLowerCase().array().optional().default([]),
-  requireMfa: z.boolean().optional().default(false),
-  autoAddToTeam: z.boolean().optional().default(false),
+  allowedMfaMethods: z.enum(['otp', 'email']).array().optional().prefault(['email', 'otp']),
+  allowedProviders: z.enum(['credentials', 'google', 'salesforce']).array().optional().prefault(['credentials', 'google', 'salesforce']),
+  allowIdentityLinking: z.boolean().optional().prefault(true),
+  domains: z.string().toLowerCase().array().optional().prefault([]),
+  requireMfa: z.boolean().optional().prefault(false),
+  autoAddToTeam: z.boolean().optional().prefault(false),
 });
 export const TeamLoginConfigRequestSchema = TeamLoginConfigSchema;
 
@@ -141,7 +141,7 @@ export const TeamSubscriptionSchema = z.object({
 
 export const TeamInviteUserFacingSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   role: TeamMemberRoleSchema,
   features: FeatureSchema.array(),
   expiresAt: DateStringSchema,
@@ -164,7 +164,7 @@ export const TeamUserFacingSchema = z.object({
     .object({
       customerId: z.string(),
       manualBilling: z.boolean(),
-      licenseCountLimit: z.number().min(0).nullable().default(null),
+      licenseCountLimit: z.number().min(0).nullable().prefault(null),
     })
     .nullable(),
   createdAt: DateStringSchema,
@@ -172,9 +172,9 @@ export const TeamUserFacingSchema = z.object({
 });
 
 export const TeamInvitationRequestSchema = z.object({
-  email: z.string().toLowerCase().email(),
-  role: TeamMemberRoleSchema.optional().default('MEMBER'),
-  features: FeatureSchema.array().optional().default(['ALL']),
+  email: z.email().toLowerCase(),
+  role: TeamMemberRoleSchema.optional().prefault('MEMBER'),
+  features: FeatureSchema.array().optional().prefault(['ALL']),
 });
 export type TeamInvitationRequest = z.infer<typeof TeamInvitationRequestSchema>;
 

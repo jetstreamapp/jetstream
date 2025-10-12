@@ -13,8 +13,8 @@ export const routeDefinition = {
       query: z.object({
         url: z.string(),
         method: SalesforceApiRequestSchema.shape.method,
-        isTooling: z.coerce.boolean().optional().default(false),
-        assignmentRuleId: z.string().optional().default('FALSE'),
+        isTooling: z.coerce.boolean().optional().prefault(false),
+        assignmentRuleId: z.string().optional().prefault('FALSE'),
       }),
     },
   },

@@ -43,7 +43,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         query: query ? query.parse(req.query) : undefined,
       };
       try {
-        await controllerFn(data, req, res, next);
+        await controllerFn(data as any, req, res, next);
       } catch (ex) {
         next(ex);
       }

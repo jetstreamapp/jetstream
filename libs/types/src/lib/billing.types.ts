@@ -2,10 +2,10 @@ import type Stripe from 'stripe';
 import { z } from 'zod';
 
 export const EntitlementsAccessSchema = z.object({
-  googleDrive: z.boolean().optional().default(false),
-  desktop: z.boolean().optional().default(false),
-  recordSync: z.boolean().optional().default(false),
-  chromeExtension: z.boolean().optional().default(false),
+  googleDrive: z.boolean().optional().prefault(false),
+  desktop: z.boolean().optional().prefault(false),
+  recordSync: z.boolean().optional().prefault(false),
+  chromeExtension: z.boolean().optional().prefault(false),
 });
 export type EntitlementsAccess = z.infer<typeof EntitlementsAccessSchema>;
 export type Entitlements = keyof EntitlementsAccess;

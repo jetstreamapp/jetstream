@@ -96,7 +96,7 @@ const envSchema = z.object({
     })
     .nullish(),
   EXAMPLE_USER_PASSWORD: z.string().nullish(),
-  EXAMPLE_USER_FULL_PROFILE: z.record(z.any()).nullish(),
+  EXAMPLE_USER_FULL_PROFILE: z.record(z.string(), z.any()).nullish(),
   IS_LOCAL_DOCKER: booleanSchema,
   // SYSTEM
   NODE_ENV: z
@@ -107,11 +107,11 @@ const envSchema = z.object({
     .enum(['development', 'production'])
     .optional()
     .transform((value) => value ?? 'production'),
-  PORT: numberSchema.default(3333),
+  PORT: numberSchema.prefault(3333),
   // Set based on environment and server url protocol
   USE_SECURE_COOKIES: booleanSchema,
   CAPTCHA_SECRET_KEY: z.string().optional(),
-  CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
+  CAPTCHA_PROPERTY: z.literal('captchaToken').optional().prefault('captchaToken'),
   IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
   IP_API_SERVICE: z.enum(['IP-API', 'LOCAL']).optional().describe('API Key used to get location information from IP address'),
   VERSION: z.string().optional(),
@@ -123,11 +123,11 @@ const envSchema = z.object({
   AUTH0_DOMAIN: z.string().nullish(),
 
   // JETSTREAM
-  JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE: z.union([z.string(), z.boolean()]).optional().default(true).transform(ensureBoolean),
+  JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE: z.union([z.string(), z.boolean()]).optional().prefault(true).transform(ensureBoolean),
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
-  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
+  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().prefault('DEVELOPMENT_SECRET'),
   JETSTREAM_SESSION_SECRET: z.string(),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()
@@ -135,7 +135,7 @@ const envSchema = z.object({
     .transform((val) => val || null),
   JETSTREAM_POSTGRES_DBURI: z.string(),
   JETSTREAM_SERVER_DOMAIN: z.string(),
-  JETSTREAM_SERVER_URL: z.string().url(),
+  JETSTREAM_SERVER_URL: z.url(),
   JETSTREAM_CLIENT_URL: z.string(),
   PRISMA_DEBUG: booleanSchema,
   COMETD_DEBUG: z.enum(['error', 'warn', 'info', 'debug']).optional(),
@@ -180,9 +180,9 @@ const envSchema = z.object({
    * EMAIL
    * If not set, email will not be sent
    */
-  JETSTREAM_EMAIL_DOMAIN: z.string().optional().default('mail@getjetstream.app'),
-  JETSTREAM_EMAIL_FROM_NAME: z.string().optional().default('Jetstream Support <support@getjetstream.app>'),
-  JETSTREAM_EMAIL_REPLY_TO: z.string().optional().default('support@getjetstream.app'),
+  JETSTREAM_EMAIL_DOMAIN: z.string().optional().prefault('mail@getjetstream.app'),
+  JETSTREAM_EMAIL_FROM_NAME: z.string().optional().prefault('Jetstream Support <support@getjetstream.app>'),
+  JETSTREAM_EMAIL_REPLY_TO: z.string().optional().prefault('support@getjetstream.app'),
   MAILGUN_API_KEY: z.string().optional(),
   MAILGUN_WEBHOOK_KEY: z.string().optional(),
   /**
@@ -192,10 +192,10 @@ const envSchema = z.object({
   SFDC_API_VERSION: z.string().regex(/^[0-9]{2,4}\.[0-9]$/),
   SFDC_CONSUMER_SECRET: z.string().min(1),
   SFDC_CONSUMER_KEY: z.string().min(1),
-  SFDC_CALLBACK_URL: z.string().url(),
+  SFDC_CALLBACK_URL: z.url(),
   // Should be a base64-encoded 32-byte key (generate with: openssl rand -base64 32)
   SFDC_ENCRYPTION_KEY: z.string().min(44, {
-    message: 'SFDC_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
+    error: 'SFDC_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
   }),
   // Encryption performance tuning
   SFDC_ENCRYPTION_ITERATIONS: z
@@ -230,8 +230,8 @@ const envSchema = z.object({
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
 
-  WEB_EXTENSION_ID_CHROME: z.string().optional().default(''),
-  WEB_EXTENSION_ID_MOZILLA: z.string().optional().default(''),
+  WEB_EXTENSION_ID_CHROME: z.string().optional().prefault(''),
+  WEB_EXTENSION_ID_MOZILLA: z.string().optional().prefault(''),
   /**
    * STRIPE
    */
@@ -241,10 +241,10 @@ const envSchema = z.object({
   /**
    * BackBlaze B2
    */
-  BACKBLAZE_ACCESS_KEY_ID: z.string().default(''),
-  BACKBLAZE_SECRET_ACCESS_KEY: z.string().default(''),
-  BACKBLAZE_BUCKET_NAME: z.string().default('desktop-updates'),
-  BACKBLAZE_REGION: z.string().default('us-east-005'),
+  BACKBLAZE_ACCESS_KEY_ID: z.string().prefault(''),
+  BACKBLAZE_SECRET_ACCESS_KEY: z.string().prefault(''),
+  BACKBLAZE_BUCKET_NAME: z.string().prefault('desktop-updates'),
+  BACKBLAZE_REGION: z.string().prefault('us-east-005'),
 });
 
 const parseResults = envSchema.safeParse({
@@ -260,7 +260,7 @@ const parseResults = envSchema.safeParse({
 
 if (!parseResults.success) {
   console.error(`❌ ${chalk.red('Error parsing environment variables:')}
-${chalk.yellow(JSON.stringify(parseResults.error.flatten().fieldErrors, null, 2))}
+${chalk.yellow(JSON.stringify(z.treeifyError(parseResults.error), null, 2))}
 `);
   process.exit(1);
 }

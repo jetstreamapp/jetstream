@@ -21,7 +21,7 @@ export const SyncRecordOperationBaseSchema = z.object({
   key: z.string(),
   hashedKey: z.string(),
   entity: SyncTypeSchema,
-  data: z.record(z.unknown()),
+  data: z.record(z.string(), z.unknown()),
 });
 
 export const SyncRecordOperationCreateUpdateSchema = SyncRecordOperationBaseSchema.extend({
@@ -53,7 +53,7 @@ export const SyncRecordSchema = z.object({
   // since browser extensions can become out-dated, we need to account for that
   entity: z.union([SyncTypeSchema, z.string()]),
   orgId: z.string().nullish(),
-  data: z.record(z.unknown()),
+  data: z.record(z.string(), z.unknown()),
   createdAt: DateTimeSchema,
   updatedAt: DateTimeSchema,
   deletedAt: DateTimeSchema.nullish(),

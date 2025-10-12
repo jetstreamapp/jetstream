@@ -58,9 +58,9 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
   }
 
   const isWebApp = !isBrowserExtension && !isDesktop;
-  const activeTeamMembership = user.teamMembership?.status === TeamMemberStatusSchema.Enum.ACTIVE;
-  const isBillingRole = user.teamMembership?.role === TeamMemberRoleSchema.Enum.BILLING;
-  const isAdminRole = user.teamMembership?.role === TeamMemberRoleSchema.Enum.ADMIN;
+  const activeTeamMembership = user.teamMembership?.status === TeamMemberStatusSchema.enum.ACTIVE;
+  const isBillingRole = user.teamMembership?.role === TeamMemberRoleSchema.enum.BILLING;
+  const isAdminRole = user.teamMembership?.role === TeamMemberRoleSchema.enum.ADMIN;
   const isTeamsBillingOrAdmin = isBillingRole || isAdminRole;
 
   // core settings, may be removed later
@@ -86,11 +86,11 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
         can('update', ['Team', 'TeamMember']);
 
         can('invite', 'TeamMember');
-        cannot('invite', 'TeamMember', { billingStatus: TeamBillingStatusSchema.Enum.PAST_DUE });
+        cannot('invite', 'TeamMember', { billingStatus: TeamBillingStatusSchema.enum.PAST_DUE });
         cannot('invite', 'TeamMember', { availableLicenses: { $lte: 0 } });
       }
       if (isBillingRole) {
-        cannot('update', 'TeamMember', { role: TeamMemberRoleSchema.Enum.ADMIN });
+        cannot('update', 'TeamMember', { role: TeamMemberRoleSchema.enum.ADMIN });
       }
       if (isAdminRole) {
         can('delete', 'TeamMemberSession');

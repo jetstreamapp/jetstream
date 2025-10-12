@@ -110,15 +110,15 @@ export interface UserProfilePreferences {
 }
 
 const PreferencesSchema = z.object({
-  skipFrontdoorLogin: z.boolean().default(false),
-  recordSyncEnabled: z.boolean().default(false),
+  skipFrontdoorLogin: z.boolean().prefault(false),
+  recordSyncEnabled: z.boolean().prefault(false),
 });
 
 const EntitlementsSchema = z.object({
-  googleDrive: z.boolean().default(false),
-  chromeExtension: z.boolean().default(false),
-  desktop: z.boolean().default(false),
-  recordSync: z.boolean().default(false),
+  googleDrive: z.boolean().prefault(false),
+  chromeExtension: z.boolean().prefault(false),
+  desktop: z.boolean().prefault(false),
+  recordSync: z.boolean().prefault(false),
 });
 
 export const UserProfileUiSchema = z.object({
@@ -127,14 +127,14 @@ export const UserProfileUiSchema = z.object({
   userId: z.string().optional(),
   email: z.string(),
   name: z.string(),
-  emailVerified: z.boolean().default(false),
+  emailVerified: z.boolean().prefault(false),
   picture: z.string().nullish(),
   preferences: PreferencesSchema.nullable()
-    .default({})
+    .prefault({})
     .transform((preferences) => (!preferences ? PreferencesSchema.parse({}) : preferences)),
   billingAccount: z.object({ customerId: z.string() }).nullish(),
   entitlements: EntitlementsSchema.nullable()
-    .default({})
+    .prefault({})
     .transform((entitlement) => (!entitlement ? EntitlementsSchema.parse({}) : entitlement)),
   subscriptions: z
     .array(
@@ -146,7 +146,7 @@ export const UserProfileUiSchema = z.object({
         status: z.enum(['ACTIVE', 'CANCELED', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', 'PAST_DUE', 'PAUSED', 'TRIALING', 'UNPAID']),
       }),
     )
-    .default([]),
+    .prefault([]),
   teamMembership: z
     .object({
       role: TeamMemberRoleSchema,

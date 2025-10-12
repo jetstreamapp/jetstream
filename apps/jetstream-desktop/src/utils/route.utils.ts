@@ -107,7 +107,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         logger.info('[INIT-ORG][ERROR] A target org did not exist on locals');
         throw new Error('A source and target org are required for this action');
       }
-      return await controllerFn(data, req);
+      return await controllerFn(data as any, req);
     } catch (ex) {
       logger.error(ex, '[ROUTE][VALIDATION ERROR]');
       throw ex;

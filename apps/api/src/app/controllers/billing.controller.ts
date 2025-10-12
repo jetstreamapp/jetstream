@@ -218,7 +218,7 @@ const createBillingPortalSession = createRoute(
 
     if (
       billingAccount?.teamRole &&
-      !([TeamMemberRoleSchema.Enum.ADMIN, TeamMemberRoleSchema.Enum.BILLING] as TeamMemberRole[]).includes(billingAccount.teamRole)
+      !([TeamMemberRoleSchema.enum.ADMIN, TeamMemberRoleSchema.enum.BILLING] as TeamMemberRole[]).includes(billingAccount.teamRole)
     ) {
       throw new UserFacingError('Billing portal not allowed for this account');
     }

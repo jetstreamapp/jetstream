@@ -121,18 +121,18 @@ export class TeamCreationUtils {
       members: [
         {
           userId: (await prisma.user.findFirstOrThrow({ where: { email: user1.user.email } })).id,
-          role: TeamMemberRoleSchema.Enum.MEMBER,
-          status: TeamMemberStatusSchema.Enum.ACTIVE,
+          role: TeamMemberRoleSchema.enum.MEMBER,
+          status: TeamMemberStatusSchema.enum.ACTIVE,
         },
         {
           userId: (await prisma.user.findFirstOrThrow({ where: { email: user2.user.email } })).id,
-          role: TeamMemberRoleSchema.Enum.MEMBER,
-          status: TeamMemberStatusSchema.Enum.ACTIVE,
+          role: TeamMemberRoleSchema.enum.MEMBER,
+          status: TeamMemberStatusSchema.enum.ACTIVE,
         },
         {
           userId: (await prisma.user.findFirstOrThrow({ where: { email: user3.user.email } })).id,
-          role: TeamMemberRoleSchema.Enum.BILLING,
-          status: TeamMemberStatusSchema.Enum.ACTIVE,
+          role: TeamMemberRoleSchema.enum.BILLING,
+          status: TeamMemberStatusSchema.enum.ACTIVE,
         },
       ],
     });
@@ -261,8 +261,8 @@ export class TeamCreationUtils {
       },
       data: {
         name: `[PLAYWRIGHT] Test Team for ${user.email}`,
-        billingStatus: TeamBillingStatusSchema.Enum.ACTIVE,
-        status: TeamMemberStatusSchema.Enum.ACTIVE,
+        billingStatus: TeamBillingStatusSchema.enum.ACTIVE,
+        status: TeamMemberStatusSchema.enum.ACTIVE,
         createdByUser: { connect: { id: user.id } },
         updatedByUser: { connect: { id: user.id } },
         members: {
@@ -270,8 +270,8 @@ export class TeamCreationUtils {
             data: [
               {
                 userId: user.id,
-                role: TeamMemberRoleSchema.Enum.ADMIN,
-                status: TeamMemberStatusSchema.Enum.ACTIVE,
+                role: TeamMemberRoleSchema.enum.ADMIN,
+                status: TeamMemberStatusSchema.enum.ACTIVE,
                 createdById: user.id,
                 updatedById: user.id,
               },

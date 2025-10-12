@@ -70,9 +70,9 @@ export function TeamDashboard() {
   const availableLicenses = useMemo(() => {
     const licenseCountLimit = team?.billingAccount?.licenseCountLimit ?? Infinity;
     const billableUserCount = team?.members.filter(
-      ({ status, role }) => status === TEAM_MEMBER_STATUS_ACTIVE && role !== TeamMemberRoleSchema.Enum.BILLING,
+      ({ status, role }) => status === TEAM_MEMBER_STATUS_ACTIVE && role !== TeamMemberRoleSchema.enum.BILLING,
     ).length;
-    const billableInviteCount = team?.invitations.filter(({ role }) => role !== TeamMemberRoleSchema.Enum.BILLING).length;
+    const billableInviteCount = team?.invitations.filter(({ role }) => role !== TeamMemberRoleSchema.enum.BILLING).length;
     const billableUserCountWithInvites = (billableUserCount || 0) + (billableInviteCount || 0);
     const availableLicenses = licenseCountLimit - billableUserCountWithInvites;
     return availableLicenses;
@@ -248,7 +248,7 @@ export function TeamDashboard() {
 
           {team && (
             <>
-              {team.billingStatus === TeamBillingStatusSchema.Enum.PAST_DUE && (
+              {team.billingStatus === TeamBillingStatusSchema.enum.PAST_DUE && (
                 <ScopedNotification theme="warning" className="slds-m-bottom_medium">
                   You do not have any active subscriptions and may have a past-due invoice, your team will be cancelled if service is not
                   resumed.

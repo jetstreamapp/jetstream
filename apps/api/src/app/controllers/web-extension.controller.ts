@@ -24,6 +24,10 @@ export const routeDefinition = {
   logout: {
     controllerFn: () => logout,
     validators: {
+      body: z.object({
+        deviceId: z.string(),
+        accessToken: z.string(),
+      }),
       hasSourceOrg: false,
     },
   },

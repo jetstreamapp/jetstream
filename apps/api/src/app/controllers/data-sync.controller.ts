@@ -13,7 +13,7 @@ export const SyncRecordOperationSchemaFillHashedKey = z
   .object({
     key: z.string(),
     hashedKey: z.string().optional(),
-    data: z.record(z.unknown()),
+    data: z.record(z.string(), z.unknown()),
   })
   .passthrough()
   .array()
