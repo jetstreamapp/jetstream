@@ -33,7 +33,11 @@ export class UserFacingError extends Error {
   readonly additionalData?: any;
   constructor(message: string | Error | ZodError, additionalData?: any) {
     if (message instanceof ZodError) {
-      super(message.message);
+      const formattedMessage = `Data validation error: ${Object.entries(z.flattenError(message).fieldErrors)
+        .map(([field, issue]) => `'${field}' ${issue}.`)
+        .join(' ')}`;
+      super(formattedMessage);
+
       this.additionalData = z.treeifyError(message);
       this.name = 'Validation Error';
       this.stack = message.stack;
