@@ -4,6 +4,7 @@ import billingRoutes from './billing.routes';
 import desktopAppRoutes from './desktop-app.routes';
 import desktopAssetsRoutes from './desktop-assets.routes';
 import oauthRoutes from './oauth.routes';
+import { openApiRoutes } from './openapi.routes';
 import platformEventRoutes from './platform-event.routes';
 import redirectRoutes from './redirect.routes';
 import staticAuthenticatedRoutes from './static-authenticated.routes';
@@ -19,6 +20,7 @@ export {
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,
+  openApiRoutes,
   platformEventRoutes,
   redirectRoutes,
   staticAuthenticatedRoutes,

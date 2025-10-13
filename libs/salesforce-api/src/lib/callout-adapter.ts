@@ -38,6 +38,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
     logger: Logger = console,
   ) => {
     const apiRequest = async <Response = unknown>(options: ApiRequestOptions, attemptRefresh = true): Promise<Response> => {
+      // eslint-disable-next-line prefer-const
       let { url, body, outputType, duplex } = options;
       const { method = 'GET', sessionInfo, headers, rawBody = false } = options;
       const { accessToken, instanceUrl } = sessionInfo;
