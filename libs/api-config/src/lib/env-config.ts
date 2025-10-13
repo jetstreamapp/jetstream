@@ -107,11 +107,11 @@ const envSchema = z.object({
     .enum(['development', 'production'])
     .optional()
     .transform((value) => value ?? 'production'),
-  PORT: numberSchema.prefault(3333),
+  PORT: numberSchema.default(3333),
   // Set based on environment and server url protocol
   USE_SECURE_COOKIES: booleanSchema,
   CAPTCHA_SECRET_KEY: z.string().optional(),
-  CAPTCHA_PROPERTY: z.literal('captchaToken').optional().prefault('captchaToken'),
+  CAPTCHA_PROPERTY: z.literal('captchaToken').optional().default('captchaToken'),
   IP_API_KEY: z.string().optional().describe('API Key used to get location information from IP address'),
   IP_API_SERVICE: z.enum(['IP-API', 'LOCAL']).optional().describe('API Key used to get location information from IP address'),
   VERSION: z.string().optional(),
@@ -123,11 +123,11 @@ const envSchema = z.object({
   AUTH0_DOMAIN: z.string().nullish(),
 
   // JETSTREAM
-  JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE: z.union([z.string(), z.boolean()]).optional().prefault(true).transform(ensureBoolean),
+  JETSTREAM_AUTH_2FA_EMAIL_DEFAULT_VALUE: z.union([z.string(), z.boolean()]).optional().default(true).transform(ensureBoolean),
   JETSTREAM_AUTH_SECRET: z.string().describe('Used to sign authentication cookies.'),
   // Must be 32 characters
   JETSTREAM_AUTH_OTP_SECRET: z.string(),
-  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().prefault('DEVELOPMENT_SECRET'),
+  JETSTREAM_AUTH_WEB_EXT_JWT_SECRET: z.string().optional().default('DEVELOPMENT_SECRET'),
   JETSTREAM_SESSION_SECRET: z.string(),
   JETSTREAM_SESSION_SECRET_PREV: z
     .string()
@@ -180,9 +180,9 @@ const envSchema = z.object({
    * EMAIL
    * If not set, email will not be sent
    */
-  JETSTREAM_EMAIL_DOMAIN: z.string().optional().prefault('mail@getjetstream.app'),
-  JETSTREAM_EMAIL_FROM_NAME: z.string().optional().prefault('Jetstream Support <support@getjetstream.app>'),
-  JETSTREAM_EMAIL_REPLY_TO: z.string().optional().prefault('support@getjetstream.app'),
+  JETSTREAM_EMAIL_DOMAIN: z.string().optional().default('mail@getjetstream.app'),
+  JETSTREAM_EMAIL_FROM_NAME: z.string().optional().default('Jetstream Support <support@getjetstream.app>'),
+  JETSTREAM_EMAIL_REPLY_TO: z.string().optional().default('support@getjetstream.app'),
   MAILGUN_API_KEY: z.string().optional(),
   MAILGUN_WEBHOOK_KEY: z.string().optional(),
   /**
@@ -230,8 +230,8 @@ const envSchema = z.object({
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
 
-  WEB_EXTENSION_ID_CHROME: z.string().optional().prefault(''),
-  WEB_EXTENSION_ID_MOZILLA: z.string().optional().prefault(''),
+  WEB_EXTENSION_ID_CHROME: z.string().optional().default(''),
+  WEB_EXTENSION_ID_MOZILLA: z.string().optional().default(''),
   /**
    * STRIPE
    */
@@ -241,10 +241,10 @@ const envSchema = z.object({
   /**
    * BackBlaze B2
    */
-  BACKBLAZE_ACCESS_KEY_ID: z.string().prefault(''),
-  BACKBLAZE_SECRET_ACCESS_KEY: z.string().prefault(''),
-  BACKBLAZE_BUCKET_NAME: z.string().prefault('desktop-updates'),
-  BACKBLAZE_REGION: z.string().prefault('us-east-005'),
+  BACKBLAZE_ACCESS_KEY_ID: z.string().default(''),
+  BACKBLAZE_SECRET_ACCESS_KEY: z.string().default(''),
+  BACKBLAZE_BUCKET_NAME: z.string().default('desktop-updates'),
+  BACKBLAZE_REGION: z.string().default('us-east-005'),
 });
 
 const parseResults = envSchema.safeParse({

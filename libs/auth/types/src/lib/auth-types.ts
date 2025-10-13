@@ -352,7 +352,7 @@ export const LoginConfigurationSchema = z.object({
   allowedProviders: z.array(OauthAndLocalProvidersSchema).transform((value) => new Set(value)),
   requireMfa: z.boolean(),
   allowIdentityLinking: z.boolean(),
-  autoAddToTeam: z.boolean().optional().prefault(false),
+  autoAddToTeam: z.boolean().optional().default(false),
   team: z.object({ id: z.string() }).nullish(),
 });
 export type LoginConfiguration = z.infer<typeof LoginConfigurationSchema>;

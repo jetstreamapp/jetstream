@@ -14,7 +14,7 @@ export const routeDefinition = {
     validators: {
       body: z.object({
         name: z.string(),
-        description: z.string().optional().nullable().prefault(null),
+        description: z.string().optional().nullable().default(null),
       }),
       hasSourceOrg: false,
     },
@@ -27,7 +27,7 @@ export const routeDefinition = {
       }),
       body: z.object({
         name: z.string(),
-        description: z.string().optional().nullable().prefault(null),
+        description: z.string().optional().nullable().default(null),
       }),
       hasSourceOrg: false,
     },

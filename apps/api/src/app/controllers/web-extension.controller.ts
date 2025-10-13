@@ -17,12 +17,14 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   initAuthMiddleware: {
     controllerFn: () => initAuthMiddleware,
+    responseType: z.any(),
     validators: {
       hasSourceOrg: false,
     },
   },
   logout: {
     controllerFn: () => logout,
+    responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
       body: z.object({
         deviceId: z.string(),
@@ -33,15 +35,17 @@ export const routeDefinition = {
   },
   initSession: {
     controllerFn: () => initSession,
+    responseType: z.object({ accessToken: z.string() }),
     validators: {
       query: z.object({
-        deviceId: z.string().uuid(),
+        deviceId: z.uuid(),
       }),
       hasSourceOrg: false,
     },
   },
   verifyTokens: {
     controllerFn: () => verifyTokens,
+    responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
       body: z.object({
         deviceId: z.string(),
@@ -52,12 +56,14 @@ export const routeDefinition = {
   },
   dataSyncPull: {
     controllerFn: () => dataSyncPull,
+    responseType: z.any(),
     validators: {
       ...dataSyncController.pull.validators,
     },
   },
   dataSyncPush: {
     controllerFn: () => dataSyncPush,
+    responseType: z.any(),
     validators: {
       ...dataSyncController.push.validators,
     },

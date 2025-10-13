@@ -21,6 +21,7 @@ export const routeDefinition = {
   },
   fetchPrices: {
     controllerFn: () => fetchPrices,
+    responseType: z.record(z.string(), z.any()), // FIXME: improve this
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -28,6 +29,7 @@ export const routeDefinition = {
   },
   createCheckoutSession: {
     controllerFn: () => createCheckoutSessionHandler,
+    responseType: z.object({ url: z.url() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -55,6 +57,13 @@ export const routeDefinition = {
   },
   getSubscriptions: {
     controllerFn: () => getSubscriptionsHandler,
+    responseType: z.object({
+      customer: z.any(),
+      pricesByLookupKey: z.any(),
+      hasManualBilling: z.boolean(),
+      didUpdate: z.boolean(),
+      userProfile: z.any(),
+    }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,

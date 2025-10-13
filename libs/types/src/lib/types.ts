@@ -110,15 +110,15 @@ export interface UserProfilePreferences {
 }
 
 const PreferencesSchema = z.object({
-  skipFrontdoorLogin: z.boolean().prefault(false),
-  recordSyncEnabled: z.boolean().prefault(false),
+  skipFrontdoorLogin: z.boolean().default(false),
+  recordSyncEnabled: z.boolean().default(false),
 });
 
 const EntitlementsSchema = z.object({
-  googleDrive: z.boolean().prefault(false),
-  chromeExtension: z.boolean().prefault(false),
-  desktop: z.boolean().prefault(false),
-  recordSync: z.boolean().prefault(false),
+  googleDrive: z.boolean().default(false),
+  chromeExtension: z.boolean().default(false),
+  desktop: z.boolean().default(false),
+  recordSync: z.boolean().default(false),
 });
 
 export const UserProfileUiSchema = z.object({
@@ -127,7 +127,7 @@ export const UserProfileUiSchema = z.object({
   userId: z.string().optional(),
   email: z.string(),
   name: z.string(),
-  emailVerified: z.boolean().prefault(false),
+  emailVerified: z.boolean().default(false),
   picture: z.string().nullish(),
   preferences: PreferencesSchema.nullable()
     .prefault({})
@@ -146,7 +146,7 @@ export const UserProfileUiSchema = z.object({
         status: z.enum(['ACTIVE', 'CANCELED', 'INCOMPLETE', 'INCOMPLETE_EXPIRED', 'PAST_DUE', 'PAUSED', 'TRIALING', 'UNPAID']),
       }),
     )
-    .prefault([]),
+    .default([]),
   teamMembership: z
     .object({
       role: TeamMemberRoleSchema,

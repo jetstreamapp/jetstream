@@ -13,7 +13,7 @@ const FormSchema = z.object({
   csrfToken: z.string(),
   code: z.string().min(6).max(6),
   secretToken: z.string(),
-  rememberDevice: z.boolean().optional().prefault(true),
+  rememberDevice: z.boolean().optional().default(true),
 });
 
 type Form = z.infer<typeof FormSchema>;

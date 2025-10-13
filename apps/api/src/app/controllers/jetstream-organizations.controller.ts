@@ -7,12 +7,14 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   getOrganizations: {
     controllerFn: () => getOrganizations,
+    responseType: z.any().array(),
     validators: {
       hasSourceOrg: false,
     },
   },
   createOrganization: {
     controllerFn: () => createOrganization,
+    responseType: z.any(),
     validators: {
       body: z.object({
         name: z.string(),
@@ -23,6 +25,7 @@ export const routeDefinition = {
   },
   updateOrganization: {
     controllerFn: () => updateOrganization,
+    responseType: z.any(),
     validators: {
       params: z.object({
         id: z.string().uuid(),
@@ -36,6 +39,7 @@ export const routeDefinition = {
   },
   deleteOrganization: {
     controllerFn: () => deleteOrganization,
+    responseType: z.any(),
     validators: {
       params: z.object({
         id: z.string().uuid(),

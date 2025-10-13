@@ -7,12 +7,14 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   describe: {
     controllerFn: () => describe,
+    responseType: z.any(),
     validators: {
       query: z.object({ isTooling: BooleanQueryParamSchema }),
     },
   },
   describeSObject: {
     controllerFn: () => describeSObject,
+    responseType: z.any(),
     validators: {
       query: z.object({ isTooling: BooleanQueryParamSchema }),
       params: z.object({ sobject: z.string().min(1).max(255) }),
@@ -20,6 +22,7 @@ export const routeDefinition = {
   },
   query: {
     controllerFn: () => query,
+    responseType: z.any(),
     validators: {
       body: z.object({ query: z.string().min(1) }),
       query: z.object({
@@ -30,6 +33,7 @@ export const routeDefinition = {
   },
   queryMore: {
     controllerFn: () => queryMore,
+    responseType: z.any(),
     validators: {
       query: z.object({
         nextRecordsUrl: z.string().min(1),

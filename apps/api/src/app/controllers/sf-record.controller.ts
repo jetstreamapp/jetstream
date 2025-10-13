@@ -10,6 +10,7 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   binaryUpload: {
     controllerFn: () => binaryUpload,
+    responseType: z.any(),
     validators: {
       query: z.object({
         url: z.string(),
@@ -21,6 +22,7 @@ export const routeDefinition = {
   },
   recordOperation: {
     controllerFn: () => recordOperation,
+    responseType: z.any(),
     validators: {
       params: z.object({
         sobject: z.string(),

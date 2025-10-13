@@ -11,10 +11,12 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   getOrgs: {
     controllerFn: () => getOrgs,
+    responseType: z.any().array(),
     validators: { hasSourceOrg: false },
   },
   updateOrg: {
     controllerFn: () => updateOrg,
+    responseType: z.any(),
     validators: {
       params: z.object({
         uniqueId: z.string().min(1),
@@ -28,6 +30,7 @@ export const routeDefinition = {
   },
   deleteOrg: {
     controllerFn: () => deleteOrg,
+    responseType: z.any(),
     validators: {
       params: z.object({
         uniqueId: z.string().min(1),
@@ -41,6 +44,7 @@ export const routeDefinition = {
   },
   moveOrg: {
     controllerFn: () => moveOrg,
+    responseType: z.any(),
     validators: {
       params: z.object({
         uniqueId: z.string().min(1),

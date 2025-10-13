@@ -36,6 +36,12 @@ export const SyncRecordOperationSchemaFillHashedKey = z
 export const routeDefinition = {
   pull: {
     controllerFn: () => pull,
+    responseType: z.object({
+      records: z.any().array(),
+      hasMore: z.boolean(),
+      updatedAt: z.string(),
+      lastKey: z.string(),
+    }),
     validators: {
       query: z.object({
         updatedAt: z
@@ -59,6 +65,11 @@ export const routeDefinition = {
   },
   push: {
     controllerFn: () => push,
+    responseType: z.object({
+      clientId: z.string(),
+      data: z.any(),
+      userId: z.string(),
+    }),
     validators: {
       query: z.object({
         clientId: z.string().uuid(),

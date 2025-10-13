@@ -16,28 +16,31 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   verifyInvitation: {
     controllerFn: () => verifyInvitation,
+    responseType: z.object({ success: z.boolean(), inviteVerification: z.object({ email: z.string().email() }).nullish() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
-        token: z.string().uuid(),
+        teamId: z.uuid(),
+        token: z.uuid(),
       }),
     },
   },
   acceptInvitation: {
     controllerFn: () => acceptInvitation,
+    responseType: z.object({ success: z.boolean(), redirectUrl: z.string().url().nullish() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
-        token: z.string().uuid(),
+        teamId: z.uuid(),
+        token: z.uuid(),
       }),
     },
   },
   getTeam: {
     controllerFn: () => getTeam,
+    responseType: z.any(),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -45,11 +48,12 @@ export const routeDefinition = {
   },
   updateTeam: {
     controllerFn: () => updateTeam,
+    responseType: z.any(),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
       }),
       body: z.object({
         name: z.string().trim().min(2).max(255),
@@ -58,11 +62,24 @@ export const routeDefinition = {
   },
   getUserSessions: {
     controllerFn: () => getUserSessions,
+    responseType: z.object({
+      sessions: z.array(
+        z.object({
+          sid: z.string(),
+          userId: z.uuid(),
+          ipAddress: z.string().nullable(),
+          userAgent: z.string().nullable(),
+          createdAt: z.string(),
+          lastActivityAt: z.string(),
+        }),
+      ),
+      currentSessionId: z.string(),
+    }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
       }),
       query: z.object({
         limit: z.coerce.number().min(1).max(100).optional(),
@@ -72,22 +89,37 @@ export const routeDefinition = {
   },
   revokeUserSession: {
     controllerFn: () => revokeUserSession,
+    responseType: z.object({ success: z.boolean() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
         sessionId: z.string(),
       }),
     },
   },
   getUserAuthActivity: {
     controllerFn: () => getUserAuthActivity,
+    responseType: z.object({
+      records: z.array(
+        z.object({
+          id: z.number(),
+          userId: z.uuid(),
+          ipAddress: z.string().nullable(),
+          userAgent: z.string().nullable(),
+          activity: z.string(),
+          createdAt: z.string(),
+        }),
+      ),
+      hasMore: z.boolean(),
+      lastKey: z.number().nullable(),
+    }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
       }),
       query: z.object({
         limit: z.coerce.number().min(1).max(100).optional(),
@@ -97,80 +129,87 @@ export const routeDefinition = {
   },
   updateLoginConfiguration: {
     controllerFn: () => updateLoginConfiguration,
+    responseType: z.any(),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
       }),
       body: TeamLoginConfigRequestSchema,
     },
   },
   updateTeamMember: {
     controllerFn: () => updateTeamMember,
+    responseType: z.any(),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
-        userId: z.string().uuid(),
+        teamId: z.uuid(),
+        userId: z.uuid(),
       }),
       body: TeamMemberUpdateRequestSchema,
     },
   },
   updateTeamMemberStatusAndRole: {
     controllerFn: () => updateTeamMemberStatusAndRole,
+    responseType: z.any(),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
-        userId: z.string().uuid(),
+        teamId: z.uuid(),
+        userId: z.uuid(),
       }),
       body: TeamMemberStatusUpdateRequestSchema,
     },
   },
   getInvitations: {
     controllerFn: () => getInvitations,
+    responseType: z.array(z.any()),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
       }),
     },
   },
   createInvitation: {
     controllerFn: () => createInvitation,
+    responseType: z.array(z.any()),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
+        teamId: z.uuid(),
       }),
       body: TeamInvitationRequestSchema,
     },
   },
   resendInvitation: {
     controllerFn: () => resendInvitation,
+    responseType: z.array(z.any()),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
-        id: z.string().uuid(),
+        teamId: z.uuid(),
+        id: z.uuid(),
       }),
       body: TeamInvitationUpdateRequestSchema,
     },
   },
   cancelInvitation: {
     controllerFn: () => cancelInvitation,
+    responseType: z.array(z.any()),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
       params: z.object({
-        teamId: z.string().uuid(),
-        id: z.string().uuid(),
+        teamId: z.uuid(),
+        id: z.uuid(),
       }),
     },
   },
@@ -216,7 +255,6 @@ const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user },
 
 const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ params, body, user }, req, res) => {
   const { teamId } = params;
-  req.session.provider;
   const team = await teamService.updateTeam({ runningUserId: user.id, teamId, payload: body });
   sendJson(res, team);
 });
