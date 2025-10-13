@@ -31,6 +31,7 @@ import {
   sendInternalAccountDeletionEmail,
   sendPasswordReset,
 } from '@jetstream/email';
+import { UserProfileUiSchema } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import * as userDbService from '../db/user.db';
@@ -42,6 +43,7 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   getUserProfile: {
     controllerFn: () => getUserProfile,
+    responseType: UserProfileUiSchema,
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -49,6 +51,7 @@ export const routeDefinition = {
   },
   initPassword: {
     controllerFn: () => initPassword,
+    responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
       body: z.object({
         password: z.string().min(8).max(255),
@@ -66,6 +69,7 @@ export const routeDefinition = {
   },
   deletePassword: {
     controllerFn: () => deletePassword,
+    responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -73,6 +77,7 @@ export const routeDefinition = {
   },
   getFullUserProfile: {
     controllerFn: () => getFullUserProfile,
+    responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -80,6 +85,7 @@ export const routeDefinition = {
   },
   getSessions: {
     controllerFn: () => getSessions,
+    responseType: z.any(), // FIXME: need zod type for UserSessionAndExtTokensAndActivityWithLocation
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -87,6 +93,7 @@ export const routeDefinition = {
   },
   revokeSession: {
     controllerFn: () => revokeSession,
+    responseType: z.any(), // FIXME: need zod type for UserSessionAndExtTokensAndActivityWithLocation
     validators: {
       params: z.object({
         id: z.string().min(32).max(64),
@@ -100,6 +107,7 @@ export const routeDefinition = {
   },
   revokeAllSessions: {
     controllerFn: () => revokeAllSessions,
+    responseType: z.any(), // FIXME: need zod type for UserSessionAndExtTokensAndActivityWithLocation
     validators: {
       body: z
         .object({
@@ -112,6 +120,7 @@ export const routeDefinition = {
   },
   updateProfile: {
     controllerFn: () => updateProfile,
+    responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -128,6 +137,7 @@ export const routeDefinition = {
   },
   getUserLoginConfiguration: {
     controllerFn: () => getUserLoginConfiguration,
+    responseType: z.any(), // FIXME: need zod type
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -135,6 +145,7 @@ export const routeDefinition = {
   },
   getOtpQrCode: {
     controllerFn: () => getOtpQrCode,
+    responseType: z.any(), // FIXME: need zod type
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -142,6 +153,7 @@ export const routeDefinition = {
   },
   saveOtpAuthFactor: {
     controllerFn: () => saveOtpAuthFactor,
+    responseType: z.any(), // FIXME: need zod type authFactors
     validators: {
       body: z.object({
         code: z.string().min(6).max(6),
@@ -152,6 +164,7 @@ export const routeDefinition = {
   },
   toggleEnableDisableAuthFactor: {
     controllerFn: () => toggleEnableDisableAuthFactorRoute,
+    responseType: z.any(), // FIXME: need zod type authFactors
     validators: {
       params: z.object({
         type: z.enum(['2fa-otp', '2fa-email']),
@@ -163,6 +176,7 @@ export const routeDefinition = {
   },
   deleteAuthFactor: {
     controllerFn: () => deleteAuthFactorRoute,
+    responseType: z.any(), // FIXME: need zod type authFactors
     validators: {
       params: z.object({
         type: z.enum(['2fa-otp', '2fa-email']),
@@ -173,6 +187,7 @@ export const routeDefinition = {
   },
   unlinkIdentity: {
     controllerFn: () => unlinkIdentity,
+    responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -305,34 +320,34 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
 const getUserLoginConfiguration = createRoute(
   routeDefinition.getUserLoginConfiguration.validators,
   async ({ user, teamMembership }, req, res) => {
-    const loginConfiguration = await getLoginConfiguration({ teamId: teamMembership?.teamId, email: user.email }).then(
-      (response): LoginConfigurationUI => {
-        if (!response) {
-          return {
-            isPasswordAllowed: true,
-            isGoogleAllowed: true,
-            isSalesforceAllowed: true,
-            requireMfa: false,
-            allowIdentityLinking: true,
-            allowedMfaMethods: {
-              email: true,
-              otp: true,
-            },
-          };
-        }
+    const loginConfiguration = await getLoginConfiguration(
+      teamMembership?.teamId ? { teamId: teamMembership.teamId } : { email: user.email },
+    ).then((response): LoginConfigurationUI => {
+      if (!response) {
         return {
-          isPasswordAllowed: response.allowedProviders.has('credentials'),
-          isGoogleAllowed: response.allowedProviders.has('google'),
-          isSalesforceAllowed: response.allowedProviders.has('salesforce'),
-          requireMfa: response.requireMfa,
-          allowIdentityLinking: response.allowIdentityLinking,
+          isPasswordAllowed: true,
+          isGoogleAllowed: true,
+          isSalesforceAllowed: true,
+          requireMfa: false,
+          allowIdentityLinking: true,
           allowedMfaMethods: {
-            email: response.allowedMfaMethods.has('2fa-email'),
-            otp: response.allowedMfaMethods.has('2fa-otp'),
+            email: true,
+            otp: true,
           },
         };
-      },
-    );
+      }
+      return {
+        isPasswordAllowed: response.allowedProviders.has('credentials'),
+        isGoogleAllowed: response.allowedProviders.has('google'),
+        isSalesforceAllowed: response.allowedProviders.has('salesforce'),
+        requireMfa: response.requireMfa,
+        allowIdentityLinking: response.allowIdentityLinking,
+        allowedMfaMethods: {
+          email: response.allowedMfaMethods.has('2fa-email'),
+          otp: response.allowedMfaMethods.has('2fa-otp'),
+        },
+      };
+    });
     sendJson(res, loginConfiguration);
   },
 );

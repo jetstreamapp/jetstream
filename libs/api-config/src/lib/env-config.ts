@@ -96,7 +96,7 @@ const envSchema = z.object({
     })
     .nullish(),
   EXAMPLE_USER_PASSWORD: z.string().nullish(),
-  EXAMPLE_USER_FULL_PROFILE: z.record(z.any()).nullish(),
+  EXAMPLE_USER_FULL_PROFILE: z.record(z.string(), z.any()).nullish(),
   IS_LOCAL_DOCKER: booleanSchema,
   // SYSTEM
   NODE_ENV: z
@@ -135,7 +135,7 @@ const envSchema = z.object({
     .transform((val) => val || null),
   JETSTREAM_POSTGRES_DBURI: z.string(),
   JETSTREAM_SERVER_DOMAIN: z.string(),
-  JETSTREAM_SERVER_URL: z.string().url(),
+  JETSTREAM_SERVER_URL: z.url(),
   JETSTREAM_CLIENT_URL: z.string(),
   PRISMA_DEBUG: booleanSchema,
   COMETD_DEBUG: z.enum(['error', 'warn', 'info', 'debug']).optional(),
@@ -192,10 +192,10 @@ const envSchema = z.object({
   SFDC_API_VERSION: z.string().regex(/^[0-9]{2,4}\.[0-9]$/),
   SFDC_CONSUMER_SECRET: z.string().min(1),
   SFDC_CONSUMER_KEY: z.string().min(1),
-  SFDC_CALLBACK_URL: z.string().url(),
+  SFDC_CALLBACK_URL: z.url(),
   // Should be a base64-encoded 32-byte key (generate with: openssl rand -base64 32)
   SFDC_ENCRYPTION_KEY: z.string().min(44, {
-    message: 'SFDC_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
+    error: 'SFDC_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
   }),
   // Encryption performance tuning
   SFDC_ENCRYPTION_ITERATIONS: z
@@ -230,6 +230,12 @@ const envSchema = z.object({
   GEO_IP_API_PASSWORD: z.string().optional(),
   GEO_IP_API_HOSTNAME: z.string().optional(),
 
+  /**
+   * Basic auth for internal services
+   */
+  BASIC_AUTH_USERNAME: z.string().optional(),
+  BASIC_AUTH_PASSWORD: z.string().optional(),
+
   WEB_EXTENSION_ID_CHROME: z.string().optional().default(''),
   WEB_EXTENSION_ID_MOZILLA: z.string().optional().default(''),
   /**
@@ -260,7 +266,7 @@ const parseResults = envSchema.safeParse({
 
 if (!parseResults.success) {
   console.error(`❌ ${chalk.red('Error parsing environment variables:')}
-${chalk.yellow(JSON.stringify(parseResults.error.flatten().fieldErrors, null, 2))}
+${chalk.yellow(JSON.stringify(z.treeifyError(parseResults.error), null, 2))}
 `);
   process.exit(1);
 }

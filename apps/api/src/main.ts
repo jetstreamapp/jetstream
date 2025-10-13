@@ -24,6 +24,7 @@ import {
   desktopAppRoutes,
   desktopAssetsRoutes,
   oauthRoutes,
+  openApiRoutes,
   platformEventRoutes,
   redirectRoutes,
   staticAuthenticatedRoutes,
@@ -324,6 +325,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
   app.use('/web-extension', webExtensionRoutes);
   app.use('/desktop-app', desktopAppRoutes);
+  app.use('/openapi', openApiRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);

@@ -11,24 +11,28 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   createJob: {
     controllerFn: () => createJob,
+    responseType: z.any(),
     validators: {
       body: CreateJobRequestSchema,
     },
   },
   getJob: {
     controllerFn: () => getJob,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
     },
   },
   closeOrAbortJob: {
     controllerFn: () => closeOrAbortJob,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1), action: z.enum(['close', 'abort']).nullish() }),
     },
   },
   downloadResults: {
     controllerFn: () => downloadResults,
+    responseType: z.any().array(),
     validators: {
       params: z.object({
         jobId: z.string().min(1),
@@ -42,6 +46,7 @@ export const routeDefinition = {
   },
   downloadAllResults: {
     controllerFn: () => downloadAllResults,
+    responseType: z.any().array(),
     validators: {
       params: z.object({
         jobId: z.string().min(1),
@@ -60,6 +65,7 @@ export const routeDefinition = {
   },
   downloadResultsFile: {
     controllerFn: () => downloadResultsFile,
+    responseType: z.any(),
     validators: {
       params: z.object({
         jobId: z.string().min(1),
@@ -74,6 +80,7 @@ export const routeDefinition = {
   },
   addBatchToJob: {
     controllerFn: () => addBatchToJob,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
       body: z.any(),
@@ -84,6 +91,7 @@ export const routeDefinition = {
   },
   addBatchToJobWithBinaryAttachment: {
     controllerFn: () => addBatchToJobWithBinaryAttachment,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1), batchId: z.string().min(1) }),
       body: z.any(),

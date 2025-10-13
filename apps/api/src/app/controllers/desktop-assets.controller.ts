@@ -1,9 +1,15 @@
+import z from 'zod';
 import { getLatestDesktopVersion, PlatformArch, PlatformArchSchema } from '../services/desktop-asset.service';
 import { createRoute } from '../utils/route.utils';
 
 export const routeDefinition = {
   getDownloadLink: {
     controllerFn: () => getDownloadLink,
+    responseType: z.object({
+      version: z.string(),
+      filename: z.string(),
+      downloadUrl: z.string().url(),
+    }),
     validators: {
       params: PlatformArchSchema,
       hasSourceOrg: false,
@@ -11,6 +17,35 @@ export const routeDefinition = {
   },
   getAllDownloadLinks: {
     controllerFn: () => getAllDownloadLinks,
+    responseType: z.object({
+      windows: z
+        .object({
+          platform: z.literal('windows'),
+          arch: z.literal('x64'),
+          version: z.string(),
+          filename: z.string(),
+          downloadUrl: z.string().url(),
+        })
+        .nullable(),
+      macosX64: z
+        .object({
+          platform: z.literal('macos'),
+          arch: z.literal('x64'),
+          version: z.string(),
+          filename: z.string(),
+          downloadUrl: z.string().url(),
+        })
+        .nullable(),
+      macosArm64: z
+        .object({
+          platform: z.literal('macos'),
+          arch: z.literal('arm64'),
+          version: z.string(),
+          filename: z.string(),
+          downloadUrl: z.string().url(),
+        })
+        .nullable(),
+    }),
     validators: {
       hasSourceOrg: false,
     },

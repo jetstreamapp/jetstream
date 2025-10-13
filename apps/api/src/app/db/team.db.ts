@@ -229,7 +229,7 @@ export const checkTeamRole = async ({ teamId, userId, roles }: { teamId: string;
       where: {
         teamId,
         userId,
-        team: { status: TeamStatusSchema.Enum.ACTIVE },
+        team: { status: TeamStatusSchema.enum.ACTIVE },
         role: { in: roles },
         status: TEAM_MEMBER_STATUS_ACTIVE,
       },
@@ -766,7 +766,7 @@ export async function canAddBillableMember({
   const team = isString(teamIdOrTeam) ? await findByIdWithBillingInfo_UNSAFE({ teamId: teamIdOrTeam }) : teamIdOrTeam;
   const teamId = team.id;
 
-  if (team.billingStatus === TeamBillingStatusSchema.Enum.PAST_DUE) {
+  if (team.billingStatus === TeamBillingStatusSchema.enum.PAST_DUE) {
     return {
       canAdd: false,
       reason: `Your account is past-due. New users cannot be added, contact support for assistance.`,

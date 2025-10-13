@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { FieldErrors, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import { PasswordSchema } from '../../utils/types';
@@ -20,13 +20,26 @@ const LoginSchema = z.object({
   action: z.literal('login'),
   csrfToken: z.string(),
   captchaToken: z.string(),
-  email: z.string().email({ message: 'A valid email address is required' }).min(5).max(255).trim(),
+  email: z
+    .email({
+      error: 'A valid email address is required',
+    })
+    .min(5)
+    .max(255)
+    .trim(),
   password: PasswordSchema,
 });
 
 const RegisterSchema = LoginSchema.omit({ action: true }).extend({
   action: z.literal('register'),
-  name: z.string().min(1, { message: 'Name is required' }).max(255, { message: 'Name must be at most 255 characters' }),
+  name: z
+    .string()
+    .min(1, {
+      error: 'Name is required',
+    })
+    .max(255, {
+      error: 'Name must be at most 255 characters',
+    }),
   confirmPassword: PasswordSchema,
 });
 
@@ -34,7 +47,7 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
   if (data.action === 'register') {
     if (data.password !== data.confirmPassword) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Passwords do not match',
         path: ['confirmPassword'],
       });
@@ -42,6 +55,8 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
   }
 });
 
+type LoginForm = z.infer<typeof LoginSchema>;
+type RegisterForm = z.infer<typeof RegisterSchema>;
 type Form = z.infer<typeof FormSchema>;
 
 interface LoginOrSignUpProps {
@@ -240,7 +255,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             {action === 'register' && (
               <Input
                 label="Full Name"
-                error={errors?.name?.message}
+                error={(errors as FieldErrors<RegisterForm>)?.name?.message}
                 inputProps={{
                   type: 'text',
                   required: true,
@@ -274,7 +289,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             {action === 'register' && (
               <Input
                 label="Confirm Password"
-                error={errors?.confirmPassword?.message}
+                error={(errors as FieldErrors<RegisterForm>)?.confirmPassword?.message}
                 inputProps={{
                   type: showPasswordActive ? 'text' : 'password',
                   required: true,

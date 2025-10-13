@@ -201,7 +201,7 @@ export const hasPaidPlanState = atom((get) => {
   if (userProfile.subscriptions.length) {
     return !!userProfile.subscriptions.find((sub) => sub.status === 'ACTIVE' || sub.status === 'TRIALING');
   }
-  return !!userProfile.teamMembership?.team && userProfile.teamMembership?.team?.billingStatus !== TeamBillingStatusSchema.Enum.PAST_DUE;
+  return !!userProfile.teamMembership?.team && userProfile.teamMembership?.team?.billingStatus !== TeamBillingStatusSchema.enum.PAST_DUE;
 });
 
 export const googleDriveAccessState = atom((get) => {

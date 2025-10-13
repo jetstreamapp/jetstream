@@ -24,6 +24,7 @@ export const routeDefinition = {
   },
   logout: {
     controllerFn: () => logout,
+    responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
       body: z.object({
         deviceId: z.string(),
@@ -34,6 +35,7 @@ export const routeDefinition = {
   },
   initSession: {
     controllerFn: () => initSession,
+    responseType: z.object({ accessToken: z.string() }),
     validators: {
       query: z.object({
         deviceId: z.string().uuid(),
@@ -43,6 +45,7 @@ export const routeDefinition = {
   },
   verifyTokens: {
     controllerFn: () => verifyTokens,
+    responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
       body: z.object({
         deviceId: z.string(),
@@ -53,18 +56,21 @@ export const routeDefinition = {
   },
   dataSyncPull: {
     controllerFn: () => dataSyncPull,
+    responseType: z.any(),
     validators: {
       ...dataSyncController.pull.validators,
     },
   },
   dataSyncPush: {
     controllerFn: () => dataSyncPush,
+    responseType: z.any(),
     validators: {
       ...dataSyncController.push.validators,
     },
   },
   notifications: {
     controllerFn: () => notifications,
+    responseType: z.any(),
     validators: {
       query: z.object({ os: z.string(), version: z.string(), isPackaged: z.union([z.string(), z.boolean()]).optional().default(true) }),
       hasSourceOrg: false,

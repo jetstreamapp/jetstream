@@ -10,12 +10,14 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   getFrontdoorLoginUrl: {
     controllerFn: () => getFrontdoorLoginUrl,
+    responseType: z.any(),
     validators: {
       query: z.object({ returnUrl: z.string().min(1) }),
     },
   },
   streamFileDownload: {
     controllerFn: () => streamFileDownload,
+    responseType: z.any(),
     validators: {
       query: z.object({
         url: z.string().min(1),
@@ -24,12 +26,14 @@ export const routeDefinition = {
   },
   salesforceRequest: {
     controllerFn: () => salesforceRequest,
+    responseType: z.any(),
     validators: {
       body: SalesforceApiRequestSchema,
     },
   },
   salesforceRequestManual: {
     controllerFn: () => salesforceRequestManual,
+    responseType: z.any(),
     validators: {
       body: SalesforceRequestManualRequestSchema,
     },

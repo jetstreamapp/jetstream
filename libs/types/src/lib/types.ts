@@ -130,11 +130,11 @@ export const UserProfileUiSchema = z.object({
   emailVerified: z.boolean().default(false),
   picture: z.string().nullish(),
   preferences: PreferencesSchema.nullable()
-    .default({})
+    .prefault({})
     .transform((preferences) => (!preferences ? PreferencesSchema.parse({}) : preferences)),
   billingAccount: z.object({ customerId: z.string() }).nullish(),
   entitlements: EntitlementsSchema.nullable()
-    .default({})
+    .prefault({})
     .transform((entitlement) => (!entitlement ? EntitlementsSchema.parse({}) : entitlement)),
   subscriptions: z
     .array(

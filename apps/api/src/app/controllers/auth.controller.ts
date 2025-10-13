@@ -40,7 +40,14 @@ import {
   verify2faTotpOrThrow,
   verifyCSRFFromRequestOrThrow,
 } from '@jetstream/auth/server';
-import { OauthProviderType, OauthProviderTypeSchema, Provider, ProviderKeysSchema, UserProfileSession } from '@jetstream/auth/types';
+import {
+  OauthProviderType,
+  OauthProviderTypeSchema,
+  Provider,
+  ProviderKeysSchema,
+  ProvidersSchema,
+  UserProfileSession,
+} from '@jetstream/auth/types';
 import {
   sendAuthenticationChangeConfirmation,
   sendEmailVerification,
@@ -65,19 +72,30 @@ export const routeDefinition = {
   },
   getProviders: {
     controllerFn: () => getProviders,
+    responseType: ProvidersSchema,
     validators: {
       hasSourceOrg: false,
     },
   },
   getCsrfToken: {
     controllerFn: () => getCsrfToken,
+    responseType: z.object({ csrfToken: z.string() }),
     validators: {
-      query: z.record(z.any()),
+      query: z.object().loose(),
       hasSourceOrg: false,
     },
   },
   getSession: {
     controllerFn: () => getSession,
+    responseType: z.object({
+      isLoggedIn: z.boolean(),
+      email: z.email().nullable(),
+      pendingVerifications: z
+        .array(z.enum(['email', '2fa-otp', '2fa-email']))
+        .nullable()
+        .or(z.literal(false)),
+      isVerificationExpired: z.boolean(),
+    }),
     validators: {
       hasSourceOrg: false,
     },
@@ -93,8 +111,9 @@ export const routeDefinition = {
   },
   callback: {
     controllerFn: () => callback,
+    responseType: z.object({ error: z.boolean(), redirect: z.string() }).nullable(),
     validators: {
-      query: z.record(z.any()),
+      query: z.object({ returnUrl: z.string().optional() }).loose(),
       params: z.object({ provider: ProviderKeysSchema }),
       body: z.union([
         z.discriminatedUnion('action', [
@@ -102,14 +121,14 @@ export const routeDefinition = {
             action: z.literal('login'),
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
-            email: z.string().email().min(5).max(255).toLowerCase(),
+            email: z.email().max(255).toLowerCase(),
             password: z.string().min(8).max(255),
           }),
           z.object({
             action: z.literal('register'),
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
-            email: z.string().email().min(5).max(255).toLowerCase(),
+            email: z.email().max(255).toLowerCase(),
             name: z.string().min(1).max(255).trim(),
             password: z.string().min(8).max(255),
           }),
@@ -121,6 +140,7 @@ export const routeDefinition = {
   },
   verification: {
     controllerFn: () => verification,
+    responseType: z.object({ error: z.boolean(), redirect: z.string() }).nullable(),
     validators: {
       body: z.object({
         csrfToken: z.string(),
@@ -147,6 +167,7 @@ export const routeDefinition = {
   },
   resendVerification: {
     controllerFn: () => resendVerification,
+    responseType: z.object({ error: z.boolean() }).nullable(),
     validators: {
       body: z.object({ captchaToken: z.string().nullish(), csrfToken: z.string(), type: z.enum(['email', '2fa-email']) }),
       hasSourceOrg: false,
@@ -154,6 +175,7 @@ export const routeDefinition = {
   },
   requestPasswordReset: {
     controllerFn: () => requestPasswordReset,
+    responseType: z.object({ error: z.boolean() }).nullable(),
     validators: {
       body: z.object({ captchaToken: z.string().nullish(), email: z.string().toLowerCase(), csrfToken: z.string() }),
       hasSourceOrg: false,
@@ -161,9 +183,10 @@ export const routeDefinition = {
   },
   validatePasswordReset: {
     controllerFn: () => validatePasswordReset,
+    responseType: z.object({ error: z.boolean() }).nullable(),
     validators: {
       body: z.object({
-        email: z.string().email().toLowerCase(),
+        email: z.email().toLowerCase(),
         token: z.string(),
         password: z.string(),
         csrfToken: z.string(),
@@ -174,12 +197,14 @@ export const routeDefinition = {
   },
   getOtpEnrollmentData: {
     controllerFn: () => getOtpEnrollmentData,
+    responseType: z.object({ secret: z.string(), secretToken: z.string(), imageUri: z.string(), uri: z.string() }),
     validators: {
       hasSourceOrg: false,
     },
   },
   enrollOtpFactor: {
     controllerFn: () => enrollOtpFactor,
+    responseType: z.object({ error: z.boolean(), redirectUrl: z.string() }).nullable(),
     validators: {
       body: z.object({
         code: z.string().min(6).max(6),
@@ -362,7 +387,7 @@ const callback = createRoute(
         // oauth flow
         const { userInfo } = await validateCallback(
           provider.provider as OauthProviderType,
-          new URLSearchParams(query),
+          new URLSearchParams(query as Record<string, string>),
           cookies[pkceCodeVerifier.name],
           cookies[nonce.name],
         );
@@ -418,7 +443,7 @@ const callback = createRoute(
             method: provider.provider.toUpperCase(),
             success: true,
           });
-          redirect(res, cookies[returnUrl.name] || `${ENV.JETSTREAM_CLIENT_URL}/profile`);
+          redirect(res, returnUrl || `${ENV.JETSTREAM_CLIENT_URL}/profile`);
           return;
         }
 
@@ -812,7 +837,7 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
 });
 
 const verifyEmailViaLink = createRoute(
-  routeDefinition.verification.validators,
+  routeDefinition.verifyEmailViaLink.validators,
   async ({ query, setCookie, clearCookie }, req, res, next) => {
     try {
       if (!req.session.user) {

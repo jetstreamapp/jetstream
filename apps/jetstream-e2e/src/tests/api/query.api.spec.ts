@@ -28,7 +28,7 @@ test.describe('API - Query', () => {
     const errorBody = await invalidParam.json();
     expect('error' in errorBody).toBeTruthy();
     expect('message' in errorBody).toBeTruthy();
-    expect(errorBody.message.includes(`'isTooling' is invalid, Invalid enum value`)).toBeTruthy();
+    expect(errorBody.message.includes(`'isTooling' Invalid option`)).toBeTruthy();
   });
 
   test('describe sobject', async ({ apiRequestUtils }) => {

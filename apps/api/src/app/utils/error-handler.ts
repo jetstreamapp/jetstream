@@ -1,7 +1,7 @@
 import { logger } from '@jetstream/api-config';
 import { isPrismaError } from '@jetstream/prisma';
 import { ApiRequestError } from '@jetstream/salesforce-api';
-import { ZodError } from 'zod';
+import z, { ZodError } from 'zod';
 
 function initStatus(data: unknown, fallback: number) {
   if (data && typeof data === 'object' && 'status' in data && typeof data.status === 'number') {
@@ -33,21 +33,12 @@ export class UserFacingError extends Error {
   readonly additionalData?: any;
   constructor(message: string | Error | ZodError, additionalData?: any) {
     if (message instanceof ZodError) {
-      const errorDetails = Object.values(
-        message.flatten((issue) => ({
-          message: `Data Validation error: '${issue.path.join('.')}' is invalid, ${issue.message}`,
-          errorCode: issue.code,
-        })).fieldErrors,
-      );
-
-      const formattedMessage = errorDetails
-        .flatMap((item) => item)
-        .map((item) => item?.message)
-        .filter(Boolean)
-        .join(', ');
-
+      const formattedMessage = `Data validation error: ${Object.entries(z.flattenError(message).fieldErrors)
+        .map(([field, issue]) => `'${field}' ${issue}.`)
+        .join(' ')}`;
       super(formattedMessage);
-      this.additionalData = message.errors;
+
+      this.additionalData = z.treeifyError(message);
       this.name = 'Validation Error';
       this.stack = message.stack;
     } else if (message instanceof Error) {

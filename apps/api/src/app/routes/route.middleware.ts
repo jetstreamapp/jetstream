@@ -24,6 +24,31 @@ import { checkUserEntitlement } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { AuthenticationError, NotFoundError, UserFacingError } from '../utils/error-handler';
 
+export function basicAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (typeof authHeader !== 'string') {
+      return res.status(401).send('Unauthorized');
+    }
+    const [type, token] = authHeader.split(' ');
+    if (type !== 'Basic') {
+      return res.status(401).send('Unauthorized');
+    }
+    if (!ENV.BASIC_AUTH_USERNAME || !ENV.BASIC_AUTH_PASSWORD) {
+      logger.error('BASIC_AUTH_USERNAME/BASIC_AUTH_PASSWORD environment variables are not set');
+      return res.status(401).send('Unauthorized');
+    }
+    const [username, password] = Buffer.from(token, 'base64').toString().split(':');
+    if (username !== ENV.BASIC_AUTH_USERNAME || password !== ENV.BASIC_AUTH_PASSWORD) {
+      return res.status(401).send('Unauthorized');
+    }
+    next();
+  } catch {
+    res.header('WWW-Authenticate', 'Basic realm="Jetstream OpenAPI"');
+    return res.status(401).send('Unauthorized');
+  }
+}
+
 export function addContextMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
   res.locals.requestId = res.locals.requestId || req.get('rndr-id') || uuid();
   const clientReqId = req.header(HTTP.HEADERS.X_CLIENT_REQUEST_ID);

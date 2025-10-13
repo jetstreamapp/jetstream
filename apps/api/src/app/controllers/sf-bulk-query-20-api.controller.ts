@@ -8,12 +8,14 @@ import { createRoute } from '../utils/route.utils';
 export const routeDefinition = {
   createJob: {
     controllerFn: () => createJob,
+    responseType: z.any(),
     validators: {
       body: CreateQueryJobRequestSchema,
     },
   },
   getJobs: {
     controllerFn: () => getJobs,
+    responseType: z.any(),
     validators: {
       query: z.object({
         isPkChunkingEnabled: BooleanQueryParamSchema,
@@ -25,24 +27,28 @@ export const routeDefinition = {
   },
   getJob: {
     controllerFn: () => getJob,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
     },
   },
   abortJob: {
     controllerFn: () => abortJob,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
     },
   },
   deleteJob: {
     controllerFn: () => deleteJob,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
     },
   },
   downloadResults: {
     controllerFn: () => downloadResults,
+    responseType: z.any(),
     validators: {
       params: z.object({ jobId: z.string().min(1) }),
       query: z.object({

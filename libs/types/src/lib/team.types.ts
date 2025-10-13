@@ -141,7 +141,7 @@ export const TeamSubscriptionSchema = z.object({
 
 export const TeamInviteUserFacingSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   role: TeamMemberRoleSchema,
   features: FeatureSchema.array(),
   expiresAt: DateStringSchema,
@@ -172,7 +172,7 @@ export const TeamUserFacingSchema = z.object({
 });
 
 export const TeamInvitationRequestSchema = z.object({
-  email: z.string().toLowerCase().email(),
+  email: z.email().toLowerCase(),
   role: TeamMemberRoleSchema.optional().default('MEMBER'),
   features: FeatureSchema.array().optional().default(['ALL']),
 });

@@ -114,6 +114,7 @@
     "dep-graph": "nx dep-graph"
   },
   "private": true,
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "devDependencies": {
     "@babel/core": "^7.24.4",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
@@ -274,7 +275,7 @@
     "@fullhuman/postcss-purgecss": "^2.2.0",
     "@grpc/grpc-js": "^1.10.6",
     "@heroicons/react": "^2.2.0",
-    "@hookform/resolvers": "^3.9.0",
+    "@hookform/resolvers": "^5.2.2",
     "@jetstreamapp/soql-parser-js": "^6.2.4",
     "@marsidev/react-turnstile": "^1.0.2",
     "@mdx-js/react": "^1.6.21",
@@ -366,7 +367,7 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.1.0",
     "react-error-boundary": "^6.0.0",
-    "react-hook-form": "^7.53.0",
+    "react-hook-form": "^7.65.0",
     "react-modal-promise": "^1.0.2",
     "react-resize-detector": "^12.1.0",
     "react-router-dom": "6.11.2",
@@ -389,6 +390,7 @@
     "write-file-atomic": "^6.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "xmlbuilder2": "^3.1.1",
-    "zod": "^3.23.4"
+    "zod": "^4.1.12",
+    "zod-openapi": "^5.4.3"
   }
 }

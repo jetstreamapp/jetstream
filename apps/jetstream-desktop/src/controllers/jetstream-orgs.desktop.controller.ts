@@ -23,7 +23,7 @@ export const routeDefinition = {
     controllerFn: () => updateOrganization,
     validators: {
       params: z.object({
-        id: z.string().uuid(),
+        id: z.uuid(),
       }),
       body: z.object({
         name: z.string(),
@@ -36,7 +36,7 @@ export const routeDefinition = {
     controllerFn: () => deleteOrganization,
     validators: {
       params: z.object({
-        id: z.string().uuid(),
+        id: z.uuid(),
       }),
       hasSourceOrg: false,
     },
