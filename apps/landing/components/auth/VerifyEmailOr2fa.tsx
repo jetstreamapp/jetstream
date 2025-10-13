@@ -16,6 +16,7 @@ import { Input } from '../form/Input';
 const FormSchema = z.object({
   csrfToken: z.string(),
   code: z.string().min(6).max(6),
+  captchaToken: z.string(),
   type: z.enum(['email', '2fa-otp', '2fa-email']),
   rememberDevice: z.boolean().optional().default(false),
 });

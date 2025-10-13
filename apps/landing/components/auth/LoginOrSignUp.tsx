@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { FieldErrors, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
 import { PasswordSchema } from '../../utils/types';
@@ -55,6 +55,8 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
   }
 });
 
+type LoginForm = z.infer<typeof LoginSchema>;
+type RegisterForm = z.infer<typeof RegisterSchema>;
 type Form = z.infer<typeof FormSchema>;
 
 interface LoginOrSignUpProps {
@@ -253,7 +255,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             {action === 'register' && (
               <Input
                 label="Full Name"
-                error={errors?.name?.message}
+                error={(errors as FieldErrors<RegisterForm>)?.name?.message}
                 inputProps={{
                   type: 'text',
                   required: true,
@@ -287,7 +289,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
             {action === 'register' && (
               <Input
                 label="Confirm Password"
-                error={errors?.confirmPassword?.message}
+                error={(errors as FieldErrors<RegisterForm>)?.confirmPassword?.message}
                 inputProps={{
                   type: showPasswordActive ? 'text' : 'password',
                   required: true,
