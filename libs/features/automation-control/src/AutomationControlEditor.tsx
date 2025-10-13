@@ -75,6 +75,7 @@ export const AutomationControlEditor = () => {
     updateIsActiveFlag,
     toggleAll,
     resetChanges,
+    tableRowsChange,
     // restoreSnapshot,
     dirtyCount,
   } = useAutomationControlData({
@@ -394,6 +395,7 @@ export const AutomationControlEditor = () => {
                 quickFilterText={quickFilterText}
                 toggleRowExpand={toggleRowExpand}
                 updateIsActiveFlag={updateIsActiveFlag}
+                onSortedAndFilteredRowsChange={tableRowsChange}
               />
             </AutoFullHeightContainer>
           </Grid>

@@ -32,10 +32,23 @@ export interface AutomationControlEditorTableProps {
   quickFilterText?: string | null;
   toggleRowExpand: (row: TableRowOrItemOrChild, value: boolean) => void;
   updateIsActiveFlag: (row: TableRowOrItemOrChild, value: boolean) => void;
+  onSortedAndFilteredRowsChange: (rows: readonly TableRowOrItemOrChild[]) => void;
 }
 
 export const AutomationControlEditorTable = forwardRef<any, AutomationControlEditorTableProps>(
-  ({ serverUrl, skipFrontdoorLogin, selectedOrg, rows, quickFilterText, toggleRowExpand, updateIsActiveFlag }, ref) => {
+  (
+    {
+      serverUrl,
+      skipFrontdoorLogin,
+      selectedOrg,
+      rows,
+      quickFilterText,
+      toggleRowExpand,
+      updateIsActiveFlag,
+      onSortedAndFilteredRowsChange,
+    },
+    ref,
+  ) => {
     const columns = useMemo(() => {
       return [
         {
@@ -109,6 +122,7 @@ export const AutomationControlEditorTable = forwardRef<any, AutomationControlEdi
           getRowKey={getRowId}
           ignoreRowInSetFilter={isTableRow}
           rowAlwaysVisible={isTableRow}
+          onSortedAndFilteredRowsChange={onSortedAndFilteredRowsChange}
         />
       </div>
     );
