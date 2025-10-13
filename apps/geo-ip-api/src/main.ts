@@ -134,7 +134,7 @@ app.use((err: Error | ZodError, req: express.Request, res: express.Response, nex
     res.json({
       success: false,
       message: 'Validation error',
-      details: err.errors,
+      details: z.treeifyError(err),
     });
     return;
   }
