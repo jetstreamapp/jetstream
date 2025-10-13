@@ -1,4 +1,5 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { checkOrgHealth } from '@jetstream/shared/data';
 import { DeployMetadataTableRow, DeployOptions, DeployResult, ListMetadataResult, SalesforceOrgUi } from '@jetstream/types';
 import { FileDownloadModal, Icon } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
@@ -21,10 +22,11 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [deployStatusModalOpen, setDeployStatusModalOpen] = useState(false);
-  const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState<boolean>(false);
+  const [downloadResultsModalOpen, setDownloadResultsModalOpen] = useState(false);
   const [deployResultsData, setDeployResultsData] = useState<Record<string, any[]>>();
 
   const [destinationOrg, setDestinationOrg] = useState<SalesforceOrgUi>();
+  const [destinationOrgConnectionError, setDestinationOrgConnectionError] = useState(false);
   const [deployMetadataOptions, setDeployMetadataOptions] = useState<DeployOptions | null>(null);
 
   const [selectedMetadata, setSelectedMetadata] = useState<Record<string, ListMetadataResult[]>>();
@@ -39,7 +41,15 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
     setDeployMetadataOptions(null);
   }
 
-  function handleDeployMetadata(destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) {
+  async function handleDeployMetadata(destinationOrg: SalesforceOrgUi, deployOptions: DeployOptions) {
+    // Ensure destination org is valid before going through the process
+    try {
+      setDestinationOrgConnectionError(false);
+      await checkOrgHealth(destinationOrg);
+    } catch {
+      setDestinationOrgConnectionError(true);
+      return;
+    }
     setDestinationOrg(destinationOrg);
     setDeployMetadataOptions(deployOptions);
     setConfigModalOpen(false);
@@ -75,6 +85,7 @@ export const DeployMetadataToOrg = ({ selectedOrg, loading, selectedRows }: Depl
           initialOptions={deployMetadataOptions}
           initialSelectedDestinationOrg={destinationOrg}
           selectedMetadata={selectedMetadata}
+          destinationOrgConnectionError={destinationOrgConnectionError}
           onClose={handleCloseConfigModal}
           onDeploy={handleDeployMetadata}
         />

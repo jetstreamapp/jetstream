@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { DeployOptions, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Grid, GridCol, Icon, Modal } from '@jetstream/ui';
+import { Grid, GridCol, Icon, Modal, ScopedNotification } from '@jetstream/ui';
 import { OrgLabelBadge, OrgsCombobox } from '@jetstream/ui-core';
 import { salesforceOrgsOmitSelectedState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
@@ -15,6 +15,7 @@ export interface DeployMetadataToOrgConfigModalProps {
   initialOptions?: Maybe<DeployOptions>;
   initialSelectedDestinationOrg?: SalesforceOrgUi;
   selectedMetadata: Record<string, ListMetadataResult[]>;
+  destinationOrgConnectionError: boolean;
   lockDestinationOrg?: boolean;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
@@ -26,6 +27,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   initialOptions,
   initialSelectedDestinationOrg,
   selectedMetadata,
+  destinationOrgConnectionError,
   lockDestinationOrg = false,
   onSelection,
   onClose,
@@ -104,6 +106,9 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
       onClose={onClose}
     >
       <div className="slds-is-relative" ref={modalBodyRef}>
+        {(!!destinationOrg?.connectionError || destinationOrgConnectionError) && (
+          <ScopedNotification theme="error">The destination org connection has expired. Please reconnect to continue.</ScopedNotification>
+        )}
         <Grid>
           <GridCol className="slds-border_right slds-p-right_x-small">
             <div className="slds-is-relative">
