@@ -142,7 +142,6 @@ export const routeDefinition = {
     controllerFn: () => verification,
     responseType: z.object({ error: z.boolean(), redirect: z.string() }).nullable(),
     validators: {
-      query: z.object({ code: z.string() }),
       body: z.object({
         csrfToken: z.string(),
         captchaToken: z.string().nullish(),
@@ -838,7 +837,7 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
 });
 
 const verifyEmailViaLink = createRoute(
-  routeDefinition.verification.validators,
+  routeDefinition.verifyEmailViaLink.validators,
   async ({ query, setCookie, clearCookie }, req, res, next) => {
     try {
       if (!req.session.user) {
