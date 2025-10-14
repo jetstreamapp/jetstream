@@ -15,7 +15,7 @@ export interface DeployMetadataToOrgConfigModalProps {
   initialOptions?: Maybe<DeployOptions>;
   initialSelectedDestinationOrg?: SalesforceOrgUi;
   selectedMetadata: Record<string, ListMetadataResult[]>;
-  destinationOrgConnectionError: boolean;
+  destinationOrgConnectionError?: boolean;
   lockDestinationOrg?: boolean;
   onSelection?: (deployOptions: DeployOptions) => void;
   onClose: () => void;
@@ -27,7 +27,7 @@ export const DeployMetadataToOrgConfigModal: FunctionComponent<DeployMetadataToO
   initialOptions,
   initialSelectedDestinationOrg,
   selectedMetadata,
-  destinationOrgConnectionError,
+  destinationOrgConnectionError = false,
   lockDestinationOrg = false,
   onSelection,
   onClose,
