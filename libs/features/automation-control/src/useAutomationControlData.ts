@@ -53,9 +53,9 @@ interface State {
   data: StateData;
   /** These are the only data points that are updated over time */
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
-  /** Rows that have been fetched so far */
+  /** All rows fetched from the backend, regardless of filtering or UI state */
   visibleRows: (TableRow | TableRowItem | TableRowItemChild)[];
-  /** Rows that are visible in the table */
+  /** Rows currently displayed in the UI table (filtered subset of visibleRows) */
   tableRows: readonly TableRowOrItemOrChild[];
   /** allows accessing and changing data without iteration */
   rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>;
@@ -71,6 +71,114 @@ function isDirty(row: TableRow | TableRowItem | TableRowItemChild) {
     return row.isActive !== row.isActiveInitialState;
   }
   return false;
+}
+
+/**
+ * Toggles a parent row (TableRowItem) and its children to the specified value.
+ * For flows/process builders with versions (children), handles enabling the max visible version.
+ */
+function toggleParentRow(
+  row: TableRowItem,
+  value: boolean,
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>,
+  tableRows: readonly TableRowOrItemOrChild[],
+) {
+  const key = row.key;
+  const fullParentRow = rowsByKey[key] as TableRowItem;
+  rowsByKey[key] = { ...fullParentRow, isActive: value };
+
+  // Handle flows or process builders (only ones with children/versions)
+  if (Array.isArray(fullParentRow.children) && fullParentRow.children.length > 0) {
+    if (value) {
+      // ENABLE: Find the max version among VISIBLE children in the table
+      const visibleChildrenKeys = new Set(
+        tableRows.filter((r) => isTableRowChild(r) && r.parentKey === key).map((r) => r.key),
+      );
+
+      // Get all visible children from the full children list
+      const visibleChildren = fullParentRow.children.filter((child) => visibleChildrenKeys.has(child.key));
+
+      // Set all children to false initially
+      fullParentRow.children.forEach((child) => {
+        rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+      });
+
+      // If there are visible children, find and enable the max version among them
+      if (visibleChildren.length > 0) {
+        const maxVisibleVersion = visibleChildren.reduce((maxRow: TableRowItemChild, child) => {
+          if (!maxRow) {
+            return child;
+          }
+          return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
+        }, visibleChildren[0]);
+
+        // Enable the max visible version
+        rowsByKey[maxVisibleVersion.key] = { ...rowsByKey[maxVisibleVersion.key], isActive: true };
+        (rowsByKey[key] as TableRowItem).activeVersionNumber = maxVisibleVersion.record.VersionNumber;
+      } else {
+        // No visible children, so no active version
+        (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
+      }
+    } else {
+      // DISABLE: Set all children to disabled (even non-visible ones)
+      fullParentRow.children.forEach((child) => {
+        rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+      });
+      (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
+    }
+  }
+}
+
+/**
+ * Toggles a child row (TableRowItemChild) to the specified value.
+ * When enabling, disables all siblings and enables the parent.
+ * When disabling, checks if parent should also be disabled.
+ */
+function toggleChildRow(
+  row: TableRowItemChild,
+  value: boolean,
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>,
+  allRows: (TableRow | TableRowItem | TableRowItemChild)[],
+) {
+  rowsByKey[row.key] = { ...rowsByKey[row.key], isActive: value };
+
+  const parentRow = rowsByKey[row.parentKey] as TableRowItem;
+  if (!parentRow) {
+    return;
+  }
+
+  // Get all children for this parent
+  const allChildren = allRows.filter((r) => isTableRowChild(r) && r.parentKey === row.parentKey) as TableRowItemChild[];
+
+  if (value) {
+    // ENABLE: Disable all siblings, then enable only this one
+    allChildren.forEach((child) => {
+      if (child.key !== row.key) {
+        rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+      }
+    });
+    // Update parent to reflect the active child
+    rowsByKey[row.parentKey] = { ...parentRow, isActive: true };
+    (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = row.record.VersionNumber;
+  } else {
+    // DISABLE: Check if any siblings are still active after disabling this one
+    const updatedChildren = allChildren.map((child) =>
+      child.key === row.key ? { ...child, isActive: false } : rowsByKey[child.key],
+    ) as TableRowItemChild[];
+    const anyActiveChild = updatedChildren.some((child) => child.isActive);
+
+    if (!anyActiveChild) {
+      // No active children, disable parent
+      rowsByKey[row.parentKey] = { ...parentRow, isActive: false };
+      (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = null;
+    } else {
+      // Some child is still active, update active version number
+      const activeChild = updatedChildren.find((child) => child.isActive);
+      if (activeChild) {
+        (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = activeChild.record.VersionNumber;
+      }
+    }
+  }
 }
 
 type MetadataRecordType =
@@ -249,97 +357,36 @@ function reducer(state: State, action: Action): State {
       const processedParents = new Set<string>();
 
       state.tableRows.forEach((row) => {
-        const key = row.key;
         if (isTableRowItem(row)) {
-          // Get the full parent row from rowsByKey to access all children
-          const fullParentRow = rowsByKey[key] as TableRowItem;
-          rowsByKey[key] = { ...fullParentRow, isActive: action.payload.value };
-          processedParents.add(key);
-
-          // see if flow or process builder (only ones with children/versions)
-          if (Array.isArray(fullParentRow.children) && fullParentRow.children.length > 0) {
-            if (action.payload.value) {
-              // ENABLE: Find the max version among VISIBLE children in the table
-              const visibleChildrenKeys = new Set(
-                state.tableRows.filter((r) => isTableRowChild(r) && r.parentKey === key).map((r) => r.key),
-              );
-
-              // Get all visible children from the full children list
-              const visibleChildren = fullParentRow.children.filter((child) => visibleChildrenKeys.has(child.key));
-
-              // Set all children to false initially
-              fullParentRow.children.forEach((child) => {
-                rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
-              });
-
-              // If there are visible children, find and enable the max version among them
-              if (visibleChildren.length > 0) {
-                const maxVisibleVersion = visibleChildren.reduce((maxRow: TableRowItemChild, child) => {
-                  if (!maxRow) {
-                    return child;
-                  }
-                  return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
-                }, visibleChildren[0]);
-
-                // Enable the max visible version
-                rowsByKey[maxVisibleVersion.key] = { ...rowsByKey[maxVisibleVersion.key], isActive: true };
-                (rowsByKey[key] as TableRowItem).activeVersionNumber = maxVisibleVersion.record.VersionNumber;
-              } else {
-                // No visible children, so no active version
-                (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
-              }
-            } else {
-              // DISABLE: Set all children to disabled (even non-visible ones)
-              fullParentRow.children.forEach((child) => {
-                rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
-              });
-              (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
-            }
-          }
+          toggleParentRow(row, action.payload.value, rowsByKey, state.tableRows);
+          processedParents.add(row.key);
         } else if (isTableRowChild(row)) {
           // Only process child rows if their parent wasn't already processed
           if (!processedParents.has(row.parentKey)) {
-            // Parent row is not visible in table, so toggle the child directly
-            rowsByKey[row.key] = { ...rowsByKey[row.key], isActive: action.payload.value };
+            // Mark parent as processed to avoid processing siblings multiple times
+            processedParents.add(row.parentKey);
 
-            const parentRow = rowsByKey[row.parentKey] as TableRowItem;
-            if (parentRow) {
-              // Get all children for this parent
-              const allChildren = state.rows.filter((r) => isTableRowChild(r) && r.parentKey === row.parentKey) as TableRowItemChild[];
+            // Get all visible child rows for this parent from the table
+            const visibleSiblings = state.tableRows.filter(
+              (r) => isTableRowChild(r) && r.parentKey === row.parentKey
+            ) as TableRowItemChild[];
 
-              if (action.payload.value) {
-                // ENABLE: Disable all siblings, then enable only this one
-                allChildren.forEach((child) => {
-                  if (child.key !== row.key) {
-                    rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
-                  }
-                });
-                // Update parent to reflect the active child
-                rowsByKey[row.parentKey] = { ...parentRow, isActive: true };
-                (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = row.record.VersionNumber;
-              } else {
-                // DISABLE: Check if any siblings are still active after disabling this one
-                const updatedChildren = allChildren.map((child) =>
-                  child.key === row.key ? { ...child, isActive: false } : rowsByKey[child.key],
-                ) as TableRowItemChild[];
-                const anyActiveChild = updatedChildren.some((child) => child.isActive);
+            if (action.payload.value) {
+              // ENABLE: Find the max version among visible siblings
+              const maxVersionChild = visibleSiblings.reduce((maxRow: TableRowItemChild, child) => {
+                return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
+              }, visibleSiblings[0]);
 
-                if (!anyActiveChild) {
-                  // No active children, disable parent
-                  rowsByKey[row.parentKey] = { ...parentRow, isActive: false };
-                  (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = null;
-                } else {
-                  // Some child is still active, update active version number
-                  const activeChild = updatedChildren.find((child) => child.isActive);
-                  if (activeChild) {
-                    (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = activeChild.record.VersionNumber;
-                  }
-                }
-              }
+              // Toggle the max version child
+              toggleChildRow(maxVersionChild, true, rowsByKey, state.rows);
+            } else {
+              // DISABLE: Toggle the first child (which will disable all)
+              toggleChildRow(row, false, rowsByKey, state.rows);
             }
           }
         }
       });
+
       const output: State = {
         ...state,
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),

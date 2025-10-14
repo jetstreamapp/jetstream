@@ -15,6 +15,7 @@ import {
   QueryResult,
   QueryResults,
   QueryResultsColumn,
+  SalesforceOrgUi,
   SalesforceRecord,
   SoapNil,
   FieldType as jetstreamFieldType,
@@ -1101,4 +1102,8 @@ export function splitFilenameByExtension(filename: string): [string, string] {
     return [filename.slice(0, -ext.length), ext];
   }
   return [filename, ''];
+}
+
+export function isProductionOrg(org: SalesforceOrgUi) {
+  return !org.orgIsSandbox && !org.orgOrganizationType?.toLowerCase().includes('developer');
 }

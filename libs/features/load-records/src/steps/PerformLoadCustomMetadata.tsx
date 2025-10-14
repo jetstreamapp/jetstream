@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj, groupByFlat, isProductionOrg } from '@jetstream/shared/utils';
 import {
   DeployMessage,
   DownloadModalData,
@@ -61,13 +61,13 @@ export const PerformLoadCustomMetadata = ({
   onIsLoading,
 }: PerformLoadCustomMetadataProps) => {
   const rollbar = useRollbar();
-  const isProductionOrg = !selectedOrg.orgIsSandbox && !selectedOrg.orgOrganizationType?.includes('Developer');
+  const isProduction = isProductionOrg(selectedOrg);
   const { trackEvent } = useAmplitude();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [loadNumber, setLoadNumber] = useState<number>(0);
-  const [rollbackOnError, setRollbackOnError] = useState<boolean>(() => isProductionOrg);
+  const [rollbackOnError, setRollbackOnError] = useState<boolean>(() => isProduction);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
   const [metadata, setMetadata] = useState<MapOfCustomMetadataRecord | null>(null);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
@@ -265,7 +265,7 @@ export const PerformLoadCustomMetadata = ({
           checked={rollbackOnError}
           onChange={setRollbackOnError}
           helpText={
-            <span className={classNames({ 'slds-text-color_destructive': isProductionOrg && !rollbackOnError })}>
+            <span className={classNames({ 'slds-text-color_destructive': isProduction && !rollbackOnError })}>
               Required in production orgs. If this is checked, valid records will still show as successful even if they were rolled back.
             </span>
           }
