@@ -358,8 +358,16 @@ function reducer(state: State, action: Action): State {
 
       state.tableRows.forEach((row) => {
         if (isTableRowItem(row)) {
-          toggleParentRow(row, action.payload.value, rowsByKey, state.tableRows);
-          processedParents.add(row.key);
+          // Check if this parent has any visible children in tableRows
+          const hasVisibleChildren = state.tableRows.some(
+            (r) => isTableRowChild(r) && r.parentKey === row.key
+          );
+
+          // Only process parent if it has no children OR has visible children in tableRows
+          if (!row.children || row.children.length === 0 || hasVisibleChildren) {
+            toggleParentRow(row, action.payload.value, rowsByKey, state.tableRows);
+            processedParents.add(row.key);
+          }
         } else if (isTableRowChild(row)) {
           // Only process child rows if their parent wasn't already processed
           if (!processedParents.has(row.parentKey)) {
