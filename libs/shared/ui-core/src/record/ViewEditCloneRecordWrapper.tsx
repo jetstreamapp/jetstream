@@ -107,7 +107,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
           setModalOpen(true);
         }
       });
-    } else if (_sobjectName && _recordId) {
+    } else if (_sobjectName) {
       setRecordId(_recordId);
       setSobjectName(_sobjectName);
       setModalOpen(true);

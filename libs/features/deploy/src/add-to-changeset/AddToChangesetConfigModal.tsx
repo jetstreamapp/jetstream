@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { getOrgType, useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { isProductionOrg } from '@jetstream/shared/utils';
 import { ChangeSet, DeployOptions, ListItem, ListMetadataResult, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, GridCol, Input, Modal, Radio, RadioGroup, SalesforceLogin, Spinner, Textarea } from '@jetstream/ui';
 import { OrgLabelBadge } from '@jetstream/ui-core';
@@ -57,7 +58,7 @@ export const AddToChangesetConfigModal: FunctionComponent<AddToChangesetConfigMo
     runAllTests: false,
     singlePackage: false,
     testLevel: 'NoTestRun',
-    rollbackOnError: !selectedOrg.orgIsSandbox && !selectedOrg.orgOrganizationType?.includes('Developer'),
+    rollbackOnError: isProductionOrg(selectedOrg),
   }));
 
   useEffect(() => {

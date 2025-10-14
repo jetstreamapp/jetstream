@@ -42,6 +42,7 @@ type Action =
   | { type: 'TOGGLE_ROW_EXPAND'; payload: { row: TableRowOrItemOrChild; value: boolean } }
   | { type: 'TOGGLE_ALL'; payload: { value: boolean } }
   | { type: 'RESTORE_SNAPSHOT'; payload: { snapshot: TableRowItemSnapshot[] } }
+  | { type: 'TABLE_ROWS_CHANGED'; payload: { rows: readonly TableRowOrItemOrChild[] } }
   | { type: 'RESET' }
   | { type: 'ERROR'; payload?: { errorMessage: string } };
 
@@ -52,7 +53,10 @@ interface State {
   data: StateData;
   /** These are the only data points that are updated over time */
   rows: (TableRow | TableRowItem | TableRowItemChild)[];
+  /** All rows fetched from the backend, regardless of filtering or UI state */
   visibleRows: (TableRow | TableRowItem | TableRowItemChild)[];
+  /** Rows currently displayed in the UI table (filtered subset of visibleRows) */
+  tableRows: readonly TableRowOrItemOrChild[];
   /** allows accessing and changing data without iteration */
   rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>;
   /** Used to know order to rebuild rows from rowsByKey */
@@ -67,6 +71,114 @@ function isDirty(row: TableRow | TableRowItem | TableRowItemChild) {
     return row.isActive !== row.isActiveInitialState;
   }
   return false;
+}
+
+/**
+ * Toggles a parent row (TableRowItem) and its children to the specified value.
+ * For flows/process builders with versions (children), handles enabling the max visible version.
+ */
+function toggleParentRow(
+  row: TableRowItem,
+  value: boolean,
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>,
+  tableRows: readonly TableRowOrItemOrChild[],
+) {
+  const key = row.key;
+  const fullParentRow = rowsByKey[key] as TableRowItem;
+  rowsByKey[key] = { ...fullParentRow, isActive: value };
+
+  // Handle flows or process builders (only ones with children/versions)
+  if (Array.isArray(fullParentRow.children) && fullParentRow.children.length > 0) {
+    if (value) {
+      // ENABLE: Find the max version among VISIBLE children in the table
+      const visibleChildrenKeys = new Set(
+        tableRows.filter((r) => isTableRowChild(r) && r.parentKey === key).map((r) => r.key),
+      );
+
+      // Get all visible children from the full children list
+      const visibleChildren = fullParentRow.children.filter((child) => visibleChildrenKeys.has(child.key));
+
+      // Set all children to false initially
+      fullParentRow.children.forEach((child) => {
+        rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+      });
+
+      // If there are visible children, find and enable the max version among them
+      if (visibleChildren.length > 0) {
+        const maxVisibleVersion = visibleChildren.reduce((maxRow: TableRowItemChild, child) => {
+          if (!maxRow) {
+            return child;
+          }
+          return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
+        }, visibleChildren[0]);
+
+        // Enable the max visible version
+        rowsByKey[maxVisibleVersion.key] = { ...rowsByKey[maxVisibleVersion.key], isActive: true };
+        (rowsByKey[key] as TableRowItem).activeVersionNumber = maxVisibleVersion.record.VersionNumber;
+      } else {
+        // No visible children, so no active version
+        (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
+      }
+    } else {
+      // DISABLE: Set all children to disabled (even non-visible ones)
+      fullParentRow.children.forEach((child) => {
+        rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+      });
+      (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
+    }
+  }
+}
+
+/**
+ * Toggles a child row (TableRowItemChild) to the specified value.
+ * When enabling, disables all siblings and enables the parent.
+ * When disabling, checks if parent should also be disabled.
+ */
+function toggleChildRow(
+  row: TableRowItemChild,
+  value: boolean,
+  rowsByKey: Record<string, TableRow | TableRowItem | TableRowItemChild>,
+  allRows: (TableRow | TableRowItem | TableRowItemChild)[],
+) {
+  rowsByKey[row.key] = { ...rowsByKey[row.key], isActive: value };
+
+  const parentRow = rowsByKey[row.parentKey] as TableRowItem;
+  if (!parentRow) {
+    return;
+  }
+
+  // Get all children for this parent
+  const allChildren = allRows.filter((r) => isTableRowChild(r) && r.parentKey === row.parentKey) as TableRowItemChild[];
+
+  if (value) {
+    // ENABLE: Disable all siblings, then enable only this one
+    allChildren.forEach((child) => {
+      if (child.key !== row.key) {
+        rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
+      }
+    });
+    // Update parent to reflect the active child
+    rowsByKey[row.parentKey] = { ...parentRow, isActive: true };
+    (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = row.record.VersionNumber;
+  } else {
+    // DISABLE: Check if any siblings are still active after disabling this one
+    const updatedChildren = allChildren.map((child) =>
+      child.key === row.key ? { ...child, isActive: false } : rowsByKey[child.key],
+    ) as TableRowItemChild[];
+    const anyActiveChild = updatedChildren.some((child) => child.isActive);
+
+    if (!anyActiveChild) {
+      // No active children, disable parent
+      rowsByKey[row.parentKey] = { ...parentRow, isActive: false };
+      (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = null;
+    } else {
+      // Some child is still active, update active version number
+      const activeChild = updatedChildren.find((child) => child.isActive);
+      if (activeChild) {
+        (rowsByKey[row.parentKey] as TableRowItem).activeVersionNumber = activeChild.record.VersionNumber;
+      }
+    }
+  }
 }
 
 type MetadataRecordType =
@@ -242,36 +354,47 @@ function reducer(state: State, action: Action): State {
     }
     case 'TOGGLE_ALL': {
       const rowsByKey = { ...state.rowsByKey };
-      state.keys
-        .map((key) => rowsByKey[key])
-        .forEach((row) => {
-          const key = row.key;
-          if (isTableRowItem(row)) {
-            rowsByKey[key] = { ...rowsByKey[key], isActive: action.payload.value };
-            // see if flow or process builder (only ones with grandchildren)
-            if (Array.isArray(row.children)) {
-              // set all children to false initially
-              row.children.forEach((child) => {
-                rowsByKey[child.key] = { ...rowsByKey[child.key], isActive: false };
-              });
-              // if disable, then remove active version and set all children to disabled
-              if (action.payload.value) {
-                // set all versions to false, then latest version to true
-                const latestVersion = row.children.reduce((maxRow: TableRowItemChild, child) => {
-                  if (!maxRow) {
-                    return child;
-                  }
-                  return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
-                }, row.children[0]);
-                // set latest version to true and set active version number on parent
-                rowsByKey[latestVersion.key] = { ...rowsByKey[latestVersion.key], isActive: true };
-                (rowsByKey[key] as TableRowItem).activeVersionNumber = latestVersion.record.VersionNumber;
-              } else {
-                (rowsByKey[key] as TableRowItem).activeVersionNumber = null;
-              }
+      const processedParents = new Set<string>();
+
+      state.tableRows.forEach((row) => {
+        if (isTableRowItem(row)) {
+          // Check if this parent has any visible children in tableRows
+          const hasVisibleChildren = state.tableRows.some(
+            (r) => isTableRowChild(r) && r.parentKey === row.key
+          );
+
+          // Only process parent if it has no children OR has visible children in tableRows
+          if (!row.children || row.children.length === 0 || hasVisibleChildren) {
+            toggleParentRow(row, action.payload.value, rowsByKey, state.tableRows);
+            processedParents.add(row.key);
+          }
+        } else if (isTableRowChild(row)) {
+          // Only process child rows if their parent wasn't already processed
+          if (!processedParents.has(row.parentKey)) {
+            // Mark parent as processed to avoid processing siblings multiple times
+            processedParents.add(row.parentKey);
+
+            // Get all visible child rows for this parent from the table
+            const visibleSiblings = state.tableRows.filter(
+              (r) => isTableRowChild(r) && r.parentKey === row.parentKey
+            ) as TableRowItemChild[];
+
+            if (action.payload.value) {
+              // ENABLE: Find the max version among visible siblings
+              const maxVersionChild = visibleSiblings.reduce((maxRow: TableRowItemChild, child) => {
+                return maxRow.record.VersionNumber > child.record.VersionNumber ? maxRow : child;
+              }, visibleSiblings[0]);
+
+              // Toggle the max version child
+              toggleChildRow(maxVersionChild, true, rowsByKey, state.rows);
+            } else {
+              // DISABLE: Toggle the first child (which will disable all)
+              toggleChildRow(row, false, rowsByKey, state.rows);
             }
           }
-        });
+        }
+      });
+
       const output: State = {
         ...state,
         rows: state.keys.map((rowKey) => rowsByKey[rowKey]),
@@ -301,6 +424,13 @@ function reducer(state: State, action: Action): State {
       output.dirtyCount = output.rows.reduce((output, row) => output + (isDirty(row) ? 1 : 0), 0);
       return output;
     }
+    case 'TABLE_ROWS_CHANGED': {
+      const { rows } = action.payload;
+      return {
+        ...state,
+        tableRows: rows,
+      };
+    }
     case 'RESET': {
       const rowsByKey = { ...state.rowsByKey };
       Object.keys(rowsByKey)
@@ -326,7 +456,6 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-// TODO: figure out if this should be part of reducer or somewhere else
 function getRowsForItems({ type, records }: MetadataRecordType, loading: boolean, errorMessage?: string): TableRow {
   const typeLabel = getAutomationTypeLabel(type);
   const output: TableRow = {
@@ -626,6 +755,7 @@ export function useAutomationControlData({
     },
     rows: [],
     visibleRows: [],
+    tableRows: [],
     rowsByKey: {},
     keys: [],
     dirtyCount: 0,
@@ -650,11 +780,18 @@ export function useAutomationControlData({
   const resetChanges = useCallback(() => {
     dispatch({ type: 'RESET' });
     trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: 'reset' });
-  }, []);
+  }, [trackEvent]);
 
-  const toggleAll = useCallback((value: boolean) => {
-    dispatch({ type: 'TOGGLE_ALL', payload: { value } });
-    trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: value ? 'all' : 'none' });
+  const toggleAll = useCallback(
+    (value: boolean) => {
+      dispatch({ type: 'TOGGLE_ALL', payload: { value } });
+      trackEvent(ANALYTICS_KEYS.automation_toggle_all, { type: value ? 'all' : 'none' });
+    },
+    [trackEvent],
+  );
+
+  const tableRowsChange = useCallback((rows: readonly TableRowOrItemOrChild[]) => {
+    dispatch({ type: 'TABLE_ROWS_CHANGED', payload: { rows } });
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -700,7 +837,7 @@ export function useAutomationControlData({
     } finally {
       dispatch({ type: 'FETCH_FINISH' });
     }
-  }, [defaultApiVersion, selectedOrg, selectedSObjects]);
+  }, [defaultApiVersion, selectedOrg, selectedSObjects, trackEvent]);
 
   // const restoreSnapshot = useCallback((snapshot: TableRowItemSnapshot[]) => {
   //   dispatch({ type: 'RESTORE_SNAPSHOT', payload: { snapshot } });
@@ -723,6 +860,7 @@ export function useAutomationControlData({
     toggleRowExpand,
     toggleAll,
     resetChanges,
+    tableRowsChange,
     // restoreSnapshot,
     dirtyCount,
   };

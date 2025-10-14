@@ -77,6 +77,9 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
             }
           }
           if (response.ok) {
+            if (response.status === 204) {
+              return;
+            }
             if (outputType === 'text') {
               return response.text();
             } else if (outputType === 'arrayBuffer') {

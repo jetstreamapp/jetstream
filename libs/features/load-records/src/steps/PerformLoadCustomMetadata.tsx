@@ -1,6 +1,6 @@
 import { ANALYTICS_KEYS, DATE_FORMATS, TITLES } from '@jetstream/shared/constants';
 import { formatNumber, useNonInitialEffect, useRollbar } from '@jetstream/shared/ui-utils';
-import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import { getErrorMessageAndStackObj, groupByFlat, isProductionOrg } from '@jetstream/shared/utils';
 import {
   DeployMessage,
   DownloadModalData,
@@ -24,6 +24,7 @@ import {
   useDeployMetadataPackage,
 } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
+import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { ChangeEvent, Fragment, useCallback, useState } from 'react';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
@@ -60,12 +61,13 @@ export const PerformLoadCustomMetadata = ({
   onIsLoading,
 }: PerformLoadCustomMetadataProps) => {
   const rollbar = useRollbar();
+  const isProduction = isProductionOrg(selectedOrg);
   const { trackEvent } = useAmplitude();
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const [loadNumber, setLoadNumber] = useState<number>(0);
-  const [rollbackOnError, setRollbackOnError] = useState<boolean>(false);
+  const [rollbackOnError, setRollbackOnError] = useState<boolean>(() => isProduction);
   const [dateFormat, setDateFormat] = useState<string>(DATE_FORMATS.MM_DD_YYYY);
   const [metadata, setMetadata] = useState<MapOfCustomMetadataRecord | null>(null);
   const [deployStatusUrl, setDeployStatusUrl] = useState<string | null>(null);
@@ -262,7 +264,11 @@ export const PerformLoadCustomMetadata = ({
           labelHelp="Rollback all records if any record fails to load. This must be enabled for production orgs."
           checked={rollbackOnError}
           onChange={setRollbackOnError}
-          helpText="If this is checked, valid records will still show as successful even if they were rolled back."
+          helpText={
+            <span className={classNames({ 'slds-text-color_destructive': isProduction && !rollbackOnError })}>
+              Required in production orgs. If this is checked, valid records will still show as successful even if they were rolled back.
+            </span>
+          }
         />
         <Select
           id={'date-format'}
