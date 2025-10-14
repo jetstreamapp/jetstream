@@ -50,7 +50,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
   const [organizations, setOrganizations] = useAtom(fromAppState.jetstreamOrganizationsWithOrgsSelector);
   const setSelectedOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
   const selectedOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
-  const [isModalOpen, setIsModalOption] = useState(false);
+  const [modalState, setModalState] = useState<{ open: boolean; organization?: Maybe<JetstreamOrganizationWithOrgs> }>({ open: false });
 
   const { handleAddOrg } = useUpdateOrgs();
 
@@ -197,11 +197,11 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
 
   const handleOpenCreateOrganizationModal = async () => {
     trackEvent(ANALYTICS_KEYS.organizations_create_modal_open, { priorCount: organizations.length });
-    setIsModalOption(true);
+    setModalState({ open: true });
   };
 
   const handleCloseOrganizationModal = async () => {
-    setIsModalOption(false);
+    setModalState({ open: false });
     setSelectedOrganization(null);
   };
 
@@ -234,8 +234,8 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
           </div>
         </PageHeaderRow>
       </PageHeader>
-      {isModalOpen && (
-        <OrganizationModal organization={selectedOrganization} onSubmit={handleCreateOrUpdate} onClose={handleCloseOrganizationModal} />
+      {modalState.open && (
+        <OrganizationModal organization={modalState.organization} onSubmit={handleCreateOrUpdate} onClose={handleCloseOrganizationModal} />
       )}
       <AutoFullHeightContainer bottomBuffer={5} className="slds-p-around_medium">
         <p>Drag and drop to move salesforce orgs between organizations.</p>
@@ -249,8 +249,7 @@ export function Organizations({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOr
                 onMoveOrg={handleMoveSfdcOrgToOrganization}
                 onSelected={() => handleOrganizationChange(organization)}
                 onEditOrg={() => {
-                  setIsModalOption(true);
-                  setSelectedOrganization(organization.id);
+                  setModalState({ open: true, organization: organization });
                 }}
                 onDeleteOrg={() => handleDelete(organization)}
               />
