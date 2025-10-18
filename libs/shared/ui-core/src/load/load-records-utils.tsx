@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
 import { queryAll, queryWithCache } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, delay, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, delay, groupByFlat, sanitizeForXml, splitArrayToMaxSize, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import type {
   ApiMode,
   FieldMapping,
@@ -56,8 +56,7 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
   const fields = (await describeSObjectWithExtendedTypes(org, sobject)).fields
     .filter(sobject.endsWith('__mdt') ? getFieldMetadataCustomMetadataFilter : getFieldMetadataFilter)
     .map((field): FieldWithRelatedEntities => {
-      let referenceTo =
-        (isRelationshipField(field) && field.referenceTo?.slice(0, 5 /** Limit number of related object to limit query */)) || undefined;
+      let referenceTo = isRelationshipField(field) ? field.referenceTo : undefined;
       // if only two polymorphic fields exist and the second is user, reverse the order so that User is first as it is most commonly used
       if (Array.isArray(referenceTo) && referenceTo.length === 2 && referenceTo[1] === 'User') {
         referenceTo = referenceTo.reverse();
@@ -90,10 +89,14 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
   const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo!));
   // related records
   if (relatedObjects.size > 0) {
-    const relatedEntities = (
-      await queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(Array.from(relatedObjects)))
-    ).data;
-    const relatedEntitiesByObj = groupBy(relatedEntities.queryResults.records, 'EntityDefinition.QualifiedApiName');
+    const relatedEntities = await Promise.all(
+      splitArrayToMaxSize(Array.from(relatedObjects), 10).map((currSobjects) =>
+        queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(currSobjects)).then(
+          (res) => res.data.queryResults.records,
+        ),
+      ),
+    ).then((res) => res.flat(1));
+    const relatedEntitiesByObj = groupBy(relatedEntities, 'EntityDefinition.QualifiedApiName');
     fieldsWithRelationships.forEach((field) => {
       if (Array.isArray(field.referenceTo)) {
         field.referenceTo.forEach((referenceTo) => {

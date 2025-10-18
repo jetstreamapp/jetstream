@@ -1,11 +1,12 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
+import { orderValues } from '@jetstream/shared/utils';
 import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, FieldWithRelatedEntities, ListItem, Maybe } from '@jetstream/types';
-import { Checkbox, ComboboxWithItems, Grid, Icon, Select } from '@jetstream/ui';
+import { Checkbox, ComboboxWithItems, Grid, Icon } from '@jetstream/ui';
 import { SELF_LOOKUP_KEY } from '@jetstream/ui-core';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
+import { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
 function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
@@ -81,6 +82,18 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
       );
     }
   }, [fieldMappingItem.fieldMetadata, fieldMappingItem.selectedReferenceTo]);
+
+  const relatedObjects = useMemo(
+    () =>
+      orderValues(fieldMappingItem.fieldMetadata?.referenceTo || []).map(
+        (item): ListItem => ({
+          id: item,
+          label: item,
+          value: item,
+        }),
+      ),
+    [fieldMappingItem.fieldMetadata],
+  );
 
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
@@ -245,30 +258,21 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               <Fragment>
                 <Grid>
                   <div className="slds-m-right_small">
-                    <Select
-                      id={`${fieldMappingItem.targetField}-related-to`}
-                      label="Related Object"
-                      isRequired
-                      labelHelp={
-                        (fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1
-                          ? 'This option is only enabled for fields that have more than one related object.'
-                          : 'This lookup can point to multiple objects, choose the related object that you are mapping to.'
-                      }
-                    >
-                      <select
-                        className="slds-select"
-                        id={`${fieldMappingItem.targetField}-related-to`}
-                        disabled={(fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1}
-                        value={fieldMappingItem.selectedReferenceTo}
-                        onChange={(event) => handleRelatedObjectSelectionChanged(event.target.value)}
-                      >
-                        {fieldMappingItem.fieldMetadata?.referenceTo?.map((relatedObject) => (
-                          <option key={relatedObject} value={relatedObject}>
-                            {relatedObject}
-                          </option>
-                        ))}
-                      </select>
-                    </Select>
+                    <ComboboxWithItems
+                      comboboxProps={{
+                        label: 'Related Object',
+                        isRequired: true,
+                        labelHelp:
+                          (fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1
+                            ? 'This option is only enabled for fields that have more than one related object.'
+                            : 'This lookup can point to multiple objects, choose the related object that you are mapping to.',
+                        itemLength: 10,
+                        disabled: (fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1,
+                      }}
+                      items={relatedObjects}
+                      selectedItemId={fieldMappingItem.selectedReferenceTo}
+                      onSelected={(item) => handleRelatedObjectSelectionChanged(item.id)}
+                    />
                   </div>
                   <div className="slds-grow">
                     <ComboboxWithItems
