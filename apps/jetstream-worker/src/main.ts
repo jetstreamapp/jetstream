@@ -71,7 +71,7 @@ async function initWorker() {
 async function initServer() {
   logger.info('[STARTING SERVER] PORT: %s', ENV.PORT);
   try {
-    await fastify.listen(ENV.PORT);
+    await fastify.listen({ port: Number(ENV.PORT || 3334) });
   } catch (ex) {
     fastify.log.error(ex);
     logger.error('[STARTING SERVER][FAILED] %s', ex.message);

@@ -27,7 +27,7 @@ function getLoginUrl({
     return `${org.instanceUrl}${returnUrl}`;
   } else {
     if (serverUrl) {
-      let url = new URL(`${serverUrl}/static/sfdc/login`);
+      const url = new URL(`${serverUrl}/static/sfdc/login`);
       getOrgUrlParams(org).forEach((value, key) => {
         url.searchParams.set(key, value);
       });

@@ -1,5 +1,6 @@
 import type { ResponseLocalsCookies } from '@jetstream/auth/types';
 import type { SalesforceOrg } from '@jetstream/prisma';
+// eslint-disable-next-line @nx/enforce-module-boundaries
 import type { ApiConnection } from '@jetstream/salesforce-api';
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import type pino from 'pino';

@@ -307,9 +307,9 @@ export class TeamCreationUtils {
     });
 
     // Add team membership to all existing sessions for all users
-    for (let member of team.members) {
+    for (const member of team.members) {
       const sessions = await prisma.sessions.findMany({ where: { userId: member.userId } });
-      for (let session of sessions) {
+      for (const session of sessions) {
         if (typeof session.sess === 'object' && !Array.isArray(session.sess) && session.sess !== null) {
           session.sess.teamMembership = { role: member.role, status: member.status, teamId: team.id };
           await prisma.sessions.update({
@@ -334,7 +334,9 @@ export class TeamCreationUtils {
       return;
     }
     console.log('TeamCreationUtils Debug Info:');
-    this.team && console.log('Team:', this.team.id, this.team.name);
+    if (this.team) {
+      console.log('Team:', this.team.id, this.team.name);
+    }
     this.users.forEach((user) => printUser(user));
   }
 

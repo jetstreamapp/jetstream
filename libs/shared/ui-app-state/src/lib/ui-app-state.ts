@@ -63,7 +63,7 @@ export const STORAGE_KEYS = {
  * Parse application state with a fallback in case there is an issue parsing
  */
 function getAppInfo(): ApplicationState {
-  let appState = parseJsonCookie<ApplicationState>(HTTP.COOKIE.JETSTREAM);
+  const appState = parseJsonCookie<ApplicationState>(HTTP.COOKIE.JETSTREAM);
   return getDefaultAppState(appState);
 }
 

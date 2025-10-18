@@ -185,21 +185,32 @@ async function downloadFile(url: string, savePath: string): Promise<Buffer> {
   }
 
   const buffer = await streamToBuffer(response.body!);
-  fs.writeFileSync(savePath, buffer);
+  fs.writeFileSync(savePath, buffer as unknown as NodeJS.ArrayBufferView);
   return buffer;
 }
 
 async function streamToBuffer(stream: ReadableStream): Promise<Buffer> {
-  const chunks: Buffer[] = [];
+  const chunks: Uint8Array[] = [];
   const reader = stream.getReader();
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    chunks.push(Buffer.from(value));
+    chunks.push(value);
   }
 
-  return Buffer.concat(chunks);
+  // Calculate total length
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+
+  // Create a single buffer and copy all chunks into it
+  const result = Buffer.allocUnsafe(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return result;
 }
 
 const tempTablesNeedToBeCreated = {
