@@ -1,8 +1,9 @@
+import { logger } from '@jetstream/shared/client-logger';
 import { orderValues } from '@jetstream/shared/utils';
 import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, ListItem, SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithItems, Grid } from '@jetstream/ui';
+import { ComboboxWithItems, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fetchRelatedFields, SELF_LOOKUP_KEY } from '@jetstream/ui-core';
-import { Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
 
 function getComboboxFieldName(item: ListItem) {
@@ -24,42 +25,52 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
 }) => {
   const [relatedFields, setRelatedFields] = useState<ListItem<string, FieldRelatedEntity>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingError, setLoadingError] = useState(false);
   const currentFetchRequest = useRef(0);
 
-  useEffect(() => {
-    const currRequest = ++currentFetchRequest.current;
-    if (fieldMappingItem.selectedReferenceTo) {
-      setLoading(true);
-      // TODO: error handling
-      fetchRelatedFields(org, fieldMappingItem.selectedReferenceTo)
-        .then((fields) => {
-          if (currRequest !== currentFetchRequest.current) {
-            // outdated request
-            return;
-          }
-          setRelatedFields(
-            fields.map((field) => ({
-              id: field.name,
-              label: field.label,
-              value: field.name,
-              secondaryLabel: field.name,
-              secondaryLabelOnNewLine: true,
-              tertiaryLabel: field.isExternalId ? 'External ID' : undefined,
-              meta: field,
-            })),
-          );
-        })
-        .finally(() => {
-          if (currRequest !== currentFetchRequest.current) {
-            // outdated request
-            return;
-          }
+  const fetchData = useCallback(
+    async (skipCache = false) => {
+      if (!fieldMappingItem.selectedReferenceTo) {
+        setRelatedFields([]);
+        return;
+      }
+      const currRequest = ++currentFetchRequest.current;
+      try {
+        setLoading(true);
+        setLoadingError(false);
+        const fields = await fetchRelatedFields(org, fieldMappingItem.selectedReferenceTo, skipCache);
+        if (currRequest !== currentFetchRequest.current) {
+          // outdated request
+          return;
+        }
+        setRelatedFields(
+          fields.map((field) => ({
+            id: field.name,
+            label: field.label,
+            value: field.name,
+            secondaryLabel: field.name,
+            secondaryLabelOnNewLine: true,
+            tertiaryLabel: field.isExternalId ? 'External ID' : undefined,
+            meta: field,
+          })),
+        );
+      } catch (ex) {
+        if (currRequest === currentFetchRequest.current) {
+          logger.error('Error fetching related fields', ex);
+          setLoadingError(true);
+        }
+      } finally {
+        if (currRequest === currentFetchRequest.current) {
           setLoading(false);
-        });
-    } else {
-      setRelatedFields([]);
-    }
-  }, [fieldMappingItem.selectedReferenceTo, org]);
+        }
+      }
+    },
+    [fieldMappingItem.selectedReferenceTo, org],
+  );
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const relatedObjects = useMemo(
     () =>
@@ -121,12 +132,15 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
             onSelected={(item) => handleRelatedObjectSelectionChanged(item.id)}
           />
         </div>
-        <div className="slds-grow">
+        <Grid className="slds-grow">
           <ComboboxWithItems
             comboboxProps={{
+              className: 'w-100',
               label: 'Related Mappable Fields',
-              errorMessage: 'A related field must be selected',
-              hasError: !fieldMappingItem.relatedFieldMetadata,
+              errorMessage: loadingError
+                ? 'There was a problem loading related fields for this object'
+                : 'A related field must be selected',
+              hasError: loadingError || !fieldMappingItem.relatedFieldMetadata,
               loading,
             }}
             items={relatedFields}
@@ -134,7 +148,17 @@ export const LoadRecordsFieldMappingRelatedObject: FunctionComponent<LoadRecords
             selectedItemLabelFn={getComboboxFieldName}
             onSelected={(item) => handleRelatedSelectionChanged(item.meta)}
           />
-        </div>
+          <Tooltip content="Reload related record fields">
+            <button
+              className="slds-button slds-button_icon slds-m-left_x-small slds-m-top_x-large"
+              disabled={loading}
+              onClick={() => fetchData(true)}
+            >
+              <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_small" omitContainer />
+              <span className="slds-assistive-text">Reload related record fields</span>
+            </button>
+          </Tooltip>
+        </Grid>
       </Grid>
       {fieldMappingItem.targetLookupField && (
         <LoadRecordsFieldMappingRowLookupOption

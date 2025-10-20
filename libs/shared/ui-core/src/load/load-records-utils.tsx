@@ -1,6 +1,6 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { queryAll, queryAllWithCacheUsingOffset } from '@jetstream/shared/data';
+import { queryAll, queryAllUsingOffset, queryAllWithCacheUsingOffset } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
 import { REGEX, delay, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import type {
@@ -138,17 +138,19 @@ export async function fetchRelatedFieldsForObjects(
   );
 }
 
-export async function fetchRelatedFields(org: SalesforceOrgUi, sobject: string): Promise<FieldRelatedEntity[]> {
-  return await queryAllWithCacheUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery([sobject]), false, 2000).then(
-    ({ queryResults }) =>
-      queryResults.records.map(
-        (particle): FieldRelatedEntity => ({
-          name: particle.Name,
-          label: particle.Label,
-          type: particle.DataType,
-          isExternalId: particle.IsIdLookup,
-        }),
-      ),
+export async function fetchRelatedFields(org: SalesforceOrgUi, sobject: string, skipCache = false): Promise<FieldRelatedEntity[]> {
+  const queryFn = skipCache
+    ? queryAllUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery([sobject]), false, 2000)
+    : queryAllWithCacheUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery([sobject]), false, 2000);
+  return await queryFn.then(({ queryResults }) =>
+    queryResults.records.map(
+      (particle): FieldRelatedEntity => ({
+        name: particle.Name,
+        label: particle.Label,
+        type: particle.DataType,
+        isExternalId: particle.IsIdLookup,
+      }),
+    ),
   );
 }
 

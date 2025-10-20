@@ -31,7 +31,7 @@ export function buildCheckboxField(name = 'IsActive') {
   return sfdcFieldFactory.build({
     label: name,
     name: `${name}__c`,
-    type: 'reference',
+    type: 'boolean',
   });
 }
 
