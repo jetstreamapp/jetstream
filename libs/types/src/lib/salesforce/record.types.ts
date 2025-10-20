@@ -134,6 +134,7 @@ export interface EntityParticleRecord {
   Id: string;
   Name: string;
   Label: string;
+  MasterLabel: string;
   IsIdLookup: boolean;
   DataType: string;
   ValueTypeId: string;
@@ -141,6 +142,10 @@ export interface EntityParticleRecord {
     referenceTo: null | string[];
   };
   EntityDefinitionId: string;
+  EntityDefinition: {
+    attributes: RecordAttributes;
+    QualifiedApiName: string;
+  };
   IsCreatable: boolean;
   IsUpdatable: boolean;
   QualifiedApiName: string;

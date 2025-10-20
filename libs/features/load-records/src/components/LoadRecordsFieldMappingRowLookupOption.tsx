@@ -34,7 +34,7 @@ export const LoadRecordsFieldMappingRowLookupOption: FunctionComponent<LoadRecor
         helpText={
           disabled
             ? 'Salesforce will handle mapping your record to the related record using the External Id.'
-            : 'Jetstream will find the related record Ids before loading your file into Salesforce. If you have a large file or a lot of mapped lookups, this may take a few minutes.'
+            : 'Jetstream will find the related record Ids before loading your file into Salesforce. If you have a large file or a lot of mapped lookups, the load will take longer to process.'
         }
         helpTextClassName="slds-m-top_x-small slds-text-color_weak"
       >

@@ -1,10 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BULK_API_NULL_VALUE } from '@jetstream/shared/constants';
-import { queryAll, queryWithCache } from '@jetstream/shared/data';
+import { queryAll, queryAllWithCacheUsingOffset } from '@jetstream/shared/data';
 import { describeSObjectWithExtendedTypes, formatNumber, isRelationshipField } from '@jetstream/shared/ui-utils';
-import { REGEX, delay, groupByFlat, sanitizeForXml, splitArrayToMaxSize, transformRecordForDataLoad } from '@jetstream/shared/utils';
+import { REGEX, delay, groupByFlat, sanitizeForXml, transformRecordForDataLoad } from '@jetstream/shared/utils';
 import type {
   ApiMode,
+  EntityParticleRecord,
   FieldMapping,
   FieldMappingItem,
   FieldMappingItemCsv,
@@ -17,7 +18,7 @@ import type {
   PrepareDataPayload,
   PrepareDataResponse,
 } from '@jetstream/types';
-import { EntityParticleRecord, FieldWithExtendedType, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { FieldWithExtendedType, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Query, WhereClauseWithRightCondition, WhereClauseWithoutOperator, composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import JSZip from 'jszip';
 import groupBy from 'lodash/groupBy';
@@ -82,40 +83,6 @@ export async function getFieldMetadata(org: SalesforceOrgUi, sobject: string): P
         field,
       };
     });
-
-  // fetch all related fields
-  const fieldsWithRelationships = fields.filter((field) => Array.isArray(field.referenceTo) && field.referenceTo.length);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const relatedObjects = new Set(fieldsWithRelationships.flatMap((field) => field.referenceTo!));
-  // related records
-  if (relatedObjects.size > 0) {
-    const relatedEntities = await Promise.all(
-      splitArrayToMaxSize(Array.from(relatedObjects), 10).map((currSobjects) =>
-        queryWithCache<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(currSobjects)).then(
-          (res) => res.data.queryResults.records,
-        ),
-      ),
-    ).then((res) => res.flat(1));
-    const relatedEntitiesByObj = groupBy(relatedEntities, 'EntityDefinition.QualifiedApiName');
-    fieldsWithRelationships.forEach((field) => {
-      if (Array.isArray(field.referenceTo)) {
-        field.referenceTo.forEach((referenceTo) => {
-          const relatedFields = relatedEntitiesByObj[referenceTo];
-          if (relatedFields) {
-            field.relatedFields = field.relatedFields || {};
-            field.relatedFields[referenceTo] = relatedFields.map(
-              (particle): FieldRelatedEntity => ({
-                name: particle.Name,
-                label: particle.Label,
-                type: particle.DataType,
-                isExternalId: particle.IsIdLookup,
-              }),
-            );
-          }
-        });
-      }
-    });
-  }
   return fields;
 }
 
@@ -149,6 +116,42 @@ export function getMaxBatchSize(apiMode: ApiMode): number {
   }
 }
 
+export async function fetchRelatedFieldsForObjects(
+  org: SalesforceOrgUi,
+  sobjects: string[],
+): Promise<Record<string, FieldRelatedEntity[]>> {
+  return await queryAllWithCacheUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery(sobjects), false, 2000).then(
+    ({ queryResults }) => {
+      const relatedEntitiesByObj = groupBy(queryResults.records, 'EntityDefinition.QualifiedApiName');
+      return Object.entries(relatedEntitiesByObj).reduce((acc, [objName, particles]) => {
+        acc[objName] = particles.map(
+          (particle): FieldRelatedEntity => ({
+            name: particle.Name,
+            label: particle.Label,
+            type: particle.DataType,
+            isExternalId: particle.IsIdLookup,
+          }),
+        );
+        return acc;
+      }, {});
+    },
+  );
+}
+
+export async function fetchRelatedFields(org: SalesforceOrgUi, sobject: string): Promise<FieldRelatedEntity[]> {
+  return await queryAllWithCacheUsingOffset<EntityParticleRecord>(org, getExternalIdFieldsForSobjectsQuery([sobject]), false, 2000).then(
+    ({ queryResults }) =>
+      queryResults.records.map(
+        (particle): FieldRelatedEntity => ({
+          name: particle.Name,
+          label: particle.Label,
+          type: particle.DataType,
+          isExternalId: particle.IsIdLookup,
+        }),
+      ),
+  );
+}
+
 /**
  * Attempt to auto-match CSV fields to object fields
  * 1. exact API name match
@@ -160,13 +163,14 @@ export function getMaxBatchSize(apiMode: ApiMode): number {
  * @param inputHeader
  * @param fields
  */
-export function autoMapFields(
+export async function autoMapFields(
+  org: SalesforceOrgUi,
   inputHeader: string[],
   fields: FieldWithRelatedEntities[],
   binaryBodyField: Maybe<string>,
   loadType: InsertUpdateUpsertDelete,
   externalId?: Maybe<string>,
-): FieldMapping {
+): Promise<FieldMapping> {
   const output: FieldMapping = {};
   const fieldVariations: Record<string, FieldWithRelatedEntities> = {};
   const fieldLabelVariations: Record<string, FieldWithRelatedEntities> = {};
@@ -189,7 +193,7 @@ export function autoMapFields(
     fieldLabelVariations[lowercaseLabel.replace(REGEX.NOT_ALPHANUMERIC, '')] = field;
   });
 
-  inputHeader.forEach((field) => {
+  for (const field of inputHeader) {
     const [baseFieldOrRelationship, relatedField] = field.split('.');
     const lowercaseFieldOrRelationship = baseFieldOrRelationship.toLowerCase();
     const matchedField =
@@ -213,40 +217,45 @@ export function autoMapFields(
       isBinaryBodyField: !!binaryBodyField && matchedField?.name === binaryBodyField,
     };
 
-    if (relatedField && matchedField && matchedField.relatedFields) {
-      // search all related object fields to see if related field matches
-      const { relatedObject, matchedRelatedField } = Object.keys(matchedField.relatedFields).reduce(
-        (output: { relatedObject: string | undefined; matchedRelatedField: FieldRelatedEntity | undefined }, key) => {
-          // if we found a prior match, stop checking
-          if (output.matchedRelatedField) {
+    // Auto-match related fields - this checks the first 2 objects in polymorphic lookups
+    if (relatedField && Array.isArray(matchedField?.referenceTo) && matchedField?.referenceTo.length > 0) {
+      try {
+        const relatedFields = await fetchRelatedFieldsForObjects(org, matchedField.referenceTo.slice(0, 2));
+        const { relatedObject, matchedRelatedField } = Object.keys(relatedFields).reduce(
+          (output: { relatedObject: string | undefined; matchedRelatedField: FieldRelatedEntity | undefined }, relatedObject) => {
+            // if we found a prior match, stop checking
+            if (output.matchedRelatedField) {
+              return output;
+            }
+            // find if current related object has field by same related name
+            const matchedRelatedField = relatedFields[relatedObject]?.find(
+              (relatedEntityField) =>
+                relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase(),
+            );
+            if (matchedRelatedField) {
+              output = { relatedObject, matchedRelatedField };
+            }
             return output;
-          }
-          // find if current related object has field by same related name
-          const matchedRelatedField = matchedField.relatedFields?.[key].find(
-            (relatedEntityField) =>
-              relatedField === relatedEntityField.name || relatedField.toLowerCase() === relatedEntityField.name.toLowerCase(),
-          );
-          if (matchedRelatedField) {
-            output = { relatedObject: key, matchedRelatedField };
-          }
-          return output;
-        },
-        { relatedObject: undefined, matchedRelatedField: undefined },
-      );
+          },
+          { relatedObject: undefined, matchedRelatedField: undefined },
+        );
 
-      if (matchedRelatedField) {
-        output[field].mappedToLookup = true;
-        output[field].targetLookupField = matchedRelatedField.name;
-        output[field].relationshipName = matchedField.relationshipName;
-        output[field].fieldMetadata = matchedField;
-        output[field].relatedFieldMetadata = matchedRelatedField;
-        output[field].selectedReferenceTo = relatedObject;
-      } else {
-        output[field].targetField = null;
-        output[field].fieldMetadata = undefined;
+        if (matchedRelatedField) {
+          output[field].mappedToLookup = true;
+          output[field].targetLookupField = matchedRelatedField.name;
+          output[field].relationshipName = matchedField.relationshipName;
+          output[field].fieldMetadata = matchedField;
+          output[field].relatedFieldMetadata = matchedRelatedField;
+          output[field].selectedReferenceTo = relatedObject;
+        } else {
+          output[field].targetField = null;
+          output[field].fieldMetadata = undefined;
+        }
+      } catch (ex) {
+        logger.error('autoMapFields: Error fetching related fields for auto-mapping', { error: ex });
       }
     }
-  });
+  }
 
   return checkFieldsForMappingError(output, loadType, externalId);
 }
@@ -392,7 +401,7 @@ export function checkForExternalIdFieldMappingsError(
   return fieldMapping;
 }
 
-function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
+export function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
   const soql = composeQuery({
     fields: [
       getField('Id'),
@@ -437,7 +446,6 @@ function getExternalIdFieldsForSobjectsQuery(sobjects: string[]) {
         },
       },
     },
-    limit: 2000,
     orderBy: [
       {
         field: 'EntityDefinitionId',

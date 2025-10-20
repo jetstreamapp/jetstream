@@ -15,7 +15,6 @@ export interface FieldWithRelatedEntities {
   externalId: boolean;
   referenceTo?: Maybe<string[]>;
   relationshipName?: string;
-  relatedFields?: Record<string, FieldRelatedEntity[]>;
   field: FieldWithExtendedType;
 }
 
