@@ -1,4 +1,5 @@
-import { DeployOptions, ListMetadataRequest, ReadMetadataRequest } from '@jetstream/api-types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import type { DeployOptions, ListMetadataRequest, ReadMetadataRequest } from '@jetstream/api-types';
 import { arrayBufferToBase64, ensureArray, splitArrayToMaxSize, uint8ArrayToBase64 } from '@jetstream/shared/utils';
 import {
   AsyncResult,
