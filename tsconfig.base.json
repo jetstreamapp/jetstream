@@ -57,6 +57,7 @@
       "@jetstream/shared/ui-utils": ["libs/shared/ui-utils/src/index.ts"],
       "@jetstream/shared/utils": ["libs/shared/utils/src/index.ts"],
       "@jetstream/splitjs": ["libs/splitjs/src/index.ts"],
+      "@jetstream/test-utils": ["libs/test-utils/src/index.ts"],
       "@jetstream/test/e2e-utils": ["libs/test/e2e-utils/src/index.ts"],
       "@jetstream/types": ["libs/types/src/index.ts"],
       "@jetstream/ui": ["libs/ui/src/index.ts"],

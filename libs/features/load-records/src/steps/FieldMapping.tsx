@@ -184,7 +184,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
           break;
         case MAPPING_RESET:
           setStaticRowHeaders([]);
-          setFieldMapping(autoMapFields(inputHeader, fields, binaryAttachmentBodyField, loadType, externalId));
+          autoMapFields(org, inputHeader, fields, binaryAttachmentBodyField, loadType, externalId).then(setFieldMapping);
           setFilter(FILTER_ALL);
           trackEvent(ANALYTICS_KEYS.load_MappingAutomationChanged, { action: id });
           break;
@@ -379,6 +379,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               {visibleHeaders.map((header, i) => (
                 <LoadRecordsFieldMappingRow
                   key={`${keyPrefix}-csv-${i}`}
+                  org={org}
                   isCustomMetadataObject={isCustomMetadataObject}
                   fields={fields}
                   fieldMappingItem={fieldMapping[header] as FieldMappingItemCsv}

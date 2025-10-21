@@ -764,8 +764,38 @@ export async function queryRemainingWithCache<T = any>(
   return results;
 }
 
+function checkDoneAndGetOffset({
+  limit,
+  maxOffset = Infinity,
+  offset,
+  recordCount,
+}: {
+  limit: number;
+  maxOffset?: number;
+  offset: number;
+  recordCount: number;
+}) {
+  let done = false;
+  let newOffset = offset;
+  if (recordCount === limit) {
+    done = false;
+    newOffset += limit;
+  } else {
+    done = true;
+  }
+  if (newOffset >= maxOffset) {
+    done = true;
+  }
+  return { done, offset: newOffset };
+}
+
 /**
+ * Query more using OFFSET clause
+ *
+ * NOTE: Some objects have a limited OFFSET support (max 2000),
  * This could result in an error: Maximum SOQL offset allowed is 2000
+ *
+ * maxOffset should be used to limit the number of records fetched in these cases
  *
  * @param selectedOrg
  * @param queries
@@ -774,25 +804,50 @@ export async function queryAllUsingOffset<T = any>(
   selectedOrg: SalesforceOrgUi,
   soqlQuery: string,
   isTooling = false,
+  maxOffset = Infinity,
 ): Promise<QueryResults<T>> {
   const LIMIT = 2000;
-  let offset = 0;
-  let done = false;
 
-  const results = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`, isTooling);
+  const results = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT}`, isTooling);
+  let { done, offset } = checkDoneAndGetOffset({ limit: LIMIT, maxOffset, offset: 0, recordCount: results.queryResults.records.length });
 
   // Metadata objects may not allow queryMore, we use this to fetch more
-  while (done) {
-    const { queryResults } = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`);
+  while (!done) {
+    const { queryResults } = await query<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`, isTooling);
     results.queryResults.records = results.queryResults.records.concat(queryResults.records);
-    done = queryResults.done;
+    ({ done, offset } = checkDoneAndGetOffset({ limit: LIMIT, maxOffset, offset, recordCount: queryResults.records.length }));
+  }
+  return results;
+}
 
-    if (queryResults.records.length === LIMIT) {
-      done = false;
-      offset += LIMIT;
-    } else {
-      done = true;
-    }
+/**
+ * Query more using OFFSET clause with query cache
+ *
+ * NOTE: Some objects have a limited OFFSET support (max 2000),
+ * This could result in an error: Maximum SOQL offset allowed is 2000
+ *
+ * maxOffset should be used to limit the number of records fetched in these cases
+ *
+ * @param selectedOrg
+ * @param queries
+ */
+export async function queryAllWithCacheUsingOffset<T = any>(
+  selectedOrg: SalesforceOrgUi,
+  soqlQuery: string,
+  isTooling = false,
+  maxOffset = Infinity,
+): Promise<QueryResults<T>> {
+  const LIMIT = 2000;
+
+  const { data: results } = await queryWithCache<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT}`, isTooling);
+  let { done, offset } = checkDoneAndGetOffset({ limit: LIMIT, maxOffset, offset: 0, recordCount: results.queryResults.records.length });
+
+  // Metadata objects may not allow queryMore, we use this to fetch more
+  while (!done) {
+    const { data } = await queryWithCache<T>(selectedOrg, `${soqlQuery} LIMIT ${LIMIT} OFFSET ${offset}`, isTooling);
+    const { queryResults } = data;
+    results.queryResults.records = results.queryResults.records.concat(queryResults.records);
+    ({ done, offset } = checkDoneAndGetOffset({ limit: LIMIT, maxOffset, offset, recordCount: queryResults.records.length }));
   }
   return results;
 }

@@ -249,9 +249,9 @@ export const LoadRecords = () => {
 
   useEffect(() => {
     if (mappableFields && inputFileHeader) {
-      setFieldMapping(autoMapFields(inputFileHeader, mappableFields, binaryAttachmentBodyField, loadType, externalId));
+      autoMapFields(selectedOrg, inputFileHeader, mappableFields, binaryAttachmentBodyField, loadType, externalId).then(setFieldMapping);
     }
-  }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField, externalId]);
+  }, [mappableFields, inputFileHeader, loadType, setFieldMapping, binaryAttachmentBodyField, externalId, selectedOrg]);
 
   useEffect(() => {
     setExternalIdFields(fields.filter((field) => field.name === 'Id' || field.externalId));

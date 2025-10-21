@@ -1,12 +1,11 @@
 import { css } from '@emotion/react';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { FieldMappingItem, FieldMappingItemCsv, FieldRelatedEntity, FieldWithRelatedEntities, ListItem, Maybe } from '@jetstream/types';
-import { Checkbox, ComboboxWithItems, Grid, Icon, Select } from '@jetstream/ui';
-import { SELF_LOOKUP_KEY } from '@jetstream/ui-core';
+import { FieldMappingItemCsv, FieldWithRelatedEntities, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { Checkbox, ComboboxWithItems, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import isNil from 'lodash/isNil';
-import { Fragment, FunctionComponent, useEffect, useState } from 'react';
-import LoadRecordsFieldMappingRowLookupOption from './LoadRecordsFieldMappingRowLookupOption';
+import { Fragment, FunctionComponent, useState } from 'react';
+import { LoadRecordsFieldMappingRelatedObject } from './LoadRecordsFieldMappingRelatedObject';
 
 function getPreviewData(csvRowData: string | Date | boolean | number | null): string {
   if (isNil(csvRowData)) {
@@ -27,6 +26,7 @@ function getComboboxFieldTitle(item: ListItem) {
 }
 
 export interface LoadRecordsFieldMappingRowProps {
+  org: SalesforceOrgUi;
   isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
   fieldMappingItem: FieldMappingItemCsv;
@@ -51,6 +51,7 @@ function getFieldListItems(fields: FieldWithRelatedEntities[]) {
 }
 
 export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappingRowProps> = ({
+  org,
   isCustomMetadataObject,
   fields,
   fieldMappingItem,
@@ -60,27 +61,10 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   onSelectionChanged,
 }) => {
   const [fieldListItems, setFieldListItems] = useState<ListItem<string, FieldWithRelatedEntities>[]>(() => getFieldListItems(fields));
-  const [relatedFields, setRelatedFields] = useState<ListItem<string, FieldRelatedEntity>[]>([]);
 
   useNonInitialEffect(() => {
     setFieldListItems(getFieldListItems(fields));
   }, [fields]);
-
-  useEffect(() => {
-    if (fieldMappingItem.fieldMetadata) {
-      setRelatedFields(
-        (fieldMappingItem.fieldMetadata.relatedFields?.[fieldMappingItem.selectedReferenceTo || ''] || []).map((field) => ({
-          id: field.name,
-          label: field.label,
-          value: field.name,
-          secondaryLabel: field.name,
-          secondaryLabelOnNewLine: true,
-          tertiaryLabel: field.isExternalId ? 'External ID' : undefined,
-          meta: field,
-        })),
-      );
-    }
-  }, [fieldMappingItem.fieldMetadata, fieldMappingItem.selectedReferenceTo]);
 
   function handleSelectionChanged(field: Maybe<FieldWithRelatedEntities>) {
     if (!field) {
@@ -106,34 +90,6 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         isBinaryBodyField: !!binaryAttachmentBodyField && field.name === binaryAttachmentBodyField,
       });
     }
-  }
-
-  function handleRelatedObjectSelectionChanged(field: string) {
-    onSelectionChanged(csvField, {
-      ...fieldMappingItem,
-      mappedToLookup: true,
-      selectedReferenceTo: field,
-      targetLookupField: undefined,
-      relatedFieldMetadata: undefined,
-      relationshipName: undefined,
-    });
-  }
-
-  function handleRelatedSelectionChanged(field: FieldRelatedEntity) {
-    const newFieldMappingItem: FieldMappingItem = {
-      ...fieldMappingItem,
-      mappedToLookup: true,
-      targetLookupField: field.name,
-      relatedFieldMetadata: field,
-      relationshipName: fieldMappingItem.fieldMetadata?.relationshipName,
-    };
-
-    if (newFieldMappingItem.targetLookupField && newFieldMappingItem.relatedFieldMetadata?.isExternalId) {
-      newFieldMappingItem.lookupOptionNullIfNoMatch = false;
-      newFieldMappingItem.lookupOptionUseFirstMatch = 'ERROR_IF_MULTIPLE';
-    }
-
-    onSelectionChanged(csvField, newFieldMappingItem);
   }
 
   function handleMapToRelatedChanged(value: boolean) {
@@ -228,7 +184,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               <Checkbox
                 id={`${csvField}-${fieldMappingItem.targetField}-map-to-related`}
                 checked={fieldMappingItem.mappedToLookup}
-                label={'Map using related field'}
+                label="Map using related field"
                 labelHelp={
                   <div>
                     <p>You can choose certain fields on the related record instead of the Id to set this lookup.</p>
@@ -242,61 +198,12 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
               />
             </div>
             {fieldMappingItem.mappedToLookup && (
-              <Fragment>
-                <Grid>
-                  <div className="slds-m-right_small">
-                    <Select
-                      id={`${fieldMappingItem.targetField}-related-to`}
-                      label="Related Object"
-                      isRequired
-                      labelHelp={
-                        (fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1
-                          ? 'This option is only enabled for fields that have more than one related object.'
-                          : 'This lookup can point to multiple objects, choose the related object that you are mapping to.'
-                      }
-                    >
-                      <select
-                        className="slds-select"
-                        id={`${fieldMappingItem.targetField}-related-to`}
-                        disabled={(fieldMappingItem.fieldMetadata?.referenceTo?.length || 0) <= 1}
-                        value={fieldMappingItem.selectedReferenceTo}
-                        onChange={(event) => handleRelatedObjectSelectionChanged(event.target.value)}
-                      >
-                        {fieldMappingItem.fieldMetadata?.referenceTo?.map((relatedObject) => (
-                          <option key={relatedObject} value={relatedObject}>
-                            {relatedObject}
-                          </option>
-                        ))}
-                      </select>
-                    </Select>
-                  </div>
-                  <div className="slds-grow">
-                    <ComboboxWithItems
-                      comboboxProps={{
-                        label: 'Related Mappable Fields',
-                        errorMessage: 'A related field must be selected',
-                        hasError: !fieldMappingItem.relatedFieldMetadata,
-                      }}
-                      items={relatedFields}
-                      selectedItemId={fieldMappingItem.targetLookupField}
-                      selectedItemLabelFn={getComboboxFieldName}
-                      onSelected={(item) => handleRelatedSelectionChanged(item.meta)}
-                    />
-                  </div>
-                </Grid>
-                {fieldMappingItem.targetLookupField && (
-                  <LoadRecordsFieldMappingRowLookupOption
-                    csvField={csvField}
-                    fieldMappingItem={fieldMappingItem}
-                    disabled={
-                      !!fieldMappingItem.relatedFieldMetadata?.isExternalId && fieldMappingItem.relationshipName !== SELF_LOOKUP_KEY
-                    }
-                    onSelectionChanged={(csvField, fieldMappingItem) =>
-                      onSelectionChanged(csvField, fieldMappingItem as FieldMappingItemCsv)
-                    }
-                  />
-                )}
-              </Fragment>
+              <LoadRecordsFieldMappingRelatedObject
+                org={org}
+                fieldMappingItem={fieldMappingItem}
+                csvField={csvField}
+                onSelectionChanged={onSelectionChanged}
+              />
             )}
           </Fragment>
         )}

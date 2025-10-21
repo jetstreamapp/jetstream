@@ -150,7 +150,7 @@ export const enableLogger = (enable: boolean, logLevel: LogLevel = 'debug') => {
   }
 };
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
   enableLogger(true, 'trace');
 } else if (SESSION_LOGGING_ENABLED) {
   enableLogger(true, 'debug');

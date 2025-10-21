@@ -13,9 +13,8 @@ export interface FieldWithRelatedEntities {
   soapType: string;
   typeLabel: string;
   externalId: boolean;
-  referenceTo?: string[];
+  referenceTo?: Maybe<string[]>;
   relationshipName?: string;
-  relatedFields?: Record<string, FieldRelatedEntity[]>;
   field: FieldWithExtendedType;
 }
 
