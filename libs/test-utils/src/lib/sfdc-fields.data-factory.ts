@@ -211,5 +211,3 @@ export const sfdcEntityParticleRecordFactory: Factory<EntityParticleRecord> = Fa
     } satisfies EntityParticleRecord;
   },
 );
-
-sfdcEntityParticleRecordFactory.build({}, { transient: { entity: 'Account' } });
