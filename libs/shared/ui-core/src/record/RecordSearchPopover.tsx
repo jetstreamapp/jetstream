@@ -95,97 +95,95 @@ export const RecordSearchPopover: FunctionComponent = () => {
 
   const isDisabled = !recordId || (recordId.length !== 15 && recordId.length !== 18);
 
-  if (!selectedOrg || !!selectedOrg.connectionError) {
+  if (!selectedOrg?.uniqueId || !!selectedOrg.connectionError) {
     return null;
   }
 
   return (
-    <Fragment>
-      <Popover
-        ref={popoverRef}
-        size="large"
-        onChange={(isOpen) => {
-          if (isOpen) {
-            getRecentRecordsFromStorage().then((recentRecords) => setRecentRecords(recentRecords[selectedOrg.uniqueId] || []));
-          }
-        }}
-        header={
-          <header className="slds-popover__header slds-grid">
-            <h2 className="slds-text-heading_small">View Record Details</h2>
-            <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'k']} />
-          </header>
+    <Popover
+      ref={popoverRef}
+      size="large"
+      onChange={(isOpen) => {
+        if (isOpen) {
+          getRecentRecordsFromStorage().then((recentRecords) => setRecentRecords(recentRecords[selectedOrg.uniqueId] || []));
         }
-        content={
-          <div className="slds-popover__body slds-p-around_none slds-is-relative">
-            {loading && <Spinner />}
-            {errorMessage && (
-              <div className="slds-m-around-medium">
-                <ScopedNotification theme="error" className="slds-m-top_medium">
-                  {errorMessage}
-                </ScopedNotification>
+      }}
+      header={
+        <header className="slds-popover__header slds-grid">
+          <h2 className="slds-text-heading_small">View Record Details</h2>
+          <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'k']} />
+        </header>
+      }
+      content={
+        <div className="slds-popover__body slds-p-around_none slds-is-relative">
+          {loading && <Spinner />}
+          {errorMessage && (
+            <div className="slds-m-around-medium">
+              <ScopedNotification theme="error" className="slds-m-top_medium">
+                {errorMessage}
+              </ScopedNotification>
+            </div>
+          )}
+          <form onSubmit={handleSubmit}>
+            <Grid verticalAlign="end">
+              <Input id="record-id" label="Record Id" className="slds-grow">
+                <input
+                  id="record-id-input"
+                  className="slds-input"
+                  max={18}
+                  min={15}
+                  value={recordId}
+                  placeholder="15 or 18 digit record id"
+                  autoComplete="off"
+                  autoFocus
+                  onChange={(event) => setRecordId(event.target.value.trim())}
+                />
+              </Input>
+              <div>
+                <button
+                  type="submit"
+                  className="slds-button slds-button_brand slds-m-left_x-small"
+                  disabled={isDisabled}
+                  onClick={() => handleSubmit()}
+                >
+                  Submit
+                </button>
               </div>
-            )}
-            <form onSubmit={handleSubmit}>
-              <Grid verticalAlign="end">
-                <Input id="record-id" label="Record Id" className="slds-grow">
-                  <input
-                    id="record-id-input"
-                    className="slds-input"
-                    max={18}
-                    min={15}
-                    value={recordId}
-                    placeholder="15 or 18 digit record id"
-                    autoComplete="off"
-                    autoFocus
-                    onChange={(event) => setRecordId(event.target.value.trim())}
-                  />
-                </Input>
-                <div>
-                  <button
-                    type="submit"
-                    className="slds-button slds-button_brand slds-m-left_x-small"
-                    disabled={isDisabled}
-                    onClick={() => handleSubmit()}
+            </Grid>
+          </form>
+          {!!recentRecords?.length && (
+            <Fragment>
+              <h2 className="slds-text-heading_small slds-m-top_small" title="Refresh Metadata">
+                Recent Records
+              </h2>
+              <ul className="slds-has-dividers_top-space slds-dropdown_length-10">
+                {recentRecords.map((recentRecord) => (
+                  <li
+                    key={recentRecord.recordId}
+                    className="slds-item slds-text-link"
+                    onClick={() => setFromHistory(recentRecord.recordId)}
                   >
-                    Submit
-                  </button>
-                </div>
-              </Grid>
-            </form>
-            {!!recentRecords?.length && (
-              <Fragment>
-                <h2 className="slds-text-heading_small slds-m-top_small" title="Refresh Metadata">
-                  Recent Records
-                </h2>
-                <ul className="slds-has-dividers_top-space slds-dropdown_length-10">
-                  {recentRecords.map((recentRecord) => (
-                    <li
-                      key={recentRecord.recordId}
-                      className="slds-item slds-text-link"
-                      onClick={() => setFromHistory(recentRecord.recordId)}
-                    >
-                      <div className="slds-truncate" title={recentRecord.recordId}>
-                        {recentRecord.recordId} {recentRecord.name && <span title={recentRecord.name}>- {recentRecord.name}</span>}
-                      </div>
-                      <div className="slds-truncate slds-text-color_weak" title={recentRecord.sobject}>
-                        {recentRecord.sobject}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </Fragment>
-            )}
-          </div>
-        }
-        buttonProps={{
-          className:
-            'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-          title: 'View Record Details - ctrl/command + k',
-          disabled: !selectedOrg || !!selectedOrg.connectionError,
-        }}
-      >
-        <Icon type="utility" icon="record_lookup" className="slds-button__icon slds-global-header__icon" omitContainer />
-      </Popover>
-    </Fragment>
+                    <div className="slds-truncate" title={recentRecord.recordId}>
+                      {recentRecord.recordId} {recentRecord.name && <span title={recentRecord.name}>- {recentRecord.name}</span>}
+                    </div>
+                    <div className="slds-truncate slds-text-color_weak" title={recentRecord.sobject}>
+                      {recentRecord.sobject}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
+          )}
+        </div>
+      }
+      buttonProps={{
+        className:
+          'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
+        title: 'View Record Details - ctrl/command + k',
+        disabled: !selectedOrg || !!selectedOrg.connectionError,
+      }}
+    >
+      <Icon type="utility" icon="record_lookup" className="slds-button__icon slds-global-header__icon" omitContainer />
+    </Popover>
   );
 };

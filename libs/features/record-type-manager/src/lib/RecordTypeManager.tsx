@@ -29,7 +29,7 @@ export const RecordTypeManager: FunctionComponent<RecordTypeManagerProps> = () =
       setPriorSelectedOrg(selectedOrg.uniqueId);
       resetRecordTypes();
       resetSelectedRecordTypes();
-    } else if (!selectedOrg) {
+    } else if (!selectedOrg?.uniqueId) {
       resetRecordTypes();
       resetSelectedRecordTypes();
     }

@@ -151,7 +151,7 @@ export const QuickQueryPopover = () => {
 
   const isDisabled = !queryIsValid || isRestoring;
 
-  if (!selectedOrg || !!selectedOrg.connectionError) {
+  if (!selectedOrg?.uniqueId || !!selectedOrg.connectionError) {
     return null;
   }
 

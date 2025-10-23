@@ -33,7 +33,7 @@ export const AutomationControl = () => {
       if (location.pathname.endsWith('/editor')) {
         navigate('..');
       }
-    } else if (!selectedOrg) {
+    } else if (!selectedOrg?.uniqueId) {
       resetSObjectsState();
       resetSelectedSObjectsState();
       resetAutomationTypes();

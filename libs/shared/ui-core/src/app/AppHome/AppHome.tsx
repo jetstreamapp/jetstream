@@ -88,7 +88,6 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
       >
         <div
           css={css`
-            background-color: white;
             grid-column: span 3;
 
             @media (max-width: 1024px) {
@@ -109,14 +108,14 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           </ScopedNotification>
           {!hideConnectedAppBanner && (
             <ScopedNotification theme="light">
-              Salesforce Connected App Updates{' '}
+              Salesforce updated their{' '}
               <a
                 href="https://help.salesforce.com/s/articleView?id=005132365&type=1"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Salesforce Connected Apps documentation"
               >
-                Salesforce Connected Apps
+                Connected Apps security requirements
               </a>
               . You may need to{' '}
               <a

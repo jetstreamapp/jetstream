@@ -289,7 +289,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
         skipCacheIfOlderThan?: number;
       } = {},
     ) => {
-      if (!selectedOrg || !types?.length) {
+      if (!selectedOrg?.uniqueId || !types?.length) {
         return;
       }
 

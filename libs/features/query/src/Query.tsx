@@ -62,7 +62,7 @@ export const Query = () => {
       if (location.pathname === '/query') {
         restore(soql, tooling);
       }
-    } else if (!selectedOrg) {
+    } else if (!selectedOrg?.uniqueId) {
       resetSobjects();
       resetSelectedSObject();
       resetSObjectFilterTerm();

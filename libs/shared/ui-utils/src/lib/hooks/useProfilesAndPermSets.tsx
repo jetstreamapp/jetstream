@@ -84,7 +84,7 @@ export function useProfilesAndPermSets(
 
   const fetchMetadata = useCallback(
     async (skipCache = false) => {
-      if (!selectedOrg) {
+      if (!selectedOrg?.uniqueId) {
         return;
       }
       try {

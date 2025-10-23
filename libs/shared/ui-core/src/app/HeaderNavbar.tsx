@@ -171,7 +171,7 @@ export const HeaderNavbar = ({
     }
 
     return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
-  }, [isChromeExtension, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent]);
+  }, [isReadOnlyUser, isChromeExtension, isDesktop, isBillingEnabled, hasPaidPlan, trackEvent]);
 
   return (
     <Fragment>

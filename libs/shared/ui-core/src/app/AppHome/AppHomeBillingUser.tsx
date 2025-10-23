@@ -26,9 +26,7 @@ const HOME_ITEMS = [
 
 const CURRENT_TIME = new Date().getTime();
 
-interface AppHomeBillingUserProps {}
-
-export const AppHomeBillingUser = ({}: AppHomeBillingUserProps) => {
+export const AppHomeBillingUser = () => {
   return (
     <div
       className="slds-m-top_small"

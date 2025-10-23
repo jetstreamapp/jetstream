@@ -50,7 +50,7 @@ export function useDescribeMetadata(
 
   const loadDescribeMetadata = useCallback(
     async (clearCache = false) => {
-      if (!selectedOrg) {
+      if (!selectedOrg?.uniqueId) {
         return;
       }
       const uniqueId = selectedOrg.uniqueId;
