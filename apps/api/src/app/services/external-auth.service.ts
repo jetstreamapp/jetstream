@@ -75,13 +75,16 @@ export async function verifyToken(
   const decodedPayload = decoder(token) as JwtDecodedPayload;
 
   const userAccessToken = await webExtDb.findByAccessTokenAndDeviceId({ deviceId, token, type: webExtDb.TOKEN_TYPE_AUTH });
+  const entitlements = userAccessToken?.user?.teamMembership?.team?.entitlements || userAccessToken?.user?.entitlements;
   if (!userAccessToken) {
     throw new InvalidAccessToken('Access token is invalid for device');
+  } else if (userAccessToken.user.teamMembership && userAccessToken.user.teamMembership.status !== 'ACTIVE') {
+    throw new InvalidAccessToken('User is not active');
   } else if (decodedPayload?.userProfile?.id !== userAccessToken.userId) {
     throw new InvalidAccessToken('Access token is invalid for user');
-  } else if (audience === AUDIENCE_WEB_EXT && !userAccessToken.user.entitlements?.chromeExtension) {
+  } else if (audience === AUDIENCE_WEB_EXT && !entitlements?.chromeExtension) {
     throw new InvalidAccessToken('Browser extension is not enabled');
-  } else if (audience === AUDIENCE_DESKTOP && !userAccessToken.user.entitlements?.desktop) {
+  } else if (audience === AUDIENCE_DESKTOP && !entitlements?.desktop) {
     throw new InvalidAccessToken('Desktop application is not enabled');
   }
 
