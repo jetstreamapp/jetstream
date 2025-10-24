@@ -25,6 +25,7 @@ import HeaderDonatePopover from './HeaderDonatePopover';
 import HeaderHelpPopover from './HeaderHelpPopover';
 import { HeaderNavbarItems } from './HeaderNavbarItems';
 import { HeaderNavbarBillingUserItems } from './HeaderNavbarReadOnlyUserItems';
+import HeaderUpdateNotification from './HeaderUpdateNotification';
 import LogoPro from './jetstream-logo-pro-200w.png';
 import Logo from './jetstream-logo-v1-200w.png';
 import NotificationsRequestModal from './NotificationsRequestModal';
@@ -139,13 +140,33 @@ export const HeaderNavbar = ({
     setUserMenuItems(getMenuItems({ ability, userProfile, deniedNotifications, isBillingEnabled }));
   }, [ability, userProfile, deniedNotifications, isBillingEnabled]);
 
+  const handleCheckForUpdates = () => {
+    if (window.electronAPI) {
+      window.electronAPI.checkForUpdates(true);
+    }
+  };
+
+  const handleInstallUpdate = () => {
+    if (window.electronAPI) {
+      window.electronAPI.installUpdate();
+    }
+  };
+
   const rightHandMenuItems = useMemo(() => {
     if (isReadOnlyUser) {
       return [<HeaderHelpPopover />];
     }
 
     if (isChromeExtension || isDesktop) {
-      return [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />, <HeaderHelpPopover />];
+      const items = [<QuickQueryPopover />, <RecordSearchPopover />, <UserSearchPopover />, <Jobs />];
+
+      // Add update notification for desktop
+      if (isDesktop) {
+        items.push(<HeaderUpdateNotification onCheckForUpdates={handleCheckForUpdates} onInstallUpdate={handleInstallUpdate} />);
+      }
+
+      items.push(<HeaderHelpPopover />);
+      return items;
     }
 
     if (!isBillingEnabled) {

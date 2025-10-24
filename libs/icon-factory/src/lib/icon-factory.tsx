@@ -52,6 +52,7 @@ import StandardIcon_TeamMember from './icons/standard/TeamMember';
 import StandardIcon_User from './icons/standard/User';
 import StandardIcon_YourAccount from './icons/standard/YourAccount';
 import UtilityIcon_Add from './icons/utility/Add';
+import UtilityIcon_Announcement from './icons/utility/Announcement';
 import UtilityIcon_Apex from './icons/utility/Apex';
 import UtilityIcon_ApexPlugin from './icons/utility/ApexPlugin';
 import UtilityIcon_Archive from './icons/utility/Archive';
@@ -244,6 +245,7 @@ const doctypeIcons = {
 
 const utilityIcons = {
   add: UtilityIcon_Add,
+  announcement: UtilityIcon_Announcement,
   apex_plugin: UtilityIcon_ApexPlugin,
   apex: UtilityIcon_Apex,
   archive: UtilityIcon_Archive,

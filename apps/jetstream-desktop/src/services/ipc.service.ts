@@ -14,6 +14,7 @@ import logger from 'electron-log';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
+import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../config/auto-updater';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery } from '../utils/route.utils';
 import { logout, verifyAuthToken } from './api.service';
@@ -47,6 +48,10 @@ export function registerIpc(): void {
   registerHandler('setPreferences', handleSetPreferences);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
+  // Handle auto-update requests
+  registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
+  registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);
+  registerHandler('installUpdate', handleInstallUpdateEvent);
 }
 
 const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async (event) => {
@@ -256,4 +261,18 @@ const handleRequestEvent: MainIpcHandler<'request'> = async (event, { url: urlSt
     // FIXME: based on content type, need to parse the body accordingly
     body: await response.json(),
   };
+};
+
+const handleCheckForUpdatesEvent: MainIpcHandler<'checkForUpdates'> = async (event, userInitiated) => {
+  checkForUpdates(false, userInitiated);
+  // Send current status immediately
+  event.sender.send('update-status', getCurrentUpdateStatus());
+};
+
+const handleGetUpdateStatusEvent: MainIpcHandler<'getUpdateStatus'> = async (_event) => {
+  return getCurrentUpdateStatus();
+};
+
+const handleInstallUpdateEvent: MainIpcHandler<'installUpdate'> = async (_event) => {
+  installUpdate();
 };

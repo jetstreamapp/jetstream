@@ -10,6 +10,7 @@ export * from './app/HeaderAnnouncementPopover';
 export * from './app/HeaderDonatePopover';
 export * from './app/HeaderHelpPopover';
 export * from './app/HeaderNavbar';
+export * from './app/HeaderUpdateNotification';
 export * from './app/NotificationsRequestModal';
 export * from './app/PromptNavigation';
 export * from './app/RequireMetadataApiBanner';
