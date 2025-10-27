@@ -106,9 +106,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
               Version {updateStatus.version} is available and will download in the background.
             </div>
             {lastChecked && (
-              <div className="slds-text-body_small slds-text-color_weak">
-                Found: {formatRelative(lastChecked, new Date())}
-              </div>
+              <div className="slds-text-body_small slds-text-color_weak">Found: {formatRelative(lastChecked, new Date())}</div>
             )}
           </div>
         );
@@ -224,7 +222,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
         ),
         title: iconData.tooltip,
         'aria-live': 'assertive',
-        'aria-atomic': 'true',
+        'aria-atomic': true,
       }}
     >
       {iconData.icon}

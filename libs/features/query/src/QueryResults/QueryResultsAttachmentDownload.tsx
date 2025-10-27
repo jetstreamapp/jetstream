@@ -27,6 +27,7 @@ import z from 'zod';
 
 const FileNameFormatSchema = z.enum(['name', 'id', 'nameAndId']);
 type FileNameFormat = z.infer<typeof FileNameFormatSchema>;
+
 const LS_KEY = 'query-attachment-download-filename-format';
 export interface QueryResultsAttachmentDownloadProps {
   selectedOrg: SalesforceOrgUi;
@@ -323,7 +324,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
               label="Name or Title"
               value="name"
               checked={fileNameFormat === 'name'}
-              onChange={(value) => setFileNameFormat(value as 'name' | 'id' | 'nameAndId')}
+              onChange={(value) => setFileNameFormat(value as FileNameFormat)}
               disabled={isDownloading}
             />
             <Radio
@@ -332,7 +333,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
               label="Record Id"
               value="id"
               checked={fileNameFormat === 'id'}
-              onChange={(value) => setFileNameFormat(value as 'name' | 'id' | 'nameAndId')}
+              onChange={(value) => setFileNameFormat(value as FileNameFormat)}
               disabled={isDownloading}
             />
             <Radio
@@ -341,7 +342,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
               label="Name or Title with Record Id appended"
               value="nameAndId"
               checked={fileNameFormat === 'nameAndId'}
-              onChange={(value) => setFileNameFormat(value as 'name' | 'id' | 'nameAndId')}
+              onChange={(value) => setFileNameFormat(value as FileNameFormat)}
               disabled={isDownloading}
             />
           </RadioGroup>

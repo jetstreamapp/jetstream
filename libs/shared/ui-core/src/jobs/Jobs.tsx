@@ -584,7 +584,7 @@ export const Jobs: FunctionComponent = () => {
         ),
         title: `${activeJobCount} active job(s)`,
         'aria-live': 'assertive',
-        'aria-atomic': 'true',
+        'aria-atomic': true,
       }}
       // Show number of in progress jobs or just an indication that there are finished jobs that have not been viewed
       triggerAfterContent={
