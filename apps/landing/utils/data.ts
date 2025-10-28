@@ -27,7 +27,7 @@ export async function fetchBlogPosts() {
 
   const entries = await client.getEntries<ContentfulBlogPostField>({
     content_type: 'blogPost',
-    order: '-fields.publishDate',
+    order: ['-fields.publishDate'],
     include: 2,
   });
 
@@ -37,7 +37,8 @@ export async function fetchBlogPosts() {
   }
 
   if (entries.total > 0) {
-    const { Entry } = entries.includes as ContentfulIncludes;
+    const includes = entries.includes as unknown as ContentfulIncludes;
+    const Entry = includes?.Entry || [];
 
     const authorsById = Entry.reduce((output: AuthorsById, item) => {
       output[item.sys.id] = item;
@@ -46,6 +47,7 @@ export async function fetchBlogPosts() {
 
     blogPostsBySlug = entries.items
       .map(({ sys, fields }): BlogPost => {
+        const authorId = fields.author?.sys?.id;
         return {
           id: sys.id,
           title: fields.title,
@@ -53,7 +55,7 @@ export async function fetchBlogPosts() {
           slug: fields.slug,
           publishDate: fields.publishDate,
           content: fields.content,
-          author: authorsById[fields.author?.sys.id],
+          author: authorId ? authorsById[authorId] : undefined,
         };
       })
       .reduce((output: BlogPostsBySlug, item) => {
