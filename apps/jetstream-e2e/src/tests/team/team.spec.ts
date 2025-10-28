@@ -477,8 +477,8 @@ test.describe('Team Dashboard', () => {
     await test.step('Verify all invited users are now team members', async () => {
       await teamDashboardPage.page.reload();
 
-      for (let email of users) {
-        let row = teamDashboardPage.teamMemberTable.getByTestId(`team-member-row-${email}`);
+      for (const email of users) {
+        const row = teamDashboardPage.teamMemberTable.getByTestId(`team-member-row-${email}`);
         await expect(row.getByText(email)).toBeVisible();
         await expect(row.getByText('Member')).toBeVisible();
         await expect(row.getByText('Active')).toBeVisible();

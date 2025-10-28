@@ -134,18 +134,31 @@ export function renderBlogPostRichText(richText: Document) {
       [BLOCKS.EMBEDDED_ASSET]: (node, children) => {
         try {
           const asset: Asset = node.data.target;
+          const file = asset.fields.file;
+          const url = typeof file === 'object' && file && 'url' in file ? (typeof file.url === 'string' ? file.url : undefined) : undefined;
+          const title = typeof asset.fields.title === 'string' ? asset.fields.title : '';
+          const description = typeof asset.fields.description === 'string' ? asset.fields.description : '';
+          const details = typeof file === 'object' && file && 'details' in file ? file.details : undefined;
+          const imageDetails = details && typeof details === 'object' && 'image' in details ? details.image : undefined;
+          const width = imageDetails && typeof imageDetails === 'object' && 'width' in imageDetails ? imageDetails.width : undefined;
+          const height = imageDetails && typeof imageDetails === 'object' && 'height' in imageDetails ? imageDetails.height : undefined;
+
+          if (!url) {
+            return <Fragment />;
+          }
+
           return (
             <FigureImgWithViewFullScreen
-              src={node.data.target.fields.file.url}
-              title={asset.fields.title}
-              description={asset.fields.description}
-              width={asset.fields.file.details.image?.width}
-              height={asset.fields.file.details.image?.height}
+              src={url}
+              title={title}
+              description={description}
+              width={width}
+              height={height}
             />
           );
         } catch (ex) {
           console.warn('[RENDER ASSET ERROR]', ex.message);
-          <Fragment />;
+          return <Fragment />;
         }
       },
     },

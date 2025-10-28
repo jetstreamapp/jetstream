@@ -1,6 +1,6 @@
+import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
 import * as React from 'react';
-import { pluralizeFromNumber } from '../../../../../shared/utils/src';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
 import { EMAIL_STYLES } from '../../shared-styles';

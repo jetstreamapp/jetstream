@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 export interface FigureImgProps {
-  src: string;
+  src: string | undefined;
   title: string;
   description: string;
   width: number | undefined;

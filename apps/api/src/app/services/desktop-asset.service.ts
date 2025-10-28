@@ -78,7 +78,7 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
 
     if (winRelease?.files.length) {
       const version = winRelease.version;
-      const { sha512, url: filename } = winRelease?.files[0];
+      const { sha512, url: filename } = winRelease.files[0];
       versionCache.set('windows-x64', {
         data: { version, filename, sha512, link: getDownloadUrl(filename) },
         expiry: Date.now() + CACHE_DURATION_MS,

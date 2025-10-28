@@ -73,9 +73,9 @@ export const test = base.extend<MyFixtures>({
       if (environment.PLAYWRIGHT_KEEP_DATA) {
         console.log('Skipping team cleanup based on PLAYWRIGHT_KEEP_DATA env var');
         teamCreationUtils.debug();
-        return;
+      } else {
+        await teamCreationUtils.cleanup();
       }
-      await teamCreationUtils.cleanup();
     }
   },
   teamCreationUtils3Users: async ({ browser, page, environment }, use) => {
@@ -90,9 +90,9 @@ export const test = base.extend<MyFixtures>({
       if (environment.PLAYWRIGHT_KEEP_DATA) {
         console.log('Skipping team cleanup based on PLAYWRIGHT_KEEP_DATA env var');
         teamCreationUtils.debug();
-        return;
+      } else {
+        await teamCreationUtils.cleanup();
       }
-      await teamCreationUtils.cleanup();
     }
   },
   apiRequestUtils: async ({ page, environment }, use) => {

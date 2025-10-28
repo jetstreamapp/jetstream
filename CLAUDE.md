@@ -123,7 +123,6 @@ yarn nx affected:test  # Test affected projects
 - **State Management**: Frontend uses jotai for global state
 - **Styling**: Emotion CSS-in-JS with Salesforce Lightning Design System
 - **Real-time**: Socket.io for platform events and real-time updates
-- **Job Queue**: Bull/pg-boss for background job processing
 
 ## Coding standards
 
