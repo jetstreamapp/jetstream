@@ -253,7 +253,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
             isRequired={required}
             hasError={!!saveError}
             errorMessageId={`${id}-error`}
-            value={(value as string) || ''}
+            value={(value as string) ?? ''}
             bottomBorder
             relatedRecord={relatedRecord}
             viewRelatedRecord={viewRelatedRecord}

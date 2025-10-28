@@ -1,7 +1,9 @@
 import { Field, Maybe, RecordAttributes } from '@jetstream/types';
 import classNames from 'classnames';
+import isString from 'lodash/isString';
 import React, { Fragment, FunctionComponent, ReactNode } from 'react';
 import HelpText from '../../widgets/HelpText';
+import Icon from '../../widgets/Icon';
 
 export interface ReadOnlyFormElementProps {
   id: string;
@@ -14,7 +16,7 @@ export interface ReadOnlyFormElementProps {
   isRequired?: boolean;
   errorMessageId?: string;
   errorMessage?: React.ReactNode | string;
-  value: Maybe<string>;
+  value: Maybe<string | number | boolean>;
   bottomBorder?: boolean;
   relatedRecord?: Maybe<{ attributes: RecordAttributes; Name: string }>;
   viewRelatedRecord?: (recordId: string, metadata: Field) => void;
@@ -42,6 +44,22 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
   const showViewLookup =
     viewRelatedRecord && relatedRecord?.Name && metadata?.type === 'reference' && metadata.referenceTo && metadata.referenceTo?.length > 0;
 
+  const displayValue =
+    typeof value === 'boolean' ? (
+      <Icon
+        type="utility"
+        icon={value ? 'check' : 'steps'}
+        title={value ? 'True' : 'False'}
+        className="slds-icon slds-icon_x-small"
+        containerClassname={classNames('slds-icon_container slds-current-color', {
+          'slds-icon-utility-steps': !value,
+          'slds-icon-utility-check': value,
+        })}
+      />
+    ) : (
+      value
+    );
+
   return (
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
@@ -59,7 +77,7 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
       )}
       <div id={id} className={classNames('slds-form-element__control', { 'slds-border_bottom': bottomBorder })}>
         <div className="slds-form-element__static">
-          {value && showViewLookup ? (
+          {isString(value) && showViewLookup ? (
             <>
               <button className="slds-button" onClick={() => viewRelatedRecord(value, metadata)} title="View related record">
                 {relatedRecord.Name}
@@ -67,7 +85,7 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
               <span className="slds-m-left_xx-small">({value})</span>
             </>
           ) : (
-            <p>{relatedRecord?.Name ? `${relatedRecord.Name} (${value})` : value}</p>
+            <p>{relatedRecord?.Name ? `${relatedRecord.Name} (${value})` : displayValue}</p>
           )}
         </div>
       </div>
