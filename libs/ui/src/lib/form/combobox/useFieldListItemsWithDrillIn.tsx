@@ -17,7 +17,7 @@ export function useFieldListItemsWithDrillIn(selectedOrg: SalesforceOrgUi) {
 
   const loadFields = useCallback(
     async (sobject: string): Promise<{ describe: DescribeSObjectResult; fields: Field[] }> => {
-      if (!selectedOrg || !sobject) {
+      if (!selectedOrg?.uniqueId || !sobject) {
         throw new Error('Org and sobject are required');
       }
       const { data } = await describeSObject(selectedOrg, sobject);
@@ -32,7 +32,7 @@ export function useFieldListItemsWithDrillIn(selectedOrg: SalesforceOrgUi) {
 
   const loadChildFields = useCallback(
     async (item: ListItem): Promise<ListItem[]> => {
-      if (!selectedOrg) {
+      if (!selectedOrg?.uniqueId) {
         throw new Error('Org is required');
       }
       const field = item.meta as Field;

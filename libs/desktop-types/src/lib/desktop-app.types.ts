@@ -11,6 +11,7 @@ export interface ElectronApiCallback {
   onAuthenticate: (payload: (payload: AuthenticatePayload) => void) => void;
   onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => void;
   onAction: (payload: (action: DesktopAction) => void) => void;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => void;
 }
 
 export interface ElectronApiRequestResponse {
@@ -22,6 +23,9 @@ export interface ElectronApiRequestResponse {
   getPreferences: () => Promise<DesktopUserPreferences>;
   setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
   request: (payload: { url: string; request: IcpRequest }) => Promise<IcpResponse>;
+  checkForUpdates: (userInitiated?: boolean) => Promise<void>;
+  getUpdateStatus: () => Promise<UpdateStatus>;
+  installUpdate: () => void;
 }
 
 export type ElectronAPI = ElectronApiCallback & ElectronApiRequestResponse;
@@ -178,3 +182,17 @@ export const NotificationMessageV1ResponseSchema = z.object({
 });
 
 export type NotificationMessageV1Response = z.infer<typeof NotificationMessageV1ResponseSchema>;
+
+// Auto-update types
+export type UpdateStatusType = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' | 'up-to-date';
+
+export interface UpdateStatus {
+  status: UpdateStatusType;
+  version?: string;
+  error?: string;
+  downloadProgress?: {
+    percent: number;
+    transferred: number;
+    total: number;
+  };
+}

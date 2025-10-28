@@ -106,102 +106,100 @@ export const UserSearchPopover: FunctionComponent = () => {
 
   useGlobalEventHandler('keydown', onKeydown);
 
-  if (!selectedOrg || !!selectedOrg.connectionError) {
+  if (!selectedOrg?.uniqueId || !!selectedOrg.connectionError) {
     return null;
   }
 
   return (
-    <Fragment>
-      <Popover
-        ref={popoverRef}
-        size="large"
-        onChange={(isOpen) => {
-          setIsOpen(isOpen);
-          isOpen && trackEvent(ANALYTICS_KEYS.user_search_opened);
-        }}
-        header={
-          <header className="slds-popover__header slds-grid">
-            <h2 className="slds-text-heading_small">Search Users</h2>
-            <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'u']} />
-          </header>
-        }
-        content={
-          <div className="slds-popover__body slds-p-around_none slds-is-relative">
-            {errorMessage && (
-              <div className="slds-m-around-medium">
-                <ScopedNotification theme="error" className="slds-m-top_medium">
-                  {errorMessage}
-                </ScopedNotification>
-              </div>
-            )}
-            <Grid verticalAlign="end">
-              <SearchInput
-                id="user-search"
-                className="w-100"
-                placeholder="Id, Name, Email, or Username"
-                autoFocus
-                loading={loading}
-                value={searchTerm}
-                onChange={(value) => setSearchTerm(value.trim())}
+    <Popover
+      ref={popoverRef}
+      size="large"
+      onChange={(isOpen) => {
+        setIsOpen(isOpen);
+        isOpen && trackEvent(ANALYTICS_KEYS.user_search_opened);
+      }}
+      header={
+        <header className="slds-popover__header slds-grid">
+          <h2 className="slds-text-heading_small">Search Users</h2>
+          <KeyboardShortcut className="slds-m-left_x-small" keys={[getModifierKey(), 'u']} />
+        </header>
+      }
+      content={
+        <div className="slds-popover__body slds-p-around_none slds-is-relative">
+          {errorMessage && (
+            <div className="slds-m-around-medium">
+              <ScopedNotification theme="error" className="slds-m-top_medium">
+                {errorMessage}
+              </ScopedNotification>
+            </div>
+          )}
+          <Grid verticalAlign="end">
+            <SearchInput
+              id="user-search"
+              className="w-100"
+              placeholder="Id, Name, Email, or Username"
+              autoFocus
+              loading={loading}
+              value={searchTerm}
+              onChange={(value) => setSearchTerm(value.trim())}
+            />
+          </Grid>
+          {!!usersResults && !usersResults?.queryResults.records?.length && (
+            <p className="slds-text-align_center slds-m-vertical_x-small slds-text-heading_small">No Results</p>
+          )}
+          {!!usersResults?.queryResults.records?.length && (
+            <Fragment>
+              <h2 className="slds-text-heading_small slds-m-top_small" title="Users">
+                Users
+              </h2>
+              <List
+                css={css`
+                  max-height: 75vh;
+                  overflow-y: auto;
+                `}
+                items={usersResults.queryResults.records}
+                isActive={(item: User) => item.Id === searchTerm}
+                onSelected={(key: string) => {
+                  const user = usersResults?.queryResults.records.find(({ Id }) => Id === key);
+                  if (user) {
+                    handleViewRecord(user);
+                  }
+                }}
+                getContent={(user: User) => ({
+                  key: user.Id,
+                  id: user.Id,
+                  heading: getListItemContent({ user, onCopy: (type) => trackEvent(ANALYTICS_KEYS.user_search_copy_item, { type }) }),
+                  children: (
+                    <Grid align="spread">
+                      <SalesforceLogin
+                        serverUrl={serverUrl}
+                        skipFrontDoorAuth={skipFrontDoorAuth}
+                        className="slds-button"
+                        org={selectedOrg}
+                        returnUrl={`/lightning/setup/ManageUsers/page?address=${encodeURIComponent(`/${user.Id}?noredirect=1`)}`}
+                        title="View user in Salesforce"
+                        onClick={(event, url) => event.stopPropagation()}
+                      >
+                        View in Salesforce
+                      </SalesforceLogin>
+                    </Grid>
+                  ),
+                })}
+                searchTerm={searchTerm}
               />
-            </Grid>
-            {!!usersResults && !usersResults?.queryResults.records?.length && (
-              <p className="slds-text-align_center slds-m-vertical_x-small slds-text-heading_small">No Results</p>
-            )}
-            {!!usersResults?.queryResults.records?.length && (
-              <Fragment>
-                <h2 className="slds-text-heading_small slds-m-top_small" title="Users">
-                  Users
-                </h2>
-                <List
-                  css={css`
-                    max-height: 75vh;
-                    overflow-y: auto;
-                  `}
-                  items={usersResults.queryResults.records}
-                  isActive={(item: User) => item.Id === searchTerm}
-                  onSelected={(key: string) => {
-                    const user = usersResults?.queryResults.records.find(({ Id }) => Id === key);
-                    if (user) {
-                      handleViewRecord(user);
-                    }
-                  }}
-                  getContent={(user: User) => ({
-                    key: user.Id,
-                    id: user.Id,
-                    heading: getListItemContent({ user, onCopy: (type) => trackEvent(ANALYTICS_KEYS.user_search_copy_item, { type }) }),
-                    children: (
-                      <Grid align="spread">
-                        <SalesforceLogin
-                          serverUrl={serverUrl}
-                          skipFrontDoorAuth={skipFrontDoorAuth}
-                          className="slds-button"
-                          org={selectedOrg}
-                          returnUrl={`/lightning/setup/ManageUsers/page?address=${encodeURIComponent(`/${user.Id}?noredirect=1`)}`}
-                          title="View user in Salesforce"
-                          onClick={(event, url) => event.stopPropagation()}
-                        >
-                          View in Salesforce
-                        </SalesforceLogin>
-                      </Grid>
-                    ),
-                  })}
-                  searchTerm={searchTerm}
-                />
-              </Fragment>
-            )}
-          </div>
-        }
-        buttonProps={{
-          className:
-            'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
-          title: 'View Record Details - ctrl/command + k',
-          disabled: !selectedOrg || !!selectedOrg.connectionError,
-        }}
-      >
-        <Icon type="utility" icon="people" className="slds-button__icon slds-global-header__icon" omitContainer />
-      </Popover>
-    </Fragment>
+            </Fragment>
+          )}
+        </div>
+      }
+      buttonProps={{
+        className:
+          'slds-button slds-button_icon slds-button_icon-container slds-button_icon-small slds-global-actions__help slds-global-actions__item-action cursor-pointer',
+        title: 'View Record Details - ctrl/command + k',
+        disabled: !selectedOrg || !!selectedOrg.connectionError,
+      }}
+    >
+      <Icon type="utility" icon="people" className="slds-button__icon slds-global-header__icon" omitContainer />
+    </Popover>
   );
 };
 

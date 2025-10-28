@@ -35,7 +35,7 @@ export const CreateObjectAndFields = () => {
       resetSObjectsState();
       resetSelectedSObjectsState();
       resetFieldRowsState();
-    } else if (!selectedOrg) {
+    } else if (!selectedOrg?.uniqueId) {
       resetProfilesState();
       resetSelectedProfilesPermSetState();
       resetPermissionSetsState();

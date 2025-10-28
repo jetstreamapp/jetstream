@@ -38,7 +38,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
 
   const handleRetryOrgConnection = async () => {
     try {
-      if (!selectedOrg) {
+      if (!selectedOrg?.uniqueId) {
         return;
       }
       setLoadingRetry(true);

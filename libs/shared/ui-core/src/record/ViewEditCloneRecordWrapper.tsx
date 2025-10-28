@@ -129,7 +129,7 @@ export const ViewEditCloneRecordWrapper: FunctionComponent = () => {
     recordActionModalClosedObservable.next({ objectName, reloadRecords });
   }
 
-  if (!selectedOrg || !!selectedOrg.connectionError || !modalOpen || !sobjectName) {
+  if (!selectedOrg?.uniqueId || !!selectedOrg.connectionError || !modalOpen || !sobjectName) {
     return null;
   }
 

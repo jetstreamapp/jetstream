@@ -36,7 +36,7 @@ export const MassUpdateRecords: FunctionComponent = () => {
       resetRowMapState();
       resetSObjectsState();
       resetSelectedSObjectsState();
-    } else if (!selectedOrg) {
+    } else if (!selectedOrg?.uniqueId) {
       resetRowMapState();
       resetSObjectsState();
       resetSelectedSObjectsState();

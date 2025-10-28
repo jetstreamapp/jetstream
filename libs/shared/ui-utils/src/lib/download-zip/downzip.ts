@@ -45,12 +45,17 @@ const CMD_ACTIVE_DOWNLOADS = 'ACTIVE_DOWNLOADS';
 
 let downzip: DownZip;
 
-export async function getZipDownloadUrl(zipFileName: string, files: DownZipFile[]) {
+export async function initDownzip() {
   // for browser extensions, we want to re-initialize the DownZip class to reconnect to the service worker since it gets shut down after the first download
   if (!downzip || isBrowserExtension()) {
     downzip = new DownZip();
     await downzip.register();
   }
+}
+
+export async function getZipDownloadUrl(zipFileName: string, files: DownZipFile[]) {
+  // ensure we are initialized
+  await initDownzip();
   return await downzip.getDownloadUrl(zipFileName, files);
 }
 

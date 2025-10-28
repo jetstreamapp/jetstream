@@ -46,7 +46,7 @@ export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () =
       resetObjectPermissionMap();
       resetFieldPermissionMap();
       resetTabVisibilityPermissionMap();
-    } else if (!selectedOrg) {
+    } else if (!selectedOrg?.uniqueId) {
       resetProfilesState();
       resetSelectedProfilesPermSetState();
       resetPermissionSetsState();

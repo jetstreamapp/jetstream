@@ -17,7 +17,7 @@ export function initAppMenu() {
               { role: 'about' },
               {
                 label: 'Check for Updates',
-                click: () => checkForUpdates(),
+                click: () => checkForUpdates(false, true),
               },
               { type: 'separator' },
               { role: 'services' },
@@ -44,7 +44,7 @@ export function initAppMenu() {
           : [
               {
                 label: 'Check for Updates',
-                click: () => checkForUpdates(),
+                click: () => checkForUpdates(false, true),
               },
             ]) as any[]),
         { type: 'separator' },

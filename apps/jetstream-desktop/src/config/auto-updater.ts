@@ -1,16 +1,27 @@
-import { BrowserWindow, dialog } from 'electron';
+import { UpdateStatus } from '@jetstream/desktop/types';
+import { BrowserWindow } from 'electron';
 import logger from 'electron-log';
 import { autoUpdater, UpdateInfo } from 'electron-updater';
 
 // Configure logging
 autoUpdater.logger = logger;
 
-// Disable auto-download - we'll control when to download
-autoUpdater.autoDownload = false;
+// Enable auto-download - non-blocking background download
+autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
-function getFocusedOrFirstWindow(): BrowserWindow | null {
-  return BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+// State management
+let currentUpdateStatus: UpdateStatus = { status: 'idle' };
+let lastCheckTime = 0;
+const MIN_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes between checks to prevent spam
+
+function sendUpdateStatus(status: UpdateStatus) {
+  currentUpdateStatus = status;
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach((window) => {
+    window.webContents.send('update-status', status);
+  });
+  logger.info('Update status:', status);
 }
 
 export function initializeAutoUpdater() {
@@ -33,103 +44,106 @@ function setupAutoUpdaterListeners() {
 
   autoUpdater.on('checking-for-update', () => {
     logger.info('Checking for update...');
+    sendUpdateStatus({ status: 'checking' });
   });
 
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     logger.info('Update available:', info);
-
-    const updateWindow = getFocusedOrFirstWindow();
-    if (!updateWindow) {
-      return;
-    }
-
-    dialog
-      .showMessageBox(updateWindow, {
-        type: 'info',
-        title: 'Update Available',
-        message: `A new version ${info.version} is available. Would you like to download it now?`,
-        detail: 'The update will be installed when you restart the application.',
-        buttons: ['Download', 'Later'],
-        defaultId: 0,
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          autoUpdater.downloadUpdate();
-        }
-      });
+    sendUpdateStatus({
+      status: 'available',
+      version: info.version,
+    });
+    // Auto-download will start automatically since autoDownload is true
   });
 
   autoUpdater.on('update-not-available', (info) => {
     logger.info('Update not available', info);
+    sendUpdateStatus({ status: 'up-to-date' });
   });
 
   autoUpdater.on('error', (err) => {
     logger.error('Error in auto-updater:', err);
+    sendUpdateStatus({
+      status: 'error',
+      error: err.message || 'Unknown error occurred',
+    });
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
-    let logMessage = 'Download speed: ' + progressObj.bytesPerSecond;
-    logMessage = logMessage + ' - Downloaded ' + progressObj.percent + '%';
-    logMessage = logMessage + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
+    const logMessage =
+      `Download speed: ${progressObj.bytesPerSecond} - ` +
+      `Downloaded ${progressObj.percent}% ` +
+      `(${progressObj.transferred}/${progressObj.total})`;
     logger.info(logMessage);
 
-    const updateWindow = getFocusedOrFirstWindow();
-    // Send progress to renderer
-    if (updateWindow) {
-      updateWindow.webContents.send('update-download-progress', progressObj);
-    }
+    sendUpdateStatus({
+      status: 'downloading',
+      downloadProgress: {
+        percent: progressObj.percent,
+        transferred: progressObj.transferred,
+        total: progressObj.total,
+      },
+    });
   });
 
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
     logger.info('Update downloaded:', info);
-
-    const updateWindow = getFocusedOrFirstWindow();
-    if (!updateWindow) {
-      return;
-    }
-
-    dialog
-      .showMessageBox(updateWindow, {
-        type: 'info',
-        title: 'Update Ready',
-        message: 'Update downloaded',
-        detail: `Version ${info.version} has been downloaded and will be automatically installed on restart.`,
-        buttons: ['Restart Now', 'Later'],
-        defaultId: 0,
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          // Use default behavior for NSIS installers on Windows
-          // This ensures proper quit sequence and allows installer to complete
-          autoUpdater.quitAndInstall();
-        }
-      });
+    sendUpdateStatus({
+      status: 'ready',
+      version: info.version,
+    });
   });
 }
 
-export function checkForUpdates(silent = false) {
+export function checkForUpdates(silent = false, userInitiated = false) {
+  // Debounce automatic checks to prevent spam
+  if (!userInitiated && Date.now() - lastCheckTime < MIN_CHECK_INTERVAL) {
+    logger.info('Skipping update check - too soon since last check');
+    return;
+  }
+
+  lastCheckTime = Date.now();
+
   if (silent) {
     autoUpdater
       .checkForUpdates()
       .then((result) => {
-        if (result?.isUpdateAvailable) {
-          logger.info('Update available', result?.isUpdateAvailable);
+        if (result?.updateInfo) {
+          logger.info('Update check result:', result.updateInfo.version);
         }
       })
       .catch((error) => {
-        logger.error('Update failure', error);
+        logger.error('Update check failed:', error);
+        sendUpdateStatus({
+          status: 'error',
+          error: error.message || 'Failed to check for updates',
+        });
       });
   } else {
+    // User-initiated check - always show feedback
     autoUpdater
-      .checkForUpdatesAndNotify()
+      .checkForUpdates()
       .then((result) => {
-        if (result?.isUpdateAvailable) {
-          logger.info('Update available', result?.isUpdateAvailable);
+        if (result?.updateInfo) {
+          logger.info('Update check result:', result.updateInfo.version);
         }
       })
       .catch((err) => {
         logger.error('Update check failed:', err);
-        dialog.showErrorBox('Update Error', `Failed to check for updates: ${err.message}`);
+        sendUpdateStatus({
+          status: 'error',
+          error: err.message || 'Failed to check for updates',
+        });
       });
   }
+}
+
+export function installUpdate() {
+  // Use default behavior for NSIS installers on Windows
+  // This ensures proper quit sequence and allows installer to complete
+  autoUpdater.quitAndInstall();
+}
+
+export function getCurrentUpdateStatus(): UpdateStatus {
+  return currentUpdateStatus;
 }

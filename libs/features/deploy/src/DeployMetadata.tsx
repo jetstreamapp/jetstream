@@ -27,7 +27,7 @@ export const DeployMetadata = () => {
   useEffect(() => {
     if (selectedOrg && !priorSelectedOrg) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
-    } else if (!selectedOrg || (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId)) {
+    } else if (!selectedOrg?.uniqueId || (selectedOrg && priorSelectedOrg !== selectedOrg.uniqueId)) {
       setPriorSelectedOrg(selectedOrg.uniqueId);
       resetMetadataItemsState();
       resetMetadataItemsMapState();

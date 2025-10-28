@@ -103,7 +103,7 @@ const selectApexHistoryItems = atom((get) => {
   const whichOrg = get(apexHistoryWhichOrg);
   const apexHistoryItems = get(apexHistoryState) as Record<string, ApexHistoryItem>;
   const selectedOrg = get(selectedOrgState) as SalesforceOrgUi;
-  if (!selectedOrg || !apexHistoryItems) {
+  if (!selectedOrg?.uniqueId || !apexHistoryItems) {
     return [];
   }
 
