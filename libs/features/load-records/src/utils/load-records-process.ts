@@ -8,7 +8,7 @@ import {
   sobjectUploadBinaryUpload,
 } from '@jetstream/shared/data';
 import { generateCsv } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorStack, getHttpMethod, splitArrayToMaxSize } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorStack, getHttpMethod, mimeFromExtension, splitArrayToMaxSize } from '@jetstream/shared/utils';
 import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
@@ -409,77 +409,4 @@ function ensureExtension(name: string, ext?: string): string {
     return name;
   }
   return `${name}.${ext}`;
-}
-
-function mimeFromExtension(ext?: string): string {
-  switch ((ext || '').toLowerCase()) {
-    // Documents
-    case 'pdf':
-      return 'application/pdf';
-    case 'doc':
-      return 'application/msword';
-    case 'docx':
-      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    case 'odt':
-      return 'application/vnd.oasis.opendocument.text';
-    case 'rtf':
-      return 'application/rtf';
-    // Spreadsheets
-    case 'xls':
-      return 'application/vnd.ms-excel';
-    case 'xlsx':
-      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    case 'ods':
-      return 'application/vnd.oasis.opendocument.spreadsheet';
-    case 'csv':
-      return 'text/csv';
-    // Presentations
-    case 'ppt':
-      return 'application/vnd.ms-powerpoint';
-    case 'pptx':
-      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-    case 'odp':
-      return 'application/vnd.oasis.opendocument.presentation';
-    // Images
-    case 'png':
-      return 'image/png';
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'gif':
-      return 'image/gif';
-    case 'svg':
-      return 'image/svg+xml';
-    case 'webp':
-      return 'image/webp';
-    case 'bmp':
-      return 'image/bmp';
-    case 'ico':
-      return 'image/x-icon';
-    // Archives
-    case 'zip':
-      return 'application/zip';
-    case 'rar':
-      return 'application/x-rar-compressed';
-    case '7z':
-      return 'application/x-7z-compressed';
-    case 'tar':
-      return 'application/x-tar';
-    case 'gz':
-      return 'application/gzip';
-    // Text/Code
-    case 'txt':
-      return 'text/plain';
-    case 'json':
-      return 'application/json';
-    case 'xml':
-      return 'application/xml';
-    case 'html':
-      return 'text/html';
-    case 'yaml':
-    case 'yml':
-      return 'application/x-yaml';
-    default:
-      return 'application/octet-stream';
-  }
 }

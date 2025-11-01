@@ -1,4 +1,5 @@
 import { ApiApex } from './api-apex';
+import { ApiBinaryDownload } from './api-binary-download';
 import { ApiBulk } from './api-bulk';
 import { ApiBulkQuery20 } from './api-bulk-query-2.0';
 import { ApiMetadata } from './api-metadata';
@@ -33,6 +34,7 @@ export class ApiConnection {
 
   org: ApiOrg;
   apex: ApiApex;
+  binary: ApiBinaryDownload;
   bulk: ApiBulk;
   bulkQuery20: ApiBulkQuery20;
   metadata: ApiMetadata;
@@ -75,6 +77,7 @@ export class ApiConnection {
     };
 
     this.apex = new ApiApex(this);
+    this.binary = new ApiBinaryDownload(this);
     this.bulk = new ApiBulk(this);
     this.bulkQuery20 = new ApiBulkQuery20(this);
     this.metadata = new ApiMetadata(this);

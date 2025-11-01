@@ -1038,3 +1038,6 @@ export const METADATA_TYPES_WITH_FOLDERS = new Set([
   'Capstone',
   'AnalyticAssetCollection',
 ]);
+
+export const MAX_BINARY_DOWNLOAD_RECORDS = 500;
+export const MAX_BINARY_DOWNLOAD_SIZE_BYTES = 1024 * 1024 * 500; // 500 MB

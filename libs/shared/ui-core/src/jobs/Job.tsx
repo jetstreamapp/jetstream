@@ -11,6 +11,7 @@ const JOBS_WITH_DOWNLOAD = new Set<AsyncJobType>(['BulkDelete', 'BulkUndelete'])
 const JOBS_WITH_CANCEL = new Set<AsyncJobType>(['BulkDownload', 'RetrievePackageZip']);
 const JOBS_WITH_LINK = new Set<AsyncJobType>(['BulkDownload', 'UploadToGoogle', 'RetrievePackageZip']);
 const JOBS_WITH_TIMESTAMP_UPDATE = new Set<AsyncJobType>(['RetrievePackageZip', 'BulkDownload']);
+const JOBS_WITH_FILE_ACTIONS = new Set<AsyncJobType>(['DesktopFileDownload']);
 
 export interface JobProps {
   job: AsyncJob;
@@ -31,6 +32,19 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
   } else {
     message = 'Job finished ' + formatDistanceToNow(job.finished, { addSuffix: true });
   }
+
+  const handleOpenFile = async () => {
+    if (window.electronAPI?.openFile && isString(job.results)) {
+      await window.electronAPI.openFile(job.results);
+    }
+  };
+
+  const handleShowInFolder = () => {
+    if (window.electronAPI?.showFileInFolder && isString(job.results)) {
+      window.electronAPI.showFileInFolder(job.results);
+    }
+  };
+
   return (
     <li className="slds-global-header__notification">
       <div className="slds-has-flexi-truncate slds-p-around_xxx-small">
@@ -54,6 +68,29 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
             >
               {status}
             </p>
+            {job.progress && inProgress && (
+              <div className="slds-m-top_x-small">
+                {job.progress.label && (
+                  <p className="slds-text-body_small slds-m-bottom_x-small">
+                    {job.progress.label}
+                  </p>
+                )}
+                <div
+                  className="slds-progress-bar slds-progress-bar_small"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={job.progress.percent}
+                  role="progressbar"
+                >
+                  <span className="slds-progress-bar__value" style={{ width: `${job.progress.percent}%` }}>
+                    <span className="slds-assistive-text">{job.progress.percent}% Complete</span>
+                  </span>
+                </div>
+                <p className="slds-text-body_small slds-m-top_x-small slds-text-align_center">
+                  {job.progress.current} of {job.progress.total} ({job.progress.percent}%)
+                </p>
+              </div>
+            )}
             {inProgress && JOBS_WITH_TIMESTAMP_UPDATE.has(job.type) && (
               <p className="slds-text-color_weak slds-line-clamp_x-small" title={`Last Checked ${timestamp}`}>
                 Last Checked {timestamp}
@@ -130,16 +167,18 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
           </div>
         )}
         {!inProgress && (
-          <div className="slds-m-top_x-small slds-grid slds-grid_align-spread">
-            <div className="slds-col">
-              {JOBS_WITH_DOWNLOAD.has(job.type) && (
-                <button className="slds-button slds-button_neutral" onClick={() => downloadJob(job)}>
+          <div className="slds-m-top_x-small">
+            {JOBS_WITH_DOWNLOAD.has(job.type) && (
+              <div className="slds-m-bottom_x-small">
+                <button className="slds-button slds-button_neutral slds-button_stretch" onClick={() => downloadJob(job)}>
                   <Icon type="utility" icon="download" className="slds-button__icon slds-button__icon_left" omitContainer />
                   Download Results
                 </button>
-              )}
-              {JOBS_WITH_LINK.has(job.type) && isString(job.results) && (
-                <a href={job.results} className="slds-button" target="_blank" rel="noopener noreferrer">
+              </div>
+            )}
+            {JOBS_WITH_LINK.has(job.type) && isString(job.results) && (
+              <div className="slds-m-bottom_x-small">
+                <a href={job.results} className="slds-button slds-button_stretch" target="_blank" rel="noopener noreferrer">
                   View Results
                   <Icon
                     type="utility"
@@ -148,10 +187,26 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
                     omitContainer
                   />
                 </a>
-              )}
-            </div>
-            <div className="slds-col">
-              <button className="slds-button slds-button_neutral" onClick={() => dismiss(job)}>
+              </div>
+            )}
+            {JOBS_WITH_FILE_ACTIONS.has(job.type) && isString(job.results) && job.status === 'success' && (
+              <>
+                <div className="slds-m-bottom_x-small">
+                  <button className="slds-button slds-button_neutral slds-button_stretch" onClick={handleOpenFile}>
+                    <Icon type="utility" icon="open" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Open File
+                  </button>
+                </div>
+                <div className="slds-m-bottom_x-small">
+                  <button className="slds-button slds-button_neutral slds-button_stretch" onClick={handleShowInFolder}>
+                    <Icon type="utility" icon="open_folder" className="slds-button__icon slds-button__icon_left" omitContainer />
+                    Show in Folder
+                  </button>
+                </div>
+              </>
+            )}
+            <div>
+              <button className="slds-button slds-button_neutral slds-button_stretch" onClick={() => dismiss(job)}>
                 Dismiss
               </button>
             </div>

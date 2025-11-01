@@ -133,5 +133,8 @@ async function getResponseBody(response: Response) {
   if (response.headers.get('content-type')?.includes('application/json')) {
     return await response.json();
   }
+  if (response.headers.get('content-type')?.includes('application/zip')) {
+    return await response.arrayBuffer();
+  }
   return await response.text();
 }

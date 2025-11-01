@@ -1,8 +1,9 @@
 import { css } from '@emotion/react';
+import { DownloadZipResult } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
-import { saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { formatNumber, saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
@@ -52,6 +53,46 @@ export const Jobs: FunctionComponent = () => {
     fromJetstreamEvents.getObservable('newJob').pipe(filter((ev) => Array.isArray(ev) && ev.length > 0)),
   ) as AsyncJobNew[];
   const { notifyUser } = useBrowserNotifications(serverUrl);
+
+  // Listen for desktop download progress events
+  useEffect(() => {
+    if (window.electronAPI?.onDownloadProgress) {
+      const handleProgress = (progress: {
+        currentFile: number;
+        totalFiles: number;
+        fileName: string;
+        percentComplete: number;
+        jobId?: string;
+      }) => {
+        // Find the active desktop file download job and update its progress
+        setJobs((prevJobs) => {
+          const activeDesktopJob = Object.values(prevJobs).find(
+            (job) =>
+              job.id === progress.jobId ||
+              (job.type === 'DesktopFileDownload' && (job.status === 'in-progress' || job.status === 'pending')),
+          );
+          if (activeDesktopJob) {
+            return {
+              ...prevJobs,
+              [activeDesktopJob.id]: {
+                ...activeDesktopJob,
+                lastActivity: new Date(),
+                progress: {
+                  current: progress.currentFile,
+                  total: progress.totalFiles,
+                  percent: progress.percentComplete,
+                  label: `Downloading: ${progress.fileName}`,
+                },
+                statusMessage: `Downloading file ${progress.currentFile} of ${progress.totalFiles}`,
+              },
+            };
+          }
+          return prevJobs;
+        });
+      };
+      window.electronAPI.onDownloadProgress(handleProgress);
+    }
+  }, [setJobs]);
 
   useEffect(() => {
     if (!!jobsWorker && newJobsToProcess && newJobsToProcess.length > 0) {
@@ -473,6 +514,50 @@ export const Jobs: FunctionComponent = () => {
                 }));
               }
             }
+          }
+        } catch (ex) {
+          // TODO:
+          logger.error('[ERROR][JOB] Error processing job results', ex);
+        }
+        break;
+      }
+      case 'DesktopFileDownload': {
+        try {
+          let newJob = { ...data.job };
+          if (error) {
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'failed',
+              statusMessage: error || 'An unknown error occurred',
+            };
+            notifyUser(`File download failed`, { body: newJob.statusMessage, tag: 'DesktopFileDownload' });
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
+          } else {
+            const { success, error, filePath } = data.results as DownloadZipResult;
+            const { recordIds = [] } = newJob.meta as { recordIds: string[] };
+
+            newJob = {
+              ...newJob,
+              finished: new Date(),
+              lastActivity: new Date(),
+              status: 'success',
+              statusMessage: `Successfully downloaded ${formatNumber(recordIds.length)} ${pluralizeIfMultiple('attachment', recordIds)}`,
+              progress: undefined,
+              results: filePath,
+            };
+            if (success) {
+              notifyUser(`File download finished`, { tag: 'DesktopFileDownload' });
+            } else {
+              newJob = {
+                ...newJob,
+                status: 'failed',
+                statusMessage: error || 'Failed to download files',
+              };
+              notifyUser(`File download failed`, { body: newJob.statusMessage, tag: 'DesktopFileDownload' });
+            }
+            setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
           }
         } catch (ex) {
           // TODO:

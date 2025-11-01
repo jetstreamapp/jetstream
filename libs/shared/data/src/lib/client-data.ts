@@ -31,6 +31,7 @@ import {
   DescribeGlobalResult,
   DescribeMetadataResult,
   DescribeSObjectResult,
+  FileNameFormat,
   GenericRequestPayload,
   GoogleFileApiResponse,
   HttpMethod,
@@ -1176,4 +1177,15 @@ export async function deleteReportsById(org: SalesforceOrgUi, ids: string[], api
   }
 
   return output;
+}
+
+export async function downloadBinaryAttachmentsZip_WEB_EXTENSION(
+  org: SalesforceOrgUi,
+  payload: { fileName: string; sobject: string; recordIds: string[]; nameFormat: FileNameFormat },
+): Promise<ArrayBuffer> {
+  return handleRequest({ method: 'POST', url: '/api/file/stream-download/zip', data: payload, responseType: 'arraybuffer' }, { org }).then(
+    (response: ApiResponse<ArrayBuffer>) => {
+      return response as any;
+    },
+  );
 }

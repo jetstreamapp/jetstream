@@ -1,3 +1,17 @@
+import z from 'zod';
+
+export const FileNameFormatSchema = z.enum(['name', 'id', 'nameAndId']);
+export type FileNameFormat = z.infer<typeof FileNameFormatSchema>;
+
+export const BinaryDownloadCompatibleObjectsSchema = z.enum([
+  'attachment',
+  'CombinedAttachment',
+  'contentversion',
+  'document',
+  'staticresource',
+]);
+export type BinaryDownloadCompatibleObjects = z.infer<typeof BinaryDownloadCompatibleObjectsSchema>;
+
 export interface QueryResult<T> {
   done: boolean;
   nextRecordsUrl?: string | undefined;

@@ -2,10 +2,12 @@ import {
   AuthenticateFailurePayload,
   AuthenticateSuccessPayload,
   DesktopAuthInfo,
+  DownloadZipPayload,
+  DownloadZipResult,
   ElectronApiRequestResponse,
   IcpResponse,
 } from '@jetstream/desktop/types';
-import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import { ApiConnection, BinaryFileDownload, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
 import { addDays } from 'date-fns';
@@ -13,14 +15,15 @@ import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
-import { ENV } from '../config/environment';
 import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../config/auto-updater';
+import { ENV } from '../config/environment';
 import { desktopRoutes } from '../controllers/desktop.routes';
-import { getOrgFromHeaderOrQuery } from '../utils/route.utils';
+import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
 import * as dataService from './persistence.service';
 import { initConnectionFromOAuthResponse, salesforceOauthCallback, salesforceOauthInit } from './sfdc-oauth.service';
+import { downloadAndZipFilesToDisk } from './zip-download.service';
 
 type MainIpcHandler<Key extends keyof ElectronApiRequestResponse> = (
   event: Electron.IpcMainEvent,
@@ -30,6 +33,24 @@ type MainIpcHandler<Key extends keyof ElectronApiRequestResponse> = (
 function registerHandler<Key extends keyof ElectronApiRequestResponse>(key: Key, handler: MainIpcHandler<Key>) {
   ipcMain.handle(key, handler);
 }
+
+const handleOpenFile: MainIpcHandler<'openFile'> = async (_event, filePath: string): Promise<void> => {
+  try {
+    await shell.openPath(filePath);
+  } catch (ex) {
+    logger.error('Error opening file', ex);
+    throw ex;
+  }
+};
+
+const handleShowFileInFolder: MainIpcHandler<'showFileInFolder'> = async (_event, filePath: string): Promise<void> => {
+  try {
+    shell.showItemInFolder(filePath);
+  } catch (ex) {
+    logger.error('Error showing file in folder', ex);
+    throw ex;
+  }
+};
 
 // Ensure that the IPC handlers are only registered once - otherwise electron will throw an error
 let ipcRegistered = false;
@@ -48,6 +69,11 @@ export function registerIpc(): void {
   registerHandler('setPreferences', handleSetPreferences);
   // Handle API requests to Salesforce
   registerHandler('request', handleRequestEvent);
+  // Handle zip download to file
+  registerHandler('downloadZipToFile', handleDownloadZipToFile);
+  // Handle file operations
+  registerHandler('openFile', handleOpenFile);
+  registerHandler('showFileInFolder', handleShowFileInFolder);
   // Handle auto-update requests
   registerHandler('checkForUpdates', handleCheckForUpdatesEvent);
   registerHandler('getUpdateStatus', handleGetUpdateStatusEvent);
@@ -275,4 +301,39 @@ const handleGetUpdateStatusEvent: MainIpcHandler<'getUpdateStatus'> = async (_ev
 
 const handleInstallUpdateEvent: MainIpcHandler<'installUpdate'> = async (_event) => {
   installUpdate();
+};
+
+const handleDownloadZipToFile: MainIpcHandler<'downloadZipToFile'> = async (
+  event,
+  payload: DownloadZipPayload,
+): Promise<DownloadZipResult> => {
+  try {
+    const { orgId, nameFormat, sobject, recordIds, fileName, jobId } = payload;
+
+    const connectionResult = initApiConnection(orgId);
+    if (!connectionResult) {
+      throw new Error('Could not initialize Salesforce connection');
+    }
+    const { jetstreamConn } = connectionResult;
+
+    const queryMap = getBinaryFileRecordQueryMap(nameFormat);
+    const fileQueryInfo = queryMap[sobject];
+
+    if (!fileQueryInfo) {
+      throw new Error(`Unsupported sObject for binary download: ${sobject}`);
+    }
+
+    const soql = fileQueryInfo.getQuery(recordIds);
+    const records = await jetstreamConn.query.query(soql);
+    const files: BinaryFileDownload[] = fileQueryInfo.transformToBinaryFileDownload(records.queryResults.records);
+
+    const result = await downloadAndZipFilesToDisk(jetstreamConn, files, fileName, jobId, event.sender);
+    return result;
+  } catch (ex) {
+    logger.error('Error handling downloadZipToFile', ex);
+    return {
+      success: false,
+      error: ex instanceof Error ? ex.message : 'An unknown error occurred',
+    };
+  }
 };

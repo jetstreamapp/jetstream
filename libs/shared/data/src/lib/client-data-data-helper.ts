@@ -301,7 +301,7 @@ function responseInterceptor<T>(options: RequestOptions): (response: AxiosRespon
         };
       }
     }
-    // TODO: we should wrap this in a data structure that includes cache info so we can display in UI where appropriate
+
     return response;
   };
 }

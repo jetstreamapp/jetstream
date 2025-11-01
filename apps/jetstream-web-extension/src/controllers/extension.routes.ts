@@ -95,6 +95,7 @@ router.get('/api/apex/completions/:type', metadataToolingController.apexCompleti
  * ************************************
  */
 router.get('/api/file/stream-download', miscController.streamFileDownload.controllerFn());
+router.post('/api/file/stream-download/zip', miscController.streamFileDownloadToZip.controllerFn());
 router.post('/api/request', miscController.salesforceRequest.controllerFn());
 router.post('/api/request-manual', miscController.salesforceRequestManual.controllerFn());
 

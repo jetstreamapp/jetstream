@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';
+import { FileNameFormat } from '../salesforce/query.types';
 import { ChildRelationship, DescribeSObjectResult, Field } from '../salesforce/sobject.types';
 import { HttpMethod, Maybe, QueryResultsColumn, SalesforceOrgUi } from '../types';
 
@@ -408,10 +409,25 @@ export interface FormGroupDropdownItem {
   icon?: any; // FIXME:
 }
 
-export type AsyncJobType = 'init' | 'BulkDelete' | 'BulkUndelete' | 'BulkDownload' | 'RetrievePackageZip' | 'UploadToGoogle' | 'CancelJob';
+export type AsyncJobType =
+  | 'init'
+  | 'BulkDelete'
+  | 'BulkUndelete'
+  | 'BulkDownload'
+  | 'RetrievePackageZip'
+  | 'UploadToGoogle'
+  | 'DesktopFileDownload'
+  | 'CancelJob';
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
+
+export interface AsyncJobProgress {
+  current: number;
+  total: number;
+  percent: number;
+  label?: string;
+}
 
 export interface AsyncJob<T = unknown, R = unknown> {
   id: string;
@@ -424,6 +440,7 @@ export interface AsyncJob<T = unknown, R = unknown> {
   status: AsyncJobStatus;
   statusMessage?: string; // will fallback to status if not provided
   cancelling?: boolean; // set to true to indicate a cancellation is being attempted
+  progress?: AsyncJobProgress; // optional progress information
   meta: T;
   results?: R;
 }
@@ -515,6 +532,13 @@ export interface BulkDownloadJob {
   includeSubquery: boolean;
   includeDeletedRecords: boolean;
   useBulkApi: boolean;
+}
+
+export interface DesktopFileDownloadJob {
+  sobjectName: string;
+  recordIds: string[];
+  fileName: string;
+  nameFormat: FileNameFormat;
 }
 
 export interface RetrievePackageJob {

@@ -1,6 +1,7 @@
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureArray, ensureBoolean, unSanitizeXml } from '@jetstream/shared/utils';
-import { BulkApiCreateJobRequestPayload, DeployResult, Maybe, RecordResult } from '@jetstream/types';
+import { ensureArray, ensureBoolean, fileExtensionFromMimeType, splitFilenameByExtension, unSanitizeXml } from '@jetstream/shared/utils';
+import { BulkApiCreateJobRequestPayload, DeployResult, FileNameFormat, Maybe, RecordResult, SalesforceRecord } from '@jetstream/types';
+import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isEmpty from 'lodash/isEmpty';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
@@ -316,4 +317,113 @@ export function prepareCloseOrAbortJobPayload(state: 'Closed' | 'Aborted' = 'Clo
     .join('\n');
 
   return xml;
+}
+
+export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
+  function getFileNameAndExtension(record: SalesforceRecord, recordId: string, nameField: string, fileExtension?: Maybe<string>) {
+    fileExtension = fileExtension ?? splitFilenameByExtension(record[nameField])[1];
+    switch (fileNameFormat) {
+      case 'name': {
+        return { fileName: record[nameField], fileExtension };
+      }
+      case 'id': {
+        if (fileExtension) {
+          return { fileName: recordId, fileExtension };
+        }
+        return { fileName: recordId, fileExtension };
+      }
+      case 'nameAndId': {
+        return { fileName: `${record[nameField]}-${recordId}`, fileExtension };
+      }
+      default:
+        return { fileName: record[nameField], fileExtension };
+    }
+  }
+
+  return {
+    attachment: {
+      getQuery: (recordIds: string[]) =>
+        composeQuery({
+          fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('ContentType')],
+          sObject: 'Attachment',
+          where: {
+            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+          },
+        }),
+      transformToBinaryFileDownload: (records: { Id: string; Name: string; Body: string; BodyLength: number; ContentType: string }[]) =>
+        records.map((record) => ({
+          id: record.Id,
+          url: record.Body,
+          size: record.BodyLength,
+          ...getFileNameAndExtension(record, record.Id, 'Name', fileExtensionFromMimeType(record.ContentType)),
+        })),
+    },
+    document: {
+      getQuery: (recordIds: string[]) =>
+        composeQuery({
+          fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('Type')],
+          sObject: 'Document',
+          where: {
+            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+          },
+        }),
+      transformToBinaryFileDownload: (records: { Id: string; Name: string; Body: string; BodyLength: number; Type: string }[]) =>
+        records.map((record) => ({
+          id: record.Id,
+          url: record.Body,
+          size: record.BodyLength,
+          ...getFileNameAndExtension(record, record.Id, 'Name', record.Type),
+        })),
+    },
+    staticresource: {
+      getQuery: (recordIds: string[]) =>
+        composeQuery({
+          fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('ContentType')],
+          sObject: 'StaticResource',
+          where: {
+            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+          },
+        }),
+      transformToBinaryFileDownload: (records: { Id: string; Name: string; Body: string; BodyLength: number; ContentType: string }[]) =>
+        records.map((record) => ({
+          id: record.Id,
+          url: record.Body,
+          size: record.BodyLength,
+          ...getFileNameAndExtension(record, record.Id, 'Name', fileExtensionFromMimeType(record.ContentType)),
+        })),
+    },
+    contentversion: {
+      getQuery: (recordIds: string[]) =>
+        composeQuery({
+          fields: [
+            getField('Id'),
+            getField('PathOnClient'),
+            getField('Title'),
+            getField('FileExtension'),
+            getField('VersionData'),
+            getField('ContentSize'),
+          ],
+          sObject: 'ContentVersion',
+          where: {
+            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+          },
+        }),
+      transformToBinaryFileDownload: (
+        records: {
+          Id: string;
+          PathOnClient: string;
+          Title: string;
+          FileExtension: string;
+          VersionData: string;
+          ContentSize: number;
+        }[],
+      ) =>
+        records.map((record) => ({
+          id: record.Id,
+          url: record.VersionData,
+          size: record.ContentSize,
+          ...getFileNameAndExtension(record, record.Id, 'Title', record.FileExtension),
+        })),
+    },
+  } as const;
 }
