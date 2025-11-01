@@ -73,3 +73,5 @@ vitest.config.*.timestamp*
 .github/instructions/nx.instructions.md
 
 certificates
+
+*.tsbuildinfo

@@ -1,5 +1,5 @@
 import { Document } from '@contentful/rich-text-types';
-import { Asset, EntryFields, Sys } from 'contentful';
+import { Asset, Entry, EntryFieldTypes, EntrySkeletonType } from 'contentful';
 import { z } from 'zod';
 
 export const PasswordSchema = z
@@ -21,36 +21,31 @@ export interface AnalyticSummaryItem {
   year: number;
 }
 
-export interface ContentfulBlogPost {
-  sys: Sys;
-  fields: Array<ContentfulBlogPostField>;
+export interface ContentfulBlogPostField extends EntrySkeletonType {
+  contentTypeId: 'blogPost';
+  fields: {
+    title: EntryFieldTypes.Symbol;
+    summary: EntryFieldTypes.Text;
+    slug: EntryFieldTypes.Symbol;
+    content: EntryFieldTypes.RichText;
+    publishDate: EntryFieldTypes.Date;
+    author: EntryFieldTypes.EntryLink<ContentfulBlogPostAuthorSkeleton>;
+  };
 }
 
-export interface ContentfulBlogPostField {
-  title: EntryFields.Text;
-  summary: EntryFields.Text;
-  slug: EntryFields.Text;
-  content: Document;
-  publishDate: string;
-  author: {
-    sys: {
-      type: 'Link';
-      linkType: 'Entry';
-      id: string;
-    };
-  };
-}
-export interface ContentfulBlogPostAuthor {
-  sys: Sys;
+export interface ContentfulBlogPostAuthorSkeleton extends EntrySkeletonType {
+  contentTypeId: 'author';
   fields: {
-    name: EntryFields.Text;
-    description?: EntryFields.Text;
+    name: EntryFieldTypes.Symbol;
+    description?: EntryFieldTypes.Text;
   };
 }
+
+export type ContentfulBlogPostAuthor = Entry<ContentfulBlogPostAuthorSkeleton, undefined, string>;
 
 export interface ContentfulIncludes {
-  Asset: Array<Asset>;
-  Entry: Array<ContentfulBlogPostAuthor>;
+  Asset?: Array<Asset>;
+  Entry?: Array<ContentfulBlogPostAuthor>;
 }
 
 export interface BlogPost {
@@ -60,7 +55,7 @@ export interface BlogPost {
   slug: string;
   publishDate: string;
   content: Document;
-  author: ContentfulBlogPostAuthor;
+  author: ContentfulBlogPostAuthor | undefined;
   // relatedAssets: AssetsById;
 }
 

@@ -79,7 +79,7 @@ export async function downloadMaxMindDb(rootDir: string): Promise<void> {
       }
 
       const buffer = Buffer.from(await response.arrayBuffer());
-      await writeFileAsync(archiveFilePath, buffer);
+      await writeFileAsync(archiveFilePath, buffer as unknown as NodeJS.ArrayBufferView);
     } else {
       logger.info(`File already exists, skipping download: ${url}`);
     }
