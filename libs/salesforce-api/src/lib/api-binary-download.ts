@@ -48,7 +48,7 @@ export class ApiBinaryDownload extends SalesforceApi {
     // But all the solutions are complicated, require server state, or lose the streaming download benefit
     if (totalSize > BigInt(MAX_BINARY_DOWNLOAD_SIZE_BYTES)) {
       throw new Error(
-        `The total size of the files exceeds the maximum allowed size of ${MAX_BINARY_DOWNLOAD_SIZE_BYTES / (1024 * 1024)} MB.`,
+        `The total size of the files exceeds the maximum allowed size of ${Math.floor(MAX_BINARY_DOWNLOAD_SIZE_BYTES / (1024 * 1024))} MB.`,
       );
     }
 

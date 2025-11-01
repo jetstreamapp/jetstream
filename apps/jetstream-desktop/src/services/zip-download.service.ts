@@ -18,7 +18,7 @@ export async function downloadAndZipFilesToDisk(
   jetstreamConn: ApiConnection,
   files: BinaryFileDownload[],
   zipFileName: string,
-  jobId?: string,
+  jobId: string,
   sender?: Maybe<WebContents>,
 ): Promise<{ success: boolean; filePath?: string; error?: string }> {
   try {

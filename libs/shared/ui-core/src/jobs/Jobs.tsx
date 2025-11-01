@@ -62,15 +62,11 @@ export const Jobs: FunctionComponent = () => {
         totalFiles: number;
         fileName: string;
         percentComplete: number;
-        jobId?: string;
+        jobId: string;
       }) => {
         // Find the active desktop file download job and update its progress
         setJobs((prevJobs) => {
-          const activeDesktopJob = Object.values(prevJobs).find(
-            (job) =>
-              job.id === progress.jobId ||
-              (job.type === 'DesktopFileDownload' && (job.status === 'in-progress' || job.status === 'pending')),
-          );
+          const activeDesktopJob = Object.values(prevJobs).find(({ id: jobId }) => jobId === progress.jobId);
           if (activeDesktopJob) {
             return {
               ...prevJobs,
@@ -180,7 +176,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error occurred',
+              statusMessage: error,
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Delete records failed`, { body: newJob.statusMessage, tag: 'BulkDelete' });
@@ -218,7 +214,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error occurred',
+              statusMessage: error,
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Restore records failed`, { body: newJob.statusMessage, tag: 'BulkUndelete' });
@@ -256,7 +252,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error occurred',
+              statusMessage: error,
             };
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
             notifyUser(`Download records failed`, { body: newJob.statusMessage, tag: 'BulkDownload' });
@@ -446,7 +442,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error occurred',
+              statusMessage: error,
             };
             notifyUser(`Package download failed`, { body: newJob.statusMessage, tag: 'RetrievePackageZip' });
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
@@ -530,7 +526,7 @@ export const Jobs: FunctionComponent = () => {
               finished: new Date(),
               lastActivity: new Date(),
               status: 'failed',
-              statusMessage: error || 'An unknown error occurred',
+              statusMessage: error,
             };
             notifyUser(`File download failed`, { body: newJob.statusMessage, tag: 'DesktopFileDownload' });
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));

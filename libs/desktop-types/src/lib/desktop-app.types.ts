@@ -63,7 +63,7 @@ export interface DownloadZipPayload {
   sobject: string;
   recordIds: string[];
   fileName: string;
-  jobId?: string;
+  jobId: string;
 }
 
 export interface DownloadZipResult {
@@ -79,7 +79,7 @@ export interface DownloadZipProgress {
   bytesDownloaded: number;
   totalBytes: number;
   percentComplete: number;
-  jobId?: string;
+  jobId: string;
 }
 
 export interface AuthenticateSuccessPayload {

@@ -70,7 +70,7 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
 
   useEffect(() => {
     setVisible(binaryCompatibleObjects.has(sobjectName?.toLowerCase() || '') && hasRecords);
-    if (selectedRecords.length && selectedRecords.length <= 500) {
+    if (selectedRecords.length && selectedRecords.length <= MAX_BINARY_DOWNLOAD_RECORDS) {
       setDisabled(false);
       setDisabledReason('');
     } else if (selectedRecords.length > MAX_BINARY_DOWNLOAD_RECORDS) {

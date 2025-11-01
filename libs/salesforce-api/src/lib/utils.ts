@@ -327,9 +327,6 @@ export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
         return { fileName: record[nameField], fileExtension };
       }
       case 'id': {
-        if (fileExtension) {
-          return { fileName: recordId, fileExtension };
-        }
         return { fileName: recordId, fileExtension };
       }
       case 'nameAndId': {
