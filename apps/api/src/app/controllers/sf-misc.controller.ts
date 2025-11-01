@@ -1,6 +1,7 @@
 import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
-import { FetchResponse } from '@jetstream/salesforce-api';
-import { ManualRequestResponse } from '@jetstream/types';
+import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
+import { MAX_BINARY_DOWNLOAD_RECORDS } from '@jetstream/shared/constants';
+import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, ManualRequestResponse } from '@jetstream/types';
 import { Readable } from 'stream';
 import { z } from 'zod';
 import { UserFacingError } from '../utils/error-handler';
@@ -21,6 +22,20 @@ export const routeDefinition = {
     validators: {
       query: z.object({
         url: z.string().min(1),
+      }),
+    },
+  },
+  streamFileDownloadToZip: {
+    controllerFn: () => streamFileDownloadToZip,
+    responseType: z.any(),
+    validators: {
+      query: z.object({
+        fileName: z.string().endsWith('.zip').optional(),
+        sobject: BinaryDownloadCompatibleObjectsSchema,
+        recordIds: z
+          .string()
+          .transform((val) => z.array(z.string().min(15).max(18)).max(MAX_BINARY_DOWNLOAD_RECORDS).parse(val.split(','))),
+        nameFormat: FileNameFormatSchema.default('name'),
       }),
     },
   },
@@ -57,6 +72,7 @@ const getFrontdoorLoginUrl = createRoute(
 /**
  * Stream a file download from Salesforce
  * Query parameter of url is required (e.x. `/services/data/v54.0/sobjects/Attachment/00P6g000007BzmTEAS/Body`)
+ *
  * @returns
  */
 const streamFileDownload = createRoute(routeDefinition.streamFileDownload.validators, async ({ query, jetstreamConn }, req, res, next) => {
@@ -70,6 +86,56 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
     next(ex);
   }
 });
+
+/**
+ * Stream multiple files from Salesforce and zip them on the fly
+ */
+const streamFileDownloadToZip = createRoute(
+  routeDefinition.streamFileDownloadToZip.validators,
+  async ({ query, jetstreamConn }, req, res, next) => {
+    try {
+      const { sobject, recordIds, nameFormat, fileName } = query;
+
+      const queryMap = getBinaryFileRecordQueryMap(nameFormat);
+      const fileQueryInfo = queryMap[sobject];
+
+      if (!fileQueryInfo) {
+        throw new Error(`Unsupported sObject for binary download: ${sobject}`);
+      }
+
+      const soql = fileQueryInfo.getQuery(recordIds);
+      const records = await jetstreamConn.query.query(soql);
+      const files = fileQueryInfo.transformToBinaryFileDownload(records.queryResults.records);
+
+      const results = await jetstreamConn.binary.downloadAndZipFiles(files, fileName || `download-${sobject}s.zip`);
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${results.fileName}"`);
+      res.setHeader('Content-Length', results.size.toString());
+
+      // Convert web stream to Node.js stream and pipe to response
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nodeStream = Readable.fromWeb(results.stream as any);
+
+      // Handle client disconnect/abort
+      req.on('close', () => {
+        if (!res.writableEnded) {
+          nodeStream.destroy();
+        }
+      });
+
+      // Handle pipe errors
+      nodeStream.on('error', (err) => {
+        if (!res.headersSent) {
+          next(err);
+        }
+      });
+
+      nodeStream.pipe(res);
+    } catch (ex) {
+      next(ex);
+    }
+  },
+);
 
 const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }, req, res, next) => {
   try {

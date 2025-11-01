@@ -1,6 +1,7 @@
 import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
-import { FetchResponse } from '@jetstream/salesforce-api';
-import type { ManualRequestResponse } from '@jetstream/types';
+import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
+import { MAX_BINARY_DOWNLOAD_RECORDS } from '@jetstream/shared/constants';
+import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, type ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
 import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
 
@@ -16,6 +17,17 @@ export const routeDefinition = {
     validators: {
       query: z.object({
         url: z.string().min(1),
+      }),
+    },
+  },
+  streamFileDownloadToZip: {
+    controllerFn: () => streamFileDownloadToZip,
+    validators: {
+      body: z.object({
+        fileName: z.string().endsWith('.zip').optional(),
+        sobject: BinaryDownloadCompatibleObjectsSchema,
+        recordIds: z.array(z.string().min(15).max(18)).max(MAX_BINARY_DOWNLOAD_RECORDS),
+        nameFormat: FileNameFormatSchema.default('name'),
       }),
     },
   },
@@ -55,6 +67,38 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
 
     const results = await jetstreamConn!.org.streamDownload(url);
     return new Response(results);
+  } catch (ex) {
+    return handleErrorResponse(ex);
+  }
+});
+
+/**
+ * Stream multiple files from Salesforce and zip them on the fly
+ */
+const streamFileDownloadToZip = createRoute(routeDefinition.streamFileDownloadToZip.validators, async ({ body, jetstreamConn }, req) => {
+  try {
+    const { sobject, recordIds, nameFormat, fileName } = body;
+
+    const queryMap = getBinaryFileRecordQueryMap(nameFormat);
+    const fileQueryInfo = queryMap[sobject];
+
+    if (!fileQueryInfo) {
+      throw new Error(`Unsupported sObject for binary download: ${sobject}`);
+    }
+
+    const soql = fileQueryInfo.getQuery(recordIds);
+    const records = await jetstreamConn!.query.query(soql);
+    const files = fileQueryInfo.transformToBinaryFileDownload(records.queryResults.records);
+
+    const results = await jetstreamConn!.binary.downloadAndZipFiles(files, fileName || `download-${sobject}s.zip`);
+
+    return new Response(results.stream, {
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${results.fileName}"`,
+        'Content-Length': results.size.toString(),
+      },
+    });
   } catch (ex) {
     return handleErrorResponse(ex);
   }

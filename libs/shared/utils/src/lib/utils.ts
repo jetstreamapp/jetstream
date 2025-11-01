@@ -1107,3 +1107,152 @@ export function splitFilenameByExtension(filename: string): [string, string] {
 export function isProductionOrg(org: SalesforceOrgUi) {
   return !org.orgIsSandbox && !org.orgOrganizationType?.toLowerCase().includes('developer');
 }
+
+export function mimeFromExtension(ext?: string): string {
+  switch ((ext || '').toLowerCase()) {
+    // Documents
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc':
+      return 'application/msword';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'odt':
+      return 'application/vnd.oasis.opendocument.text';
+    case 'rtf':
+      return 'application/rtf';
+    // Spreadsheets
+    case 'xls':
+      return 'application/vnd.ms-excel';
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'ods':
+      return 'application/vnd.oasis.opendocument.spreadsheet';
+    case 'csv':
+      return 'text/csv';
+    // Presentations
+    case 'ppt':
+      return 'application/vnd.ms-powerpoint';
+    case 'pptx':
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    case 'odp':
+      return 'application/vnd.oasis.opendocument.presentation';
+    // Images
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'webp':
+      return 'image/webp';
+    case 'bmp':
+      return 'image/bmp';
+    case 'ico':
+      return 'image/x-icon';
+    // Archives
+    case 'zip':
+      return 'application/zip';
+    case 'rar':
+      return 'application/x-rar-compressed';
+    case '7z':
+      return 'application/x-7z-compressed';
+    case 'tar':
+      return 'application/x-tar';
+    case 'gz':
+      return 'application/gzip';
+    // Text/Code
+    case 'txt':
+      return 'text/plain';
+    case 'json':
+      return 'application/json';
+    case 'xml':
+      return 'application/xml';
+    case 'html':
+    case 'htm':
+      return 'text/html';
+    case 'css':
+      return 'text/css';
+    case 'js':
+    case 'mjs':
+      return 'application/javascript';
+    case 'yaml':
+    case 'yml':
+      return 'application/x-yaml';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+export const fileExtensionFromMimeType = (mimeType: string): Maybe<string> => {
+  switch (mimeType) {
+    case 'application/pdf':
+      return 'pdf';
+    case 'application/msword':
+      return 'doc';
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return 'docx';
+    case 'application/vnd.oasis.opendocument.text':
+      return 'odt';
+    case 'application/rtf':
+      return 'rtf';
+    case 'application/vnd.ms-excel':
+      return 'xls';
+    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+      return 'xlsx';
+    case 'application/vnd.oasis.opendocument.spreadsheet':
+      return 'ods';
+    case 'text/csv':
+      return 'csv';
+    case 'application/vnd.ms-powerpoint':
+      return 'ppt';
+    case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+      return 'pptx';
+    case 'application/vnd.oasis.opendocument.presentation':
+      return 'odp';
+    case 'image/png':
+      return 'png';
+    case 'image/jpeg':
+      return 'jpg';
+    case 'image/gif':
+      return 'gif';
+    case 'image/svg+xml':
+      return 'svg';
+    case 'image/webp':
+      return 'webp';
+    case 'image/bmp':
+      return 'bmp';
+    case 'image/x-icon':
+      return 'ico';
+    case 'application/zip':
+      return 'zip';
+    case 'application/x-rar-compressed':
+      return 'rar';
+    case 'application/x-7z-compressed':
+      return '7z';
+    case 'application/x-tar':
+      return 'tar';
+    case 'application/gzip':
+      return 'gz';
+    case 'text/plain':
+      return 'txt';
+    case 'application/json':
+      return 'json';
+    case 'application/xml':
+      return 'xml';
+    case 'text/html':
+      return 'html';
+    case 'text/css':
+      return 'css';
+    case 'application/javascript':
+    case 'text/javascript':
+      return 'js';
+    case 'application/x-yaml':
+      return 'yaml';
+    default:
+      return null;
+  }
+};

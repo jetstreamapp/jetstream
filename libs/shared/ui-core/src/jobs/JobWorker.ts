@@ -38,6 +38,7 @@ import type {
   AsyncJobWorkerMessageResponse,
   BulkDownloadJob,
   CancelJob,
+  DesktopFileDownloadJob,
   RetrievePackageFromListMetadataJob,
   RetrievePackageFromManifestJob,
   RetrievePackageFromPackageNamesJob,
@@ -336,6 +337,34 @@ export class JobWorker {
           if (this.canceledJobIds.has(job.id)) {
             this.canceledJobIds.delete(job.id);
           }
+        }
+        break;
+      }
+      case 'DesktopFileDownload': {
+        try {
+          const { org, job } = payloadData as AsyncJobWorkerMessagePayload<DesktopFileDownloadJob>;
+          const { fileName, nameFormat, recordIds, sobjectName } = job.meta;
+          if (!window.electronAPI?.downloadZipToFile) {
+            throw new Error('Electron API not available');
+          }
+          const result = await window.electronAPI?.downloadZipToFile({
+            orgId: org.uniqueId,
+            sobject: sobjectName.toLowerCase(),
+            recordIds,
+            nameFormat,
+            fileName,
+            jobId: job.id,
+          });
+
+          const response: AsyncJobWorkerMessageResponse = {
+            job,
+            results: result,
+          };
+
+          this.replyToMessage(name, response);
+        } catch (ex) {
+          const response: AsyncJobWorkerMessageResponse = { job };
+          this.replyToMessage(name, response, getErrorMessage(ex));
         }
         break;
       }

@@ -1,4 +1,4 @@
-import { InputReadFileContent, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import { FileNameFormat, InputReadFileContent, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 /**
@@ -12,6 +12,7 @@ export interface ElectronApiCallback {
   onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => void;
   onAction: (payload: (action: DesktopAction) => void) => void;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => void;
+  onDownloadProgress: (callback: (progress: DownloadZipProgress) => void) => void;
 }
 
 export interface ElectronApiRequestResponse {
@@ -23,6 +24,9 @@ export interface ElectronApiRequestResponse {
   getPreferences: () => Promise<DesktopUserPreferences>;
   setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
   request: (payload: { url: string; request: IcpRequest }) => Promise<IcpResponse>;
+  downloadZipToFile: (payload: DownloadZipPayload) => Promise<DownloadZipResult>;
+  openFile: (filePath: string) => Promise<void>;
+  showFileInFolder: (filePath: string) => Promise<void>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;
   getUpdateStatus: () => Promise<UpdateStatus>;
   installUpdate: () => void;
@@ -51,6 +55,31 @@ export interface IcpResponse {
   statusText: string;
   headers: Record<string, string>;
   body?: unknown;
+}
+
+export interface DownloadZipPayload {
+  orgId: string;
+  nameFormat: FileNameFormat;
+  sobject: string;
+  recordIds: string[];
+  fileName: string;
+  jobId: string;
+}
+
+export interface DownloadZipResult {
+  success: boolean;
+  filePath?: string;
+  error?: string;
+}
+
+export interface DownloadZipProgress {
+  currentFile: number;
+  totalFiles: number;
+  fileName: string;
+  bytesDownloaded: number;
+  totalBytes: number;
+  percentComplete: number;
+  jobId: string;
 }
 
 export interface AuthenticateSuccessPayload {
