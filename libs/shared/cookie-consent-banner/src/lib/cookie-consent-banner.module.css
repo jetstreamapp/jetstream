@@ -1,5 +1,10 @@
 /* Cookie consent banner - plain CSS for compatibility with both Tailwind and SLDS */
 
+/* Placeholder to ensure that no page content gets hidden behind the banner */
+.banner-container {
+  min-height: 80px;
+}
+
 .banner {
   position: fixed;
   bottom: 0;
