@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ConsentValue, CookieOptions, getStoredConsent, setStoredConsent, clearStoredConsent } from './cookie-storage';
+import { clearStoredConsent, ConsentValue, CookieOptions, getStoredConsent, setStoredConsent } from './cookie-storage';
 
 export interface CookieConsentState {
   analyticsConsent: ConsentValue;
@@ -15,7 +15,7 @@ export interface UseCookieConsentOptions {
    * Useful for saving preferences to database
    */
   onConsentChange?: (analytics: ConsentValue) => void | Promise<void>;
-  
+
   /**
    * Cookie options (domain, maxAgeDays)
    */
@@ -25,7 +25,7 @@ export interface UseCookieConsentOptions {
 /**
  * Hook to manage cookie consent state
  * Returns current consent state and methods to update it
- * 
+ *
  * This hook can be used by parent apps to save preferences to the database
  * by passing an onConsentChange callback
  */
@@ -49,9 +49,13 @@ export function useCookieConsent(options?: UseCookieConsentOptions): CookieConse
     setAnalyticsConsent('accepted');
     setStoredConsent('accepted', cookieOptions);
     setShowBanner(false);
-    
-    if (onConsentChange) {
-      await onConsentChange('accepted');
+
+    try {
+      if (onConsentChange) {
+        await onConsentChange('accepted');
+      }
+    } catch (ex) {
+      console.error('Error in onConsentChange callback:', ex);
     }
   }, [onConsentChange, cookieOptions]);
 
@@ -59,9 +63,13 @@ export function useCookieConsent(options?: UseCookieConsentOptions): CookieConse
     setAnalyticsConsent('rejected');
     setStoredConsent('rejected', cookieOptions);
     setShowBanner(false);
-    
-    if (onConsentChange) {
-      await onConsentChange('rejected');
+
+    try {
+      if (onConsentChange) {
+        await onConsentChange('rejected');
+      }
+    } catch (ex) {
+      console.error('Error in onConsentChange callback:', ex);
     }
   }, [onConsentChange, cookieOptions]);
 

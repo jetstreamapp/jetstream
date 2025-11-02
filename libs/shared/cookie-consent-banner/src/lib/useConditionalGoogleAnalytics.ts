@@ -14,9 +14,9 @@ declare global {
  *
  * Usage: Call this in your root component after consent banner is shown
  *
- * consent can be passed in to trigger a change in concent to ensure that google analytics is loaded if required
+ * "consentOverride" can be passed in to trigger a change in consent to ensure that google analytics is loaded if required
  */
-export function useConditionalGoogleAnalytics(gaId: string, consent?: boolean) {
+export function useConditionalGoogleAnalytics(gaId: string, consentOverride?: boolean) {
   useEffect(() => {
     try {
       if (!gaId) {
@@ -40,7 +40,7 @@ export function useConditionalGoogleAnalytics(gaId: string, consent?: boolean) {
     } catch (ex) {
       console.error('Error initializing Google Analytics with consent:', ex);
     }
-  }, [gaId, consent]);
+  }, [gaId, consentOverride]);
 }
 
 /**
