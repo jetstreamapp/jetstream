@@ -176,6 +176,8 @@ export const isBrowserExtensionState = atom<boolean>(isBrowserExtension());
 
 export const userProfileState = atom<Promise<UserProfileUi> | UserProfileUi>(fetchUserProfile());
 
+export const analyticsState = atom<'accepted' | 'rejected' | null>(null);
+
 /**
  * This is for internal use for derived state to avoid async issues.
  * Use `userProfileState` for components.

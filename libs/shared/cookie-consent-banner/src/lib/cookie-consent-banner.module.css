@@ -1,0 +1,112 @@
+/* Cookie consent banner - plain CSS for compatibility with both Tailwind and SLDS */
+
+.banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border-top: 1px solid #dddbda;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px 20px;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.content {
+  flex: 1;
+  min-width: 250px;
+}
+
+.text {
+  margin: 0 0 4px 0;
+  color: #3e3e3c;
+  font-weight: 500;
+}
+
+.details {
+  margin: 0;
+  color: #706e6b;
+  font-size: 13px;
+}
+
+.link {
+  color: #0176d3;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: #014486;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: 8px 16px;
+  border: 1px solid #dddbda;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #080707;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background-color: #f3f2f2;
+  border-color: #c9c7c5;
+}
+
+.button:active {
+  background-color: #ecebea;
+}
+
+.buttonPrimary {
+  background-color: #0176d3;
+  color: #ffffff;
+  border-color: #0176d3;
+}
+
+.buttonPrimary:hover {
+  background-color: #014486;
+  border-color: #014486;
+}
+
+.buttonPrimary:active {
+  background-color: #032d60;
+  border-color: #032d60;
+}
+
+@media (max-width: 640px) {
+  .container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .button {
+    flex: 1;
+  }
+}

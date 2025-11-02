@@ -166,7 +166,6 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
           scriptSrc: [
             "'self'",
             "'sha256-AS526U4qXJy7/SohgsysWUxi77DtcgSmP0hNfTo6/Hs='", // Google Analytics (Docs)
-            "'sha256-pOkCIUf8FXwCoKWPXTEJAC2XGbyg3ftSrE+IES4aqEY='", // Google Analytics (Next/React)
             "'sha256-7mNBpJaHD4L73RpSf1pEaFD17uW3H/9+P1AYhm+j/Dg='", // Monaco unhandledrejection script
             "'sha256-U1ZWk/Nvev4hBoGjgXSP/YN1w4VGTmd4NTYtXEr58xI='", // __IS_BROWSER_EXTENSION__ script
             'blob:',

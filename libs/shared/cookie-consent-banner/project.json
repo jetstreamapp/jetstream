@@ -1,0 +1,16 @@
+{
+  "name": "cookie-consent-banner",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/cookie-consent-banner/src",
+  "projectType": "library",
+  "tags": ["scope:browser"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../../coverage/libs/shared/cookie-consent-banner"
+      }
+    }
+  }
+}

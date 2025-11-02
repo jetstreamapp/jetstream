@@ -9,6 +9,7 @@ const nextConfig = {
     NX_PUBLIC_CLIENT_URL: process.env.NX_PUBLIC_CLIENT_URL,
     NX_PUBLIC_SERVER_URL: process.env.NX_PUBLIC_SERVER_URL,
     NX_PUBLIC_CAPTCHA_KEY: process.env.NX_PUBLIC_CAPTCHA_KEY,
+    NX_GOOGLE_ANALYTICS_KEY: process.env.NX_GOOGLE_ANALYTICS_KEY,
   },
   rewrites: async () => {
     if (process.env.NODE_ENV !== 'development') {

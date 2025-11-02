@@ -6,6 +6,7 @@ import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { Announcement, SalesforceOrgUi } from '@jetstream/types';
 import { useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import { CookieConsentBanner, useConditionalGoogleAnalytics } from '@jetstream/ui/cookie-consent-banner';
 import { initDexieDb } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
@@ -42,6 +43,9 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ onAnnou
   const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+  const [analytics, setAnalytics] = useAtom(fromAppState.analyticsState);
+
+  useConditionalGoogleAnalytics(environment.googleAnalyticsSiteId, analytics === 'accepted');
 
   const recordSyncEntitlementEnabled = ability.can('access', 'RecordSync');
   const recordSyncEnabled = recordSyncEntitlementEnabled && userProfile.preferences.recordSyncEnabled;
@@ -88,7 +92,7 @@ APP VERSION ${version}
     userProfile: userProfile,
     version,
   });
-  useAmplitude();
+  useAmplitude(analytics !== 'accepted');
 
   useEffect(() => {
     if (invalidOrg) {
@@ -137,8 +141,12 @@ APP VERSION ${version}
     return () => document.removeEventListener('visibilitychange', handleWindowFocus);
   }, [handleWindowFocus]);
 
-  // eslint-disable-next-line react/jsx-no-useless-fragment
-  return <Fragment>{children}</Fragment>;
+  return (
+    <Fragment>
+      <CookieConsentBanner onConsentChange={setAnalytics} />
+      {children}
+    </Fragment>
+  );
 };
 
 export default AppInitializer;

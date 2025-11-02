@@ -7,7 +7,7 @@ export default function Page() {
   const email = 'support@getjetstream.app';
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={5} month="April" year={2025} />
+      <LastUpdated className="text-gray-500" day={2} month="November" year={2025} />
       <h1>Privacy Policy</h1>
       <p className="mb-2 pl-2">
         This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from
@@ -137,10 +137,6 @@ export default function Page() {
       </p>
       <p className="mb-2 pl-2">
         We will not sell your information to 3rd parties or provide your information to 3rd parties for any other reason.
-      </p>
-      <h2>DO NOT TRACK</h2>
-      <p className="mb-2 pl-2">
-        Please note that we do not alter our Site's data collection and use practices when we see a Do Not Track signal from your browser.
       </p>
       <h2>YOUR RIGHTS</h2>
       <p className="mb-2 pl-2">

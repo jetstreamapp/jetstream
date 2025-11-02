@@ -4,6 +4,7 @@
 export const environment = {
   name: 'JetstreamDev',
   production: false,
+  googleAnalyticsSiteId: import.meta.env.NX_GOOGLE_ANALYTICS_KEY || '',
   rollbarClientAccessToken: import.meta.env.NX_PUBLIC_ROLLBAR_KEY,
   amplitudeToken: import.meta.env.NX_PUBLIC_AMPLITUDE_KEY,
   STRIPE_PUBLIC_KEY: import.meta.env.NX_PUBLIC_STRIPE_PUBLIC_KEY,

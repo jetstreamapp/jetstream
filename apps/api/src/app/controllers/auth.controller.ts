@@ -385,9 +385,20 @@ const callback = createRoute(
 
       if (provider.type === 'oauth') {
         // oauth flow
+        // Validate required cookies exist before calling OAuth library
+        if (!cookies[pkceCodeVerifier.name]) {
+          throw new InvalidSession('Missing PKCE code verifier - invalid OAuth flow. Please start the login process again.');
+        }
+
+        // Validate OAuth callback has required parameters
+        const queryParams = new URLSearchParams(query as Record<string, string>);
+        if (!queryParams.has('code') && !queryParams.has('error')) {
+          throw new InvalidParameters('Missing OAuth callback parameters. Please start the login process again.');
+        }
+
         const { userInfo } = await validateCallback(
           provider.provider as OauthProviderType,
-          new URLSearchParams(query as Record<string, string>),
+          queryParams,
           cookies[pkceCodeVerifier.name],
           cookies[nonce.name],
         );
