@@ -6,6 +6,8 @@
  * - Standard compliance pattern
  */
 
+import { escapeRegExp } from 'lodash';
+
 const COOKIE_NAME = 'jetstream-cookie-consent';
 const COOKIE_MAX_AGE_DAYS = 365;
 
@@ -30,7 +32,8 @@ export interface CookieOptions {
 }
 
 function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  const escapedName = escapeRegExp(name);
+  const match = document.cookie.match(new RegExp(`(^| )${escapedName}=([^;]+)`));
   return match ? decodeURIComponent(match[2]) : null;
 }
 
