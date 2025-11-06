@@ -1,0 +1,7 @@
+{
+  "name": "cookie-consent-banner",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/cookie-consent-banner/src",
+  "projectType": "library",
+  "tags": ["scope:browser"]
+}

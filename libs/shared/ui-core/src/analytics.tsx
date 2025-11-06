@@ -20,6 +20,13 @@ function init(appState: ApplicationState, version: string) {
   amplitude.init(amplitudeToken, {
     serverUrl: `${appState.serverUrl}/analytics`,
     appVersion: version || 'unknown',
+    defaultTracking: {
+      attribution: true,
+      pageViews: true,
+      sessions: true,
+      formInteractions: false,
+      fileDownloads: false,
+    },
     autocapture: {
       attribution: true,
       pageViews: true,
@@ -46,10 +53,10 @@ export function useAmplitude(optOut?: boolean) {
   }, [optOut]);
 
   useEffect(() => {
-    if (!hasInit && appInfo) {
+    if (!hasInit && appInfo && !optOut) {
       init(appInfo, version);
     }
-  }, [appInfo, version]);
+  }, [appInfo, optOut, version]);
 
   useEffect(() => {
     if (!amplitudeToken) {

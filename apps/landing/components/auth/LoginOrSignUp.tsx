@@ -55,7 +55,6 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
   }
 });
 
-type LoginForm = z.infer<typeof LoginSchema>;
 type RegisterForm = z.infer<typeof RegisterSchema>;
 type Form = z.infer<typeof FormSchema>;
 

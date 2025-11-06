@@ -3,42 +3,42 @@ import Layout from '../../components/layouts/Layout';
 import { ROUTES } from '../../utils/environment';
 
 const webSubProcessors = [
-  { name: 'BackBlaze', function: 'Log storage', location: 'United States', optional: 'No', extension: false },
-  { name: 'BetterStack', function: 'Server Logging and Status Page', location: 'EU', optional: 'No', extension: false },
-  { name: 'Amplitude', function: 'Telemetry', location: 'United States', optional: 'No', extension: false },
-  { name: 'Cloudflare', function: 'Infrastructure', location: 'United States', optional: 'No', extension: false },
+  { name: 'BackBlaze', function: 'Asset storage', location: 'US', optional: 'No', extension: false },
+  { name: 'BetterStack', function: 'Server Logging and Status Page', location: 'US', optional: 'No', extension: false },
+  { name: 'Amplitude', function: 'Telemetry', location: 'US', optional: 'Yes, opt-in via cookie consent banner.', extension: false },
+  { name: 'Cloudflare', function: 'Infrastructure', location: 'US', optional: 'No', extension: false },
   {
     name: 'Google Cloud',
     function: 'File storage',
-    location: 'United States',
+    location: 'US',
     optional: 'File storage is opt-in, used if you use Google Drive to save and read files.',
     extension: true,
   },
   {
     name: 'Google Ads',
     function: 'Analytics',
-    location: 'United States',
-    optional: 'Yes, use the Google Ads opt-out extension to opt-out of tracking.',
+    location: 'US',
+    optional: 'Yes, opt-in via cookie consent banner.',
     extension: true,
   },
   {
     name: 'Honeycomb',
     function: 'Server Metrics',
-    location: 'United States',
+    location: 'US',
     optional: 'No, does not process personal data.',
     extension: false,
   },
-  { name: 'Mailgun', function: 'Email', location: 'United States', optional: 'No', extension: true },
-  { name: 'Render', function: 'Infrastructure / Data Storage', location: 'United States', optional: 'No', extension: true },
-  { name: 'Rollbar', function: 'Bug Detection and Tracking', location: 'United States', optional: 'No', extension: false },
-  { name: 'Stripe', function: 'Billing', location: 'United States', optional: 'No', extension: false },
-  { name: 'Salesforce.com', function: 'Application Core', location: 'United States', optional: 'No', extension: true },
+  { name: 'Mailgun', function: 'Email', location: 'US', optional: 'No', extension: true },
+  { name: 'Render', function: 'Infrastructure / Data Storage', location: 'US', optional: 'No', extension: true },
+  { name: 'Rollbar', function: 'Bug Detection and Tracking', location: 'US', optional: 'No', extension: false },
+  { name: 'Stripe', function: 'Billing', location: 'US', optional: 'No', extension: false },
+  { name: 'Salesforce.com', function: 'Application Core', location: 'US', optional: 'No', extension: true },
 ];
 
 export default function Page() {
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={5} month="April" year={2025} />
+      <LastUpdated className="text-gray-500" day={3} month="November" year={2025} />
       <h1>Jetstream Sub-Processors</h1>
       <p className="mb-2 pl-2">
         This page provides a list of sub-processors that Jetstream uses to provide services to our customers. Our web-based application and

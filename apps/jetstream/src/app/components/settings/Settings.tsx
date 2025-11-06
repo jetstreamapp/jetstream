@@ -21,6 +21,7 @@ import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnalyticsTrackingSetting } from './AnalyticsTrackingSetting';
 import LoggerConfig from './LoggerConfig';
 import { SettingsDeleteAccount } from './SettingsDeleteAccount';
 const HEIGHT_BUFFER = 170;
@@ -253,6 +254,11 @@ export const Settings = () => {
             <div className="slds-m-top_large">
               <h2 className="slds-text-heading_medium slds-m-vertical_small">Logging</h2>
               <LoggerConfig />
+            </div>
+
+            <div className="slds-m-top_large">
+              <h2 className="slds-text-heading_medium slds-m-vertical_small">Analytics</h2>
+              <AnalyticsTrackingSetting />
             </div>
 
             {!userProfile.teamMembership && <SettingsDeleteAccount onDeleteAccount={handleDelete} />}
