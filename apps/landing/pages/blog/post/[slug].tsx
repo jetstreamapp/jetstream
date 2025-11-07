@@ -52,7 +52,7 @@ function Page({ post }: PostProps) {
             <div className="text-lg max-w-prose mx-auto text-center py-6">
               <h1 className="mt-2 block text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">{post.title}</h1>
               <div className="my-2 text-gray-500">Published {format(parseISO(post.publishDate), 'MMMM d, y')}</div>
-              <div>{post.author.fields.name}</div>
+              {post.author && <div>{post.author.fields.name}</div>}
             </div>
             <hr className="my-5" />
             <div className="relative px-4 sm:px-6 lg:px-8">

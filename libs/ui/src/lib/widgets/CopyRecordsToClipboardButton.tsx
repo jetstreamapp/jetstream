@@ -1,8 +1,11 @@
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
 import { CopyAsDataType, Maybe, SalesforceRecord } from '@jetstream/types';
-import { ButtonGroupContainer, DropDown, Icon, Tooltip } from '@jetstream/ui';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
+import ButtonGroupContainer from '../form/button/ButtonGroupContainer';
+import DropDown from '../form/dropdown/DropDown';
+import Icon from './Icon';
+import Tooltip from './Tooltip';
 
 export interface CopyRecordsToClipboardButtonProps {
   className?: string;

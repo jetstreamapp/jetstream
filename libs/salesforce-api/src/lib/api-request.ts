@@ -1,4 +1,5 @@
-import { SalesforceApiRequest } from '@jetstream/api-types';
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import type { SalesforceApiRequest } from '@jetstream/api-types';
 import { ApiConnection } from './connection';
 import { ApiRequestOptions, ApiRequestOutputType } from './types';
 import { SalesforceApi } from './utils';

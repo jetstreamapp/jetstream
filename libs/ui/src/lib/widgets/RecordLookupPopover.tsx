@@ -105,7 +105,7 @@ export const RecordLookupPopover: FunctionComponent<RecordLookupPopoverProps> = 
       }
 
       setRecord(_record);
-    } catch (ex) {
+    } catch {
       setErrorMessage(`There was an error getting the record data.`);
     } finally {
       setLoading(false);

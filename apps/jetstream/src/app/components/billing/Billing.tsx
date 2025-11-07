@@ -128,7 +128,7 @@ export const Billing = () => {
 
       const { url } = await initCheckoutSession({ priceLookupKey: selectedPlan });
       // Redirect
-      location.href = url;
+      window.location.href = url;
       // Track analytics for enterprise contact
       trackEvent(ANALYTICS_KEYS.billing_session, { action: 'create_session', priceId: selectedPlan });
     } catch (ex) {

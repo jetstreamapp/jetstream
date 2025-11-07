@@ -14,5 +14,6 @@ export const ConditionalPortal = ({
   if (!usePortal) {
     return children;
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createPortal(children as any, portalRef || document.body) as ReactNode;
 };
