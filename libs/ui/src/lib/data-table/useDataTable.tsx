@@ -475,9 +475,14 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
             );
           }
 
-          // Set filter default's all values as selected
+          // Set filter default to all values as selected
           // If the user had modified the set filter previously, retain the selections without auto-selecting the new set values
-          if (!hasFilters || !filter.value || filter.value.length === state.filterSetValues[columnKey]?.length) {
+          if (
+            !hasFilters ||
+            !filter.value ||
+            !state?.filterSetValues?.[columnKey] ||
+            filter.value.length === state.filterSetValues?.[columnKey].length
+          ) {
             filter.value = acc[columnKey];
           }
 
