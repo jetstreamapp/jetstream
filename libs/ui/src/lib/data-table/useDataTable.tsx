@@ -429,20 +429,20 @@ type Action =
 function reducer<T>(state: State<T>, action: Action): State<T> {
   switch (action.type) {
     case 'INIT': {
-      // If there are filters applied, never reset table state if data changes
-      if (state.hasFilters) {
-        return state;
-      }
+      const { hasFilters } = state;
       const { columns, data, ignoreRowInSetFilter } = action.payload;
 
       const columnMap = new Map(columns.map((column) => [column.key, column]));
 
-      const filters = columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
-        if (Array.isArray(column.filters)) {
-          acc[column.key] = column.filters.map((filter) => resetFilter(filter, []));
-        }
-        return acc;
-      }, {});
+      // Retain filter values if filters are already applied
+      const filters = hasFilters
+        ? structuredClone(state.filters)
+        : columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
+            if (Array.isArray(column.filters)) {
+              acc[column.key] = column.filters.map((filter) => resetFilter(filter, []));
+            }
+            return acc;
+          }, {});
 
       // NOTICE: This function mutates filters
       const filterSetValues = Object.keys(filters)
