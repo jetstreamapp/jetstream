@@ -429,10 +429,13 @@ type Action =
 function reducer<T>(state: State<T>, action: Action): State<T> {
   switch (action.type) {
     case 'INIT': {
-      const { hasFilters } = state;
       const { columns, data, ignoreRowInSetFilter } = action.payload;
 
       const columnMap = new Map(columns.map((column) => [column.key, column]));
+
+      // If we have existing filters, we retain their values
+      // If the column count changed, then we will reset to avoid having to diff everything
+      const hasFilters = state.hasFilters && columnMap.size === state.columnMap.size;
 
       // Retain filter values if filters are already applied
       const filters = hasFilters
@@ -472,8 +475,11 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
             );
           }
 
-          // Set filter default values to all values in set
-          filter.value = acc[columnKey];
+          // Set filter default's all values as selected
+          // If the user had modified the set filter previously, retain the selections without auto-selecting the new set values
+          if (!hasFilters || !filter.value || filter.value.length === state.filterSetValues[columnKey]?.length) {
+            filter.value = acc[columnKey];
+          }
 
           return acc;
         }, {});
