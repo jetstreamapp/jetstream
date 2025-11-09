@@ -31,6 +31,7 @@ import {
   DataTableBooleanSetFilter,
   DataTableDateFilter,
   DataTableFilter,
+  DataTableNumberFilter,
   DataTableSetFilter,
   DataTableTextFilter,
   DataTableTimeFilter,
@@ -155,7 +156,7 @@ export const HeaderFilter = memo(({ columnKey, filters, filterSetValues, updateF
       case 'TEXT':
         return <HeaderTextFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} autoFocus={autoFocus} />;
       case 'NUMBER':
-        return null;
+        return <HeaderNumberFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} autoFocus={autoFocus} />;
       case 'DATE':
         return <HeaderDateFilter columnKey={columnKey} filter={filter} updateFilter={updateFilter} />;
       case 'TIME':
@@ -264,6 +265,68 @@ export const HeaderTextFilter = memo(({ columnKey, filter, autoFocus = false, up
   );
 });
 dataTableRenderFnMap.set(HeaderTextFilter, 'HeaderTextFilter');
+
+interface DataTableNumberFilterProps {
+  columnKey: string;
+  filter: DataTableNumberFilter;
+  autoFocus?: boolean;
+  updateFilter: (column: string, filter: DataTableFilter) => void;
+}
+
+export const HeaderNumberFilter = memo(({ columnKey, filter, autoFocus = false, updateFilter }: DataTableNumberFilterProps) => {
+  const [value, setValue] = useState(filter.value ?? '');
+  const debouncedValue = useDebounce(value, 300);
+  const [comparators] = useState<ListItem<string, 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
+    { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
+    { id: 'GREATER_THAN', label: 'Greater Than', value: 'GREATER_THAN' },
+    { id: 'LESS_THAN', label: 'Less Than', value: 'LESS_THAN' },
+  ]);
+  const [selectedComparator, setSelectedComparator] = useState<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>(() => filter.comparator);
+
+  useEffect(() => {
+    const newValue = debouncedValue === '' ? null : debouncedValue;
+    if (filter.value !== newValue) {
+      updateFilter(columnKey, { ...filter, value: newValue });
+    }
+  }, [updateFilter, debouncedValue, columnKey, filter]);
+
+  function handleComparatorChange(comparator: 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN') {
+    setSelectedComparator(comparator);
+    if (filter.comparator !== comparator) {
+      updateFilter(columnKey, { ...filter, comparator });
+    }
+  }
+
+  return (
+    <div>
+      <Picklist
+        label="Comparison"
+        items={comparators}
+        selectedItemIds={[selectedComparator]}
+        allowDeselection={false}
+        onChange={(items: ListItem<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]) => handleComparatorChange(items[0].value)}
+      />
+      <Input
+        id={`filter-${columnKey}`}
+        className="slds-grow slds-m-top_small"
+        label="Value"
+        hideLabel
+        clearButton={!!value}
+        onClear={() => setValue('')}
+      >
+        <input
+          id={`filter-${columnKey}`}
+          className="slds-input"
+          type="number"
+          value={value}
+          onChange={(ev) => setValue(ev.target.value)}
+          autoFocus={autoFocus}
+        />
+      </Input>
+    </div>
+  );
+});
+dataTableRenderFnMap.set(HeaderNumberFilter, 'HeaderNumberFilter');
 
 interface HeaderSetFilterProps {
   columnKey: string;
