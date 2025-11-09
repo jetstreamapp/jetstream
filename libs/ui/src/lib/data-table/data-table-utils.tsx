@@ -356,7 +356,7 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       column.renderCell = GenericRenderer;
       break;
     case 'number':
-      // TODO:
+      // TODO: add number filter (gte/lte/equals/etc..)
       break;
     case 'subquery':
       column.filters = ['SET'];
@@ -543,6 +543,9 @@ export function isFilterActive(filter: DataTableFilter, totalValues: number): bo
 export function filterRecord(filter: DataTableFilter, value: any): boolean {
   switch (filter?.type) {
     case 'TEXT': {
+      if (isNumber(value)) {
+        value = value.toString();
+      }
       if (!isString(value)) {
         return false;
       }
