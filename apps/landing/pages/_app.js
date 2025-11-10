@@ -10,7 +10,10 @@ export default function MyApp({ Component, pageProps }) {
   return getLayout(
     <>
       <Component {...pageProps} />
-      <CookieConsentBanner />
+      <CookieConsentBanner
+        /* Placeholder to ensure that no page content gets hidden behind the banner */
+        containerStyles={{ minHeight: '80px' }}
+      />
     </>,
   );
 }
