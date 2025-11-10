@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { AppHomeAlternativeApplicationFormats } from './AppHomeAlternativeApplicationFormats';
+import { AppHomeOrgExpirationBanner } from './AppHomeOrgExpirationBanner';
 import { AppHomeOrganizations } from './AppHomeOrganizations';
 
 const HOME_ITEMS = [
@@ -99,6 +100,7 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
             }
           `}
         >
+          <AppHomeOrgExpirationBanner />
           <ScopedNotification theme="light" className="slds-m-bottom_x-small">
             Our{' '}
             <a href="https://docs.getjetstream.app/#jetstream-ip-addresses" target="_blank" rel="noopener noreferrer">

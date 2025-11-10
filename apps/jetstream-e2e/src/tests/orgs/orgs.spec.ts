@@ -44,17 +44,21 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
       await expect(organizationsPage.orgDropdown).toHaveValue(environment.TEST_ORG_3);
     });
 
-    const organizationName = 'Test Org';
-    const organizationDescription = 'Test Description';
+    let organizationName = 'Test Org';
+    let organizationDescription = 'Test Description';
+    let numberOfOrgGroups = await page.locator('[data-testid^="org-group-card-"]').count();
 
     await test.step('Create a Jetstream Organization and add orgs to it', async () => {
       await organizationsPage.goToJetstreamOrganizationsPage();
       await organizationsPage.addJetstreamOrganization(organizationName, organizationDescription);
 
+      expect(await page.locator('[data-testid^="org-group-card-"]').count()).toBe(numberOfOrgGroups + 1);
+      numberOfOrgGroups = await page.locator('[data-testid^="org-group-card-"]').count();
+
       await organizationsPage.dragOrgToOrganization(organizationName, environment.TEST_ORG_2);
       await organizationsPage.dragOrgToOrganization(organizationName, environment.TEST_ORG_3);
 
-      await expect(page.getByRole('button', { name: 'Choose Organization' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Choose Group' })).toBeVisible();
     });
 
     await test.step('Ensure org dropdown shows correct orgs', async () => {
@@ -67,10 +71,21 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
       await expect(orgGroup).toHaveText([environment.TEST_ORG_2, environment.TEST_ORG_3]);
     });
 
+    await test.step('Edit Organization', async () => {
+      const newOrganizationName = 'Updated Test Org';
+      const newOrganizationDescription = 'Updated Description';
+      await organizationsPage.editJetstreamOrganization(newOrganizationName, newOrganizationDescription, organizationName);
+      organizationName = newOrganizationName;
+      organizationDescription = newOrganizationDescription;
+      // Ensure that we did not add a new org group card, but instead updated the existing one
+      expect(await page.locator('[data-testid^="org-group-card-"]').count()).toBe(numberOfOrgGroups);
+    });
+
+    // TODO: add test to delete organization and all included orgs
     await test.step('Delete Organization', async () => {
       await organizationsPage.deleteJetstreamOrganization(organizationName);
 
-      await expect(page.getByText('Salesforce Orgs Not Assigned to Organization (3)')).toBeVisible();
+      await expect(page.getByText('Unassigned (3)')).toBeVisible();
     });
   });
 });

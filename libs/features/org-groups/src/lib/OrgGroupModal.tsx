@@ -1,25 +1,25 @@
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { JetstreamOrganizationCreateUpdatePayload, JetstreamOrganizationWithOrgs, Maybe } from '@jetstream/types';
+import { Maybe, OrgGroupCreateUpdatePayload, OrgGroupWithOrgs } from '@jetstream/types';
 import { fireToast, Grid, Input, Modal, Textarea } from '@jetstream/ui';
 import { ConfirmPageChange } from '@jetstream/ui-core';
 import { useEffect, useRef, useState } from 'react';
 
-interface OrganizationModalProps {
-  organization?: Maybe<JetstreamOrganizationWithOrgs>;
-  onSubmit: (organization: JetstreamOrganizationCreateUpdatePayload) => Promise<void>;
+interface OrgGroupModalProps {
+  orgGroup?: Maybe<OrgGroupWithOrgs>;
+  onSubmit: (orgGroup: OrgGroupCreateUpdatePayload, groupToUpdateId?: string) => Promise<void>;
   onClose: () => void;
 }
 
-export function OrganizationModal({ organization, onSubmit, onClose }: OrganizationModalProps) {
+export function OrgGroupModal({ orgGroup, onSubmit, onClose }: OrgGroupModalProps) {
   const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [loading, setLoading] = useState(false);
   const [updatedOrg, setUpdatedOrg] = useState(() => ({
-    name: organization?.name || '',
-    description: organization?.description || '',
+    name: orgGroup?.name || '',
+    description: orgGroup?.description || '',
   }));
-  const isCreate = !organization;
+  const isCreate = !orgGroup;
 
   useEffect(() => {
     isMounted.current = true;
@@ -30,11 +30,11 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
 
   async function handleSubmit() {
     try {
-      await onSubmit(updatedOrg);
+      await onSubmit(updatedOrg, orgGroup?.id);
       onClose();
     } catch (ex) {
       fireToast({ message: `There was an error creating the organization. ${getErrorMessage(ex)}`, type: 'error' });
-      rollbar.error('OrganizationModal: Error creating organization', getErrorMessageAndStackObj(ex));
+      rollbar.error('SalesforceGroupModal: Error creating organization', getErrorMessageAndStackObj(ex));
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
 
   return (
     <Modal
-      header={isCreate ? 'Create Organization' : 'Edit Organization'}
+      header={isCreate ? 'Create Group' : 'Edit Group'}
       closeDisabled={loading}
       closeOnBackdropClick={false}
       closeOnEsc={false}
@@ -52,7 +52,7 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
             <button type="button" className="slds-button slds-button_neutral" disabled={loading} onClick={onClose}>
               Close
             </button>
-            <button type="submit" form="organization-form" className="slds-button slds-button_brand" disabled={loading}>
+            <button type="submit" form="group-form" className="slds-button slds-button_brand" disabled={loading}>
               Save
             </button>
           </div>
@@ -64,16 +64,18 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
       <div className="slds-is-relative">
         <ConfirmPageChange actionInProgress={loading} />
         <form
-          id="organization-form"
+          id="group-form"
           onSubmit={(ev) => {
             ev.preventDefault();
             handleSubmit();
           }}
         >
-          <Input id="organization-name" label="Name" isRequired hasError={false} errorMessageId="Error" errorMessage="This is not valid">
+          <Input id="group-name" label="Group Name" isRequired hasError={false} errorMessageId="Error" errorMessage="This is not valid">
             <input
-              id="organization-name"
+              id="group-name"
+              name="group-name"
               className="slds-input"
+              autoFocus
               value={updatedOrg.name}
               required
               minLength={1}
@@ -82,9 +84,10 @@ export function OrganizationModal({ organization, onSubmit, onClose }: Organizat
               disabled={loading}
             />
           </Input>
-          <Textarea id="organization-description" label="Description">
+          <Textarea id="group-description" label="Description">
             <textarea
-              id="organization-description"
+              id="group-description"
+              name="group-description"
               className="slds-input"
               value={updatedOrg.description}
               rows={2}

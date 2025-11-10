@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { SerializedStyles } from '@emotion/utils';
 import { getOrgType } from '@jetstream/shared/ui-utils';
-import { BadgeTypes, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
+import { BadgeType, SalesforceOrgUi, SalesforceOrgUiType } from '@jetstream/types';
 import { Badge, Icon, Tooltip } from '@jetstream/ui';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 
@@ -21,7 +21,7 @@ export interface OrgLabelBadgeProps {
 
 export const OrgLabelBadge: FunctionComponent<OrgLabelBadgeProps> = ({ className = 'slds-m-horizontal_xx-small', org }) => {
   const [orgType, setOrgType] = useState<SalesforceOrgUiType | undefined>(getOrgType(org));
-  const [badgeType, setBadgeType] = useState<BadgeTypes>('light');
+  const [badgeType, setBadgeType] = useState<BadgeType>('light');
 
   useEffect(() => {
     if (orgType !== 'Production') {

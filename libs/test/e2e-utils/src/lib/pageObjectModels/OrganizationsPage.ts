@@ -22,8 +22,8 @@ export class OrganizationsPage {
 
   async goToJetstreamOrganizationsPage() {
     await this.page.goto('/app/home');
-    const navigationPromise = this.page.waitForURL('/app/organizations');
-    await this.page.getByRole('link', { name: 'Manage Organizations' }).click();
+    const navigationPromise = this.page.waitForURL('/app/org-groups');
+    await this.page.getByRole('link', { name: 'Salesforce Organization Groups' }).click();
     await navigationPromise;
   }
 
@@ -32,7 +32,7 @@ export class OrganizationsPage {
     password: string,
     method: { type: 'production' } | { type: 'pre-release' } | { type: 'sandbox' } | { type: 'custom'; domain: string },
   ) {
-    await this.page.getByRole('button', { name: 'Add Org' }).click();
+    await this.page.getByRole('button', { name: 'Add Salesforce Org' }).click();
 
     const salesforcePagePromise = this.page.waitForEvent('popup');
 
@@ -94,35 +94,46 @@ export class OrganizationsPage {
 
   async addJetstreamOrganization(name: string, description: string) {
     await this.page.getByRole('button', { name: 'Create New Organization' }).click();
-    await this.page.locator('#organization-name').click();
-    await this.page.locator('#organization-name').fill(name);
-    await this.page.locator('#organization-description').click();
-    await this.page.locator('#organization-description').fill(description);
+    await this.page.locator('#group-name').click();
+    await this.page.locator('#group-name').fill(name);
+    await this.page.locator('#group-description').click();
+    await this.page.locator('#group-description').fill(description);
     await this.page.getByRole('button', { name: 'Save' }).click();
-    await expect(this.page.getByTestId(`organization-card-${name}`)).toBeVisible();
+    await expect(this.page.getByTestId(`org-group-card-${name}`)).toBeVisible();
+    await expect(this.page.getByTestId(`org-group-card-${name}`).getByText(description)).toBeVisible();
   }
 
   async dragOrgToOrganization(jetstreamOrgName: string, salesforceOrgLabel: string) {
     await this.page
       .getByTestId(`salesforce-organization-${salesforceOrgLabel}`)
-      .dragTo(this.page.getByTestId(`organization-card-${jetstreamOrgName}`));
+      .dragTo(this.page.getByTestId(`org-group-card-${jetstreamOrgName}`));
 
     await expect(
       this.page
-        .getByTestId(`organization-card-${jetstreamOrgName}`)
+        .getByTestId(`org-group-card-${jetstreamOrgName}`)
         .locator(this.page.getByTestId(`salesforce-organization-${salesforceOrgLabel}`)),
     ).toBeVisible();
   }
 
   async makeActiveJetstreamOrganization(jetstreamOrgName: string) {
-    const locator = this.page.getByTestId(`organization-card-${jetstreamOrgName}`);
+    const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
     await locator.getByRole('button', { name: 'Make Active' }).click();
   }
 
+  async editJetstreamOrganization(jetstreamOrgName: string, newName: string, newDescription: string) {
+    const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
+    await locator.getByRole('button', { name: 'Edit' }).click();
+    await this.page.locator('#group-name').fill(newName);
+    await this.page.locator('#group-description').fill(newDescription);
+    await this.page.getByRole('button', { name: 'Save' }).click();
+    await expect(this.page.getByTestId(`org-group-card-${newName}`)).toBeVisible();
+    await expect(this.page.getByTestId(`org-group-card-${newName}`).getByText(newDescription)).toBeVisible();
+  }
+
   async deleteJetstreamOrganization(jetstreamOrgName: string) {
-    const locator = this.page.getByTestId(`organization-card-${jetstreamOrgName}`);
+    const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
     await locator.getByRole('button', { name: 'action' }).click();
-    await locator.getByRole('menuitem', { name: 'Delete' }).click();
+    await locator.getByRole('menuitem', { name: 'Delete Group (Keep Orgs)' }).click();
     await this.page.getByRole('button', { name: 'Continue' }).click();
   }
 }

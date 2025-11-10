@@ -2,7 +2,7 @@ type RouteKey =
   | 'HOME'
   | 'DESKTOP_APPLICATION'
   | 'BROWSER_EXTENSION'
-  | 'ORGANIZATIONS'
+  | 'SALESFORCE_ORG_GROUPS'
   | 'QUERY'
   | 'LOAD'
   | 'LOAD_MULTIPLE'
@@ -78,11 +78,11 @@ export const APP_ROUTES: RouteMap = {
     DESCRIPTION: 'Use Jetstream on any Salesforce page with the browser extension',
     NEW_UNTIL: new Date(2025, 6, 31, 23, 59, 59).getTime(), // July 31, 2025
   },
-  ORGANIZATIONS: {
-    ...getRoutePath('/organizations'),
-    DOCS: 'https://docs.getjetstream.app/organizations',
-    TITLE: 'Organizations',
-    DESCRIPTION: 'Setup organizations to group Salesforce Orgs',
+  SALESFORCE_ORG_GROUPS: {
+    ...getRoutePath('/org-groups'),
+    DOCS: 'https://docs.getjetstream.app/org-groups',
+    TITLE: 'Salesforce Org Groups',
+    DESCRIPTION: 'Group your Salesforce orgs to work in isolation',
   },
   QUERY: {
     ...getRoutePath('/query'),

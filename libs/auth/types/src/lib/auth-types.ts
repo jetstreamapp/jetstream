@@ -165,7 +165,7 @@ export interface SessionData {
   ipAddress: string;
   userAgent: string;
   sendNewUserEmailAfterVerify?: boolean;
-  orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; jetstreamOrganizationId?: Maybe<string> };
+  orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; orgGroupId?: Maybe<string> };
 }
 
 export interface SessionIpSuccess {

@@ -4,6 +4,11 @@ import { createHash, pbkdf2, randomBytes } from 'crypto';
 import { LRUCache } from 'lru-cache';
 import { promisify } from 'util';
 
+/**
+ * If decrypt fails, return this dummy value to indicate invalid token
+ */
+export const DUMMY_INVALID_ENCRYPTED_TOKEN = 'invalid';
+
 const pbkdf2Async = promisify(pbkdf2);
 
 /**
@@ -141,7 +146,7 @@ export async function decryptAccessToken({
       },
     });
     // return invalid data to allow the org to get marked as having invalid credentials once we attempt use them for Salesforce connection
-    return ['invalid', 'invalid'];
+    return [DUMMY_INVALID_ENCRYPTED_TOKEN, DUMMY_INVALID_ENCRYPTED_TOKEN];
   }
 }
 

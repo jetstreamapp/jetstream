@@ -9,12 +9,12 @@ interface JetstreamOrg {
   updatedAt: string;
 }
 
-export type JetstreamOrganization = Pick<JetstreamOrg, 'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'> & {
+export type OrgGroup = Pick<JetstreamOrg, 'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'> & {
   orgs: { uniqueId: string }[];
 };
 
-export type JetstreamOrganizationWithOrgs = Pick<JetstreamOrg, 'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'> & {
+export type OrgGroupWithOrgs = Pick<JetstreamOrg, 'id' | 'name' | 'description' | 'createdAt' | 'updatedAt'> & {
   orgs: SalesforceOrgUi[];
 };
 
-export type JetstreamOrganizationCreateUpdatePayload = Pick<JetstreamOrganization, 'name' | 'description'>;
+export type OrgGroupCreateUpdatePayload = Pick<OrgGroup, 'name' | 'description'>;

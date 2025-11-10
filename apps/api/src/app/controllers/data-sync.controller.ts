@@ -72,7 +72,7 @@ export const routeDefinition = {
     }),
     validators: {
       query: z.object({
-        clientId: z.string().uuid(),
+        clientId: z.uuid(),
         updatedAt: z
           .string()
           .regex(REGEX.ISO_DATE)

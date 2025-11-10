@@ -8,7 +8,7 @@ const sidebar = {
         'getting-started/security',
         'getting-started/install-connected-app',
         'getting-started/troubleshooting',
-        'getting-started/organizations',
+        'getting-started/org-groups',
         'getting-started/feedback',
         'getting-started/desktop-app',
         'getting-started/browser-extension/browser-extension',

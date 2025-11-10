@@ -4,7 +4,7 @@ import { AppInfo } from '@jetstream/types';
 import express, { Router } from 'express';
 import { getAnnouncements } from '../announcements';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
-import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
+import { routeDefinition as orgGroupController } from '../controllers/org-groups.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
 import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
 import { routeDefinition as bulkApiController } from '../controllers/sf-bulk-api.controller';
@@ -89,10 +89,17 @@ routes.patch('/orgs/:uniqueId', orgsController.updateOrg.controllerFn());
 routes.delete('/orgs/:uniqueId', orgsController.deleteOrg.controllerFn());
 routes.put('/orgs/:uniqueId/move', orgsController.moveOrg.controllerFn());
 
-routes.get('/jetstream-organizations', jetstreamOrganizationsController.getOrganizations.controllerFn());
-routes.post('/jetstream-organizations', jetstreamOrganizationsController.createOrganization.controllerFn());
-routes.put('/jetstream-organizations/:id', jetstreamOrganizationsController.updateOrganization.controllerFn());
-routes.delete('/jetstream-organizations/:id', jetstreamOrganizationsController.deleteOrganization.controllerFn());
+// DEPRECATED - /orgs/groups (remove this after some time)
+routes.get('/jetstream-organizations', orgGroupController.getOrganizations.controllerFn());
+routes.post('/jetstream-organizations', orgGroupController.createOrganization.controllerFn());
+routes.put('/jetstream-organizations/:id', orgGroupController.updateOrganization.controllerFn());
+routes.delete('/jetstream-organizations/:id', orgGroupController.deleteOrganization.controllerFn());
+
+routes.get('/orgs/groups', orgGroupController.getOrganizations.controllerFn());
+routes.post('/orgs/groups', orgGroupController.createOrganization.controllerFn());
+routes.put('/orgs/groups/:id', orgGroupController.updateOrganization.controllerFn());
+routes.delete('/orgs/groups/:id', orgGroupController.deleteOrganization.controllerFn());
+routes.delete('/orgs/groups/:id/with-orgs', orgGroupController.deleteOrganizationWithOrgs.controllerFn());
 
 /**
  * ************************************

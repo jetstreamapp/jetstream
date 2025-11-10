@@ -2,44 +2,40 @@ import { css } from '@emotion/react';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { JetstreamOrganization, Maybe } from '@jetstream/types';
+import { Maybe, OrgGroup } from '@jetstream/types';
 import { Badge, Grid, Popover, PopoverRef } from '@jetstream/ui';
 import { ReactNode, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-interface OrganizationSelectorProps {
-  organizations: JetstreamOrganization[];
-  selectedOrganization?: Maybe<JetstreamOrganization>;
-  salesforceOrgsWithoutOrganization: number;
+interface OrganizationGroupSelectorProps {
+  groups: OrgGroup[];
+  selectedGroup?: Maybe<OrgGroup>;
+  salesforceOrgsWithoutGroup: number;
   size?: 'small' | 'medium';
-  onSelection: (organization?: Maybe<JetstreamOrganization>) => void;
+  onSelection: (group?: Maybe<OrgGroup>) => void;
 }
 
 interface OrganizationPopoverProps {
-  selectedOrganization?: Maybe<JetstreamOrganization>;
-  organizations: JetstreamOrganization[];
-  salesforceOrgsWithoutOrganization: number;
+  selectedGroup?: Maybe<OrgGroup>;
+  groups: OrgGroup[];
+  salesforceOrgsWithoutGroup: number;
   children: ReactNode;
-  onSelection: (organization?: Maybe<JetstreamOrganization>) => void;
+  onSelection: (group?: Maybe<OrgGroup>) => void;
 }
 
-export function OrganizationSelector({
-  organizations,
-  selectedOrganization,
-  salesforceOrgsWithoutOrganization,
+export function OrganizationGroupSelector({
+  groups,
+  selectedGroup,
+  salesforceOrgsWithoutGroup,
   size,
   onSelection,
-}: OrganizationSelectorProps) {
-  if (!selectedOrganization) {
+}: OrganizationGroupSelectorProps) {
+  if (!selectedGroup) {
     return (
       <div className="slds-align_absolute-center">
-        <OrganizationPopover
-          organizations={organizations}
-          salesforceOrgsWithoutOrganization={salesforceOrgsWithoutOrganization}
-          onSelection={onSelection}
-        >
-          Choose Organization
-        </OrganizationPopover>
+        <OrganizationGroupPopover groups={groups} salesforceOrgsWithoutGroup={salesforceOrgsWithoutGroup} onSelection={onSelection}>
+          Choose Group
+        </OrganizationGroupPopover>
       </div>
     );
   }
@@ -52,30 +48,30 @@ export function OrganizationSelector({
           margin-bottom: -2px;
         `}
       >
-        {selectedOrganization?.name}
+        {selectedGroup?.name}
       </p>
-      <OrganizationPopover
-        selectedOrganization={selectedOrganization}
-        organizations={organizations}
-        salesforceOrgsWithoutOrganization={salesforceOrgsWithoutOrganization}
+      <OrganizationGroupPopover
+        selectedGroup={selectedGroup}
+        groups={groups}
+        salesforceOrgsWithoutGroup={salesforceOrgsWithoutGroup}
         onSelection={onSelection}
       >
         Switch
-      </OrganizationPopover>
+      </OrganizationGroupPopover>
     </Grid>
   );
 }
 
-const OrganizationPopover = ({
-  selectedOrganization,
-  organizations,
-  salesforceOrgsWithoutOrganization,
+const OrganizationGroupPopover = ({
+  selectedGroup,
+  groups,
+  salesforceOrgsWithoutGroup: salesforceOrgsWithoutOrganization,
   children,
   onSelection,
 }: OrganizationPopoverProps) => {
   const popoverRef = useRef<PopoverRef>(null);
 
-  function handleSelection(organization?: Maybe<JetstreamOrganization>) {
+  function handleSelection(organization?: Maybe<OrgGroup>) {
     onSelection(organization);
     popoverRef?.current?.close();
   }
@@ -85,17 +81,17 @@ const OrganizationPopover = ({
       header={
         <header className="slds-popover__header">
           <h2 className="slds-text-heading_small" title="Refresh Metadata">
-            Select Organization
+            Select Group
           </h2>
         </header>
       }
       footer={
         <footer className="slds-popover__footer">
           <Link
-            to={{ pathname: APP_ROUTES.ORGANIZATIONS.ROUTE, search: APP_ROUTES.ORGANIZATIONS.SEARCH_PARAM }}
+            to={{ pathname: APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE, search: APP_ROUTES.SALESFORCE_ORG_GROUPS.SEARCH_PARAM }}
             onClick={() => popoverRef?.current?.close()}
           >
-            Manage Organizations
+            Manage Groups
           </Link>
         </footer>
       }
@@ -105,24 +101,24 @@ const OrganizationPopover = ({
             max-height: 50vh;
           `}
         >
-          <p>When you choose an organization, only Salesforce Orgs within that organization will be available for selection.</p>
+          <p>When you choose a group, only Salesforce Orgs within that group will be available for selection.</p>
           <ul className="slds-has-dividers_top-space slds-dropdown_length-5">
-            {organizations
-              .filter((organization) => !selectedOrganization || organization.id !== selectedOrganization.id)
-              .map((organization) => (
-                <li key={organization.id} className="slds-item" onClick={() => handleSelection(organization)}>
+            {groups
+              .filter((group) => !selectedGroup || group.id !== selectedGroup.id)
+              .map((group) => (
+                <li key={group.id} className="slds-item" onClick={() => handleSelection(group)}>
                   <Grid className="slds-truncate" align="spread" verticalAlign="center">
-                    <button className="slds-button">{organization.name}</button>
+                    <button className="slds-button">{group.name}</button>
                     <Badge type="light" className="slds-m-left_xx-small">
-                      {formatNumber(organization.orgs.length)} {pluralizeFromNumber('Org', organization.orgs.length)}
+                      {formatNumber(group.orgs.length)} {pluralizeFromNumber('Org', group.orgs.length)}
                     </Badge>
                   </Grid>
                 </li>
               ))}
-            {!!selectedOrganization && (
+            {!!selectedGroup && (
               <li className="slds-item" onClick={() => handleSelection(null)}>
                 <Grid className="slds-truncate" align="spread" verticalAlign="center">
-                  <button className="slds-button">-No Organization-</button>
+                  <button className="slds-button">-No Group-</button>
                   <Badge type="light" className="slds-m-left_xx-small">
                     {formatNumber(salesforceOrgsWithoutOrganization)} {pluralizeFromNumber('Org', salesforceOrgsWithoutOrganization)}
                   </Badge>

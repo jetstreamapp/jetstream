@@ -238,7 +238,15 @@ export async function updateSalesforceOrg(userId: string, uniqueId: string, data
   });
 }
 
-export async function moveSalesforceOrg(userId: string, uniqueId: string, data: { jetstreamOrganizationId?: Maybe<string> }) {
+export async function moveSalesforceOrg(
+  userId: string,
+  uniqueId: string,
+  data: {
+    orgGroupId?: Maybe<string>;
+    // @deprecated
+    jetstreamOrganizationId?: Maybe<string>;
+  },
+) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
     select: { id: true },
     where: findUniqueOrg({ userId, uniqueId }),
@@ -252,7 +260,7 @@ export async function moveSalesforceOrg(userId: string, uniqueId: string, data: 
     select: SELECT,
     where: { id: existingOrg.id },
     data: {
-      jetstreamOrganizationId: data.jetstreamOrganizationId ?? null,
+      jetstreamOrganizationId: data.orgGroupId ?? data.jetstreamOrganizationId ?? null,
     },
   });
 }

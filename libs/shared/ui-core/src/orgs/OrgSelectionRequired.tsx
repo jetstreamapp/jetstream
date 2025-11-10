@@ -1,15 +1,15 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
-import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
 import { fromJetstreamEvents, OrgsDropdown } from '..';
-import AddOrg from './AddOrg';
+import { AddOrg } from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
-import { OrganizationSelector } from './OrganizationSelector';
+import { OrganizationGroupSelector } from './OrganizationGroupSelector';
 
 export interface OrgSelectionRequiredProps {
   /**
@@ -24,10 +24,10 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
   const [allOrgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const hasConfiguredOrg = useAtomValue(fromAppState.hasConfiguredOrgState);
-  const jetstreamOrganizations = useAtomValue(fromAppState.jetstreamOrganizationsState);
-  const hasOrganizationsConfigured = useAtomValue(fromAppState.jetstreamOrganizationsExistsSelector);
-  const setActiveOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
-  const activeOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const orgGroups = useAtomValue(fromAppState.orgGroupsState);
+  const hasOrgGroupsConfigured = useAtomValue(fromAppState.orgGroupExistsSelector);
+  const setActiveOrgGroup = useSetAtom(fromAppState.ActiveOrgGroupState);
+  const activeOrgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
 
   const [loadingRetry, setLoadingRetry] = useState(false);
@@ -53,14 +53,14 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
     }
   };
 
-  function handleOrganizationChange(organization: Maybe<JetstreamOrganization>) {
-    if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
-      if (organization.orgs.length === 1) {
-        setSelectedOrgId(organization.orgs[0].uniqueId);
+  function handleOrgGroupChange(group: Maybe<OrgGroup>) {
+    if (group && (!selectedOrg || !group.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
+      if (group.orgs.length === 1) {
+        setSelectedOrgId(group.orgs[0].uniqueId);
       } else {
         setSelectedOrgId(null);
       }
-    } else if (!organization && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
+    } else if (!group && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
       const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
       if (orgsWithNoOrganization.length === 1) {
         setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
@@ -68,7 +68,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
         setSelectedOrgId(null);
       }
     }
-    setActiveOrganization(organization?.id);
+    setActiveOrgGroup(group?.id);
   }
 
   return (
@@ -99,7 +99,15 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
                 <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
                 Retry Connection
               </button>
-              <AddOrg className="slds-button_brand" label="Reconnect Org" onAddOrg={handleAddOrg} onAddOrgHandlerFn={onAddOrgHandlerFn} />
+              <AddOrg
+                omitIcon
+                className="slds-button_brand"
+                existingOrg={selectedOrg?.uniqueId ? selectedOrg : undefined}
+                label="Reconnect Org"
+                popoverLabel="Reconnect Org"
+                onAddOrg={handleAddOrg}
+                onAddOrgHandlerFn={onAddOrgHandlerFn}
+              />
             </EmptyState>
           </div>
         </div>
@@ -120,18 +128,18 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
                 >
                   <OrgsDropdown omitAddOrgsButton omitOrganizationSelector />
                 </Card>
-                {hasOrganizationsConfigured && (
+                {hasOrgGroupsConfigured && (
                   <Card
                     css={css`
                       min-width: 20rem;
                     `}
-                    title={activeOrganization ? 'Switch Organizations' : 'Choose an organization'}
+                    title={activeOrgGroup ? 'Switch Organizations' : 'Choose an organization'}
                   >
-                    <OrganizationSelector
-                      organizations={jetstreamOrganizations}
-                      selectedOrganization={activeOrganization}
-                      salesforceOrgsWithoutOrganization={allOrgs.filter((org) => !org.jetstreamOrganizationId).length}
-                      onSelection={handleOrganizationChange}
+                    <OrganizationGroupSelector
+                      groups={orgGroups}
+                      selectedGroup={activeOrgGroup}
+                      salesforceOrgsWithoutGroup={allOrgs.filter((org) => !org.jetstreamOrganizationId).length}
+                      onSelection={handleOrgGroupChange}
                     />
                   </Card>
                 )}

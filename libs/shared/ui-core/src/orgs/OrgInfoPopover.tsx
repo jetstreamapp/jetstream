@@ -131,7 +131,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }, [org]);
 
   function handleFixOrg() {
-    addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl }, (addedOrg: SalesforceOrgUi) => {
+    addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl, loginHint: org.username }, (addedOrg: SalesforceOrgUi) => {
       onAddOrg?.(addedOrg, true);
     });
   }
@@ -202,7 +202,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               <ButtonGroupContainer className="slds-button_stretch">
                 <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg} disabled={disableOrgActions}>
                   <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Fix Org
+                  Reconnect Org
                 </button>
               </ButtonGroupContainer>
             </div>

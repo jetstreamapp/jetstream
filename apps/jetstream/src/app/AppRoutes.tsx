@@ -8,7 +8,7 @@ import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import Profile from './components/profile/Profile';
 
-const Organizations = lazy(() => import('@jetstream/feature/organizations').then((module) => ({ default: module.Organizations })));
+const SalesforceOrgGroups = lazy(() => import('@jetstream/feature/orgGroups').then((module) => ({ default: module.OrgGroups })));
 
 const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
 const LoadRecordsMultiObject = lazy(() =>
@@ -140,7 +140,7 @@ export const AppRoutes = () => {
             <Route path="results" element={<QueryResults />} />
             <Route path="*" element={<Navigate to=".." />} />
           </Route>
-          <Route path={APP_ROUTES.ORGANIZATIONS.ROUTE} element={<Organizations />} />
+          <Route path={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE} element={<SalesforceOrgGroups />} />
           <Route
             path={APP_ROUTES.LOAD.ROUTE}
             element={

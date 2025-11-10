@@ -1,27 +1,33 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Card, Grid, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
 import { useDrop } from 'react-dnd';
-import SalesforceOrgCardDraggable from './SalesforceOrgCardDraggable';
-import { DraggableSfdcCard } from './organization.types';
+import { SalesforceOrgCardDraggable } from './SalesforceOrgCardDraggable';
+import { DraggableSfdcCard } from './organization-group.types';
 
-interface OrganizationCardNoOrganizationProps {
+interface OrgGroupCardNoOrganizationProps {
   isActive: boolean;
   orgs: SalesforceOrgUi[];
   activeSalesforceOrgId?: string;
   onSelected: () => void;
-  onMoveOrg: (data: { jetstreamOrganizationId: null; sfdcOrgUniqueId: string; action: 'remove' }) => void;
+  onMoveOrg: (data: { groupId: null; sfdcOrgUniqueId: string; action: 'remove' }) => void;
+  /**
+   * If provided, this will be used instead of the default addOrg function.
+   * This is used in the desktop app to open the browser for the login process.
+   */
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
-export function OrganizationCardNoOrganization({
+export function OrgGroupCardNoOrganization({
   isActive,
   orgs,
   activeSalesforceOrgId,
   onSelected,
   onMoveOrg,
-}: OrganizationCardNoOrganizationProps) {
+  onAddOrgHandlerFn,
+}: OrgGroupCardNoOrganizationProps) {
   const [{ isOver, canDrop }, dropRef] = useDrop<DraggableSfdcCard, any, { isOver: boolean; canDrop: boolean }>(
     {
       accept: 'SalesforceOrg',
@@ -36,7 +42,7 @@ export function OrganizationCardNoOrganization({
       },
       drop: (item, monitor) => {
         onMoveOrg({
-          jetstreamOrganizationId: null,
+          groupId: null,
           sfdcOrgUniqueId: item.uniqueId,
           action: 'remove',
         });
@@ -53,7 +59,7 @@ export function OrganizationCardNoOrganization({
     >
       <Card
         ref={dropRef as any}
-        testId={`organization-card-empty`}
+        testId={`org-group-card-empty`}
         css={css`
           ${isActive
             ? `
@@ -85,7 +91,7 @@ export function OrganizationCardNoOrganization({
             )}
           </div>
         }
-        title={<Grid>Salesforce Orgs Not Assigned to Organization ({formatNumber(orgs.length)})</Grid>}
+        title={<Grid>Unassigned ({formatNumber(orgs.length)})</Grid>}
         bodyClassName="slds-card__body"
       >
         <Grid
@@ -96,10 +102,14 @@ export function OrganizationCardNoOrganization({
         >
           {orgs.map((org) => (
             <div key={org.uniqueId} className="slds-m-around_x-small">
-              <SalesforceOrgCardDraggable org={org} isActive={activeSalesforceOrgId === org.uniqueId} />
+              <SalesforceOrgCardDraggable
+                org={org}
+                isActive={activeSalesforceOrgId === org.uniqueId}
+                onAddOrgHandlerFn={onAddOrgHandlerFn}
+              />
             </div>
           ))}
-          {!orgs.length && <p className="slds-align_absolute-center">Drag and drop to move salesforce orgs between organizations.</p>}
+          {!orgs.length && <p className="slds-align_absolute-center">Drag and drop to move salesforce orgs between groups.</p>}
         </Grid>
       </Card>
       {isActive && (

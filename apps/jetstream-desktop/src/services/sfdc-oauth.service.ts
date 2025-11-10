@@ -35,7 +35,7 @@ function getSalesforceAuthClient(loginUrl: string) {
  */
 export function salesforceOauthInit(
   loginUrl: string,
-  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: string } = {},
+  { loginHint, addLoginParam = false }: { addLoginParam?: boolean; loginHint?: Maybe<string> } = {},
 ) {
   // https://login.salesforce.com/.well-known/openid-configuration
 
@@ -49,7 +49,7 @@ export function salesforceOauthInit(
   const params: AuthorizationParameters = {
     code_challenge_method: 'S256',
     code_challenge,
-    login_hint: loginHint,
+    login_hint: loginHint || undefined,
     nonce,
     prompt: 'login',
     scope: 'api web refresh_token',
@@ -102,10 +102,10 @@ export async function salesforceOauthRefresh(loginUrl: string, refreshToken: str
 
 export async function initConnectionFromOAuthResponse({
   jetstreamConn,
-  jetstreamOrganizationId,
+  orgGroupId,
 }: {
   jetstreamConn: ApiConnection;
-  jetstreamOrganizationId?: Maybe<string>;
+  orgGroupId?: Maybe<string>;
 }) {
   const identity = await jetstreamConn.org.identity();
   let companyInfoRecord: SObjectOrganization | undefined;
@@ -150,7 +150,7 @@ export async function initConnectionFromOAuthResponse({
     orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
   };
 
-  if (jetstreamOrganizationId) {
+  if (orgGroupId) {
     // TODO: figure out org storage and organizations
     // try {
     //   salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: jetstreamOrganizationId, userId })).id;

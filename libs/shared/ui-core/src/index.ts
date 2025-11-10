@@ -61,6 +61,7 @@ export * from './orgs/OrgsCombobox';
 export * from './orgs/OrgsDropdown';
 export * from './orgs/OrgSelectionRequired';
 export * from './orgs/OrgWelcomeInstructions';
+export * from './orgs/useOrgExpiration';
 export * from './orgs/useOrgPermissions';
 export * from './orgs/useUpdateOrgs';
 export * from './query/QueryHistory/QueryHistory';

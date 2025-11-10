@@ -250,6 +250,7 @@ export interface CloudinaryUploadResponse {
 }
 
 export interface SalesforceOrgUi {
+  // TODO: transition to "orgGroupId"
   jetstreamOrganizationId?: Maybe<string>;
   id?: number;
   uniqueId: string;
@@ -362,6 +363,6 @@ export interface FormulaFieldsByType {
 }
 
 export type AddOrgHandlerFn = (
-  options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
+  options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; orgGroupId?: Maybe<string>; loginHint?: string },
   callback: (org: SalesforceOrgUi) => void,
 ) => void;

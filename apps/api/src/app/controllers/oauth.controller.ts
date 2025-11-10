@@ -33,9 +33,12 @@ export const routeDefinition = {
         ]),
         addLoginParam: z
           .enum(['true', 'false'])
-          .nullish()
+          .optional()
           .transform((val) => val === 'true'),
-        jetstreamOrganizationId: z.string().nullish(),
+        loginHint: z.string().optional(),
+        orgGroupId: z.string().optional(),
+        // @deprecated - remove in near future once clients have switched to orgGroupId
+        jetstreamOrganizationId: z.string().optional(),
       }),
       hasSourceOrg: false,
     },
@@ -55,9 +58,9 @@ export const routeDefinition = {
  * @param res
  */
 const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res) => {
-  const { loginUrl, addLoginParam, jetstreamOrganizationId } = query;
-  const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam });
-  req.session.orgAuth = { code_verifier, nonce, state, loginUrl, jetstreamOrganizationId };
+  const { loginUrl, addLoginParam, loginHint, jetstreamOrganizationId, orgGroupId } = query;
+  const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam, loginHint });
+  req.session.orgAuth = { code_verifier, nonce, state, loginUrl, orgGroupId: orgGroupId || jetstreamOrganizationId };
   res.redirect(authorizationUrl);
 });
 
@@ -97,7 +100,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
 
-    const { code_verifier, nonce, state, loginUrl, jetstreamOrganizationId } = orgAuth;
+    const { code_verifier, nonce, state, loginUrl, orgGroupId } = orgAuth;
 
     const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(loginUrl, query, {
       code_verifier,
@@ -120,7 +123,7 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
     const salesforceOrg = await initConnectionFromOAuthResponse({
       jetstreamConn,
       userId: user.id,
-      jetstreamOrganizationId,
+      orgGroupId,
     });
 
     returnParams.data = JSON.stringify(salesforceOrg);
@@ -140,11 +143,11 @@ const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallb
 export async function initConnectionFromOAuthResponse({
   jetstreamConn,
   userId,
-  jetstreamOrganizationId,
+  orgGroupId,
 }: {
   jetstreamConn: ApiConnection;
   userId: string;
-  jetstreamOrganizationId?: Maybe<string>;
+  orgGroupId?: Maybe<string>;
 }) {
   const identity = await jetstreamConn.org.identity();
   let companyInfoRecord: SObjectOrganization | undefined;
@@ -192,12 +195,12 @@ export async function initConnectionFromOAuthResponse({
     orgTrialExpirationDate: companyInfoRecord?.TrialExpirationDate,
   };
 
-  if (jetstreamOrganizationId) {
+  if (orgGroupId) {
     try {
-      salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: jetstreamOrganizationId, userId })).id;
+      salesforceOrgUi.jetstreamOrganizationId = (await jetstreamOrganizationsDb.findById({ id: orgGroupId, userId })).id;
     } catch (ex) {
       logger.warn(
-        { userId, jetstreamOrganizationId, ...getExceptionLog(ex) },
+        { userId, jetstreamOrganizationId: orgGroupId, ...getExceptionLog(ex) },
         'Error getting jetstream org with provided id %s',
         getErrorMessage(ex),
       );

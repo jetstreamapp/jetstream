@@ -8,8 +8,8 @@ import { routeDefinition as authController } from '../controllers/auth.controlle
 import { routeDefinition as billingController } from '../controllers/billing.controller';
 import { routeDefinition as dataSyncController } from '../controllers/data-sync.controller';
 import { routeDefinition as desktopController } from '../controllers/desktop-app.controller';
-import { routeDefinition as jetstreamOrganizationsController } from '../controllers/jetstream-organizations.controller';
 import { routeDefinition as oauthController } from '../controllers/oauth.controller';
+import { routeDefinition as jetstreamOrganizationsController } from '../controllers/org-groups.controller';
 import { routeDefinition as orgsController } from '../controllers/orgs.controller';
 import { routeDefinition as salesforceApiReqController } from '../controllers/salesforce-api-requests.controller';
 import { routeDefinition as bulkApiController } from '../controllers/sf-bulk-api.controller';
@@ -337,7 +337,7 @@ export function getOpenApiSpec() {
       },
 
       // Jetstream Organizations Routes (prefix: /api)
-      '/api/jetstream-organizations': {
+      '/api/orgs/groups': {
         get: {
           ...getRequest({ ...jetstreamOrganizationsController.getOrganizations.validators, tags: ['jetstreamOrganizations'] }),
         },
@@ -345,7 +345,7 @@ export function getOpenApiSpec() {
           ...getRequest({ ...jetstreamOrganizationsController.createOrganization.validators, tags: ['jetstreamOrganizations'] }),
         },
       },
-      '/api/jetstream-organizations/{id}': {
+      '/api/orgs/groups/{id}': {
         put: {
           ...getRequest({ ...jetstreamOrganizationsController.updateOrganization.validators, tags: ['jetstreamOrganizations'] }),
         },

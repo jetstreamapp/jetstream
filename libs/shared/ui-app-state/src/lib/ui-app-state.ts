@@ -1,7 +1,7 @@
 import { getUserAbility } from '@jetstream/acl';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP, INDEXED_DB } from '@jetstream/shared/constants';
-import { checkHeartbeat, getJetstreamOrganizations, getOrgs, getUserProfile } from '@jetstream/shared/data';
+import { checkHeartbeat, getOrgGroups, getOrgs, getUserProfile } from '@jetstream/shared/data';
 import {
   getBrowserExtensionVersion,
   getOrgType,
@@ -17,9 +17,9 @@ import {
   TeamBillingStatusSchema,
   type Announcement,
   type ApplicationState,
-  type JetstreamOrganization,
-  type JetstreamOrganizationWithOrgs,
   type Maybe,
+  type OrgGroup,
+  type OrgGroupWithOrgs,
   type SalesforceOrgUi,
   type SalesforceOrgUiType,
   type UserProfilePreferences,
@@ -92,9 +92,9 @@ async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   }
 }
 
-async function fetchJetstreamOrganizations(): Promise<JetstreamOrganization[]> {
+async function fetchOrgGroups(): Promise<OrgGroup[]> {
   try {
-    const orgs = isBrowserExtension() ? [] : await getJetstreamOrganizations();
+    const orgs = isBrowserExtension() ? [] : await getOrgGroups();
     return orgs || [];
   } catch (ex) {
     return [];
@@ -114,7 +114,7 @@ function getSelectedOrgFromStorage(): string | undefined {
   }
 }
 
-function getSelectedJetstreamOrganizationFromStorage(): Maybe<string> {
+function getSelectedOrgGroupFromStorage(): Maybe<string> {
   try {
     return (
       sessionStorage.getItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY) ||
@@ -125,7 +125,7 @@ function getSelectedJetstreamOrganizationFromStorage(): Maybe<string> {
   }
 }
 
-function setSelectedJetstreamOrganizationFromStorage(id: Maybe<string>) {
+function setSelectedOrgGroupFromStorage(id: Maybe<string>) {
   try {
     if (!id) {
       sessionStorage.removeItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY);
@@ -215,67 +215,65 @@ export const googleDriveAccessState = atom((get) => {
   };
 });
 
-export const jetstreamOrganizationsAsyncState = atom<Promise<JetstreamOrganization[]> | JetstreamOrganization[]>(
-  fetchJetstreamOrganizations(),
-);
+export const orgGroupsAsyncState = atom<Promise<OrgGroup[]> | OrgGroup[]>(fetchOrgGroups());
 // Unwrapped value to simplify derived state
-export const jetstreamOrganizationsState = unwrap(jetstreamOrganizationsAsyncState, (prev) => prev ?? []);
+export const orgGroupsState = unwrap(orgGroupsAsyncState, (prev) => prev ?? []);
 
 // Combine orgs with organizations
-export const jetstreamOrganizationsWithOrgsSelector = atom(
+export const orgGroupsWithOrgsSelector = atom(
   (get) => {
     const orgsById = get(salesforceOrgsById);
-    const organizations = get(jetstreamOrganizationsState);
-    return organizations.map((organization) => ({
-      ...organization,
-      orgs: organization.orgs.map(({ uniqueId }) => orgsById[uniqueId]).filter(Boolean),
+    const orgGroups = get(orgGroupsState);
+    return orgGroups.map((group) => ({
+      ...group,
+      orgs: group.orgs.map(({ uniqueId }) => orgsById[uniqueId]).filter(Boolean),
     }));
   },
-  (get, set, newValue: JetstreamOrganizationWithOrgs[]) => {
+  (get, set, newValue: OrgGroupWithOrgs[]) => {
     set(
-      jetstreamOrganizationsState,
-      newValue.map((organization) => ({
-        ...organization,
-        orgs: organization.orgs.map(({ uniqueId }) => ({ uniqueId })),
+      orgGroupsState,
+      newValue.map((group) => ({
+        ...group,
+        orgs: group.orgs.map(({ uniqueId }) => ({ uniqueId })),
       })),
     );
   },
 );
 
-export const jetstreamOrganizationsExistsSelector = atom((get) => {
-  const organizations = get(jetstreamOrganizationsState);
+export const orgGroupExistsSelector = atom((get) => {
+  const organizations = get(orgGroupsState);
   return organizations.length > 0;
 });
 
-const _baseJetstreamActiveOrganizationState = atom<Maybe<string>>(getSelectedJetstreamOrganizationFromStorage());
+const _baseActiveOrgGroupState = atom<Maybe<string>>(getSelectedOrgGroupFromStorage());
 
-export const jetstreamActiveOrganizationState = atom(
-  (get) => get(_baseJetstreamActiveOrganizationState),
+export const ActiveOrgGroupState = atom(
+  (get) => get(_baseActiveOrgGroupState),
   (get, set, newValue: Maybe<string>) => {
-    set(_baseJetstreamActiveOrganizationState, newValue);
-    setSelectedJetstreamOrganizationFromStorage(newValue);
+    set(_baseActiveOrgGroupState, newValue);
+    setSelectedOrgGroupFromStorage(newValue);
   },
 );
 
-export const jetstreamActiveOrganizationSelector = atom((get) => {
-  const organizations = get(jetstreamOrganizationsWithOrgsSelector);
-  const selectedItemId = get(jetstreamActiveOrganizationState);
-  return organizations.find((org) => org.id === selectedItemId);
+export const jetstreamActiveGroupSelector = atom((get) => {
+  const groups = get(orgGroupsWithOrgsSelector);
+  const selectedItemId = get(ActiveOrgGroupState);
+  return groups.find(({ id }) => id === selectedItemId);
 });
 
 export const salesforceOrgsAsyncState = atom<Promise<SalesforceOrgUi[]> | SalesforceOrgUi[]>(getOrgsFromStorage());
 // Unwrapped value to simplify derived state
 export const salesforceOrgsState = unwrap(salesforceOrgsAsyncState, (prev) => prev ?? []);
 
-export const salesforceOrgsForOrganizationSelector = atom((get) => {
+export const salesforceOrgsForGroupSelector = atom((get) => {
   const salesforceOrgs = get(salesforceOrgsState);
-  const selectedOrganizationId = get(jetstreamActiveOrganizationState) || null;
-  return salesforceOrgs.filter((org) => (org.jetstreamOrganizationId || null) === selectedOrganizationId);
+  const selectedGroupId = get(ActiveOrgGroupState) || null;
+  return salesforceOrgs.filter((org) => (org.jetstreamOrganizationId || null) === selectedGroupId);
 });
 
 export const selectedOrgIdState = atom<Maybe<string>>(getSelectedOrgFromStorage());
 
-export const salesforceOrgsWithoutOrganizationSelector = atom((get) => {
+export const salesforceOrgsWithoutGroupSelector = atom((get) => {
   const orgs = get(salesforceOrgsState);
   return orderObjectsBy(
     orgs.filter((org) => !org.jetstreamOrganizationId),

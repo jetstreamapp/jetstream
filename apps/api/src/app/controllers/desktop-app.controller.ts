@@ -38,7 +38,7 @@ export const routeDefinition = {
     responseType: z.object({ accessToken: z.string() }),
     validators: {
       query: z.object({
-        deviceId: z.string().uuid(),
+        deviceId: z.uuid(),
       }),
       hasSourceOrg: false,
     },
