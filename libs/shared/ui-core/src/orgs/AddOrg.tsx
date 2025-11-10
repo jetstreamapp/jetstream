@@ -186,6 +186,11 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
       footer={
         <footer className="slds-popover__footer">
           <Grid verticalAlign="center">
+            <GridCol>
+              <a href="https://docs.getjetstream.app/troubleshooting" target="_blank" rel="noopener noreferrer" className="slds-text-link">
+                Trouble Connecting?
+              </a>
+            </GridCol>
             <GridCol bump="left">
               <button className="slds-button slds-button_brand" onClick={handleAddOrg}>
                 Continue

@@ -1,0 +1,33 @@
+export const OAuthAppInstalLinks = ({}) => (
+  <>
+    <p>
+      Replace <code>{'<your_domain>'}</code> with your Salesforce custom domain.
+    </p>
+    <div>
+      <strong>Jetstream Web Application</strong>
+      <br />
+      <code>{'<your_domain>'}/identity/app/AppInstallApprovalPage.apexp?app_id=0Ci4S000000CaUB&app_org_id=00D4S000000pHDF</code>
+    </div>
+    <br />
+    <div>
+      <strong>Jetstream Desktop Application</strong>
+      <br />
+      <code>{'<your_domain>'}/identity/app/AppInstallApprovalPage.apexp?app_id=0Ci4S000000CadS&app_org_id=00D4S000000pHDF</code>
+    </div>
+    <br />
+    <div>
+      <strong>Jetstream Authentication (logging into Jetstream using Salesforce)</strong>
+      <br />
+      <code>{'<your_domain>'}/identity/app/AppInstallApprovalPage.apexp?app_id=0Ci4S000000Cact&app_org_id=00D4S000000pHDF</code>
+    </div>
+  </>
+);
+
+:::warning
+
+There is a Salesforce bug where the Connected App may not show up in Connected App OAuth Usage even after attempting to login,
+you can manually install our connected apps using the links below:
+
+<OAuthAppInstalLinks />
+
+:::
