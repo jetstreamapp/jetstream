@@ -15,6 +15,7 @@ import { TwoStepVerificationEmail } from './email-templates/auth/TwoStepVerifica
 import { VerifyEmail } from './email-templates/auth/VerifyEmail';
 import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
 import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
+import { OrgExpirationWarningEmail } from './email-templates/org/OrgExpirationWarningEmail';
 
 /**
  *
@@ -224,5 +225,35 @@ export async function sendTeamInviteEmail({
     });
   } catch (error) {
     logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending user feedback email');
+  }
+}
+
+export async function sendOrgExpirationWarningEmail({
+  emailAddress,
+  orgs,
+}: {
+  emailAddress: string;
+  orgs: Array<{ username: string; organizationId: string; instanceUrl: string; daysUntilExpiration: number }>;
+}) {
+  try {
+    const component = <OrgExpirationWarningEmail orgs={orgs} loginUrl={`${ENV.JETSTREAM_SERVER_URL}/app`} />;
+    const [html, text] = await renderComponent(component);
+
+    const hasExpired = orgs.some((org) => org.daysUntilExpiration <= 0);
+    const positiveDays = orgs.map((org) => org.daysUntilExpiration).filter((days) => days > 0);
+    const minDays = positiveDays.length > 0 ? Math.min(...positiveDays) : 0;
+
+    const subject = hasExpired
+      ? 'Salesforce Org Credentials Expired'
+      : `Salesforce Org Credentials Expiring in ${minDays} Day${minDays === 1 ? '' : 's'}`;
+
+    await sendEmail({
+      to: emailAddress,
+      subject,
+      text,
+      html,
+    });
+  } catch (error) {
+    logger.error({ ...getErrorMessageAndStackObj(error) }, 'Error sending org expiration warning email');
   }
 }

@@ -15,7 +15,7 @@ import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getDefaultAppState, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parse as parseCookie } from 'cookie';
-import { getUnixTime } from 'date-fns';
+import { addDays, getUnixTime, isBefore } from 'date-fns';
 import * as express from 'express';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
@@ -313,6 +313,27 @@ export async function getOrgForRequest(
 
   const { accessToken: encryptedAccessToken, instanceUrl, orgNamespacePrefix, userId: salesforceUserId, organizationId } = org;
   const [accessToken, refreshToken] = await sfdcEncService.decryptAccessToken({ encryptedAccessToken, userId: user.id });
+
+  // Early exit if org is expired and the connection is invalid - this avoids updating activity and attempting to call salesforce
+  if (accessToken === sfdcEncService.DUMMY_INVALID_ENCRYPTED_TOKEN && org.expirationScheduledFor) {
+    throw new UserFacingError('This org has expired due to inactivity. Reconnect the org to continue using it.');
+  }
+
+  // Clear expiration and update last activity when org is accessed
+  // This should be done after decryption so that the org stays expired if decryption failed (we use placeholder decryption token)
+  if (org.expirationScheduledFor) {
+    salesforceOrgsDb.clearExpiration(org.id, user.id).catch((err) => {
+      logger.error({ orgId: org.id, userId: user.id, ...getExceptionLog(err) }, '[ORG][UPDATE] Error clearing expirationScheduledFor');
+    });
+  } else {
+    // Only update lastActivityAt if it's null or older than 1 day to reduce DB writes
+    const oneDayAgo = addDays(new Date(), -1);
+    if (!org.lastActivityAt || isBefore(new Date(org.lastActivityAt), oneDayAgo)) {
+      salesforceOrgsDb.updateLastActivity(org.id).catch((err) => {
+        logger.error({ orgId: org.id, userId: user.id, ...getExceptionLog(err) }, '[ORG][UPDATE] Error updating lastActivityAt');
+      });
+    }
+  }
 
   apiVersion = apiVersion || org.apiVersion || ENV.SFDC_API_VERSION;
   let callOptions: Record<string, string> = {

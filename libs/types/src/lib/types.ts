@@ -277,6 +277,8 @@ export interface SalesforceOrgUi {
   connectionError?: Maybe<string>;
   createdAt?: Maybe<string>;
   updatedAt?: Maybe<string>;
+  lastActivityAt?: Maybe<string>;
+  expirationScheduledFor?: Maybe<string>;
 }
 
 export type SalesforceOrgUiType = 'Sandbox' | 'Developer' | 'Production';
