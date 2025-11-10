@@ -25,8 +25,12 @@ export const OAuthAppInstalLinks = ({}) => (
 
 :::warning
 
-There is a Salesforce bug where the Connected App may not show up in Connected App OAuth Usage even after attempting to login,
-you can manually install our connected apps using the links below:
+There is a Salesforce bug where the Connected App may not show up in Connected App OAuth Usage even after attempting to login.
+
+To resolve this, you may need to <strong>Match Production Licenses to Sandbox without a Refresh</strong> to ensure the <strong>Approve Uninstalled Connected Apps</strong> permission exists in the Sandbox.
+See [Salesforce Documentation](https://help.salesforce.com/s/articleView?id=000386961&type=1) for more information.
+
+Alternatively you can manually install our connected apps using the links below even if the app is not listed in the OAuth Usage page:
 
 <OAuthAppInstalLinks />
 
