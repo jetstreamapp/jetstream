@@ -429,20 +429,23 @@ type Action =
 function reducer<T>(state: State<T>, action: Action): State<T> {
   switch (action.type) {
     case 'INIT': {
-      // If there are filters applied, never reset table state if data changes
-      if (state.hasFilters) {
-        return state;
-      }
       const { columns, data, ignoreRowInSetFilter } = action.payload;
 
       const columnMap = new Map(columns.map((column) => [column.key, column]));
 
-      const filters = columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
-        if (Array.isArray(column.filters)) {
-          acc[column.key] = column.filters.map((filter) => resetFilter(filter, []));
-        }
-        return acc;
-      }, {});
+      // If we have existing filters, we retain their values
+      // If the column count changed, then we will reset to avoid having to diff everything
+      const hasFilters = state.hasFilters && columnMap.size === state.columnMap.size;
+
+      // Retain filter values if filters are already applied
+      const filters = hasFilters
+        ? structuredClone(state.filters)
+        : columns.reduce((acc: Record<string, DataTableFilter[]>, column) => {
+            if (Array.isArray(column.filters)) {
+              acc[column.key] = column.filters.map((filter) => resetFilter(filter, []));
+            }
+            return acc;
+          }, {});
 
       // NOTICE: This function mutates filters
       const filterSetValues = Object.keys(filters)
@@ -472,8 +475,16 @@ function reducer<T>(state: State<T>, action: Action): State<T> {
             );
           }
 
-          // Set filter default values to all values in set
-          filter.value = acc[columnKey];
+          // Set filter default to all values as selected
+          // If the user had modified the set filter previously, retain the selections without auto-selecting the new set values
+          if (
+            !hasFilters ||
+            !filter.value ||
+            !state?.filterSetValues?.[columnKey] ||
+            filter.value.length === state.filterSetValues?.[columnKey].length
+          ) {
+            filter.value = acc[columnKey];
+          }
 
           return acc;
         }, {});
