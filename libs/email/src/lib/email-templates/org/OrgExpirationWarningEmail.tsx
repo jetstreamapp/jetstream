@@ -59,7 +59,7 @@ export const OrgExpirationWarningEmail = ({ orgs, loginUrl }: OrgExpirationWarni
             </Text>
           </Section>
 
-          <Button style={EMAIL_STYLES.button} href={`${loginUrl}/organizations`}>
+          <Button style={EMAIL_STYLES.button} href={`${loginUrl}/org-groups`}>
             Go to Jetstream
           </Button>
         </Container>

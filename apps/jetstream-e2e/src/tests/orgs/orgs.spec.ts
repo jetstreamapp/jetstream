@@ -74,7 +74,7 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
     await test.step('Edit Organization', async () => {
       const newOrganizationName = 'Updated Test Org';
       const newOrganizationDescription = 'Updated Description';
-      await organizationsPage.editJetstreamOrganization(newOrganizationName, newOrganizationDescription, organizationName);
+      await organizationsPage.editJetstreamOrganization(organizationName, newOrganizationName, newOrganizationDescription);
       organizationName = newOrganizationName;
       organizationDescription = newOrganizationDescription;
       // Ensure that we did not add a new org group card, but instead updated the existing one

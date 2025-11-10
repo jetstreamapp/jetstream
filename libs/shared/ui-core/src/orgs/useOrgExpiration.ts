@@ -12,11 +12,9 @@ export interface OrgExpirationStatus {
 export interface ExpiringOrgsSummary {
   total: number;
   expired: number;
-  expiringSoon: number; // within 30 days
+  expiringSoon: number;
   expiringOrgs: Array<SalesforceOrgUi & { expiryDate: string; daysUntilExpiration: number }>;
 }
-
-const WARNING_THRESHOLD_DAYS = 30;
 
 /**
  * Calculate expiration status for a single org

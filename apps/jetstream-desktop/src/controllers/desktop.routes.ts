@@ -56,7 +56,6 @@ router.get('/api/orgs/groups', orgGroupController.getOrganizations.controllerFn(
 router.post('/api/orgs/groups', orgGroupController.createOrganization.controllerFn());
 router.put('/api/orgs/groups/:id', orgGroupController.updateOrganization.controllerFn());
 router.delete('/api/orgs/groups/:id', orgGroupController.deleteOrganization.controllerFn());
-router.delete('/api/orgs/groups/:id', orgGroupController.deleteOrganization.controllerFn());
 router.delete('/api/orgs/groups/:id/with-orgs', orgGroupController.deleteOrganizationWithOrgs.controllerFn());
 
 /**
