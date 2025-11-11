@@ -1,3 +1,4 @@
+import { CSSProperties } from 'react';
 import styles from './cookie-consent-banner.module.css';
 import { CookieOptions } from './cookie-storage';
 import { useCookieConsent } from './useCookieConsent';
@@ -5,10 +6,16 @@ import { useCookieConsent } from './useCookieConsent';
 export interface CookieConsentBannerProps {
   cookieOptions?: CookieOptions;
   privacyPolicyUrl?: string;
+  containerStyles?: CSSProperties;
   onConsentChange?: (analytics: 'accepted' | 'rejected' | null) => void | Promise<void>;
 }
 
-export function CookieConsentBanner({ cookieOptions, privacyPolicyUrl = '/privacy', onConsentChange }: CookieConsentBannerProps) {
+export function CookieConsentBanner({
+  cookieOptions,
+  privacyPolicyUrl = '/privacy',
+  containerStyles,
+  onConsentChange,
+}: CookieConsentBannerProps) {
   const { showBanner, acceptAll, rejectAll } = useCookieConsent({ onConsentChange, cookieOptions });
 
   if (!showBanner) {
@@ -16,7 +23,7 @@ export function CookieConsentBanner({ cookieOptions, privacyPolicyUrl = '/privac
   }
 
   return (
-    <div className={styles['banner-container']}>
+    <div style={containerStyles}>
       <div className={styles.banner}>
         <div className={styles.container}>
           <div className={styles.content}>
