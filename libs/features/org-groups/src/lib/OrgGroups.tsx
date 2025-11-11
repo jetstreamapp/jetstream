@@ -6,6 +6,7 @@ import {
   deleteOrgGroup,
   deleteOrgGroupAndAllOrgs,
   getOrgGroups,
+  getOrgs,
   updateOrgGroup,
 } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
@@ -31,6 +32,7 @@ import { useCallback, useState } from 'react';
 import OrgGroupCardCard from './OrgGroupCard';
 import { OrgGroupCardNoOrganization } from './OrgGroupCardNoOrganization';
 import { OrgGroupModal } from './OrgGroupModal';
+import { SalesforceOrgsActions } from './SalesforceOrgsActions';
 
 export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHandlerFn }) {
   useTitle(TITLES.ORG_GROUPS);
@@ -223,6 +225,13 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
     setSelectedOrgGroup(null);
   };
 
+  const handleOrgsDeleted = async () => {
+    setOrgGroupsFromDb(getOrgGroups());
+    const refreshedOrgs = await getOrgs();
+    setOrgs(refreshedOrgs);
+    trackEvent(ANALYTICS_KEYS.organizations_deleted, { priorCount: allOrgs.length });
+  };
+
   return (
     <Page testId="organization-page">
       <PageHeader>
@@ -232,8 +241,9 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
             label="Salesforce Organization Groups"
             docsPath={APP_ROUTES.SALESFORCE_ORG_GROUPS.DOCS}
           />
-          <PageHeaderActions colType="actions" buttonType="separate">
+          <PageHeaderActions colType="actions" buttonType="list-group">
             <AddOrg
+              omitIcon
               className="slds-button slds-button_neutral"
               label="Add Salesforce Org"
               onAddOrg={handleAddOrg}
@@ -243,6 +253,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" />
               Create New Group
             </button>
+            {allOrgs.length > 0 && <SalesforceOrgsActions orgs={allOrgs} onOrgsDeleted={handleOrgsDeleted} />}
           </PageHeaderActions>
         </PageHeaderRow>
         <PageHeaderRow>

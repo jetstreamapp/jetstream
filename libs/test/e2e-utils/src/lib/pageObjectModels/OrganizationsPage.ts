@@ -32,7 +32,7 @@ export class OrganizationsPage {
     password: string,
     method: { type: 'production' } | { type: 'pre-release' } | { type: 'sandbox' } | { type: 'custom'; domain: string },
   ) {
-    await this.page.getByRole('button', { name: 'Add Salesforce Org' }).click();
+    await this.page.getByRole('button', { name: 'Add Org' }).click();
 
     const salesforcePagePromise = this.page.waitForEvent('popup');
 

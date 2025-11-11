@@ -52,7 +52,7 @@ export const AppHomeOrganizations = () => {
             to={{ pathname: APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE, search: APP_ROUTES.SALESFORCE_ORG_GROUPS.SEARCH_PARAM }}
             className="slds-text-heading_x-small"
           >
-            Manage Groups
+            Manage Org Groups
           </Link>
           <p>Group your Salesforce Orgs so that you can isolate which orgs you are working with.</p>
 
