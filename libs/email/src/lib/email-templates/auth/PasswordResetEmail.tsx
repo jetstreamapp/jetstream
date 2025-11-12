@@ -19,7 +19,7 @@ export const PasswordResetEmail = ({
   validationCode,
   expMinutes,
 }: PasswordResetEmailProps) => {
-  const url = `${baseUrl}/auth/password-reset/verify?email=${emailAddress}&code=${validationCode}`;
+  const url = `${baseUrl}/auth/password-reset/verify?email=${encodeURIComponent(emailAddress)}&code=${encodeURIComponent(validationCode)}`;
 
   return (
     <Html>

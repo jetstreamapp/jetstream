@@ -13,7 +13,7 @@ export default function Page() {
 
   const searchParams = useSearchParams();
 
-  const email = (searchParams.get('email') || '').trim().replace(' ', '+').replace('%20', ' ');
+  const email = searchParams.get('email') || '';
   const token = searchParams.get('code') || '';
 
   useEffect(() => {
