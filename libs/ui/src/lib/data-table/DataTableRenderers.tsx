@@ -276,7 +276,7 @@ interface DataTableNumberFilterProps {
 export const HeaderNumberFilter = memo(({ columnKey, filter, autoFocus = false, updateFilter }: DataTableNumberFilterProps) => {
   const [value, setValue] = useState(filter.value ?? '');
   const debouncedValue = useDebounce(value, 300);
-  const [comparators] = useState<ListItem<string, 'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
+  const [comparators] = useState<ListItem<'EQUALS' | 'GREATER_THAN' | 'LESS_THAN'>[]>(() => [
     { id: 'EQUALS', label: 'Equals', value: 'EQUALS' },
     { id: 'GREATER_THAN', label: 'Greater Than', value: 'GREATER_THAN' },
     { id: 'LESS_THAN', label: 'Less Than', value: 'LESS_THAN' },
