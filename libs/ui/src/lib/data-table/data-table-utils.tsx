@@ -356,7 +356,7 @@ export function updateColumnFromType(column: Mutable<ColumnWithFilter<any>>, fie
       column.renderCell = GenericRenderer;
       break;
     case 'number':
-      // TODO: add number filter (gte/lte/equals/etc..)
+      column.filters = ['TEXT', 'NUMBER', 'SET'];
       break;
     case 'subquery':
       column.filters = ['SET'];
