@@ -41,16 +41,14 @@ export class OauthClients {
   private async init() {
     const oauth = await oauthPromise;
     const [salesforceClient, googleClient] = await Promise.all([
-      oauth
-        .discoveryRequest(this.providers.salesforce)
+      this.discoveryRequestWithRetry(oauth, this.providers.salesforce)
         .then((response) => oauth.processDiscoveryResponse(this.providers.salesforce, response))
         .then((authorizationServer) => this.getClient(authorizationServer, ENV.AUTH_SFDC_CLIENT_ID, ENV.AUTH_SFDC_CLIENT_SECRET))
         .catch((err) => {
           logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load salesforce oauth client');
           throw err;
         }),
-      oauth
-        .discoveryRequest(this.providers.google)
+      this.discoveryRequestWithRetry(oauth, this.providers.google)
         .then((response) => oauth.processDiscoveryResponse(this.providers.google, response))
         .then((authorizationServer) => this.getClient(authorizationServer, ENV.AUTH_GOOGLE_CLIENT_ID, ENV.AUTH_GOOGLE_CLIENT_SECRET))
         .catch((err) => {
@@ -60,6 +58,38 @@ export class OauthClients {
     ]);
     this.salesforce = salesforceClient;
     this.google = googleClient;
+  }
+
+  private async discoveryRequestWithRetry(oauth: typeof import('oauth4webapi'), provider: URL, maxRetries = 3): Promise<any> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info({ provider: provider.toString(), attempt }, 'Attempting OAuth discovery request');
+        const response = await oauth.discoveryRequest(provider);
+        logger.info({ provider: provider.toString(), attempt }, 'OAuth discovery request successful');
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        logger.warn(
+          {
+            provider: provider.toString(),
+            attempt,
+            maxRetries,
+            error: lastError.message,
+            stack: lastError.stack,
+          },
+          'OAuth discovery request failed, retrying...',
+        );
+
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+        }
+      }
+    }
+
+    throw lastError! || new Error('OAuth discovery request failed after maximum retries');
   }
 
   private getClient(authorizationServer: oauth.AuthorizationServer, clientId: string, clientSecret: string): OauthClientProvider {
