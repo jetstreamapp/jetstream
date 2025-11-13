@@ -33,7 +33,7 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
   return (
     <div
       ref={dragRef as any}
-      data-testid={`salesforce-organization-${org.label}`}
+      data-testid={`salesforce-org-${org.label}`}
       style={{ opacity }}
       css={css`
         width: 24rem;

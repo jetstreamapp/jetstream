@@ -69,7 +69,6 @@
     "serve": {
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
-      "continuous": true,
       "options": {
         "buildTarget": "api:build",
         "inspect": "inspect",
