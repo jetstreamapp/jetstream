@@ -10,6 +10,11 @@ test.describe.configure({ mode: 'parallel' });
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Login 1', () => {
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
   test('Sign up, login, disable 2fa, login again', async ({ page, authenticationPage, request, playwrightPage }) => {
     const { email, password, name } = await test.step('Sign up and verify email', async () => {
       const { email, password, name } = await authenticationPage.signUpAndVerifyEmail();
