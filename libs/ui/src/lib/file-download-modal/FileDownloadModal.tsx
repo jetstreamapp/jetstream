@@ -26,12 +26,14 @@ import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import {
+  getInitialDownloadFileFormat,
   RADIO_FORMAT_CSV,
   RADIO_FORMAT_GDRIVE,
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_FORMAT_XML,
   RADIO_FORMAT_ZIP,
+  saveFileFormatToStorage,
 } from './download-modal-utils';
 import FileDownloadGoogle from './options/FileDownloadGoogle';
 
@@ -90,6 +92,7 @@ export interface FileDownloadModalProps {
   transformData?: (params: TransformDataParams) => any[];
 }
 
+const LS_KEY = 'FileDownloadModal';
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
 
 export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
@@ -117,7 +120,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const hasGoogleInputConfigured =
     googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
-  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(allowedTypes[0]);
+  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
@@ -125,7 +128,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
   const [googleFolder, setGoogleFolder] = useState<Maybe<string>>(null);
-  const [isGooglePickerVisible, setIsGooglePickerVisible] = useState(false);
 
   useEffect(() => {
     if (!fileName && !filenameEmpty) {
@@ -221,8 +223,8 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
         }
 
         saveFile(fileData, fileNameWithExt, mimeType);
-
         onModalClose();
+        saveFileFormatToStorage(fileFormat, LS_KEY);
       }
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
     } catch (ex) {
@@ -368,7 +370,6 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
             google_appId={google_appId}
             google_clientId={google_clientId}
             onFolderSelected={handleFolderSelected}
-            onSelectorVisible={setIsGooglePickerVisible}
           />
         )}
         <Input

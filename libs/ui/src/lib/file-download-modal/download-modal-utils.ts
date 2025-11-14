@@ -14,3 +14,24 @@ export const RADIO_SELECTED = 'selected';
 
 export const RADIO_DOWNLOAD_METHOD_STANDARD = 'radio-download-method-standard' as const;
 export const RADIO_DOWNLOAD_METHOD_BULK_API = 'radio-download-method-bulk-api' as const;
+
+const LS_KEY_PREFIX = 'RECENT_FILE_FORMAT_';
+export const getInitialDownloadFileFormat = <T>(allowedTypes: T[], localStorageKey: string): T => {
+  try {
+    const recentType = localStorage.getItem(`${LS_KEY_PREFIX}${localStorageKey}`);
+    if (recentType && allowedTypes.includes(recentType as T)) {
+      return recentType as T;
+    }
+  } catch {
+    // do nothing
+  }
+  return allowedTypes[0];
+};
+
+export const saveFileFormatToStorage = (type: string, localStorageKey: string) => {
+  try {
+    localStorage.setItem(`${LS_KEY_PREFIX}${localStorageKey}`, type);
+  } catch {
+    // do nothing
+  }
+};

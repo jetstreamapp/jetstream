@@ -27,6 +27,7 @@ import Modal from '../modal/Modal';
 import { PopoverErrorButton } from '../popover/PopoverErrorButton';
 import ScopedNotification from '../scoped-notification/ScopedNotification';
 import {
+  getInitialDownloadFileFormat,
   RADIO_ALL_BROWSER,
   RADIO_ALL_SERVER,
   RADIO_DOWNLOAD_METHOD_BULK_API,
@@ -37,6 +38,7 @@ import {
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_SELECTED,
+  saveFileFormatToStorage,
 } from './download-modal-utils';
 
 export interface DownloadFromServerOpts {
@@ -87,6 +89,9 @@ const FILE_FORMAT_ALLOWED_BULK_API = new Set<FileExtCsvXLSXJsonGSheet>(['csv', '
 const ALLOW_BULK_API_COUNT = 5_000;
 const REQUIRE_BULK_API_COUNT = 500_000;
 
+const LS_KEY = 'RecordDownloadModal';
+const allowedTypes: FileExtCsvXLSXJsonGSheet[] = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON, RADIO_FORMAT_GDRIVE];
+
 export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = ({
   org,
   googleIntegrationEnabled,
@@ -115,7 +120,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
     googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!onDownloadFromServer;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(false);
   const [downloadRecordsValue, setDownloadRecordsValue] = useState<string>(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-  const [fileFormat, setFileFormat] = useState<FileExtCsvXLSXJsonGSheet>(RADIO_FORMAT_XLSX);
+  const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [downloadMethod, setDownloadMethod] = useState<typeof RADIO_DOWNLOAD_METHOD_STANDARD | typeof RADIO_DOWNLOAD_METHOD_BULK_API>(
     RADIO_DOWNLOAD_METHOD_STANDARD,
   );
@@ -190,7 +195,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
       }
     } else {
       setDownloadRecordsValue(hasMoreRecords ? RADIO_ALL_SERVER : RADIO_ALL_BROWSER);
-      setFileFormat(RADIO_FORMAT_XLSX);
+      setFileFormat(getInitialDownloadFileFormat(allowedTypes, LS_KEY));
       setIncludeSubquery(true);
     }
   }, [downloadModalOpen, hasMoreRecords, org, records]);
@@ -302,6 +307,7 @@ export const RecordDownloadModal: FunctionComponent<RecordDownloadModalProps> = 
           onDownload(fileFormat, whichFields, includeSubquery && hasSubqueryFields);
         }
         handleModalClose();
+        saveFileFormatToStorage(fileFormat, LS_KEY);
       }
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'RecordDownloadModal' });
     } catch (ex) {
