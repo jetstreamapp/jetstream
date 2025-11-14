@@ -1,3 +1,5 @@
+import OAuthAppInstallBanner from './_org-manual-install-connected-app.mdx';
+
 export const OAuthSettingsList = ({ children }) => (
   <ul>
     <li>You may have 3rd party OAuth apps blocked by your administrator</li>
@@ -9,7 +11,7 @@ export const OAuthSettingsList = ({ children }) => (
 export const OAuthSettingsSolution = ({ children }) => (
   <div>
     <p>
-      OAuth configuration settings can be managed in <code>Setup</code> → <code>Manage Connected Apps</code> →{' '}
+      OAuth configuration settings can be managed in <code>Setup</code> → <code>Connected Apps OAuth Usage</code> →{' '}
       <code>Find Jetstream and click Edit</code>.
     </p>
     From here, you have the ability to:
@@ -22,6 +24,9 @@ export const OAuthSettingsSolution = ({ children }) => (
     <a href="https://help.salesforce.com/s/articleView?id=sf.connected_app_manage.htm&type=5" target="_blank" rel="noreferrer">
       Salesforce Documentation for more information.
     </a>
+    <br />
+    <br />
+    <OAuthAppInstallBanner />
   </div>
 );
 
