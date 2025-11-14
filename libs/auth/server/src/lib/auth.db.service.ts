@@ -27,7 +27,7 @@ import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils
 import { Maybe, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
-import { clamp } from 'lodash';
+import clamp from 'lodash/clamp';
 import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';

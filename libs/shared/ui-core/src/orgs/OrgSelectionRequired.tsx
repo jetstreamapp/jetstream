@@ -1,11 +1,13 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
 import { Alert, Card, EmptyState, fireToast, Grid, Icon, NoAccess2Illustration } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent, useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fromJetstreamEvents, OrgsDropdown } from '..';
 import { AddOrg } from './AddOrg';
 import { OrgWelcomeInstructions } from './OrgWelcomeInstructions';
@@ -91,6 +93,9 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
           </Alert>
           <div>
             <EmptyState size="large" headline={`Fix your org connection to continue`} illustration={<NoAccess2Illustration />}>
+              <Link to={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE} className="slds-button slds-button_neutral slds-m-right_x-small">
+                Manage Orgs
+              </Link>
               <button
                 className="slds-button slds-button_neutral slds-m-right_x-small"
                 onClick={handleRetryOrgConnection}
@@ -117,7 +122,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
           {hasConfiguredOrg && (
             <>
               <Alert type="info" leadingIcon="info">
-                This action requires an org to be selected. Use the org dropdown to configure or select an org.
+                This action requires an org to be selected. Select an existing org or connect a new one.
               </Alert>
               <Grid vertical align="spread" verticalAlign="center" className="slds-m-top_medium">
                 <Card
@@ -133,7 +138,7 @@ export const OrgSelectionRequired: FunctionComponent<OrgSelectionRequiredProps> 
                     css={css`
                       min-width: 20rem;
                     `}
-                    title={activeOrgGroup ? 'Switch Organizations' : 'Choose an organization'}
+                    title={activeOrgGroup ? 'Switch Org Group' : 'Choose an Org Group'}
                   >
                     <OrganizationGroupSelector
                       groups={orgGroups}

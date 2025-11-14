@@ -27,6 +27,7 @@ import {
 } from '@jetstream/ui';
 import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
+import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useState } from 'react';
 import OrgGroupCardCard from './OrgGroupCard';
@@ -140,6 +141,7 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
     if (
       await ConfirmationModalPromise({
         header: 'Delete Group',
+        confirm: `Delete`,
         content: 'Any Salesforce Orgs will be removed from this organization but will not be deleted.',
       })
     ) {
@@ -162,11 +164,15 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
     if (
       await ConfirmationModalPromise({
         header: 'Delete Group and All Salesforce Orgs',
+        confirm: `Delete`,
         content: (
           <>
             <p>
-              This will permanently delete the <strong>{organization.name}</strong> organization and{' '}
-              {formatNumber(organization.orgs.length)} Salesforce {pluralizeIfMultiple('org', organization.orgs)}.
+              This will permanently delete the <strong>{organization.name}</strong> group and{' '}
+              <strong>
+                {formatNumber(organization.orgs.length)} Salesforce {pluralizeIfMultiple('org', organization.orgs)}
+              </strong>
+              .
             </p>
             <p className="slds-text-color_destructive">
               <strong>This action cannot be undone.</strong>
@@ -244,12 +250,15 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
           <PageHeaderActions colType="actions" buttonType="list-group">
             <AddOrg
               omitIcon
-              className="slds-button slds-button_neutral"
+              className={classNames('slds-button slds-button_neutral slds-button_first')}
               label="Add Salesforce Org"
               onAddOrg={handleAddOrg}
               onAddOrgHandlerFn={onAddOrgHandlerFn}
             />
-            <button className="slds-button slds-button_brand" onClick={() => handleOpenCreateOrganizationModal()}>
+            <button
+              className={classNames('slds-button slds-button_brand', { 'slds-button_last': allOrgs.length === 0 })}
+              onClick={() => handleOpenCreateOrganizationModal()}
+            >
               <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" />
               Create New Group
             </button>

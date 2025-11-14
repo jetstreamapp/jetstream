@@ -6,7 +6,7 @@
  * - Standard compliance pattern
  */
 
-import { escapeRegExp } from 'lodash';
+import escapeRegExp from 'lodash/escapeRegExp';
 
 const COOKIE_NAME = 'jetstream-cookie-consent';
 const COOKIE_MAX_AGE_DAYS = 365;

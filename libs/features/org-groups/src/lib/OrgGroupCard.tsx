@@ -164,7 +164,7 @@ export function OrgGroupCardCard({
               />
             </div>
           ))}
-          {!orgs.length && <p className="slds-align_absolute-center">Drag and drop to move salesforce orgs between organizations.</p>}
+          {!orgs.length && <p className="slds-align_absolute-center">Drag and drop to move salesforce orgs between groups.</p>}
         </Grid>
       </Card>
       {isActive && (
