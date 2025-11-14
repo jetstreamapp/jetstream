@@ -131,7 +131,10 @@ export function OrgGroupCardCard({
                 Make Active
               </button>
             )}
-            <button className="slds-button slds-button_neutral slds-button_middle" onClick={() => onEditOrg()}>
+            <button
+              className={classNames('slds-button slds-button_neutral', { 'slds-button_first': isActive, 'slds-button_middle': !isActive })}
+              onClick={() => onEditOrg()}
+            >
               Edit
             </button>
             <DropDown
