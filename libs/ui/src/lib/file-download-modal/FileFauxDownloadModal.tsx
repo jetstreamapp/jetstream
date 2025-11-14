@@ -19,12 +19,14 @@ import Radio from '../form/radio/Radio';
 import RadioGroup from '../form/radio/RadioGroup';
 import Modal from '../modal/Modal';
 import {
+  getInitialDownloadFileFormat,
   RADIO_FORMAT_CSV,
   RADIO_FORMAT_GDRIVE,
   RADIO_FORMAT_JSON,
   RADIO_FORMAT_XLSX,
   RADIO_FORMAT_XML,
   RADIO_FORMAT_ZIP,
+  saveFileFormatToStorage,
 } from './download-modal-utils';
 import FileDownloadGoogle from './options/FileDownloadGoogle';
 
@@ -53,6 +55,7 @@ export interface FileFauxDownloadModalProps {
   }) => void;
 }
 
+const LS_KEY = 'FileFauxDownloadModal';
 const defaultAllowedTypes = [RADIO_FORMAT_XLSX, RADIO_FORMAT_CSV, RADIO_FORMAT_JSON];
 
 /**
@@ -79,7 +82,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
 }) => {
   const hasGoogleInputConfigured = googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
-  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(allowedTypes[0]);
+  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
   const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
   const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
@@ -156,6 +159,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
 
       onDownload({ fileName, fileFormat: _fileFormat, mimeType, uploadToGoogle, googleFolder });
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
+      saveFileFormatToStorage(fileFormat, LS_KEY);
     } catch (ex) {
       // TODO: show error message somewhere
     }

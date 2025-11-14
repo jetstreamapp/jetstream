@@ -396,8 +396,14 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(notFoundMiddleware);
   app.use(uncaughtErrorHandler);
 
-  server.on('error', (error: Error) => {
-    logger.error(getExceptionLog(error), '[SERVER][ERROR]');
+  server.on('error', (error) => {
+    if ((error as any).code === 'EADDRINUSE') {
+      console.error(`Port ${ENV.PORT} is already in use`, error.message);
+      console.info('Kill with: lsof -ti:3333 | xargs kill -9');
+      process.exit(1);
+    } else {
+      logger.error(getExceptionLog(error), '[SERVER][ERROR]');
+    }
   });
 
   if (ENV.ENVIRONMENT === 'production') {
