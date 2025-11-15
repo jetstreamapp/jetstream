@@ -1,16 +1,22 @@
 import { css } from '@emotion/react';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, Icon } from '@jetstream/ui';
 import { OrgInfoPopover, useUpdateOrgs } from '@jetstream/ui-core';
 import { useDrag } from 'react-dnd';
-import { DraggableSfdcCard } from './organization.types';
+import { DraggableSfdcCard } from './organization-group.types';
+import { SalesforceOrgCardConnectionRefresh } from './SalesforceOrgCardConnectionRefresh';
 
 interface SalesforceOrgCardDraggableProps {
   org: SalesforceOrgUi;
   isActive: boolean;
+  /**
+   * If provided, this will be used instead of the default addOrg function.
+   * This is used in the desktop app to open the browser for the login process.
+   */
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
-export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardDraggableProps) {
+export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }: SalesforceOrgCardDraggableProps) {
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
 
   const [{ opacity }, dragRef] = useDrag<DraggableSfdcCard, any, any>(
@@ -27,7 +33,7 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
   return (
     <div
       ref={dragRef as any}
-      data-testid={`salesforce-organization-${org.label}`}
+      data-testid={`salesforce-org-${org.label}`}
       style={{ opacity }}
       css={css`
         width: 24rem;
@@ -36,8 +42,11 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
     >
       <div
         css={css`
-          height: 113px;
+          height: 120px;
           cursor: grabbing;
+          border-radius: 8px;
+          border: 0.5px solid ${org.connectionError ? '#ea001e' : '#c9c9c9'};
+          box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.1);
           ${isActive
             ? `::after {
             content: '';
@@ -54,7 +63,7 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
           }`
             : ''}
         `}
-        className="slds-box slds-box_link slds-box_x-small slds-media"
+        className="slds-box slds-box_link slds-box_x-small slds-media slds-is-relative"
       >
         <div
           className="slds-media__body slds-p-around_xx-small"
@@ -84,7 +93,10 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
               />
             </Grid>
           </Grid>
-          <p className="slds-m-top_small">{org.organizationId}</p>
+
+          <SalesforceOrgCardConnectionRefresh onAddOrg={handleAddOrg} org={org} onAddOrgHandlerFn={onAddOrgHandlerFn} />
+
+          <p className="slds-m-top_x-small">{org.organizationId}</p>
           <p className="slds-truncate" title={org.instanceUrl}>
             {org.instanceUrl}
           </p>
@@ -101,5 +113,3 @@ export function SalesforceOrgCardDraggable({ org, isActive }: SalesforceOrgCardD
     </div>
   );
 }
-
-export default SalesforceOrgCardDraggable;

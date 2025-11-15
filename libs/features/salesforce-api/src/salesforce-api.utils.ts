@@ -1,6 +1,6 @@
-import { BadgeTypes, HttpMethod } from '@jetstream/types';
+import { BadgeType, HttpMethod } from '@jetstream/types';
 
-export function getBadgeTypeFromMethod(method: HttpMethod): BadgeTypes {
+export function getBadgeTypeFromMethod(method: HttpMethod): BadgeType {
   switch (method) {
     case 'GET':
       return 'light';

@@ -19,12 +19,12 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
     });
   });
 
-  test('Salesforce Org Lifecycle', async ({ page, environment, organizationsPage }) => {
+  test('Salesforce Org Lifecycle', async ({ page, environment, orgGroupPage }) => {
     await test.step('Add a production org', async () => {
-      await organizationsPage.addSalesforceOrg(environment.TEST_ORG_2, environment.E2E_LOGIN_PASSWORD, {
+      await orgGroupPage.addSalesforceOrg(environment.TEST_ORG_2, environment.E2E_LOGIN_PASSWORD, {
         type: 'production',
       });
-      await expect(organizationsPage.orgDropdown).toHaveValue(environment.TEST_ORG_2);
+      await expect(orgGroupPage.orgDropdown).toHaveValue(environment.TEST_ORG_2);
     });
 
     await test.step('Ensure frontdoor login works', async () => {
@@ -37,40 +37,57 @@ test.describe('Salesforce Orgs + Jetstream Orgs', () => {
     });
 
     await test.step('Add an org with a custom domain', async () => {
-      await organizationsPage.addSalesforceOrg(environment.TEST_ORG_3, environment.E2E_LOGIN_PASSWORD, {
+      await orgGroupPage.addSalesforceOrg(environment.TEST_ORG_3, environment.E2E_LOGIN_PASSWORD, {
         type: 'custom',
         domain: new URL(environment.E2E_LOGIN_URL).hostname.replace('.my.salesforce.com', ''),
       });
-      await expect(organizationsPage.orgDropdown).toHaveValue(environment.TEST_ORG_3);
+      await expect(orgGroupPage.orgDropdown).toHaveValue(environment.TEST_ORG_3);
     });
 
-    const organizationName = 'Test Org';
-    const organizationDescription = 'Test Description';
+    let orgGroupName = 'Test Org';
+    let orgGroupDescription = 'Test Description';
+    await orgGroupPage.goToOrgGroupPage();
+    await expect(page.locator('[data-testid^="org-group-card-"]')).toHaveCount(1);
+    let numberOfOrgGroups = await page.locator('[data-testid^="org-group-card-"]').count();
 
-    await test.step('Create a Jetstream Organization and add orgs to it', async () => {
-      await organizationsPage.goToJetstreamOrganizationsPage();
-      await organizationsPage.addJetstreamOrganization(organizationName, organizationDescription);
+    await test.step('Create an Org Group and add orgs to it', async () => {
+      await orgGroupPage.goToOrgGroupPage();
+      await orgGroupPage.addOrgGroup(orgGroupName, orgGroupDescription);
 
-      await organizationsPage.dragOrgToOrganization(organizationName, environment.TEST_ORG_2);
-      await organizationsPage.dragOrgToOrganization(organizationName, environment.TEST_ORG_3);
+      expect(await page.locator('[data-testid^="org-group-card-"]').count()).toBe(numberOfOrgGroups + 1);
+      numberOfOrgGroups = await page.locator('[data-testid^="org-group-card-"]').count();
 
-      await expect(page.getByRole('button', { name: 'Choose Organization' })).toBeVisible();
+      await orgGroupPage.dragOrgToGroup(orgGroupName, environment.TEST_ORG_2);
+      await orgGroupPage.dragOrgToGroup(orgGroupName, environment.TEST_ORG_3);
+
+      await expect(page.getByRole('button', { name: 'Choose Group' })).toBeVisible();
     });
 
     await test.step('Ensure org dropdown shows correct orgs', async () => {
-      await organizationsPage.makeActiveJetstreamOrganization(organizationName);
-      await expect(page.getByTestId('header').getByText(organizationName)).toBeVisible();
+      await orgGroupPage.makeActiveOrgGroup(orgGroupName);
+      await expect(page.getByTestId('header').getByText(orgGroupName)).toBeVisible();
 
-      await organizationsPage.orgDropdownContainer.click();
-      const orgGroup = organizationsPage.orgDropdownContainer.getByRole('listbox').getByRole('group').getByRole('option');
+      await orgGroupPage.orgDropdownContainer.click();
+      const orgGroup = orgGroupPage.orgDropdownContainer.getByRole('listbox').getByRole('group').getByRole('option');
       await expect(orgGroup).toHaveCount(2);
       await expect(orgGroup).toHaveText([environment.TEST_ORG_2, environment.TEST_ORG_3]);
     });
 
-    await test.step('Delete Organization', async () => {
-      await organizationsPage.deleteJetstreamOrganization(organizationName);
+    await test.step('Edit Org Group', async () => {
+      const newOrgGroupName = 'Updated Test Org';
+      const newOrgGroupDescription = 'Updated Description';
+      await orgGroupPage.editOrgGroup(orgGroupName, newOrgGroupName, newOrgGroupDescription);
+      orgGroupName = newOrgGroupName;
+      orgGroupDescription = newOrgGroupDescription;
+      // Ensure that we did not add a new org group card, but instead updated the existing one
+      expect(await page.locator('[data-testid^="org-group-card-"]').count()).toBe(numberOfOrgGroups);
+    });
 
-      await expect(page.getByText('Salesforce Orgs Not Assigned to Organization (3)')).toBeVisible();
+    // TODO: add test to delete orgGroup and all included orgs
+    await test.step('Delete OrgGroup', async () => {
+      await orgGroupPage.deleteOrgGroup(orgGroupName);
+
+      await expect(page.getByText('Unassigned (3)')).toBeVisible();
     });
   });
 });

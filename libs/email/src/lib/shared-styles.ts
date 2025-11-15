@@ -18,7 +18,7 @@ const container: React.CSSProperties = {
   width: '480px',
   maxWidth: '100%',
   margin: '0 auto',
-  padding: '5% 3%',
+  padding: '20px',
 };
 
 const title: React.CSSProperties = {

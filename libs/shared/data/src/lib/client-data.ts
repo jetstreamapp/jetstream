@@ -35,7 +35,6 @@ import {
   GenericRequestPayload,
   GoogleFileApiResponse,
   HttpMethod,
-  JetstreamOrganization,
   JetstreamPricesByLookupKey,
   ListMetadataQuery,
   ListMetadataResult,
@@ -44,6 +43,7 @@ import {
   ManualRequestResponse,
   Maybe,
   OperationReturnType,
+  OrgGroup,
   PullResponse,
   PullResponseSchema,
   QueryResults,
@@ -411,51 +411,56 @@ export async function checkOrgHealth(org: SalesforceOrgUi): Promise<void> {
   return handleRequest({ method: 'POST', url: `/api/orgs/health-check` }, { org }).then(unwrapResponseIgnoreCache);
 }
 
-export async function addSfdcOrgToOrganization({
+export async function addOrgToGroup({
   sfdcOrgUniqueId,
-  jetstreamOrganizationId,
+  orgGroupId,
 }: {
-  jetstreamOrganizationId?: Maybe<string>;
+  orgGroupId?: Maybe<string>;
   sfdcOrgUniqueId: string;
 }): Promise<SalesforceOrgUi> {
-  return handleRequest({ method: 'PUT', url: `/api/orgs/${sfdcOrgUniqueId}/move`, data: { jetstreamOrganizationId } }).then(
-    unwrapResponseIgnoreCache,
-  );
+  return handleRequest({ method: 'PUT', url: `/api/orgs/${sfdcOrgUniqueId}/move`, data: { orgGroupId } }).then(unwrapResponseIgnoreCache);
 }
 
-export async function getJetstreamOrganizations(): Promise<JetstreamOrganization[]> {
+export async function getOrgGroups(): Promise<OrgGroup[]> {
   return handleRequest({
     method: 'GET',
-    url: `/api/jetstream-organizations`,
+    url: `/api/orgs/groups`,
   }).then(unwrapResponseIgnoreCache);
 }
 
-export async function createJetstreamOrganization(data: { name: string; description?: Maybe<string> }): Promise<JetstreamOrganization> {
+export async function createOrgGroup(data: { name: string; description?: Maybe<string> }): Promise<OrgGroup> {
   return handleRequest({
     method: 'POST',
-    url: `/api/jetstream-organizations`,
+    url: `/api/orgs/groups`,
     data,
   }).then(unwrapResponseIgnoreCache);
 }
 
-export async function updateJetstreamOrganization(
+export async function updateOrgGroup(
   id: string,
   data: {
     name: string;
     description?: Maybe<string>;
   },
-): Promise<JetstreamOrganization> {
+): Promise<OrgGroup> {
   return handleRequest({
     method: 'PUT',
-    url: `/api/jetstream-organizations/${id}`,
+    url: `/api/orgs/groups/${id}`,
     data,
   }).then(unwrapResponseIgnoreCache);
 }
 
-export async function deleteJetstreamOrganization(id: string): Promise<void> {
+export async function deleteOrgGroup(id: string): Promise<void> {
   return handleRequest({
     method: 'DELETE',
-    url: `/api/jetstream-organizations/${id}`,
+    url: `/api/orgs/groups/${id}`,
+  }).then(unwrapResponseIgnoreCache);
+}
+
+export async function deleteOrgGroupAndAllOrgs(id: string): Promise<void> {
+  return handleRequest({
+    method: 'DELETE',
+    url: `/api/orgs/groups/${id}/with-orgs`,
   }).then(unwrapResponseIgnoreCache);
 }
 

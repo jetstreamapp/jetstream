@@ -4,13 +4,13 @@ import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/r
 
 export const routeDefinition = {
   getOrganizations: {
-    controllerFn: () => getOrganizations,
+    controllerFn: () => getOrgGroups,
     validators: {
       hasSourceOrg: false,
     },
   },
   createOrganization: {
-    controllerFn: () => createOrganization,
+    controllerFn: () => createOrgGroup,
     validators: {
       body: z.object({
         name: z.string(),
@@ -20,7 +20,7 @@ export const routeDefinition = {
     },
   },
   updateOrganization: {
-    controllerFn: () => updateOrganization,
+    controllerFn: () => updateOrgGroup,
     validators: {
       params: z.object({
         id: z.uuid(),
@@ -33,7 +33,16 @@ export const routeDefinition = {
     },
   },
   deleteOrganization: {
-    controllerFn: () => deleteOrganization,
+    controllerFn: () => deleteOrgGroup,
+    validators: {
+      params: z.object({
+        id: z.uuid(),
+      }),
+      hasSourceOrg: false,
+    },
+  },
+  deleteOrganizationWithOrgs: {
+    controllerFn: () => deleteOrganizationWithOrgs,
     validators: {
       params: z.object({
         id: z.uuid(),
@@ -43,9 +52,9 @@ export const routeDefinition = {
   },
 };
 
-const getOrganizations = createRoute(routeDefinition.getOrganizations.validators, async ({}, req) => {
+const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, async ({}, req) => {
   try {
-    const organizations = dataService.getJetstreamOrgs();
+    const organizations = dataService.getOrgGroups();
 
     return handleJsonResponse(organizations);
   } catch (ex) {
@@ -53,9 +62,9 @@ const getOrganizations = createRoute(routeDefinition.getOrganizations.validators
   }
 });
 
-const createOrganization = createRoute(routeDefinition.createOrganization.validators, async ({ body }, req) => {
+const createOrgGroup = createRoute(routeDefinition.createOrganization.validators, async ({ body }, req) => {
   try {
-    const organization = dataService.createJetstreamOrg(body);
+    const organization = dataService.createOrgGroup(body);
 
     return handleJsonResponse(organization);
   } catch (ex) {
@@ -63,9 +72,9 @@ const createOrganization = createRoute(routeDefinition.createOrganization.valida
   }
 });
 
-const updateOrganization = createRoute(routeDefinition.updateOrganization.validators, async ({ body, params }, req) => {
+const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators, async ({ body, params }, req) => {
   try {
-    const organization = dataService.updateJetstreamOrg(params.id, body);
+    const organization = dataService.updateOrgGroup(params.id, body);
 
     return handleJsonResponse(organization, { status: 200 });
   } catch (ex) {
@@ -73,9 +82,19 @@ const updateOrganization = createRoute(routeDefinition.updateOrganization.valida
   }
 });
 
-const deleteOrganization = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }, req) => {
+const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }, req) => {
   try {
-    dataService.deleteJetstreamOrg(params.id);
+    dataService.deleteOrgGroup(params.id);
+
+    return handleJsonResponse(undefined);
+  } catch (ex) {
+    return handleErrorResponse(ex);
+  }
+});
+
+const deleteOrganizationWithOrgs = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }, req) => {
+  try {
+    dataService.deleteOrgGroupAndAllOrgs(params.id);
 
     return handleJsonResponse(undefined);
   } catch (ex) {

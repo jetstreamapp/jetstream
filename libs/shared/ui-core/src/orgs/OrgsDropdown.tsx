@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { AddOrgHandlerFn, JetstreamOrganization, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
 import { fromAppState } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -7,10 +7,10 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { Fragment, FunctionComponent } from 'react';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
-import AddOrg from './AddOrg';
-import { OrganizationSelector } from './OrganizationSelector';
-import OrgInfoPopover from './OrgInfoPopover';
-import OrgPersistence from './OrgPersistence';
+import { AddOrg } from './AddOrg';
+import { OrganizationGroupSelector } from './OrganizationGroupSelector';
+import { OrgInfoPopover } from './OrgInfoPopover';
+import { OrgPersistence } from './OrgPersistence';
 import { useUpdateOrgs } from './useUpdateOrgs';
 
 interface OrgsDropdownProps {
@@ -31,46 +31,46 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   onAddOrgHandlerFn,
 }) => {
   const allOrgs = useAtomValue(fromAppState.salesforceOrgsState);
-  const orgs = useAtomValue(fromAppState.salesforceOrgsForOrganizationSelector);
+  const orgs = useAtomValue(fromAppState.salesforceOrgsForGroupSelector);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const orgType = useAtomValue(fromAppState.selectedOrgType);
-  const jetstreamOrganizations = useAtomValue(fromAppState.jetstreamOrganizationsState);
-  const hasOrganizationsConfigured = useAtomValue(fromAppState.jetstreamOrganizationsExistsSelector);
-  const setActiveOrganization = useSetAtom(fromAppState.jetstreamActiveOrganizationState);
-  const activeOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const orgGroups = useAtomValue(fromAppState.orgGroupsState);
+  const hasOrgGroupsConfigured = useAtomValue(fromAppState.orgGroupExistsSelector);
+  const setActiveOrgGroup = useSetAtom(fromAppState.ActiveOrgGroupState);
+  const activeOrgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
 
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
 
-  function handleOrganizationChange(organization: Maybe<JetstreamOrganization>) {
-    if (organization && (!selectedOrg || !organization.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
-      if (organization.orgs.length === 1) {
-        setSelectedOrgId(organization.orgs[0].uniqueId);
+  function handleOrgGroupChange(group: Maybe<OrgGroup>) {
+    if (group && (!selectedOrg || !group.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
+      if (group.orgs.length === 1) {
+        setSelectedOrgId(group.orgs[0].uniqueId);
       } else {
         setSelectedOrgId(null);
       }
-    } else if (!organization && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
-      const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
-      if (orgsWithNoOrganization.length === 1) {
-        setSelectedOrgId(orgsWithNoOrganization[0].uniqueId);
+    } else if (!group && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
+      const orgsWithNoGroup = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
+      if (orgsWithNoGroup.length === 1) {
+        setSelectedOrgId(orgsWithNoGroup[0].uniqueId);
       } else {
         setSelectedOrgId(null);
       }
     }
-    setActiveOrganization(organization?.id);
+    setActiveOrgGroup(group?.id);
   }
 
   return (
     <Fragment>
       <OrgPersistence />
       <Grid vertical>
-        {!omitOrganizationSelector && hasOrganizationsConfigured && (
-          <OrganizationSelector
-            organizations={jetstreamOrganizations}
-            selectedOrganization={activeOrganization}
-            salesforceOrgsWithoutOrganization={allOrgs.filter((org) => !org.jetstreamOrganizationId).length}
-            onSelection={handleOrganizationChange}
+        {!omitOrganizationSelector && hasOrgGroupsConfigured && (
+          <OrganizationGroupSelector
+            groups={orgGroups}
+            selectedGroup={activeOrgGroup}
+            salesforceOrgsWithoutGroup={allOrgs.filter((org) => !org.jetstreamOrganizationId).length}
+            onSelection={handleOrgGroupChange}
           />
         )}
         <Grid

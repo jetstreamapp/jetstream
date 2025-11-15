@@ -55,23 +55,35 @@ function orgHasError(org: Maybe<SalesforceOrgUi>): boolean {
   if (!org) {
     return false;
   }
-  return !!org.connectionError;
+  return !!org.connectionError || !!org.expirationScheduledFor;
 }
 
 function groupOrgs(orgs: SalesforceOrgUi[]): ListItemGroup<string, SalesforceOrgUi>[] {
+  const now = new Date();
   const orgsById = groupBy(sortBy(orgs, ['label']), 'orgName');
   return Object.keys(orgsById).map(
     (key): ListItemGroup => ({
       id: key,
       label: key,
-      items: orgsById[key].map((org) => ({
-        id: org.uniqueId,
-        label: org.label || org.username,
-        value: org.uniqueId,
-        secondaryLabel: org.username !== org.label ? org.username : undefined,
-        secondaryLabelOnNewLine: org.username !== org.label,
-        meta: org,
-      })),
+      items: orgsById[key].map((org) => {
+        let expiryMessage: Maybe<string> = undefined;
+        if (org.expirationScheduledFor) {
+          const expirationDate = new Date(org.expirationScheduledFor);
+          const daysUntilExpiration = Math.ceil((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const isExpired = daysUntilExpiration <= 0;
+          expiryMessage = `${isExpired ? 'Expired' : 'Expires'} on ${new Date(org.expirationScheduledFor).toLocaleDateString()}`;
+        }
+
+        return {
+          id: org.uniqueId,
+          label: org.label || org.username,
+          value: org.uniqueId,
+          secondaryLabel: org.username !== org.label ? org.username : undefined,
+          secondaryLabelOnNewLine: org.username !== org.label,
+          tertiaryLabel: expiryMessage,
+          meta: org,
+        };
+      }),
     }),
   );
 }

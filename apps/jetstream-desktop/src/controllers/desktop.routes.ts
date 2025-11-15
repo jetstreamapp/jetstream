@@ -5,7 +5,7 @@ import { Router } from 'tiny-request-router';
 import { ENV } from '../config/environment';
 import { handleJsonResponse, RequestOptions } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './jetstream-data-sync.desktop.controller';
-import { routeDefinition as jetstreamOrganizationsController } from './jetstream-orgs.desktop.controller';
+import { routeDefinition as orgGroupController } from './jetstream-orgs.desktop.controller';
 import { routeDefinition as orgsController } from './orgs.desktop.controller';
 import { routeDefinition as bulkApiController } from './sf-bulk-api.desktop.controller';
 import { routeDefinition as bulkQuery20ApiController } from './sf-bulk-query-20-api.desktop.controller';
@@ -52,10 +52,11 @@ router.patch('/api/orgs/:uniqueId', orgsController.updateOrg.controllerFn());
 router.delete('/api/orgs/:uniqueId', orgsController.deleteOrg.controllerFn());
 router.put('/api/orgs/:uniqueId/move', orgsController.moveOrg.controllerFn());
 
-router.get('/api/jetstream-organizations', jetstreamOrganizationsController.getOrganizations.controllerFn());
-router.post('/api/jetstream-organizations', jetstreamOrganizationsController.createOrganization.controllerFn());
-router.put('/api/jetstream-organizations/:id', jetstreamOrganizationsController.updateOrganization.controllerFn());
-router.delete('/api/jetstream-organizations/:id', jetstreamOrganizationsController.deleteOrganization.controllerFn());
+router.get('/api/orgs/groups', orgGroupController.getOrganizations.controllerFn());
+router.post('/api/orgs/groups', orgGroupController.createOrganization.controllerFn());
+router.put('/api/orgs/groups/:id', orgGroupController.updateOrganization.controllerFn());
+router.delete('/api/orgs/groups/:id', orgGroupController.deleteOrganization.controllerFn());
+router.delete('/api/orgs/groups/:id/with-orgs', orgGroupController.deleteOrganizationWithOrgs.controllerFn());
 
 /**
  * ************************************

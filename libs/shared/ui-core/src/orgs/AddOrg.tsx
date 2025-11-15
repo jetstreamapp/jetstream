@@ -27,7 +27,13 @@ function getFQDN(customUrl: string) {
 export interface AddOrgProps {
   className?: string;
   label?: string;
+  popoverLabel?: string;
   disabled?: boolean;
+  omitIcon?: boolean;
+  /**
+   * If provided, the form will be pre-populated to reconnect the existing org.
+   */
+  existingOrg?: SalesforceOrgUi;
   onAddOrg: (org: SalesforceOrgUi, switchActiveOrg: boolean) => void;
   /**
    * If provided, this will be used instead of the default addOrg function.
@@ -39,20 +45,32 @@ export interface AddOrgProps {
 export const AddOrg: FunctionComponent<AddOrgProps> = ({
   className,
   label = 'Add Org',
+  popoverLabel = 'Add New Org',
   disabled,
+  omitIcon,
+  existingOrg,
   onAddOrg,
   onAddOrgHandlerFn = addOrg,
 }) => {
   const popoverRef = useRef<PopoverRef>(null);
   const { trackEvent } = useAmplitude();
-  const [orgType, setOrgType] = useState<OrgType>('prod');
-  const [customUrl, setCustomUrl] = useState<string>('');
-  const [loginUrl, setLoginUrl] = useState<string | null>(loginUrlMap.prod);
+  const [orgType, setOrgType] = useState<OrgType>(() => (existingOrg ? 'custom' : 'prod'));
+  const [customUrl, setCustomUrl] = useState<string>(() => {
+    if (!existingOrg) {
+      return '';
+    }
+    try {
+      return new URL(existingOrg.instanceUrl).hostname.replace('.my.salesforce.com', '');
+    } catch {
+      return '';
+    }
+  });
+  const [loginUrl, setLoginUrl] = useState<string | null>(() => (existingOrg?.instanceUrl ? existingOrg.instanceUrl : loginUrlMap.prod));
   const [advancedOptionsEnabled, setAdvancedOptionsEnabled] = useState(false);
   const [addLoginTrue, setAddLoginTrue] = useState(false);
-  const [addToActiveOrganization, setAddToActiveOrganization] = useState(true);
+  const [addToActiveOrgGroup, setAddToActiveOrgGroup] = useState(true);
   const applicationState = useAtomValue(fromAppState.applicationCookieState);
-  const jetstreamOrganization = useAtomValue(fromAppState.jetstreamActiveOrganizationSelector);
+  const orgGroup = useAtomValue(fromAppState.jetstreamActiveGroupSelector);
 
   useEffect(() => {
     let url: string;
@@ -71,23 +89,32 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
           serverUrl: applicationState.serverUrl,
           loginUrl,
           addLoginTrue: advancedOptionsEnabled && addLoginTrue,
-          jetstreamOrganizationId: addToActiveOrganization ? jetstreamOrganization?.id : null,
+          orgGroupId: addToActiveOrgGroup ? orgGroup?.id : null,
+          loginHint: existingOrg?.username,
         },
         (addedOrg: SalesforceOrgUi) => {
           popoverRef.current?.close();
           onAddOrg(addedOrg, true);
         },
       );
-    trackEvent(ANALYTICS_KEYS.sfdc_org_add_org, { orgType, advancedOptionsEnabled, addLoginTrue, addToActiveOrganization });
+    trackEvent(ANALYTICS_KEYS.sfdc_org_add_org, {
+      orgType,
+      advancedOptionsEnabled,
+      addLoginTrue,
+      addToActiveOrganization: addToActiveOrgGroup,
+    });
   }
 
   function handleReset() {
+    if (existingOrg) {
+      return;
+    }
     setOrgType('prod');
     setCustomUrl('');
     setLoginUrl(loginUrlMap.prod);
     setAdvancedOptionsEnabled(false);
     setAddLoginTrue(false);
-    setAddToActiveOrganization(true);
+    setAddToActiveOrgGroup(true);
   }
 
   return (
@@ -99,7 +126,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
       header={
         <header className="slds-popover__header">
           <h2 className="slds-truncate slds-text-heading_small" title="Add New Org">
-            Add New Org
+            {popoverLabel}
           </h2>
         </header>
       }
@@ -153,6 +180,16 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
               />
             </Input>
           )}
+          {orgGroup && (
+            <Checkbox
+              id="add-to-active-group"
+              className="slds-m-top_small"
+              label={`Add to "${orgGroup.name}"`}
+              labelHelp="Adds the new org to the currently active group, otherwise the org will not be assigned to any group."
+              checked={addToActiveOrgGroup}
+              onChange={setAddToActiveOrgGroup}
+            />
+          )}
           <div className="slds-m-top_small">
             <CheckboxToggle
               id="advanced-settings-toggle"
@@ -171,16 +208,6 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
               />
             )}
           </div>
-          {jetstreamOrganization && (
-            <Checkbox
-              id="add-to-active-organization"
-              className="slds-m-top_small"
-              label={`Add to "${jetstreamOrganization.name}" organization`}
-              labelHelp="If unselected, then the org will not be added to any organization."
-              checked={addToActiveOrganization}
-              onChange={setAddToActiveOrganization}
-            />
-          )}
         </div>
       }
       footer={
@@ -204,7 +231,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
         disabled: disabled,
       }}
     >
-      <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />
+      {!omitIcon && <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />}
       <span
         css={css`
           text-wrap: nowrap;
@@ -215,5 +242,3 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
     </Popover>
   );
 };
-
-export default AddOrg;

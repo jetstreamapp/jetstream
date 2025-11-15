@@ -226,7 +226,7 @@ export type InfoSuccessWarningError = Info | Success | Warning | Error;
 export type SuccessWarningError = Success | Warning | Error;
 export type InfoWarningErrorOffline = Info | Warning | Error | Offline;
 export type DefaultInverseLight = Default | Inverse | Light;
-export type BadgeTypes = SuccessWarningError | DefaultInverseLight;
+export type BadgeType = SuccessWarningError | DefaultInverseLight;
 export type ScopedNotificationTypes = Info | Success | Warning | Error | Light | Dark;
 
 export interface ListItemGroup<V = string, M = any> {

@@ -1,12 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import {
-  clearCacheForOrg,
-  clearQueryHistoryForOrg,
-  deleteOrg,
-  getJetstreamOrganizations,
-  getOrgs,
-  updateOrg,
-} from '@jetstream/shared/data';
+import { clearCacheForOrg, clearQueryHistoryForOrg, deleteOrg, getOrgGroups, getOrgs, updateOrg } from '@jetstream/shared/data';
 import { useObservable } from '@jetstream/shared/ui-utils';
 import { JetstreamEventAddOrgPayload, SalesforceOrgUi } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
@@ -55,7 +48,7 @@ export function useUpdateOrgs() {
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const actionInProgress = useAtomValue(fromAppState.actionInProgressState);
-  const setJetstreamOrganizations = useSetAtom(fromAppState.jetstreamOrganizationsState);
+  const setJetstreamOrganizations = useSetAtom(fromAppState.orgGroupsState);
   const [orgLoading, setOrgLoading] = useState(false);
 
   // subscribe to org changes from other places in the application
@@ -79,7 +72,7 @@ export function useUpdateOrgs() {
 
   const handleRefetchOrganizations = useCallback(async () => {
     try {
-      setJetstreamOrganizations(await getJetstreamOrganizations());
+      setJetstreamOrganizations(await getOrgGroups());
     } catch (ex) {
       logger.warn('Error refreshing orgs', ex);
     }

@@ -10,6 +10,11 @@ test.describe.configure({ mode: 'parallel' });
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Login 3', () => {
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
   test('Pending Email Verification should not allow any other activity', async ({ page, authenticationPage, apiRequestUtils }) => {
     const { email, password } = await test.step('Sign up without email verification', async () => {
       return await authenticationPage.signUpWithoutEmailVerification();

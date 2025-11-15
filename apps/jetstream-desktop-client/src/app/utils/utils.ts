@@ -1,18 +1,14 @@
-import { AddOrgHandlerFn, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { AddOrgHandlerFn, SalesforceOrgUi } from '@jetstream/types';
 
 export const addDesktopOrg: AddOrgHandlerFn = async (
-  {
-    loginUrl,
-    addLoginTrue,
-    jetstreamOrganizationId,
-  }: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
+  { loginUrl, addLoginTrue, orgGroupId, loginHint },
   callback: (org: SalesforceOrgUi) => void,
 ) => {
   if (!window.electronAPI) {
     return;
   }
 
-  await window.electronAPI.addOrg({ loginUrl, addLoginTrue, jetstreamOrganizationId });
+  await window.electronAPI.addOrg({ loginUrl, addLoginTrue, orgGroupId, loginHint });
 
   const handlerFn = (org: SalesforceOrgUi) => {
     callback(org);

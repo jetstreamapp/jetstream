@@ -50,7 +50,9 @@ export const routeDefinition = {
         uniqueId: z.string().min(1),
       }),
       body: z.object({
-        jetstreamOrganizationId: z.string().uuid().nullish(),
+        orgGroupId: z.uuid().nullish(),
+        // deprecated
+        jetstreamOrganizationId: z.uuid().nullish(),
       }),
       hasSourceOrg: false,
     },

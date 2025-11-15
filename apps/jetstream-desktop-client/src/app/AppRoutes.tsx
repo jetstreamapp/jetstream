@@ -6,7 +6,7 @@ import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import { addDesktopOrg } from './utils/utils';
 
-const Organizations = lazy(() => import('@jetstream/feature/organizations').then((module) => ({ default: module.Organizations })));
+const Organizations = lazy(() => import('@jetstream/feature/orgGroups').then((module) => ({ default: module.OrgGroups })));
 
 const LoadRecords = lazy(() => import('@jetstream/feature/load-records').then((module) => ({ default: module.LoadRecords })));
 const LoadRecordsMultiObject = lazy(() =>
@@ -133,7 +133,7 @@ export const AppRoutes = () => {
         <Route path="results" element={<QueryResults />} />
         <Route path="*" element={<Navigate to=".." />} />
       </Route>
-      <Route path={APP_ROUTES.ORGANIZATIONS.ROUTE} element={<Organizations onAddOrgHandlerFn={addDesktopOrg} />} />
+      <Route path={APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE} element={<Organizations onAddOrgHandlerFn={addDesktopOrg} />} />
       <Route
         path={APP_ROUTES.LOAD.ROUTE}
         element={

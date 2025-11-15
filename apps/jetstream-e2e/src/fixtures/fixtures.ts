@@ -5,7 +5,7 @@ import {
   AuthenticationPage,
   LoadSingleObjectPage,
   LoadWithoutFilePage,
-  OrganizationsPage,
+  OrgGroupPage,
   PlatformEventPage,
   PlaywrightPage,
   ProfilePage,
@@ -49,7 +49,7 @@ type MyFixtures = {
   newUser: Awaited<ReturnType<AuthenticationPage['signUpAndVerifyEmail']>>;
   queryPage: QueryPage;
   loadSingleObjectPage: LoadSingleObjectPage;
-  organizationsPage: OrganizationsPage;
+  orgGroupPage: OrgGroupPage;
   loadWithoutFilePage: LoadWithoutFilePage;
   platformEventPage: PlatformEventPage;
   profilePage: ProfilePage;
@@ -119,8 +119,8 @@ export const test = base.extend<MyFixtures>({
     await apiRequestUtils.selectDefaultOrg();
     await use(new LoadWithoutFilePage(page, apiRequestUtils, playwrightPage));
   },
-  organizationsPage: async ({ page }, use) => {
-    await use(new OrganizationsPage(page));
+  orgGroupPage: async ({ page }, use) => {
+    await use(new OrgGroupPage(page));
   },
   platformEventPage: async ({ page, apiRequestUtils, playwrightPage }, use) => {
     await apiRequestUtils.selectDefaultOrg();

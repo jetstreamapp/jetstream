@@ -82,6 +82,17 @@ export class AuthenticationPage {
     this.mfaEmailMenuButton = page.getByTestId('mfa-email-menu-button');
   }
 
+  async acceptCookieBanner(page = this.page) {
+    const cookieBanner = page.getByText('We use cookies to improve');
+    const cookieBannerAcceptButton = page.getByRole('button', { name: 'Accept' });
+
+    if (await cookieBanner.isVisible()) {
+      await cookieBannerAcceptButton.click();
+    } else {
+      console.log('Element not visible, skipping click.');
+    }
+  }
+
   async goToSignUp(viaHomePage = true) {
     if (viaHomePage) {
       await this.page.goto('/');

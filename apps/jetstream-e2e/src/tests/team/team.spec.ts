@@ -43,6 +43,11 @@ async function enrollInTotp(page: Page) {
 }
 
 test.describe('Team Dashboard', () => {
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
   test('Team dashboard access', async ({ teamDashboardPage, teamCreationUtils3Users: teamCreationUtils, page }) => {
     const { adminUser, team } = teamCreationUtils;
     const [member1, member2, billingMember1] = teamCreationUtils.members;
@@ -50,7 +55,7 @@ test.describe('Team Dashboard', () => {
     await test.step('Go to team dashboard', async () => {
       await teamDashboardPage.goToTeamDashboardPage();
 
-      await expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
+      expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
     });
 
     await test.step('Verify team name and login configuration is visible', async () => {
@@ -129,16 +134,16 @@ test.describe('Team Dashboard', () => {
         // Make sure member is logged in
         const member1Page = await member1.context.newPage();
         await member1Page.goto('/app/home');
-        await expect(member1Page.url()).toContain('/app/home');
+        expect(member1Page.url()).toContain('/app/home');
 
         const member2Page = await member2.context.newPage();
         await member2Page.goto('/app/home');
-        await expect(member2Page.url()).toContain('/app/home');
+        expect(member2Page.url()).toContain('/app/home');
         await member2Page.waitForURL('**/app/home');
 
         const billingMember1Page = await billingMember1.context.newPage();
         await billingMember1Page.goto('/app/home');
-        await expect(billingMember1Page.url()).toContain('/app/home');
+        expect(billingMember1Page.url()).toContain('/app/home');
 
         return { member1Page, member2Page, billingMember1Page };
       });
@@ -258,10 +263,10 @@ test.describe('Team Dashboard', () => {
 
     await test.step('Ensure user2 was logged out and is prevented from logging back in', async () => {
       await member2Page.reload();
-      await expect(member2Page.url()).toContain('/auth/login');
+      expect(member2Page.url()).toContain('/auth/login');
       const authenticationPage = new AuthenticationPage(member2Page);
       await authenticationPage.fillOutLoginForm(member2.user.email, member2.user.password);
-      await expect(member2Page.url()).toContain('/auth/login');
+      expect(member2Page.url()).toContain('/auth/login');
       await expect(member2Page.getByText('Your account is inactive.')).toBeVisible();
       await member2Page.close();
     });
@@ -273,7 +278,7 @@ test.describe('Team Dashboard', () => {
     await test.step('Go to team dashboard', async () => {
       await teamDashboardPage.goToTeamDashboardPage();
 
-      await expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
+      expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
     });
 
     // Register two new users that will be invited to join the team

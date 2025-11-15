@@ -424,41 +424,47 @@ model TeamSubscription {
 }
 
 model SalesforceOrg {
-  id                      Int                    @id @default(autoincrement())
-  jetstreamUserId         String                 @db.VarChar
-  jetstreamUser           User?                  @relation(fields: [jetstreamUserId2], references: [id], onDelete: Cascade)
-  jetstreamUserId2        String?                @db.Uuid
-  jetstreamOrganization   JetstreamOrganization? @relation(fields: [jetstreamOrganizationId], references: [id], onDelete: SetNull)
-  jetstreamOrganizationId String?                @db.Uuid
-  uniqueId                String                 @db.VarChar
-  filterText              String                 @db.VarChar
-  accessToken             String                 @db.VarChar
-  instanceUrl             String                 @db.VarChar
-  loginUrl                String                 @db.VarChar
-  userId                  String                 @db.VarChar(18)
-  email                   String                 @db.VarChar
-  organizationId          String                 @db.VarChar(18)
-  username                String                 @db.VarChar
-  displayName             String                 @db.VarChar
-  thumbnail               String?                @db.VarChar
-  apiVersion              String?                @db.VarChar
-  orgName                 String?                @db.VarChar
-  orgCountry              String?                @db.VarChar
-  orgInstanceName         String?                @db.VarChar
-  orgIsSandbox            Boolean?
-  orgLanguageLocaleKey    String?                @db.VarChar
-  orgNamespacePrefix      String?                @db.VarChar
-  orgTrialExpirationDate  DateTime?              @db.Date
-  createdAt               DateTime               @default(now()) @db.Timestamp(6)
-  updatedAt               DateTime               @updatedAt
-  connectionError         String?                @db.VarChar
-  jetstreamUrl            String?                @db.VarChar
-  label                   String?                @db.VarChar(100)
-  orgOrganizationType     String?                @db.VarChar
-  color                   String?                @db.VarChar(10)
-  Team                    Team[]                 @relation("TeamSharedOrgs")
+  id                             Int                    @id @default(autoincrement())
+  jetstreamUserId                String                 @db.VarChar
+  jetstreamUser                  User?                  @relation(fields: [jetstreamUserId2], references: [id], onDelete: Cascade)
+  jetstreamUserId2               String?                @db.Uuid
+  jetstreamOrganization          JetstreamOrganization? @relation(fields: [jetstreamOrganizationId], references: [id], onDelete: SetNull)
+  jetstreamOrganizationId        String?                @db.Uuid
+  uniqueId                       String                 @db.VarChar
+  filterText                     String                 @db.VarChar
+  accessToken                    String                 @db.VarChar
+  instanceUrl                    String                 @db.VarChar
+  loginUrl                       String                 @db.VarChar
+  userId                         String                 @db.VarChar(18)
+  email                          String                 @db.VarChar
+  organizationId                 String                 @db.VarChar(18)
+  username                       String                 @db.VarChar
+  displayName                    String                 @db.VarChar
+  thumbnail                      String?                @db.VarChar
+  apiVersion                     String?                @db.VarChar
+  orgName                        String?                @db.VarChar
+  orgCountry                     String?                @db.VarChar
+  orgInstanceName                String?                @db.VarChar
+  orgIsSandbox                   Boolean?
+  orgLanguageLocaleKey           String?                @db.VarChar
+  orgNamespacePrefix             String?                @db.VarChar
+  orgTrialExpirationDate         DateTime?              @db.Date
+  createdAt                      DateTime               @default(now()) @db.Timestamp(6)
+  updatedAt                      DateTime               @updatedAt
+  connectionError                String?                @db.VarChar
+  jetstreamUrl                   String?                @db.VarChar
+  label                          String?                @db.VarChar(100)
+  orgOrganizationType            String?                @db.VarChar
+  color                          String?                @db.VarChar(10)
+  lastActivityAt                 DateTime?              @db.Timestamp(6)
+  expirationScheduledFor         DateTime?              @db.Timestamp(6)
+  nextExpirationNotificationDate DateTime?              @db.Timestamp(6)
+  lastExpirationNotificationAt   DateTime?              @db.Timestamp(6)
+  Team                           Team[]                 @relation("TeamSharedOrgs")
 
   @@unique([jetstreamUserId2, uniqueId], name: "uniqueOrg", map: "unique_org")
+  @@index([expirationScheduledFor])
+  @@index([nextExpirationNotificationDate])
   @@map("salesforce_org")
 }
 
@@ -503,4 +509,21 @@ model UserSyncData {
   @@index([userId, entity, updatedAt])
   @@index([deletedAt])
   @@map("user_sync_data")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId     String?  @db.Uuid
+  action     String   @db.VarChar(255)
+  resource   String   @db.VarChar(255)
+  resourceId String?  @db.VarChar(255)
+  metadata   Json?    @db.Json
+  ipAddress  String?  @db.VarChar(45)
+  userAgent  String?  @db.VarChar(500)
+  createdAt  DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([resource, resourceId, createdAt])
+  @@map("audit_log")
 }

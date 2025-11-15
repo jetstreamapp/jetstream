@@ -1,11 +1,12 @@
+import { css } from '@emotion/react';
 import { clearCacheForOrg } from '@jetstream/shared/data';
 import { addOrg, isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
 import { SalesforceOrgUi } from '@jetstream/types';
 import {
   ButtonGroupContainer,
-  Checkbox,
   ColorSwatchItem,
   ColorSwatches,
+  CopyToClipboard,
   Grid,
   GridCol,
   Icon,
@@ -14,6 +15,7 @@ import {
   Popover,
   SalesforceLogin,
   Spinner,
+  Tooltip,
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
@@ -63,34 +65,73 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
   if (prop === 'organizationId') {
     tooltip = String(value);
     value = (
-      <SalesforceLogin
-        serverUrl={serverUrl}
-        skipFrontDoorAuth={skipFrontDoorAuth}
-        org={org}
-        returnUrl="/lightning/setup/CompanyProfileInfo/home"
-        omitIcon
-      >
-        {value}
-      </SalesforceLogin>
+      <>
+        <SalesforceLogin
+          serverUrl={serverUrl}
+          skipFrontDoorAuth={skipFrontDoorAuth}
+          org={org}
+          returnUrl="/lightning/setup/CompanyProfileInfo/home"
+          omitIcon
+        >
+          {value}
+        </SalesforceLogin>
+        <CopyToClipboard content={String(value)} type="icon" size="small" className="slds-m-left_xx-small">
+          {value}
+        </CopyToClipboard>
+      </>
     );
   } else if (prop === 'userId') {
     tooltip = String(value);
     value = (
-      <SalesforceLogin serverUrl={serverUrl} skipFrontDoorAuth={skipFrontDoorAuth} org={org} returnUrl={`/${value}`} omitIcon>
-        {value}
-      </SalesforceLogin>
+      <>
+        <SalesforceLogin serverUrl={serverUrl} skipFrontDoorAuth={skipFrontDoorAuth} org={org} returnUrl={`/${value}`} omitIcon>
+          {value}
+        </SalesforceLogin>
+        <CopyToClipboard content={String(value)} type="icon" size="small" className="slds-m-left_xx-small">
+          {value}
+        </CopyToClipboard>
+      </>
     );
   } else if (prop === 'orgIsSandbox') {
+    tooltip = value ? 'True' : 'False';
+    value = (
+      <Icon
+        type="utility"
+        icon={value ? 'check' : 'steps'}
+        title={value ? 'True' : 'False'}
+        className="slds-icon slds-icon_x-small"
+        containerClassname={classNames('slds-icon_container slds-current-color', {
+          'slds-icon-utility-steps': !value,
+          'slds-icon-utility-check': value,
+        })}
+      />
+    );
+  } else if (['instanceUrl', 'username', 'email'].includes(prop)) {
     tooltip = String(value);
-    value = <Checkbox id="is-org-sandbox" label="is-sandbox" checked={!!value} hideLabel disabled />;
+    value = (
+      <>
+        {value}
+        <CopyToClipboard content={String(value)} type="icon" size="small" className="slds-m-left_xx-small">
+          {value}
+        </CopyToClipboard>
+      </>
+    );
   }
+
   return (
     <tr className="slds-hint-parent">
       <td>
         <div title={label}>{label}</div>
       </td>
       <td>
-        <div title={tooltip || (value as string)} className="slds-truncate">
+        <div
+          css={css`
+            white-space: pre-wrap;
+            word-break: break-word;
+          `}
+          title={tooltip || (value as string)}
+          className="slds-truncate"
+        >
           {value}
         </div>
       </td>
@@ -131,7 +172,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   }, [org]);
 
   function handleFixOrg() {
-    addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl }, (addedOrg: SalesforceOrgUi) => {
+    addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl, loginHint: org.username }, (addedOrg: SalesforceOrgUi) => {
       onAddOrg?.(addedOrg, true);
     });
   }
@@ -178,10 +219,8 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
 
   return (
     <Popover
-      placement="bottom-end"
-      // size="full-width"
-      // size="large"
-      panelStyle={{ minWidth: '26.5rem', overflow: 'hidden' }}
+      size="large"
+      panelStyle={{ minWidth: '420px', maxWidth: '420px' }}
       bodyClassName="slds-popover__body slds-p-around_none"
       containerClassName={hasError ? 'slds-popover_error' : undefined}
       inverseIcons={hasError}
@@ -202,7 +241,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               <ButtonGroupContainer className="slds-button_stretch">
                 <button className="slds-button slds-button_success slds-button_stretch" onClick={handleFixOrg} disabled={disableOrgActions}>
                   <Icon type="utility" icon="apex_plugin" className="slds-button__icon slds-button__icon_left" omitContainer />
-                  Fix Org
+                  Reconnect Org
                 </button>
               </ButtonGroupContainer>
             </div>
@@ -302,15 +341,19 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
           </table>
           <div className="slds-p-horizontal_xx-small slds-p-top_xx-small">
             <ButtonGroupContainer className="slds-button_stretch">
-              <button
-                className="slds-button slds-button_neutral slds-button_stretch"
-                onClick={() => handleClearCache()}
-                disabled={disableOrgActions || didClearCache}
-                title="The list of objects and fields are cached in your browser to improve performance. If you do not see recent objects or fields you can clear the cache for the org."
+              <Tooltip
+                className="w-100"
+                content="Object and field metadata are cached in your browser to improve performance. Clear the cache if you recently added objects or fields."
               >
-                <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
-                Clear Org Cached Data
-              </button>
+                <button
+                  className="slds-button slds-button_neutral slds-button_stretch"
+                  onClick={() => handleClearCache()}
+                  disabled={disableOrgActions || didClearCache}
+                >
+                  <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" omitContainer />
+                  Clear Cached Data
+                </button>
+              </Tooltip>
             </ButtonGroupContainer>
           </div>
           {!isReadOnly && (

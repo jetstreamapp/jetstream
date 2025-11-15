@@ -27,6 +27,10 @@
           {
             "entryName": "geo-ip-db-updater",
             "entryPath": "apps/cron-tasks/src/geo-ip-db-updater.ts"
+          },
+          {
+            "entryName": "salesforce-org-expiration",
+            "entryPath": "apps/cron-tasks/src/salesforce-org-expiration.ts"
           }
         ],
         "tsConfig": "apps/cron-tasks/tsconfig.app.json",

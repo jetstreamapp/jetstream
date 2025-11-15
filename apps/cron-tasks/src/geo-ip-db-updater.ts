@@ -161,7 +161,7 @@ async function processFile(
       logger.info(`Extracting ${entry.path}...`);
       const csvPath = path.join(downloadDir, currentFilename);
       const writeStream = fs.createWriteStream(csvPath);
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         entry.stream().pipe(writeStream).on('finish', resolve).on('error', reject);
       });
       await processor(currentFilename, csvPath);

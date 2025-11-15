@@ -938,22 +938,22 @@ function handleWindowEvent(event: MessageEvent) {
   }
 }
 
-export const addOrg: AddOrgHandlerFn = (
-  options: { serverUrl: string; loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> },
-  callback: (org: SalesforceOrgUi) => void,
-) => {
-  const { serverUrl, loginUrl, addLoginTrue, jetstreamOrganizationId } = options;
+export const addOrg: AddOrgHandlerFn = (options, callback) => {
+  const { serverUrl, loginUrl, addLoginTrue, orgGroupId, loginHint } = options;
   addOrgCallbackFn = callback;
   window.removeEventListener('message', handleWindowEvent);
   const strWindowFeatures = 'toolbar=no, menubar=no, width=1025, height=700';
   const url = new URL(`${serverUrl}/oauth/sfdc/auth`);
   url.searchParams.set('loginUrl', loginUrl);
   url.searchParams.set('clientUrl', document.location.origin);
+  if (loginHint) {
+    url.searchParams.set('loginHint', loginHint);
+  }
   if (addLoginTrue) {
     url.searchParams.set('addLoginParam', 'true');
   }
-  if (jetstreamOrganizationId) {
-    url.searchParams.set('jetstreamOrganizationId', jetstreamOrganizationId);
+  if (orgGroupId) {
+    url.searchParams.set('orgGroupId', orgGroupId);
   }
   windowRef = window.open(url, 'Add Salesforce Org', strWindowFeatures);
   window.addEventListener('message', handleWindowEvent, false);

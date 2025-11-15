@@ -10,6 +10,11 @@ test.describe.configure({ mode: 'parallel' });
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Auth Page Navigation', () => {
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
   test('Should be able to navigate between all authentication pages', async ({ page, authenticationPage }) => {
     await authenticationPage.goToSignUp();
 

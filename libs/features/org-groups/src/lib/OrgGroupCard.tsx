@@ -1,33 +1,42 @@
 import { css } from '@emotion/react';
 import { formatNumber } from '@jetstream/shared/ui-utils';
-import { JetstreamOrganizationWithOrgs } from '@jetstream/types';
+import { AddOrgHandlerFn, DropDownItem, OrgGroupWithOrgs } from '@jetstream/types';
 import { ButtonGroupContainer, Card, DropDown, Grid, Icon } from '@jetstream/ui';
 import classNames from 'classnames';
+import { useMemo } from 'react';
 import { useDrop } from 'react-dnd';
-import SalesforceOrgCardDraggable from './SalesforceOrgCardDraggable';
-import { DraggableSfdcCard } from './organization.types';
+import { SalesforceOrgCardDraggable } from './SalesforceOrgCardDraggable';
+import { DraggableSfdcCard } from './organization-group.types';
 
-interface OrganizationCardProps {
+interface OrgGroupCardCardProps {
   isActive: boolean;
-  organization: JetstreamOrganizationWithOrgs;
+  group: OrgGroupWithOrgs;
   activeSalesforceOrgId?: string;
   onSelected: () => void;
   onEditOrg: () => void;
-  onMoveOrg: (data: { jetstreamOrganizationId: string; sfdcOrgUniqueId: string; action: 'add' }) => void;
+  onMoveOrg: (data: { orgGroupId: string; sfdcOrgUniqueId: string; action: 'add' }) => void;
   onDeleteOrg: () => void;
+  onDeleteOrgWithOrgs: () => void;
+  /**
+   * If provided, this will be used instead of the default addOrg function.
+   * This is used in the desktop app to open the browser for the login process.
+   */
+  onAddOrgHandlerFn?: AddOrgHandlerFn;
 }
 
-export function OrganizationCard({
+export function OrgGroupCardCard({
   isActive,
-  organization,
+  group,
   activeSalesforceOrgId,
   onSelected,
   onEditOrg,
   onMoveOrg,
   onDeleteOrg,
-}: OrganizationCardProps) {
-  const { id, name, description, orgs } = organization;
-  const orgCount = organization.orgs.length;
+  onDeleteOrgWithOrgs,
+  onAddOrgHandlerFn,
+}: OrgGroupCardCardProps) {
+  const { id, name, description, orgs } = group;
+  const orgCount = group.orgs.length;
   const [{ isOver, canDrop }, dropRef] = useDrop<DraggableSfdcCard, any, { isOver: boolean; canDrop: boolean }>(
     {
       accept: 'SalesforceOrg',
@@ -42,7 +51,7 @@ export function OrganizationCard({
       },
       drop: (item, monitor) => {
         onMoveOrg({
-          jetstreamOrganizationId: id,
+          orgGroupId: id,
           sfdcOrgUniqueId: item.uniqueId,
           action: 'add',
         });
@@ -51,10 +60,30 @@ export function OrganizationCard({
     [id, onMoveOrg],
   );
 
-  function handleActions(action: 'delete') {
+  const tertiaryActionMenuItems = useMemo(() => {
+    const items: DropDownItem[] = [];
+    if (orgCount > 0) {
+      items.push(
+        { id: 'delete', value: 'Delete Group (Keep Orgs)', icon: { type: 'utility', icon: 'delete', description: 'Delete' } },
+        {
+          id: 'delete-all',
+          value: 'Delete Group and Orgs',
+          icon: { type: 'utility', icon: 'delete', description: 'Delete' },
+        },
+      );
+    } else {
+      items.push({ id: 'delete', value: 'Delete Group', icon: { type: 'utility', icon: 'delete', description: 'Delete' } });
+    }
+    return items;
+  }, [orgCount]);
+
+  function handleActions(action: 'delete' | 'delete-all') {
     switch (action) {
       case 'delete':
         onDeleteOrg();
+        break;
+      case 'delete-all':
+        onDeleteOrgWithOrgs();
         break;
     }
   }
@@ -67,7 +96,7 @@ export function OrganizationCard({
     >
       <Card
         ref={dropRef as any}
-        testId={`organization-card-${organization.name}`}
+        testId={`org-group-card-${group.name}`}
         css={css`
           ${isActive
             ? `
@@ -102,15 +131,18 @@ export function OrganizationCard({
                 Make Active
               </button>
             )}
-            <button className="slds-button slds-button_neutral slds-button_middle" onClick={() => onEditOrg()}>
+            <button
+              className={classNames('slds-button slds-button_neutral', { 'slds-button_first': isActive, 'slds-button_middle': !isActive })}
+              onClick={() => onEditOrg()}
+            >
               Edit
             </button>
             <DropDown
               className="slds-button_last"
               dropDownClassName="slds-dropdown_actions"
               position="right"
-              items={[{ id: 'delete', value: 'Delete', icon: { type: 'utility', icon: 'delete', description: 'Delete' } }]}
-              onSelected={(action) => handleActions(action as 'delete')}
+              items={tertiaryActionMenuItems}
+              onSelected={(action) => handleActions(action as 'delete' | 'delete-all')}
             />
           </ButtonGroupContainer>
         }
@@ -125,10 +157,14 @@ export function OrganizationCard({
         >
           {orgs.map((org) => (
             <div key={org.uniqueId} className="slds-m-around_x-small">
-              <SalesforceOrgCardDraggable org={org} isActive={activeSalesforceOrgId === org.uniqueId} />
+              <SalesforceOrgCardDraggable
+                org={org}
+                isActive={activeSalesforceOrgId === org.uniqueId}
+                onAddOrgHandlerFn={onAddOrgHandlerFn}
+              />
             </div>
           ))}
-          {!orgs.length && <p className="slds-align_absolute-center">Drag and drop to move salesforce orgs between organizations.</p>}
+          {!orgs.length && <p className="slds-align_absolute-center">Drag and drop to move salesforce orgs between groups.</p>}
         </Grid>
       </Card>
       {isActive && (
@@ -143,4 +179,4 @@ export function OrganizationCard({
   );
 }
 
-export default OrganizationCard;
+export default OrgGroupCardCard;

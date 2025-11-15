@@ -18,7 +18,7 @@ export interface ElectronApiCallback {
 export interface ElectronApiRequestResponse {
   login: () => Promise<void>;
   logout: () => void;
-  addOrg: (payload: { loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> }) => void;
+  addOrg: (payload: { loginUrl: string; addLoginTrue?: boolean; orgGroupId?: Maybe<string>; loginHint?: Maybe<string> }) => void;
   checkAuth: () => Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined>;
   selectFolder: () => Promise<Maybe<string>>;
   getPreferences: () => Promise<DesktopUserPreferences>;
@@ -95,7 +95,12 @@ export interface AuthenticateFailurePayload {
 }
 export type AuthenticatePayload = AuthenticateSuccessPayload | AuthenticateFailurePayload;
 
-export type OrgAddedResponse = { loginUrl: string; addLoginTrue?: boolean; jetstreamOrganizationId?: Maybe<string> };
+export type OrgAddedResponse = {
+  loginUrl: string;
+  addLoginTrue?: boolean;
+  orgGroupId?: Maybe<string>;
+  loginHint?: Maybe<string>;
+};
 
 export interface JwtPayload {
   userProfile: UserProfileUi;

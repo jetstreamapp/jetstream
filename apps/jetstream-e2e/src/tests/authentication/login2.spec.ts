@@ -11,9 +11,12 @@ test.describe.configure({ mode: 'parallel' });
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// TODO: use test.step
-
 test.describe('Login 2', () => {
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
   test('Should SignUp, Log Out, Reset Password, and Login with new password', async ({ page, authenticationPage, playwrightPage }) => {
     const { email } = await authenticationPage.signUpAndVerifyEmail();
     const password = authenticationPage.generateTestPassword();

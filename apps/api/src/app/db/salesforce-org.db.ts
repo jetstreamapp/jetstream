@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, prisma } from '@jetstream/api-config';
+import { AuditLogAction, AuditLogResource, createAuditLog } from '@jetstream/audit-logs';
 import { Prisma, SalesforceOrg } from '@jetstream/prisma';
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { parseISO } from 'date-fns/parseISO';
@@ -33,6 +34,8 @@ const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   connectionError: true,
   createdAt: true,
   updatedAt: true,
+  lastActivityAt: true,
+  expirationScheduledFor: true,
 });
 
 export const SALESFORCE_ORG_SELECT = SELECT;
@@ -235,7 +238,15 @@ export async function updateSalesforceOrg(userId: string, uniqueId: string, data
   });
 }
 
-export async function moveSalesforceOrg(userId: string, uniqueId: string, data: { jetstreamOrganizationId?: Maybe<string> }) {
+export async function moveSalesforceOrg(
+  userId: string,
+  uniqueId: string,
+  data: {
+    orgGroupId?: Maybe<string>;
+    // @deprecated
+    jetstreamOrganizationId?: Maybe<string>;
+  },
+) {
   const existingOrg = await prisma.salesforceOrg.findUnique({
     select: { id: true },
     where: findUniqueOrg({ userId, uniqueId }),
@@ -249,7 +260,7 @@ export async function moveSalesforceOrg(userId: string, uniqueId: string, data: 
     select: SELECT,
     where: { id: existingOrg.id },
     data: {
-      jetstreamOrganizationId: data.jetstreamOrganizationId ?? null,
+      jetstreamOrganizationId: data.orgGroupId ?? data.jetstreamOrganizationId ?? null,
     },
   });
 }
@@ -267,5 +278,40 @@ export async function deleteSalesforceOrg(userId: string, uniqueId: string) {
   await prisma.salesforceOrg.delete({
     select: { id: true },
     where: { id: existingOrg.id },
+  });
+}
+
+export async function updateLastActivity(orgId: number) {
+  await prisma.salesforceOrg.update({
+    where: { id: orgId },
+    data: {
+      lastActivityAt: new Date(),
+      expirationScheduledFor: null,
+      nextExpirationNotificationDate: null,
+      lastExpirationNotificationAt: null,
+    },
+  });
+}
+
+export async function clearExpiration(orgId: number, userId: string) {
+  await prisma.salesforceOrg.update({
+    where: { id: orgId },
+    data: {
+      lastActivityAt: new Date(),
+      expirationScheduledFor: null,
+      nextExpirationNotificationDate: null,
+      lastExpirationNotificationAt: null,
+    },
+  });
+
+  await createAuditLog({
+    userId,
+    action: AuditLogAction.ORG_REACTIVATED,
+    resource: AuditLogResource.SALESFORCE_ORG,
+    resourceId: orgId.toString(),
+    metadata: {
+      orgId,
+      reactivatedAt: new Date().toISOString(),
+    },
   });
 }

@@ -299,6 +299,7 @@ export const ANALYTICS_KEYS = {
   organizations_create_modal_open: 'organizations_create_modal_open',
   organizations_created: 'organizations_created',
   organizations_deleted: 'organizations_deleted',
+  organizations_deleted_with_orgs: 'organizations_deleted_with_orgs',
   organizations_updated: 'organizations_updated',
   organizations_moved: 'organizations_moved',
 
@@ -332,7 +333,7 @@ export const TITLES = {
   LOAD: 'Load | Jetstream',
   MANAGE_PERMISSIONS: 'Manage Permissions | Jetstream',
   MASS_UPDATE_RECORDS: 'Update Records | Jetstream',
-  ORGANIZATIONS: 'Manage Organizations | Jetstream',
+  ORG_GROUPS: 'Manage Org Groups | Jetstream',
   PLATFORM_EVENTS: 'Platform Events | Jetstream',
   PROFILE: 'Profile | Jetstream',
   QUERY: 'Query | Jetstream',

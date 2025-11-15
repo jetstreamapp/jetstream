@@ -2,7 +2,7 @@ import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
 import { ApiRequestUtils } from '../ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
 
-export class OrganizationsPage {
+export class OrgGroupPage {
   readonly apiRequestUtils: ApiRequestUtils;
   readonly playwrightPage: PlaywrightPage;
   readonly page: Page;
@@ -20,10 +20,10 @@ export class OrganizationsPage {
     this.orgDropdown = page.getByPlaceholder('Select an Org');
   }
 
-  async goToJetstreamOrganizationsPage() {
+  async goToOrgGroupPage() {
     await this.page.goto('/app/home');
-    const navigationPromise = this.page.waitForURL('/app/organizations');
-    await this.page.getByRole('link', { name: 'Manage Organizations' }).click();
+    const navigationPromise = this.page.waitForURL('/app/org-groups');
+    await this.page.getByRole('link', { name: 'Manage Org Groups' }).click();
     await navigationPromise;
   }
 
@@ -92,37 +92,44 @@ export class OrganizationsPage {
     //
   }
 
-  async addJetstreamOrganization(name: string, description: string) {
-    await this.page.getByRole('button', { name: 'Create New Organization' }).click();
-    await this.page.locator('#organization-name').click();
-    await this.page.locator('#organization-name').fill(name);
-    await this.page.locator('#organization-description').click();
-    await this.page.locator('#organization-description').fill(description);
+  async addOrgGroup(name: string, description: string) {
+    await this.page.getByRole('button', { name: 'Create New Group' }).click();
+    await this.page.locator('#group-name').click();
+    await this.page.locator('#group-name').fill(name);
+    await this.page.locator('#group-description').click();
+    await this.page.locator('#group-description').fill(description);
     await this.page.getByRole('button', { name: 'Save' }).click();
-    await expect(this.page.getByTestId(`organization-card-${name}`)).toBeVisible();
+    await expect(this.page.getByTestId(`org-group-card-${name}`)).toBeVisible();
+    await expect(this.page.getByTestId(`org-group-card-${name}`).getByText(description)).toBeVisible();
   }
 
-  async dragOrgToOrganization(jetstreamOrgName: string, salesforceOrgLabel: string) {
-    await this.page
-      .getByTestId(`salesforce-organization-${salesforceOrgLabel}`)
-      .dragTo(this.page.getByTestId(`organization-card-${jetstreamOrgName}`));
+  async dragOrgToGroup(jetstreamOrgName: string, salesforceOrgLabel: string) {
+    await this.page.getByTestId(`salesforce-org-${salesforceOrgLabel}`).dragTo(this.page.getByTestId(`org-group-card-${jetstreamOrgName}`));
 
     await expect(
-      this.page
-        .getByTestId(`organization-card-${jetstreamOrgName}`)
-        .locator(this.page.getByTestId(`salesforce-organization-${salesforceOrgLabel}`)),
+      this.page.getByTestId(`org-group-card-${jetstreamOrgName}`).locator(this.page.getByTestId(`salesforce-org-${salesforceOrgLabel}`)),
     ).toBeVisible();
   }
 
-  async makeActiveJetstreamOrganization(jetstreamOrgName: string) {
-    const locator = this.page.getByTestId(`organization-card-${jetstreamOrgName}`);
+  async makeActiveOrgGroup(jetstreamOrgName: string) {
+    const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
     await locator.getByRole('button', { name: 'Make Active' }).click();
   }
 
-  async deleteJetstreamOrganization(jetstreamOrgName: string) {
-    const locator = this.page.getByTestId(`organization-card-${jetstreamOrgName}`);
+  async editOrgGroup(jetstreamOrgName: string, newName: string, newDescription: string) {
+    const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
+    await locator.getByRole('button', { name: 'Edit' }).click();
+    await this.page.locator('#group-name').fill(newName);
+    await this.page.locator('#group-description').fill(newDescription);
+    await this.page.getByRole('button', { name: 'Save' }).click();
+    await expect(this.page.getByTestId(`org-group-card-${newName}`)).toBeVisible();
+    await expect(this.page.getByTestId(`org-group-card-${newName}`).getByText(newDescription)).toBeVisible();
+  }
+
+  async deleteOrgGroup(jetstreamOrgName: string) {
+    const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
     await locator.getByRole('button', { name: 'action' }).click();
-    await locator.getByRole('menuitem', { name: 'Delete' }).click();
-    await this.page.getByRole('button', { name: 'Continue' }).click();
+    await locator.getByRole('menuitem', { name: 'Delete Group (Keep Orgs)' }).click();
+    await this.page.getByRole('button', { name: 'Delete' }).click();
   }
 }

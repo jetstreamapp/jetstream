@@ -45,16 +45,17 @@ test.afterAll(async () => {
   });
 });
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-});
-
 test.describe.configure({ mode: 'parallel' });
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe('Login 4 - login configuration', () => {
+  test.beforeEach(async ({ page, authenticationPage }) => {
+    await page.goto('/');
+    await authenticationPage.acceptCookieBanner();
+  });
+
   test('Allowed providers is enforced', async ({ page, authenticationPage, playwrightPage }) => {
     await test.step('Username/password is not allowed for test.getjetstream.app', async () => {
       const password = authenticationPage.generateTestPassword();

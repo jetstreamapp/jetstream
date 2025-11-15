@@ -43,7 +43,7 @@ export const routeDefinition = {
         uniqueId: z.string().min(1),
       }),
       body: z.object({
-        jetstreamOrganizationId: z.uuid().nullish().default(null),
+        orgGroupId: z.uuid().nullish(),
       }),
       hasSourceOrg: false,
     },
@@ -132,7 +132,7 @@ const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, p
     const { uniqueId } = params;
     const { salesforceOrgs } = dataService.moveSalesforceOrgToJetstreamOrg({
       uniqueId,
-      jetstreamOrganizationId: body.jetstreamOrganizationId,
+      orgGroupId: body.orgGroupId ?? null,
     });
     return handleJsonResponse(salesforceOrgs.find((org) => org.uniqueId === uniqueId));
   } catch (ex) {

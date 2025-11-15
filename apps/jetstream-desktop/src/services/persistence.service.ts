@@ -224,11 +224,11 @@ function saveOrgs() {
  * ******************************
  */
 
-export function getJetstreamOrgs() {
+export function getOrgGroups() {
   return JETSTREAM_ORGS || readOrgs().jetstreamOrganizations;
 }
 
-export function createJetstreamOrg(payload: { name: string; description: string | null }) {
+export function createOrgGroup(payload: { name: string; description: string | null }) {
   const newJetstreamOrg: JetstreamOrganizationServer = {
     id: randomUUID(),
     ...payload,
@@ -237,7 +237,7 @@ export function createJetstreamOrg(payload: { name: string; description: string 
     orgs: [],
   };
   const jetstreamOrganization = JetstreamOrganizationSchema.parse(newJetstreamOrg);
-  const jetstreamOrganizations = getJetstreamOrgs();
+  const jetstreamOrganizations = getOrgGroups();
   jetstreamOrganizations.push(jetstreamOrganization);
 
   JETSTREAM_ORGS = jetstreamOrganizations;
@@ -245,8 +245,8 @@ export function createJetstreamOrg(payload: { name: string; description: string 
   return newJetstreamOrg;
 }
 
-export function updateJetstreamOrg(id: string, { name, description }: { name: string; description: string | null }) {
-  const jetstreamOrganizations = getJetstreamOrgs().map((org) => {
+export function updateOrgGroup(id: string, { name, description }: { name: string; description: string | null }) {
+  const jetstreamOrganizations = getOrgGroups().map((org) => {
     if (org.id === id) {
       return JetstreamOrganizationSchema.parse({
         ...org,
@@ -268,8 +268,8 @@ export function updateJetstreamOrg(id: string, { name, description }: { name: st
   return jetstreamOrganization;
 }
 
-export function deleteJetstreamOrg(id: string) {
-  const jetstreamOrganizations = getJetstreamOrgs().filter((org) => org.id !== id);
+export function deleteOrgGroup(id: string) {
+  const jetstreamOrganizations = getOrgGroups().filter((org) => org.id !== id);
 
   const salesforceOrgs = getSalesforceOrgs().map((org) => {
     if (org.jetstreamOrganizationId === id) {
@@ -284,15 +284,22 @@ export function deleteJetstreamOrg(id: string) {
   return jetstreamOrganizations;
 }
 
-export function moveSalesforceOrgToJetstreamOrg({
-  jetstreamOrganizationId,
-  uniqueId,
-}: {
-  uniqueId: string;
-  jetstreamOrganizationId: string | null;
-}) {
-  const jetstreamOrganizations = getJetstreamOrgs().map((org) => {
-    if (org.id === jetstreamOrganizationId) {
+export function deleteOrgGroupAndAllOrgs(id: string) {
+  const jetstreamOrganizations = getOrgGroups().filter((org) => org.id !== id);
+
+  const salesforceOrgs = getSalesforceOrgs().filter((org) => {
+    return org.jetstreamOrganizationId !== id;
+  });
+
+  JETSTREAM_ORGS = jetstreamOrganizations;
+  SALESFORCE_ORGS = salesforceOrgs;
+  saveOrgs();
+  return jetstreamOrganizations;
+}
+
+export function moveSalesforceOrgToJetstreamOrg({ orgGroupId, uniqueId }: { uniqueId: string; orgGroupId: string | null }) {
+  const jetstreamOrganizations = getOrgGroups().map((org) => {
+    if (org.id === orgGroupId) {
       org.orgs.push({ uniqueId });
     } else {
       org.orgs = org.orgs.filter((org) => org.uniqueId !== uniqueId);
@@ -303,7 +310,7 @@ export function moveSalesforceOrgToJetstreamOrg({
 
   const salesforceOrgs = getSalesforceOrgs().map((org) => {
     if (org.uniqueId === uniqueId) {
-      org.jetstreamOrganizationId = jetstreamOrganizationId;
+      org.jetstreamOrganizationId = orgGroupId;
     }
     return org;
   });
@@ -445,7 +452,7 @@ export function createOrUpdateSalesforceOrg(salesforceOrgUi: Partial<SalesforceO
   }
   SALESFORCE_ORGS = orgs;
   moveSalesforceOrgToJetstreamOrg({
-    jetstreamOrganizationId: newOrg.jetstreamOrganizationId ?? null,
+    orgGroupId: newOrg.jetstreamOrganizationId ?? null,
     uniqueId: newOrg.uniqueId,
   });
   saveOrgs();

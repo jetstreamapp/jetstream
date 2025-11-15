@@ -41,22 +41,22 @@ export const AppHomeOrganizations = () => {
               font-weight: 600;
             `}
           >
-            {APP_ROUTES.ORGANIZATIONS.TITLE}
-            {APP_ROUTES.ORGANIZATIONS.NEW_UNTIL && APP_ROUTES.ORGANIZATIONS.NEW_UNTIL >= CURRENT_TIME && (
+            {APP_ROUTES.SALESFORCE_ORG_GROUPS.TITLE}
+            {APP_ROUTES.SALESFORCE_ORG_GROUPS.NEW_UNTIL && APP_ROUTES.SALESFORCE_ORG_GROUPS.NEW_UNTIL >= CURRENT_TIME && (
               <Badge type="success" className="slds-m-left_xx-small">
                 NEW
               </Badge>
             )}
           </h3>
           <Link
-            to={{ pathname: APP_ROUTES.ORGANIZATIONS.ROUTE, search: APP_ROUTES.ORGANIZATIONS.SEARCH_PARAM }}
+            to={{ pathname: APP_ROUTES.SALESFORCE_ORG_GROUPS.ROUTE, search: APP_ROUTES.SALESFORCE_ORG_GROUPS.SEARCH_PARAM }}
             className="slds-text-heading_x-small"
           >
-            Manage Organizations
+            Manage Org Groups
           </Link>
-          <p>Group your Salesforce Orgs within an Organization so that you can isolate which orgs you are working with.</p>
+          <p>Group your Salesforce Orgs so that you can isolate which orgs you are working with.</p>
 
-          <a href={APP_ROUTES.ORGANIZATIONS.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
+          <a href={APP_ROUTES.SALESFORCE_ORG_GROUPS.DOCS} target="_blank" className="slds-text-body_small" rel="noreferrer">
             Documentation
             <Icon
               type="utility"

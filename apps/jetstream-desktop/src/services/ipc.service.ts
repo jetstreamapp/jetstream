@@ -169,6 +169,7 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
   // : { loginUrl: string; addLoginParam?: boolean; loginHint?: string }
   const { authorizationUrl, code_verifier, nonce, state } = await salesforceOauthInit(payload.loginUrl, {
     addLoginParam: payload.addLoginTrue,
+    loginHint: payload.loginHint,
   });
 
   await shell.openExternal(authorizationUrl);

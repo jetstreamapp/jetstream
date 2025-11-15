@@ -1,17 +1,17 @@
 import { SerializedStyles } from '@emotion/react';
-import { BadgeTypes } from '@jetstream/types';
-import React, { FunctionComponent, HTMLAttributes, ReactNode } from 'react';
+import { BadgeType } from '@jetstream/types';
+import { FunctionComponent, HTMLAttributes, ReactNode } from 'react';
 
 export interface BadgeProps {
   className?: string;
   title?: string;
-  type?: BadgeTypes;
+  type?: BadgeType;
   spanProps?: HTMLAttributes<HTMLSpanElement>;
   css?: SerializedStyles;
   children?: ReactNode;
 }
 
-function getCssClass(type: BadgeTypes) {
+function getCssClass(type: BadgeType) {
   let cssClass = 'slds-badge';
   switch (type) {
     case 'inverse':
