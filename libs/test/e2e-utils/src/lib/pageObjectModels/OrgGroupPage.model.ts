@@ -57,7 +57,7 @@ export class OrgGroupPage {
       }
     }
 
-    await this.page.getByRole('button', { name: 'Delete' }).click();
+    await this.page.getByRole('button', { name: 'Continue' }).click();
 
     const salesforcePage = await salesforcePagePromise;
 
