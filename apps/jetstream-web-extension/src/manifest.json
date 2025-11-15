@@ -1,7 +1,7 @@
 {
   "name": "Jetstream",
   "description": "Jetstream is a set of tools that supercharge your administration of Salesforce.com.",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "manifest_version": 3,
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmPjyzVG3Kpm0wyjDECyDLnwPlyEhlNmfzcPVybZz9gFKiHTm0qEuUYqGqOSAOWE6KnOR8RbiNkyrROGeEbGmhZIXxS02yKPTpJsA4qflKtTUGoeT7XcOm9cHWw3+BrVuqABCdXEwv/Do1/UX2vu9WeOMHQAr911nVl77JrhhaMQvpu0ruJjD+sZ9QbfjdLNeVeU1+hzgpuvpDnMihDIfZv47GaqvTTwxT67P09loBySjXMmx2mrtOpyLzsATLwQr6kmQQAX5X23ykw3PxY4NWBDldqXxKqTomMkwa3x6mh/4jmI5h6p6Wt6Gaf9FcG1pBOXTrUHNfdFzuK6ahYBsRQIDAQAB",
   "icons": {
