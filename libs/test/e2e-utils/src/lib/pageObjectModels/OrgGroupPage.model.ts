@@ -57,7 +57,7 @@ export class OrgGroupPage {
       }
     }
 
-    await this.page.getByRole('button', { name: 'Continue' }).click();
+    await this.page.getByRole('button', { name: 'Delete' }).click();
 
     const salesforcePage = await salesforcePagePromise;
 
@@ -130,6 +130,6 @@ export class OrgGroupPage {
     const locator = this.page.getByTestId(`org-group-card-${jetstreamOrgName}`);
     await locator.getByRole('button', { name: 'action' }).click();
     await locator.getByRole('menuitem', { name: 'Delete Group (Keep Orgs)' }).click();
-    await this.page.getByRole('button', { name: 'Continue' }).click();
+    await this.page.getByRole('button', { name: 'Delete' }).click();
   }
 }
