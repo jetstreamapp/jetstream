@@ -4,8 +4,8 @@ import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
 import { Fragment } from 'react';
 import { useOrgPermissions } from '..';
-import OrgInfoPopover from './OrgInfoPopover';
-import OrgPersistence from './OrgPersistence';
+import { OrgInfoPopover } from './OrgInfoPopover';
+import { OrgPersistence } from './OrgPersistence';
 
 export const SelectedOrgReadOnly = () => {
   const actionInProgress = useAtomValue(fromAppState.actionInProgressState);
