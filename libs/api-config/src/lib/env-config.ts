@@ -180,11 +180,10 @@ const envSchema = z.object({
    * EMAIL
    * If not set, email will not be sent
    */
-  JETSTREAM_EMAIL_DOMAIN: z.string().optional().default('mail@getjetstream.app'),
-  JETSTREAM_EMAIL_FROM_NAME: z.string().optional().default('Jetstream Support <support@getjetstream.app>'),
-  JETSTREAM_EMAIL_REPLY_TO: z.string().optional().default('support@getjetstream.app'),
+  JETSTREAM_EMAIL_DOMAIN: z.string().optional().default(''),
+  JETSTREAM_EMAIL_FROM_NAME: z.string().optional().default(''),
+  JETSTREAM_EMAIL_REPLY_TO: z.string().optional().default(''),
   MAILGUN_API_KEY: z.string().optional(),
-  MAILGUN_WEBHOOK_KEY: z.string().optional(),
   /**
    * Salesforce Org Connections
    * Connected App OAuth2 for connecting orgs
