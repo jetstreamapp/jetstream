@@ -9,6 +9,7 @@ import { logger } from '../config/logger.config';
 const INACTIVITY_DAYS = 90;
 const WARNING_PERIOD_DAYS = 30; // Grace period after inactivity before expiration
 const NOTIFICATION_DAYS = [30, 7, 3, 0];
+const USER_INACTIVITY_DAYS = 90; // Skip email if user hasn't logged in for this many days
 const DUMMY_ENCRYPTED_TOKEN = 'v2:EXPIRED_TOKEN_PLACEHOLDER';
 const CONNECTION_ERROR_MESSAGE = 'Credentials expired due to inactivity';
 
@@ -40,6 +41,8 @@ interface TestModeData {
     orgUsername: string;
     orgId: string;
     daysUntilExpiration: number;
+    userLastLoggedIn: string | null;
+    emailSkipped: boolean;
   }>;
   expiredOrgs: Array<{ orgId: number; uniqueId: string; username: string; orgName: string | null }>;
 }
@@ -106,6 +109,7 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
   }
 
   // 2. Get all orgs due for notification (nextExpirationNotificationDate <= now)
+  const userInactivityThreshold = addDays(now, -USER_INACTIVITY_DAYS);
   const orgsToNotifyWhere: Prisma.SalesforceOrgWhereInput = {
     expirationScheduledFor: { not: null },
     nextExpirationNotificationDate: { not: null, lte: now },
@@ -120,6 +124,7 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
           id: true,
           email: true,
           name: true,
+          lastLoggedIn: true,
         },
       },
     },
@@ -152,7 +157,7 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
       {} as Record<
         string,
         {
-          user: { id: string; email: string; name: string };
+          user: { id: string; email: string; name: string; lastLoggedIn: Date | null };
           orgs: Array<{ org: (typeof allScheduledOrgs)[number]; daysUntilExpiration: number }>;
         }
       >,
@@ -160,10 +165,19 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
 
     // Send notifications per user
     for (const [userId, { user, orgs }] of Object.entries(orgsByUser)) {
+      const userInactive = !user.lastLoggedIn || user.lastLoggedIn <= userInactivityThreshold;
+      const shouldSkipEmail = userInactive;
+
       if (testMode) {
-        logger.info(
-          `[TEST MODE] Would notify user ${user.email} about ${orgs.length} org(s): ${orgs.map(({ daysUntilExpiration, org }) => `${org.uniqueId} (${daysUntilExpiration}d)`).join(', ')}`,
-        );
+        if (shouldSkipEmail) {
+          logger.info(
+            `[TEST MODE] Would skip email for inactive user ${user.email} (last login: ${user.lastLoggedIn?.toISOString() || 'never'}) about ${orgs.length} org(s): ${orgs.map(({ daysUntilExpiration, org }) => `${org.uniqueId} (${daysUntilExpiration}d)`).join(', ')}`,
+          );
+        } else {
+          logger.info(
+            `[TEST MODE] Would notify user ${user.email} about ${orgs.length} org(s): ${orgs.map(({ daysUntilExpiration, org }) => `${org.uniqueId} (${daysUntilExpiration}d)`).join(', ')}`,
+          );
+        }
         // Track notifications for CSV
         orgs.forEach(({ org, daysUntilExpiration }) => {
           testModeData.notifications.push({
@@ -171,24 +185,31 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
             orgUsername: org.username,
             orgId: org.uniqueId,
             daysUntilExpiration,
+            userLastLoggedIn: user.lastLoggedIn?.toISOString() || null,
+            emailSkipped: shouldSkipEmail,
           });
         });
       } else {
-        logger.info(
-          `Notifying user ${user.email} about ${orgs.length} org(s): ${orgs.map(({ daysUntilExpiration, org }) => `${org.uniqueId} (${daysUntilExpiration}d)`).join(', ')}`,
-        );
+        if (shouldSkipEmail) {
+          logger.info(
+            `Skipping email for inactive user ${user.email} (last login: ${user.lastLoggedIn?.toISOString() || 'never'}) about ${orgs.length} org(s): ${orgs.map(({ daysUntilExpiration, org }) => `${org.uniqueId} (${daysUntilExpiration}d)`).join(', ')}`,
+          );
+        } else {
+          logger.info(
+            `Notifying user ${user.email} about ${orgs.length} org(s): ${orgs.map(({ daysUntilExpiration, org }) => `${org.uniqueId} (${daysUntilExpiration}d)`).join(', ')}`,
+          );
 
-        // Send email notification
-        await sendOrgExpirationWarningEmail({
-          emailAddress: user.email,
-          orgs: orgs.map(({ org, daysUntilExpiration }) => ({
-            username: org.username,
-            organizationId: org.organizationId,
-            instanceUrl: org.instanceUrl,
-            daysUntilExpiration,
-          })),
-        });
-
+          // Send email notification
+          await sendOrgExpirationWarningEmail({
+            emailAddress: user.email,
+            orgs: orgs.map(({ org, daysUntilExpiration }) => ({
+              username: org.username,
+              organizationId: org.organizationId,
+              instanceUrl: org.instanceUrl,
+              daysUntilExpiration,
+            })),
+          });
+        }
         // Create audit log entry
         await createAuditLog({
           userId,
@@ -198,9 +219,9 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
           resource: AuditLogResource.SALESFORCE_ORG,
           metadata: {
             orgCount: orgs.length,
-            orgDetails: orgs.map((o) => ({
-              orgId: o.org.id,
-              daysUntilExpiration: o.daysUntilExpiration,
+            orgDetails: orgs.map(({ org, daysUntilExpiration }) => ({
+              orgId: org.id,
+              daysUntilExpiration: daysUntilExpiration,
             })),
           },
         });
@@ -350,6 +371,13 @@ async function sendTestModeSummary(testModeData: TestModeData, result: OrgExpira
     });
   }
 
+  // Calculate how many emails would actually be sent
+  const emailsToSend = testModeData.notifications.filter(({ emailSkipped }) => !emailSkipped).length;
+  const emailsSkipped = testModeData.notifications.filter(({ emailSkipped }) => emailSkipped).length;
+  const uniqueUsersToEmail = new Set(
+    testModeData.notifications.filter(({ emailSkipped }) => !emailSkipped).map(({ userEmail }) => userEmail),
+  ).size;
+
   // Email body with summary
   const emailText = [
     'Org Expiration Test Mode Summary',
@@ -359,6 +387,9 @@ async function sendTestModeSummary(testModeData: TestModeData, result: OrgExpira
     `Notified (7 days): ${result.notified7Days}`,
     `Notified (3 days): ${result.notified3Days}`,
     `Expired: ${result.expired}`,
+    '',
+    `Emails to send: ${uniqueUsersToEmail} users (${emailsToSend} orgs)`,
+    `Emails skipped (inactive users): ${emailsSkipped} orgs`,
     '',
     'See attached CSV files for details.',
   ].join('\n');
