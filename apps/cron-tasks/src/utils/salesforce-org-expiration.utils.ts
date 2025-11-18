@@ -110,11 +110,27 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
 
   // 2. Get all orgs due for notification (nextExpirationNotificationDate <= now)
   const userInactivityThreshold = addDays(now, -USER_INACTIVITY_DAYS);
-  const orgsToNotifyWhere: Prisma.SalesforceOrgWhereInput = {
-    expirationScheduledFor: { not: null },
-    nextExpirationNotificationDate: { not: null, lte: now },
-    connectionError: null,
-  };
+  const orgsToNotifyWhere: Prisma.SalesforceOrgWhereInput = testMode
+    ? {
+        // In test mode, include orgs that would be scheduled in this run
+        connectionError: null,
+        OR: [
+          {
+            expirationScheduledFor: { not: null },
+            nextExpirationNotificationDate: { not: null, lte: now },
+          },
+          {
+            // Orgs that would be scheduled in this run (these would get firstNotificationDate = now)
+            expirationScheduledFor: null,
+            OR: [{ lastActivityAt: { lte: inactivityThreshold } }, { lastActivityAt: null, updatedAt: { lte: inactivityThreshold } }],
+          },
+        ],
+      }
+    : {
+        expirationScheduledFor: { not: null },
+        nextExpirationNotificationDate: { not: null, lte: now },
+        connectionError: null,
+      };
 
   const allScheduledOrgs = await prisma.salesforceOrg.findMany({
     where: orgsToNotifyWhere,
@@ -133,8 +149,9 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
   // Calculate days until expiration for each org
   const orgsAtThreshold = allScheduledOrgs
     .map((org) => {
-      if (!org.expirationScheduledFor) return null;
-      const daysUntilExpiration = Math.max(0, Math.ceil((org.expirationScheduledFor.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      // In test mode, orgs without expirationScheduledFor are newly scheduled
+      const effectiveExpirationDate = org.expirationScheduledFor || expirationDate;
+      const daysUntilExpiration = Math.max(0, Math.ceil((effectiveExpirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
       return { org, daysUntilExpiration };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
