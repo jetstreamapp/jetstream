@@ -21,5 +21,3 @@ export const OrgPersistence: FunctionComponent = () => {
 
   return null;
 };
-
-export default OrgPersistence;

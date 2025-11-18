@@ -19,9 +19,12 @@ import {
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
+import { isValid } from 'date-fns/isValid';
+import { parseISO } from 'date-fns/parseISO';
 import { useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
 import { Fragment, FunctionComponent, ReactNode, useEffect, useState } from 'react';
+import { useResizeDetector } from 'react-resize-detector';
 
 const EMPTY_COLOR = '_none_';
 
@@ -116,6 +119,12 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
         </CopyToClipboard>
       </>
     );
+  } else if (prop === 'orgTrialExpirationDate') {
+    const date = parseISO(String(value));
+    if (isValid(date)) {
+      tooltip = date.toLocaleDateString();
+      value = date.toLocaleDateString();
+    }
   }
 
   return (
@@ -138,6 +147,9 @@ function getOrgProp(serverUrl: string, org: SalesforceOrgUi, skipFrontDoorAuth: 
     </tr>
   );
 }
+
+const POPOVER_PADDING = 8;
+const POPOVER_MIN_WIDTH = 420;
 
 export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   org,
@@ -170,6 +182,9 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     setOrgLabel(org.label);
     setOrgColor(org.color || EMPTY_COLOR);
   }, [org]);
+
+  const { width: tableWidth, ref } = useResizeDetector({ handleHeight: false });
+  const minWidth = Math.max(POPOVER_MIN_WIDTH, (tableWidth || 0) + POPOVER_PADDING);
 
   function handleFixOrg() {
     addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl, loginHint: org.username }, (addedOrg: SalesforceOrgUi) => {
@@ -220,7 +235,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   return (
     <Popover
       size="large"
-      panelStyle={{ minWidth: '420px', maxWidth: '420px' }}
+      panelStyle={{ minWidth: `${minWidth}px` }}
       bodyClassName="slds-popover__body slds-p-around_none"
       containerClassName={hasError ? 'slds-popover_error' : undefined}
       inverseIcons={hasError}
@@ -272,7 +287,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
               </ButtonGroupContainer>
             </div>
           )}
-          <table className="slds-table slds-table_header-hidden">
+          <table ref={ref} className="slds-table slds-table_header-hidden">
             <thead className="slds-assistive-text">
               <tr className="slds-line-height_reset">
                 <th className="" scope="col">
@@ -404,5 +419,3 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     </Popover>
   );
 };
-
-export default OrgInfoPopover;
