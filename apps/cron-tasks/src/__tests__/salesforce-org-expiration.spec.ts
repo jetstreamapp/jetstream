@@ -60,10 +60,10 @@ export const prisma = new PrismaClient({
   datasourceUrl: process.env.PRISMA_TEST_DB_URI || 'postgres://postgres:postgres@postgres:5432/testdb',
 });
 
-export async function createUser() {
+export async function createUser(lastLoggedIn: Date | null = new Date()) {
   const userId = uuid();
   return await prisma.user.create({
-    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId, lastLoggedIn },
   });
 }
 
