@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { css } from '@emotion/react';
 import { getPicklistValuesForRecordAndRecordType, UiRecordForm } from '@jetstream/record-form';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, SOBJECT_NAME_FIELD_MAP } from '@jetstream/shared/constants';
@@ -671,8 +672,42 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 </div>
               )}
               {action !== 'view' && (
-                <Grid align="center">
-                  <div>
+                <div
+                  css={css`
+                    display: grid;
+                    grid-template-columns: 1fr auto 1fr;
+                    align-items: center;
+                  `}
+                >
+                  <div
+                    css={css`
+                      justify-self: start;
+                    `}
+                  >
+                    <NotSeeingRecentMetadataPopover
+                      className="slds-m-left_small"
+                      header="Missing Fields?"
+                      label="Not seeing all fields?"
+                      refreshButtonLabel="Reload Fields"
+                      org={selectedOrg}
+                      viewInSalesforceSetup={{
+                        label: 'View object in Salesforce setup',
+                        title: 'View object in Salesforce setup',
+                        link: `/lightning/setup/ObjectManager/${sobjectName}/Details/view`,
+                      }}
+                      onReload={() => {
+                        setLoading(true);
+                        fetchMetadata(true);
+                      }}
+                    />
+                  </div>
+                  <div
+                    css={css`
+                      justify-self: center;
+                      display: flex;
+                      margin-right: 35px;
+                    `}
+                  >
                     {formErrors.hasErrors && formErrors.generalErrors.length > 0 && (
                       <span className="slds-text-align_left d-inline-block">
                         <PopoverErrorButton errors={formErrors.generalErrors} />
@@ -695,7 +730,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                       Save
                     </button>
                   </div>
-                </Grid>
+                </div>
               )}
             </Fragment>
           }
