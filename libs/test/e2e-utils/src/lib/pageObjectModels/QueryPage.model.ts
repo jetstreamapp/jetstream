@@ -3,7 +3,13 @@ import { isRecordWithId } from '@jetstream/shared/utils';
 import { QueryFilterOperator, QueryResults } from '@jetstream/types';
 import { Locator, Page, expect } from '@playwright/test';
 import { isNumber } from 'lodash';
+import type { editor } from 'monaco-editor';
 import { ApiRequestUtils } from '../ApiRequestUtils';
+declare global {
+  interface Window {
+    monaco: { editor: typeof editor };
+  }
+}
 
 export class QueryPage {
   readonly apiRequestUtils: ApiRequestUtils;
@@ -31,12 +37,26 @@ export class QueryPage {
     await this.setManualQuery(query, 'EXECUTE', isTooling);
   }
 
+  async setQueryInEditor(query: string) {
+    await this.page.evaluate((query) => {
+      window.monaco.editor
+        .getEditors()
+        .find((editor) => !editor.getRawOptions().readOnly)
+        ?.setValue(query);
+    }, query);
+    await expect(this.page.getByRole('code')).toHaveText(query);
+  }
+
   async setManualQuery(query: string, action?: 'EXECUTE' | 'RESTORE', isTooling = false) {
     await this.page.getByRole('menuitem', { name: 'Query Records' }).click();
     await this.page.waitForURL('**/query');
-    await this.page.getByRole('button', { name: 'Manually enter query Manual Query' }).first().click();
+    await this.page.getByRole('button', { name: 'Manually enter query Manual' }).first().click();
     const manualQueryPopover = this.page.getByTestId('manual-query');
-    await manualQueryPopover.getByRole('textbox', { name: 'Editor content' }).fill(query);
+    await manualQueryPopover.getByRole('code').click();
+
+    await expect(manualQueryPopover.getByRole('code')).toBeVisible();
+
+    await this.setQueryInEditor(query);
 
     if (isTooling) {
       await manualQueryPopover.locator('#is-tooling-user-soql span').first().click();
