@@ -2,16 +2,18 @@ import { css } from '@emotion/react';
 import { createInvitation } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { Feature, TeamInviteUserFacing, TeamMemberRole } from '@jetstream/types';
-import { Input, Modal, Picklist, ScopedNotification, Spinner } from '@jetstream/ui';
+import { Input, Modal, ScopedNotification, Spinner } from '@jetstream/ui';
 import { useState } from 'react';
+import { TeamMemberRoleDropdown } from './TeamMemberRoleDropdown';
 
 interface TeamMemberInviteModalProps {
   teamId: string;
   hasManualBilling: boolean;
+  userRole: TeamMemberRole;
   onClose: (invitations?: TeamInviteUserFacing[]) => void;
 }
 
-export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: TeamMemberInviteModalProps) {
+export function TeamMemberInviteModal({ teamId, hasManualBilling, userRole, onClose }: TeamMemberInviteModalProps) {
   const [email, setEmail] = useState('');
   const [invalidEmail, setInvalidEmail] = useState(false);
   const [role, setRole] = useState<TeamMemberRole>('MEMBER');
@@ -83,18 +85,7 @@ export function TeamMemberInviteModal({ teamId, hasManualBilling, onClose }: Tea
       >
         {errorMessage && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
 
-        <Picklist
-          label="Role"
-          className="slds-button_last"
-          items={[
-            { id: 'ADMIN', value: 'ADMIN', label: 'Admin' },
-            { id: 'BILLING', value: 'ADMIN', label: 'Billing' },
-            { id: 'MEMBER', value: 'ADMIN', label: 'Member' },
-          ]}
-          selectedItemIds={[role]}
-          onChange={(role) => setRole(role[0].id as TeamMemberRole)}
-          disabled={loading}
-        />
+        <TeamMemberRoleDropdown role={role} disabled={loading} limitBasedOnCurrentRole={userRole} onChange={(value) => setRole(value)} />
 
         <Input
           id="invite-email"

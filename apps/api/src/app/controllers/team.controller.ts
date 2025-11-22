@@ -2,21 +2,25 @@ import { ENV, logger } from '@jetstream/api-config';
 import * as authService from '@jetstream/auth/server';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import {
+  TEAM_MEMBER_ROLE_ACCESS,
+  TEAM_MEMBER_ROLE_MEMBER,
   TeamInvitationRequestSchema,
   TeamInvitationUpdateRequestSchema,
   TeamLoginConfigRequestSchema,
+  TeamMemberRole,
   TeamMemberStatusUpdateRequestSchema,
   TeamMemberUpdateRequestSchema,
 } from '@jetstream/types';
 import { z } from 'zod';
 import * as teamService from '../services/team.service';
+import { NotAllowedError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 
 export const routeDefinition = {
   verifyInvitation: {
     controllerFn: () => verifyInvitation,
-    responseType: z.object({ success: z.boolean(), inviteVerification: z.object({ email: z.string().email() }).nullish() }),
+    responseType: z.object({ success: z.boolean(), inviteVerification: z.object({ email: z.email() }).nullish() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -28,7 +32,7 @@ export const routeDefinition = {
   },
   acceptInvitation: {
     controllerFn: () => acceptInvitation,
-    responseType: z.object({ success: z.boolean(), redirectUrl: z.string().url().nullish() }),
+    responseType: z.object({ success: z.boolean(), redirectUrl: z.url().nullish() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
@@ -292,13 +296,20 @@ const updateLoginConfiguration = createRoute(
 
 const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators, async ({ params, body, user }, req, res) => {
   const { teamId, userId } = params;
-
-  const existingRole = user.teamMembership?.role;
+  const runningUserRole = user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER;
 
   // TODO: we may want to allow a user to change their own role in some cases (E.g. ADMIN->BILLING when there are multiple admins)
-  if (body.role && body.role !== existingRole && user.id === userId) {
+  if (body.role && user.id === userId && body.role !== runningUserRole) {
     throw new Error('You cannot change your own role');
   }
+
+  await teamService.canRunningUserUpdateTargetUserOrThrow({ runningUserRole, userId });
+
+  const allowedRoleUpdates = new Set((TEAM_MEMBER_ROLE_ACCESS[runningUserRole] || []) as TeamMemberRole[]);
+  if (body.role && !allowedRoleUpdates.has(body.role)) {
+    throw new NotAllowedError('You are not allowed to assign the specified role');
+  }
+
   const team = await teamService.updateTeamMember({ teamId, userId, data: body, runningUserId: user.id });
   sendJson(res, team);
 });
@@ -308,6 +319,15 @@ const updateTeamMemberStatusAndRole = createRoute(
   async ({ params, body, user }, req, res) => {
     const { teamId, userId } = params;
     const { status, role } = body;
+    const runningUserRole = user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER;
+
+    const allowedRoleUpdates = new Set((TEAM_MEMBER_ROLE_ACCESS[runningUserRole] || []) as TeamMemberRole[]);
+    if (role && !allowedRoleUpdates.has(role)) {
+      throw new NotAllowedError('You are not allowed to assign the specified role');
+    }
+
+    await teamService.canRunningUserUpdateTargetUserOrThrow({ runningUserRole, userId });
+
     const team = await teamService.updateTeamMemberStatusAndRole({ teamId, userId, status, role, runningUserId: user.id });
     sendJson(res, team);
   },
@@ -321,6 +341,15 @@ const getInvitations = createRoute(routeDefinition.getInvitations.validators, as
 
 const createInvitation = createRoute(routeDefinition.createInvitation.validators, async ({ user, params, body }, req, res) => {
   const { teamId } = params;
+
+  const allowedRoleUpdates = new Set(
+    (TEAM_MEMBER_ROLE_ACCESS[user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER] || []) as TeamMemberRole[],
+  );
+
+  if (!allowedRoleUpdates.has(body.role)) {
+    throw new NotAllowedError('You are not allowed to assign the specified role');
+  }
+
   const invitations = await teamService.createInvitation({
     runningUserId: user.id,
     teamId,

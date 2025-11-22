@@ -1,6 +1,6 @@
 import { prisma } from '@jetstream/api-config';
 import { groupByFlat } from '@jetstream/shared/utils';
-import { AuthenticationPage } from '@jetstream/test/e2e-utils';
+import { AuthenticationPage, TeamDashboardPage } from '@jetstream/test/e2e-utils';
 import { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/fixtures';
 
@@ -225,7 +225,7 @@ test.describe('Team Dashboard', () => {
       const tableRows = userSessionModal.locator('.slds-table > tbody > tr');
       await expect(tableRows.last()).toBeVisible();
       // TODO: would be better to have a better check here - to ensure specific sessions are removed
-      await expect(await tableRows.count()).toBeLessThan(initialUserSessionCount);
+      expect(await tableRows.count()).toBeLessThan(initialUserSessionCount);
       await userSessionModal.getByRole('button', { name: 'Close' }).click();
     });
 
@@ -490,6 +490,111 @@ test.describe('Team Dashboard', () => {
         await expect(row.getByText('Authenticator App')).toBeVisible();
         await expect(row.getByText('Username/Password')).toBeVisible();
       }
+    });
+  });
+
+  test('Team dashboard - Access controls', async ({ authenticationPage, teamCreationUtils3Users: teamCreationUtils }) => {
+    const { adminUser, team } = teamCreationUtils;
+    const [member1, , billingMember1] = teamCreationUtils.members;
+
+    const request = billingMember1.context.request;
+    const page = await billingMember1.context.newPage();
+    const teamDashboardPage = new TeamDashboardPage(page);
+
+    await page.goto('/app/home');
+    expect(page.url()).toContain('/app/home');
+
+    await test.step('Go to team dashboard', async () => {
+      await page.getByRole('menuitem', { name: 'Team Dashboard' }).click();
+      expect(page.getByRole('heading', { name: 'Team Dashboard' })).toBeTruthy();
+    });
+
+    await test.step('Ensure billing user cannot choose admin role', async () => {
+      await teamDashboardPage.addTeamMemberButton.click();
+      await expect(teamDashboardPage.teamMemberInviteModal.getByRole('heading', { name: 'Invite Team Member' })).toBeVisible();
+
+      // ensure admin is not an option for the billing user
+      await page.getByPlaceholder('Select an Option').click();
+      await expect(page.getByRole('option', { name: 'Billing' })).toBeVisible();
+      await expect(page.getByRole('option', { name: 'Member' })).toBeVisible();
+
+      const options = await teamDashboardPage.teamMemberInviteModal.getByRole('option').all();
+      expect(options.length).toBe(2);
+
+      // close menu
+      await page.getByPlaceholder('Select an Option').click();
+
+      await teamDashboardPage.teamMemberInviteModal.getByRole('button', { name: 'Cancel' }).click();
+    });
+
+    await test.step('Ensure billing user cannot choose admin role', async () => {
+      const userEmail = authenticationPage.generateTestEmail();
+      const response = await request.post(`/api/teams/${team.id}/invitations`, {
+        data: {
+          email: userEmail,
+          features: ['ALL'],
+          role: 'ADMIN',
+        },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot change ADMIN role to MEMBER', async () => {
+      const response = await request.put(`/api/teams/${team.id}/members/${adminUser.userId}`, {
+        data: { role: 'MEMBER' },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot change ADMIN role to BILLING', async () => {
+      const response = await request.put(`/api/teams/${team.id}/members/${adminUser.userId}`, {
+        data: { role: 'BILLING' },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot update ADMIN user', async () => {
+      const response = await request.put(`/api/teams/${team.id}/members/${adminUser.userId}/status`, {
+        data: {
+          status: 'INACTIVE',
+          role: 'ADMIN',
+        },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot change MEMBER role to ADMIN', async () => {
+      const response = await request.put(`/api/teams/${team.id}/members/${member1.userId}`, {
+        data: { role: 'ADMIN' },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot change MEMBER role to ADMIN with status change', async () => {
+      const response = await request.put(`/api/teams/${team.id}/members/${member1.userId}/status`, {
+        data: {
+          status: 'ACTIVE',
+          role: 'ADMIN',
+        },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
+    });
+
+    await test.step('Ensure billing user cannot change MEMBER role to ADMIN while making INACTIVE', async () => {
+      const response = await request.put(`/api/teams/${team.id}/members/${member1.userId}/status`, {
+        data: {
+          status: 'INACTIVE',
+          role: 'ADMIN',
+        },
+      });
+      expect(response.ok()).toBeFalsy();
+      expect(response.status()).toBe(403);
     });
   });
 });

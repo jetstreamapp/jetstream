@@ -31,6 +31,13 @@ export const TEAM_MEMBER_ROLE_MEMBER = 'MEMBER';
 export const TeamMemberRoleSchema = z.enum([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TEAM_MEMBER_ROLE_MEMBER]);
 export const BILLABLE_ROLES = new Set([TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_MEMBER]);
 
+// Indicates the roles that a team member can assign to another team member based on their current role
+export const TEAM_MEMBER_ROLE_ACCESS = {
+  [TEAM_MEMBER_ROLE_ADMIN]: [TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TEAM_MEMBER_ROLE_MEMBER],
+  [TEAM_MEMBER_ROLE_BILLING]: [TEAM_MEMBER_ROLE_BILLING, TEAM_MEMBER_ROLE_MEMBER],
+  [TEAM_MEMBER_ROLE_MEMBER]: [],
+};
+
 export const TEAM_STATUS_ACTIVE = 'ACTIVE';
 export const TEAM_STATUS_INACTIVE = 'INACTIVE';
 export const TeamStatusSchema = z.enum([TEAM_STATUS_ACTIVE, TEAM_STATUS_INACTIVE]);

@@ -183,6 +183,7 @@ export function TeamDashboard() {
         <TeamMemberInviteModal
           teamId={team.id}
           hasManualBilling={hasManualBilling}
+          userRole={userProfile.teamMembership?.role || TeamMemberRoleSchema.enum.MEMBER}
           onClose={(invitations) => {
             fetchTeam();
             setInviteModalOpen(false);
@@ -200,6 +201,7 @@ export function TeamDashboard() {
           teamId={team.id}
           hasManualBilling={hasManualBilling}
           teamMember={teamMemberUpdateState.teamMember}
+          currentUserRole={userProfile.teamMembership?.role}
           onClose={(teamData) => {
             if (teamData) {
               setTeam(teamData);

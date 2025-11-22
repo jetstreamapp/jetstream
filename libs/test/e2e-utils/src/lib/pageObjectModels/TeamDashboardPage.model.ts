@@ -80,9 +80,14 @@ export class TeamDashboardPage {
     // TODO:
   }
 
-  async inviteTeamMember(email: string) {
+  async inviteTeamMember(email: string, role?: string) {
     await this.addTeamMemberButton.click();
     await expect(this.teamMemberInviteModal.getByRole('heading', { name: 'Invite Team Member' })).toBeVisible();
+
+    if (role) {
+      await this.teamMemberInviteModal.getByPlaceholder('Select an Option').click();
+      await this.teamMemberInviteModal.getByRole('option', { name: role }).click();
+    }
 
     await this.teamMemberInviteModal.getByLabel('Email Address').fill(email);
     await this.teamMemberInviteModal.getByRole('button', { name: 'Send Invitation' }).click();
