@@ -197,6 +197,17 @@ export const findByUserId = async ({ userId }: { userId: string }) => {
 };
 
 /**
+ * Checks if a user has any of the specified roles in any team
+ * This can be used for permission checks
+ */
+export const doesUserHaveSpecifiedRoles = async ({ userId, roles }: { userId: string; roles: TeamMemberRole[] }) => {
+  const count = await prisma.teamMember.count({
+    where: { userId, role: { in: roles } },
+  });
+  return count > 0;
+};
+
+/**
  * Only use for internal use-cases, do not expose to users.
  */
 export const findByUserIdWithTeamMember_UNSAFE = async ({ userId }: { userId: string }) => {

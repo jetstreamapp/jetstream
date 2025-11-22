@@ -9,10 +9,11 @@ interface TeamMemberUpdateModalProps {
   teamId: string;
   teamMember: TeamUserFacing['members'][number];
   hasManualBilling: boolean;
+  currentUserRole?: TeamMemberRole;
   onClose: (team?: TeamUserFacing) => void;
 }
 
-export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, onClose }: TeamMemberUpdateModalProps) {
+export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, currentUserRole, onClose }: TeamMemberUpdateModalProps) {
   const [role, setRole] = useState<TeamMemberRole>(teamMember.role);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -82,7 +83,12 @@ export function TeamMemberUpdateModal({ teamId, teamMember, hasManualBilling, on
       >
         {errorMessage && <ScopedNotification theme="error">{errorMessage}</ScopedNotification>}
 
-        <TeamMemberRoleDropdown role={role} disabled={loading} onChange={(value) => setRole(value)} />
+        <TeamMemberRoleDropdown
+          role={role}
+          disabled={loading}
+          limitBasedOnCurrentRole={currentUserRole}
+          onChange={(value) => setRole(value)}
+        />
 
         <Input id="email-input" label="Email Address" isRequired>
           <input

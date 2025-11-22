@@ -7,6 +7,8 @@ import {
   LoginConfigurationIdentityDisplayNames,
   LoginConfigurationMdaDisplayNames,
   Maybe,
+  TEAM_MEMBER_ROLE_ACCESS,
+  TEAM_MEMBER_ROLE_MEMBER,
   TEAM_MEMBER_STATUS_ACTIVE,
   TEAM_MEMBER_STATUS_INACTIVE,
   TeamInvitationRequest,
@@ -24,8 +26,26 @@ import {
 } from '@jetstream/types';
 import capitalize from 'lodash/capitalize';
 import * as teamDbService from '../db/team.db';
-import { UserFacingError } from '../utils/error-handler';
+import { NotAllowedError, UserFacingError } from '../utils/error-handler';
 import * as stripeService from './stripe.service';
+
+export async function canRunningUserUpdateTargetUserOrThrow({
+  runningUserRole,
+  userId,
+}: {
+  runningUserRole: TeamMemberRole;
+  userId: string;
+}): Promise<void> {
+  const allowedRoles = (TEAM_MEMBER_ROLE_ACCESS[runningUserRole || TEAM_MEMBER_ROLE_MEMBER] || []) as TeamMemberRole[];
+  if (allowedRoles.length === 0) {
+    throw new NotAllowedError('Forbidden');
+  }
+
+  const canUpdate = await teamDbService.doesUserHaveSpecifiedRoles({ userId, roles: allowedRoles });
+  if (!canUpdate) {
+    throw new NotAllowedError('Forbidden');
+  }
+}
 
 export async function getTeamByUserId({ userId }: { userId: string }): Promise<TeamUserFacing> {
   const team = await teamDbService.findByUserId({ userId });
