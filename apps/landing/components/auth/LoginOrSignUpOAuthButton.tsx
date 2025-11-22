@@ -65,7 +65,7 @@ export function LoginOrSignUpOAuthButton({
             },
           )}
         >
-          <img src={logo} alt={`${label} Logo`} className="h-5 w-5" />
+          <img src={logo} alt={`Sign in with ${label} Logo`} className="h-5 w-5" />
           <span className="text-sm font-semibold leading-6">{label}</span>
         </button>
         {action === 'login' && lastUsedLogin === provider.provider && (

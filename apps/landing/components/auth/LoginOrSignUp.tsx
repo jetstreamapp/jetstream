@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Providers } from '@jetstream/auth/types';
+import { containsUserInfo } from '@jetstream/shared/utils';
 import { PasswordSchema } from '@jetstream/types';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -29,7 +30,8 @@ const LoginSchema = z.object({
     .min(5)
     .max(255)
     .trim(),
-  password: z.string().min(8).max(255),
+  // Backwards compatibility for older passwords
+  password: z.string().min(8, `Password must be at least 8 characters long`).max(255, `Password must be at most 255 characters`),
   rememberMe: z.boolean().optional().default(true),
 });
 
@@ -54,6 +56,12 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
         code: 'custom',
         message: 'Passwords do not match',
         path: ['confirmPassword'],
+      });
+    } else if (containsUserInfo(data.password, data.email, data.name)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Password cannot contain your name or email address',
+        path: ['password'],
       });
     }
   }

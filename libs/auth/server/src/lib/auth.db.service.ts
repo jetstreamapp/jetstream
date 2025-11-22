@@ -23,7 +23,13 @@ import {
 } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
-import { getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
+import {
+  ACCOUNT_LOCKOUT_DURATION_MINUTES,
+  getErrorMessageAndStackObj,
+  groupByFlat,
+  MAX_FAILED_LOGIN_ATTEMPTS,
+  PASSWORD_HISTORY_COUNT,
+} from '@jetstream/shared/utils';
 import { Maybe, TEAM_MEMBER_STATUS_ACTIVE } from '@jetstream/types';
 import { addDays, startOfDay } from 'date-fns';
 import { addMinutes } from 'date-fns/addMinutes';
@@ -1002,8 +1008,8 @@ export const resetUserPassword = async (email: string, token: string, password: 
       orderBy: { createdAt: 'desc' },
     });
 
-    if (allPasswords.length > PASSWORD_HISTORY_LIMIT) {
-      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_LIMIT).map(({ id }) => id);
+    if (allPasswords.length > PASSWORD_HISTORY_COUNT) {
+      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_COUNT).map(({ id }) => id);
       await tx.passwordHistory.deleteMany({
         where: {
           id: { in: idsToDelete },
@@ -1108,7 +1114,7 @@ async function getUserAndVerifyPassword(email: string, password: string) {
   if (failedAttempt.isLocked) {
     return {
       error: new AccountLocked(
-        `Account has been locked due to too many failed login attempts. Please try again in 30 minutes or reset your password.`,
+        `Account has been locked due to too many failed login attempts. Please try again in ${ACCOUNT_LOCKOUT_DURATION_MINUTES} minutes or reset your password.`,
       ),
     };
   }
@@ -1826,8 +1832,6 @@ export async function linkIdentityToUser({
  * Password Security Functions
  */
 
-const PASSWORD_HISTORY_LIMIT = 10; // Track last 10 passwords
-
 /**
  * Checks if a password has been used recently (in password history)
  */
@@ -1836,7 +1840,7 @@ export async function isPasswordInHistory(userId: string, hashedPassword: string
     select: { password: true },
     where: { userId },
     orderBy: { createdAt: 'desc' },
-    take: PASSWORD_HISTORY_LIMIT,
+    take: PASSWORD_HISTORY_COUNT,
   });
 
   for (const record of recentPasswords) {
@@ -1851,7 +1855,7 @@ export async function isPasswordInHistory(userId: string, hashedPassword: string
 
 /**
  * Adds a password to the user's password history
- * Maintains only the last PASSWORD_HISTORY_LIMIT passwords
+ * Maintains only the last PASSWORD_HISTORY_COUNT passwords
  */
 export async function addPasswordToHistory(userId: string, hashedPassword: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
@@ -1871,8 +1875,8 @@ export async function addPasswordToHistory(userId: string, hashedPassword: strin
     });
 
     // Delete old passwords beyond the limit
-    if (allPasswords.length > PASSWORD_HISTORY_LIMIT) {
-      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_LIMIT).map((p) => p.id);
+    if (allPasswords.length > PASSWORD_HISTORY_COUNT) {
+      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_COUNT).map((p) => p.id);
       await tx.passwordHistory.deleteMany({
         where: {
           id: { in: idsToDelete },
@@ -1906,9 +1910,6 @@ export async function isAccountLocked(userId: string): Promise<{ isLocked: boole
  * Increments failed login attempts and locks account if threshold is reached
  */
 export async function recordFailedLoginAttempt(userId: string): Promise<{ isLocked: boolean; attemptsRemaining: number }> {
-  const MAX_ATTEMPTS = 6;
-  const LOCKOUT_DURATION_MINUTES = 30;
-
   const user = await prisma.user.findUnique({
     select: { failedLoginAttempts: true, lockedUntil: true },
     where: { id: userId },
@@ -1919,19 +1920,19 @@ export async function recordFailedLoginAttempt(userId: string): Promise<{ isLock
   }
 
   const newAttempts = (user.failedLoginAttempts || 0) + 1;
-  const shouldLock = newAttempts >= MAX_ATTEMPTS;
+  const shouldLock = newAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
 
   await prisma.user.update({
     data: {
       failedLoginAttempts: newAttempts,
-      lockedUntil: shouldLock ? addMinutes(new Date(), LOCKOUT_DURATION_MINUTES) : undefined,
+      lockedUntil: shouldLock ? addMinutes(new Date(), ACCOUNT_LOCKOUT_DURATION_MINUTES) : undefined,
     },
     where: { id: userId },
   });
 
   return {
     isLocked: shouldLock,
-    attemptsRemaining: Math.max(0, MAX_ATTEMPTS - newAttempts),
+    attemptsRemaining: Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - newAttempts),
   };
 }
 

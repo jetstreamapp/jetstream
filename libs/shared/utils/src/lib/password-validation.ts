@@ -3,6 +3,8 @@
  * Used on both frontend and backend to ensure consistent password requirements
  */
 
+import { PASSWORD_MIN_LENGTH } from '@jetstream/types';
+
 export interface PasswordValidationResult {
   isValid: boolean;
   errors: string[];
@@ -18,11 +20,13 @@ export interface PasswordRequirement {
 }
 
 // Password requirements configuration
-export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 255;
 export const PASSWORD_HISTORY_COUNT = 10;
 export const MAX_FAILED_LOGIN_ATTEMPTS = 6;
 export const ACCOUNT_LOCKOUT_DURATION_MINUTES = 30;
+
+// Common keyboard patterns to check against
+const keyboardPatterns = ['qwerty', 'asdfgh', 'zxcvbn', '123456', 'abcdef', 'qazwsx', '1qaz2wsx', 'qwertyuiop', 'asdfghjkl', 'password123'];
 
 // Password requirements
 export const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
@@ -62,7 +66,7 @@ export const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
  * Validates a password against all requirements
  * Note: This does NOT check password history or common passwords - those require DB access
  */
-export function validatePassword(password: string, email?: string): PasswordValidationResult {
+export function validatePassword(password: string, confirmPassword?: string, email?: string): PasswordValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -88,7 +92,7 @@ export function validatePassword(password: string, email?: string): PasswordVali
 
   // Check all requirements
   PASSWORD_REQUIREMENTS.forEach(({ label, test, isRequired }) => {
-    if (!test(password)) {
+    if (!test(password, confirmPassword)) {
       if (isRequired) {
         errors.push(label);
       } else {
@@ -101,9 +105,6 @@ export function validatePassword(password: string, email?: string): PasswordVali
   if (email && password.toLowerCase().includes(email.split('@')[0].toLowerCase())) {
     errors.push('Password cannot contain your email address');
   }
-
-  // Check for common keyboard patterns
-  const keyboardPatterns = ['qwerty', 'asdfgh', 'zxcvbn', '123456', 'abcdef', 'qazwsx', '1qaz2wsx', 'qwertyuiop', 'asdfghjkl'];
 
   const lowerPassword = password.toLowerCase();
   const hasKeyboardPattern = keyboardPatterns.some((pattern) => lowerPassword.includes(pattern));
@@ -163,6 +164,11 @@ export function calculatePasswordStrength(password: string): { strength: 'weak' 
     score -= 10;
   }
 
+  // Penalize common words or patterns
+  if (keyboardPatterns.some((pattern) => password.toLowerCase().includes(pattern))) {
+    score -= 10;
+  }
+
   // Ensure score is between 0 and 100
   score = Math.max(0, Math.min(100, score));
 
@@ -179,18 +185,6 @@ export function calculatePasswordStrength(password: string): { strength: 'weak' 
   }
 
   return { strength, strengthScore: score };
-}
-
-/**
- * Generates a helpful error message for password requirements
- */
-export function getPasswordRequirementsText(): string {
-  return `Password must:
-• Be at least ${PASSWORD_MIN_LENGTH} characters long
-• Contain at least one uppercase letter
-• Contain at least one lowercase letter
-• Contain at least one number or special character
-• Not contain more than 3 repeating characters in a row`;
 }
 
 /**

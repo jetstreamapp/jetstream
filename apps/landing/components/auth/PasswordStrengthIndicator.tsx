@@ -18,7 +18,7 @@ export const PasswordStrengthIndicator: FunctionComponent<PasswordStrengthIndica
     return null;
   }
 
-  const validation = validatePassword(password, email);
+  const validation = validatePassword(password, confirmPassword, email);
 
   const strengthColors = {
     weak: 'bg-red-500',
@@ -62,7 +62,9 @@ export const PasswordStrengthIndicator: FunctionComponent<PasswordStrengthIndica
               const isValid = req.test(password, confirmPassword);
               return (
                 <div key={index} className={`flex items-center gap-1 ${isValid ? 'text-green-600' : 'text-gray-500'}`}>
-                  <span className="font-mono">{isValid ? '✓' : '○'}</span>
+                  <span className="font-mono" role="img" aria-label={isValid ? 'Met' : 'Not met'}>
+                    {isValid ? '✓' : '○'}
+                  </span>
                   <span>{req.label}</span>
                 </div>
               );
@@ -74,7 +76,9 @@ export const PasswordStrengthIndicator: FunctionComponent<PasswordStrengthIndica
             <div className="text-xs text-orange-600 space-y-1">
               {validation.warnings.map((warning, index) => (
                 <div key={index} className="flex items-center gap-1">
-                  <span>⚠</span>
+                  <span className="font-mono" role="img" aria-label="Warning">
+                    ⚠
+                  </span>
                   <span>{warning}</span>
                 </div>
               ))}

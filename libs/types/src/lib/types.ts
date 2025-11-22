@@ -162,13 +162,14 @@ export const UserProfileUiSchema = z.object({
 
 export type UserProfileUi = z.infer<typeof UserProfileUiSchema>;
 
+export const PASSWORD_MIN_LENGTH = 10;
 export const PasswordSchema = z
   .string()
-  .min(10, 'Password must be at least 10 characters')
-  .max(255)
+  .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+  .max(255, `Password must be at most 255 characters`)
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character')
+  .regex(/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one number or special character')
   .refine((pwd) => !/(.)\1{3,}/.test(pwd), {
     message: 'Password cannot contain more than 3 repeating characters',
   });

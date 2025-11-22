@@ -41,6 +41,7 @@ import {
   redirectIfMfaEnrollmentRequiredMiddleware,
   redirectIfPendingVerificationMiddleware,
   setApplicationCookieMiddleware,
+  setCacheControlForApiRoutes,
   setCrossOriginResourcePolicy,
   setPermissionPolicy,
 } from './app/routes/route.middleware';
@@ -316,18 +317,18 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
 
   app.use(destroySessionIfPendingVerificationIsExpired);
 
-  app.use('/healthz', healthCheck);
-  app.use('/redirect', redirectRoutes);
-  app.use('/api/auth', authRoutes);
-  app.use('/api/teams', teamRoutes);
-  app.use('/api/billing', billingRoutes);
-  app.use('/api', apiRoutes);
+  app.use('/healthz', setCacheControlForApiRoutes, healthCheck);
+  app.use('/redirect', setCacheControlForApiRoutes, redirectRoutes);
+  app.use('/api/auth', setCacheControlForApiRoutes, authRoutes);
+  app.use('/api/teams', setCacheControlForApiRoutes, teamRoutes);
+  app.use('/api/billing', setCacheControlForApiRoutes, billingRoutes);
+  app.use('/api', setCacheControlForApiRoutes, apiRoutes);
   app.use('/desktop-assets', desktopAssetsRoutes);
-  app.use('/static', staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
-  app.use('/oauth', oauthRoutes); // NOTE: there are also static files with same path
-  app.use('/web-extension', webExtensionRoutes);
-  app.use('/desktop-app', desktopAppRoutes);
-  app.use('/openapi', openApiRoutes);
+  app.use('/static', setCacheControlForApiRoutes, staticAuthenticatedRoutes); // these are routes that return files or redirect (e.x. NOT JSON)
+  app.use('/oauth', setCacheControlForApiRoutes, oauthRoutes); // NOTE: there are also static files with same path
+  app.use('/web-extension', setCacheControlForApiRoutes, webExtensionRoutes);
+  app.use('/desktop-app', setCacheControlForApiRoutes, desktopAppRoutes);
+  app.use('/openapi', setCacheControlForApiRoutes, openApiRoutes);
 
   if (ENV.ENVIRONMENT !== 'production' || ENV.CI) {
     app.use('/test', testRoutes);
