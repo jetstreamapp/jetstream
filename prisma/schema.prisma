@@ -28,12 +28,19 @@ model User {
   updatedAt         DateTime  @updatedAt
   hasPasswordSet    Boolean   @default(dbgenerated())
 
+  // Password security fields
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  forcePasswordReset  Boolean   @default(false)
+  passwordResetReason String?   @db.VarChar(500)
+
   authFactors         AuthFactors[]
   billingAccount      BillingAccount?
   entitlements        Entitlement?
   identities          AuthIdentity[]
   loginActivity       LoginActivity[]
   organizations       JetstreamOrganization[]
+  passwordHistory     PasswordHistory[]
   passwordResetTokens PasswordResetToken[]
   preferences         UserPreference?
   rememberedDevices   RememberedDevice[]
@@ -192,6 +199,18 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([email, token])
+}
+
+model PasswordHistory {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @db.Uuid
+  password  String   @db.VarChar
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("password_history")
 }
 
 model Entitlement {

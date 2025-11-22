@@ -1,6 +1,5 @@
 export * from './lib/billing.types';
 export * from './lib/jobs/types';
-export * from './lib/node/types';
 export * from './lib/salesforce/apex.types';
 export * from './lib/salesforce/bulk.types';
 export * from './lib/salesforce/metadata.types';

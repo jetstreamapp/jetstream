@@ -162,6 +162,17 @@ export const UserProfileUiSchema = z.object({
 
 export type UserProfileUi = z.infer<typeof UserProfileUiSchema>;
 
+export const PasswordSchema = z
+  .string()
+  .min(10, 'Password must be at least 10 characters')
+  .max(255)
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character')
+  .refine((pwd) => !/(.)\1{3,}/.test(pwd), {
+    message: 'Password cannot contain more than 3 repeating characters',
+  });
+
 export interface SubscriptionsResponse {
   customer: StripeUserFacingCustomer | null;
   pricesByLookupKey: JetstreamPricesByLookupKey | null;

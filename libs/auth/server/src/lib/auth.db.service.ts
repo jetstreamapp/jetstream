@@ -32,14 +32,16 @@ import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
 import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
 import {
+  AccountLocked,
   IdentityLinkingNotAllowed,
   InactiveUser,
   InvalidAction,
   InvalidCredentials,
   InvalidOrExpiredResetToken,
   InvalidProvider,
-  InvalidRegistration,
   LoginWithExistingIdentity,
+  PasswordResetRequired,
+  PasswordReused,
   ProviderEmailNotVerified,
   ProviderNotAllowed,
 } from './auth.errors';
@@ -52,6 +54,17 @@ const LOGIN_CONFIGURATION_CACHE = new LRUCache<string, { value: LoginConfigurati
   // 1 minute
   ttl: 1000 * 60,
 });
+
+export const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000';
+export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
+  id: PLACEHOLDER_USER_ID,
+  userId: `invalid|${PLACEHOLDER_USER_ID}`,
+  name: 'Invalid User',
+  email: 'invalid@invalid.com',
+  emailVerified: false,
+  authFactors: [],
+  teamMembership: null,
+} satisfies AuthenticatedUser);
 
 // Mirrors AuthenticatedUserSchema
 const AuthenticatedUserSelect = Prisma.validator<Prisma.UserSelect>()({
@@ -855,10 +868,20 @@ export async function setPasswordForUser(id: string, password: string) {
     return { error: new Error('Cannot set password, another user with the same email address already has a password set') };
   }
 
+  const hashedPassword = await hashPassword(password);
+
+  // Update user password
+  await prisma.user.update({
+    data: { password: hashedPassword, passwordUpdatedAt: new Date() },
+    where: { id },
+  });
+
+  // Add to password history
+  await addPasswordToHistory(id, hashedPassword);
+
   return prisma.user
-    .update({
+    .findFirstOrThrow({
       select: AuthenticatedUserSelect,
-      data: { password: await hashPassword(password), passwordUpdatedAt: new Date() },
       where: { id },
     })
     .then((user) => AuthenticatedUserSchema.parse(user));
@@ -943,14 +966,50 @@ export const resetUserPassword = async (email: string, token: string, password: 
 
   const hashedPassword = await hashPassword(password);
 
-  await prisma.user.update({
-    data: {
-      password: hashedPassword,
-      passwordUpdatedAt: new Date(),
-    },
-    where: {
-      id: userId,
-    },
+  // Check password history
+  if (await isPasswordInHistory(userId, password)) {
+    throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Update user password and clear force reset flags
+    await tx.user.update({
+      data: {
+        password: hashedPassword,
+        passwordUpdatedAt: new Date(),
+        forcePasswordReset: false,
+        passwordResetReason: null,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+      where: {
+        id: userId,
+      },
+    });
+
+    // Add to password history
+    await tx.passwordHistory.create({
+      data: {
+        userId,
+        password: hashedPassword,
+      },
+    });
+
+    // Clean up old password history
+    const allPasswords = await tx.passwordHistory.findMany({
+      select: { id: true, createdAt: true },
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (allPasswords.length > PASSWORD_HISTORY_LIMIT) {
+      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_LIMIT).map(({ id }) => id);
+      await tx.passwordHistory.deleteMany({
+        where: {
+          id: { in: idsToDelete },
+        },
+      });
+    }
   });
 
   await revokeAllUserSessions(userId);
@@ -1008,8 +1067,30 @@ async function getUserAndVerifyPassword(email: string, password: string) {
     return { error: new InvalidCredentials('Incorrect email or password') };
   }
 
+  // Check if account is locked
+  const lockStatus = await isAccountLocked(UNSAFE_userWithPassword.id);
+  if (lockStatus.isLocked) {
+    return {
+      error: new AccountLocked(
+        `Account is locked due to too many failed login attempts. Please try again later or reset your password.`,
+        lockStatus.lockedUntil,
+      ),
+    };
+  }
+
+  // Check if password reset is required
+  const resetRequired = await isPasswordResetRequired(UNSAFE_userWithPassword.id);
+  if (resetRequired.required) {
+    return {
+      error: new PasswordResetRequired(resetRequired.reason || 'Password reset required'),
+    };
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (await verifyPassword(password, UNSAFE_userWithPassword.password!)) {
+    // Success - reset failed login attempts
+    await resetFailedLoginAttempts(UNSAFE_userWithPassword.id);
+
     return {
       error: null,
       user: await prisma.user
@@ -1020,7 +1101,24 @@ async function getUserAndVerifyPassword(email: string, password: string) {
         .then((user) => AuthenticatedUserSchema.parse(user)),
     };
   }
-  return { error: new InvalidCredentials('Incorrect email or password', { userId: UNSAFE_userWithPassword.id }) };
+
+  // Failed login - record attempt
+  const failedAttempt = await recordFailedLoginAttempt(UNSAFE_userWithPassword.id);
+
+  if (failedAttempt.isLocked) {
+    return {
+      error: new AccountLocked(
+        `Account has been locked due to too many failed login attempts. Please try again in 30 minutes or reset your password.`,
+      ),
+    };
+  }
+
+  return {
+    error: new InvalidCredentials(
+      `Incorrect email or password${failedAttempt.attemptsRemaining > 0 ? `. ${failedAttempt.attemptsRemaining} attempt(s) remaining before account lockout.` : ''}`,
+      { userId: UNSAFE_userWithPassword.id },
+    ),
+  };
 }
 
 async function addIdentityToUser(userId: string, providerUser: ProviderUser, provider: OauthProviderType) {
@@ -1238,6 +1336,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
 
 async function createUserFromUserInfo(email: string, name: string, password: string, loginConfiguration: Maybe<LoginConfiguration>) {
   email = email.toLowerCase();
+
   const passwordHash = await hashPassword(password);
   const user = await prisma.$transaction(async (tx) => {
     // Create initial user
@@ -1273,6 +1372,14 @@ async function createUserFromUserInfo(email: string, name: string, password: str
         },
       })
       .then((user) => AuthenticatedUserSchema.parse(user));
+
+    // Add password to history
+    await tx.passwordHistory.create({
+      data: {
+        userId: user.id,
+        password: passwordHash,
+      },
+    });
 
     // FIXME: do we really need a userId? Should be able to drop after Auth0 migration
     // update userId to include the DB id as the second part of the userId instead of the email
@@ -1371,6 +1478,7 @@ export async function handleSignInOrRegistration(
       },
 ): Promise<{
   user: AuthenticatedUser;
+  sessionDetails?: SessionData['sessionDetails'];
   providerType: ProviderTypeOauth | ProviderTypeCredentials;
   provider: OauthProviderType | 'credentials';
   isNewUser: boolean;
@@ -1513,8 +1621,25 @@ export async function handleSignInOrRegistration(
         throwIfInactiveUser(user);
       } else if (action === 'register') {
         const usersWithEmail = await findUsersByEmail(email);
+        // Email already in use - go to verification flow with placeholder user, user will never be able to complete the process
         if (usersWithEmail.length > 0) {
-          throw new InvalidRegistration('Email address is in use');
+          logger.warn(
+            { email },
+            'Cannot register new user, email already in use - sending to verification flow before revealing the conflict',
+          );
+          return {
+            user: { ...PLACEHOLDER_USER, email },
+            sessionDetails: { isTemporary: true },
+            isNewUser: false,
+            providerType,
+            provider,
+            mfaEnrollmentRequired: false,
+            teamInviteResponse: null,
+            verificationRequired: {
+              email: true,
+              twoFactor: [],
+            },
+          };
         }
 
         // FIXME:
@@ -1695,4 +1820,179 @@ export async function linkIdentityToUser({
   } catch (ex) {
     throw ensureAuthError(ex, new InvalidCredentials());
   }
+}
+
+/**
+ * Password Security Functions
+ */
+
+const PASSWORD_HISTORY_LIMIT = 10; // Track last 10 passwords
+
+/**
+ * Checks if a password has been used recently (in password history)
+ */
+export async function isPasswordInHistory(userId: string, hashedPassword: string): Promise<boolean> {
+  const recentPasswords = await prisma.passwordHistory.findMany({
+    select: { password: true },
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: PASSWORD_HISTORY_LIMIT,
+  });
+
+  for (const record of recentPasswords) {
+    const matches = await verifyPassword(hashedPassword, record.password);
+    if (matches) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Adds a password to the user's password history
+ * Maintains only the last PASSWORD_HISTORY_LIMIT passwords
+ */
+export async function addPasswordToHistory(userId: string, hashedPassword: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    // Add new password to history
+    await tx.passwordHistory.create({
+      data: {
+        userId,
+        password: hashedPassword,
+      },
+    });
+
+    // Get all password history records for this user
+    const allPasswords = await tx.passwordHistory.findMany({
+      select: { id: true, createdAt: true },
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Delete old passwords beyond the limit
+    if (allPasswords.length > PASSWORD_HISTORY_LIMIT) {
+      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_LIMIT).map((p) => p.id);
+      await tx.passwordHistory.deleteMany({
+        where: {
+          id: { in: idsToDelete },
+        },
+      });
+    }
+  });
+}
+
+/**
+ * Checks if a user account is currently locked due to failed login attempts
+ */
+export async function isAccountLocked(userId: string): Promise<{ isLocked: boolean; lockedUntil?: Date }> {
+  const user = await prisma.user.findUnique({
+    select: { lockedUntil: true, failedLoginAttempts: true },
+    where: { id: userId },
+  });
+
+  if (!user) {
+    return { isLocked: false };
+  }
+
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    return { isLocked: true, lockedUntil: user.lockedUntil };
+  }
+
+  return { isLocked: false };
+}
+
+/**
+ * Increments failed login attempts and locks account if threshold is reached
+ */
+export async function recordFailedLoginAttempt(userId: string): Promise<{ isLocked: boolean; attemptsRemaining: number }> {
+  const MAX_ATTEMPTS = 6;
+  const LOCKOUT_DURATION_MINUTES = 30;
+
+  const user = await prisma.user.findUnique({
+    select: { failedLoginAttempts: true, lockedUntil: true },
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new InvalidCredentials('User not found');
+  }
+
+  const newAttempts = (user.failedLoginAttempts || 0) + 1;
+  const shouldLock = newAttempts >= MAX_ATTEMPTS;
+
+  await prisma.user.update({
+    data: {
+      failedLoginAttempts: newAttempts,
+      lockedUntil: shouldLock ? addMinutes(new Date(), LOCKOUT_DURATION_MINUTES) : undefined,
+    },
+    where: { id: userId },
+  });
+
+  return {
+    isLocked: shouldLock,
+    attemptsRemaining: Math.max(0, MAX_ATTEMPTS - newAttempts),
+  };
+}
+
+/**
+ * Resets failed login attempts after successful login
+ */
+export async function resetFailedLoginAttempts(userId: string): Promise<void> {
+  await prisma.user.update({
+    data: {
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    },
+    where: { id: userId },
+  });
+}
+
+/**
+ * Checks if a user is required to reset their password
+ */
+export async function isPasswordResetRequired(userId: string): Promise<{ required: boolean; reason?: string }> {
+  const user = await prisma.user.findUnique({
+    select: { forcePasswordReset: true, passwordResetReason: true },
+    where: { id: userId },
+  });
+
+  if (!user) {
+    return { required: false };
+  }
+
+  if (user.forcePasswordReset) {
+    return {
+      required: true,
+      reason: user.passwordResetReason || 'Password reset required by administrator',
+    };
+  }
+
+  return { required: false };
+}
+
+/**
+ * Sets the force password reset flag for a user
+ */
+export async function setForcePasswordReset(userId: string, reason?: string): Promise<void> {
+  await prisma.user.update({
+    data: {
+      forcePasswordReset: true,
+      passwordResetReason: reason,
+    },
+    where: { id: userId },
+  });
+}
+
+/**
+ * Clears the force password reset flag after user has reset their password
+ */
+export async function clearForcePasswordReset(userId: string): Promise<void> {
+  await prisma.user.update({
+    data: {
+      forcePasswordReset: false,
+      passwordResetReason: null,
+    },
+    where: { id: userId },
+  });
 }

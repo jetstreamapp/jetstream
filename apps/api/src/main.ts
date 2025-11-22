@@ -41,6 +41,8 @@ import {
   redirectIfMfaEnrollmentRequiredMiddleware,
   redirectIfPendingVerificationMiddleware,
   setApplicationCookieMiddleware,
+  setCrossOriginResourcePolicy,
+  setPermissionPolicy,
 } from './app/routes/route.middleware';
 import { blockBotHandler, healthCheck, uncaughtErrorHandler } from './app/utils/response.handlers';
 import { primaryClusterInitSideEffects } from './app/utils/server-process.utils';
@@ -196,6 +198,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     }),
   );
 
+  app.use(setPermissionPolicy);
   app.use(blockBotByUserAgentMiddleware);
 
   if (ENV.ENVIRONMENT === 'development') {
@@ -338,18 +341,22 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
     app.use(cors({ origin: /http:\/\/localhost:[0-9]+$/ }));
   }
 
-  app.use('/assets/js/monaco/vs', express.static(join(__dirname, '../../../node_modules/monaco-editor/min/vs')));
-  app.use('/.well-known', express.static(join(__dirname, './assets/.well-known')));
-  app.use('/assets', express.static(join(__dirname, './assets'), { maxAge: '1m' }));
-  app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
-  app.use(express.static(join(__dirname, '../landing')));
+  app.use(
+    '/assets/js/monaco/vs',
+    setCrossOriginResourcePolicy,
+    express.static(join(__dirname, '../../../node_modules/monaco-editor/min/vs')),
+  );
+  app.use('/.well-known', setCrossOriginResourcePolicy, express.static(join(__dirname, './assets/.well-known')));
+  app.use('/assets', setCrossOriginResourcePolicy, express.static(join(__dirname, './assets'), { maxAge: '1m' }));
+  app.use('/fonts', setCrossOriginResourcePolicy, express.static(join(__dirname, './assets/fonts')));
+  app.use(setCrossOriginResourcePolicy, express.static(join(__dirname, '../landing')));
   // SERVICE WORKER FOR DOWNLOAD ZIP
   app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
     res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
   });
 
   if (environment.production || ENV.CI || ENV.JETSTREAM_CLIENT_URL.replace('/app', '') === ENV.JETSTREAM_SERVER_URL) {
-    app.use(express.static(join(__dirname, '../jetstream')));
+    app.use(setCrossOriginResourcePolicy, express.static(join(__dirname, '../jetstream')));
     app.use(
       '/app',
       redirectIfPendingVerificationMiddleware,

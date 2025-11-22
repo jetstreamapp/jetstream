@@ -1,18 +1,20 @@
-/* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Providers } from '@jetstream/auth/types';
+import type { Providers } from '@jetstream/auth/types';
+import { PasswordSchema } from '@jetstream/types';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { FieldErrors, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
-import { PasswordSchema } from '../../utils/types';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
+import { Checkbox } from '../form/Checkbox';
 import { Input } from '../form/Input';
 import { Captcha } from './Captcha';
 import { ForgotPasswordLink } from './ForgotPasswordLink';
+import { LoginOrSignUpOAuthButton } from './LoginOrSignUpOAuthButton';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 import { RegisterOrSignUpLink } from './RegisterOrSignUpLink';
 import { ShowPasswordButton } from './ShowPasswordButton';
 
@@ -27,10 +29,11 @@ const LoginSchema = z.object({
     .min(5)
     .max(255)
     .trim(),
-  password: PasswordSchema,
+  password: z.string().min(8).max(255),
+  rememberMe: z.boolean().optional().default(true),
 });
 
-const RegisterSchema = LoginSchema.omit({ action: true }).extend({
+const RegisterSchema = LoginSchema.omit({ action: true, password: true }).extend({
   action: z.literal('register'),
   name: z
     .string()
@@ -40,6 +43,7 @@ const RegisterSchema = LoginSchema.omit({ action: true }).extend({
     .max(255, {
       error: 'Name must be at most 255 characters',
     }),
+  password: PasswordSchema,
   confirmPassword: PasswordSchema,
 });
 
@@ -58,6 +62,47 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
 type RegisterForm = z.infer<typeof RegisterSchema>;
 type Form = z.infer<typeof FormSchema>;
 
+const localStorageKeys = {
+  lastUsedLogin: 'jetstream-last-auth-method',
+  rememberedEmail: 'jetstream-remember-me-email',
+};
+
+function getLastUsed() {
+  try {
+    return {
+      lastUsedLogin: localStorage.getItem(localStorageKeys.lastUsedLogin) as keyof Providers | null,
+      rememberedEmail: localStorage.getItem(localStorageKeys.rememberedEmail),
+    };
+  } catch (ex) {
+    return {
+      lastUsedLogin: null,
+      rememberedEmail: null,
+    };
+  }
+}
+
+function setLastUsed({
+  lastUsedLogin = null,
+  rememberedEmail = null,
+}: { lastUsedLogin?: keyof Providers | null; rememberedEmail?: string | null } = {}) {
+  try {
+    if (!lastUsedLogin) {
+      localStorage.removeItem(localStorageKeys.lastUsedLogin);
+    }
+    if (!rememberedEmail) {
+      localStorage.removeItem(localStorageKeys.rememberedEmail);
+    }
+    if (lastUsedLogin) {
+      localStorage.setItem(localStorageKeys.lastUsedLogin, lastUsedLogin);
+    }
+    if (rememberedEmail) {
+      localStorage.setItem(localStorageKeys.rememberedEmail, rememberedEmail);
+    }
+  } catch {
+    // Ignore
+  }
+}
+
 interface LoginOrSignUpProps {
   action: 'login' | 'register';
   providers: Providers;
@@ -70,14 +115,16 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const captchaRef = useRef<{ reset: () => void }>(null);
   const searchParams = useSearchParams();
+  const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsed);
 
-  const emailHint = searchParams.get('email');
+  const emailHint = searchParams.get('email') || (action === 'login' ? rememberedEmail : null);
   const returnUrl = searchParams.get('returnUrl');
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(FormSchema),
@@ -89,30 +136,13 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       confirmPassword: '',
       csrfToken: csrfToken,
       captchaToken: '',
+      rememberMe: true,
     },
   });
 
-  const googleOauthUrl = useMemo(() => {
-    if (!providers?.google?.signinUrl) {
-      return undefined;
-    }
-    const url = new URL(providers?.google.signinUrl);
-    if (returnUrl) {
-      url.searchParams.set('returnUrl', returnUrl);
-    }
-    return url.toString();
-  }, [providers?.google.signinUrl, returnUrl]);
-
-  const salesforceOauthUrl = useMemo(() => {
-    if (!providers?.salesforce?.signinUrl) {
-      return undefined;
-    }
-    const url = new URL(providers?.salesforce.signinUrl);
-    if (returnUrl) {
-      url.searchParams.set('returnUrl', returnUrl);
-    }
-    return url.toString();
-  }, [providers?.salesforce.signinUrl, returnUrl]);
+  const watchPassword = watch('password');
+  const watchConfirmPassword = watch('confirmPassword');
+  const watchEmail = watch('email');
 
   const onSubmit = async (payload: Form) => {
     if (!providers) {
@@ -125,7 +155,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
-      body: new URLSearchParams(payload).toString(),
+      body: new URLSearchParams(payload as any).toString(),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         Accept: 'application/json',
@@ -152,6 +182,10 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
         console.error('Error resetting captcha', ex);
       }
       return;
+    }
+
+    if (payload.rememberMe) {
+      setLastUsed({ rememberedEmail: payload.email });
     }
 
     if (responseData.data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
@@ -181,38 +215,23 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
           <div className="grid grid-cols-2 gap-4">
-            <form action={googleOauthUrl} method="POST">
-              <input type="hidden" name="csrfToken" value={csrfToken} />
+            <LoginOrSignUpOAuthButton
+              action={action}
+              provider={providers?.google}
+              csrfToken={csrfToken}
+              returnUrl={returnUrl}
+              lastUsedLogin={lastUsedLogin}
+              setLastUsed={setLastUsed}
+            />
 
-              {providers?.google.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.google.callbackUrl} />}
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-              >
-                <img
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1693697889/public/google-login-icon_bzw1hi.svg"
-                  alt="Google Logo"
-                  className="h-5 w-5"
-                />
-                <span className="text-sm font-semibold leading-6">Google</span>
-              </button>
-            </form>
-            <form action={salesforceOauthUrl} method="POST">
-              <input type="hidden" name="csrfToken" value={csrfToken} />
-
-              {providers?.salesforce.callbackUrl && <input type="hidden" name="callbackUrl" value={providers?.salesforce.callbackUrl} />}
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-              >
-                <img
-                  src="https://res.cloudinary.com/getjetstream/image/upload/v1724511801/salesforce-blue_qdptxw.svg"
-                  alt="Salesforce Logo"
-                  className="h-5 w-5"
-                />
-                <span className="text-sm font-semibold leading-6">Salesforce</span>
-              </button>
-            </form>
+            <LoginOrSignUpOAuthButton
+              action={action}
+              provider={providers?.salesforce}
+              csrfToken={csrfToken}
+              returnUrl={returnUrl}
+              lastUsedLogin={lastUsedLogin}
+              setLastUsed={setLastUsed}
+            />
           </div>
 
           <div>
@@ -221,7 +240,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
                 <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm font-medium leading-6">
-                <span className="bg-white px-6 text-gray-900">Or continue with</span>
+                <span className="bg-white px-6 text-gray-900">or continue with</span>
               </div>
             </div>
           </div>
@@ -273,15 +292,18 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
                 required: true,
                 autoComplete: action === 'login' ? 'current-password' : 'new-password',
                 spellCheck: 'false',
-                minLength: 8,
+                minLength: action === 'register' ? 12 : 8,
                 maxLength: 255,
                 ...register('password'),
               }}
             >
               {action !== 'register' && (
-                <div className="flex items-center justify-end">
-                  <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
-                </div>
+                <>
+                  <div className="flex items-center justify-between">
+                    <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
+                    <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
+                  </div>
+                </>
               )}
             </Input>
 
@@ -293,15 +315,20 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
                   type: showPasswordActive ? 'text' : 'password',
                   required: true,
                   autoComplete: 'new-password',
-                  minLength: 8,
+                  minLength: 12,
                   maxLength: 255,
                   ...register('confirmPassword'),
                 }}
               >
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-between">
+                  <Checkbox inputProps={{ ...register('rememberMe') }}>Remember Me</Checkbox>
                   <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
                 </div>
               </Input>
+            )}
+
+            {action === 'register' && watchPassword && (
+              <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
             )}
 
             <div className="flex items-center justify-end">
