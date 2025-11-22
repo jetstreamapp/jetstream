@@ -32,7 +32,7 @@ export const routeDefinition = {
   },
   acceptInvitation: {
     controllerFn: () => acceptInvitation,
-    responseType: z.object({ success: z.boolean(), redirectUrl: z.string().nullish() }),
+    responseType: z.object({ success: z.boolean(), redirectUrl: z.url().nullish() }),
     validators: {
       hasSourceOrg: false,
       logErrorToBugTracker: true,
