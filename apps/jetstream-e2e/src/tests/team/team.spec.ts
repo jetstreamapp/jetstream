@@ -495,7 +495,7 @@ test.describe('Team Dashboard', () => {
 
   test('Team dashboard - Access controls', async ({ authenticationPage, teamCreationUtils3Users: teamCreationUtils }) => {
     const { adminUser, team } = teamCreationUtils;
-    const [member1, member2, billingMember1] = teamCreationUtils.members;
+    const [member1, , billingMember1] = teamCreationUtils.members;
 
     const request = billingMember1.context.request;
     const page = await billingMember1.context.newPage();

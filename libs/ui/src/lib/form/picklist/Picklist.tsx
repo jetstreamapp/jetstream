@@ -113,9 +113,9 @@ export const Picklist = forwardRef<any, PicklistProps>(
   ) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const keyBuffer = useRef(new KeyBuffer());
-    const [comboboxId] = useState<string>(() => uniqueId(id || 'picklist'));
-    const [listboxId] = useState<string>(() => uniqueId('listbox'));
-    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [comboboxId] = useState(() => uniqueId(id || 'picklist'));
+    const [listboxId] = useState(() => uniqueId('listbox'));
+    const [isOpen, setIsOpen] = useState(false);
     const [selectedItemsIdsSet, setSelectedItemsIdsSet] = useState<Set<unknown>>(() => {
       let selectedItemIdsSet = new Set();
       if (selectedItems?.length > 0) {
@@ -125,7 +125,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
       }
       return selectedItemIdsSet;
     });
-    const [selectedItemText, setSelectedItemText] = useState<string>(() => getSelectItemText(selectedItemsIdsSet, items));
+    const [selectedItemText, setSelectedItemText] = useState(() => getSelectItemText(selectedItemsIdsSet, items));
     const scrollLengthClass = useMemo(() => `slds-dropdown_length-${scrollLength || 5}`, [scrollLength]);
     const [focusedItem, setFocusedItem] = useState<number | null>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);

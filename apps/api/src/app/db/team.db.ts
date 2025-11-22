@@ -197,7 +197,7 @@ export const findByUserId = async ({ userId }: { userId: string }) => {
 };
 
 /**
- * Checks if a user has any of the specified roles in any team
+ * Checks if a user has any of the specified roles within their team (user is allowed to be in exactly one team)
  * This can be used for permission checks
  */
 export const doesUserHaveSpecifiedRoles = async ({ userId, roles }: { userId: string; roles: TeamMemberRole[] }) => {

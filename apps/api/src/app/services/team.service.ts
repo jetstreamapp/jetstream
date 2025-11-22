@@ -29,6 +29,10 @@ import * as teamDbService from '../db/team.db';
 import { NotAllowedError, UserFacingError } from '../utils/error-handler';
 import * as stripeService from './stripe.service';
 
+/**
+ * Verifies that the running user has permission to update the target user based on role hierarchy.
+ * @throws {NotAllowedError} If the running user doesn't have permission to modify the target user
+ */
 export async function canRunningUserUpdateTargetUserOrThrow({
   runningUserRole,
   userId,
