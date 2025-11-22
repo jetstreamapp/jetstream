@@ -8,17 +8,17 @@ const __dirname = dirname(__filename);
 
 const sourceDir = join(__dirname, '..', 'node_modules', 'monaco-editor', 'min', 'vs');
 
-const destinations = [
-  {
+const destinationConfigs = {
+  desktop: {
     path: join(__dirname, '..', 'apps', 'jetstream-desktop-client', 'public', 'monaco', 'vs'),
     includeAll: true,
   },
-  {
+  'web-extension': {
     path: join(__dirname, '..', 'apps', 'jetstream-web-extension', 'src', 'assets', 'js', 'monaco', 'vs'),
     includeAll: false,
     includeLanguages: ['apex', 'css', 'html', 'javascript', 'xml'],
   },
-];
+};
 
 function copyDirectory(source, destination, options = {}) {
   const { includeAll = true, includeLanguages = [] } = options;
@@ -85,29 +85,46 @@ function copyDirectory(source, destination, options = {}) {
 }
 
 function main() {
-  console.log('Copying Monaco Editor assets...');
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  const targetIndex = args.indexOf('--target');
 
-  for (const dest of destinations) {
-    console.log(`\nProcessing: ${dest.path}`);
-
-    // Delete existing contents
-    try {
-      rmSync(dest.path, { recursive: true, force: true });
-      console.log('  - Deleted existing contents');
-    } catch (error) {
-      console.log('  - No existing contents to delete');
-    }
-
-    // Copy new contents
-    copyDirectory(sourceDir, dest.path, {
-      includeAll: dest.includeAll,
-      includeLanguages: dest.includeLanguages,
-    });
-
-    console.log('  - Copied Monaco assets');
+  if (targetIndex === -1 || !args[targetIndex + 1]) {
+    console.error('Error: --target flag is required');
+    console.error('Usage: node copy-monaco-assets.mjs --target <desktop|web-extension>');
+    process.exit(1);
   }
 
-  console.log('\nMonaco Editor assets copied successfully!');
+  const target = args[targetIndex + 1];
+
+  if (!['desktop', 'web-extension'].includes(target)) {
+    console.error(`Error: Invalid target "${target}"`);
+    console.error('Valid targets: desktop, web-extension');
+    process.exit(1);
+  }
+
+  // Type assertion: target is validated to be one of the valid keys
+  const dest = destinationConfigs[/** @type {'desktop' | 'web-extension'} */ (target)];
+
+  console.log(`Copying Monaco Editor assets for ${target}...`);
+  console.log(`\nProcessing: ${dest.path}`);
+
+  // Delete existing contents
+  try {
+    rmSync(dest.path, { recursive: true, force: true });
+    console.log('  - Deleted existing contents');
+  } catch {
+    console.log('  - No existing contents to delete');
+  }
+
+  // Copy new contents
+  copyDirectory(sourceDir, dest.path, {
+    includeAll: dest.includeAll,
+    includeLanguages: dest.includeLanguages || [],
+  });
+
+  console.log('  - Copied Monaco assets');
+  console.log(`\nMonaco Editor assets for ${target} copied successfully!`);
 }
 
 main();
