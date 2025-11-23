@@ -31,7 +31,7 @@ export default function DesktopDownloadPage() {
 
         {/* Professional Plan Callout */}
         <div className="mt-8 mx-auto max-w-2xl">
-          <div className="rounded-lg bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 p-6">
+          <div className="rounded-lg bg-linear-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 p-6">
             <div className="flex items-center justify-center">
               <StarIcon className="h-5 w-5 text-cyan-400 mr-2" />
               <p className="text-sm font-medium text-cyan-300">The Desktop application is available for Professional and higher plans.</p>
@@ -44,9 +44,9 @@ export default function DesktopDownloadPage() {
 
         {/* Beta Notice */}
         <div className="mt-6 mx-auto max-w-2xl">
-          <div className="rounded-lg bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-500/20 p-6">
+          <div className="rounded-lg bg-linear-to-r from-amber-900/20 to-orange-900/20 border border-amber-500/20 p-6">
             <div className="flex items-start">
-              <ExclamationTriangleIcon className="h-5 w-5 text-amber-400 mr-3 mt-0.5 flex-shrink-0" />
+              <ExclamationTriangleIcon className="h-5 w-5 text-amber-400 mr-3 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-amber-300 mb-2">Early Release</p>
                 <p className="text-sm text-amber-200 mb-3">This feature is in early release. You may encounter bugs or missing features.</p>
@@ -82,13 +82,13 @@ export default function DesktopDownloadPage() {
         <div className="mt-16" style={{ minHeight: '600px' }}>
           {!userProfile.isLoggedIn ? (
             <div className="text-center">
-              <div className="max-w-md mx-auto rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600 p-8">
+              <div className="max-w-md mx-auto rounded-lg bg-linear-to-r from-gray-800/50 to-gray-700/50 border border-gray-600 p-8">
                 <LockClosedIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-4">Login to view download options</h3>
                 <p className="text-gray-300 mb-6">Sign in to access the desktop app for your platform</p>
                 <Link
                   href={ROUTES.AUTH.login}
-                  className="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-cyan-500 rounded-lg shadow-lg hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                  className="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-cyan-500 rounded-lg shadow-lg hover:bg-cyan-400 focus:outline-hidden focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                 >
                   Login
                 </Link>
@@ -141,7 +141,7 @@ export default function DesktopDownloadPage() {
                       <p className="text-sm font-semibold text-cyan-400 mb-4">Recommended for your device</p>
                       <a
                         href={recommendedDownload.downloadUrl}
-                        className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-cyan-500 rounded-lg shadow-lg hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+                        className="inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-cyan-500 rounded-lg shadow-lg hover:bg-cyan-400 focus:outline-hidden focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                         download
                       >
                         <ArrowDownTrayIcon className="h-6 w-6 mr-3" />
@@ -164,7 +164,7 @@ export default function DesktopDownloadPage() {
                     {windows ? (
                       <a
                         href={windows.downloadUrl}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                         download
                       >
                         <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
@@ -183,7 +183,7 @@ export default function DesktopDownloadPage() {
                     {macosX64 ? (
                       <a
                         href={macosX64.downloadUrl}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                         download
                       >
                         <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
@@ -202,7 +202,7 @@ export default function DesktopDownloadPage() {
                     {macosArm64 ? (
                       <a
                         href={macosArm64.downloadUrl}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                         download
                       >
                         <ArrowDownTrayIcon className="h-4 w-4 mr-2" />

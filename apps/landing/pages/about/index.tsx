@@ -91,7 +91,7 @@ export default function Page() {
 
         {/* Founder Section */}
         <div className="mt-16 mx-auto max-w-4xl">
-          <div className="bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 rounded-3xl p-8 lg:p-12">
+          <div className="bg-linear-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 rounded-3xl p-8 lg:p-12">
             <h2 className="text-2xl font-bold tracking-tight text-white mb-6">Leadership</h2>
             <div className="flex flex-col lg:flex-row lg:items-center gap-6">
               <div className="flex-1">
@@ -129,7 +129,7 @@ export default function Page() {
               href="https://discord.gg/sfxd"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 text-base font-semibold text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="inline-flex items-center px-6 py-3 text-base font-semibold text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
             >
               Join Discord Community
             </a>
@@ -137,7 +137,7 @@ export default function Page() {
               href="https://github.com/jetstreamapp/jetstream"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 text-base font-semibold text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="inline-flex items-center px-6 py-3 text-base font-semibold text-white bg-white/10 rounded-lg hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
             >
               View on GitHub
             </a>

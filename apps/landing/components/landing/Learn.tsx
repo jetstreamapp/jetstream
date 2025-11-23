@@ -74,7 +74,7 @@ export const Learn = () => (
       <div className="mt-12 mx-auto max-w-md px-4 grid gap-8 sm:max-w-lg sm:px-6 lg:px-8 lg:grid-cols-3 lg:max-w-7xl">
         {blogPosts.map((post) => (
           <div key={post.id} className="flex flex-col rounded-lg shadow-lg overflow-hidden">
-            {/* <div className="flex-shrink-0"> */}
+            {/* <div className="shrink-0"> */}
             {/* <img className="h-48 w-full object-cover" src={post.imageUrl} alt="" /> */}
             {/* </div> */}
             <div className="flex-1 bg-white p-6 flex flex-col justify-between">
@@ -86,7 +86,7 @@ export const Learn = () => (
                 </a>
               </div>
               {/* <div className="mt-6 flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <a href={post.author.href}>
                     <img className="h-10 w-10 rounded-full" src={post.author.imageUrl} alt={post.author.name} />
                   </a>

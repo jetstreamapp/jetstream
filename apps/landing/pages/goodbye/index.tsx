@@ -6,7 +6,7 @@ const email = 'support@getjetstream.app';
 
 export default function Page() {
   return (
-    <main className="flex-grow flex flex-col justify-center max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 sm:my-4 md:my-12">
+    <main className="grow flex flex-col justify-center max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 sm:my-4 md:my-12">
       <div className="py-16">
         <div className="text-center">
           <p className="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Goodbye</p>

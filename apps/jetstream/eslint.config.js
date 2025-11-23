@@ -89,7 +89,7 @@ module.exports = [
       'no-restricted-globals': [
         'error',
         'addEventListener',
-        'blur',
+        'blur-sm',
         'close',
         'closed',
         'confirm',

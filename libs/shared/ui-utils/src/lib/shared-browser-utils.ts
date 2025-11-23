@@ -17,7 +17,7 @@ export function getBrowserInfo(userAgent: string) {
   const browser = Bowser.getParser(userAgent);
   const browserInfo = {
     browserName: browser.getBrowserName(),
-    browserVersion: browser.getBrowserVersion(),
+    browserVersion: browser.getBrowserVersion() || 'unknown',
     osName: browser.getOSName(),
   };
 

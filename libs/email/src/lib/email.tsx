@@ -17,12 +17,6 @@ import { WelcomeEmail } from './email-templates/auth/WelcomeEmail';
 import { WelcomeToProEmail } from './email-templates/auth/WelcomeToProEmail';
 import { OrgExpirationWarningEmail } from './email-templates/org/OrgExpirationWarningEmail';
 
-/**
- *
- * TODO:
- * Is there any benefit of sending these via mailgun instead of just SMTP directly?
- */
-
 function renderComponent(component: JSX.Element) {
   return Promise.all([render(component, { plainText: false }), render(component, { plainText: true })]);
 }

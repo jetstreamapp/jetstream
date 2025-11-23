@@ -14,7 +14,7 @@ export default function Page() {
   const { status, errorMessage } = useDesktopAuthState();
 
   return (
-    <main className="flex-grow flex flex-col justify-center max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 sm:my-12 md:my-24">
+    <main className="grow flex flex-col justify-center max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 sm:my-12 md:my-24">
       <div className="py-16">
         <div className="text-center">
           <p className="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Authentication</p>

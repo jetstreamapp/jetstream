@@ -26,7 +26,7 @@ export default defineConfig({
   expect: {
     timeout: THIRTY_SECONDS,
   },
-  maxFailures: 2,
+  maxFailures: process.env.CI ? 2 : 0,
   timeout: 120000,
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { outputFolder: 'playwright-report', open: process.env.CI ? 'never' : 'on-failure' }]],

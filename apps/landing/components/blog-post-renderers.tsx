@@ -42,7 +42,7 @@ const wrapHeadingWithAnchor = (type: 'heading-1' | 'heading-2' | 'heading-3' | '
     }
     if (slug) {
       anchor = (
-        <a href={`#${slug}`} title={text} className="opacity-60 hover:opacity-100 pt-2 pl-1 select-none flex-grow">
+        <a href={`#${slug}`} title={text} className="opacity-60 hover:opacity-100 pt-2 pl-1 select-none grow">
           <LinkIcon className="h-5 w-5 stroke-gray-50" aria-hidden="true" />
         </a>
       );

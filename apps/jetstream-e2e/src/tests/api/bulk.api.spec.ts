@@ -42,6 +42,7 @@ test.describe('API - Bulk', () => {
         `"LastName";"FirstName";"Title";"Company";"State";"Country";"Email";"LeadSource";"Status"`,
         `"Snyder-${timestamp}";"Kathy";"Regional General Manager ${timestamp}";"TNR Corp. ${timestamp}";"CT";"USA";"ksynder@tnr.${timestamp}.net";"Purchased List";"Working - Contacted"`,
       ].join('\n'),
+      { 'Content-Type': 'text/csv; charset=UTF-8' },
     );
 
     expect(addBatchToJobResponse.id).toBeTruthy();
@@ -110,6 +111,7 @@ test.describe('API - Bulk', () => {
         closeJob: 'true',
       })}`,
       `SELECT Id, Name, AnnualRevenue, City, Company, Country, CreatedDate, Description, Email, IsConverted, IsDeleted FROM Lead`,
+      { 'Content-Type': 'text/csv; charset=UTF-8' },
     );
 
     expect(addBatchToJobResponse.id).toBeTruthy();

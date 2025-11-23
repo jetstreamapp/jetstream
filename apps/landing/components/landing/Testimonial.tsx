@@ -4,7 +4,7 @@ import React from 'react';
  * TODO:
  */
 export const Testimonial = () => (
-  <div className="pb-16 bg-gradient-to-r from-teal-500 to-cyan-600 lg:pb-0 lg:z-10 lg:relative">
+  <div className="pb-16 bg-linear-to-r from-teal-500 to-cyan-600 lg:pb-0 lg:z-10 lg:relative">
     <div className="lg:mx-auto lg:max-w-7xl lg:px-12 lg:grid lg:grid-cols-3 lg:gap-8">
       <div className="lg:m-0 lg:col-span-3 lg:pl-8">
         <div className="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 lg:px-0 lg:py-16 lg:max-w-none">
