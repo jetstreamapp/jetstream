@@ -948,6 +948,14 @@ export const resetUserPassword = async (email: string, token: string, password: 
   const { expiresAt, user, userId } = resetToken;
   const { teamMembership } = user;
 
+  // Used only if password re-use caused the failure
+  async function restoreResetTokenOnPasswordReuse() {
+    // Re-create the token since we failed to reset the password - we want to let the user try again
+    await prisma.passwordResetToken.create({
+      data: { userId, email, token, expiresAt },
+    });
+  }
+
   // delete token - we don't need it anymore and if we fail later, the user will need to reset again
   await prisma.passwordResetToken.delete({
     where: { email_token: { email, token } },
@@ -961,7 +969,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
     throw new InvalidOrExpiredResetToken(`Expired at ${expiresAt.toISOString()}`);
   }
 
-  await changeUserPassword(userId, password);
+  await changeUserPassword(userId, password, restoreResetTokenOnPasswordReuse);
 
   await revokeAllUserSessions(userId);
 
@@ -1776,11 +1784,14 @@ export async function linkIdentityToUser({
  * Password Security Functions
  */
 
-export const changeUserPassword = async (userId: string, password: string) => {
+export const changeUserPassword = async (userId: string, password: string, onReusedPassword?: () => Promise<void>) => {
   const hashedPassword = await hashPassword(password);
 
   await prisma.$transaction(async (tx) => {
     if (await isPasswordInHistory(userId, password, tx)) {
+      if (onReusedPassword) {
+        await onReusedPassword();
+      }
       throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
     }
 
@@ -1797,8 +1808,28 @@ export const changeUserPassword = async (userId: string, password: string) => {
       where: { id: userId },
     });
 
-    // Add to password history and trim old entries
-    await addPasswordToHistory(userId, hashedPassword, tx);
+    // Add new password to history
+    await tx.passwordHistory.create({
+      data: {
+        userId,
+        password: hashedPassword,
+      },
+    });
+
+    // Get all password history records for this user
+    const allPasswords = await tx.passwordHistory.findMany({
+      select: { id: true },
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Delete old passwords beyond the limit
+    if (allPasswords.length > PASSWORD_HISTORY_COUNT) {
+      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_COUNT).map(({ id }) => id);
+      await tx.passwordHistory.deleteMany({
+        where: { id: { in: idsToDelete } },
+      });
+    }
   });
 };
 
@@ -1821,45 +1852,6 @@ export async function isPasswordInHistory(userId: string, password: string, tx?:
   }
 
   return false;
-}
-
-/**
- * Adds a password to the user's password history
- * Maintains only the last PASSWORD_HISTORY_COUNT passwords
- */
-export async function addPasswordToHistory(userId: string, hashedPassword: string, tx?: Prisma.TransactionClient): Promise<void> {
-  async function doWork(txClient: Prisma.TransactionClient) {
-    // Add new password to history
-    await txClient.passwordHistory.create({
-      data: {
-        userId,
-        password: hashedPassword,
-      },
-    });
-
-    // Get all password history records for this user
-    const allPasswords = await txClient.passwordHistory.findMany({
-      select: { id: true, createdAt: true },
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // Delete old passwords beyond the limit
-    if (allPasswords.length > PASSWORD_HISTORY_COUNT) {
-      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_COUNT).map((p) => p.id);
-      await txClient.passwordHistory.deleteMany({
-        where: {
-          id: { in: idsToDelete },
-        },
-      });
-    }
-  }
-
-  if (tx) {
-    doWork(tx);
-  } else {
-    prisma.$transaction(doWork);
-  }
 }
 
 /**
