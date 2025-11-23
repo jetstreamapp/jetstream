@@ -11,7 +11,7 @@ function getSanitizedDocsUrl(path: string): string | null {
     if (!path) {
       return path;
     }
-    const url = path.startsWith(DOCS_BASE_PATH) ? new URL(path) : new URL(path, DOCS_BASE_PATH);
+    const url = new URL(path, DOCS_BASE_PATH);
     if (!allowedHosts.includes(url.host)) {
       return null;
     }
