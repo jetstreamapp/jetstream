@@ -16,7 +16,7 @@ export default function Page() {
 
         {/* Professional Plan Callout */}
         <div className="mt-8 mx-auto max-w-2xl">
-          <div className="rounded-lg bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 p-6">
+          <div className="rounded-lg bg-linear-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 p-6">
             <div className="flex items-center justify-center">
               <StarIcon className="h-5 w-5 text-cyan-400 mr-2" />
               <p className="text-sm font-medium text-cyan-300">Browser extensions are available for Professional and higher plans.</p>
@@ -42,7 +42,7 @@ export default function Page() {
                 href={ROUTES.EXTERNAL.CHROME_EXTENSION}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
               >
                 Get Extension
               </a>
@@ -59,7 +59,7 @@ export default function Page() {
                 href={ROUTES.EXTERNAL.FIREFOX_EXTENSION}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-md hover:bg-white/20 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
               >
                 Get Extension
               </a>

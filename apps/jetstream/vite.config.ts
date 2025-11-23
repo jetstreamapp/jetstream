@@ -1,4 +1,4 @@
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
@@ -9,7 +9,21 @@ import { baseHrefPlugin } from './vite.plugins';
 
 dns.setDefaultResultOrder('verbatim');
 
-export default defineConfig({
+export default defineConfig(() => ({
+  plugins: [
+    react({
+      jsxImportSource: '@emotion/react',
+      babel: {
+        plugins: ['@emotion/babel-plugin'],
+      },
+    }),
+    nxViteTsPaths(),
+    baseHrefPlugin(),
+  ],
+
+  worker: {
+    plugins: () => [nxViteTsPaths()],
+  },
   root: __dirname,
   cacheDir: '../../node_modules/.vite/jetstream',
   envPrefix: 'NX',
@@ -32,19 +46,17 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {},
   },
-
-  plugins: [
-    react({
-      jsxImportSource: '@emotion/react',
-      babel: {
-        plugins: ['@emotion/babel-plugin'],
-      },
-    }),
-    nxViteTsPaths(),
-    baseHrefPlugin(),
-  ],
-
-  worker: {
-    plugins: () => [nxViteTsPaths()],
+  test: {
+    name: 'jetstream',
+    watch: false,
+    globals: true,
+    environment: 'jsdom',
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    reporters: ['default'],
+    passWithNoTests: true,
+    coverage: {
+      reportsDirectory: '../../coverage/apps/jetstream',
+      provider: 'v8' as const,
+    },
   },
-});
+}));

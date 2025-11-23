@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger, telemetryAddUserToAttributes } from '@jetstream/api-config';
+import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import {
   AuthError,
   ExpiredVerificationToken,
@@ -191,7 +191,6 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
   }
 
   if (user && user.id !== PLACEHOLDER_USER_ID && !pendingVerification) {
-    telemetryAddUserToAttributes(user);
     return next();
   }
 

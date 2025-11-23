@@ -387,7 +387,8 @@ const callback = createRoute(
       if (provider.type === 'oauth') {
         // oauth flow
         // Validate required cookies exist before calling OAuth library
-        if (!cookies[pkceCodeVerifier.name]) {
+        const pkce = cookies[pkceCodeVerifier.name];
+        if (!pkce) {
           throw new InvalidSession('Missing PKCE code verifier - invalid OAuth flow. Please start the login process again.');
         }
 
@@ -397,12 +398,7 @@ const callback = createRoute(
           throw new InvalidParameters('Missing OAuth callback parameters. Please start the login process again.');
         }
 
-        const { userInfo } = await validateCallback(
-          provider.provider as OauthProviderType,
-          queryParams,
-          cookies[pkceCodeVerifier.name],
-          cookies[nonce.name],
-        );
+        const { userInfo } = await validateCallback(provider.provider as OauthProviderType, queryParams, pkce, cookies[nonce.name]);
 
         if (!userInfo.email) {
           throw new InvalidParameters('Missing email from OAuth provider');
@@ -511,13 +507,13 @@ const callback = createRoute(
       }
 
       // check for remembered device - emailVerification cannot be bypassed
+      const deviceId = cookies[rememberDevice.name];
       if (
-        cookies[rememberDevice.name] &&
+        deviceId &&
         Array.isArray(req.session.pendingVerification) &&
         req.session.pendingVerification.length > 0 &&
         req.session.pendingVerification.find((item) => item.type !== 'email')
       ) {
-        const deviceId = cookies[rememberDevice.name];
         const isDeviceRemembered = await hasRememberDeviceRecord({
           userId: req.session.user.id,
           deviceId,
@@ -563,8 +559,8 @@ const callback = createRoute(
 
         let redirectUrl = returnUrl || ENV.JETSTREAM_CLIENT_URL;
 
-        if (!returnUrl && cookies[redirectUrlCookie.name]) {
-          const redirectValue = cookies[redirectUrlCookie.name];
+        const redirectValue = cookies[redirectUrlCookie.name];
+        if (!returnUrl && redirectValue) {
           redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
           redirectUrl = redirectUrl.replace('/app/app', '/app');
           clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
@@ -696,8 +692,8 @@ const verification = createRoute(
        * FIXME: if the user invite works correctly, then we don't need to redirect
        */
 
-      if (cookies[cookieConfig.redirectUrl.name]) {
-        const redirectValue = cookies[cookieConfig.redirectUrl.name];
+      const redirectValue = cookies[cookieConfig.redirectUrl.name];
+      if (redirectValue) {
         redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
         redirectUrl = redirectUrl.replace('/app/app', '/app');
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
@@ -882,8 +878,8 @@ const verifyEmailViaLink = createRoute(
 
       let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
 
-      if (cookies[cookieConfig.redirectUrl.name]) {
-        const redirectValue = cookies[cookieConfig.redirectUrl.name];
+      const redirectValue = cookies[cookieConfig.redirectUrl.name];
+      if (redirectValue) {
         redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
         redirectUrl = redirectUrl.replace('/app/app', '/app');
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
@@ -994,9 +990,8 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
     req.session.pendingMfaEnrollment = null;
 
     let redirectUrl = ENV.JETSTREAM_CLIENT_URL;
-
-    if (cookies[cookieConfig.redirectUrl.name]) {
-      const redirectValue = cookies[cookieConfig.redirectUrl.name];
+    const redirectValue = cookies[cookieConfig.redirectUrl.name];
+    if (redirectValue) {
       redirectUrl = redirectValue.startsWith('/') ? `${ENV.JETSTREAM_CLIENT_URL}${redirectValue}` : redirectValue;
       redirectUrl = redirectUrl.replace('/app/app', '/app');
       clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);

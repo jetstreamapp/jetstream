@@ -6,10 +6,10 @@
   "tags": ["scope:browser"],
   "targets": {
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/shared/ui-core/jest.config.ts"
+        "reportsDirectory": "../../../coverage/libs/shared/ui-core"
       }
     }
   }

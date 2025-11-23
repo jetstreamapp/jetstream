@@ -22,10 +22,10 @@
       "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/salesforce-api/jest.config.ts"
+        "reportsDirectory": "../../coverage/libs/salesforce-api"
       }
     }
   }

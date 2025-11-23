@@ -9,10 +9,10 @@
       "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/libs/connected/connected-ui"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/connected/connected-ui/jest.config.ts"
+        "reportsDirectory": "../../../coverage/libs/connected/connected-ui"
       }
     }
   }

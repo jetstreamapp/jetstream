@@ -65,10 +65,10 @@
       "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/cron-tasks"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "apps/cron-tasks/jest.config.ts"
+        "reportsDirectory": "../../coverage/apps/cron-tasks"
       }
     }
   }

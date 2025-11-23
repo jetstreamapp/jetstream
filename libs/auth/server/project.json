@@ -6,10 +6,10 @@
   "tags": ["scope:server"],
   "targets": {
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/auth/server/jest.config.ts"
+        "reportsDirectory": "../../../coverage/libs/auth/server"
       }
     }
   }

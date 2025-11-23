@@ -1,5 +1,5 @@
 import { Maybe, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatusSchema } from '@jetstream/types';
-import type { CookieSerializeOptions } from 'cookie';
+import type { SerializeOptions as CookieSerializeOptions } from 'cookie';
 import { z } from 'zod';
 
 export interface Team {

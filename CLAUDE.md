@@ -16,7 +16,7 @@ Jetstream is a comprehensive Salesforce management platform that helps users wor
 
 **Frontend**: React 18, TypeScript, Vite, jotai (state), Emotion (styling), Monaco Editor, Salesforce Lightning Design System (SLDS)
 **Backend**: Node.js 22+, Express, Prisma ORM, PostgreSQL, Socket.io, JWT auth
-**Build**: Nx monorepo, Jest (testing), Playwright (E2E), ESLint, Prettier
+**Build**: Nx monorepo, Vitest (testing), Playwright (E2E), ESLint, Prettier
 
 ## Repository Structure
 
@@ -144,7 +144,7 @@ Prefer using Salesforce lightning design system CSS classes when applicable, but
 
 ## Testing Approach
 
-- Unit tests with Jest (co-located with source files as `*.spec.ts`)
+- Unit tests with Vitest (co-located with source files as `*.spec.ts`)
 - E2E tests with Playwright in `apps/*-e2e/` directories
 - Run affected tests before committing: `yarn test:affected`
 - Always run linting: `yarn lint:affected`

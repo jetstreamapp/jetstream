@@ -268,7 +268,7 @@ export class AuthenticationPage {
     };
   }
 
-  async loginAndVerifyEmail(email: string, password: string, rememberMe = false, waitForPage = '**/app') {
+  async loginAndVerifyEmail(email: string, password: string, rememberMe = false, waitForPage = '**/app/**') {
     await this.fillOutLoginForm(email, password);
 
     await expect(this.page.getByText('Enter verification code')).toBeVisible();
@@ -288,7 +288,7 @@ export class AuthenticationPage {
     await this.verifyTotp(email, secret, rememberMe);
   }
 
-  async verifyEmail(email: string, rememberMe = false, waitForPage = '**/app') {
+  async verifyEmail(email: string, rememberMe = false, waitForPage = '**/app/**') {
     // Get token from session
     const sessions = await getUserSessionsByEmail(email);
     const pendingVerification = sessions.find((session) => session.pendingVerification?.length)?.pendingVerification || [];

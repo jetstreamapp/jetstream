@@ -6,4 +6,4 @@ These are highly context specific and not generic UI components
 
 ## Running unit tests
 
-Run `nx test connected-connected-ui` to execute the unit tests via [Jest](https://jestjs.io).
+Run `nx test connected-connected-ui` to execute the unit tests

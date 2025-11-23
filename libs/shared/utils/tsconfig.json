@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "esModuleInterop": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "include": [],
   "files": [],

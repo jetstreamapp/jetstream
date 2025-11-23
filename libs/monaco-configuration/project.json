@@ -9,10 +9,10 @@
       "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/libs/monaco-configuration"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/monaco-configuration/jest.config.ts"
+        "reportsDirectory": "../../coverage/libs/monaco-configuration"
       }
     }
   }

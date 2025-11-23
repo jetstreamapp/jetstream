@@ -6,10 +6,10 @@
   "tags": ["scope:browser", "scope:allow-worker-import"],
   "targets": {
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/shared/ui-router/jest.config.ts"
+        "reportsDirectory": "../../../coverage/libs/shared/ui-router"
       }
     }
   }

@@ -97,7 +97,7 @@ module.exports = [
       'no-restricted-globals': [
         'error',
         'addEventListener',
-        'blur',
+        'blur-sm',
         'close',
         'closed',
         'confirm',
@@ -288,7 +288,7 @@ module.exports = [
     rules: {
       '@next/next/no-html-link-for-pages': ['error', 'landing/pages'],
     },
-    ignores: ['jest.config.ts'],
+    ignores: [],
     languageOptions: {
       parserOptions: {
         project: ['apps/landing/tsconfig.json'],
