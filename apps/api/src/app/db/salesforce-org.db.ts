@@ -44,7 +44,7 @@ const findUniqueOrg = ({ userId, uniqueId }: { userId: string; uniqueId: string 
   return Prisma.validator<Prisma.SalesforceOrgWhereUniqueInput>()({
     uniqueOrg: {
       jetstreamUserId2: userId,
-      uniqueId: uniqueId,
+      uniqueId,
     },
   });
 };
@@ -93,7 +93,7 @@ export async function updateAccessToken_UNSAFE({
 export async function updateOrg_UNSAFE(org: SalesforceOrg, data: Partial<SalesforceOrg>) {
   return await prisma.salesforceOrg.update({
     where: { id: org.id },
-    data: data,
+    data,
   });
 }
 

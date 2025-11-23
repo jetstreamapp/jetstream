@@ -1,6 +1,6 @@
-import { vi, Mock } from 'vitest';
 import type { OauthProviderType, UserProfileSession } from '@jetstream/auth/types';
 import { LoginConfigurationIdentityDisplayNames, LoginConfigurationMdaDisplayNames } from '@jetstream/types';
+import { vi } from 'vitest';
 import * as teamDbService from '../../db/team.db';
 import { verifyTeamInvitation } from '../team.service';
 

@@ -32,7 +32,7 @@ export const RadioGroup: FunctionComponent<RadioGroupProps> = ({
   isButtonGroup,
   children,
 }) => {
-  const { formId, ariaDescribedbyText, labelHelpId, helpTextId, errorMessageId } = useFormIds(idPrefix);
+  const { ariaDescribedbyText, labelHelpId, helpTextId, errorMessageId } = useFormIds(idPrefix);
 
   return (
     <fieldset

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { app, Menu, shell } from 'electron';
 import { Browser } from '../browser/browser';
 import { checkForUpdates } from '../config/auto-updater';

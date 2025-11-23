@@ -122,7 +122,7 @@ export const DatePicker: FunctionComponent<DatePickerProps> = ({
       if (isValidDate(currDate) && trigger === 'onChange') {
         setSelectedDate(currDate);
       } // else invalid date
-    } catch (ex) {
+    } catch {
       // invalid date
     }
     if (value === '' && trigger === 'onChange') {

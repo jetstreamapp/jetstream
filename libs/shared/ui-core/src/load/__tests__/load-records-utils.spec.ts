@@ -1,7 +1,7 @@
-import { vi, Mock } from 'vitest';
 import * as clientData from '@jetstream/shared/data';
 import { sfdcFieldsFactory } from '@jetstream/test-utils';
 import { EntityParticleRecord, QueryResults, SalesforceOrgUi } from '@jetstream/types';
+import { vi } from 'vitest';
 import { autoMapFields } from '../load-records-utils';
 
 vi.mock('@jetstream/shared/data');

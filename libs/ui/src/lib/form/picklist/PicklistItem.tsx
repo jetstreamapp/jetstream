@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import { Maybe } from '@jetstream/types';
 import classNames from 'classnames';
 import { Fragment, forwardRef } from 'react';

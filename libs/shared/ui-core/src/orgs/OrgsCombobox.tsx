@@ -127,13 +127,13 @@ export const OrgsCombobox: FunctionComponent<OrgsComboboxProps> = ({
     >
       <ComboboxWithGroupedItems
         comboboxProps={{
-          isRequired: isRequired,
-          label: label,
-          hideLabel: hideLabel,
-          placeholder: placeholder,
+          isRequired,
+          label,
+          hideLabel,
+          placeholder,
           itemLength: 7,
           hasError: orgHasError(selectedOrg),
-          disabled: disabled,
+          disabled,
           // onInputChange: (filter) => setFilterText(filter),
           // selectedItemLabel: getSelectedItemLabel(selectedOrg),
           // selectedItemTitle: getSelectedItemTitle(selectedOrg),

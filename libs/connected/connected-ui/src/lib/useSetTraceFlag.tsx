@@ -205,8 +205,8 @@ export function useSetTraceFlag(org: SalesforceOrgUi, extendTraceHours = DEFAULT
             type: 'SUCCESS',
             payload: {
               userTrace,
-              debugLevels: debugLevels,
-              activeDebugLevel: activeDebugLevel,
+              debugLevels,
+              activeDebugLevel,
               expirationDate: newExpirationDate,
             },
           });

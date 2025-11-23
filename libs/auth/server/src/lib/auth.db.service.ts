@@ -994,7 +994,7 @@ export const removePasswordFromUser = async (id: string) => {
 
 function convertSessionToUserSession(session: { sid: string; sess: unknown; expire: Date; createdAt: Date; userId: string }): UserSession {
   const { sid, sess, expire, createdAt, userId } = session;
-  const { ipAddress, loginTime, provider, userAgent, user } = sess as unknown as SessionData;
+  const { ipAddress, loginTime, provider, userAgent } = sess as unknown as SessionData;
   return {
     userId,
     sessionId: sid,
@@ -1076,7 +1076,7 @@ async function addIdentityToUser(userId: string, providerUser: ProviderUser, pro
     data: {
       userId,
       type: 'oauth',
-      provider: provider,
+      provider,
       providerAccountId: providerUser.id,
       email: providerUser.email,
       name: providerUser.name,
@@ -1152,7 +1152,7 @@ async function createUserFromProvider(
         identities: {
           create: {
             type: 'oauth',
-            provider: provider,
+            provider,
             providerAccountId: providerUser.id,
             email,
             name: providerUser.name,
@@ -1240,7 +1240,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
           identities: {
             update: {
               data: {
-                provider: provider,
+                provider,
                 providerAccountId: providerUser.id,
                 email,
                 name: providerUser.name,
@@ -1263,7 +1263,7 @@ async function updateIdentityAttributesFromProvider(userId: string, providerUser
     } else {
       await prisma.authIdentity.update({
         data: {
-          provider: provider,
+          provider,
           providerAccountId: providerUser.id,
           email,
           name: providerUser.name,

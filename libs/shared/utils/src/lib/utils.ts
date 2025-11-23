@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import {
   ApplicationState,
@@ -79,7 +80,7 @@ export function dateFromTimestamp(timestamp: number): Date {
 export async function alwaysResolve<T = any>(promise: Promise<T>, valueIfError: T): Promise<T> {
   try {
     return await promise;
-  } catch (ex) {
+  } catch {
     return valueIfError;
   }
 }
@@ -337,7 +338,7 @@ export function replaceSubqueryQueryResultsWithRecords(results: QueryResults<any
               record[field] = (record[field] as QueryResult<unknown>).records;
             }
           });
-        } catch (ex) {
+        } catch {
           // could not process field
         }
       });
@@ -538,7 +539,7 @@ export function bulkApiEnsureTyped(job: any | any): BulkJob | BulkJobBatchInfo {
       }
     });
     return job as BulkJob | BulkJobBatchInfo;
-  } catch (ex) {
+  } catch {
     return job as BulkJob | BulkJobBatchInfo;
   }
 }
@@ -630,7 +631,7 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
     if (!isNaN(value.getTime())) {
       try {
         return formatISO(value, { representation: 'date' });
-      } catch (ex) {
+      } catch {
         throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     } else {
@@ -641,13 +642,13 @@ function transformDate(value: any, dateFormat: string): Maybe<string> {
     if (REGEX.ISO_DATE.test(value)) {
       try {
         return formatISO(parseISO(value), { representation: 'date' });
-      } catch (ex) {
+      } catch {
         throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     }
     try {
       return buildDateFromString(value, dateFormat, 'date');
-    } catch (ex) {
+    } catch {
       throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
     }
   }
@@ -662,7 +663,7 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
     if (!isNaN(value.getTime())) {
       try {
         return formatISO(value, { representation: 'complete' });
-      } catch (ex) {
+      } catch {
         throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
       }
     } else {
@@ -673,7 +674,7 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
     try {
       try {
         return formatISO(parseISO(value), { representation: 'complete' });
-      } catch (ex) {
+      } catch {
         // Date not in ISO8601 compatible format, attempt to auto-detect
       }
       // Check if formatted in local date format, which is most likely if not ISO
@@ -691,7 +692,7 @@ function transformDateTime(value: string | null | Date, dateFormat: string): May
       const formattedTime = getIsoFormattedTimeFromString(time) || '00:00:00Z';
 
       return `${formattedDate}T${formattedTime}`;
-    } catch (ex) {
+    } catch {
       throw new Error(`${DATE_ERR_MESSAGE} - ${value}`);
     }
   }
@@ -714,7 +715,7 @@ function transformTime(value: string | null) {
     }
     // Try various formats and convert to ISO, or return original value
     return getIsoFormattedTimeFromString(value) || value;
-  } catch (ex) {
+  } catch {
     throw new Error(`${TIME_ERR_MESSAGE} - ${value}`);
   }
 }
@@ -922,7 +923,7 @@ export function getFlattenedListItems(items: ListItemGroup[] = []): ListItem[] {
 
 // https://stackoverflow.com/questions/7394748/whats-the-right-way-to-decode-a-string-that-has-special-html-entities-in-it
 export function decodeHtmlEntity(value: Maybe<string>) {
-  return (value?.replace(/&amp;|&#(\d+);/g, (match, dec) => String.fromCharCode(dec)) || '')
+  return (value?.replace(/&amp;|&#(\d+);/g, (_, dec) => String.fromCharCode(dec)) || '')
     .replaceAll('&quot;', '"')
     .replaceAll('\x00', '&')
     .replaceAll('&lt;', '<')

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { queryMore } from '@jetstream/shared/data';
 import { appActionObservable, copyRecordsToClipboard, formatNumber } from '@jetstream/shared/ui-utils';
 import { flattenRecord } from '@jetstream/shared/utils';
@@ -59,7 +60,6 @@ export const SubqueryRenderer = ({ column, row, onRowChange }: RenderCellProps<R
     //   default:
     //     break;
     // }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleViewData() {
@@ -105,7 +105,7 @@ export const SubqueryRenderer = ({ column, row, onRowChange }: RenderCellProps<R
       results.queryResults.records = records.concat(results.queryResults.records);
       setQueryResults(results.queryResults);
       setIsLoadingMore(false);
-    } catch (ex) {
+    } catch {
       if (!isMounted.current) {
         return;
       }
@@ -137,7 +137,9 @@ export const SubqueryRenderer = ({ column, row, onRowChange }: RenderCellProps<R
           google_clientId,
         } = props;
 
-        if (!columnDefinitions || !columnDefinitions[column.key]) {
+        const columns = columnDefinitions?.[column.key];
+
+        if (!columns) {
           return null;
         }
 
@@ -147,7 +149,7 @@ export const SubqueryRenderer = ({ column, row, onRowChange }: RenderCellProps<R
               <ModalDataTable
                 isActive={isActive}
                 columnKey={column.key}
-                columns={columnDefinitions[column.key]!}
+                columns={columns}
                 modalTagline={modalTagline}
                 queryResults={queryResults}
                 selectedRows={selectedRows}

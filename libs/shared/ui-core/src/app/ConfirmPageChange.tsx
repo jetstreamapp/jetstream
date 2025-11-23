@@ -1,8 +1,7 @@
 import { useGlobalEventHandler } from '@jetstream/shared/ui-utils';
 import * as fromAppState from '@jetstream/ui/app-state';
 import { useAtom } from 'jotai';
-import { Fragment, FunctionComponent, useCallback, useEffect } from 'react';
-import { usePrompt } from './PromptNavigation';
+import { FunctionComponent, useCallback, useEffect } from 'react';
 
 export interface ConfirmPageChangeProps {
   actionInProgress: boolean;
@@ -33,7 +32,7 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
   // If page does change, then make sure to reset store
   useEffect(() => {
     return () => setActionInProgressState(false);
-  }, []);
+  }, [setActionInProgressState]);
 
   /**
    * Ensure that state matches what is happening
@@ -44,13 +43,12 @@ export const ConfirmPageChange: FunctionComponent<ConfirmPageChangeProps> = ({
     } else if (!actionInProgress && actionInProgressState) {
       setActionInProgressState(false);
     }
-  }, [actionInProgress, actionInProgressState]);
-
-  const prompt = usePrompt(message, actionInProgress);
+  }, [actionInProgress, actionInProgressState, setActionInProgressState]);
 
   // TODO: fix this
-  return <Fragment />;
+  // const prompt = usePrompt(message, actionInProgress);
   // return <Prompt when={actionInProgress} message={message} />;
+  return null;
 };
 
 export default ConfirmPageChange;

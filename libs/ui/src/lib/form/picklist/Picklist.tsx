@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import { IconName } from '@jetstream/icon-factory';
 import {
   isArrowDownKey,
@@ -78,7 +77,7 @@ function getSelectItemText(selectedItemsIdsSet: Set<unknown>, items: ListItem[])
   }
 }
 
-export const Picklist = forwardRef<any, PicklistProps>(
+export const Picklist = forwardRef<unknown, PicklistProps>(
   (
     {
       id,
@@ -156,7 +155,7 @@ export const Picklist = forwardRef<any, PicklistProps>(
               focusedIndex: focusedItem,
             });
           }
-        } catch (ex) {
+        } catch {
           // silent failure
         }
       }

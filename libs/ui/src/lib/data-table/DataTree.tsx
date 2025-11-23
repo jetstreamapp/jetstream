@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ContextMenuItem, SalesforceOrgUi } from '@jetstream/types';
 import { forwardRef } from 'react';
 import { SortColumn, TreeDataGrid, TreeDataGridProps } from 'react-data-grid';

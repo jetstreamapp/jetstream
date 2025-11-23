@@ -126,7 +126,7 @@ export function useDesktopAuthState() {
             }
           });
       }
-    } catch (ex) {
+    } catch {
       dispatch({ type: 'ERROR', message: ERROR_MESSAGES.UNKNOWN_ERROR });
     }
   }, [deviceId, token]);

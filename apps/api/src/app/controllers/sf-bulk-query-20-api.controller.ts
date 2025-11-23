@@ -67,7 +67,7 @@ export const routeDefinition = {
   },
 };
 
-const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const { query, queryAll } = body;
 
@@ -79,7 +79,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
   }
 });
 
-const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, jetstreamConn }, req, res, next) => {
+const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, jetstreamConn }, _, res, next) => {
   try {
     const options = query;
 
@@ -91,7 +91,7 @@ const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, 
   }
 });
 
-const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
+const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, _, res, next) => {
   try {
     const jobId = params.jobId;
 
@@ -103,7 +103,7 @@ const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, j
   }
 });
 
-const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
+const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ params, jetstreamConn }, _, res, next) => {
   try {
     const jobId = params.jobId;
 
@@ -115,7 +115,7 @@ const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ param
   }
 });
 
-const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
+const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ params, jetstreamConn }, _, res, next) => {
   try {
     const jobId = params.jobId;
 
@@ -130,25 +130,22 @@ const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ par
 /**
  * Stream CSV results to API caller
  */
-const downloadResults = createRoute(
-  routeDefinition.downloadResults.validators,
-  async ({ params, query, jetstreamConn }, req, res, next) => {
-    try {
-      res.setHeader('Content-Type', 'text/csv');
+const downloadResults = createRoute(routeDefinition.downloadResults.validators, async ({ params, query, jetstreamConn }, _, res, next) => {
+  try {
+    res.setHeader('Content-Type', 'text/csv');
 
-      const jobId = params.jobId;
-      const maxRecords = query.maxRecords;
+    const jobId = params.jobId;
+    const maxRecords = query.maxRecords;
 
-      const resultsStream = jetstreamConn.bulkQuery20.getResultsStream(jobId, maxRecords);
+    const resultsStream = jetstreamConn.bulkQuery20.getResultsStream(jobId, maxRecords);
 
-      for await (const chunk of resultsStream) {
-        res.write(chunk);
-      }
-
-      // End the response when the stream is complete
-      res.end();
-    } catch (ex) {
-      next(new UserFacingError(ex));
+    for await (const chunk of resultsStream) {
+      res.write(chunk);
     }
-  },
-);
+
+    // End the response when the stream is complete
+    res.end();
+  } catch (ex) {
+    next(new UserFacingError(ex));
+  }
+});

@@ -18,7 +18,7 @@ export interface ApiConnectionOptions {
   accessToken: string;
   refreshToken?: string;
   apiVersion: string;
-  callOptions?: Record<string, any>;
+  callOptions?: Record<string, string | boolean | number>;
   logging?: boolean;
   sfdcClientId?: string;
   sfdcClientSecret?: string;

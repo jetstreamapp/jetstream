@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { Maybe } from '@jetstream/types';

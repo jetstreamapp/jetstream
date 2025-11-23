@@ -1,5 +1,4 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
@@ -67,7 +66,7 @@ export const Tree = forwardRef<any, TreeProps>(
 
     useNonInitialEffect(() => {
       if (onSelected && reEmitSelectionOnItemsChange && items?.length > 0 && selectedItem) {
-        const { ids, idMap } = getAllIds(items);
+        const { idMap } = getAllIds(items);
         onSelected && onSelected(idMap[selectedItem]);
       }
     }, [reEmitSelectionOnItemsChange, items]);
@@ -87,6 +86,7 @@ export const Tree = forwardRef<any, TreeProps>(
           }
         }
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useImperativeHandle<any, TreeHandleRefFns>(ref, () => ({

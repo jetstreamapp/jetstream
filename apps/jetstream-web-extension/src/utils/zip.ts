@@ -139,7 +139,9 @@ export class Zip {
   }[];
   finished: boolean;
   byteCounterBig: bigint;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   outputStream: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   outputController: ReadableStreamController<any>;
   constructor(zip64) {
     // Enable large zip compatibility?

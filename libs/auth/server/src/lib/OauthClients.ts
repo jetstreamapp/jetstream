@@ -60,8 +60,8 @@ export class OauthClients {
     this.google = googleClient;
   }
 
-  private async discoveryRequestWithRetry(oauth: typeof import('oauth4webapi'), provider: URL, maxRetries = 3): Promise<any> {
-    let lastError: Error;
+  private async discoveryRequestWithRetry(oauth: typeof import('oauth4webapi'), provider: URL, maxRetries = 3): Promise<Response> {
+    let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -89,7 +89,7 @@ export class OauthClients {
       }
     }
 
-    throw lastError! || new Error('OAuth discovery request failed after maximum retries');
+    throw lastError || new Error('OAuth discovery request failed after maximum retries');
   }
 
   private getClient(authorizationServer: oauth.AuthorizationServer, clientId: string, clientSecret: string): OauthClientProvider {

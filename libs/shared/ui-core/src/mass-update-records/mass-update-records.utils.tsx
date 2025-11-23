@@ -199,6 +199,7 @@ export async function fetchRecordsWithRequiredFields({
   parsedQuery: Query;
   idsToInclude?: Set<string>;
   configuration: MetadataRowConfiguration[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }): Promise<any[]> {
   // selectedField is required so that transformationOptions.criteria can be applied to records
   const fieldsRequiredInRecords = new Set(['Id']);

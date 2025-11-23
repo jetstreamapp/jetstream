@@ -74,7 +74,7 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
 
 const recordOperation = createRoute(
   routeDefinition.recordOperation.validators,
-  async ({ body, params, query, jetstreamConn }, req, res, next) => {
+  async ({ body, params, query, jetstreamConn }, _, res, next) => {
     try {
       // FIXME: add express validator to operation
       const { sobject, operation } = params;

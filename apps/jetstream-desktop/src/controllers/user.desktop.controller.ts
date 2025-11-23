@@ -27,7 +27,7 @@ export const routeDefinition = {
   },
 };
 
-const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({}, req) => {
+const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({}) => {
   try {
     const userProfile = dataService.getFullUserProfile();
 
@@ -37,7 +37,7 @@ const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, as
   }
 });
 
-const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body }, req) => {
+const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body }) => {
   try {
     dataService.updateUserPreferences(body.preferences);
     const userProfile = dataService.getFullUserProfile();

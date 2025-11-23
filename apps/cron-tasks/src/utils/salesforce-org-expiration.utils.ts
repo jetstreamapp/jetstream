@@ -238,7 +238,7 @@ export async function manageOrgExpiration(prisma: PrismaClient, initialDate = ne
             orgCount: orgs.length,
             orgDetails: orgs.map(({ org, daysUntilExpiration }) => ({
               orgId: org.id,
-              daysUntilExpiration: daysUntilExpiration,
+              daysUntilExpiration,
             })),
           },
         });

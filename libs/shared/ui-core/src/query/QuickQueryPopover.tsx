@@ -43,7 +43,7 @@ export const QuickQueryPopover = () => {
 
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
 
-  const [restore, errorMessage] = useQueryRestore(soql, isTooling, {
+  const [restore] = useQueryRestore(soql, isTooling, {
     startRestore: () => {
       setIsRestoring(true);
     },
@@ -66,15 +66,18 @@ export const QuickQueryPopover = () => {
     setQueryIsValid(!!soql && isQueryValid(soql));
   }, [soql]);
 
-  const onKeydown = useCallback((event: KeyboardEvent) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (hasModifierKey(event as any) && isEKey(event as any)) {
-      event.stopPropagation();
-      event.preventDefault();
-      popoverRef.current?.open();
-      trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });
-    }
-  }, []);
+  const onKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (hasModifierKey(event as any) && isEKey(event as any)) {
+        event.stopPropagation();
+        event.preventDefault();
+        popoverRef.current?.open();
+        trackEvent(ANALYTICS_KEYS.quick_query_Open, { method: 'keyboard' });
+      }
+    },
+    [trackEvent],
+  );
 
   useGlobalEventHandler('keydown', onKeydown);
 
@@ -112,9 +115,11 @@ export const QuickQueryPopover = () => {
     event.stopPropagation();
     setSoql(query.soql);
     setIsTooling(query.isTooling);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (hasModifierKey(event as any)) {
       handleExecute(query.soql, query.isTooling);
       trackEvent(ANALYTICS_KEYS.quick_query_Execute, { method: 'keyboard', location: 'recent_query' });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } else if (hasShiftModifierKey(event as any)) {
       handleRestore(query.soql, query.isTooling);
       trackEvent(ANALYTICS_KEYS.quick_query_Restore, { method: 'keyboard', location: 'recent_query' });

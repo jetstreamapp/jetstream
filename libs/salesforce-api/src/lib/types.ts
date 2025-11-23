@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface SessionInfo {
   userId: string;
   organizationId: string;
@@ -19,7 +20,7 @@ export type SoapResponse<Key extends string, T> = {
   };
 };
 
-export interface APIRequestParams<T = unknown> {
+export interface APIRequestParams {
   method?: FetchMethod;
   url: string;
   body?: any; // Consider using a more specific type if possible

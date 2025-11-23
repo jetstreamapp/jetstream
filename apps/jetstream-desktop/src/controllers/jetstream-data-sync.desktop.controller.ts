@@ -40,7 +40,7 @@ function getTokens() {
   return { authTokens, extIdentifier };
 }
 
-const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req) => {
+const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {
   try {
     const { authTokens, extIdentifier } = getTokens();
 
@@ -57,7 +57,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req)
   }
 });
 
-const push = createRoute(routeDefinition.push.validators, async ({ query, body }, req) => {
+const push = createRoute(routeDefinition.push.validators, async ({ query, body }) => {
   try {
     const { authTokens, extIdentifier } = getTokens();
 

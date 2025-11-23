@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   DATE_LITERALS_SET,
   getBooleanListItems,
@@ -244,7 +243,7 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
   }
 }
 
-export function getFieldSelectItems(field: Field): ListItem<string, any>[] {
+export function getFieldSelectItems(field: Field): ListItem[] {
   switch (field.type) {
     case 'date':
     case 'datetime':
@@ -259,11 +258,7 @@ export function getFieldSelectItems(field: Field): ListItem<string, any>[] {
   }
 }
 
-export function ensureFieldSelectItemsIncludesSelectionsFromRestore(
-  field: Field,
-  listItems: ListItem<string, any>[],
-  value: string | string[],
-) {
+export function ensureFieldSelectItemsIncludesSelectionsFromRestore(field: Field, listItems: ListItem[], value: string | string[]) {
   switch (field.type) {
     case 'picklist':
     case 'multipicklist': {
@@ -278,10 +273,7 @@ export function ensureFieldSelectItemsIncludesSelectionsFromRestore(
   }
 }
 
-export function getFieldResourceTypes(
-  field: Field,
-  operator: Maybe<QueryFilterOperator>,
-): ListItem<ExpressionRowValueType, any>[] | undefined {
+export function getFieldResourceTypes(field: Field, operator: Maybe<QueryFilterOperator>): ListItem<ExpressionRowValueType>[] | undefined {
   if (!operator) {
     return;
   }

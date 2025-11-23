@@ -217,7 +217,7 @@ export async function createOrExtendDebugTrace(
       body: {
         StartDate: null,
         ExpirationDate: formatISO(newExpDate),
-        DebugLevelId: DebugLevelId,
+        DebugLevelId,
       },
     });
   } else {
@@ -231,7 +231,7 @@ export async function createOrExtendDebugTrace(
         LogType: 'DEVELOPER_LOG',
         StartDate: null,
         ExpirationDate: formatISO(newExpDate),
-        DebugLevelId: DebugLevelId,
+        DebugLevelId,
       },
     });
     return {
@@ -302,6 +302,7 @@ export async function fetchActiveLog(org: SalesforceOrgUi, id: string): Promise<
  * along with other applications at the same time
  */
 export async function copyRecordsToClipboard(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   recordsToCopy: any,
   copyFormat: CopyAsDataType = 'excel',
   fields?: Maybe<string[]>,

@@ -16,8 +16,6 @@ interface LoginProps {
 
 export function Login({ children }: LoginProps) {
   const [loading, setLoading] = useState(true);
-  // TODO: show loading indicator while logging in via browser
-  const [loggingIn, setLoggingIn] = useState(false);
   const [authInfo, setAuthInfo] = useState<DesktopAuthInfo>();
   const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
 
@@ -30,7 +28,6 @@ export function Login({ children }: LoginProps) {
         // TODO: handle else case and show error message
         logger.warn('Login failed', response);
       }
-      setLoggingIn(false);
     },
     [setUserProfile],
   );
@@ -77,7 +74,6 @@ export function Login({ children }: LoginProps) {
   }, [authenticationEventHandler, setUserProfile]);
 
   function handleLogin() {
-    setLoggingIn(true);
     window.electronAPI?.login();
   }
 

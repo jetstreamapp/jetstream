@@ -436,7 +436,7 @@ export function useListMetadata(selectedOrg: SalesforceOrgUi) {
           return;
         }
         setListMetadataItems((previousItems) => ({ ...previousItems, [type]: responseItem }));
-      } catch (ex) {
+      } catch {
         if (!isMounted.current) {
           return;
         }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logBuffer, logger } from '@jetstream/shared/client-logger';
 import { NOOP } from '@jetstream/shared/utils';
 import { Environment, UserProfileUi } from '@jetstream/types';
@@ -60,7 +61,7 @@ class RollbarConfig {
         //   log: location.hostname !== 'localhost',
         // },
         // hostBlockList: ['localhost'],
-        checkIgnore: function (isUncaught, args, payload) {
+        checkIgnore: (isUncaught, args, payload) => {
           logger.log('[ROLLBAR] checkIgnore', isUncaught, args, payload);
           if (ignoredMessagesSet.has(payload?.body?.['message']?.extra?.message)) {
             return true;
@@ -77,7 +78,6 @@ class RollbarConfig {
             },
           },
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onSendCallback: (_isUncaught: boolean, _args: Rollbar.LogArgument[], payload: any) => {
           payload = payload || {};
           payload.recentLogs = getRecentLogs();
@@ -107,7 +107,7 @@ class RollbarConfig {
               return true;
             }
             return false;
-          } catch (ex) {
+          } catch {
             return false;
           }
         },

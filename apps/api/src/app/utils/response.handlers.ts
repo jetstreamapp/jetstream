@@ -10,7 +10,7 @@ import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { AuthenticationError, NotFoundError, UserFacingError } from './error-handler';
 
-export async function healthCheck(req: express.Request, res: express.Response) {
+export async function healthCheck(_: express.Request, res: express.Response) {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({
@@ -125,7 +125,7 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
   });
 }
 
-export function blockBotHandler(req: express.Request, res: express.Response) {
+export function blockBotHandler(_: express.Request, res: express.Response) {
   res.log.debug('[BLOCKED REQUEST]');
   res.status(403).send('Forbidden');
 }

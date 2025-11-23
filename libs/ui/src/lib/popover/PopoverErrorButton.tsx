@@ -29,6 +29,7 @@ export const PopoverErrorButton: FunctionComponent<PopoverErrorButtonProps> = ({
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

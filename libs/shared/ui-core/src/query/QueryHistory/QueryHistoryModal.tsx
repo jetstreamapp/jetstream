@@ -11,6 +11,7 @@ import uniqBy from 'lodash/uniqBy';
 import { createRef, forwardRef, useCallback, useEffect, useState } from 'react';
 import { fromQueryHistoryState } from '../..';
 import { useAmplitude } from '../../analytics';
+import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import QueryHistoryEmptyState from './QueryHistoryEmptyState';
 import { QueryHistoryExportPopover } from './QueryHistoryExportPopover';
 import QueryHistoryItemCard from './QueryHistoryItemCard';
@@ -162,7 +163,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
     setIsRestoring(true);
   }
 
-  function handleEndRestore(item: QueryHistoryItem, fatalError: boolean, errors?: any) {
+  function handleEndRestore(item: QueryHistoryItem, fatalError: boolean, errors?: QueryRestoreErrors) {
     const { soql, createdAt, lastRun, runCount, isTooling, isFavorite } = item;
     setIsRestoring(false);
     if (!fatalError) {
@@ -276,7 +277,7 @@ export const QueryHistoryModal = forwardRef<any, QueryHistoryProps>(({ className
                   setRefreshCounter((prev) => prev + 1);
                 }}
                 startRestore={handleStartRestore}
-                endRestore={(fatalError, errors) => handleEndRestore(item, fatalError, errors)}
+                endRestore={(isTooling, fatalError, errors) => handleEndRestore(item, fatalError, errors)}
               />
             ))}
             {queryHistory.length === 0 && (

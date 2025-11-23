@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Column } from 'react-data-grid';
 

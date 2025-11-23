@@ -39,7 +39,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
       if (isMounted.current) {
         setDownloadResultsRecordsLoading(false);
       }
-    } catch (ex) {
+    } catch {
       if (isMounted.current && downloadResultsRecordsLoading) {
         setDownloadResultsRecordsLoading(false);
       }
@@ -56,7 +56,7 @@ export const LoadRecordsBulkApiResultsTableRow: FunctionComponent<LoadRecordsBul
       if (isMounted.current) {
         setDownloadResultsRecordsLoading(false);
       }
-    } catch (ex) {
+    } catch {
       if (isMounted.current && downloadResultsRecordsLoading) {
         setDownloadResultsRecordsLoading(false);
       }

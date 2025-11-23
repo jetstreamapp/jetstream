@@ -143,7 +143,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       name: '',
       password: '',
       confirmPassword: '',
-      csrfToken: csrfToken,
+      csrfToken,
       captchaToken: '',
       rememberMe: true,
     },

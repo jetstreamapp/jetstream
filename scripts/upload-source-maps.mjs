@@ -9,7 +9,7 @@ import { $, chalk, fs, path } from 'zx'; // https://github.com/google/zx
 
 if (process.env.SKIP_ROLLBAR) {
   console.log(chalk.yellow('Skipping Rollbar asset upload'));
-  return;
+  process.exit(0);
 }
 console.log(chalk.blue(`Uploading sourcemaps to Rollbar`));
 const distPath = path.join(__dirname, '../dist');
@@ -21,7 +21,7 @@ console.log(chalk.blue(`Version: ${version}`));
 
 if (!accessToken) {
   console.error(chalk.redBright('🚫 COULD NOT UPLOAD SOURCEMAPS - ACCESS TOKEN NOT SET 🚫'));
-  return;
+  process.exit(1);
 }
 
 $.verbose = false;
@@ -29,7 +29,7 @@ console.time();
 /**
  * CLIENT SOURCEMAPS
  */
-for (const sourceMapPath of [path.join(distPath, 'apps/jetstream'), path.join(distPath, 'apps/download-zip-sw')]) {
+for (const sourceMapPath of [path.join(distPath, 'apps/jetstream')]) {
   console.log(sourceMapPath);
   const files = (await fs.readdir(sourceMapPath)).filter((item) => item.endsWith('.js.map')).sort();
 
@@ -41,7 +41,7 @@ for (const sourceMapPath of [path.join(distPath, 'apps/jetstream'), path.join(di
       console.log(chalk.blue(`- ${file}`));
 
       await $`curl ${url} -F access_token=${accessToken} -F version=${version} -F minified_url=${minifiedUrl} -F source_map=@${filePath}`;
-    } catch (ex: any) {
+    } catch (ex) {
       console.error(chalk.redBright('🚫 Error uploading client sourcemap', ex.message));
     }
   }
@@ -61,7 +61,7 @@ for (const sourceMapPath of [path.join(distPath, 'apps/api')]) {
       console.log(chalk.blue(`- ${file}`));
 
       await $`curl ${url} -F access_token=${accessToken} -F version=${version} -F minified_url=${minifiedUrl} -F source_map=@${filePath}`;
-    } catch (ex: any) {
+    } catch (ex) {
       console.error(chalk.redBright('🚫 Error uploading server sourcemap', ex.message));
     }
   }

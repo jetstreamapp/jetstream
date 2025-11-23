@@ -27,7 +27,7 @@ pgPool.on('connect', (client) => {
   });
 });
 
-pgPool.on('error', (err, client) => {
+pgPool.on('error', (err) => {
   logger.error(getExceptionLog(err), '[DB][POOL][ERROR] Unexpected error on idle client');
   process.exit(-1);
 });

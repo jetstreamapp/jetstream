@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ReactNode } from 'react';
 import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';
@@ -38,7 +39,6 @@ export type Create = 'create';
 export type View = 'view';
 export type CloneEditView = Edit | Clone | Create | View;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface WorkerMessage<T, K = any, E = any> {
   name: T;
   data: K;
@@ -235,7 +235,6 @@ export interface ListItemGroup<V = string, M = any> {
   items: ListItem<V, M>[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ListItem<V = string, M = any> {
   id: string;
   label: string;
@@ -365,7 +364,6 @@ export interface QueryGroupByClause {
   function: string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface DropDownItem<T = any> {
   id: string;
   subheader?: string;

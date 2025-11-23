@@ -75,7 +75,7 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
     [selectedOrg, selectedSObject],
   );
 
-  function handleSelection(item: ListItem<string, any>) {
+  function handleSelection(item: ListItem) {
     setSelectedRecords(item);
     onSelectedRecord(item?.value);
   }
@@ -88,38 +88,36 @@ export const FormulaEvaluatorRecordSearch: FunctionComponent<FormulaEvaluatorRec
   }
 
   return (
-    <>
-      <Grid className="slds-m-bottom_x-small" verticalAlign="end">
-        <ComboboxWithItemsTypeAhead
-          key={selectedSObject}
-          comboboxProps={{
-            disabled: disabled || !selectedSObject,
-            label: 'Record',
-            className: 'w-100',
-            isRequired: true,
-            labelHelp: 'Choose a record to test the formula against',
-            placeholder: selectedSObject ? `Search ${selectedSObject} by name or id` : 'select an object',
-            hasError: !!fieldErrorMessage,
-            errorMessage: fieldErrorMessage,
-          }}
-          items={records}
-          onSearch={handleSearch}
-          selectedItemId={selectedRecord?.id}
-          onSelected={handleSelection}
-        />
-        <div className="slds-m-left_x-small">
-          <Tooltip content={(!disabled && !!selectedRecord && 'View Record Details') || ''}>
-            <button
-              className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer"
-              onClick={handleViewRecord}
-              disabled={disabled || !selectedRecord}
-            >
-              <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
-            </button>
-          </Tooltip>
-        </div>
-      </Grid>
-    </>
+    <Grid className="slds-m-bottom_x-small" verticalAlign="end">
+      <ComboboxWithItemsTypeAhead
+        key={selectedSObject}
+        comboboxProps={{
+          disabled: disabled || !selectedSObject,
+          label: 'Record',
+          className: 'w-100',
+          isRequired: true,
+          labelHelp: 'Choose a record to test the formula against',
+          placeholder: selectedSObject ? `Search ${selectedSObject} by name or id` : 'select an object',
+          hasError: !!fieldErrorMessage,
+          errorMessage: fieldErrorMessage,
+        }}
+        items={records}
+        onSearch={handleSearch}
+        selectedItemId={selectedRecord?.id}
+        onSelected={handleSelection}
+      />
+      <div className="slds-m-left_x-small">
+        <Tooltip content={(!disabled && !!selectedRecord && 'View Record Details') || ''}>
+          <button
+            className="slds-button slds-button_icon slds-button_icon-border-filled cursor-pointer"
+            onClick={handleViewRecord}
+            disabled={disabled || !selectedRecord}
+          >
+            <Icon type="utility" icon="record_lookup" className="slds-button__icon" omitContainer />
+          </button>
+        </Tooltip>
+      </div>
+    </Grid>
   );
 };
 

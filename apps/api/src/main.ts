@@ -1,6 +1,6 @@
 import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import { createRateLimit, ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { setupPrimary } from '@socket.io/cluster-adapter';
@@ -203,7 +203,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(blockBotByUserAgentMiddleware);
 
   if (ENV.ENVIRONMENT === 'development') {
-    app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (req, res) => res.status(200).send('success'));
+    app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (_, res) => res.status(200).send('success'));
   } else {
     app.use(
       '/analytics',
@@ -351,23 +351,27 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/assets', setCrossOriginResourcePolicy, express.static(join(__dirname, './assets'), { maxAge: '1m' }));
   app.use('/fonts', setCrossOriginResourcePolicy, express.static(join(__dirname, './assets/fonts')));
   app.use(setCrossOriginResourcePolicy, express.static(join(__dirname, '../landing')));
-  // SERVICE WORKER FOR DOWNLOAD ZIP
-  app.use('/download-zip.sw.js', (req: express.Request, res: express.Response) => {
-    res.sendFile(join(__dirname, '../download-zip-sw/download-zip.sw.js'), { maxAge: '1m' });
+
+  // Rate limiter for SPA entry point - lenient to allow frequent refreshes and asset loading
+  // Likely doesn't matter since assets are cached at the edge/CDN
+  const spaRateLimit = createRateLimit('spa', {
+    windowMs: 1000 * 60 * 1, // 1 minute
+    limit: ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : 100, // 100 requests per minute per IP
   });
 
   if (environment.production || ENV.CI || ENV.JETSTREAM_CLIENT_URL.replace('/app', '') === ENV.JETSTREAM_SERVER_URL) {
     app.use(setCrossOriginResourcePolicy, express.static(join(__dirname, '../jetstream')));
     app.use(
       '/app',
+      spaRateLimit,
       redirectIfPendingVerificationMiddleware,
       redirectIfMfaEnrollmentRequiredMiddleware,
       // Allow Google to frame /app routes for Google Picker functionality
-      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      (_: express.Request, res: express.Response, next: express.NextFunction) => {
         res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.google.com *.googleusercontent.com accounts.google.com;");
         next();
       },
-      (req: express.Request, res: express.Response) => {
+      (_: express.Request, res: express.Response) => {
         res.sendFile(join(__dirname, '../jetstream/index.html'));
       },
     );
@@ -405,6 +409,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(uncaughtErrorHandler);
 
   server.on('error', (error) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((error as any).code === 'EADDRINUSE') {
       console.error(`Port ${ENV.PORT} is already in use`, error.message);
       console.info('Kill with: lsof -ti:3333 | xargs kill -9');

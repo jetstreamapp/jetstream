@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import type { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import type { Maybe } from '@jetstream/types';
 import chalk from 'chalk';
@@ -13,7 +12,7 @@ dotenv.config();
 let VERSION = 'unknown';
 try {
   VERSION = readFileSync(join(__dirname, '../../VERSION'), 'utf-8').trim();
-} catch (ex) {
+} catch {
   // ignore errors
 }
 

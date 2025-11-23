@@ -247,7 +247,7 @@ export function useCreateFields({ apiVersion, serverUrl, selectedOrg, profiles, 
             }
           }
         });
-      } catch (ex) {
+      } catch {
         Object.values(_resultsById).forEach((result) => {
           result.flsErrorMessage = 'An unknown error has occurred.';
         });

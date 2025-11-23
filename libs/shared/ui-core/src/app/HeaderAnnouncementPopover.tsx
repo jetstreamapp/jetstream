@@ -2,7 +2,6 @@ import { css } from '@emotion/react';
 import { Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, ReactNode, useEffect, useRef } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderAnnouncementPopoverProps {
   children: ReactNode;
 }

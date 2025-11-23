@@ -101,7 +101,7 @@ function reducer(state: State, action: Action): State {
       }
       return {
         ...state,
-        expression: expression,
+        expression,
       };
     }
     case 'ADD_CONDITION': {

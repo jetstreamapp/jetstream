@@ -1,7 +1,6 @@
 import { FeedbackLink, Icon, Popover, PopoverRef } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useRef } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeaderHelpPopoverProps {}
 
 export const HeaderHelpPopover: FunctionComponent<HeaderHelpPopoverProps> = () => {

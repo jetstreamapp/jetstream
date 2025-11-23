@@ -91,7 +91,7 @@ export class CometdReplayExtension implements Extension {
     this.replayFromMap[channel] = undefined;
   }
 
-  registered(name: string, cometd: CometD) {
+  registered(_: string, cometd: CometD) {
     this.cometd = cometd;
   }
 

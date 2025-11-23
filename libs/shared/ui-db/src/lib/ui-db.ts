@@ -39,7 +39,7 @@ export const SyncableTables = {
 const isWebExtension = () => {
   try {
     return !!globalThis.__IS_BROWSER_EXTENSION__ || !!window?.chrome?.runtime?.id;
-  } catch (ex) {
+  } catch {
     return false;
   }
 };

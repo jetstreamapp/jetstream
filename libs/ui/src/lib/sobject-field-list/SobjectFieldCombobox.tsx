@@ -36,7 +36,7 @@ export interface SobjectFieldComboboxProps {
   onSelectField: (selectedSObject: Field) => void;
 }
 
-export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
+export const SobjectFieldCombobox = forwardRef<unknown, SobjectFieldComboboxProps>(
   (
     {
       className,
@@ -67,7 +67,7 @@ export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
       };
     }, []);
 
-    useImperativeHandle<any, SobjectFieldComboboxRef>(ref, () => ({
+    useImperativeHandle<unknown, SobjectFieldComboboxRef>(ref, () => ({
       reload() {
         setLoading(true);
         setFields(null);
@@ -121,7 +121,7 @@ export const SobjectFieldCombobox = forwardRef<any, SobjectFieldComboboxProps>(
           className,
           label,
           helpText,
-          errorMessage: errorMessage,
+          errorMessage,
           hasError: !!errorMessage,
           labelHelp,
           isRequired,

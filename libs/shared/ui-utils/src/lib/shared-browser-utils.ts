@@ -11,6 +11,7 @@ const browserMap = new Map<
 
 export function getBrowserInfo(userAgent: string) {
   if (browserMap.has(userAgent)) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return browserMap.get(userAgent)!;
   }
 

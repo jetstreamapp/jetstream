@@ -1,6 +1,6 @@
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 
-import { IconType } from '@jetstream/icon-factory';
+import { IconName, IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent } from 'react';
 import HelpText from '../../widgets/HelpText';
@@ -81,7 +81,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconLeftType}
-            icon={iconLeft as any}
+            icon={iconLeft as IconName}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_left"
           />
         )}
@@ -89,7 +89,7 @@ export const Input: FunctionComponent<InputProps> = ({
           <Icon
             omitContainer
             type={iconRightType}
-            icon={iconLeft as any}
+            icon={iconLeft as IconName}
             className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
           />
         )}

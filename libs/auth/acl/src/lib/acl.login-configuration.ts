@@ -30,14 +30,12 @@ type GetAbilityOptions = {
  * @see https://casl.js.org/v6/en/guide/define-rules
  * @param options
  */
-function getAbilityRules({ isBrowserExtension, isDesktop, user, loginConfiguration }: GetAbilityOptions) {
-  const { can, cannot, rules, build } = new AbilityBuilder<LoginConfigAbility>(createMongoAbility);
+function getAbilityRules({ user, loginConfiguration }: GetAbilityOptions) {
+  const { can, rules } = new AbilityBuilder<LoginConfigAbility>(createMongoAbility);
 
   if (!user) {
     return rules;
   }
-
-  const activeTeamMembership = user.teamMembership?.status === 'ACTIVE';
 
   // Default configuration if not login configuration
   if (!loginConfiguration) {
@@ -92,6 +90,7 @@ export function getLoginConfigurationAbility(options: GetAbilityOptions) {
       if (typeof item === 'object' && 'type' in item) {
         return item.type;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return item as any;
     },
   });

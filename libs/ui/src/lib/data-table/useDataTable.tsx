@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IconName } from '@jetstream/icon-factory';
 import { logger } from '@jetstream/shared/client-logger';
 import { hasCtrlOrMeta, isArrowKey, isCKey, isEnterKey, isTabKey, isVKey, useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -187,7 +188,9 @@ export function useDataTable<T = RowWithKey>({
 
   function handleReorderColumns(sourceKey: string, targetKey: string) {
     setColumnsOrder((columnsOrder) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const sourceColumnOrderIndex = columnsOrder.findIndex((index) => columns[index].key === sourceKey)!;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const targetColumnOrderIndex = columnsOrder.findIndex((index) => columns[index].key === targetKey)!;
       const sourceColumnOrder = columnsOrder[sourceColumnOrderIndex];
       const newColumnsOrder = columnsOrder.toSpliced(sourceColumnOrderIndex, 1);
@@ -394,7 +397,7 @@ export function useDataTable<T = RowWithKey>({
     handleReorderColumns,
     handleCellKeydown,
     handleCellContextMenu: contextMenuItems && contextMenuAction ? handleCellContextMenu : undefined,
-    handleCloseContextMenu: handleCloseContextMenu,
+    handleCloseContextMenu,
     handleRowChange,
   };
 }

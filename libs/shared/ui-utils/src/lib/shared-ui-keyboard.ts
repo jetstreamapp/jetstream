@@ -15,6 +15,7 @@ export class KeyBuffer {
   /* Licensed under BSD 3-Clause - see LICENSE.txt or git.io/sfdc-license */
   // https://github.com/salesforce/design-system-react/blob/master/utilities/key-buffer.js
   private buffer = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private timeout: any;
 
   getValue(key: string) {

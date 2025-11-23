@@ -1,8 +1,7 @@
-import { FunctionComponent } from 'react';
+import { CenterSpaceSpreadEnd, sizeXXXSmallToXXLarge, StartCenterEnd } from '@jetstream/types';
 import classNames from 'classnames';
-import { sizeXXXSmallToXXLarge, CenterSpaceSpreadEnd, StartCenterEnd } from '@jetstream/types';
+import { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface GridProps {
   testId?: string;
   className?: string;

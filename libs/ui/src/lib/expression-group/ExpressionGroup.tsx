@@ -33,6 +33,7 @@ export const ExpressionGroup: FunctionComponent<ExpressionGroupProps> = React.me
 
     return (
       <li
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ref={drop as any}
         className={classNames('slds-expression__group', {
           'drop-zone-border': isOver && canDrop,

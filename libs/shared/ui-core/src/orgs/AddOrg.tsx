@@ -228,7 +228,7 @@ export const AddOrg: FunctionComponent<AddOrgProps> = ({
       }
       buttonProps={{
         className: classNames('slds-button', className),
-        disabled: disabled,
+        disabled,
       }}
     >
       {!omitIcon && <Icon type="utility" icon="add" className="slds-button__icon slds-button__icon_left" omitContainer />}

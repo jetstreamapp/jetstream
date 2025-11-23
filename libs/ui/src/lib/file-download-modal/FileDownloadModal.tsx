@@ -120,10 +120,10 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
   const hasGoogleInputConfigured =
     googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId && !!emitUploadToGoogleEvent;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
-  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
-  const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
+  const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
+  const [fileName, setFileName] = useState(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
-  const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
+  const [doFocusInput, setDoFocusInput] = useState(true);
   const inputEl = useRef<HTMLInputElement>(null);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
@@ -158,7 +158,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       inputEl.current?.select();
       setDoFocusInput(false);
     }
-  }, [inputEl.current]);
+  }, [doFocusInput]);
 
   useEffect(() => {
     setAllowedTypesSet(new Set(allowedTypes));
@@ -195,13 +195,13 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
           case 'csv': {
             const headerFields = (header ? header : Object.keys(data[0])) as string[];
             const _data =
-              transformData && Array.isArray(data) ? transformData({ fileFormat, data: data, header: headerFields }) : (data as any[]);
+              transformData && Array.isArray(data) ? transformData({ fileFormat, data, header: headerFields }) : (data as any[]);
             fileData = prepareCsvFile(_data, headerFields);
             mimeType = MIME_TYPES.CSV;
             break;
           }
           case 'json': {
-            const _data = transformData && Array.isArray(data) ? transformData({ fileFormat, data: data }) : data;
+            const _data = transformData && Array.isArray(data) ? transformData({ fileFormat, data }) : data;
             fileData = JSON.stringify(_data, null, 2);
             mimeType = MIME_TYPES.JSON;
             break;
@@ -250,7 +250,7 @@ export const FileDownloadModal: FunctionComponent<FileDownloadModalProps> = ({
       } else if (Array.isArray(data)) {
         const headerFields = (header ? header : Object.keys(data[0])) as string[];
         const _data =
-          transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data: data, header: headerFields }) : (data as any[]);
+          transformData && Array.isArray(data) ? transformData({ fileFormat: 'xlsx', data, header: headerFields }) : (data as any[]);
         fileData = prepareExcelFile(_data, headerFields);
       } else {
         fileData = prepareExcelFile(data as any, header as Record<string, string[]>);

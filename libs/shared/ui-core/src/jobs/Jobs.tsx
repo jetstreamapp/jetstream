@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { DownloadZipResult } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
@@ -46,7 +47,7 @@ export const Jobs: FunctionComponent = () => {
   const [{ serverUrl, defaultApiVersion }] = useAtom(applicationCookieState);
   const rollbar = useRollbar();
   const setJobs = useSetAtom(jobsState);
-  const [jobsUnread, setJobsUnread] = useAtom(jobsUnreadState);
+  const jobsUnread = useAtomValue(jobsUnreadState);
   const [jobs, setJobsArr] = useAtom(selectJobs);
   const activeJobCount = useAtomValue(selectActiveJobCount);
   const newJobsToProcess = useObservable(

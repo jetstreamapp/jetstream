@@ -99,7 +99,7 @@ export function getRetrieveRequestFromListMetadata(
           name: metadataName,
         };
       }),
-      version: version,
+      version,
     },
   };
   return retrieveRequest;
@@ -113,8 +113,8 @@ export function getRetrieveRequestFromListMetadata(
 export function getRetrieveRequestFromManifest(packageManifest: string) {
   let manifestXml;
   try {
-    manifestXml = xmlBuilder(packageManifest).toObject({ wellFormed: true }) as any;
-  } catch (ex) {
+    manifestXml = xmlBuilder(packageManifest).toObject({ wellFormed: true });
+  } catch {
     throw new Error('The package manifest format is invalid');
   }
   // validate parsed package manifest
@@ -136,7 +136,7 @@ export function getRetrieveRequestFromManifest(packageManifest: string) {
       apiVersion: version,
       unpackaged: {
         types,
-        version: version,
+        version,
       },
     };
     return retrieveRequest;

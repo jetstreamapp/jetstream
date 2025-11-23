@@ -43,6 +43,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         query: query ? query.parse(req.query) : undefined,
       };
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await controllerFn(data as any, req, res, next);
       } catch (ex) {
         next(ex);

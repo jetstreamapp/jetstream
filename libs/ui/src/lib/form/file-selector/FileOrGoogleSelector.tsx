@@ -10,6 +10,7 @@ export interface FileOrGoogleSelectorProps {
   googleShowUpgradeToPro: boolean;
   initialSelectedTab?: 'local' | 'google';
   source: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackEvent: (key: string, value?: Record<string, any>) => void;
 }
 

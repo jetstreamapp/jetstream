@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { formatNumber, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
@@ -17,7 +18,7 @@ import {
 } from '@jetstream/ui';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
 const COL_WIDTH_MAP = {
   _id: 195,
@@ -51,12 +52,17 @@ export const LoadRecordsResultsModal: FunctionComponent<LoadRecordsResultsModalP
   const [columns, setColumns] = useState<ColumnWithFilter<any>[] | null>(null);
   // Store each row as key and the index as a value to use as a unique id for the row
   const [rowsMap, setRowsMap] = useState<WeakMap<any, string>>(() => new WeakMap(rows.map((row, i) => [row, `id-${i}`])));
+  const firstRow = useRef(rows?.[0]);
+  firstRow.current = rows?.[0];
 
   useEffect(() => {
     if (header) {
       setColumns(
         header.map((item) => {
-          const baseColumn = setColumnFromType(item, item === '_id' ? 'salesforceId' : getRowTypeFromValue(rows?.[0]?.[item], false));
+          const baseColumn = setColumnFromType(
+            item,
+            item === '_id' ? 'salesforceId' : getRowTypeFromValue(firstRow.current?.[item], false),
+          );
           return {
             ...baseColumn,
             name: item,

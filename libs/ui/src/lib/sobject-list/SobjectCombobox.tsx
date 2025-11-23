@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { describeGlobal } from '@jetstream/shared/data';
 import { orderObjectsBy } from '@jetstream/shared/utils';
@@ -106,7 +107,7 @@ export const SobjectCombobox = forwardRef<any, SobjectComboboxProps>(
           className,
           label,
           helpText,
-          errorMessage: errorMessage,
+          errorMessage,
           hasError: !!errorMessage,
           labelHelp,
           isRequired,

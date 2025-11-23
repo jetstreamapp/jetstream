@@ -19,7 +19,7 @@ app.use(urlencoded({ extended: true }));
 
 app.use(httpLogger);
 
-app.use('/healthz', (req, res) => {
+app.use('/healthz', (_, res) => {
   res.status(200).json({
     error: false,
     uptime: process.uptime(),
@@ -42,7 +42,7 @@ app.use((req, res, next) => {
       throw new Error('Unauthorized');
     }
     next();
-  } catch (ex) {
+  } catch {
     res.header('WWW-Authenticate', 'Basic realm="Geo IP API"');
     res.status(401).json({
       success: false,
@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 
 app.post(
   '/api/download',
-  createRoute({}, async (_, req, res, next) => {
+  createRoute({}, async (_, __, res, next) => {
     try {
       const startTime = Date.now();
       await downloadMaxMindDb(DISK_PATH);
@@ -75,7 +75,7 @@ app.post(
  */
 app.get(
   '/api/lookup',
-  createRoute({ query: z.object({ ip: z.string() }) }, async ({ query }, req, res, next) => {
+  createRoute({ query: z.object({ ip: z.string() }) }, async ({ query }, _, res, next) => {
     try {
       const ipAddress = query.ip;
       await initMaxMind(DISK_PATH);
@@ -97,7 +97,7 @@ app.get(
  */
 app.post(
   '/api/lookup',
-  createRoute({ body: z.object({ ips: z.string().array() }) }, async ({ body }, req, res, next) => {
+  createRoute({ body: z.object({ ips: z.string().array() }) }, async ({ body }, _, res, next) => {
     try {
       const ipAddresses = body.ips;
       await initMaxMind(DISK_PATH);
@@ -119,14 +119,14 @@ app.post(
   }),
 );
 
-app.use((req, res, next) => {
+app.use((_, res) => {
   res.status(404).json({
     success: false,
     message: 'Not found',
   });
 });
 
-app.use((err: Error | ZodError, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error | ZodError, _: express.Request, res: express.Response) => {
   res.log.error({ ...getExceptionLog(err) }, 'Unhandled error');
 
   if (err instanceof ZodError) {

@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { TITLES } from '@jetstream/shared/constants';
 import { useTitle } from '@jetstream/shared/ui-utils';
-import { Card, FeedbackLink, Grid, Icon } from '@jetstream/ui';
+import { Card, FeedbackLink, Grid } from '@jetstream/ui';
 import { useRef } from 'react';
 
 export const Feedback = () => {
@@ -35,20 +35,6 @@ export const Feedback = () => {
                 You can always email us at <FeedbackLink type="EMAIL" />
               </li>
             </ol>
-          </div>
-          <hr className="slds-m-vertical_medium" />
-          <div>
-            <h3 className="slds-text-heading_small slds-m-bottom_small">Support the Jetstream project</h3>
-            <p>Jetstream is source-available project and is paid for and supported by the community.</p>
-            <a
-              href="https://github.com/sponsors/jetstreamapp"
-              className="slds-button slds-button_brand slds-m-top_medium"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Icon type="custom" icon="heart" className="slds-button__icon slds-m-right_x-small" omitContainer />
-              Become a sponsor
-            </a>
           </div>
         </Grid>
       </Card>

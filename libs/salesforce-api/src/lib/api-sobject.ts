@@ -42,6 +42,7 @@ export class ApiSObject extends SalesforceApi {
     allOrNone?: Maybe<boolean>;
     ids?: Maybe<string | string[]>;
     isTooling?: Maybe<boolean>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     records: Maybe<any | any[]>;
   }): Promise<OperationReturnType<O>> {
     let operationPromise: Promise<OperationReturnType<O>> | undefined;

@@ -1,8 +1,7 @@
-import React from 'react';
-import { render, fireEvent, waitFor, screen } from '@testing-library/react';
-import RadioGroup from './RadioGroup';
-import Radio from './Radio';
 import { NOOP } from '@jetstream/shared/utils';
+import { render, screen } from '@testing-library/react';
+import Radio from './Radio';
+import RadioGroup from './RadioGroup';
 
 const radio = <Radio name="test" label="Radio 1" value="radio1" checked onChange={NOOP} />;
 

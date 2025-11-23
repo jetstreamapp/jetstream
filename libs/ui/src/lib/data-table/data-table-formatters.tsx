@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DATE_FORMATS } from '@jetstream/shared/constants';
 import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';

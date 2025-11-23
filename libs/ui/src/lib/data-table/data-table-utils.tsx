@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, RECORD_PREFIX_MAP } from '@jetstream/shared/constants';
 import { copyRecordsToClipboard } from '@jetstream/shared/ui-utils';
@@ -460,7 +461,7 @@ export function updateColumnWithEditMode(
           label: value,
           secondaryLabel: label !== value ? label : undefined,
           secondaryLabelOnNewLine: label !== value,
-          value: value,
+          value,
         })),
     });
     // We could differentiate number types
@@ -640,7 +641,7 @@ export function getSubqueryModalTagline(parentRecord: any) {
     } else if (parentRecord?.attributes?.url) {
       recordId = parentRecord.attributes.url.substring(parentRecord.attributes.url.lastIndexOf('/') + 1);
     }
-  } catch (ex) {
+  } catch {
     // ignore error
   } finally {
     // if we have name and id, then show both, otherwise only show one or the other

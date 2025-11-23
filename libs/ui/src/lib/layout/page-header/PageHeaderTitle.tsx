@@ -2,10 +2,9 @@ import { css } from '@emotion/react';
 import { IconObj } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { FunctionComponent } from 'react';
-import Icon from '../../widgets/Icon';
-import ViewDocsLink from '../ViewDocsLink';
+import { Icon } from '../../widgets/Icon';
+import { ViewDocsLink } from '../ViewDocsLink';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PageHeaderTitleProps {
   icon: IconObj;
   labelHeading?: string;

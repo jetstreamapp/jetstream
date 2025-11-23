@@ -40,6 +40,7 @@ export const Settings = () => {
 
   const onKeydown = useCallback(
     (event: KeyboardEvent) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (isEscapeKey(event as any)) {
         event.stopPropagation();
         event.preventDefault();

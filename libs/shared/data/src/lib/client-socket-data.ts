@@ -63,6 +63,7 @@ export function disconnectSocket() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function emit<T = any>(channel: SocketEvent, event: T, callback?: (data: SocketAck<T>) => void) {
   if (!socket) {
     callback?.({ success: false, error: 'Socket not initialized' });
@@ -71,6 +72,7 @@ function emit<T = any>(channel: SocketEvent, event: T, callback?: (data: SocketA
   socket.emit(channel, event, callback);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function subscribe<T = any>(channel: SocketEvent, callback: (data: T) => void) {
   if (!socket) {
     return;
@@ -78,6 +80,7 @@ function subscribe<T = any>(channel: SocketEvent, callback: (data: T) => void) {
   return socket.on(channel, callback);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function unsubscribe<T = any>(channel: SocketEvent, callback?: (data: SocketAck<T>) => void) {
   if (!socket) {
     callback?.({ success: false, error: 'Socket not initialized' });

@@ -54,7 +54,7 @@ export const UserSearchPopover: FunctionComponent = () => {
   const currentSearchRef = useRef<number>(0);
   const popoverRef = useRef<PopoverRef>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [{ defaultApiVersion, serverUrl }] = useAtom(applicationCookieState);
+  const [{ serverUrl }] = useAtom(applicationCookieState);
   const skipFrontDoorAuth = useAtomValue(selectSkipFrontdoorAuth);
   const selectedOrg = useAtomValue(selectedOrgState);
   const { trackEvent } = useAmplitude();
@@ -90,6 +90,7 @@ export const UserSearchPopover: FunctionComponent = () => {
   }, [isOpen, searchTermDebounced, selectedOrg, trackEvent]);
 
   const onKeydown = useCallback((event: KeyboardEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (hasModifierKey(event as any) && isUKey(event as any)) {
       event.stopPropagation();
       event.preventDefault();

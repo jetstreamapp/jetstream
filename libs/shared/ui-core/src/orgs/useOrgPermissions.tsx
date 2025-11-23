@@ -38,7 +38,6 @@ export function useOrgPermissions(selectedOrg: Maybe<SalesforceOrgUi>) {
         logger.error('Error fetching org permissions', ex);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrg]);
 
   useEffect(() => {

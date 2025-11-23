@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import FeatureHeading from './FeatureHeading';
 
 export const FeatureScreenshot = () => (

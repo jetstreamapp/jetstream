@@ -147,7 +147,7 @@ export const DateGrid: FunctionComponent<DateGridProps> = ({
           }
         }
       }
-    } catch (ex) {
+    } catch {
       // silent failure
     }
   }, [cameFromMonth, dateGrid]);

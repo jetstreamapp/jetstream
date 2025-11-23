@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ensureBoolean, REGEX } from '@jetstream/shared/utils';
 import { SyncRecordOperationSchema } from '@jetstream/types';
 import { parseISO } from 'date-fns';
@@ -10,12 +11,11 @@ import { createRoute } from '../utils/route.utils';
 
 // FIXME: TEMPORARY UNTIL ALL CLIENTS HAVE BEEN BACKFILLED
 export const SyncRecordOperationSchemaFillHashedKey = z
-  .object({
+  .looseObject({
     key: z.string(),
     hashedKey: z.string().optional(),
     data: z.record(z.string(), z.unknown()),
   })
-  .passthrough()
   .array()
   .transform((records) => {
     return SyncRecordOperationSchema.array()
@@ -95,7 +95,7 @@ export const routeDefinition = {
 /**
  * Pull changes from server
  */
-const pull = createRoute(routeDefinition.pull.validators, async ({ user, query }, req, res) => {
+const pull = createRoute(routeDefinition.pull.validators, async ({ user, query }, _, res) => {
   const { lastKey, updatedAt, limit } = query;
   const response = await userSyncDbService.findByUpdatedAt({
     userId: user.id,

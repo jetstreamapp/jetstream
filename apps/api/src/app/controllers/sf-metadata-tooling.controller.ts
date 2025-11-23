@@ -127,7 +127,7 @@ export const routeDefinition = {
 };
 
 // export async function describeMetadata(req: Request, res: Response, next: NextFunction) {
-const describeMetadata = createRoute(routeDefinition.describeMetadata.validators, async ({ jetstreamConn }, req, res, next) => {
+const describeMetadata = createRoute(routeDefinition.describeMetadata.validators, async ({ jetstreamConn }, _, res, next) => {
   try {
     const results = await jetstreamConn.metadata.describe();
 
@@ -137,7 +137,7 @@ const describeMetadata = createRoute(routeDefinition.describeMetadata.validators
   }
 });
 
-const listMetadata = createRoute(routeDefinition.listMetadata.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const listMetadata = createRoute(routeDefinition.listMetadata.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const results = await jetstreamConn.metadata.list(body.types);
 
@@ -147,7 +147,7 @@ const listMetadata = createRoute(routeDefinition.listMetadata.validators, async 
   }
 });
 
-const readMetadata = createRoute(routeDefinition.readMetadata.validators, async ({ body, params, jetstreamConn }, req, res, next) => {
+const readMetadata = createRoute(routeDefinition.readMetadata.validators, async ({ body, params, jetstreamConn }, _, res, next) => {
   try {
     const fullNames = body.fullNames;
     const metadataType = params.type;
@@ -160,7 +160,7 @@ const readMetadata = createRoute(routeDefinition.readMetadata.validators, async 
   }
 });
 
-const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const files = body.files;
     const options = body.options;
@@ -175,7 +175,7 @@ const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, as
 
 const deployMetadataZip = createRoute(
   routeDefinition.deployMetadataZip.validators,
-  async ({ body, query, jetstreamConn }, req, res, next) => {
+  async ({ body, query, jetstreamConn }, _, res, next) => {
     try {
       const metadataPackage = body; // buffer
       // this is validated as valid JSON previously
@@ -192,7 +192,7 @@ const deployMetadataZip = createRoute(
 
 const checkMetadataResults = createRoute(
   routeDefinition.checkMetadataResults.validators,
-  async ({ params, query, jetstreamConn }, req, res, next) => {
+  async ({ params, query, jetstreamConn }, _, res, next) => {
     try {
       const id = params.id;
       const includeDetails = query.includeDetails;
@@ -208,7 +208,7 @@ const checkMetadataResults = createRoute(
 
 const retrievePackageFromLisMetadataResults = createRoute(
   routeDefinition.retrievePackageFromLisMetadataResults.validators,
-  async ({ body, jetstreamConn }, req, res, next) => {
+  async ({ body, jetstreamConn }, _, res, next) => {
     try {
       const types = body;
 
@@ -225,7 +225,7 @@ const retrievePackageFromLisMetadataResults = createRoute(
 
 const retrievePackageFromExistingServerPackages = createRoute(
   routeDefinition.retrievePackageFromExistingServerPackages.validators,
-  async ({ body, jetstreamConn }, req, res, next) => {
+  async ({ body, jetstreamConn }, _, res, next) => {
     try {
       const packageNames = body.packageNames;
 
@@ -246,7 +246,7 @@ const retrievePackageFromExistingServerPackages = createRoute(
 
 const retrievePackageFromManifest = createRoute(
   routeDefinition.retrievePackageFromManifest.validators,
-  async ({ body, jetstreamConn }, req, res, next) => {
+  async ({ body, jetstreamConn }, _, res, next) => {
     try {
       const packageManifest = body.packageManifest;
       const results = await jetstreamConn.metadata.retrieve(getRetrieveRequestFromManifest(packageManifest));
@@ -258,24 +258,21 @@ const retrievePackageFromManifest = createRoute(
   },
 );
 
-const checkRetrieveStatus = createRoute(
-  routeDefinition.checkRetrieveStatus.validators,
-  async ({ query, jetstreamConn }, req, res, next) => {
-    try {
-      const id: string = query.id;
+const checkRetrieveStatus = createRoute(routeDefinition.checkRetrieveStatus.validators, async ({ query, jetstreamConn }, _, res, next) => {
+  try {
+    const id: string = query.id;
 
-      const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
+    const results = await jetstreamConn.metadata.checkRetrieveStatus(id);
 
-      sendJson(res, results);
-    } catch (ex) {
-      next(ex);
-    }
-  },
-);
+    sendJson(res, results);
+  } catch (ex) {
+    next(ex);
+  }
+});
 
 const checkRetrieveStatusAndRedeploy = createRoute(
   routeDefinition.checkRetrieveStatusAndRedeploy.validators,
-  async ({ body, query, jetstreamConn, targetJetstreamConn }, req, res, next) => {
+  async ({ body, query, jetstreamConn, targetJetstreamConn }, _, res, next) => {
     try {
       const id = query.id;
       const deployOptions = body.deployOptions;
@@ -326,7 +323,7 @@ const checkRetrieveStatusAndRedeploy = createRoute(
   },
 );
 
-const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const types = body.metadata;
     const otherFields = body.otherFields;
@@ -340,7 +337,7 @@ const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, asyn
 /**
  * This uses the SOAP api to allow returning logs
  */
-const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const { apex, logLevel } = body;
 
@@ -352,7 +349,7 @@ const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, asyn
   }
 });
 
-const apexCompletions = createRoute(routeDefinition.apexCompletions.validators, async ({ params, jetstreamConn }, req, res, next) => {
+const apexCompletions = createRoute(routeDefinition.apexCompletions.validators, async ({ params, jetstreamConn }, _, res, next) => {
   try {
     const type = params.type;
 

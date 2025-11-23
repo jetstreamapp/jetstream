@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SoapNil } from './misc.types';
 
 // metadata
@@ -7,19 +8,6 @@ export interface AsyncResult {
   state: string;
   statusCode?: string | undefined;
   message?: string | undefined;
-}
-
-export interface DeployOptions {
-  allowMissingFiles?: boolean | undefined;
-  autoUpdatePackage?: boolean | undefined;
-  checkOnly?: boolean | undefined;
-  ignoreWarnings?: boolean | undefined;
-  performRetrieve?: boolean | undefined;
-  purgeOnDelete?: boolean | undefined;
-  rollbackOnError?: boolean | undefined;
-  runAllTests?: boolean | undefined;
-  runTests?: string[] | undefined;
-  singlePackage?: boolean | undefined;
 }
 
 export interface MetadataObject {
@@ -364,18 +352,6 @@ export interface RunTestSuccess {
   namespace: string;
   seeAllData: boolean;
   time: number;
-}
-
-export interface RunTestFailure {
-  id: string;
-  message: string;
-  methodName: string;
-  name: string;
-  namespace: string;
-  seeAllData: boolean;
-  stackTrace: string;
-  time: number;
-  type: string;
 }
 
 export interface CodeLocation {

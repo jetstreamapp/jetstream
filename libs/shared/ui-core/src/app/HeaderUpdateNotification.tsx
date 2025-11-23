@@ -190,7 +190,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
         return {
           icon: <Icon type="utility" icon="download" className={baseIconClass} />,
           tooltip: 'Up to date',
-          showWiggle: showWiggle,
+          showWiggle,
         };
       case 'idle':
       default:

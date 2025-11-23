@@ -143,7 +143,7 @@ export const ConnectedSobjectList: FunctionComponent<ConnectedSobjectListProps> 
       onSobjects(null);
       onSelectedSObject(null);
       // loadObjects called by different useEffect
-    } catch (ex) {
+    } catch {
       // error
     }
   }

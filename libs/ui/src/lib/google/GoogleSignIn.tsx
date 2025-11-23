@@ -42,7 +42,7 @@ export const GoogleSignIn: FunctionComponent<GoogleSignInProps> = ({
     try {
       await getToken();
       onSignInChanged && onSignInChanged(true);
-    } catch (ex) {
+    } catch {
       onSignInChanged && onSignInChanged(false);
     }
   }

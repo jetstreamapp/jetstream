@@ -73,7 +73,7 @@ export const Billing = () => {
         // TODO: should we do something on the server - like ensure server has the subscription?
         // depending on webhook timing, we may want to do this here
       }
-      const { customer, pricesByLookupKey, hasManualBilling, didUpdate, userProfile } = await getSubscriptions();
+      const { customer, pricesByLookupKey, hasManualBilling, userProfile } = await getSubscriptions();
       if (userProfile) {
         // this ensures that all entitlements are updated across the application to match what is on the server
         setUserProfile(userProfile);

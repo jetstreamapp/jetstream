@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { describeSObject, query } from '@jetstream/shared/data';

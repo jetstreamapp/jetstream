@@ -57,7 +57,7 @@ export const routeDefinition = {
 
 const getFrontdoorLoginUrl = createRoute(
   routeDefinition.getFrontdoorLoginUrl.validators,
-  async ({ query, jetstreamConn }, req, res, next) => {
+  async ({ query, jetstreamConn }, _, res, next) => {
     try {
       const { returnUrl } = query;
       // ensure that our token is valid and not expired
@@ -75,7 +75,7 @@ const getFrontdoorLoginUrl = createRoute(
  *
  * @returns
  */
-const streamFileDownload = createRoute(routeDefinition.streamFileDownload.validators, async ({ query, jetstreamConn }, req, res, next) => {
+const streamFileDownload = createRoute(routeDefinition.streamFileDownload.validators, async ({ query, jetstreamConn }, _, res, next) => {
   try {
     const { url } = query;
 
@@ -137,7 +137,7 @@ const streamFileDownloadToZip = createRoute(
   },
 );
 
-const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const payload = body;
     const results = await jetstreamConn.request.manualRequest(payload, payload.options?.responseType || 'json', true);
@@ -154,7 +154,7 @@ const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validato
  */
 const salesforceRequestManual = createRoute(
   routeDefinition.salesforceRequestManual.validators,
-  async ({ body, jetstreamConn }, req, res, next) => {
+  async ({ body, jetstreamConn }, _, res, next) => {
     try {
       // const { method, headers, body, url } = body as ManualRequestPayload;
       const payload = body;
@@ -166,7 +166,7 @@ const salesforceRequestManual = createRoute(
           status,
           statusText,
           headers: JSON.stringify(Object.fromEntries(headers.entries()) || {}, null, 2),
-          body: await apiResponse.text(), // FIXME: what should this be?
+          body: await apiResponse.text(),
         };
         return response;
       });

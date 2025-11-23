@@ -30,7 +30,7 @@ async function fetchSobjectName(selectedOrg: SalesforceOrgUi, recordId: string) 
       }
     }
     return { recordId, sobjectName: sobject.name };
-  } catch (ex) {
+  } catch {
     return null;
   }
 }

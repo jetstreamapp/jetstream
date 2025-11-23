@@ -52,7 +52,7 @@ export const DuelingPicklist: FunctionComponent<DuelingPicklistProps> = ({
   const columnLeftRef = useRef<DuelingPicklistColumnRef>(null);
   const columnRightRef = useRef<DuelingPicklistColumnRef>(null);
   const [selectedItems, setSelectedItems] = useState(new Set(initialSelectedItems || []));
-  const [itemsByValue, setItemsByValue] = useState<Record<string, DuelingPicklistItem>>(groupByFlat(items, 'value'));
+  const [itemsByValue] = useState<Record<string, DuelingPicklistItem>>(groupByFlat(items, 'value'));
   const [itemsLeft, setListLeft] = useState<DuelingPicklistItem[]>(() => items.filter((item) => !selectedItems.has(item.value)));
   const [itemsRight, setListRight] = useState<DuelingPicklistItem[]>(() => items.filter((item) => selectedItems.has(item.value)));
 

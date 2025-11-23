@@ -50,7 +50,7 @@ export const routeDefinition = {
   },
 };
 
-const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({}, req) => {
+const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({}) => {
   try {
     const orgs = dataService.getSalesforceOrgs().map((org) => ({ ...org, accessToken: undefined }));
 
@@ -60,7 +60,7 @@ const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({}, req) 
   }
 });
 
-const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params }, req) => {
+const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params }) => {
   try {
     const { uniqueId } = params;
     const orgs = dataService.updateSalesforceOrg(uniqueId, body).map((org) => ({ ...org, accessToken: undefined }));
@@ -71,7 +71,7 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
   }
 });
 
-const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params }, req) => {
+const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params }) => {
   try {
     const { uniqueId } = params;
     const orgs = dataService.removeSalesforceOrg(uniqueId).map((org) => ({ ...org, accessToken: undefined }));
@@ -86,7 +86,7 @@ const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ par
  * Check if the org is still valid
  * This can be used to retry an org that has been marked as invalid
  */
-const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, async ({ jetstreamConn, org }, req) => {
+const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, async ({ jetstreamConn, org }) => {
   try {
     if (!org || !jetstreamConn) {
       return handleErrorResponse(new Error('Invalid org or connection'));
@@ -96,7 +96,7 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
     try {
       await jetstreamConn?.org.identity();
       connectionError = null;
-    } catch (ex) {
+    } catch {
       connectionError = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
     }
 
@@ -127,7 +127,7 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
   }
 });
 
-const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, params }, req) => {
+const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, params }) => {
   try {
     const { uniqueId } = params;
     const { salesforceOrgs } = dataService.moveSalesforceOrgToJetstreamOrg({

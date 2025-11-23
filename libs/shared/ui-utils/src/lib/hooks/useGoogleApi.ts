@@ -43,7 +43,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
   const tokenCallback = useRef<
     | {
         resolve: (value: google.accounts.oauth2.TokenResponse) => void;
-        reject: (reason?: any) => void;
+        reject: (reason?: unknown) => void;
       }
     | null
     | undefined
@@ -137,7 +137,7 @@ export function useGoogleApi({ clientId, scopes = [SCOPES['drive.file']] }: Goog
       } catch (ex) {
         logger.error('[GOOGLE] Error loading library', ex);
         setError('There was a problem loading Google');
-        rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex: ex });
+        rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex });
       } finally {
         setLoading(false);
       }

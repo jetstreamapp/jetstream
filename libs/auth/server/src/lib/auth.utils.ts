@@ -10,7 +10,6 @@ import { createHmac } from 'node:crypto';
 export const REMEMBER_DEVICE_DAYS = 30;
 
 const TIME_15_MIN = 60 * 15;
-const TIME_1_HOUR = 60 * 60;
 const REMEMBER_DEVICE_MAX_AGE = REMEMBER_DEVICE_DAYS * 24 * 60 * 60;
 
 export function getCookieConfig(useSecureCookies: boolean): CookieConfig {
@@ -143,7 +142,7 @@ export async function hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(saltRounds);
     const hashedPassword = await bcrypt.hash(password, salt);
     return hashedPassword;
-  } catch (error) {
+  } catch {
     throw new Error('Error hashing the password');
   }
 }
@@ -152,7 +151,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   try {
     const isMatch = await bcrypt.compare(password, hashedPassword);
     return isMatch;
-  } catch (error) {
+  } catch {
     throw new Error('Error verifying the password');
   }
 }
@@ -314,7 +313,7 @@ export function validateHMACDoubleCSRFToken(
     // Token is valid if HMAC matches - session expiration handles timeout
     // No additional age check needed since sessions use rolling expiration
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

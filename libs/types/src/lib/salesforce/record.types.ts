@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type SalesforceId = string;
 
 export type OperationReturnType<O extends SobjectOperation, R = any> = O extends 'retrieve'

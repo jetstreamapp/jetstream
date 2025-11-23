@@ -26,10 +26,11 @@ export async function sendEmail({
   replyTo?: string;
   to: string;
   subject: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attachment?: any;
   html: string;
   text: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }) {
   if (!mailgun) {
     logger.warn('[EMAIL][ERROR] Mail client not configured, skipping sending email');

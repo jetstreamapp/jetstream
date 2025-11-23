@@ -44,7 +44,7 @@ export const ImageFile: FunctionComponent<ImageFileProps> = ({
         <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="slds-file__crop" onClick={handlePreview}>
           <span className="slds-assistive-text">Preview:</span>
           {loading && <Spinner className="slds-spinner slds-spinner_medium" />}
-          <img src={content} alt={`Preview of uploaded image ${filename}`} />
+          <img src={content} alt={`Preview of ${filename}`} />
         </a>
         <figcaption className="slds-file__title slds-file__title_card slds-file-has-actions">
           <div className="slds-media slds-media_small slds-media_center">

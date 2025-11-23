@@ -16,7 +16,7 @@ export interface AmplitudeChartResult {
   novaCost: number;
   throttleTime: number;
   minSampleRate: number;
-  transformationIds: any[];
+  transformationIds: string[];
   backend: string;
   realtimeDataMissing: boolean;
   timedOutRealtimeData: boolean;

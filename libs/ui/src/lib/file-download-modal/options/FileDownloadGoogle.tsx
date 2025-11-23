@@ -31,7 +31,6 @@ export const FileDownloadGoogle: FunctionComponent<FileDownloadGoogleProps> = ({
 
   useNonInitialEffect(() => {
     onFolderSelected(whichFolder === 'root' ? undefined : googleFolder?.folderId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [whichFolder, googleFolder]);
 
   function handleGoogleFolderSelected(data: google.picker.DocumentObject) {

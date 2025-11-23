@@ -53,6 +53,7 @@ function getExternalDeviceAuthMiddleware(audience: externalAuthService.Audience)
       .verifyToken({ token: accessToken, deviceId }, audience)
       .then((decodedJwt) => convertUserProfileToSession(decodedJwt.userProfile))
       .then((user) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (socket.request as any).session = { ...(socket.request as any).session, user, deviceId };
         next();
       })
@@ -126,6 +127,7 @@ export function initSocketServer(
   });
 
   io.on('connection', (socket) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = (socket.request as any)?.session;
     const sessionId = session?.id as string | undefined;
     const userId = session?.user?.id as string | undefined;

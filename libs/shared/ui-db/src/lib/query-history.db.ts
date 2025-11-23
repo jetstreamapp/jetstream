@@ -20,10 +20,11 @@ export const queryHistoryDb = {
 /**
  * Boolean fields cannot be indexes, so we store a string version of the same field
  */
-dexieDb.query_history.hook('updating', function (mods, primaryKey, obj, transaction) {
+dexieDb.query_history.hook('updating', function (mods) {
   if ('isFavorite' in mods) {
     return { ...mods, isFavoriteIdx: mods.isFavorite ? 'true' : 'false' };
   }
+  return undefined;
 });
 
 function generateKey(orgUniqueId: string, sObject: string, soql: string): QueryHistoryItem['key'] {

@@ -25,8 +25,8 @@ export class ApiRequest extends SalesforceApi {
     const data = await this.apiRequest<T>({
       sessionInfo: this.sessionInfo,
       url,
-      method: method,
-      body: body,
+      method,
+      body,
       headers: headers || {},
       outputType,
       rawBody,

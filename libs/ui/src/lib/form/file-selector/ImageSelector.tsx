@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { deleteImage, uploadImage } from '@jetstream/shared/data';
 import { readFile, useNonInitialEffect } from '@jetstream/shared/ui-utils';
@@ -5,13 +6,18 @@ import { NOOP } from '@jetstream/shared/utils';
 import { ImageWithUpload, InputAcceptType } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
-import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 import Grid from '../../grid/Grid';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import ImageFile from './ImageFile';
 
 const ACCEPTED_IMAGE_EXTENSIONS = /\.(gif|png|webp|bmp|jpg|jpe?g|svg)$/i;
+
+const preventEventDefaults = (event: React.DragEvent<HTMLElement> | React.ChangeEvent<HTMLInputElement>) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
 
 export interface ImageSelectorProps {
   className?: string;
@@ -58,6 +64,115 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
     };
   }, []);
 
+  const handleFiles = useCallback(
+    async (files: FileList) => {
+      try {
+        setSystemErrorMessage(null);
+        if (!files || files.length === 0) {
+          return;
+        }
+
+        const images: ImageWithUpload[] = [];
+
+        for (const file of Array.from(files)) {
+          logger.info(file);
+          const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
+
+          if (ACCEPTED_IMAGE_EXTENSIONS.test(file.name)) {
+            const content = await readFile(file, 'data_url');
+            const image: ImageWithUpload = {
+              id: uniqueId('image-'),
+              filename: file.name,
+              extension,
+              content,
+              uploading: autoUploadImages,
+            };
+            images.push(image);
+          } else {
+            // TODO: we have at least one error!
+          }
+        }
+
+        if (images.length) {
+          // upload images
+          setLoadedImages((priorImages) => priorImages.concat(images));
+          if (autoUploadImages) {
+            for (const image of images) {
+              try {
+                // see if we have valid signature, else get one
+                const response = await uploadImage(image);
+                if (!isMounted.current) {
+                  return;
+                }
+                setLoadedImages((priorImages) =>
+                  priorImages.map((currImage) =>
+                    currImage.id !== image.id
+                      ? currImage
+                      : {
+                          ...currImage,
+                          uploading: false,
+                          url: response.url,
+                          deleteToken: response.delete_token,
+                        },
+                  ),
+                );
+              } catch (ex) {
+                logger.error('[IMAGE UPLOAD] Failed to load image to cloudinary', ex);
+                setLoadedImages((priorImages) =>
+                  priorImages.map((currImage) =>
+                    currImage.id !== image.id
+                      ? currImage
+                      : {
+                          ...currImage,
+                          uploading: false,
+                          error: 'Image upload failed',
+                        },
+                  ),
+                );
+              }
+            }
+          }
+        }
+      } catch (ex) {
+        setSystemErrorMessage(ex.message);
+      } finally {
+        if (inputRef?.current) {
+          inputRef.current.value = '';
+        }
+      }
+    },
+    [autoUploadImages],
+  );
+
+  const handleDragEnter = useCallback((event: React.DragEvent<HTMLElement>) => {
+    preventEventDefaults(event);
+    setIsDraggingOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLElement>) => {
+    preventEventDefaults(event);
+    setIsDraggingOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLElement>) => {
+      preventEventDefaults(event);
+      setIsDraggingOver(false);
+      if (!disabled) {
+        handleFiles(event.dataTransfer?.files);
+      }
+    },
+    [disabled, handleFiles],
+  );
+
+  const handleInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      preventEventDefaults(event);
+      event.target?.files && handleFiles(event.target.files);
+    },
+    [handleFiles],
+  );
+
   useEffect(() => {
     if (draggableRef) {
       draggableRef.addEventListener('dragenter', handleDragEnter as any);
@@ -72,116 +187,12 @@ export const ImageSelector: FunctionComponent<ImageSelectorProps> = ({
         draggableRef.removeEventListener('drop', handleDrop as any);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draggableRef]);
 
   useNonInitialEffect(() => {
     onImages(loadedImages);
   }, [loadedImages, onImages]);
-
-  function preventEventDefaults(event: React.DragEvent<HTMLElement> | React.ChangeEvent<HTMLInputElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  function handleDragEnter(event: React.DragEvent<HTMLElement>) {
-    preventEventDefaults(event);
-    setIsDraggingOver(true);
-  }
-
-  function handleDragLeave(event: React.DragEvent<HTMLElement>) {
-    preventEventDefaults(event);
-    setIsDraggingOver(false);
-  }
-
-  function handleDrop(event: React.DragEvent<HTMLElement>) {
-    preventEventDefaults(event);
-    setIsDraggingOver(false);
-    if (!disabled) {
-      handleFiles(event.dataTransfer?.files);
-    }
-  }
-
-  function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    preventEventDefaults(event);
-    event.target?.files && handleFiles(event.target.files);
-  }
-
-  async function handleFiles(files: FileList) {
-    try {
-      setSystemErrorMessage(null);
-      if (!files || files.length === 0) {
-        return;
-      }
-
-      const images: ImageWithUpload[] = [];
-
-      for (const file of Array.from(files)) {
-        logger.info(file);
-        const extension = (file.name.substring(file.name.lastIndexOf('.')) || '').toLowerCase() as InputAcceptType;
-
-        if (ACCEPTED_IMAGE_EXTENSIONS.test(file.name)) {
-          const content = await readFile(file, 'data_url');
-          const image: ImageWithUpload = {
-            id: uniqueId('image-'),
-            filename: file.name,
-            extension,
-            content,
-            uploading: autoUploadImages,
-          };
-          images.push(image);
-        } else {
-          // TODO: we have at least one error!
-        }
-      }
-
-      if (images.length) {
-        // upload images
-        setLoadedImages((priorImages) => priorImages.concat(images));
-        if (autoUploadImages) {
-          for (const image of images) {
-            try {
-              // see if we have valid signature, else get one
-              const response = await uploadImage(image);
-              if (!isMounted.current) {
-                return;
-              }
-              setLoadedImages((priorImages) =>
-                priorImages.map((currImage) =>
-                  currImage.id !== image.id
-                    ? currImage
-                    : {
-                        ...currImage,
-                        uploading: false,
-                        url: response.url,
-                        deleteToken: response.delete_token,
-                      },
-                ),
-              );
-            } catch (ex) {
-              logger.error('[IMAGE UPLOAD] Failed to load image to cloudinary', ex);
-              setLoadedImages((priorImages) =>
-                priorImages.map((currImage) =>
-                  currImage.id !== image.id
-                    ? currImage
-                    : {
-                        ...currImage,
-                        uploading: false,
-                        error: 'Image upload failed',
-                      },
-                ),
-              );
-            }
-          }
-        }
-      }
-    } catch (ex) {
-      setSystemErrorMessage(ex.message);
-    } finally {
-      if (inputRef?.current) {
-        inputRef.current.value = '';
-      }
-    }
-  }
 
   function handleRemoveImage(idToRemove: string) {
     const indexToRemove = loadedImages.findIndex(({ id }) => id === idToRemove);

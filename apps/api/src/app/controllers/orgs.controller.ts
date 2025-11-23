@@ -59,7 +59,7 @@ export const routeDefinition = {
   },
 };
 
-const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, req, res, next) => {
+const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user }, _, res, next) => {
   try {
     const orgs = await salesforceOrgsDb.findByUserId(user.id);
 
@@ -69,7 +69,7 @@ const getOrgs = createRoute(routeDefinition.getOrgs.validators, async ({ user },
   }
 });
 
-const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params, user }, req, res, next) => {
+const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ body, params, user }, _, res, next) => {
   try {
     const data = { label: body.label, color: body.color };
     const salesforceOrg = await salesforceOrgsDb.updateSalesforceOrg(user.id, params.uniqueId, data);
@@ -80,7 +80,7 @@ const updateOrg = createRoute(routeDefinition.updateOrg.validators, async ({ bod
   }
 });
 
-const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, req, res, next) => {
+const deleteOrg = createRoute(routeDefinition.deleteOrg.validators, async ({ params, user }, _, res, next) => {
   try {
     await salesforceOrgsDb.deleteSalesforceOrg(user.id, params.uniqueId);
 
@@ -140,7 +140,7 @@ const checkOrgHealth = createRoute(routeDefinition.checkOrgHealth.validators, as
   }
 });
 
-const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, params, user }, req, res, next) => {
+const moveOrg = createRoute(routeDefinition.moveOrg.validators, async ({ body, params, user }, _, res, next) => {
   try {
     const { uniqueId } = params;
     const salesforceOrg = await salesforceOrgsDb.moveSalesforceOrg(user.id, uniqueId, body);

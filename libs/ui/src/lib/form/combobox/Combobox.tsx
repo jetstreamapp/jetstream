@@ -1,4 +1,3 @@
-/* eslint-disable no-prototype-builtins */
 import { SerializedStyles } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import {

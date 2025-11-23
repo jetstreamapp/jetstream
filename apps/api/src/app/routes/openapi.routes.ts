@@ -2,7 +2,7 @@ import { ENV } from '@jetstream/api-config';
 import { HTTP } from '@jetstream/shared/constants';
 import express, { Router } from 'express';
 import { dump as stringifyYaml } from 'js-yaml';
-import z from 'zod';
+import z, { ZodObject } from 'zod';
 import { createDocument, ZodOpenApiOperationObject, ZodOpenApiParameters, ZodOpenApiResponsesObject } from 'zod-openapi';
 import { routeDefinition as authController } from '../controllers/auth.controller';
 import { routeDefinition as billingController } from '../controllers/billing.controller';
@@ -29,13 +29,13 @@ export const openApiRoutes: express.Router = Router();
 openApiRoutes.use(basicAuthMiddleware);
 
 // /openapi
-openApiRoutes.get('/spec.json', (req, res) => {
+openApiRoutes.get('/spec.json', (_, res) => {
   const doc = getOpenApiSpec();
   res.setHeader('Content-Type', 'application/json');
   res.json(doc);
 });
 
-openApiRoutes.get('/spec.yaml', (req, res) => {
+openApiRoutes.get('/spec.yaml', (_, res) => {
   const doc = getOpenApiSpec();
   res.setHeader('Content-Type', 'application/x-yaml');
   res.send(stringifyYaml(doc));
@@ -114,10 +114,10 @@ function getRequest({
   };
 
   if (params) {
-    requestParams.path = params as any;
+    requestParams.path = params as unknown as ZodObject;
   }
   if (query) {
-    requestParams.query = query as any;
+    requestParams.query = query as unknown as ZodObject;
   }
 
   const _responses = { ...responses };

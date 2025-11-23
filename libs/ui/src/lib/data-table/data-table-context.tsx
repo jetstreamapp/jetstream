@@ -11,6 +11,7 @@ export const DataTableFilterContext = createContext<FilterContextProps>({
 export const DataTableSubqueryContext = createContext<SubqueryContext | undefined>(undefined);
 export const DataTableSelectedContext = createContext<SelectedRowsContext>({ selectedRowIds: new Set() });
 // Used to allow arbitrary data to be accessed by renderers
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTableGenericContext = createContext<Record<string, any>>({});
 
 // serverUrl, org, columnDefinitions, isTooling, google_apiKey, google_appId, google_clientId

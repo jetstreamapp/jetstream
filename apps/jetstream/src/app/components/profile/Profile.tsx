@@ -1,5 +1,5 @@
 import { getLoginConfigurationAbility, LoginConfigAbility } from '@jetstream/acl';
-import type { LoginConfigurationUI, UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { UserProfileAuthFactor, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import {
@@ -47,7 +47,6 @@ export const Profile = () => {
   const [loadingError, setLoadingError] = useState(false);
   const [userProfile, setUserProfile] = useAtom(userProfileState);
   const [fullUserProfile, setFullUserProfile] = useState<UserProfileUiWithIdentities>();
-  const [loginConfiguration, setLoginConfiguration] = useState<LoginConfigurationUI | null>(null);
   const [modifiedUser, setModifiedUser] = useState<UserProfileUiWithIdentities>();
   const [loginConfigAbility, setLoginConfigAbility] = useState<LoginConfigAbility>();
   const [editMode, setEditMode] = useState(false);
@@ -67,7 +66,6 @@ export const Profile = () => {
       try {
         setLoadingError(false);
         const loginConfiguration = await getLoginConfiguration();
-        setLoginConfiguration(loginConfiguration);
         setFullUserProfile(await getFullUserProfile());
         setLoginConfigAbility(getLoginConfigurationAbility({ user: userProfile, loginConfiguration }));
       } catch (ex) {
@@ -77,7 +75,7 @@ export const Profile = () => {
         setLoading(false);
       }
     })();
-  }, [rollbar]);
+  }, [rollbar, userProfile]);
 
   useEffect(() => {
     if (fullUserProfile) {
@@ -209,14 +207,12 @@ export const Profile = () => {
 
               <Profile2fa
                 authFactors={fullUserProfile.authFactors}
-                loginConfiguration={loginConfiguration}
                 loginConfigAbility={loginConfigAbility}
                 onUpdate={handleUpdatedAuthFactors}
               />
 
               <ProfileLinkedAccounts
                 fullUserProfile={fullUserProfile}
-                loginConfiguration={loginConfiguration}
                 loginConfigAbility={loginConfigAbility}
                 onUserProfilesChange={setFullUserProfile}
               />

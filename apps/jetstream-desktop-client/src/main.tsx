@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 // DO NOT CHANGE ORDER OF IMPORTS
 import { CONFIG } from './app/components/core/config';
 // DO NOT CHANGE ORDER OF IMPORTS

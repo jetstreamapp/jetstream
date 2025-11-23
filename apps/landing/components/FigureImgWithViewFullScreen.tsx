@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { Fragment, useState } from 'react';
 import { FigureImgProps } from './FigureImg';
 import Modal from './Modal';

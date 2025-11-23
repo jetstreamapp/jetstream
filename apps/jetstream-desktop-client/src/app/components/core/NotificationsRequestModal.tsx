@@ -53,7 +53,7 @@ export const NotificationsRequestModal: FunctionComponent<NotificationsRequestMo
     try {
       const permission = await Notification.requestPermission();
       handlePermissionRequest(permission);
-    } catch (ex) {
+    } catch {
       // Safari does not support promise version and will throw exception above
       Notification.requestPermission((permission) => {
         handlePermissionRequest(permission);

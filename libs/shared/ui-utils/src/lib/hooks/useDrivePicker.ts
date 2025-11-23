@@ -22,11 +22,12 @@ export interface PickerConfigurationNew {
  */
 function setViewLabel(view: google.picker.DocsView | google.picker.DocsUploadView | google.picker.ViewId, label: string) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const _view: any = view;
     if (_view && typeof _view.setLabel === 'function') {
       _view.setLabel(label);
     }
-  } catch (ex) {
+  } catch {
     logger.warn('Unable to set view label');
   } finally {
     // eslint-disable-next-line no-unsafe-finally

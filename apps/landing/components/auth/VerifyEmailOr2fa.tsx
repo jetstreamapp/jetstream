@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TwoFactorType } from '@jetstream/auth/types';
 import { Maybe } from '@jetstream/types';
@@ -112,6 +111,8 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
       const response = await fetch(ROUTES.AUTH.api_verify_resend, {
         method: 'POST',
         credentials: 'include',
+        // FormData IS allowed here, but TS types are incorrect - https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         body: new URLSearchParams(formData as any).toString(),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -122,8 +123,7 @@ export function VerifyEmailOr2fa({ csrfToken, email, pendingVerifications }: Ver
         throw new Error('Failed to send verification code');
       }
       setHasResent(true);
-    } catch (ex) {
-      // FIXME: better error
+    } catch {
       setError('UNKNOWN_ERROR');
     }
   };

@@ -453,7 +453,7 @@ async function collectCustomMetadata({
       >,
       fullField,
     ) => {
-      const [prefix, object, record, field] = fullField.split('.');
+      const [, object, record, field] = fullField.split('.');
       output[object] = output[object] || { object, records: {} };
       output[object].records[record] = output[object].records[record] || { record, fields: [] };
       output[object].records[record].fields.push({ field, fullField });
@@ -802,7 +802,7 @@ async function collectCustomSettingFields({
   const { Id, ProfileId } = queryResults.records[0];
 
   const data = fields.reduce((output: Record<string, { object: string; fields: { field: string; fullField: string }[] }>, fullField) => {
-    const [prefix, object, field] = fullField.split('.');
+    const [, object, field] = fullField.split('.');
     output[object] = output[object] || { object, fields: [] };
     output[object].fields.push({ field, fullField });
     return output;

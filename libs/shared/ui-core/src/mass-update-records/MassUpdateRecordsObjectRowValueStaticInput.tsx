@@ -36,7 +36,7 @@ export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassU
         id: item.value,
         label: item.label || item.value,
         value: item.value,
-        secondaryLabel: secondaryLabel,
+        secondaryLabel,
         secondaryLabelOnNewLine: !!secondaryLabel,
         meta: item,
       };

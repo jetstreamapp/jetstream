@@ -57,6 +57,7 @@ export const Expression: FunctionComponent<ExpressionProps> = ({
         className={classNames({
           'drop-zone-border': isOver && canDrop,
         })}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ref={drop as any}
       >
         <ExpressionActionDropDown

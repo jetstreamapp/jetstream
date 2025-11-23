@@ -5,7 +5,6 @@ WORKDIR /usr/src/app
 # Copy application
 COPY ./dist/apps/api ./dist/apps/api/
 COPY ./dist/apps/jetstream ./dist/apps/jetstream/
-COPY ./dist/apps/download-zip-sw ./dist/apps/download-zip-sw/
 COPY ./dist/apps/landing ./dist/apps/landing/
 
 # Copy supporting files

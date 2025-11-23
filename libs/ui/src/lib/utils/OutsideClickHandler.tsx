@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Maybe } from '@jetstream/types';
 import { addEventListener } from 'consolidated-events';
 import contains from 'document.contains';

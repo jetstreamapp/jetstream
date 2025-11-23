@@ -91,7 +91,7 @@ export const getUseInjectScript = (url: string) => {
           script.removeEventListener('error', onScriptEvent);
         }
       };
-    }, [url]);
+    }, []);
 
     return [state.loaded, state.error];
   };

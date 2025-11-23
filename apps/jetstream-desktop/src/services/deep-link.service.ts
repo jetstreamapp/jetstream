@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const JETSTREAM_PROTOCOL = 'jetstream';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Listener = (query: Record<string, string>) => any;
 
 export const initDeepLink = () => {
@@ -25,7 +26,7 @@ export const initDeepLink = () => {
     app.setAsDefaultProtocolClient(JETSTREAM_PROTOCOL);
   }
 
-  app.on('open-url', (event, url) => {
+  app.on('open-url', (_, url) => {
     handleCustomUrl(url);
   });
 
@@ -35,7 +36,7 @@ export const initDeepLink = () => {
     logger.error('Deep link: another instance is running, exiting');
     app.quit();
   } else {
-    app.on('second-instance', (event, commands, workingDir) => {
+    app.on('second-instance', (_, commands) => {
       const targetUrl = commands.pop();
       if (!targetUrl) {
         return;

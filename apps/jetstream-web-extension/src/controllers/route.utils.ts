@@ -65,7 +65,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       if (req.request.headers.get('content-type') === 'application/json') {
         try {
           parsedBody = await req.request.json();
-        } catch (ex) {
+        } catch {
           // headers may not have been correct, just ignore and continue
         }
       } else if (req.request.headers.get('content-type') === 'application/zip') {
@@ -94,6 +94,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         logger.info('[INIT-ORG][ERROR] A target org did not exist on locals');
         throw new Error('A source and target org are required for this action');
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return await controllerFn(data as any, req);
     } catch (ex) {
       logger.error(ex, '[ROUTE][VALIDATION ERROR]');
@@ -102,7 +103,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
   };
 }
 
-export function handleJsonResponse(data?: any, options: ResponseInit = {}) {
+export function handleJsonResponse(data?: unknown, options: ResponseInit = {}) {
   return new Response(JSON.stringify({ data: data || {} }), {
     headers: {
       'Content-Type': 'application/json',

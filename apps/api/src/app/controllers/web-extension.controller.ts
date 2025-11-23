@@ -79,7 +79,7 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
   if (!req.session.user) {
     const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
     setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/web-extension/init`, redirectUrlCookie.options);
-    redirect(res as any, '/auth/login/');
+    redirect(res, '/auth/login/');
     return;
   }
   next();
@@ -132,7 +132,7 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   sendJson(res, { accessToken });
 });
 
-const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async ({ body }, req, res, next) => {
+const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async ({ body }, _, res) => {
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
@@ -146,7 +146,7 @@ const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async 
   }
 });
 
-const logout = createRoute(routeDefinition.logout.validators, async ({ body }, req, res, next) => {
+const logout = createRoute(routeDefinition.logout.validators, async ({ body }, _, res) => {
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
@@ -161,7 +161,7 @@ const logout = createRoute(routeDefinition.logout.validators, async ({ body }, r
   }
 });
 
-const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async ({ user, query }, req, res) => {
+const dataSyncPull = createRoute(routeDefinition.dataSyncPull.validators, async ({ user, query }, _, res) => {
   const { lastKey, updatedAt, limit } = query;
   const response = await userSyncDbService.findByUpdatedAt({
     userId: user.id,

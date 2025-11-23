@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { UpDown } from '@jetstream/types';
 
 export interface DuelingPicklistItem {

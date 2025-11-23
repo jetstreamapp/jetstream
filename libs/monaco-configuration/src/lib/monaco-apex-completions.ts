@@ -72,7 +72,7 @@ function getSuggestions(
             filterText: method.name,
             insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            range: range,
+            range,
           }),
         ),
       );
@@ -85,7 +85,7 @@ function getSuggestions(
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: 'new List<${1:String}>(${2});',
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        range: range,
+        range,
       },
       {
         label: 'new Set()',
@@ -93,7 +93,7 @@ function getSuggestions(
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: 'new Set<${1:String}>(#{2});',
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        range: range,
+        range,
       },
       {
         label: 'new Map()',
@@ -101,7 +101,7 @@ function getSuggestions(
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: 'new Map<${1:String}, ${2:Account}>(${3});',
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        range: range,
+        range,
       },
     ]);
   } else if (textUntilPosition.includes('.')) {
@@ -116,7 +116,7 @@ function getSuggestions(
             filterText: method.name,
             insertText: `${method.name}(${method.parameters.map((param, i) => `\${${i + 1}:${param.name}}`).join(', ')});`,
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            range: range,
+            range,
           }),
         ),
       );
@@ -126,7 +126,7 @@ function getSuggestions(
           label: completion,
           kind: monaco.languages.CompletionItemKind.Class,
           insertText: completion,
-          range: range,
+          range,
         })),
       );
     }
@@ -136,7 +136,7 @@ function getSuggestions(
         label: completion,
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: completion,
-        range: range,
+        range,
       })),
     );
   }

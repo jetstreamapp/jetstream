@@ -28,7 +28,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
       );
     }
 
-    if ((await prisma.user.count({ where: { userId: userId } })) > 0) {
+    if ((await prisma.user.count({ where: { userId } })) > 0) {
       dbTransactions.push(
         prisma.user.deleteMany({
           where: { userId },

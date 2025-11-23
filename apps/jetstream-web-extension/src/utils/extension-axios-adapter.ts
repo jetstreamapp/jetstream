@@ -12,7 +12,7 @@ export async function browserExtensionAxiosAdapter(config: InternalAxiosRequestC
   if (!sfHost) {
     throw new AxiosError('No Salesforce host found in URL');
   }
-  const { headers, data, method, timeout } = config;
+  const { headers, data, method } = config;
 
   // This gets modified
   const axiosResponse: AxiosResponse = {
@@ -101,6 +101,7 @@ async function getAxiosResponse(
   axiosResponse.data = await getResponseBody(response);
   axiosResponse.status = response.status;
   axiosResponse.statusText = response.statusText;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   axiosResponse.headers = AxiosHeaders.from(response.headers as any);
 
   if (response.status < 200 || response.status >= 300) {

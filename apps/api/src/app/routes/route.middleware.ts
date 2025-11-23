@@ -67,7 +67,7 @@ export function addContextMiddleware(req: express.Request, res: express.Response
  * @param res
  * @param next
  */
-export function setApplicationCookieMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function setApplicationCookieMiddleware(_: express.Request, res: express.Response, next: express.NextFunction) {
   const appCookie = getDefaultAppState({
     serverUrl: ENV.JETSTREAM_SERVER_URL,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,7 +84,7 @@ export function setApplicationCookieMiddleware(req: express.Request, res: expres
   next();
 }
 
-export function notFoundMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function notFoundMiddleware(_: express.Request, __: express.Response, next: express.NextFunction) {
   const error = new NotFoundError('Route not found');
   next(error);
 }
@@ -120,7 +120,7 @@ export function blockBotByUserAgentMiddleware(req: express.Request, res: express
   next();
 }
 
-export function destroySessionIfPendingVerificationIsExpired(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function destroySessionIfPendingVerificationIsExpired(req: express.Request, _: express.Response, next: express.NextFunction) {
   if (req.session?.pendingVerification?.length) {
     const { exp } = req.session.pendingVerification[0];
     if (exp < new Date().getTime()) {
@@ -250,7 +250,7 @@ export const verifyEntitlement =
       }
 
       next();
-    } catch (ex) {
+    } catch {
       res.status(403);
       next(new UserFacingError('You do not have access to this feature'));
     }

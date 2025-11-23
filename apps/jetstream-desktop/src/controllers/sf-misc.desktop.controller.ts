@@ -47,7 +47,7 @@ export const routeDefinition = {
   },
 };
 
-// const getFrontdoorLoginUrl = createRoute(routeDefinition.getFrontdoorLoginUrl.validators, async ({ query, jetstreamConn }, req) => {
+// const getFrontdoorLoginUrl = createRoute(routeDefinition.getFrontdoorLoginUrl.validators, async ({ query, jetstreamConn }) => {
 //   try {
 //     const { returnUrl } = query;
 //     // ensure that our token is valid and not expired
@@ -63,7 +63,7 @@ export const routeDefinition = {
  * Query parameter of url is required (e.x. `/services/data/v54.0/sobjects/Attachment/00P6g000007BzmTEAS/Body`)
  * @returns
  */
-const streamFileDownload = createRoute(routeDefinition.streamFileDownload.validators, async ({ query, jetstreamConn }, req) => {
+const streamFileDownload = createRoute(routeDefinition.streamFileDownload.validators, async ({ query, jetstreamConn }) => {
   try {
     const { url } = query;
 
@@ -105,7 +105,7 @@ const streamFileDownloadToZip = createRoute(routeDefinition.streamFileDownloadTo
   }
 });
 
-const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }, req) => {
+const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validators, async ({ body, jetstreamConn }) => {
   try {
     const payload = body;
     const results = await jetstreamConn!.request.manualRequest(payload, payload.options?.responseType || 'json', true);
@@ -119,7 +119,7 @@ const salesforceRequest = createRoute(routeDefinition.salesforceRequest.validato
 // TODO: combine with salesforceRequest and rename
 // The request payload and response are slightly different, but the logic is the same
 // The only difference is the caller is expected to pass in the full url to call (AFAIK)
-const salesforceRequestManual = createRoute(routeDefinition.salesforceRequestManual.validators, async ({ body, jetstreamConn }, req) => {
+const salesforceRequestManual = createRoute(routeDefinition.salesforceRequestManual.validators, async ({ body, jetstreamConn }) => {
   try {
     // const { method, headers, body, url } = body as ManualRequestPayload;
     const payload = body;
@@ -131,7 +131,7 @@ const salesforceRequestManual = createRoute(routeDefinition.salesforceRequestMan
         status,
         statusText,
         headers: JSON.stringify(Object.fromEntries(headers.entries()) || {}, null, 2),
-        body: await apiResponse.text(), // FIXME: what should this be?
+        body: await apiResponse.text(),
       };
       return response;
     });

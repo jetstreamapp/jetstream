@@ -47,7 +47,6 @@ const ROOT_PACKAGE_JSON_PATH = join(process.cwd(), 'package.json');
 const TARGET_PACKAGE_JSON_PATH = join(TARGET_DIR, 'package.json');
 const TARGET_CLIENT_DIR = join(TARGET_DIR, 'client');
 const MAIN_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop');
-const DOWNZIP_SW_BUILD_DIR = join(process.cwd(), 'dist/apps/download-zip-sw');
 const RENDERER_BUILD_DIR = join(process.cwd(), 'dist/apps/jetstream-desktop-client');
 const WINDOWS_SIGN_SCRIPT = join(process.cwd(), 'scripts/windows-sign.js');
 const WINDOWS_SIGN_SCRIPT_DEST = join(TARGET_DIR, 'windows-sign.js');
@@ -126,7 +125,6 @@ async function build() {
   // Copy artifacts to the target directory
   await copy(MAIN_BUILD_DIR, TARGET_DIR);
   await copy(RENDERER_BUILD_DIR, TARGET_CLIENT_DIR);
-  await copy(DOWNZIP_SW_BUILD_DIR, TARGET_DIR);
   await copy(WINDOWS_SIGN_SCRIPT, WINDOWS_SIGN_SCRIPT_DEST);
 
   // Copy electron-builder config and assets

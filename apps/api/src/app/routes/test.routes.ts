@@ -9,7 +9,7 @@ import { sendJson } from '../utils/response.handlers';
 
 const routes: express.Router = Router();
 
-routes.use((req, res, next) => {
+routes.use((req, _, next) => {
   const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL;
   const E2E_LOGIN_USERNAME = process.env.E2E_LOGIN_USERNAME;
   const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD;
@@ -25,7 +25,7 @@ routes.use((req, res, next) => {
  * this avoids the need to perform oauth for integration test environment
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-routes.post('/e2e-integration-org', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+routes.post('/e2e-integration-org', async (_: express.Request, res: express.Response, next: express.NextFunction) => {
   const E2E_LOGIN_URL = process.env.E2E_LOGIN_URL!;
   const E2E_LOGIN_USERNAME = process.env.E2E_LOGIN_USERNAME!;
   const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD!;

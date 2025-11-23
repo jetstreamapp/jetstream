@@ -50,7 +50,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
       token,
       password: '',
       confirmPassword: '',
-      csrfToken: csrfToken,
+      csrfToken,
       captchaToken: '',
     },
   });

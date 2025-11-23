@@ -27,6 +27,7 @@ export const loadExistingRecordCount = atomWithReset<number | null>(null);
 
 export const loadTypeState = atomWithReset<InsertUpdateUpsertDelete>('INSERT');
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const inputFileDataState = atomWithReset<any[] | null>(null);
 
 export const inputFileHeaderState = atomWithReset<string[] | null>(null);

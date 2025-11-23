@@ -27,7 +27,7 @@ export const PopoverContainer = forwardRef<HTMLElement, PopoverContainerProps>(
     ref,
   ) => {
     const { portalRoot } = usePortalContext();
-    const { refs, floatingStyles, context, update } = useFloating({
+    const { refs, floatingStyles, update } = useFloating({
       open: isOpen,
       placement: 'bottom-start',
       middleware: [offset(1.75), flip(), shift({ padding: 8 })],

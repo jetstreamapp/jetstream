@@ -90,7 +90,7 @@ const stripeWebhookHandler = async (req: Request, res: Response) => {
   }
 };
 
-const fetchPrices = createRoute(routeDefinition.fetchPrices.validators, async ({ user, body }, req, res) => {
+const fetchPrices = createRoute(routeDefinition.fetchPrices.validators, async ({}, _, res) => {
   stripeService.ensureStripeIsInitialized();
 
   const pricesByLookupKey = await stripeService.fetchPrices({ lookupKeys: STRIPE_PRICE_KEYS });
@@ -176,7 +176,7 @@ const processCheckoutSuccessHandler = createRoute(
   },
 );
 
-const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user, teamMembership }, req, res) => {
+const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.validators, async ({ user, teamMembership }, _, res) => {
   stripeService.ensureStripeIsInitialized();
 
   const teamId = teamMembership?.teamId;
@@ -216,7 +216,7 @@ const getSubscriptionsHandler = createRoute(routeDefinition.getSubscriptions.val
 
 const createBillingPortalSession = createRoute(
   routeDefinition.createBillingPortalSession.validators,
-  async ({ user: sessionUser }, req, res) => {
+  async ({ user: sessionUser }, _, res) => {
     stripeService.ensureStripeIsInitialized();
     const billingAccount = await userDbService.getBillingAccount(sessionUser.id);
     let portalType: 'USER' | 'TEAM' | 'MANUAL' = 'USER';

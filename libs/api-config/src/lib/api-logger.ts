@@ -18,20 +18,20 @@ const ignoreLogsFileExtensions = /.*\.(js|map|css|png|jpg|jpeg|gif|svg|ico|woff|
 
 export const httpLogger = pinoHttp<express.Request, express.Response>({
   logger,
-  genReqId: (req, res) => res.locals.requestId || uuid(),
+  genReqId: (_, res) => res.locals.requestId || uuid(),
   autoLogging: {
     // ignore static files based on file extension
     ignore: (req) =>
       ignoreLogsFileExtensions.test(req.url) || req.url === '/healthz' || req.url === '/api/heartbeat' || req.url === '/api/analytics',
   },
-  customLogLevel: function (req, res, error) {
+  customLogLevel(_, res) {
     if (res.statusCode > 400) {
       // these are manually logged in the request handler
       return 'silent';
     }
     return ENV.LOG_LEVEL;
   },
-  customSuccessMessage: function (req, res) {
+  customSuccessMessage(req, res) {
     if (res.statusCode === 404) {
       return `[404] [${req.method}] ${req.url}`;
     }
@@ -61,21 +61,24 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
       return {
         statusCode: res.raw.statusCode,
         headers: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           'content-type': (res.raw as any).headers['content-type'],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           'content-length': (res.raw as any).headers['content-length'],
         },
       };
     }),
   },
-  customProps: function (req, res) {
+  customProps(req) {
     return {
-      userId: (req as any).session?.user?.id,
-      sessionId: (req as any).session?.id,
+      userId: req.session?.user?.id,
+      sessionId: req.session?.id,
     };
   },
 });
 
 export function getExceptionLog(error: unknown, includeStack = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const status = (error as any) /** UserFacingError */?.apiRequestError?.status || (error as any) /** ApiRequestError */?.status;
   if (error instanceof Error) {
     return {

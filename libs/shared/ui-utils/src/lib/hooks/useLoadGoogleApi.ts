@@ -83,7 +83,8 @@ export function useLoadGoogleApi({
     if (scriptLoaded && !scriptLoadError && !hasApisLoaded) {
       loadApis();
     }
-  }, [scriptLoaded, scriptLoadError, hasApisLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rollbar, scriptLoaded, scriptLoadError, hasApisLoaded]);
 
   useNonInitialEffect(() => {
     API_LOADED = apiLoaded;
@@ -97,7 +98,7 @@ export function useLoadGoogleApi({
       setError('There was an error initializing Google');
       rollbar?.critical('Error loading Google API script from Network');
     }
-  }, [scriptLoadError]);
+  }, [rollbar, scriptLoadError]);
 
   // load the Drive picker api
   const loadApis = useCallback(async () => {
@@ -133,6 +134,7 @@ export function useLoadGoogleApi({
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initClient = useCallback(async (scope: string, forceInit?: boolean) => {
@@ -174,6 +176,7 @@ export function useLoadGoogleApi({
         setError(errorMessage);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function initSignIn(user: gapi.auth2.GoogleUser) {
@@ -207,12 +210,12 @@ export function useLoadGoogleApi({
             setError('You did not provide the required access, sign in again and choose the necessary permissions.');
           } else {
             setError('There was a problem signing in');
-            rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex: ex });
+            rollbar?.critical('Google Sign In error', { message: ex.message || ex.error, stack: ex.stack, ex });
           }
         }
       }
     },
-    [authorized, error, hasApisLoaded, hasInitialized, signedIn],
+    [authorized, hasApisLoaded, hasInitialized, rollbar, scriptLoaded, signedIn],
   );
 
   const signOut = useCallback(() => {
@@ -227,7 +230,7 @@ export function useLoadGoogleApi({
       logger.error('Error Signing out', ex);
       rollbar?.critical('Google Sign Out error (could be user initiated)', { message: ex.message || ex.error, stack: ex.stack });
     }
-  }, [signedIn]);
+  }, [rollbar, signedIn]);
 
   return [
     {
