@@ -174,7 +174,7 @@ export class AuthenticationPage {
     await this.verificationCodeInput.fill(token);
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
 
     await verifyEmailLogEntryExists(email, 'Welcome to Jetstream');
 
@@ -248,7 +248,7 @@ export class AuthenticationPage {
     await this.verificationCodeInput.fill(code);
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
 
     return { secret };
   }
@@ -268,7 +268,7 @@ export class AuthenticationPage {
     };
   }
 
-  async loginAndVerifyEmail(email: string, password: string, rememberMe = false, waitForPage = '**/app') {
+  async loginAndVerifyEmail(email: string, password: string, rememberMe = false, waitForPage = '**/app/**') {
     await this.fillOutLoginForm(email, password);
 
     await expect(this.page.getByText('Enter verification code')).toBeVisible();
@@ -288,7 +288,7 @@ export class AuthenticationPage {
     await this.verifyTotp(email, secret, rememberMe);
   }
 
-  async verifyEmail(email: string, rememberMe = false, waitForPage = '**/app') {
+  async verifyEmail(email: string, rememberMe = false, waitForPage = '**/app/**') {
     // Get token from session
     const sessions = await getUserSessionsByEmail(email);
     const pendingVerification = sessions.find((session) => session.pendingVerification?.length)?.pendingVerification || [];
@@ -337,7 +337,7 @@ export class AuthenticationPage {
 
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
   }
 
   async resetPassword(email: string) {
@@ -363,7 +363,7 @@ export class AuthenticationPage {
     await this.fillOutLoginForm(email, password);
     // TODO: what about 2fa?
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
   }
 
   async fillOutLoginForm(email: string, password: string) {

@@ -19,13 +19,13 @@ export function Input({ label, error, labelProps, inputProps, inputContainerProp
       <label htmlFor={id} className="block text-sm font-medium leading-6 text-gray-900" {...labelProps}>
         {label}
       </label>
-      <div className="relative mt-2 rounded-md shadow-sm" {...inputContainerProps}>
+      <div className="relative mt-2 rounded-md shadow-xs" {...inputContainerProps}>
         <input
           id={id}
           className={classNames(
             'block w-full rounded-md border-0 py-1.5 ring-1 ring-inset focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6',
             {
-              'text-gray-900 shadow-sm  ring-gray-300 placeholder:text-gray-400 focus:ring-blue-600': !error,
+              'text-gray-900 shadow-xs  ring-gray-300 placeholder:text-gray-400 focus:ring-blue-600': !error,
               'pr-8 text-red-900  ring-red-300 placeholder:text-red-300 focus:ring-red-500': error,
             },
           )}
