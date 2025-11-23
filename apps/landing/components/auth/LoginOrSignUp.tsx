@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Providers } from '@jetstream/auth/types';
 import { containsUserInfo } from '@jetstream/shared/utils';
-import { PasswordSchema } from '@jetstream/types';
+import { PASSWORD_MIN_LENGTH, PasswordSchema } from '@jetstream/types';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
@@ -300,7 +300,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
                 required: true,
                 autoComplete: action === 'login' ? 'current-password' : 'new-password',
                 spellCheck: 'false',
-                minLength: action === 'register' ? 12 : 8,
+                minLength: action === 'register' ? PASSWORD_MIN_LENGTH : 8,
                 maxLength: 255,
                 ...register('password'),
               }}
@@ -323,7 +323,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
                   type: showPasswordActive ? 'text' : 'password',
                   required: true,
                   autoComplete: 'new-password',
-                  minLength: 12,
+                  minLength: PASSWORD_MIN_LENGTH,
                   maxLength: 255,
                   ...register('confirmPassword'),
                 }}

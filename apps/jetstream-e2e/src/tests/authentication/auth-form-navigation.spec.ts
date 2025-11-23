@@ -256,7 +256,7 @@ test.describe('Auth Form Validation', () => {
 
       // Should show error that password contains email or name (only validates after submit)
       await authenticationPage.signUpButton.click();
-      await expect(page.getByText('Password cannot contain your name or email')).toBeVisible();
+      await expect(page.getByText('Password cannot contain your name or email address')).toBeVisible();
     });
 
     await test.step('Valid password with all requirements met', async () => {

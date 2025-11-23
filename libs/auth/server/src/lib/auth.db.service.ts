@@ -876,6 +876,10 @@ export async function setPasswordForUser(id: string, password: string) {
 
   const hashedPassword = await hashPassword(password);
 
+  if (await isPasswordInHistory(id, password)) {
+    throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
+  }
+
   // Update user password
   await prisma.user.update({
     data: { password: hashedPassword, passwordUpdatedAt: new Date() },
@@ -1835,7 +1839,7 @@ export async function linkIdentityToUser({
 /**
  * Checks if a password has been used recently (in password history)
  */
-export async function isPasswordInHistory(userId: string, hashedPassword: string): Promise<boolean> {
+export async function isPasswordInHistory(userId: string, password: string): Promise<boolean> {
   const recentPasswords = await prisma.passwordHistory.findMany({
     select: { password: true },
     where: { userId },
@@ -1844,7 +1848,7 @@ export async function isPasswordInHistory(userId: string, hashedPassword: string
   });
 
   for (const record of recentPasswords) {
-    const matches = await verifyPassword(hashedPassword, record.password);
+    const matches = await verifyPassword(password, record.password);
     if (matches) {
       return true;
     }
@@ -1903,6 +1907,8 @@ export async function isAccountLocked(userId: string): Promise<{ isLocked: boole
     return { isLocked: true, lockedUntil: user.lockedUntil };
   }
 
+  // Note: we do not reset the lockout count if the expiration has passed but the user is locked out, which means that the user will get exactly one attempt after the lockout period expires.
+  // This is probably acceptable, but could be re-evaluated in the future.
   return { isLocked: false };
 }
 
@@ -1922,9 +1928,10 @@ export async function recordFailedLoginAttempt(userId: string): Promise<{ isLock
   const newAttempts = (user.failedLoginAttempts || 0) + 1;
   const shouldLock = newAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
 
-  await prisma.user.update({
+  const { failedLoginAttempts } = await prisma.user.update({
+    select: { failedLoginAttempts: true },
     data: {
-      failedLoginAttempts: newAttempts,
+      failedLoginAttempts: { increment: 1 },
       lockedUntil: shouldLock ? addMinutes(new Date(), ACCOUNT_LOCKOUT_DURATION_MINUTES) : undefined,
     },
     where: { id: userId },
@@ -1932,7 +1939,7 @@ export async function recordFailedLoginAttempt(userId: string): Promise<{ isLock
 
   return {
     isLocked: shouldLock,
-    attemptsRemaining: Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - newAttempts),
+    attemptsRemaining: Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - failedLoginAttempts),
   };
 }
 
