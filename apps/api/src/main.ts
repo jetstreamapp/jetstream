@@ -1,6 +1,6 @@
 import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
-import { ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
+import { createRateLimit, ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
 import { setupPrimary } from '@socket.io/cluster-adapter';
@@ -344,10 +344,18 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use('/fonts', express.static(join(__dirname, './assets/fonts')));
   app.use(express.static(join(__dirname, '../landing')));
 
+  // Rate limiter for SPA entry point - lenient to allow frequent refreshes and asset loading
+  // Likely doesn't matter since assets are cached at the edge/CDN
+  const spaRateLimit = createRateLimit('spa', {
+    windowMs: 1000 * 60 * 1, // 1 minute
+    limit: ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : 100, // 100 requests per minute per IP
+  });
+
   if (environment.production || ENV.CI || ENV.JETSTREAM_CLIENT_URL.replace('/app', '') === ENV.JETSTREAM_SERVER_URL) {
     app.use(express.static(join(__dirname, '../jetstream')));
     app.use(
       '/app',
+      spaRateLimit,
       redirectIfPendingVerificationMiddleware,
       redirectIfMfaEnrollmentRequiredMiddleware,
       // Allow Google to frame /app routes for Google Picker functionality
