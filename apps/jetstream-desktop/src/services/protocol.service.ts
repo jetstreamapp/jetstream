@@ -30,7 +30,7 @@ protocol.registerSchemesAsPrivileged([
  * Since we are unable to set cookies for file paths, we use a custom URL to load the client application
  */
 export function registerProtocols() {
-  const allowedPaths = ['/assets/', '/client/', '/download-zip.sw.js'];
+  const allowedPaths = ['/assets/', '/client/'];
   protocol.handle('app', (req) => {
     const { hostname, pathname, searchParams } = new URL(req.url);
     // Fetch files

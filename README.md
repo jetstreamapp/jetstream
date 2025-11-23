@@ -33,7 +33,6 @@ This project was generated using [Nx](https://nx.dev) - This repository is consi
 │   ├── api (BACKEND NODE SERVER)
 │   ├── cron-tasks
 │   ├── docs (DOCS WEBSITE)
-│   ├── download-zip-sw
 │   ├── jetstream (FRONTEND REACT APPLICATION)
 │   ├── jetstream-e2e
 │   ├── jetstream-worker
@@ -166,7 +165,6 @@ If you want to create your own:
 - **Running in development mode - use this option if you want to work with the codebase**
   - Build required applications
     - `yarn build:landing`
-    - `yarn build:sw`
     - `yarn db:generate`
   - Start Jetstream
     - terminal 1: `yarn start:api` to start api server

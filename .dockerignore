@@ -28,7 +28,6 @@
 !/seed.sh
 !/tsconfig.base.json
 !/webpack-server.config.js
-!/webpack-sw.config.js
 
 # Ignore unnecessary files inside allowed directories
 *#

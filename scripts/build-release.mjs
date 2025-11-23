@@ -43,7 +43,6 @@ const filesToZip = [
   `scripts`,
   `yarn.lock`,
   `dist/apps/api`,
-  `dist/apps/download-zip-sw`,
   `dist/apps/jetstream-worker`,
   `dist/apps/landing`,
 ];

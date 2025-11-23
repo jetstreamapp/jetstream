@@ -1,5 +1,4 @@
 export * from './lib//hooks/useCsrfToken';
-export * from './lib/download-zip/downzip';
 export * from './lib/hooks/useBrowserNotifications';
 export * from './lib/hooks/useCombinedRefs';
 export * from './lib/hooks/useDebounce';

@@ -19,10 +19,6 @@
     "target": "http://localhost:3333",
     "secure": false
   },
-  "/download-zip.sw.js": {
-    "target": "http://localhost:3333",
-    "secure": false
-  },
   "/fonts": {
     "target": "http://localhost:3333",
     "secure": false
