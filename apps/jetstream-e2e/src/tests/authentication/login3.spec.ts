@@ -62,12 +62,30 @@ test.describe('Login 3', () => {
 
     await test.step('Attempt to register with same email address', async () => {
       await authenticationPage.fillOutSignUpForm(email, 'test person', password, password);
-      await expect(page.getByText('This email is already registered.')).toBeVisible();
+
+      // User should be prompted to verify email
+      await expect(page.getByText('Verify your email address')).toBeVisible();
+
+      // Verify email
+      await authenticationPage.verifyEmail(email, false, authenticationPage.routes.login(true));
+
+      // Should be redirected to login page with error message
+      await page.waitForURL(authenticationPage.routes.login(true));
+      await expect(page.getByText('This email address is already in use. Log in using an existing method or reset your password.')).toBeVisible();
     });
 
     await test.step('Attempt to register with same email address, using email with uppercase', async () => {
       await authenticationPage.fillOutSignUpForm(email.toUpperCase(), 'test person', password, password);
-      await expect(page.getByText('This email is already registered.')).toBeVisible();
+
+      // User should be prompted to verify email
+      await expect(page.getByText('Verify your email address')).toBeVisible();
+
+      // Verify email (using original lowercase email for database lookup)
+      await authenticationPage.verifyEmail(email, false, authenticationPage.routes.login(true));
+
+      // Should be redirected to login page with error message
+      await page.waitForURL(authenticationPage.routes.login(true));
+      await expect(page.getByText('This email address is already in use. Log in using an existing method or reset your password.')).toBeVisible();
     });
   });
 });

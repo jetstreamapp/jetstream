@@ -52,16 +52,16 @@ export class AuthenticationPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.signInFromHomePageButton = page.getByRole('link', { name: 'Log in' });
+    this.signInFromHomePageButton = page.getByRole('link', { name: 'Log in', exact: true });
     this.signUpFromHomePageButton = page.getByRole('link', { name: 'Sign up', exact: true });
     this.signUpCtaFromHomePageButton = page.getByRole('link', { name: 'Get started for free' }).first();
 
-    this.signUpFromFormLink = page.getByText('Need to register? Sign up').getByRole('link', { name: 'Sign up' });
-    this.signInFromFormLink = page.getByText('Already have an account? Login').getByRole('link', { name: 'Login' });
+    this.signUpFromFormLink = page.getByText('Need to register? Sign up').getByRole('link', { name: 'Sign up', exact: true });
+    this.signInFromFormLink = page.getByText('Already have an account? Login').getByRole('link', { name: 'Login', exact: true });
     this.loginPageFromPasswordReset = page.getByRole('link', { name: 'Go to Login Page' });
 
-    this.signInButton = page.getByRole('button', { name: 'Sign in' });
-    this.signUpButton = page.getByRole('button', { name: 'Sign up' });
+    this.signInButton = page.getByRole('button', { name: 'Sign in', exact: true });
+    this.signUpButton = page.getByRole('button', { name: 'Sign up', exact: true });
     this.continueButton = page.getByRole('button', { name: 'Continue' });
     this.submitButton = page.getByRole('button', { name: 'Submit' });
 
@@ -174,7 +174,7 @@ export class AuthenticationPage {
     await this.verificationCodeInput.fill(token);
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
 
     await verifyEmailLogEntryExists(email, 'Welcome to Jetstream');
 
@@ -248,7 +248,7 @@ export class AuthenticationPage {
     await this.verificationCodeInput.fill(code);
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
 
     return { secret };
   }
@@ -337,7 +337,7 @@ export class AuthenticationPage {
 
     await this.continueButton.click();
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
   }
 
   async resetPassword(email: string) {
@@ -363,7 +363,7 @@ export class AuthenticationPage {
     await this.fillOutLoginForm(email, password);
     // TODO: what about 2fa?
 
-    await this.page.waitForURL(`**/app`);
+    await this.page.waitForURL(`**/app/**`);
   }
 
   async fillOutLoginForm(email: string, password: string) {

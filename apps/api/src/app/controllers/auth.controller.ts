@@ -1,4 +1,4 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { ENV, getExceptionLog } from '@jetstream/api-config';
 import {
   AuthError,
   clearOauthCookies,
@@ -31,6 +31,7 @@ import {
   linkIdentityToUser,
   getProviders as listProviders,
   PASSWORD_RESET_DURATION_MINUTES,
+  PLACEHOLDER_USER_ID,
   ProviderEmailNotVerified,
   ProviderNotAllowed,
   resetUserPassword,
@@ -56,7 +57,7 @@ import {
   sendWelcomeEmail,
 } from '@jetstream/email';
 import { ensureBoolean, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
-import { Maybe } from '@jetstream/types';
+import { Maybe, PasswordSchema } from '@jetstream/types';
 import { parse as parseCookie } from 'cookie';
 import { addMinutes } from 'date-fns/addMinutes';
 import { z } from 'zod';
@@ -122,7 +123,7 @@ export const routeDefinition = {
             csrfToken: z.string(),
             captchaToken: z.string().nullish(),
             email: z.email().max(255).toLowerCase(),
-            password: z.string().min(8).max(255),
+            password: z.string().min(8).max(255), // Keep lenient for login (existing users)
           }),
           z.object({
             action: z.literal('register'),
@@ -130,7 +131,7 @@ export const routeDefinition = {
             captchaToken: z.string().nullish(),
             email: z.email().max(255).toLowerCase(),
             name: z.string().min(1).max(255).trim(),
-            password: z.string().min(8).max(255),
+            password: PasswordSchema,
           }),
         ]),
         z.object({}).nullish(),
@@ -188,7 +189,7 @@ export const routeDefinition = {
       body: z.object({
         email: z.email().toLowerCase(),
         token: z.string(),
-        password: z.string(),
+        password: PasswordSchema,
         csrfToken: z.string(),
         captchaToken: z.string().nullish(),
       }),
@@ -219,7 +220,7 @@ export const routeDefinition = {
 const logout = createRoute(routeDefinition.logout.validators, async ({}, req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      logger.error({ ...getExceptionLog(err) }, '[AUTH][LOGOUT][ERROR] Error destroying session');
+      res.log.error({ ...getExceptionLog(err) }, '[AUTH][LOGOUT][ERROR] Error destroying session');
     }
     redirect(res, ENV.JETSTREAM_SERVER_URL);
   });
@@ -605,6 +606,8 @@ const verification = createRoute(
         throw new InvalidSession('Missing user or pending verification');
       }
 
+      const isPlaceholderUser = !!req.session.sessionDetails?.isTemporary || req.session.user.id === PLACEHOLDER_USER_ID;
+
       const { csrfToken, code, type, rememberDevice } = body;
       const pendingVerification = req.session.pendingVerification.find((item) => item.type === type);
       let rememberDeviceId: string | undefined;
@@ -630,7 +633,9 @@ const verification = createRoute(
           if (token !== code) {
             throw new InvalidVerificationToken('Provided code does not match');
           }
-          req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
+          if (!isPlaceholderUser) {
+            req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
+          }
           break;
         }
         case '2fa-email': {
@@ -651,6 +656,21 @@ const verification = createRoute(
         default: {
           throw new InvalidVerificationToken(`Invalid verification type`);
         }
+      }
+
+      // Redirect back to sign in page
+      if (isPlaceholderUser) {
+        res.log.info(
+          '[AUTH][PLACEHOLDER_USER] User registration with placeholder user - destroying session and redirecting to login with error',
+        );
+        req.session.destroy((err) => {
+          if (err) {
+            res.log.error({ ...getExceptionLog(err) }, '[AUTH][PLACEHOLDER_USER][ERROR] Error destroying session');
+          }
+        });
+        const searchParams = new URLSearchParams({ error: 'InvalidRegistration' });
+        sendJson(res, { error: false, redirect: `/auth/login/?${searchParams.toString()}` });
+        return;
       }
 
       if (rememberDeviceId) {

@@ -31,7 +31,7 @@ import {
   sendInternalAccountDeletionEmail,
   sendPasswordReset,
 } from '@jetstream/email';
-import { UserProfileUiSchema } from '@jetstream/types';
+import { PasswordSchema, UserProfileUiSchema } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import * as userDbService from '../db/user.db';
@@ -54,7 +54,7 @@ export const routeDefinition = {
     responseType: z.any(), // FIXME: need zod type for FullUserFacingProfileSelect
     validators: {
       body: z.object({
-        password: z.string().min(8).max(255),
+        password: PasswordSchema,
       }),
       hasSourceOrg: false,
       logErrorToBugTracker: true,

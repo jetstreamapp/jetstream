@@ -199,7 +199,7 @@ test.describe('Team Dashboard', () => {
       // make sure session gets revoked
       await billingMember1Page.reload();
       // ensure user is logged out since session is expired
-      await expect(billingMember1Page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+      await expect(billingMember1Page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
       await billingMember1Page.close();
     });
 

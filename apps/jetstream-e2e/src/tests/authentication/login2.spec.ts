@@ -43,7 +43,7 @@ test.describe('Login 2', () => {
     // Use uppercase email to ensure case insensitivity
     await authenticationPage.loginAndVerifyEmail(email.toUpperCase(), password);
 
-    await authenticationPage.page.waitForURL(`**/app`);
+    await authenticationPage.page.waitForURL(`**/app/**`);
   });
 
   test('Should SignUp, Add TOTP MFA, logout, login', async ({ page, authenticationPage, playwrightPage }) => {
@@ -97,7 +97,7 @@ test.describe('Login 2', () => {
 
     // Should not need 2fa since device is remembered
     await authenticationPage.fillOutLoginForm(email, password);
-    await page.waitForURL(`**/app`);
+    await page.waitForURL(`**/app/**`);
     expect(page.url()).toContain('/app');
 
     // re-enable TOTP to make sure that works
@@ -123,7 +123,7 @@ test.describe('Login 2', () => {
     await playwrightPage.logout();
 
     await authenticationPage.fillOutLoginForm(email, password);
-    await page.waitForURL(`**/app`);
+    await page.waitForURL(`**/app/**`);
     expect(page.url()).toContain('/app');
   });
 });
