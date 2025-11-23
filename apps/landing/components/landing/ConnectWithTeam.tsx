@@ -41,13 +41,13 @@ export const ConnectWithTeam = () => (
       {items.map(({ image, footer, link, subtitle, title }) => (
         <div
           key={title}
-          className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-2 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
+          className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-2 shadow-xs focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:border-gray-400 hover:bg-gray-50"
         >
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <img className="h-10 w-10" src={image} alt="" />
           </div>
           <div className="min-w-0 flex-1">
-            <a href={link} className="focus:outline-none" target="_blank" rel="noreferrer">
+            <a href={link} className="focus:outline-hidden" target="_blank" rel="noreferrer">
               <span className="absolute inset-0" aria-hidden="true" />
               <p className="text-sm font-medium text-gray-900">{title}</p>
               <p className="truncate text-sm text-gray-500">{subtitle}</p>

@@ -122,7 +122,7 @@ const cardStyles = css`
   .feature-icon {
     margin-right: 8px;
     margin-top: 2px;
-    flex-shrink: 0;
+    shrink: 0;
   }
 
   .bottom-section {

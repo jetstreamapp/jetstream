@@ -163,9 +163,9 @@ export default function Page() {
                     aria-describedby={tier.id}
                     className={classNames(
                       tier.mostPopular
-                        ? 'bg-cyan-500 text-white shadow-sm hover:bg-cyan-500 focus-visible:outline-cyan-500'
+                        ? 'bg-cyan-500 text-white shadow-xs hover:bg-cyan-500 focus-visible:outline-cyan-500'
                         : 'bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white',
-                      'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+                      'block rounded-md px-3 py-2 text-center text-sm/6 font-semibold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2',
                     )}
                   >
                     {tier.isEnterprise ? 'Contact Sales' : 'Start Free'}
