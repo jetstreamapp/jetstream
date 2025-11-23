@@ -70,7 +70,7 @@ test.describe('Login 4 - login configuration', () => {
       await expect(page.getByTestId('home-hero-container')).toBeVisible();
 
       await authenticationPage.loginAndVerifyEmail(user.email, user.password, true);
-      await page.waitForURL(`**/app`);
+      await page.waitForURL(`**/app/**`);
       expect(page.url()).toContain('/app');
 
       await playwrightPage.logout();
