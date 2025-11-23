@@ -1,10 +1,27 @@
 import { logger } from '@jetstream/shared/client-logger';
 import classNames from 'classnames';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useMemo } from 'react';
 import Icon from '../widgets/Icon';
 
 const allowedHosts = ['docs.getjetstream.app'];
 const DOCS_BASE_PATH = 'https://docs.getjetstream.app';
+
+function getSanitizedDocsUrl(path: string): string | null {
+  try {
+    if (!path) {
+      return path;
+    }
+    const url = path.startsWith(DOCS_BASE_PATH) ? new URL(path) : new URL(path, DOCS_BASE_PATH);
+    if (!allowedHosts.includes(url.host)) {
+      return null;
+    }
+    url.protocol = 'https:';
+    return url.href;
+  } catch (ex) {
+    logger.warn('ViewDocsLink', 'Invalid URL provided for documentation link', ex);
+    return null;
+  }
+}
 
 export interface ViewDocsLinkProps {
   className?: string;
@@ -13,27 +30,15 @@ export interface ViewDocsLinkProps {
 }
 
 export const ViewDocsLink: FunctionComponent<ViewDocsLinkProps> = ({ className, path, textReset }) => {
-  if (!path) {
+  const href = useMemo(() => getSanitizedDocsUrl(path), [path]);
+  if (!href) {
     return null;
   }
-  if (!path.startsWith(DOCS_BASE_PATH)) {
-    try {
-      const url = new URL(path, DOCS_BASE_PATH);
-      if (!allowedHosts.includes(url.host)) {
-        return null;
-      }
-      path = url.href;
-    } catch (ex) {
-      logger.warn('ViewDocsLink', 'Invalid URL provided for documentation link', ex);
-      return null;
-    }
-  }
+
   return (
-    <a href={path} target="_blank" rel="noreferrer" className={classNames('slds-grid', { 'slds-text-body_regular': textReset }, className)}>
+    <a href={href} target="_blank" rel="noreferrer" className={classNames('slds-grid', { 'slds-text-body_regular': textReset }, className)}>
       Documentation
       <Icon type="utility" icon="new_window" className="slds-icon slds-text-link slds-icon_xx-small slds-m-left_xx-small" />
     </a>
   );
 };
-
-export default ViewDocsLink;
