@@ -59,9 +59,9 @@ export function LoginOrSignUpOAuthButton({
         <button
           type="submit"
           className={classNames(
-            'outline-blue-400 flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent',
+            'flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent',
             {
-              'outline-2 outline-offset-2 outline': action === 'login' && lastUsedLogin === provider.provider,
+              'outline-2 outline-offset-2': action === 'login' && lastUsedLogin === provider.provider,
             },
           )}
         >
