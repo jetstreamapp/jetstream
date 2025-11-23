@@ -51,6 +51,7 @@ export const ROUTES = {
 
 export const SIGN_IN_ERRORS = {
   default: 'Check your details and try again.',
+  AccountLocked: 'Account is locked due to too many failed login attempts. Please try again later or reset your password.',
   AuthError: 'Check your details and try again.',
   IdentityLinkingNotAllowed: 'Linking identities is not allowed, please sign in with the same account you used originally.',
   InvalidCsrfToken: 'The form is invalid, refresh the page and start over.',
@@ -63,7 +64,7 @@ export const SIGN_IN_ERRORS = {
   ExpiredVerificationToken: 'Your verification token has expired, sign in again.',
   InvalidVerificationToken: 'Your verification token is invalid.',
   LoginWithExistingIdentity: 'To confirm your identity, sign in with the same account you used originally.',
-  InvalidRegistration: 'This email is already registered. If you already have an account, please log in or reset your password.',
+  InvalidRegistration: 'This email address is already in use. Log in using an existing method or reset your password.',
   InvalidOrExpiredResetToken: 'Your reset token is invalid, please restart the reset process.',
   InvalidAccessToken: 'Your session is invalid, please sign in again.',
   MissingEntitlement: `You are not permitted to access this feature.`,

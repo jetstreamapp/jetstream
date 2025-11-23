@@ -1,12 +1,11 @@
-/* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
+import { PasswordSchema } from '@jetstream/types';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Fragment } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ROUTES } from '../../utils/environment';
-import { PasswordSchema } from '../../utils/types';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
 
@@ -43,7 +42,6 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(FormSchema),

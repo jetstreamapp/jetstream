@@ -329,7 +329,14 @@ export async function lookupGeoLocationFromIpAddresses(ipAddresses: string[]) {
 
 export function initSession(
   req: Request<unknown, unknown, unknown>,
-  { user, isNewUser, mfaEnrollmentRequired, verificationRequired, provider }: Awaited<ReturnType<typeof handleSignInOrRegistration>>,
+  {
+    user,
+    isNewUser,
+    sessionDetails,
+    mfaEnrollmentRequired,
+    verificationRequired,
+    provider,
+  }: Awaited<ReturnType<typeof handleSignInOrRegistration>>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     // Regenerate session to avoid session fixation attacks
@@ -348,6 +355,11 @@ export function initSession(
         if (userAgent) {
           req.session.userAgent = userAgent;
         }
+
+        if (sessionDetails) {
+          req.session.sessionDetails = sessionDetails;
+        }
+
         req.session.ipAddress = getApiAddressFromReq(req);
         req.session.loginTime = new Date().getTime();
         req.session.provider = provider;
