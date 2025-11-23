@@ -3,7 +3,7 @@
  * Used on both frontend and backend to ensure consistent password requirements
  */
 
-import { PASSWORD_MIN_LENGTH } from '@jetstream/types';
+import { PASSWORD_MIN_LENGTH, PASSWORD_NUMBER_AND_SPECIAL_CHAR_REGEX } from '@jetstream/types';
 
 export interface PasswordValidationResult {
   isValid: boolean;
@@ -21,7 +21,8 @@ export interface PasswordRequirement {
 
 // Password requirements configuration
 export const PASSWORD_MAX_LENGTH = 255;
-export const PASSWORD_HISTORY_COUNT = 10;
+// Keeping this at 5 for performance reasons
+export const PASSWORD_HISTORY_COUNT = 5;
 export const MAX_FAILED_LOGIN_ATTEMPTS = 6;
 export const ACCOUNT_LOCKOUT_DURATION_MINUTES = 30;
 
@@ -47,7 +48,7 @@ export const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
   },
   {
     label: 'At least one number or special character (0-9 or !@#$%^&*)',
-    test: (pwd) => /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd),
+    test: (pwd) => PASSWORD_NUMBER_AND_SPECIAL_CHAR_REGEX.test(pwd),
     isRequired: true,
   },
   {

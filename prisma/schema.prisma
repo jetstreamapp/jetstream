@@ -201,6 +201,7 @@ model PasswordResetToken {
   @@unique([email, token])
 }
 
+// Used to keep track of prior passwords for password reuse prevention
 model PasswordHistory {
   id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId    String   @db.Uuid

@@ -94,7 +94,7 @@ function setLastUsed({
   rememberedEmail = null,
 }: { lastUsedLogin?: keyof Providers | null; rememberedEmail?: string | null } = {}) {
   try {
-    // It is intentional that nu;; and undefined both clear the value
+    // It is intentional that null and undefined both clear the value
     if (!lastUsedLogin) {
       localStorage.removeItem(localStorageKeys.lastUsedLogin);
     }
@@ -164,6 +164,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       body: new URLSearchParams(payload as any).toString(),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

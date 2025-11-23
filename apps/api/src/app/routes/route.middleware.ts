@@ -554,6 +554,7 @@ export function setPermissionPolicy(req: express.Request, res: express.Response,
  * Only set this for static assets that should not be loaded by other origins
  */
 export function setCrossOriginResourcePolicy(req: express.Request, res: express.Response, next: express.NextFunction) {
+  // "Production" is true in all environments except local dev
   if (environment.production) {
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   }

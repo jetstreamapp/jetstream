@@ -874,21 +874,7 @@ export async function setPasswordForUser(id: string, password: string) {
     return { error: new Error('Cannot set password, another user with the same email address already has a password set') };
   }
 
-  const hashedPassword = await hashPassword(password);
-
-  // This is the flow from the profile page, we still check password history
-  if (await isPasswordInHistory(id, password)) {
-    throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
-  }
-
-  // Update user password
-  await prisma.user.update({
-    data: { password: hashedPassword, passwordUpdatedAt: new Date() },
-    where: { id },
-  });
-
-  // Add to password history
-  await addPasswordToHistory(id, hashedPassword);
+  await changeUserPassword(id, password);
 
   return prisma.user
     .findFirstOrThrow({
@@ -975,53 +961,7 @@ export const resetUserPassword = async (email: string, token: string, password: 
     throw new InvalidOrExpiredResetToken(`Expired at ${expiresAt.toISOString()}`);
   }
 
-  const hashedPassword = await hashPassword(password);
-
-  // Check password history
-  if (await isPasswordInHistory(userId, password)) {
-    throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
-  }
-
-  await prisma.$transaction(async (tx) => {
-    // Update user password and clear force reset flags
-    await tx.user.update({
-      data: {
-        password: hashedPassword,
-        passwordUpdatedAt: new Date(),
-        forcePasswordReset: false,
-        passwordResetReason: null,
-        failedLoginAttempts: 0,
-        lockedUntil: null,
-      },
-      where: {
-        id: userId,
-      },
-    });
-
-    // Add to password history
-    await tx.passwordHistory.create({
-      data: {
-        userId,
-        password: hashedPassword,
-      },
-    });
-
-    // Clean up old password history
-    const allPasswords = await tx.passwordHistory.findMany({
-      select: { id: true, createdAt: true },
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (allPasswords.length > PASSWORD_HISTORY_COUNT) {
-      const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_COUNT).map(({ id }) => id);
-      await tx.passwordHistory.deleteMany({
-        where: {
-          id: { in: idsToDelete },
-        },
-      });
-    }
-  });
+  await changeUserPassword(userId, password);
 
   await revokeAllUserSessions(userId);
 
@@ -1638,7 +1578,7 @@ export async function handleSignInOrRegistration(
             'Cannot register new user, email already in use - sending to verification flow before revealing the conflict',
           );
           return {
-            user: { ...PLACEHOLDER_USER, email },
+            user: { ...PLACEHOLDER_USER, email, userId: `invalid|${email}` },
             sessionDetails: { isTemporary: true },
             isNewUser: false,
             providerType,
@@ -1836,11 +1776,37 @@ export async function linkIdentityToUser({
  * Password Security Functions
  */
 
+export const changeUserPassword = async (userId: string, password: string) => {
+  const hashedPassword = await hashPassword(password);
+
+  await prisma.$transaction(async (tx) => {
+    if (await isPasswordInHistory(userId, password, tx)) {
+      throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
+    }
+
+    // Update user password
+    await prisma.user.update({
+      data: {
+        password: hashedPassword,
+        passwordUpdatedAt: new Date(),
+        forcePasswordReset: false,
+        passwordResetReason: null,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+      where: { id: userId },
+    });
+
+    // Add to password history and trim old entries
+    await addPasswordToHistory(userId, hashedPassword, tx);
+  });
+};
+
 /**
  * Checks if a password has been used recently (in password history)
  */
-export async function isPasswordInHistory(userId: string, password: string): Promise<boolean> {
-  const recentPasswords = await prisma.passwordHistory.findMany({
+export async function isPasswordInHistory(userId: string, password: string, tx?: Prisma.TransactionClient): Promise<boolean> {
+  const recentPasswords = await (tx || prisma).passwordHistory.findMany({
     select: { password: true },
     where: { userId },
     orderBy: { createdAt: 'desc' },
@@ -1861,10 +1827,10 @@ export async function isPasswordInHistory(userId: string, password: string): Pro
  * Adds a password to the user's password history
  * Maintains only the last PASSWORD_HISTORY_COUNT passwords
  */
-export async function addPasswordToHistory(userId: string, hashedPassword: string): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+export async function addPasswordToHistory(userId: string, hashedPassword: string, tx?: Prisma.TransactionClient): Promise<void> {
+  async function doWork(txClient: Prisma.TransactionClient) {
     // Add new password to history
-    await tx.passwordHistory.create({
+    await txClient.passwordHistory.create({
       data: {
         userId,
         password: hashedPassword,
@@ -1872,7 +1838,7 @@ export async function addPasswordToHistory(userId: string, hashedPassword: strin
     });
 
     // Get all password history records for this user
-    const allPasswords = await tx.passwordHistory.findMany({
+    const allPasswords = await txClient.passwordHistory.findMany({
       select: { id: true, createdAt: true },
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -1881,13 +1847,19 @@ export async function addPasswordToHistory(userId: string, hashedPassword: strin
     // Delete old passwords beyond the limit
     if (allPasswords.length > PASSWORD_HISTORY_COUNT) {
       const idsToDelete = allPasswords.slice(PASSWORD_HISTORY_COUNT).map((p) => p.id);
-      await tx.passwordHistory.deleteMany({
+      await txClient.passwordHistory.deleteMany({
         where: {
           id: { in: idsToDelete },
         },
       });
     }
-  });
+  }
+
+  if (tx) {
+    doWork(tx);
+  } else {
+    prisma.$transaction(doWork);
+  }
 }
 
 /**
@@ -1907,7 +1879,8 @@ export async function isAccountLocked(userId: string): Promise<{ isLocked: boole
     return { isLocked: true, lockedUntil: user.lockedUntil };
   }
 
-  // Note: we do not reset the lockout count if the expiration has passed but the user is locked out, which means that the user will get exactly one attempt after the lockout period expires.
+  // Note: we do not reset the lockout count if the expiration has passed but the user is locked out,
+  // which means that the user will get exactly one attempt after the lockout period expires since they are already over the limit.
   // This is probably acceptable, but could be re-evaluated in the future.
   return { isLocked: false };
 }
