@@ -76,7 +76,7 @@ export const Modal = ({
               <div className="hidden sm:block absolute top-0 right-0 pt-2 pr-2">
                 <button
                   type="button"
-                  className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   onClick={() => onClose()}
                 >
                   <span className="sr-only">Close</span>

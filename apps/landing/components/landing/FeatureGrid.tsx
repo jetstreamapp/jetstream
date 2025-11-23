@@ -124,7 +124,7 @@ export const FeatureGrid = () => (
                 <div className="-mt-6">
                   <div>
                     {/* TODO: this is icon container class */}
-                    <span className="inline-flex items-center justify-center p-2 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-md shadow-lg">
+                    <span className="inline-flex items-center justify-center p-2 bg-linear-to-r from-teal-500 to-cyan-600 rounded-md shadow-lg">
                       <feature.icon className="h-12 w-12 text-white" aria-hidden="true" />
                     </span>
                   </div>

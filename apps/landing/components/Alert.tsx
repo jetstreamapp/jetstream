@@ -45,7 +45,7 @@ export default function Alert({ message, type = 'error', dismissable }: AlertPro
   return (
     <div className={classNames('rounded-md p-4', errorClassMap[type].container)}>
       <div className="flex">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <XCircleIcon aria-hidden="true" className={classNames('h-5 w-5', errorClassMap[type].icon)} />
         </div>
         <div className="ml-3">
@@ -58,7 +58,7 @@ export default function Alert({ message, type = 'error', dismissable }: AlertPro
             <div className="-mx-1.5 -my-1.5">
               <button
                 type="button"
-                className="inline-flex rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:ring-offset-2 focus:ring-offset-gray-50"
+                className="inline-flex rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-gray-600 focus:ring-offset-2 focus:ring-offset-gray-50"
                 onClick={() => setDismissed(true)}
               >
                 <span className="sr-only">Dismiss</span>

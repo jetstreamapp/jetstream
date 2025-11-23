@@ -93,7 +93,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                   ref={refs.setReference}
                   {...getReferenceProps()}
                   className={classNames(
-                    'rounded-md p-2 inline-flex items-center justify-center focus:outline-none focus:ring-2 focus-ring-inset focus:ring-white',
+                    'rounded-md p-2 inline-flex items-center justify-center focus:outline-hidden focus:ring-2 focus-ring-inset focus:ring-white',
                     {
                       'text-gray-400 hover:bg-gray-800 bg-gray-900': inverse,
                       'bg-white  text-gray-400 hover:text-gray-500 hover:bg-gray-100': !inverse,
@@ -147,7 +147,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                   href={ENVIRONMENT.CLIENT_URL}
                   className={classNames('inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md', {
                     'text-white bg-gray-600 hover:bg-gray-700': inverse,
-                    'bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
+                    'bg-linear-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
                   })}
                 >
                   Go to Jetstream
@@ -169,7 +169,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                   href={ROUTES.AUTH.signup}
                   className={classNames('inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md', {
                     'text-white bg-gray-600 hover:bg-gray-700': inverse,
-                    'bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
+                    'bg-linear-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700': !inverse,
                   })}
                 >
                   Sign up
@@ -200,7 +200,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                   </div>
                   <div className="-mr-2">
                     <button
-                      className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cyan-600"
+                      className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-cyan-600"
                       onClick={() => setIsOpen(false)}
                     >
                       <span className="sr-only">Close menu</span>
@@ -241,7 +241,7 @@ export const Navigation = ({ className, inverse, omitLinks = [], userProfile }: 
                   <div className="mt-6 px-5">
                     <Link
                       href={ROUTES.AUTH.signup}
-                      className="block text-center w-full py-3 px-4 rounded-md shadow bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700"
+                      className="block text-center w-full py-3 px-4 rounded-md shadow-sm bg-linear-to-r from-teal-500 to-cyan-600 text-white font-medium hover:from-teal-600 hover:to-cyan-700"
                     >
                       Sign up for free
                     </Link>
