@@ -10,7 +10,7 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "typeRoots": ["./node_modules/@types", "./custom-typings"],
+    "typeRoots": ["./node_modules/@types", "./node_modules", "./custom-typings"],
     "lib": ["es2023", "dom", "DOM.Iterable"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,

@@ -1,10 +1,11 @@
+import { vi, Mock } from 'vitest';
 import { ApiConnection } from '../connection';
 import { SalesforceApi, correctInvalidXmlResponseTypes, prepareCloseOrAbortJobPayload, toSoapXML } from '../utils';
 
 describe('getRestApiUrl', () => {
   const apiConnection = new ApiConnection({
     accessToken: 'test',
-    apiRequestAdapter: jest.fn(),
+    apiRequestAdapter: vi.fn(),
     apiVersion: '50.0',
     instanceUrl: 'https://test.salesforce.com',
     organizationId: 'test',
@@ -53,7 +54,7 @@ import { correctInvalidArrayXmlResponseTypes, prepareBulkApiRequestPayload } fro
 describe('getRestApiUrl', () => {
   const apiConnection = new ApiConnection({
     accessToken: 'test',
-    apiRequestAdapter: jest.fn(),
+    apiRequestAdapter: vi.fn(),
     apiVersion: '50.0',
     instanceUrl: 'https://test.salesforce.com',
     organizationId: 'test',
@@ -122,7 +123,7 @@ describe('correctInvalidArrayXmlResponseTypes', () => {
 describe('getRestApiUrl', () => {
   const apiConnection = new ApiConnection({
     accessToken: 'test',
-    apiRequestAdapter: jest.fn(),
+    apiRequestAdapter: vi.fn(),
     apiVersion: '50.0',
     instanceUrl: 'https://test.salesforce.com',
     organizationId: 'test',

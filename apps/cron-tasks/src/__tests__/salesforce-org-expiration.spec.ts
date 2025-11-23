@@ -4,27 +4,28 @@ import { PrismaClient } from '@jetstream/prisma';
 import { addDays, subDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { v4 as uuid } from 'uuid';
+import { vi } from 'vitest';
 import { manageOrgExpiration } from '../utils/salesforce-org-expiration.utils';
 
 dotenv.config();
 
 const TEST_PREFIX = 'org-expiration-test';
 
-jest.mock('@jetstream/email', () => {
+vi.mock('@jetstream/email', () => {
   return {
-    sendOrgExpirationWarningEmail: jest.fn(),
+    sendOrgExpirationWarningEmail: vi.fn(),
   };
 });
-jest.mock('@jetstream/api-config', () => {
+vi.mock('@jetstream/api-config', () => {
   return {
-    sendEmail: jest.fn(),
+    sendEmail: vi.fn(),
   };
 });
 
-jest.mock('papaparse', () => {
+vi.mock('papaparse', () => {
   return {
     default: {
-      unparse: jest.fn((data) => {
+      unparse: vi.fn((data) => {
         // Simple CSV implementation for testing
         if (!data || data.length === 0) return '';
         const keys = Object.keys(data[0]);
@@ -36,9 +37,9 @@ jest.mock('papaparse', () => {
   };
 });
 
-jest.mock('@jetstream/audit-logs', () => {
+vi.mock('@jetstream/audit-logs', () => {
   return {
-    createAuditLog: jest.fn(),
+    createAuditLog: vi.fn(),
     AuditLogAction: {
       ORG_REACTIVATED: 'ORG_REACTIVATED',
       ORG_EXPIRATION_WARNING: 'ORG_EXPIRATION_WARNING',
@@ -51,7 +52,7 @@ jest.mock('@jetstream/audit-logs', () => {
   };
 });
 
-// Import the mocked functions after jest.mock calls
+// Import the mocked functions after mock calls
 import { sendEmail } from '@jetstream/api-config';
 
 let orgCounter = 0;
@@ -123,16 +124,16 @@ export async function createOrg({
 
 describe('Org Expiration Integration Tests', () => {
   let testUser: Awaited<ReturnType<typeof createUser>>;
-  const mockSendEmail = sendOrgExpirationWarningEmail as jest.MockedFunction<typeof sendOrgExpirationWarningEmail>;
-  const mockSendEmailConfig = sendEmail as jest.MockedFunction<typeof sendEmail>;
-  const mockCreateAuditLog = createAuditLog as jest.MockedFunction<typeof createAuditLog>;
+  const mockSendEmail = sendOrgExpirationWarningEmail as vi.MockedFunction<typeof sendOrgExpirationWarningEmail>;
+  const mockSendEmailConfig = sendEmail as vi.MockedFunction<typeof sendEmail>;
+  const mockCreateAuditLog = createAuditLog as vi.MockedFunction<typeof createAuditLog>;
 
   beforeAll(async () => {
     await prisma.$connect();
   });
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Clean up only test-specific records
     await prisma.salesforceOrg.deleteMany({
       where: { jetstreamUser: { email: { contains: TEST_PREFIX } } },
@@ -433,7 +434,7 @@ describe('Org Expiration Integration Tests', () => {
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
 
       // Second run same day - should NOT send email again (nextExpirationNotificationDate was updated)
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       await manageOrgExpiration(prisma, now);
       expect(mockSendEmail).not.toHaveBeenCalled();
 
@@ -529,35 +530,35 @@ describe('Org Expiration Integration Tests', () => {
       let updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
       expect(updatedOrg?.expirationScheduledFor).toBeTruthy();
       const expirationDate = updatedOrg!.expirationScheduledFor!;
-      
+
       // Next notification should be 7 days before expiration
       let expectedNext = addDays(expirationDate, -7);
       expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNext.toDateString());
 
       // Run 2: 7 days before expiration
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       const day23 = addDays(now, 23);
       result = await manageOrgExpiration(prisma, day23);
       expect(result.notified7Days).toBe(1);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
-      
+
       updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
       expectedNext = addDays(expirationDate, -3);
       expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNext.toDateString());
 
       // Run 3: 3 days before expiration
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       const day27 = addDays(now, 27);
       result = await manageOrgExpiration(prisma, day27);
       expect(result.notified3Days).toBe(1);
       expect(mockSendEmail).toHaveBeenCalledTimes(1);
-      
+
       updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
       expectedNext = expirationDate; // 0-day
       expect(updatedOrg?.nextExpirationNotificationDate?.toDateString()).toBe(expectedNext.toDateString());
 
       // Run 4: Expiration day
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       const day30 = addDays(now, 30);
       result = await manageOrgExpiration(prisma, day30);
       expect(result.expired).toBe(1);

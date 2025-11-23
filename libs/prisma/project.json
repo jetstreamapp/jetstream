@@ -4,6 +4,13 @@
   "sourceRoot": "libs/prisma/src",
   "projectType": "library",
   "tags": ["scope:server"],
-  "// targets": "to see all targets run: nx show project jetstream-prisma --web",
-  "targets": {}
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../coverage/libs/prisma"
+      }
+    }
+  }
 }

@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
 import dns from 'dns';
@@ -7,7 +6,7 @@ import { defineConfig } from 'vite';
 
 dns.setDefaultResultOrder('verbatim');
 
-export default defineConfig({
+export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/jetstream-desktop-client',
   envPrefix: 'NX',
@@ -61,4 +60,18 @@ export default defineConfig({
   // worker: {
   //   plugins: () => [nxViteTsPaths()],
   // },
-});
+
+  test: {
+    name: 'jetstream-desktop-client',
+    watch: false,
+    globals: true,
+    environment: 'jsdom',
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    reporters: ['default'],
+    passWithNoTests: true,
+    coverage: {
+      reportsDirectory: '../../coverage/apps/jetstream-desktop-client',
+      provider: 'v8' as const,
+    },
+  },
+}));

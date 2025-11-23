@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strictNullChecks": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "files": [],
   "include": ["../../../custom-typings/index.d.ts"],

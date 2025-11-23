@@ -10,11 +10,11 @@
       "executor": "@nx/eslint:lint"
     },
     "test": {
-      "executor": "@nx/jest:jest",
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/ui/jest.config.ts"
-      },
-      "outputs": ["{workspaceRoot}/coverage/libs/ui"]
+        "reportsDirectory": "../../coverage/libs/ui"
+      }
     }
   }
 }

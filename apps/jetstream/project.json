@@ -110,13 +110,6 @@
     "lint": {
       "executor": "@nx/eslint:lint"
     },
-    "test": {
-      "executor": "@nx/jest:jest",
-      "options": {
-        "jestConfig": "apps/jetstream/jest.config.ts"
-      },
-      "outputs": ["{workspaceRoot}/coverage/apps/jetstream"]
-    },
     "preview": {
       "executor": "@nx/vite:preview-server",
       "defaultConfiguration": "development",
@@ -133,6 +126,13 @@
         }
       },
       "dependsOn": ["build"]
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../coverage/apps/jetstream"
+      }
     }
   }
 }

@@ -68,10 +68,10 @@
       "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/download-zip-sw"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "apps/download-zip-sw/jest.config.ts"
+        "reportsDirectory": "../../coverage/apps/download-zip-sw"
       }
     }
   }

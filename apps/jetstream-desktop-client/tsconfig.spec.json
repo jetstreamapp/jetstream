@@ -4,7 +4,7 @@
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
     "strictNullChecks": false,
-    "types": ["jest", "node"]
+    "types": ["node"]
   },
   "include": [
     "**/*.spec.ts",
@@ -15,8 +15,7 @@
     "**/*.test.js",
     "**/*.spec.jsx",
     "**/*.test.jsx",
-    "**/*.d.ts",
-    "jest.config.ts"
+    "**/*.d.ts"
   ],
   "files": ["../../node_modules/@nx/react/typings/cssmodule.d.ts", "../../node_modules/@nx/react/typings/image.d.ts"]
 }
