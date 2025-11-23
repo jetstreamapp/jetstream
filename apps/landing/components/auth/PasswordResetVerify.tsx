@@ -1,13 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { containsUserInfo } from '@jetstream/shared/utils';
 import { PasswordSchema } from '@jetstream/types';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { ROUTES } from '../../utils/environment';
+import { ROUTES, SIGN_IN_ERRORS } from '../../utils/environment';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import { ShowPasswordButton } from './ShowPasswordButton';
 
 const FormSchema = z
   .object({
@@ -25,6 +28,12 @@ const FormSchema = z
         message: 'Passwords do not match',
         path: ['confirmPassword'],
       });
+    } else if (containsUserInfo(data.password, data.email)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Password cannot contain your name or email address',
+        path: ['password'],
+      });
     }
   });
 
@@ -38,10 +47,12 @@ interface PasswordResetVerifyProps {
 
 export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVerifyProps) {
   const router = useRouter();
+  const [showPasswordActive, setShowPasswordActive] = useState(false);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(FormSchema),
@@ -54,6 +65,10 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
       captchaToken: '',
     },
   });
+
+  const watchPassword = watch('password');
+  const watchConfirmPassword = watch('confirmPassword');
+  const watchEmail = watch('email');
 
   const onSubmit = async (payload: Form) => {
     const response = await fetch(ROUTES.AUTH.api_reset_password_verify, {
@@ -74,14 +89,20 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
     } = await response.json();
 
     const error = responseData.data.error;
-    const errorType = responseData.data.errorType;
+    const errorType = responseData.data.errorType as keyof typeof SIGN_IN_ERRORS | undefined;
 
     if (!response.ok || error) {
-      router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'UNKNOWN_ERROR' })}`);
+      // Error banner will show specific error message based on query param - let user try again
+      if (errorType === 'PasswordReused') {
+        router.push(`${router.pathname}?${new URLSearchParams({ ...router.query, error: errorType || 'Unknown' })}`);
+        return;
+      }
+
+      router.push(`${router.pathname}?${new URLSearchParams({ error: errorType || 'Unknown' })}`);
       return;
     }
 
-    router.push(`${ROUTES.AUTH.login}?${new URLSearchParams({ success: 'Login with your new password to continue' })}`);
+    router.push(`${ROUTES.AUTH.login}?${new URLSearchParams({ email, success: 'Login with your new password to continue' })}`);
   };
 
   // TODO: should user be required to confirm 2fa at this point, or just on the next login?
@@ -111,7 +132,7 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
               label="New Password"
               error={errors?.password?.message}
               inputProps={{
-                type: 'password',
+                type: showPasswordActive ? 'text' : 'password',
                 required: true,
                 autoComplete: 'new-password',
                 spellCheck: 'false',
@@ -125,14 +146,22 @@ export function PasswordResetVerify({ csrfToken, email, token }: PasswordResetVe
               label="Confirm Password"
               error={errors?.confirmPassword?.message}
               inputProps={{
-                type: 'password',
+                type: showPasswordActive ? 'text' : 'password',
                 required: true,
                 autoComplete: 'new-password',
                 minLength: 8,
                 maxLength: 255,
                 ...register('confirmPassword'),
               }}
-            />
+            >
+              <div className="flex items-center justify-end">
+                <ShowPasswordButton isActive={showPasswordActive} onClick={() => setShowPasswordActive(!showPasswordActive)} />
+              </div>
+            </Input>
+
+            {watchPassword && (
+              <PasswordStrengthIndicator password={watchPassword} confirmPassword={watchConfirmPassword} email={watchEmail} />
+            )}
 
             <div>
               <button

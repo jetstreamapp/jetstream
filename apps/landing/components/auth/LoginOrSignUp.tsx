@@ -9,6 +9,7 @@ import { Fragment, useRef, useState } from 'react';
 import { FieldErrors, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ENVIRONMENT, ROUTES } from '../../utils/environment';
+import { getLastUsedLoginMethod, setLastUsedLoginMethod } from '../../utils/utils';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Checkbox } from '../form/Checkbox';
 import { Input } from '../form/Input';
@@ -70,48 +71,6 @@ const FormSchema = z.discriminatedUnion('action', [LoginSchema, RegisterSchema])
 type RegisterForm = z.infer<typeof RegisterSchema>;
 type Form = z.infer<typeof FormSchema>;
 
-const localStorageKeys = {
-  lastUsedLogin: 'jetstream-last-auth-method',
-  rememberedEmail: 'jetstream-remember-me-email',
-};
-
-function getLastUsed() {
-  try {
-    return {
-      lastUsedLogin: localStorage.getItem(localStorageKeys.lastUsedLogin) as keyof Providers | null,
-      rememberedEmail: localStorage.getItem(localStorageKeys.rememberedEmail),
-    };
-  } catch (ex) {
-    return {
-      lastUsedLogin: null,
-      rememberedEmail: null,
-    };
-  }
-}
-
-function setLastUsed({
-  lastUsedLogin = null,
-  rememberedEmail = null,
-}: { lastUsedLogin?: keyof Providers | null; rememberedEmail?: string | null } = {}) {
-  try {
-    // It is intentional that null and undefined both clear the value
-    if (!lastUsedLogin) {
-      localStorage.removeItem(localStorageKeys.lastUsedLogin);
-    }
-    if (!rememberedEmail) {
-      localStorage.removeItem(localStorageKeys.rememberedEmail);
-    }
-    if (lastUsedLogin) {
-      localStorage.setItem(localStorageKeys.lastUsedLogin, lastUsedLogin);
-    }
-    if (rememberedEmail) {
-      localStorage.setItem(localStorageKeys.rememberedEmail, rememberedEmail);
-    }
-  } catch {
-    // Ignore
-  }
-}
-
 interface LoginOrSignUpProps {
   action: 'login' | 'register';
   providers: Providers;
@@ -124,7 +83,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const captchaRef = useRef<{ reset: () => void }>(null);
   const searchParams = useSearchParams();
-  const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsed);
+  const [{ lastUsedLogin, rememberedEmail }] = useState(getLastUsedLoginMethod);
 
   const emailHint = searchParams.get('email') || (action === 'login' ? rememberedEmail : null);
   const returnUrl = searchParams.get('returnUrl');
@@ -196,7 +155,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
 
     if (payload.rememberMe) {
       // For credential login, we don't show last used but we do populate the email address as the cue
-      setLastUsed({ rememberedEmail: payload.email });
+      setLastUsedLoginMethod({ rememberedEmail: payload.email });
     }
 
     if (responseData.data.redirect?.startsWith(ROUTES.AUTH._root_path)) {
@@ -232,7 +191,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               csrfToken={csrfToken}
               returnUrl={returnUrl}
               lastUsedLogin={lastUsedLogin}
-              setLastUsed={setLastUsed}
+              setLastUsed={setLastUsedLoginMethod}
             />
 
             <LoginOrSignUpOAuthButton
@@ -241,7 +200,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
               csrfToken={csrfToken}
               returnUrl={returnUrl}
               lastUsedLogin={lastUsedLogin}
-              setLastUsed={setLastUsed}
+              setLastUsed={setLastUsedLoginMethod}
             />
           </div>
 

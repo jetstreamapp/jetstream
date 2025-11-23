@@ -1,10 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/router';
 import { Fragment, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ROUTES } from '../../utils/environment';
+import { getLastUsedLoginMethod } from '../../utils/utils';
 import Alert from '../Alert';
 import { ErrorQueryParamErrorBanner } from '../ErrorQueryParamErrorBanner';
 import { Input } from '../form/Input';
@@ -30,11 +32,15 @@ interface PasswordResetInitProps {
 
 export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [finishedCaptcha, setFinishedCaptcha] = useState(false);
   const [error, setError] = useState<string>();
   const captchaRef = useRef<{ reset: () => void }>(null);
+  const [{ rememberedEmail }] = useState(getLastUsedLoginMethod);
+
+  const emailHint = searchParams.get('email') || rememberedEmail || '';
 
   const {
     register,
@@ -44,7 +50,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
   } = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      email: '',
+      email: emailHint,
       csrfToken,
       captchaToken: '',
     },
