@@ -1,4 +1,5 @@
 type ErrorType =
+  | 'AccountLocked'
   | 'AuthError'
   | 'ExpiredVerificationToken'
   | 'IdentityLinkingNotAllowed'
@@ -17,6 +18,8 @@ type ErrorType =
   | 'InvalidVerificationType'
   | 'LoginWithExistingIdentity'
   | 'MissingEntitlement'
+  | 'PasswordReused'
+  | 'PasswordResetRequired'
   | 'ProviderNotAllowed'
   | 'ProviderEmailNotVerified';
 
@@ -132,4 +135,22 @@ export class ProviderNotAllowed extends AuthError {
 
 export class ProviderEmailNotVerified extends AuthError {
   static type: ErrorType = 'ProviderEmailNotVerified';
+}
+
+export class PasswordReused extends AuthError {
+  static type: ErrorType = 'PasswordReused';
+}
+
+export class PasswordResetRequired extends AuthError {
+  static type: ErrorType = 'PasswordResetRequired';
+}
+
+export class AccountLocked extends AuthError {
+  static type: ErrorType = 'AccountLocked';
+  lockedUntil?: Date;
+
+  constructor(message?: string, lockedUntil?: Date) {
+    super(message);
+    this.lockedUntil = lockedUntil;
+  }
 }

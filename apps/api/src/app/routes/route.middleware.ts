@@ -4,6 +4,7 @@ import {
   ExpiredVerificationToken,
   InvalidCaptcha,
   MissingEntitlement,
+  PLACEHOLDER_USER_ID,
   checkUserAgentSimilarity,
   generateHMACDoubleCSRFToken,
   getApiAddressFromReq,
@@ -19,6 +20,7 @@ import { addDays, getUnixTime, isBefore } from 'date-fns';
 import * as express from 'express';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
+import { environment } from '../../environments/environment';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
 import { checkUserEntitlement } from '../db/user.db';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
@@ -188,7 +190,7 @@ export async function checkAuth(req: express.Request, res: express.Response, nex
     }
   }
 
-  if (user && !pendingVerification) {
+  if (user && user.id !== PLACEHOLDER_USER_ID && !pendingVerification) {
     return next();
   }
 
@@ -517,5 +519,49 @@ export function validateDoubleCSRF(req: express.Request, res: express.Response, 
     });
   }
 
+  next();
+}
+
+export function setPermissionPolicy(req: express.Request, res: express.Response, next: express.NextFunction) {
+  res.setHeader(
+    'Permissions-Policy',
+    [
+      'accelerometer=()',
+      'autoplay=()',
+      'camera=()',
+      'clipboard-read=(self)',
+      'clipboard-write=(self)',
+      'display-capture=()',
+      'encrypted-media=()',
+      'fullscreen=(self)',
+      'geolocation=()',
+      'gyroscope=()',
+      'hid=()',
+      'magnetometer=()',
+      'microphone=()',
+      'midi=()',
+      'payment=()',
+      'usb=()',
+      'serial=()',
+      'xr-spatial-tracking=()',
+      'screen-wake-lock=()',
+    ].join(', '),
+  );
+  next();
+}
+
+/**
+ * Only set this for static assets that should not be loaded by other origins
+ */
+export function setCrossOriginResourcePolicy(req: express.Request, res: express.Response, next: express.NextFunction) {
+  // "Production" is true in all environments except local dev
+  if (environment.production) {
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  }
+  next();
+}
+
+export function setCacheControlForApiRoutes(req: express.Request, res: express.Response, next: express.NextFunction) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   next();
 }

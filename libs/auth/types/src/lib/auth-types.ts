@@ -164,6 +164,11 @@ export interface SessionData {
   // TODO: lastActivity: number;
   ipAddress: string;
   userAgent: string;
+  /**
+   * Indicates whether this session is associated with a placeholder user (used during registration when email is already in use).
+   * This is not a valid session and is not to be treated as authenticated.
+   */
+  sessionDetails?: { isTemporary: boolean };
   sendNewUserEmailAfterVerify?: boolean;
   orgAuth?: { code_verifier: string; nonce: string; state: string; loginUrl: string; orgGroupId?: Maybe<string> };
 }
