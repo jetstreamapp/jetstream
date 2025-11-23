@@ -72,7 +72,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account' });
     let expected = 'Account account = new Account(\n';
     expected += `  Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `  IsDeleted = false,\n`;
     expected += `  test_currency_field__c = 100\n`;
     expected += ');';
     expect(apex).toEqual(expected);
@@ -82,7 +81,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account', indentation: 'tabs' });
     let expected = 'Account account = new Account(\n';
     expected += `\tId = 'a006g00000EwgrfAAB',\n`;
-    expected += `\tIsDeleted = false,\n`;
     expected += `\ttest_currency_field__c = 100\n`;
     expected += ');';
     expect(apex).toEqual(expected);
@@ -92,7 +90,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account', inline: true, tabSize: 4 });
     let expected = 'Account account = new Account(\n';
     expected += `    Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `    IsDeleted = false,\n`;
     expected += `    test_currency_field__c = 100\n`;
     expected += ');';
     expect(apex).toEqual(expected);
@@ -102,7 +99,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account', inline: true, indentation: 'tabs', tabSize: 4 });
     let expected = 'Account account = new Account(\n';
     expected += `\t\t\t\tId = 'a006g00000EwgrfAAB',\n`;
-    expected += `\t\t\t\tIsDeleted = false,\n`;
     expected += `\t\t\t\ttest_currency_field__c = 100\n`;
     expected += ');';
     expect(apex).toEqual(expected);
@@ -112,7 +108,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account', insertStatement: true });
     let expected = 'Account account = new Account(\n';
     expected += `  Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `  IsDeleted = false,\n`;
     expected += `  test_currency_field__c = 100\n`;
     expected += ');\n\n';
     expected += 'insert account;';
@@ -123,7 +118,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account', inline: false });
     let expected = `Account account = new Account();\n`;
     expected += `account.Id = 'a006g00000EwgrfAAB';\n`;
-    expected += `account.IsDeleted = false;\n`;
     expected += `account.test_currency_field__c = 100;`;
     expect(apex).toEqual(expected);
   });
@@ -132,7 +126,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'Account', inline: false, insertStatement: true });
     let expected = `Account account = new Account();\n`;
     expected += `account.Id = 'a006g00000EwgrfAAB';\n`;
-    expected += `account.IsDeleted = false;\n`;
     expected += `account.test_currency_field__c = 100;\n\n`;
     expected += 'insert account;';
     expect(apex).toEqual(expected);
@@ -142,7 +135,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(smallRecord, { sobjectName: 'NAm3_spACe__Account__c' });
     let expected = 'NAm3_spACe__Account__c account = new NAm3_spACe__Account__c(\n';
     expected += `  Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `  IsDeleted = false,\n`;
     expected += `  test_currency_field__c = 100\n`;
     expected += ');';
     expect(apex).toEqual(expected);
@@ -152,7 +144,6 @@ describe('recordToApex', () => {
     const apex = recordToApex(record, { sobjectName: 'Account', fields: ['Id', 'IsDeleted', 'test_currency_field__c'] });
     let expected = 'Account account = new Account(\n';
     expected += `  Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `  IsDeleted = false,\n`;
     expected += `  test_currency_field__c = 100\n`;
     expected += ');';
     expect(apex).toEqual(expected);
@@ -163,7 +154,6 @@ describe('recordToApex', () => {
     let expected = 'public Account getAccount() {\n';
     expected += '  Account account = new Account(\n';
     expected += `    Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `    IsDeleted = false,\n`;
     expected += `    test_currency_field__c = 100\n`;
     expected += '  );\n\n';
     expected += '  return account;\n';
@@ -176,7 +166,6 @@ describe('recordToApex', () => {
     let expected = 'public Account getAccount() {\n';
     expected += '  Account account = new Account(\n';
     expected += `    Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `    IsDeleted = false,\n`;
     expected += `    test_currency_field__c = 100\n`;
     expected += '  );\n\n';
     expected += '  insert account;\n\n';
@@ -190,7 +179,6 @@ describe('recordToApex', () => {
     let expected = 'public static Account getAccount() {\n';
     expected += '  Account account = new Account(\n';
     expected += `    Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `    IsDeleted = false,\n`;
     expected += `    test_currency_field__c = 100\n`;
     expected += '  );\n\n';
     expected += '  return account;\n';
@@ -209,8 +197,8 @@ describe('recordToApex', () => {
     });
     let expected = 'Account account = new Account(\n';
     expected += `  Id = 'a006g00000EwgrfAAB',\n`;
-    expected += `  LastReferencedDate = JSON.deserialize('"2021-05-28T00:11:50.000+0000"', Datetime.class),\n`;
-    expected += `  Date__c = JSON.deserialize('"2021-05-28"', Date.class)\n`;
+    expected += `  LastReferencedDate = (Datetime) JSON.deserialize('"2021-05-28T00:11:50.000+0000"', Datetime.class),\n`;
+    expected += `  Date__c = (Date) JSON.deserialize('"2021-05-28"', Date.class)\n`;
     expected += ');';
     expect(apex).toEqual(expected);
   });

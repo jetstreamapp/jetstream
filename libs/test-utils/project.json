@@ -4,6 +4,13 @@
   "sourceRoot": "libs/test-utils/src",
   "projectType": "library",
   "tags": ["scope:shared"],
-  "// targets": "to see all targets run: nx show project test-utils --web",
-  "targets": {}
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../coverage/libs/test-utils"
+      }
+    }
+  }
 }

@@ -5,6 +5,6 @@
     "module": "commonjs",
     "types": ["node", "google.accounts", "google.picker", "gapi.auth2"]
   },
-  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "include": ["src/**/*.ts"]
 }

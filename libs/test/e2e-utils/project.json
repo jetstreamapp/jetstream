@@ -4,6 +4,13 @@
   "sourceRoot": "libs/test/e2e-utils/src",
   "projectType": "library",
   "tags": ["scope:e2e"],
-  "// targets": "to see all targets run: nx show project e2e-utils --web",
-  "targets": {}
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../../coverage/libs/test/e2e-utils"
+      }
+    }
+  }
 }

@@ -288,7 +288,7 @@ module.exports = [
     rules: {
       '@next/next/no-html-link-for-pages': ['error', 'landing/pages'],
     },
-    ignores: ['jest.config.ts'],
+    ignores: [],
     languageOptions: {
       parserOptions: {
         project: ['apps/landing/tsconfig.json'],

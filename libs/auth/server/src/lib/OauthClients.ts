@@ -112,8 +112,8 @@ export class OauthClients {
   }
 }
 
-// eager init, skip in jest tests
-if (!process.env.JEST_WORKER_ID) {
+// eager init, skip in tests
+if (!process.env.VITEST_WORKER_ID) {
   OauthClients.getInstance().catch((err) => {
     logger.error(getErrorMessageAndStackObj(err), 'FATAL INIT ERROR - could not load oauth clients');
     process.exit(1);

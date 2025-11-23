@@ -1,13 +1,14 @@
+import { vi, Mock } from 'vitest';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
 import { decryptAccessToken, encryptAccessToken } from '../salesforce-org-encryption.service';
 
-jest.mock('@jetstream/shared/node-utils', () => ({
-  encryptString: jest.fn(),
-  decryptString: jest.fn(),
-  hexToBase64: jest.fn((v) => v),
+vi.mock('@jetstream/shared/node-utils', () => ({
+  encryptString: vi.fn(),
+  decryptString: vi.fn(),
+  hexToBase64: vi.fn((v) => v),
 }));
 
-jest.mock('@jetstream/api-config', () => ({
+vi.mock('@jetstream/api-config', () => ({
   ENV: {
     SFDC_ENCRYPTION_KEY: 'test-master-key',
     SFDC_ENCRYPTION_CACHE_MAX_ENTRIES: 10000,
@@ -15,9 +16,9 @@ jest.mock('@jetstream/api-config', () => ({
     SFDC_ENCRYPTION_ITERATIONS: 10000,
     SFDC_CONSUMER_SECRET: 'legacy-secret',
   },
-  logger: { error: jest.fn() },
-  rollbarServer: { error: jest.fn() },
-  getExceptionLog: jest.fn((err) => ({ message: err.message })),
+  logger: { error: vi.fn() },
+  rollbarServer: { error: vi.fn() },
+  getExceptionLog: vi.fn((err) => ({ message: err.message })),
 }));
 
 describe('salesforce-org-encryption.service', () => {
@@ -26,13 +27,13 @@ describe('salesforce-org-encryption.service', () => {
   const refreshToken = 'refresh-token';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('encryptAccessToken', () => {
     it('should encrypt tokens and return v2 format', async () => {
       // Mock encryptString to return a predictable value
-      (encryptString as jest.Mock).mockReturnValue('encrypted-data');
+      (encryptString as Mock).mockReturnValue('encrypted-data');
 
       const result = await encryptAccessToken({ accessToken, refreshToken, userId });
 
@@ -56,7 +57,7 @@ describe('salesforce-org-encryption.service', () => {
       const encryptedAccessToken = `v2:${salt}:${encryptedData}`;
 
       // Mock decryptString to return the original tokens
-      (decryptString as jest.Mock).mockReturnValue(`${accessToken} ${refreshToken}`);
+      (decryptString as Mock).mockReturnValue(`${accessToken} ${refreshToken}`);
 
       const result = await decryptAccessToken({ encryptedAccessToken, userId });
 
@@ -67,7 +68,7 @@ describe('salesforce-org-encryption.service', () => {
     it('should decrypt legacy tokens and return access/refresh tokens', async () => {
       const legacyEncrypted = 'legacy-encrypted-token';
       // Mock decryptString for legacy
-      (decryptString as jest.Mock).mockReturnValueOnce(`${accessToken} ${refreshToken}`);
+      (decryptString as Mock).mockReturnValueOnce(`${accessToken} ${refreshToken}`);
 
       const result = await decryptAccessToken({ encryptedAccessToken: legacyEncrypted, userId });
 
@@ -77,7 +78,7 @@ describe('salesforce-org-encryption.service', () => {
 
     it('should return ["invalid", "invalid"] if decryption fails', async () => {
       // v2 format but decryptString throws
-      (decryptString as jest.Mock).mockImplementation(() => {
+      (decryptString as Mock).mockImplementation(() => {
         throw new Error('decryption failed');
       });
 
@@ -89,7 +90,7 @@ describe('salesforce-org-encryption.service', () => {
 
     it('should return ["invalid", "invalid"] if legacy decryption fails', async () => {
       // legacy format, decryptString throws
-      (decryptString as jest.Mock).mockImplementation(() => {
+      (decryptString as Mock).mockImplementation(() => {
         throw new Error('legacy decryption failed');
       });
 

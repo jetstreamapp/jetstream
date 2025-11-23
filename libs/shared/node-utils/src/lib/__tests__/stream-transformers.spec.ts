@@ -1,8 +1,8 @@
 import { PassThrough } from 'stream';
-import { StripBlobFilename } from '../stream-transformers'; // adjust path
+import { StripBlobFilename } from '../stream-transformers';
 
 describe('StripBlobFilename', () => {
-  it('removes filename="blob" from the collection part', (done) => {
+  it('removes filename="blob" from the collection part', () => {
     const input = [
       '------boundary123\r\n',
       'Content-Disposition: form-data; name="collection"; filename="blob"\r\n',
@@ -27,20 +27,24 @@ describe('StripBlobFilename', () => {
       output += chunk.toString('latin1');
     });
 
-    transformer.on('end', () => {
-      try {
-        expect(output).toBe(expected);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    });
+    return new Promise<void>((resolve, reject) => {
+      transformer.on('end', () => {
+        try {
+          expect(output).toBe(expected);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
 
-    passthrough.pipe(transformer);
-    passthrough.end(Buffer.from(input, 'latin1'));
+      transformer.on('error', reject);
+
+      passthrough.pipe(transformer);
+      passthrough.end(Buffer.from(input, 'latin1'));
+    });
   });
 
-  it('passes through unchanged when no blob filename present', (done) => {
+  it('passes through unchanged when no blob filename present', () => {
     const input = [
       '------boundary123\r\n',
       'Content-Disposition: form-data; name="collection"\r\n',
@@ -58,16 +62,20 @@ describe('StripBlobFilename', () => {
       output += chunk.toString('latin1');
     });
 
-    transformer.on('end', () => {
-      try {
-        expect(output).toBe(input);
-        done();
-      } catch (err) {
-        done(err);
-      }
-    });
+    return new Promise<void>((resolve, reject) => {
+      transformer.on('end', () => {
+        try {
+          expect(output).toBe(input);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
 
-    passthrough.pipe(transformer);
-    passthrough.end(Buffer.from(input, 'latin1'));
+      transformer.on('error', reject);
+
+      passthrough.pipe(transformer);
+      passthrough.end(Buffer.from(input, 'latin1'));
+    });
   });
 });

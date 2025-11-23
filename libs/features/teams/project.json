@@ -1,15 +1,15 @@
 {
-  "name": "teams",
+  "name": "features-teams",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/features/teams/src",
   "projectType": "library",
   "tags": ["scope:browser"],
   "targets": {
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "libs/features/teams/jest.config.ts"
+        "reportsDirectory": "../../../coverage/libs/features/teams"
       }
     }
   }

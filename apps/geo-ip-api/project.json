@@ -62,10 +62,10 @@
       "outputs": ["{options.outputFile}"]
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "apps/geo-ip-api/jest.config.ts"
+        "reportsDirectory": "../../coverage/apps/geo-ip-api"
       }
     }
   }

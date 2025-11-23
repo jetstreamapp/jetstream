@@ -1,9 +1,10 @@
+import { vi, Mock } from 'vitest';
 import * as clientData from '@jetstream/shared/data';
 import { sfdcFieldsFactory } from '@jetstream/test-utils';
 import { EntityParticleRecord, QueryResults, SalesforceOrgUi } from '@jetstream/types';
 import { autoMapFields } from '../load-records-utils';
 
-jest.mock('@jetstream/shared/data');
+vi.mock('@jetstream/shared/data');
 
 describe('autoMapFields', () => {
   test('should map fields based on exact header matches, ignoring extra fields', async () => {

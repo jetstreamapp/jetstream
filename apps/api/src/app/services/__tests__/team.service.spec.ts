@@ -1,32 +1,38 @@
+import { vi, Mock } from 'vitest';
 import type { OauthProviderType, UserProfileSession } from '@jetstream/auth/types';
 import { LoginConfigurationIdentityDisplayNames, LoginConfigurationMdaDisplayNames } from '@jetstream/types';
 import * as teamDbService from '../../db/team.db';
 import { verifyTeamInvitation } from '../team.service';
 
-jest.mock('../../db/team.db');
-jest.mock('oauth4webapi');
+vi.mock('../../db/team.db');
+vi.mock('oauth4webapi');
 
-jest.mock('@jetstream/auth/server', () => ({
-  ...jest.requireActual('@jetstream/auth/server'),
-  OauthClients: {
-    getInstance: jest.fn(() =>
-      Promise.resolve({
-        google: { client: {}, authorizationServer: {} },
-        salesforce: { client: {}, authorizationServer: {} },
-      }),
-    ),
-  },
+vi.mock('@jetstream/auth/server', async () => {
+  const actual = await vi.importActual('@jetstream/auth/server');
+  return {
+    ...actual,
+    OauthClients: {
+      getInstance: vi.fn(() =>
+        Promise.resolve({
+          google: { client: {}, authorizationServer: {} },
+          salesforce: { client: {}, authorizationServer: {} },
+        }),
+      ),
+    },
+  };
+});
+
+const mockTeamDbService = teamDbService as unknown as {
+  [K in keyof typeof teamDbService]: ReturnType<typeof vi.fn>;
+};
+
+vi.mock('@jetstream/shared/node-utils', () => ({
+  encryptString: vi.fn(),
+  decryptString: vi.fn(),
+  hexToBase64: vi.fn((v) => v),
 }));
 
-const mockTeamDbService = teamDbService as jest.Mocked<typeof teamDbService>;
-
-jest.mock('@jetstream/shared/node-utils', () => ({
-  encryptString: jest.fn(),
-  decryptString: jest.fn(),
-  hexToBase64: jest.fn((v) => v),
-}));
-
-jest.mock('@jetstream/api-config', () => ({
+vi.mock('@jetstream/api-config', () => ({
   ENV: {
     SFDC_ENCRYPTION_KEY: 'test-master-key',
     SFDC_ENCRYPTION_CACHE_MAX_ENTRIES: 10000,
@@ -34,9 +40,9 @@ jest.mock('@jetstream/api-config', () => ({
     SFDC_ENCRYPTION_ITERATIONS: 10000,
     SFDC_CONSUMER_SECRET: 'legacy-secret',
   },
-  logger: { error: jest.fn() },
-  rollbarServer: { error: jest.fn() },
-  getExceptionLog: jest.fn((err) => ({ message: err.message })),
+  logger: { error: vi.fn() },
+  rollbarServer: { error: vi.fn() },
+  getExceptionLog: vi.fn((err) => ({ message: err.message })),
 }));
 
 describe('verifyTeamInvitation', () => {
@@ -67,7 +73,7 @@ describe('verifyTeamInvitation', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('happy path - all validations pass', () => {

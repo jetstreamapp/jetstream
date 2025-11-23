@@ -21,13 +21,13 @@
     "@nx/web:application": {
       "style": "css",
       "linter": "eslint",
-      "unitTestRunner": "jest",
+      "unitTestRunner": "vitest",
       "e2eTestRunner": "none"
     },
     "@nx/web:library": {
       "style": "css",
       "linter": "eslint",
-      "unitTestRunner": "jest"
+      "unitTestRunner": "vitest"
     },
     "@nx/workspace": {
       "library": {
@@ -70,7 +70,7 @@
       "library": {
         "style": "@emotion/styled",
         "linter": "eslint",
-        "unitTestRunner": "jest"
+        "unitTestRunner": "vitest"
       },
       "storybook-configuration": {
         "linter": "eslint"
@@ -98,19 +98,6 @@
     },
     "e2e-ci": {
       "cache": true
-    },
-    "@nx/jest:jest": {
-      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
-      "cache": true,
-      "options": {
-        "passWithNoTests": true
-      },
-      "configurations": {
-        "ci": {
-          "ci": true,
-          "codeCoverage": true
-        }
-      }
     },
     "@nx/eslint:lint": {
       "cache": true,
@@ -153,7 +140,7 @@
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json",
-      "!{projectRoot}/jest.config.[jt]s",
+      "!{projectRoot}/vite.config.[jt]s",
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/eslint.config.js"
     ]

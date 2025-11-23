@@ -81,10 +81,10 @@
       }
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
       "options": {
-        "jestConfig": "apps/jetstream-web-extension/jest.config.ts"
+        "reportsDirectory": "../../coverage/apps/jetstream-web-extension"
       }
     }
   }
