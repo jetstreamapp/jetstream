@@ -667,9 +667,9 @@ const verification = createRoute(
           if (err) {
             res.log.error({ ...getExceptionLog(err) }, '[AUTH][PLACEHOLDER_USER][ERROR] Error destroying session');
           }
+          const searchParams = new URLSearchParams({ error: 'InvalidRegistration' });
+          sendJson(res, { error: false, redirect: `/auth/login/?${searchParams.toString()}` });
         });
-        const searchParams = new URLSearchParams({ error: 'InvalidRegistration' });
-        sendJson(res, { error: false, redirect: `/auth/login/?${searchParams.toString()}` });
         return;
       }
 

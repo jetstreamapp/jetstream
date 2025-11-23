@@ -94,6 +94,7 @@ function setLastUsed({
   rememberedEmail = null,
 }: { lastUsedLogin?: keyof Providers | null; rememberedEmail?: string | null } = {}) {
   try {
+    // It is intentional that nu;; and undefined both clear the value
     if (!lastUsedLogin) {
       localStorage.removeItem(localStorageKeys.lastUsedLogin);
     }
@@ -193,6 +194,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
     }
 
     if (payload.rememberMe) {
+      // For credential login, we don't show last used but we do populate the email address as the cue
       setLastUsed({ rememberedEmail: payload.email });
     }
 

@@ -876,6 +876,7 @@ export async function setPasswordForUser(id: string, password: string) {
 
   const hashedPassword = await hashPassword(password);
 
+  // This is the flow from the profile page, we still check password history
   if (await isPasswordInHistory(id, password)) {
     throw new PasswordReused('You cannot reuse a recent password. Please choose a different password.');
   }
@@ -1124,10 +1125,9 @@ async function getUserAndVerifyPassword(email: string, password: string) {
   }
 
   return {
-    error: new InvalidCredentials(
-      `Incorrect email or password${failedAttempt.attemptsRemaining > 0 ? `. ${failedAttempt.attemptsRemaining} attempt(s) remaining before account lockout.` : ''}`,
-      { userId: UNSAFE_userWithPassword.id },
-    ),
+    error: new InvalidCredentials(`Incorrect email or password. Your account will be locked after too many failed attempts.`, {
+      userId: UNSAFE_userWithPassword.id,
+    }),
   };
 }
 
@@ -1916,31 +1916,33 @@ export async function isAccountLocked(userId: string): Promise<{ isLocked: boole
  * Increments failed login attempts and locks account if threshold is reached
  */
 export async function recordFailedLoginAttempt(userId: string): Promise<{ isLocked: boolean; attemptsRemaining: number }> {
-  const user = await prisma.user.findUnique({
-    select: { failedLoginAttempts: true, lockedUntil: true },
-    where: { id: userId },
+  return await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      select: { failedLoginAttempts: true, lockedUntil: true },
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new InvalidCredentials('User not found');
+    }
+
+    const newAttempts = (user.failedLoginAttempts || 0) + 1;
+    const shouldLock = newAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+
+    const { failedLoginAttempts } = await tx.user.update({
+      select: { failedLoginAttempts: true },
+      data: {
+        failedLoginAttempts: { increment: 1 },
+        lockedUntil: shouldLock ? addMinutes(new Date(), ACCOUNT_LOCKOUT_DURATION_MINUTES) : undefined,
+      },
+      where: { id: userId },
+    });
+
+    return {
+      isLocked: shouldLock,
+      attemptsRemaining: Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - failedLoginAttempts),
+    };
   });
-
-  if (!user) {
-    throw new InvalidCredentials('User not found');
-  }
-
-  const newAttempts = (user.failedLoginAttempts || 0) + 1;
-  const shouldLock = newAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
-
-  const { failedLoginAttempts } = await prisma.user.update({
-    select: { failedLoginAttempts: true },
-    data: {
-      failedLoginAttempts: { increment: 1 },
-      lockedUntil: shouldLock ? addMinutes(new Date(), ACCOUNT_LOCKOUT_DURATION_MINUTES) : undefined,
-    },
-    where: { id: userId },
-  });
-
-  return {
-    isLocked: shouldLock,
-    attemptsRemaining: Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - failedLoginAttempts),
-  };
 }
 
 /**
