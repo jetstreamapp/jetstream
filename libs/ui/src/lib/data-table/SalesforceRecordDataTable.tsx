@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { queryRemaining } from '@jetstream/shared/data';

@@ -59,7 +59,7 @@ export const routeDefinition = {
   },
 };
 
-const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, async ({ user }, req, res, next) => {
+const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, async ({ user }, _, res, next) => {
   try {
     const organizations = await orgGroupsDb.findByUserId({ userId: user.id });
 
@@ -69,7 +69,7 @@ const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, as
   }
 });
 
-const createOrgGroup = createRoute(routeDefinition.createOrganization.validators, async ({ user, body }, req, res, next) => {
+const createOrgGroup = createRoute(routeDefinition.createOrganization.validators, async ({ user, body }, _, res, next) => {
   try {
     const organization = await orgGroupsDb.create(user.id, body);
 
@@ -79,7 +79,7 @@ const createOrgGroup = createRoute(routeDefinition.createOrganization.validators
   }
 });
 
-const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators, async ({ body, params, user }, req, res, next) => {
+const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators, async ({ body, params, user }, _, res, next) => {
   try {
     const organization = await orgGroupsDb.update(user.id, params.id, body);
 
@@ -89,7 +89,7 @@ const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators
   }
 });
 
-const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators, async ({ params, user }, req, res, next) => {
+const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators, async ({ params, user }, _, res, next) => {
   try {
     await orgGroupsDb.deleteOrgGroup(user.id, params.id);
 
@@ -101,7 +101,7 @@ const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators
 
 const deleteOrgGroupAndAllOrgs = createRoute(
   routeDefinition.deleteOrganizationWithOrgs.validators,
-  async ({ params, user }, req, res, next) => {
+  async ({ params, user }, _, res, next) => {
     try {
       await orgGroupsDb.deleteOrgGroupAndAllOrgs(user.id, params.id);
 

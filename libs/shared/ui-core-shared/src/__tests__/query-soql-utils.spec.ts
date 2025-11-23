@@ -1,16 +1,7 @@
 import { FieldType as QueryFieldType, parseQuery } from '@jetstreamapp/soql-parser-js';
 import { SoqlMetadataTree, __TEST_EXPORTS__ } from '../query-soql-utils';
 
-const {
-  getFieldsFromAllPartsOfQuery,
-  getParsableFields,
-  getParsableFieldsFromFilter,
-  fetchAllMetadata,
-  findRequiredRelationships,
-  fetchRecursiveMetadata,
-  getLowercaseFieldMap,
-  getLowercaseFieldMapWithFullPath,
-} = __TEST_EXPORTS__;
+const { getParsableFields, getParsableFieldsFromFilter, findRequiredRelationships, getLowercaseFieldMapWithFullPath } = __TEST_EXPORTS__;
 
 describe('getParsableFields', () => {
   it('should return an empty array when given an empty array of fields', () => {

@@ -35,7 +35,6 @@ export class ApiMetadata extends SalesforceApi {
             result: DescribeMetadataResult;
           };
         };
-        Header?: any;
       };
     }>(
       this.prepareSoapRequestOptions({

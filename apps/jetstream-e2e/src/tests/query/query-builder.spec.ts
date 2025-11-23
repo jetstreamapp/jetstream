@@ -92,6 +92,7 @@ test.describe('QUERY BUILDER', () => {
     ]);
   });
 
+  // eslint-disable-next-line playwright/expect-expect
   test('should work with subqueries', async ({ queryPage }) => {
     await queryPage.goto();
     await queryPage.selectObject('Account');

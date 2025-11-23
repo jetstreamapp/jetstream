@@ -199,7 +199,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(blockBotByUserAgentMiddleware);
 
   if (ENV.ENVIRONMENT === 'development') {
-    app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (req, res) => res.status(200).send('success'));
+    app.use('/analytics', cors({ origin: /http:\/\/localhost:[0-9]+$/ }), (_, res) => res.status(200).send('success'));
   } else {
     app.use(
       '/analytics',
@@ -351,11 +351,11 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
       redirectIfPendingVerificationMiddleware,
       redirectIfMfaEnrollmentRequiredMiddleware,
       // Allow Google to frame /app routes for Google Picker functionality
-      (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      (_: express.Request, res: express.Response, next: express.NextFunction) => {
         res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.google.com *.googleusercontent.com accounts.google.com;");
         next();
       },
-      (req: express.Request, res: express.Response) => {
+      (_: express.Request, res: express.Response) => {
         res.sendFile(join(__dirname, '../jetstream/index.html'));
       },
     );
@@ -393,6 +393,7 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   app.use(uncaughtErrorHandler);
 
   server.on('error', (error) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((error as any).code === 'EADDRINUSE') {
       console.error(`Port ${ENV.PORT} is already in use`, error.message);
       console.info('Kill with: lsof -ti:3333 | xargs kill -9');

@@ -36,7 +36,7 @@ export const routeDefinition = {
   },
 };
 
-const describe = createRoute(routeDefinition.describe.validators, async ({ query, jetstreamConn }, req) => {
+const describe = createRoute(routeDefinition.describe.validators, async ({ query, jetstreamConn }) => {
   try {
     const isTooling = query.isTooling;
     const results = await jetstreamConn!.sobject.describe(isTooling);
@@ -46,7 +46,7 @@ const describe = createRoute(routeDefinition.describe.validators, async ({ query
   }
 });
 
-const describeSObject = createRoute(routeDefinition.describeSObject.validators, async ({ params, query, jetstreamConn }, req) => {
+const describeSObject = createRoute(routeDefinition.describeSObject.validators, async ({ params, query, jetstreamConn }) => {
   try {
     const isTooling = query.isTooling;
     const results = await jetstreamConn!.sobject.describeSobject(params.sobject, isTooling);
@@ -56,7 +56,7 @@ const describeSObject = createRoute(routeDefinition.describeSObject.validators, 
   }
 });
 
-const query = createRoute(routeDefinition.query.validators, async ({ body, query, jetstreamConn }, req) => {
+const query = createRoute(routeDefinition.query.validators, async ({ body, query, jetstreamConn }) => {
   try {
     const isTooling = query.isTooling;
     const includeDeletedRecords = query.includeDeletedRecords;
@@ -70,7 +70,7 @@ const query = createRoute(routeDefinition.query.validators, async ({ body, query
   }
 });
 
-const queryMore = createRoute(routeDefinition.queryMore.validators, async ({ query, jetstreamConn }, req) => {
+const queryMore = createRoute(routeDefinition.queryMore.validators, async ({ query, jetstreamConn }) => {
   try {
     const nextRecordsUrl = query.nextRecordsUrl as string;
 

@@ -1,8 +1,5 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-
-import { sortQueryFieldsPolymorphicComparable, transformTabularDataToExcelStr } from './shared-ui-utils';
 import { QueryFieldWithPolymorphic } from '@jetstream/types';
+import { sortQueryFieldsPolymorphicComparable, transformTabularDataToExcelStr } from './shared-ui-utils';
 
 describe('SHARED UI UTILS', () => {
   describe('transformTabularDataToExcelStr', () => {
@@ -20,7 +17,7 @@ describe('SHARED UI UTILS', () => {
     it('should return empty string if there is no data', () => {
       expect('').toEqual(transformTabularDataToExcelStr('data' as any));
       expect('').toEqual(transformTabularDataToExcelStr([]));
-      expect('').toEqual(transformTabularDataToExcelStr(null));
+      expect('').toEqual(transformTabularDataToExcelStr(null as any));
     });
 
     it('should use fields if provided', () => {

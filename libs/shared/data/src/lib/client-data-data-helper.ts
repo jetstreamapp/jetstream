@@ -258,7 +258,7 @@ function retryInterceptor(config: AxiosRequestConfig, options: RequestOptions = 
       await delay(retryDelay(retryCount));
       logger.warn(`[HTTP][RETRYING REQUEST]`, config.url, { retryCount, error: error.message });
 
-      options = { ...options, retryCount: retryCount };
+      options = { ...options, retryCount };
       config.headers = { ...config.headers, [HTTP.HEADERS.X_RETRY]: String(retryCount) };
       const axiosInstance = axios.create({ ...config });
       axiosInstance.interceptors.request.use(requestInterceptor(options));

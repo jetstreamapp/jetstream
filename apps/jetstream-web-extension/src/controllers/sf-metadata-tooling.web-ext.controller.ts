@@ -288,7 +288,6 @@ const checkRetrieveStatusAndRedeploy = createRoute(
           return handleJsonResponse({ type: 'deploy', results: deployResults, zipFile: results.zipFile });
         } else {
           // Deploy package as-is
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const deployResults = await targetJetstreamConn!.metadata.deploy(results.zipFile!, deployOptions);
           return handleJsonResponse({ type: 'deploy', results: deployResults, zipFile: results.zipFile });
         }

@@ -119,7 +119,7 @@ export async function updateTeamMember({
   userId: string;
   data: TeamMemberUpdateRequest;
 }): Promise<TeamUserFacing> {
-  const { teamMember, isBillableAction } = await teamDbService.updateTeamMemberRole({ teamId, userId, data, runningUserId });
+  const { isBillableAction } = await teamDbService.updateTeamMemberRole({ teamId, userId, data, runningUserId });
 
   const team = await teamDbService.findByUserId({ userId: runningUserId });
 

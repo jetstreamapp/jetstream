@@ -22,7 +22,7 @@ export async function getRecentRecordsFromStorage() {
     }
     recentItemsMapCache = await localforage.getItem<RecentRecordStorageMap>(INDEXED_DB.KEYS.recentRecords);
     return recentItemsMapCache || {};
-  } catch (ex) {
+  } catch {
     return recentItemsMapCache || {};
   }
 }

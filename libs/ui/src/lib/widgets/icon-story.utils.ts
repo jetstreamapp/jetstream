@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getIconTypes, IconName, IconType } from '@jetstream/icon-factory';
 
 const doctypeIcons = getIconTypes('doctype');
@@ -28,6 +29,6 @@ export const iconStringMapping: any = {
   mapping: {},
 };
 iconStringMapping.options.forEach((iconWithType) => {
-  const [type, icon] = iconWithType.split(':');
+  const [, icon] = iconWithType.split(':');
   iconStringMapping.mapping[iconWithType] = icon;
 });

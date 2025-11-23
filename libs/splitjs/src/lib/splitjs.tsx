@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Library was not being updated from author
  * https://github.com/nathancahill/split/blob/master/packages/react-split/src/index.js
@@ -30,7 +31,6 @@ export class SplitWrapper extends React.Component<SplitWrapperProps> {
         gutterElement.className = `gutter gutter-${direction}`;
       }
 
-      // eslint-disable-next-line no-underscore-dangle
       (gutterElement as any).__isSplitGutter = true;
       return gutterElement;
     };
@@ -46,7 +46,6 @@ export class SplitWrapper extends React.Component<SplitWrapperProps> {
     const otherProps = ['maxSize', 'expandToMin', 'gutterSize', 'gutterAlign', 'snapOffset', 'dragInterval', 'direction', 'cursor'];
 
     let needsRecreate = otherProps
-      // eslint-disable-next-line react/destructuring-assignment
       .map((prop) => this.props[prop as keyof SplitWrapperProps] !== prevProps[prop as keyof SplitWrapperProps])
       .reduce((accum, same) => accum || same, false);
 
@@ -81,7 +80,6 @@ export class SplitWrapper extends React.Component<SplitWrapperProps> {
       });
 
       if (sizeChanged) {
-        // eslint-disable-next-line react/destructuring-assignment
         this.split?.setSizes(this.props.sizes || []);
       }
     }

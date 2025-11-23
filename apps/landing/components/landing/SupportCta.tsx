@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 const items = [
   {
     image: 'https://res.cloudinary.com/getjetstream/image/upload/v1673822085/public/discord-mark-black_yj4q38.svg',

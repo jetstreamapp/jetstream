@@ -18,6 +18,7 @@ export class StripBlobFilename extends Transform {
     }
 
     // Append incoming chunk to our buffer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._buffer = Buffer.concat([this._buffer as any, chunk as any]);
 
     // Search for the header terminator in latin1 encoding

@@ -22,7 +22,7 @@ function getValue(value: string | number | boolean | null | Date): string {
       return formatISO(value, { representation: 'date' });
     }
     return 'null';
-  } catch (ex) {
+  } catch {
     return 'null';
   }
 }

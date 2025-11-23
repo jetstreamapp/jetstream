@@ -18,7 +18,7 @@ import { routeDefinition as userController } from './user.desktop.controller';
 const router = new Router<(req: RequestOptions) => Promise<Response>>();
 export const desktopRoutes = router;
 
-router.get('/api/heartbeat', async (req) => {
+router.get('/api/heartbeat', async () => {
   const result: AppInfo = {
     version: app.getVersion(),
     announcements: [],

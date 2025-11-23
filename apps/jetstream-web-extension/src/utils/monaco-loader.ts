@@ -7,7 +7,7 @@ loader
   .then(async (monaco) => {
     // Load all custom configuration
     const jetstreamMonaco = await import('@jetstream/monaco');
-    jetstreamMonaco.configure(monaco as any);
+    jetstreamMonaco.configure(monaco as unknown as typeof import('monaco-editor'));
   })
   .catch((ex) => {
     console.error('[ERROR] Failed to load monaco editor', ex);

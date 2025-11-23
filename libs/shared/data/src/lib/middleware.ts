@@ -15,6 +15,6 @@ export const errorMiddleware: HttpErrorMiddlewareFn[] = [];
  * @param type String 'Error'
  * @param fn HttpErrorMiddlewareFn
  */
-export function registerMiddleware(type = 'Error', fn: HttpErrorMiddlewareFn) {
+export function registerMiddleware(_ = 'Error', fn: HttpErrorMiddlewareFn) {
   errorMiddleware.push(fn);
 }

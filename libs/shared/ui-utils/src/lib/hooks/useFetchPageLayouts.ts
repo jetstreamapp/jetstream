@@ -14,6 +14,7 @@ interface PageLayout {
   Name: string;
   EntityDefinition: { QualifiedApiName: string };
   FullName?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Metadata?: any;
 }
 

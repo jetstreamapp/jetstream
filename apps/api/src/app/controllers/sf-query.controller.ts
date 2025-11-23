@@ -42,7 +42,7 @@ export const routeDefinition = {
   },
 };
 
-const describe = createRoute(routeDefinition.describe.validators, async ({ query, jetstreamConn }, req, res, next) => {
+const describe = createRoute(routeDefinition.describe.validators, async ({ query, jetstreamConn }, _, res, next) => {
   try {
     const isTooling = query.isTooling;
     const results = await jetstreamConn.sobject.describe(isTooling);
@@ -52,21 +52,18 @@ const describe = createRoute(routeDefinition.describe.validators, async ({ query
   }
 });
 
-const describeSObject = createRoute(
-  routeDefinition.describeSObject.validators,
-  async ({ params, query, jetstreamConn }, req, res, next) => {
-    try {
-      const isTooling = query.isTooling;
-      const results = await jetstreamConn.sobject.describeSobject(params.sobject, isTooling);
+const describeSObject = createRoute(routeDefinition.describeSObject.validators, async ({ params, query, jetstreamConn }, _, res, next) => {
+  try {
+    const isTooling = query.isTooling;
+    const results = await jetstreamConn.sobject.describeSobject(params.sobject, isTooling);
 
-      sendJson(res, results);
-    } catch (ex) {
-      next(new UserFacingError(ex));
-    }
-  },
-);
+    sendJson(res, results);
+  } catch (ex) {
+    next(new UserFacingError(ex));
+  }
+});
 
-const query = createRoute(routeDefinition.query.validators, async ({ body, query, jetstreamConn }, req, res, next) => {
+const query = createRoute(routeDefinition.query.validators, async ({ body, query, jetstreamConn }, _, res, next) => {
   try {
     const isTooling = query.isTooling;
     const includeDeletedRecords = query.includeDeletedRecords;
@@ -80,7 +77,7 @@ const query = createRoute(routeDefinition.query.validators, async ({ body, query
   }
 });
 
-const queryMore = createRoute(routeDefinition.queryMore.validators, async ({ query, jetstreamConn }, req, res, next) => {
+const queryMore = createRoute(routeDefinition.queryMore.validators, async ({ query, jetstreamConn }, _, res, next) => {
   try {
     const nextRecordsUrl = query.nextRecordsUrl as string;
 

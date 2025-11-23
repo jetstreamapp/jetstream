@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Providers } from '@jetstream/auth/types';
 import Link from 'next/link';
@@ -87,7 +86,7 @@ export function LoginOrSignUp({ action, providers, csrfToken }: LoginOrSignUpPro
       name: '',
       password: '',
       confirmPassword: '',
-      csrfToken: csrfToken,
+      csrfToken,
       captchaToken: '',
     },
   });

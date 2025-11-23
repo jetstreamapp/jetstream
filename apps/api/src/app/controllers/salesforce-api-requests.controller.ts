@@ -12,7 +12,7 @@ export const routeDefinition = {
   },
 };
 
-const getSalesforceApiRequests = createRoute(routeDefinition.getSalesforceApiRequests.validators, async (_, req, res, next) => {
+const getSalesforceApiRequests = createRoute(routeDefinition.getSalesforceApiRequests.validators, async (_, __, res, next) => {
   try {
     const results = await salesforceApiDb.findAll();
     sendJson(res, results);

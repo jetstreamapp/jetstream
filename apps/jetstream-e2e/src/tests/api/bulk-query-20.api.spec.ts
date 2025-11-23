@@ -1,3 +1,4 @@
+/* eslint-disable playwright/no-skipped-test */
 import { CreateQueryJobRequest } from '@jetstream/api-types';
 import { BulkQuery20Job, BulkQuery20JobResults, BulkQuery20Response } from '@jetstream/types';
 import { expect, test } from '../../fixtures/fixtures';

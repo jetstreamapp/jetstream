@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PluginOption } from 'vite';
 
 const BASE_HREF = '/app';

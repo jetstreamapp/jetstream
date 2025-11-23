@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -46,7 +45,7 @@ export function PasswordResetInit({ csrfToken }: PasswordResetInitProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       email: '',
-      csrfToken: csrfToken,
+      csrfToken,
       captchaToken: '',
     },
   });

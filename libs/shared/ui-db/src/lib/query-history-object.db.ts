@@ -12,7 +12,7 @@ export const queryHistoryObjectDb = {
  * Save object mapping for query history
  * this is used on the query history modal to show the list of objects
  */
-dexieDb.query_history.hook('creating', function (primaryKey, obj, transaction) {
+dexieDb.query_history.hook('creating', function (_, obj) {
   obj.isFavoriteIdx = obj.isFavorite ? 'true' : 'false';
   this.onsuccess = function (key) {
     // this would consistently fail if done in the same transaction

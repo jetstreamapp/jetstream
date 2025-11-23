@@ -24,7 +24,7 @@ export function AppWrapperNotJetstreamOwnedPage({ children }: { children: ReactN
 
   useEffect(() => {
     localforage
-      .defineDriver(localDriver as any)
+      .defineDriver(localDriver as LocalForageDriver)
       .then(() => {
         localforage.setDriver(LOCAL_DRIVER_NAME);
         localforage.config({

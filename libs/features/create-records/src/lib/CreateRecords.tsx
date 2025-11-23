@@ -59,6 +59,7 @@ export const CreateRecords = () => {
   const [formErrors, setFormErrors] = useState<EditFromErrors>({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
   const [modifiedRecord, setModifiedRecord] = useState<SalesforceRecord>({});
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [createdRecord, setCreatedRecord] = useState<{ id: string; sobject: string; record: any } | null>(null);
 
   useEffect(() => {

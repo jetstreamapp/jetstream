@@ -132,7 +132,6 @@ export function useDetectPlatform() {
           arch = 'arm64';
         } else if (macOSVersion) {
           const majorVersion = parseInt(macOSVersion[1], 10);
-          const minorVersion = parseInt(macOSVersion[2], 10);
 
           // macOS 11+ with Safari and high screen density often indicates Apple Silicon
           if (majorVersion >= 11 && isSafari && window.devicePixelRatio >= 2) {
@@ -143,11 +142,13 @@ export function useDetectPlatform() {
         }
 
         // Additional check: try to use the newer navigator.userAgentData API if available
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ('userAgentData' in navigator && (navigator as any).userAgentData?.getHighEntropyValues) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (navigator as any).userAgentData
               .getHighEntropyValues(['architecture'])
-              .then((values: any) => {
+              .then((values) => {
                 if (values.architecture === 'arm') {
                   setPlatform({ os: 'macos', arch: 'arm64' });
                 }

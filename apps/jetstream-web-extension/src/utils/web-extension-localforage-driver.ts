@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/rules-of-hooks */
 /**
  * All code was copied from https://github.com/eliihen/localforage-webExtensionStorage-driver?tab=readme-ov-file
@@ -68,7 +69,7 @@ function usesPromises() {
   const storage = getStorage();
   try {
     return !!storage && !!storage.local.get;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -110,7 +111,6 @@ function createDriver(name: string, property: string): LocalForageDriver {
   const driverObj: LocalForageDriver = {
     _driver: name,
     _support: support,
-    // eslint-disable-next-line no-underscore-dangle
     _initStorage() {
       return Promise.resolve();
     },

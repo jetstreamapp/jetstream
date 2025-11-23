@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ExpressionConditionType, ExpressionGroupType } from '@jetstream/types';
 
 export function isExpressionConditionType(value: any): value is ExpressionConditionType {

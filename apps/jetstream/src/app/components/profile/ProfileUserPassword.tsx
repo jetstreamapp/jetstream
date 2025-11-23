@@ -58,7 +58,7 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
       });
     }
     return items;
-  }, [fullUserProfile.identities]);
+  }, [fullUserProfile.identities, loginConfigAbility]);
 
   async function handleSelection(id: string) {
     try {
@@ -80,7 +80,7 @@ export const ProfileUserPassword: FunctionComponent<ProfileUserPasswordProps> = 
         default:
           return;
       }
-    } catch (ex) {
+    } catch {
       //
     }
   }
@@ -123,7 +123,7 @@ function SetPassword({ username, onSetPassword }: { username: string; onSetPassw
     try {
       setLoading(true);
       await onSetPassword(data.password);
-    } catch (ex) {
+    } catch {
       //TODO: handle error
     } finally {
       setLoading(false);

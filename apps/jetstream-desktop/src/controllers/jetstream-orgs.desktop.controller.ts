@@ -52,7 +52,7 @@ export const routeDefinition = {
   },
 };
 
-const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, async ({}, req) => {
+const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, async ({}) => {
   try {
     const organizations = dataService.getOrgGroups();
 
@@ -62,7 +62,7 @@ const getOrgGroups = createRoute(routeDefinition.getOrganizations.validators, as
   }
 });
 
-const createOrgGroup = createRoute(routeDefinition.createOrganization.validators, async ({ body }, req) => {
+const createOrgGroup = createRoute(routeDefinition.createOrganization.validators, async ({ body }) => {
   try {
     const organization = dataService.createOrgGroup(body);
 
@@ -72,7 +72,7 @@ const createOrgGroup = createRoute(routeDefinition.createOrganization.validators
   }
 });
 
-const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators, async ({ body, params }, req) => {
+const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators, async ({ body, params }) => {
   try {
     const organization = dataService.updateOrgGroup(params.id, body);
 
@@ -82,7 +82,7 @@ const updateOrgGroup = createRoute(routeDefinition.updateOrganization.validators
   }
 });
 
-const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }, req) => {
+const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }) => {
   try {
     dataService.deleteOrgGroup(params.id);
 
@@ -92,7 +92,7 @@ const deleteOrgGroup = createRoute(routeDefinition.deleteOrganization.validators
   }
 });
 
-const deleteOrganizationWithOrgs = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }, req) => {
+const deleteOrganizationWithOrgs = createRoute(routeDefinition.deleteOrganization.validators, async ({ params }) => {
   try {
     dataService.deleteOrgGroupAndAllOrgs(params.id);
 

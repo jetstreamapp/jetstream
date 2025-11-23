@@ -113,7 +113,7 @@ export async function checkHeartbeat(): Promise<AppInfo> {
         item.content = item.content.replaceAll(key, new Date(value).toLocaleString());
       });
     });
-  } catch (ex) {
+  } catch {
     logger.warn('Unable to parse announcements');
   }
   return heartbeat;
@@ -1172,7 +1172,7 @@ export async function deleteReportsById(org: SalesforceOrgUi, ids: string[], api
         continue;
       }
       output.push({ success: true, id });
-    } catch (ex) {
+    } catch {
       output.push({
         errors: [{ fields: [], message: 'UNKOWN ERROR', statusCode: 'UNKNOWN' }],
         success: false,

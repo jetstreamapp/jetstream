@@ -43,7 +43,6 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
 }) => {
   const [labelId] = useState(() => `${id}-label`);
   const { data, error: scriptLoadError, loading: googleApiLoading, isVisible, openPicker } = useDrivePicker(apiConfig);
-  const [loading, setLoading] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<google.picker.DocumentObject>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [{ managedFilename: managedName, filenameTruncated }, setManagedName] = useFilename(folderName);
@@ -120,7 +119,7 @@ export const GoogleFolderSelector: FunctionComponent<GoogleFolderSelectorProps> 
           >
             <Icon type="doctype" icon="gdrive" className="slds-button__icon slds-button__icon_left" omitContainer />
             {buttonLabel}
-            {(loading || googleApiLoading) && !errorMessage && <Spinner size="small" />}
+            {googleApiLoading && !errorMessage && <Spinner size="small" />}
           </button>
         </label>
       </div>

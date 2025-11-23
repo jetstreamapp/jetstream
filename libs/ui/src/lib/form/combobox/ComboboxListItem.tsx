@@ -65,6 +65,7 @@ export const ComboboxListItem = forwardRef<HTMLLIElement, ComboboxListItemProps>
     },
     ref,
   ) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const innerRef = useRef<HTMLLIElement>(ref as any);
     const combinedRef = useCombinedRefs<HTMLLIElement>(ref, innerRef);
 

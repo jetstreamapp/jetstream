@@ -102,7 +102,7 @@ export const routeDefinition = {
   },
 };
 
-const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, req, res, next) => {
+const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, _, res, next) => {
   try {
     const options = body;
 
@@ -114,7 +114,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
   }
 });
 
-const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
+const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, _, res, next) => {
   try {
     const jobId = params.jobId;
 
@@ -126,7 +126,7 @@ const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, j
   }
 });
 
-const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, async ({ params, jetstreamConn }, req, res, next) => {
+const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, async ({ params, jetstreamConn }, _, res, next) => {
   try {
     const jobId = params.jobId;
     const action: 'Closed' | 'Aborted' = params.action === 'abort' ? 'Aborted' : 'Closed';
@@ -141,7 +141,7 @@ const closeOrAbortJob = createRoute(routeDefinition.closeOrAbortJob.validators, 
 
 const addBatchToJob = createRoute(
   routeDefinition.addBatchToJob.validators,
-  async ({ body, params, query, jetstreamConn }, req, res, next) => {
+  async ({ body, params, query, jetstreamConn }, _, res, next) => {
     try {
       const jobId = params.jobId;
       const csv = body;
@@ -158,7 +158,7 @@ const addBatchToJob = createRoute(
 
 const addBatchToJobWithBinaryAttachment = createRoute(
   routeDefinition.addBatchToJobWithBinaryAttachment.validators,
-  async ({ body, params, query, jetstreamConn }, req, res, next) => {
+  async ({ body, params, query, jetstreamConn }, _, res, next) => {
     try {
       const jobId = params.jobId;
       const zip = body;
@@ -182,7 +182,7 @@ const addBatchToJobWithBinaryAttachment = createRoute(
  */
 const downloadResultsFile = createRoute(
   routeDefinition.downloadResultsFile.validators,
-  async ({ params, query, jetstreamConn }, req, res, next) => {
+  async ({ params, query, jetstreamConn }, _, res, next) => {
     try {
       const jobId = params.jobId;
       const batchId = params.batchId;
@@ -211,53 +211,50 @@ const downloadResultsFile = createRoute(
 /**
  * Download requests or results as JSON, streamed from Salesforce as CSV, and transformed to JSON
  */
-const downloadResults = createRoute(
-  routeDefinition.downloadResults.validators,
-  async ({ params, query, jetstreamConn }, req, res, next) => {
-    try {
-      const jobId = params.jobId;
-      const batchId = params.batchId;
-      const type = query.type;
-      const isQuery = ensureBoolean(query.isQuery);
+const downloadResults = createRoute(routeDefinition.downloadResults.validators, async ({ params, query, jetstreamConn }, _, res, next) => {
+  try {
+    const jobId = params.jobId;
+    const batchId = params.batchId;
+    const type = query.type;
+    const isQuery = ensureBoolean(query.isQuery);
 
-      const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
-        delimiter: ',',
-        header: true,
-        skipEmptyLines: true,
-        transform: (data, field) => {
-          if (field === 'Success' || field === 'Created') {
-            return toBoolean(data);
-          } else if (field === 'Id' || field === 'Error') {
-            return data || null;
-          }
-          return data;
-        },
-      });
+    const csvParseStream = parseCsv(NODE_STREAM_INPUT, {
+      delimiter: ',',
+      header: true,
+      skipEmptyLines: true,
+      transform: (data, field) => {
+        if (field === 'Success' || field === 'Created') {
+          return toBoolean(data);
+        } else if (field === 'Id' || field === 'Error') {
+          return data || null;
+        }
+        return data;
+      },
+    });
 
-      if (isQuery) {
-        const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
-        const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Readable.fromWeb(results as any).pipe(csvParseStream);
-      } else {
-        const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Readable.fromWeb(results as any).pipe(csvParseStream);
-      }
-
-      streamParsedCsvAsJson(res, csvParseStream);
-    } catch (ex) {
-      next(new UserFacingError(ex));
+    if (isQuery) {
+      const resultIds = await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId);
+      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultIds[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Readable.fromWeb(results as any).pipe(csvParseStream);
+    } else {
+      const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Readable.fromWeb(results as any).pipe(csvParseStream);
     }
-  },
-);
+
+    streamParsedCsvAsJson(res, csvParseStream);
+  } catch (ex) {
+    next(new UserFacingError(ex));
+  }
+});
 
 /**
  * Download all results from a batch job as JSON, streamed from Salesforce as CSVs, and transformed to JSON on the fly
  */
 const downloadAllResults = createRoute(
   routeDefinition.downloadAllResults.validators,
-  async ({ params, jetstreamConn, query, requestId }, req, res, next) => {
+  async ({ params, jetstreamConn, query, requestId }, _, res, next) => {
     const combinedStream = new PassThrough();
     try {
       const jobId = params.jobId;
@@ -319,7 +316,7 @@ const downloadAllResults = createRoute(
             let headerRemoved = false;
             // Subsequent batches, remove headers
             const removeHeaderTransform = new Transform({
-              transform(chunk, encoding, callback) {
+              transform(chunk, _, callback) {
                 // Convert chunk to string
                 const data = chunk.toString();
                 // If header has been removed, pass data through

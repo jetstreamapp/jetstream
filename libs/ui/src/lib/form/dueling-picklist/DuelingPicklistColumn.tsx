@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // https://www.lightningdesignsystem.com/components/input/#Fixed-Text
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
@@ -186,7 +187,7 @@ export const DuelingPicklistColumn = forwardRef<any, DuelingPicklistColumnProps>
           key: event.key,
           keyCode: event.keyCode,
           keyBuffer: keyBuffer.current,
-          items: items,
+          items,
           labelProp: 'label',
         });
       }

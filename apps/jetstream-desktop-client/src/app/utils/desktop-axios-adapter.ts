@@ -152,7 +152,7 @@ async function getAxiosResponse(
   axiosResponse.data = response.body;
   axiosResponse.status = response.status;
   axiosResponse.statusText = response.statusText;
-  axiosResponse.headers = AxiosHeaders.from(response.headers as any);
+  axiosResponse.headers = AxiosHeaders.from(response.headers);
 
   if (response.status < 200 || response.status >= 300) {
     throw new AxiosError(

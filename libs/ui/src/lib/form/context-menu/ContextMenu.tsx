@@ -25,7 +25,6 @@ export interface ContextMenuProps {
   items: ContextMenuItem[];
   parentElement: HTMLElement;
   onClose: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelected: (item: ContextMenuItem) => void;
 }
 
@@ -86,7 +85,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
             focusedIndex: focusedItem,
           });
         }
-      } catch (ex) {
+      } catch {
         // silent error on keyboard navigation
       }
     }
@@ -142,7 +141,7 @@ export const ContextMenu: FunctionComponent<ContextMenuProps> = ({ parentElement
         key: event.key,
         keyCode: event.keyCode,
         keyBuffer: keyBuffer.current,
-        items: items,
+        items,
         labelProp: 'value',
       });
     }

@@ -46,13 +46,13 @@ test.describe('Home Page', () => {
     for (const { cardTitle, items } of testCases) {
       for (const item of items) {
         await page.goto('/app');
-        const card = await page
+        const card = page
           .getByTestId('content')
           .locator('div')
           .filter({ has: page.getByRole('heading', { name: cardTitle }) })
           .nth(2);
 
-        await expect(card.getByRole('link', { name: item.link })).toBeTruthy();
+        expect(card.getByRole('link', { name: item.link })).toBeTruthy();
 
         await card.getByRole('link', { name: item.link, exact: true }).click();
         await page.waitForURL(`**${item.path}`);
@@ -67,14 +67,17 @@ test.describe('Navbar navigation', () => {
       for (const item of items) {
         await page.goto('/app');
 
+        // eslint-disable-next-line playwright/no-conditional-in-test
         if (items.length === 1) {
-          await page.getByTestId('header').getByRole('menuitem', { name: menu }).click();
+          page.getByTestId('header').getByRole('menuitem', { name: menu }).click();
         } else {
           await page.getByTestId('header').getByRole('button', { name: menu }).click();
         }
 
+        // eslint-disable-next-line playwright/no-conditional-in-test
         if (items.length > 1) {
-          await expect(page.getByRole('menuitemcheckbox', { name: item.link }).first()).toBeTruthy();
+          // eslint-disable-next-line playwright/no-conditional-expect
+          expect(page.getByRole('menuitemcheckbox', { name: item.link }).first()).toBeTruthy();
           await page.getByRole('menuitemcheckbox', { name: item.link }).first().click();
         }
 

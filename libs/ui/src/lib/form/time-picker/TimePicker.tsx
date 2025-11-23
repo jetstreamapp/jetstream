@@ -52,7 +52,6 @@ function generateTimeListItems(stepInMinutes: number): ListItem[] {
  */
 function normalizeInitialTime(time: string, stepInMinutes: number) {
   try {
-    // eslint-disable-next-line prefer-const
     let [hour, min] = time.split(':').map((item) => Number(item));
     const remainder = min % stepInMinutes;
     if (remainder !== 0) {
@@ -71,7 +70,7 @@ function normalizeInitialTime(time: string, stepInMinutes: number) {
     }
 
     return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00.000`;
-  } catch (ex) {
+  } catch {
     return time;
   }
 }

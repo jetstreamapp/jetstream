@@ -110,7 +110,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
     try {
       loadDescribeMetadata(true);
       onSelected([], { clearSelection: true });
-    } catch (ex) {
+    } catch {
       // error
     }
   }

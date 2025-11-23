@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { clearCacheForOrg, describeGlobal } from '@jetstream/shared/data';
 import { NOOP, orderObjectsBy } from '@jetstream/shared/utils';
@@ -147,7 +148,7 @@ export const ConnectedSobjectListMultiSelect = forwardRef<any, ConnectedSobjectL
         if (isMounted.current) {
           onRefresh && onRefresh();
         }
-      } catch (ex) {
+      } catch {
         // error
       }
     }

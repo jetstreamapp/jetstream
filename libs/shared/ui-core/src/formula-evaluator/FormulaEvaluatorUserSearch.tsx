@@ -16,7 +16,7 @@ export const FormulaEvaluatorUserSearch: FunctionComponent<FormulaEvaluatorUserS
   onSelectedRecord,
 }) => {
   const isFirstRun = useRef(true);
-  const [records, setRecords] = useState<ListItem<string, any>[]>([
+  const [records, setRecords] = useState<ListItem[]>([
     {
       id: selectedOrg.userId,
       label: `Current User - ${selectedOrg.username}`,
@@ -25,7 +25,7 @@ export const FormulaEvaluatorUserSearch: FunctionComponent<FormulaEvaluatorUserS
       value: selectedOrg.userId,
     },
   ]);
-  const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(records[0]);
+  const [selectedRecord, setSelectedRecords] = useState<ListItem | null>(records[0]);
 
   const handleSearch = useCallback(
     async (searchTerm: string) => {
@@ -84,7 +84,7 @@ export const FormulaEvaluatorUserSearch: FunctionComponent<FormulaEvaluatorUserS
     [selectedOrg],
   );
 
-  function handleSelection(item: ListItem<string, any>) {
+  function handleSelection(item: ListItem) {
     setSelectedRecords(item);
     onSelectedRecord(item?.value);
   }
@@ -93,7 +93,7 @@ export const FormulaEvaluatorUserSearch: FunctionComponent<FormulaEvaluatorUserS
     <Grid className="slds-m-bottom_x-small" verticalAlign="end">
       <ComboboxWithItemsTypeAhead
         comboboxProps={{
-          disabled: disabled,
+          disabled,
           label: 'Run as User',
           className: 'w-100',
           isRequired: true,

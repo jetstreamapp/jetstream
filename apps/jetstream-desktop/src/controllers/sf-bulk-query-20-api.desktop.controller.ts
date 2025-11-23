@@ -59,7 +59,7 @@ export const routeDefinition = {
   },
 };
 
-const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }, req) => {
+const createJob = createRoute(routeDefinition.createJob.validators, async ({ body, jetstreamConn }) => {
   try {
     const { query, queryAll } = body;
 
@@ -71,7 +71,7 @@ const createJob = createRoute(routeDefinition.createJob.validators, async ({ bod
   }
 });
 
-const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, jetstreamConn }, req) => {
+const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, jetstreamConn }) => {
   try {
     const options = query;
 
@@ -83,7 +83,7 @@ const getJobs = createRoute(routeDefinition.getJobs.validators, async ({ query, 
   }
 });
 
-const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }, req) => {
+const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, jetstreamConn }) => {
   try {
     const jobId = params.jobId;
 
@@ -95,7 +95,7 @@ const getJob = createRoute(routeDefinition.getJob.validators, async ({ params, j
   }
 });
 
-const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ params, jetstreamConn }, req) => {
+const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ params, jetstreamConn }) => {
   try {
     const jobId = params.jobId;
 
@@ -107,7 +107,7 @@ const abortJob = createRoute(routeDefinition.abortJob.validators, async ({ param
   }
 });
 
-const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ params, jetstreamConn }, req) => {
+const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ params, jetstreamConn }) => {
   try {
     const jobId = params.jobId;
 
@@ -122,7 +122,7 @@ const deleteJob = createRoute(routeDefinition.deleteJob.validators, async ({ par
 /**
  * Stream CSV results to API caller
  */
-const downloadResults = createRoute(routeDefinition.downloadResults.validators, async ({ params, query, jetstreamConn }, req) => {
+const downloadResults = createRoute(routeDefinition.downloadResults.validators, async ({ params, query, jetstreamConn }) => {
   try {
     const jobId = params.jobId;
     const maxRecords = query.maxRecords;

@@ -219,12 +219,12 @@ export const routeDefinition = {
   },
 };
 
-const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({ user }, req, res) => {
+const getUserProfile = createRoute(routeDefinition.getUserProfile.validators, async ({ user }, _, res) => {
   const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id });
   sendJson(res, userProfile);
 });
 
-const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.validators, async ({ user }, req, res) => {
+const getFullUserProfile = createRoute(routeDefinition.getFullUserProfile.validators, async ({ user }, _, res) => {
   sendJson(res, await userDbService.findUserWithIdentitiesById(user.id));
 });
 
@@ -270,13 +270,13 @@ const deletePassword = createRoute(routeDefinition.deletePassword.validators, as
   });
 });
 
-const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body, user }, req, res) => {
+const updateProfile = createRoute(routeDefinition.updateProfile.validators, async ({ body, user }, _, res) => {
   const userProfile = body;
 
   try {
     await userDbService.updateUser(user, userProfile);
     sendJson(res, await userDbService.findUserWithIdentitiesById(user.id));
-  } catch (ex) {
+  } catch {
     throw new UserFacingError('There was an error updating the user profile');
   }
 });
@@ -319,7 +319,7 @@ const revokeAllSessions = createRoute(routeDefinition.revokeAllSessions.validato
 
 const getUserLoginConfiguration = createRoute(
   routeDefinition.getUserLoginConfiguration.validators,
-  async ({ user, teamMembership }, req, res) => {
+  async ({ user, teamMembership }, _, res) => {
     const loginConfiguration = await getLoginConfiguration(
       teamMembership?.teamId ? { teamId: teamMembership.teamId } : { email: user.email },
     ).then((response): LoginConfigurationUI => {
@@ -352,7 +352,7 @@ const getUserLoginConfiguration = createRoute(
   },
 );
 
-const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, req, res) => {
+const getOtpQrCode = createRoute(routeDefinition.getOtpQrCode.validators, async ({ user }, _, res) => {
   const { secret, imageUri, uri } = await generate2faTotpUrl(user.id);
   sendJson(res, { secret, secretToken: new URL(uri).searchParams.get('secret'), imageUri, uri });
 });

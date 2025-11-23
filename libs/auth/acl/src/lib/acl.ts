@@ -129,6 +129,7 @@ export function getUserAbility(options: GetAbilityOptions) {
       if (typeof item === 'object' && 'type' in item) {
         return item.type;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return item as any;
     },
   });

@@ -89,6 +89,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
           return () => clearTimeout(timeout);
         }
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoScrollToFocus, items]);
 
     useNonInitialEffect(() => {
@@ -102,7 +103,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>(
               focusedIndex: focusedItem,
             });
           }
-        } catch (ex) {
+        } catch {
           // silent failure
         }
       }

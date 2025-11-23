@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import { DesktopAuthInfo } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
@@ -73,7 +72,7 @@ APP VERSION ${version}
   }, [version]);
 
   useEffect(() => {
-    if (recordSyncEnabled) {
+    if (recordSyncEnabled && authInfo.accessToken && authInfo.deviceId) {
       initSocket(appInfo.serverUrl, {
         [HTTP.HEADERS.AUTHORIZATION]: `Bearer ${authInfo.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: authInfo.deviceId,
@@ -84,7 +83,7 @@ APP VERSION ${version}
     initDexieDb({ recordSyncEnabled }).catch((ex) => {
       logger.error('[DB] Error initializing db', ex);
     });
-  }, [appInfo.serverUrl, recordSyncEnabled]);
+  }, [appInfo.serverUrl, authInfo.accessToken, authInfo.deviceId, recordSyncEnabled]);
 
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);
@@ -93,7 +92,7 @@ APP VERSION ${version}
   useRollbar({
     accessToken: environment.rollbarClientAccessToken,
     environment: appInfo.environment,
-    userProfile: userProfile,
+    userProfile,
     version,
   });
   useAmplitude();

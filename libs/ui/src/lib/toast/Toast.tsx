@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import { css } from '@emotion/react';
 import { InfoSuccessWarningError } from '@jetstream/types';
 import classNames from 'classnames';

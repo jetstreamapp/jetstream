@@ -473,9 +473,7 @@ function removeQuotesAndPercentage(operator: Operator, values: string | string[]
     }
     return unescapeSoqlString(values);
   } else if (Array.isArray(values)) {
-    values = (values as any[]).map((value) =>
-      isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value,
-    );
+    values = values.map((value) => (isString(value) ? unescapeSoqlString(value.replace(REGEX.START_END_SINGLE_QUOTE, '')) : value));
   }
   return values;
 }
@@ -586,7 +584,7 @@ function setSelectedFields(
         if (keyToMetadataTreeNode[relationship]?.lowercaseFieldMap[baseField]) {
           const node = keyToMetadataTreeNode[relationship];
           const fieldName = node.lowercaseFieldMap[baseField].name;
-          const [_, relationshipPath] = node.fieldKey.split('|');
+          const [, relationshipPath] = node.fieldKey.split('|');
           queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
           selectedQueryFields.push({
             field: `${relationshipPath}${fieldName}`,
@@ -605,7 +603,7 @@ function setSelectedFields(
       if (keyToMetadataTreeNode[relationship]?.lowercaseFieldMap[lowercaseField]) {
         const node = keyToMetadataTreeNode[relationship];
         const fieldName = node.lowercaseFieldMap[lowercaseField].name;
-        const [_, relationshipPath] = node.fieldKey.split('|');
+        const [, relationshipPath] = node.fieldKey.split('|');
         queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
         selectedQueryFields.push({
           field: `${relationshipPath}${fieldName}`,
@@ -623,7 +621,7 @@ function setSelectedFields(
         if (keyToMetadataTreeNode[relationship]?.lowercaseFieldMap[lowercaseField]) {
           const node = keyToMetadataTreeNode[relationship];
           const fieldName = node.lowercaseFieldMap[lowercaseField].name;
-          const [_, relationshipPath] = node.fieldKey.split('|');
+          const [, relationshipPath] = node.fieldKey.split('|');
           queryFieldsMap[node.fieldKey].selectedFields.add(fieldName);
           selectedQueryFields.push({
             field: `${relationshipPath}${fieldName}`,

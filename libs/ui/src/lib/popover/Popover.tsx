@@ -179,6 +179,7 @@ export const Popover = ({
       const referenceProps = getReferenceProps();
       'onClick' in referenceProps && typeof referenceProps.onClick === 'function' && referenceProps.onClick?.(ev);
       // Then call any custom onClick from buttonProps
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       'onClick' in restButtonProps && typeof restButtonProps.onClick === 'function' && restButtonProps.onClick?.(ev as any);
     },
     style: buttonStyle,

@@ -95,8 +95,8 @@ export function saveAuthResponseToAppData({ deviceId, accessToken }: { deviceId:
   const expiresAt = exp ? fromUnixTime(exp) : new Date();
   const authState: AppData = {
     deviceId,
-    accessToken: accessToken,
-    userProfile: userProfile as any,
+    accessToken,
+    userProfile,
     expiresAt: expiresAt.getTime(),
     lastChecked: Date.now(),
   };
@@ -106,7 +106,7 @@ export function saveAuthResponseToAppData({ deviceId, accessToken }: { deviceId:
     accessToken,
     expiresAt: authState.expiresAt,
     lastChecked: authState.lastChecked,
-    userProfile: authState.userProfile as any,
+    userProfile: authState.userProfile,
   });
 
   return authState;

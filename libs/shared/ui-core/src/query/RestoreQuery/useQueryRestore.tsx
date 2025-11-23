@@ -85,7 +85,7 @@ export const useQueryRestore = (
     let query: Query;
     try {
       query = parseQuery(currSoql || '');
-    } catch (ex) {
+    } catch {
       setErrorMessage(ERROR_MESSAGES.PARSE_ERROR);
       if (endRestore) {
         // TODO: send error info

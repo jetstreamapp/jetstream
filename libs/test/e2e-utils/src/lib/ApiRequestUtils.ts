@@ -30,7 +30,6 @@ export class ApiRequestUtils {
     await this.page.getByRole('option', { name: this.E2E_LOGIN_USERNAME }).click();
 
     this.selectedOrgId = await this.page.evaluate(async () => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return window.atob(localStorage.getItem('SELECTED_ORG')!);
     });
   }

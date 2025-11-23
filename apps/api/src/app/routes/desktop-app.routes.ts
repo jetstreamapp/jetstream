@@ -36,7 +36,8 @@ routes.use(
         frameAncestors: ["'self'"],
         imgSrc: ["'self'", '*.cloudinary.com'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'", (req, res) => `'nonce-${(res as any)?.locals?.nonce}'`],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        scriptSrc: ["'self'", (_, res) => `'nonce-${(res as any)?.locals?.nonce}'`],
         scriptSrcAttr: ["'none'"],
         styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
         upgradeInsecureRequests: [],

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { logger } from '@jetstream/shared/client-logger';
 import { dataSyncPullAll, dataSyncPushAllChanges, socketClient } from '@jetstream/shared/data';
 import { getObjectDiffForDexie, groupByFlat } from '@jetstream/shared/utils';
@@ -199,11 +201,11 @@ export function initializeDexieSync(name: string) {
 
         // Ongoing sync
         onSuccess({
-          react: async function (changes, baseRevision, partial, onChangesAccepted) {
+          async react(changes, baseRevision, partial, onChangesAccepted) {
             await pushAndPullAllRecords(baseRevision, changes, applyRemoteChanges, onChangesAccepted);
             retryCount = 0; // Reset retry count on success
           },
-          disconnect: function () {
+          disconnect() {
             retryCount = 0; // Reset retry count on disconnect
             socketClient.unsubscribe('RECORD_SYNC');
           },

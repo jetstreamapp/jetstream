@@ -118,7 +118,7 @@ export class JobWorker {
                 tempResults = ensureArray(tempResults);
                 tempResults.forEach((result) => results.push(result));
               }
-            } catch (ex) {
+            } catch {
               logger.error('There was a problem deleting these records');
             }
           }
@@ -256,7 +256,7 @@ export class JobWorker {
               throw new Error('A valid file type type has not been selected');
           }
 
-          const results = { done: true, progress: 100, fileData, mimeType: '', fileName, fileFormat, googleFolder };
+          const results = { done: true, progress: 100, fileData, mimeType, fileName, fileFormat, googleFolder };
 
           const response: AsyncJobWorkerMessageResponse = { job, results };
           this.replyToMessage(name, response);

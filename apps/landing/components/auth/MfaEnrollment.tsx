@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { OtpEnrollmentData } from '@jetstream/auth/types';
 import Link from 'next/link';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HTTP } from '@jetstream/shared/constants';
 import { ensureArray, ensureBoolean, fileExtensionFromMimeType, splitFilenameByExtension, unSanitizeXml } from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, DeployResult, FileNameFormat, Maybe, RecordResult, SalesforceRecord } from '@jetstream/types';
@@ -223,7 +224,7 @@ export function correctDeployMetadataResultTypes(results: DeployResult) {
       }
     }
     return results;
-  } catch (ex) {
+  } catch {
     // just return as-is
     return results;
   }

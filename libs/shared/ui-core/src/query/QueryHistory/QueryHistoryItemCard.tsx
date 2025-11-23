@@ -13,6 +13,7 @@ import clamp from 'lodash/clamp';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAmplitude } from '../..';
+import { QueryRestoreErrors } from '../RestoreQuery/query-restore-utils';
 import { RestoreQuery } from '../RestoreQuery/RestoreQuery';
 import { SoqlValidIndicator } from '../ValidQueryText';
 
@@ -29,7 +30,7 @@ export interface QueryHistoryItemCardProps {
   onSave: (item: QueryHistoryItem, value: boolean) => void;
   onQueryUpdated?: () => void;
   startRestore: () => void;
-  endRestore: (isTooling: boolean, fatalError: boolean, errors?: any) => void;
+  endRestore: (isTooling: boolean, fatalError: boolean, errors?: QueryRestoreErrors) => void;
 }
 
 export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> = ({
@@ -46,6 +47,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
   const { sObject, customLabel, label, soql, isTooling, runCount, lastRun } = currentItem;
   const { trackEvent } = useAmplitude();
   const isMounted = useRef(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(null);
   const [lineCount, setLineCount] = useState(Math.max(soql.split('\n').length, 2));
 

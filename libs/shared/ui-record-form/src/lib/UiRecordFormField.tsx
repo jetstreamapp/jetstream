@@ -183,7 +183,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     let newValue = value as string;
     try {
       newValue = currValue ? formatISO(currValue) : '';
-    } catch (ex) {
+    } catch {
       // could not parse date - keeping old value
     } finally {
       setValue(newValue);
@@ -215,7 +215,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   function handleUndo() {
     setValue(initialValue);
     setKey(getUndoKey(name));
-    checkIfDirtyAndEmit(initialValue as any);
+    checkIfDirtyAndEmit(initialValue);
   }
 
   const showAsDirty = isDirty && !omitUndoIndicator;
@@ -343,11 +343,11 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                   errorMessage: saveError,
                   hideLabel,
                   labelHelp: labelHelpText,
-                  helpText: helpText,
+                  helpText,
                   isRequired: !readOnly && required,
                   hasError: !!saveError,
                   errorMessageId: `${id}-error`,
-                  disabled: disabled,
+                  disabled,
                   usePortal,
                 }}
                 timeProps={{
@@ -355,7 +355,7 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                   hideLabel,
                   className: 'slds-form-element_stacked slds-is-editing',
                   stepInMinutes: 1,
-                  disabled: disabled,
+                  disabled,
                 }}
                 onChange={handleDateTimeChange}
               />

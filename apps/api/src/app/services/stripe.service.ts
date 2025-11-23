@@ -102,7 +102,7 @@ export async function fetchPrices({ lookupKeys }: { lookupKeys: typeof STRIPE_PR
 
   const prices = await stripe.prices
     .list({
-      lookup_keys: lookupKeys as any as string[],
+      lookup_keys: lookupKeys as unknown as string[],
       expand: ['data.product'],
       type: 'recurring',
       currency: 'usd',
@@ -202,7 +202,7 @@ export function convertCustomerWithSubscriptionsToUserFacing(stripeCustomer: Str
           start_date,
           status,
         }) => ({
-          id: id,
+          id,
           // TODO: validate that the dates are correct (should be if server is on UTC I think?)
           billingCycleAnchor: formatISO(fromUnixTime(billing_cycle_anchor)),
           cancelAt: cancel_at ? formatISO(fromUnixTime(cancel_at)) : null,

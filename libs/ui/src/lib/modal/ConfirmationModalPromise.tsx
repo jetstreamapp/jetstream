@@ -6,7 +6,6 @@ type CommonModalProps = Pick<ModalProps, 'header' | 'tagline' | 'closeOnEsc' | '
 
 export interface ConfirmationModalProps extends CommonModalProps {
   isOpen: boolean;
-  instanceId: any;
   content: React.ReactNode;
   confirm?: React.ReactNode;
   cancel?: React.ReactNode;

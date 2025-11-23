@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 /**
  * Some parts of this file are based on the Salesforce Inspector extension for Chrome. (MIT license)
  * Credit: https://github.com/sorenkrabbe/Chrome-Salesforce-inspector/blob/master/addon/background.js
@@ -33,7 +32,6 @@ import {
   TokenExchange,
   VerifyAuth,
 } from '../utils/extension.types';
-import '../utils/serviceWorker.zip-handler';
 import { getRecordPageRecordId } from '../utils/web-extension.utils';
 
 if (!environment.production) {
@@ -310,7 +308,7 @@ browser.runtime.onMessage.addListener(
  */
 
 function getCookieStoreId(sender?: { tab?: browser.Tabs.Tab }) {
-  return (sender?.tab as any)?.cookieStoreId;
+  return sender?.tab?.cookieStoreId;
 }
 
 const handleResponse = (data: Message['response'], sendResponse: (response: MessageResponse) => void) => {
@@ -388,7 +386,7 @@ async function handleTokenExchange(
   const { exp, userProfile } = jwtDecode<JwtPayload>(accessToken);
   const expiresAt = exp ? fromUnixTime(exp) : new Date();
   const authState = {
-    accessToken: accessToken,
+    accessToken,
     userProfile,
     expiresAt: expiresAt.getTime(),
     lastChecked: null,

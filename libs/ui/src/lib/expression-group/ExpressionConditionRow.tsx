@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { useDebounce } from '@jetstream/shared/ui-utils';
 import {
@@ -168,7 +169,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
       try {
         const newValue = parseISO(value);
         return isValidDate(newValue) ? newValue : undefined;
-      } catch (ex) {
+      } catch {
         return undefined;
       }
     }

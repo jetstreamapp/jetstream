@@ -55,6 +55,7 @@ export interface LoadRecordsSelectObjectAndFileProps {
   onSobjects: (sobjects: DescribeGlobalSObjectResult[] | null) => void;
   onSelectedSobject: (selectedSObject: DescribeGlobalSObjectResult) => void;
   onFileChange: (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any[],
     headers: string[],
     filename: string,

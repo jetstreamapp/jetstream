@@ -9,6 +9,7 @@ export class ApiQuery extends SalesforceApi {
     super(connection);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async query<T = any>(soql: string, isTooling = false, includeDeletedRecords = false): Promise<QueryResults<T>> {
     const queryVerb = includeDeletedRecords ? 'queryAll' : 'query';
     const url = this.getRestApiUrl(`/${queryVerb}?${new URLSearchParams({ q: soql }).toString()}`, isTooling);
@@ -48,7 +49,7 @@ export class ApiQuery extends SalesforceApi {
     return { queryResults, columns, parsedQuery };
   }
 
-  async queryMore<T = any>(nextRecordsUrl: string): Promise<QueryResults<T>> {
+  async queryMore<T = unknown>(nextRecordsUrl: string): Promise<QueryResults<T>> {
     const queryResults = await this.apiRequest<QueryResult<T>>({
       sessionInfo: this.sessionInfo,
       url: nextRecordsUrl,

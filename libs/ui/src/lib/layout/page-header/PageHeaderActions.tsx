@@ -1,7 +1,6 @@
 import { css } from '@emotion/react';
 import { Children, Fragment, FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PageHeaderActionsProps {
   // Use actions for title role, and controls for second row
   colType: 'actions' | 'controls';

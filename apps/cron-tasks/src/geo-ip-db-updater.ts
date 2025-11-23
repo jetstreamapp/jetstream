@@ -180,11 +180,11 @@ async function downloadFile(url: string, savePath: string): Promise<Buffer> {
     },
   });
 
-  if (!response.ok) {
+  if (!response.ok || !response.body) {
     throw new Error(`Failed to download: ${response.statusText}`);
   }
 
-  const buffer = await streamToBuffer(response.body!);
+  const buffer = await streamToBuffer(response.body);
   fs.writeFileSync(savePath, buffer as unknown as NodeJS.ArrayBufferView);
   return buffer;
 }
@@ -219,7 +219,7 @@ const tempTablesNeedToBeCreated = {
   organization: true,
 };
 
-async function processNetwork(filename: string, csvPath: string) {
+async function processNetwork(_: string, csvPath: string) {
   await importCSVToTable(csvPath, 'network', 'geo_ip', tempTablesNeedToBeCreated.network);
   tempTablesNeedToBeCreated.network = false;
 }
@@ -229,7 +229,7 @@ async function processLocation(csvPath: string) {
   tempTablesNeedToBeCreated.location = false;
 }
 
-async function processASN(filename: string, csvPath: string) {
+async function processASN(_: string, csvPath: string) {
   await importCSVToTable(csvPath, 'organization', 'geo_ip', tempTablesNeedToBeCreated.organization);
   tempTablesNeedToBeCreated.organization = false;
 }

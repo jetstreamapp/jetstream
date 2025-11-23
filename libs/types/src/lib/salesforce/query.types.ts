@@ -34,6 +34,7 @@ export interface QueryColumnMetadata {
   columnName: string;
   custom: boolean;
   displayName: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   foreignKeyName?: any;
   insertable: boolean;
   joinColumns: QueryColumnMetadata[];

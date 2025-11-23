@@ -19,6 +19,8 @@ module.exports = [
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
       'no-empty-pattern': 'off',
+      'object-shorthand': 'warn',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@nx/enforce-module-boundaries': [
         'error',
         {
@@ -51,7 +53,6 @@ module.exports = [
           ],
         },
       ],
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
   {
@@ -59,8 +60,8 @@ module.exports = [
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-member-accessibility': 'off',
-      '@typescript-eslint/no-empty-interface': 'warn',
-      '@typescript-eslint/no-empty-object-type': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-parameter-properties': 'off',
       '@typescript-eslint/no-unused-vars': [
@@ -75,6 +76,20 @@ module.exports = [
           ignoreRestSiblings: true, // Allows unused props when using rest spread
         },
       ],
+    },
+  },
+  // Be much more lenient in tests
+  {
+    files: [
+      '**/*-e2e/**/*.{ts,tsx}',
+      '**/e2e-utils/**/*.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
 ];

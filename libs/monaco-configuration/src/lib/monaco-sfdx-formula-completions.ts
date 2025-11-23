@@ -57,7 +57,7 @@ function getSuggestions(monaco: Monaco, model: monaco.editor.ITextModel, positio
         label: completion,
         kind: monaco.languages.CompletionItemKind.Class,
         insertText: completion,
-        range: range,
+        range,
       })),
     );
   }
@@ -81,7 +81,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ABS(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ACOS(number)',
@@ -91,7 +91,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ACOS(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ADDMONTHS(date,num)',
@@ -102,7 +102,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ADDMONTHS(${1:date}, ${2:num})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'AGE(date)',
@@ -112,7 +112,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'AGE(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'AGEON(date,date)',
@@ -122,7 +122,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'AGEON(${1:date}, ${2:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'AND(logical1,logical2,...)',
@@ -132,7 +132,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'AND(${1:logical1}, ${2:logical2})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CHR(text)',
@@ -142,7 +142,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ASCII(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ASIN(number)',
@@ -152,7 +152,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ASIN(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ATAN(number)',
@@ -162,7 +162,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ATAN(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ATAN2(y, x)',
@@ -172,7 +172,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ATAN2(${1:ATAN2(y}, ${2:x})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'BEGINS(text, compare_text)',
@@ -182,7 +182,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'BEGINS(${1:text}, ${2:compare_text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'BLANKVALUE(expression, substitute_expression)',
@@ -193,7 +193,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'BLANKVALUE(${1:expression}, ${2:substitute_expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'BR()',
@@ -203,7 +203,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'BR(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CASE(expression, value1, result1, value2, result2,...,else_result)',
@@ -214,7 +214,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'CASE(\n\t${1:expression},\n\t${2:value1}, ${3:result1},\n\t${4:value2}, ${5:result2},\n\t${7:else_result}\n)',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CASESAFEID(id)',
@@ -224,7 +224,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'CASESAFEID(${1:id})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CEILING(number)',
@@ -234,7 +234,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'CEILING(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CHR(number)',
@@ -244,7 +244,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'CHR(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CONTAINS(text, compare_text)',
@@ -254,7 +254,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'CONTAINS(${1:text}, ${2:compare_text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'COS(number)',
@@ -264,7 +264,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'COS(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'CURRENCYRATE(IsoCode)',
@@ -275,7 +275,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'CURRENCYRATE(${1:IsoCode})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'DATE(year,month,day)',
@@ -285,7 +285,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'DATE(${1:year}, ${2:month}, ${3:day})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'DATETIMEVALUE(expression)',
@@ -295,7 +295,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'DATETIMEVALUE(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'DATEVALUE(expression)',
@@ -305,7 +305,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'DATEVALUE(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'DAY(date)',
@@ -315,7 +315,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'DAY(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'DAYOFYEAR(date)',
@@ -325,7 +325,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'DAYOFYEAR(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'DISTANCE(location, location, unit)',
@@ -335,7 +335,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'DISTANCE(${1:location}, ${2:location}, ${3:unit})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'EXP(number)',
@@ -345,7 +345,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'EXP(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'FIND(search_text, text [, start_num])',
@@ -355,7 +355,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'FIND(${1:search_text}, text [, ${3:start_num]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'FLOOR(number)',
@@ -365,7 +365,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'FLOOR(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'FORMATDURATION(numSeconds[, includeDays] | dateTime/time, dateTime/time)',
@@ -375,7 +375,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'FORMATDURATION(numSeconds[, ${2:includeDays] | dateTime/time}, ${3:dateTime/time})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'FROMUNIXTIME(number)',
@@ -385,7 +385,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'FROMUNIXTIME(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'GEOLOCATION(latitude, longitude)',
@@ -395,7 +395,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'GEOLOCATION(${1:latitude}, ${2:longitude})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'GETRECORDIDS(object_type)',
@@ -406,7 +406,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'GETRECORDIDS(${1:object_type})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'GETSESSIONID()',
@@ -417,7 +417,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'GETSESSIONID(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'HOUR(expression)',
@@ -427,7 +427,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'HOUR(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'HTMLENCODE(text)',
@@ -437,7 +437,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'HTMLENCODE(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'HYPERLINK(url, friendly_name [, target])',
@@ -447,7 +447,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'HYPERLINK(${1:url}, friendly_name [, ${3:target]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'IF(logical_test, value_if_true, value_if_false)',
@@ -457,7 +457,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'IF(\n\t${1:logical_test},\n\t${2:value_if_true},\n\t${3:value_if_false}\n)',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'IMAGE(image_url, alternate_text [, height, width])',
@@ -467,7 +467,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'IMAGE(${1:image_url}, alternate_text [, ${3:height}, ${4:width]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'INCLUDE(source, [inputs])',
@@ -477,7 +477,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'INCLUDE(${1:source}, [inputs])',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'INCLUDES(multiselect_picklist_field, text_literal)',
@@ -487,7 +487,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'INCLUDES(${1:multiselect_picklist_field}, ${2:text_literal})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'INITCAP(text)',
@@ -497,7 +497,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'INITCAP(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISBLANK(expression)',
@@ -507,7 +507,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISBLANK(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISCHANGED(field)',
@@ -518,7 +518,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISCHANGED(${1:field})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISCLONE()',
@@ -528,7 +528,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISCLONE(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISNEW()',
@@ -538,7 +538,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISNEW(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISNULL(expression)',
@@ -548,7 +548,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISNULL(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISNUMBER(Text)',
@@ -558,7 +558,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISNUMBER(${1:Text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISOWEEK(date)',
@@ -568,7 +568,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISOWEEK(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISOYEAR(date)',
@@ -578,7 +578,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISOYEAR(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ISPICKVAL(picklist_field, text_literal)',
@@ -588,7 +588,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ISPICKVAL(${1:picklist_field}, ${2:text_literal})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'JSENCODE(text)',
@@ -598,7 +598,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'JSENCODE(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'JSINHTMLENCODE(text)',
@@ -608,7 +608,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'JSINHTMLENCODE(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'JUNCTIONIDLIST(id,id,...)',
@@ -618,7 +618,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'JUNCTIONIDLIST(${1:id}, ${2:id})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LEFT(text, num_chars)',
@@ -628,7 +628,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LEFT(${1:text}, ${2:num_chars})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LEN(text)',
@@ -638,7 +638,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LEN(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LINKTO(label, target, id, [inputs], [no override])',
@@ -648,7 +648,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LINKTO(${1:label}, ${2:target}, ${3:id}, [inputs], [no override])',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LN(number)',
@@ -658,7 +658,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LN(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LOG(number)',
@@ -668,7 +668,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LOG(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LOWER(text)',
@@ -678,7 +678,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LOWER(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'LPAD(text, padded_length [, pad_string])',
@@ -688,7 +688,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'LPAD(${1:text}, padded_length [, ${3:pad_string]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MAX(number,number,...)',
@@ -698,7 +698,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MAX(${1:number}, ${2:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MCEILING(number)',
@@ -708,7 +708,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MCEILING(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MESSAGINGIMAGE(imageSrc, mimeType)',
@@ -718,7 +718,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MESSAGINGIMAGE(${1:imageSrc}, ${2:mimeType})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MESSAGINGURLFOR(id)',
@@ -728,7 +728,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MESSAGINGURLFOR(${1:id})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MFLOOR(number)',
@@ -738,7 +738,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MFLOOR(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MID(text, start_num, num_chars)',
@@ -748,7 +748,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MID(${1:text}, ${2:start_num}, ${3:num_chars})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MILLISECOND(expression)',
@@ -758,7 +758,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MILLISECOND(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MIN(number,number,...)',
@@ -768,7 +768,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MIN(${1:number}, ${2:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MINUTE(expression)',
@@ -778,7 +778,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MINUTE(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MOD(number,divisor)',
@@ -788,7 +788,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MOD(${1:number}, ${2:divisor})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'MONTH(date)',
@@ -798,7 +798,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'MONTH(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'NOT(logical)',
@@ -808,7 +808,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'NOT(${1:logical})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'NOW()',
@@ -818,7 +818,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'NOW(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'NULLVALUE(expression, substitute_expression)',
@@ -829,7 +829,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'NULLVALUE(${1:expression}, ${2:substitute_expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'OR(logical1,logical2,...)',
@@ -840,7 +840,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'OR(${1:logical1}, ${2:logical2})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'PARENTGROUPVAL(summary_field, grouping_level)',
@@ -850,7 +850,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'PARENTGROUPVAL(${1:summary_field}, ${2:grouping_level})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'PI()',
@@ -860,7 +860,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'PI(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'PICKLISTCOUNT(multiselect_picklist_field)',
@@ -870,7 +870,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'PICKLISTCOUNT(${1:multiselect_picklist_field})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'PREDICT(PredDefId, [recordId] | [field, value, ...])',
@@ -880,7 +880,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'PREDICT(${1:PredDefId}, [recordId] | [field, ${3:value}, ${4:...]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'PREVGROUPVAL(summary_field, grouping_level [, increment])',
@@ -891,7 +891,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'PREVGROUPVAL(${1:summary_field}, grouping_level [, ${3:increment]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'PRIORVALUE(field)',
@@ -901,7 +901,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'PRIORVALUE(${1:field})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'REGEX(Text, RegEx_Text)',
@@ -911,7 +911,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'REGEX(${1:Text}, ${2:RegEx_Text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'REQUIRESCRIPT(url)',
@@ -921,7 +921,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'REQUIRESCRIPT(${1:url})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'RIGHT(text, num_chars)',
@@ -931,7 +931,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'RIGHT(${1:text}, ${2:num_chars})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'ROUND(number,num_digits)',
@@ -941,7 +941,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'ROUND(${1:number}, ${2:num_digits})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'RPAD(text, padded_length [, pad_string])',
@@ -951,7 +951,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'RPAD(${1:text}, padded_length [, ${3:pad_string]})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'SECOND(expression)',
@@ -961,7 +961,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'SECOND(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'SIN(number)',
@@ -971,7 +971,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'SIN(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'SQRT(number)',
@@ -981,7 +981,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'SQRT(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'SUBSTITUTE(text, old_text, new_text)',
@@ -992,7 +992,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'SUBSTITUTE(${1:text}, ${2:old_text}, ${3:new_text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TAN(number)',
@@ -1002,7 +1002,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TAN(${1:number})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TEXT(value)',
@@ -1012,7 +1012,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TEXT(${1:value})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TIMENOW()',
@@ -1022,7 +1022,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TIMENOW(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TIMEVALUE(expression)',
@@ -1032,7 +1032,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TIMEVALUE(${1:expression})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TODAY()',
@@ -1042,7 +1042,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TODAY(${1:})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TRIM(text)',
@@ -1052,7 +1052,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TRIM(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'TRUNC(number,num_digits)',
@@ -1062,7 +1062,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'TRUNC(${1:number}, ${2:num_digits})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'UNIXTIMESTAMP(date/time)',
@@ -1072,7 +1072,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'UNIXTIMESTAMP(${1:date/time})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'UPPER(text)',
@@ -1082,7 +1082,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'UPPER(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'URLENCODE(text)',
@@ -1092,7 +1092,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'URLENCODE(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'URLFOR(target, id, [inputs], [no override])',
@@ -1102,7 +1102,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'URLFOR(${1:target}, ${2:id}, [inputs], [no override])',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'VALUE(text)',
@@ -1112,7 +1112,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'VALUE(${1:text})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'VLOOKUP(field_to_return, field_on_lookup_object, lookup_value)',
@@ -1123,7 +1123,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'VLOOKUP(${1:field_to_return}, ${2:field_on_lookup_object}, ${3:lookup_value})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'WEEKDAY(date)',
@@ -1133,7 +1133,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'WEEKDAY(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
     {
       label: 'YEAR(date)',
@@ -1143,7 +1143,7 @@ function getSnippets(monaco: Monaco, range: monaco.IRange): monaco.languages.Com
       kind: monaco.languages.CompletionItemKind.Function,
       insertText: 'YEAR(${1:date})',
       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-      range: range,
+      range,
     },
   ];
   return SNIPPETS;

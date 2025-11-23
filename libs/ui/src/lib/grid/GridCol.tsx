@@ -1,10 +1,9 @@
-import { FunctionComponent, HTMLAttributes } from 'react';
-import classNames from 'classnames';
 import { TopRightBottomLeft } from '@jetstream/types';
+import classNames from 'classnames';
+import { FunctionComponent, HTMLAttributes } from 'react';
 
 const DEFAULT_SIZE = 12;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface GridColProps {
   className?: string;
   noFlex?: boolean;

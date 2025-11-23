@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { LoginConfigAbility } from '@jetstream/acl';
-import { LoginConfigurationUI, UserProfileAuthFactor } from '@jetstream/auth/types';
+import { UserProfileAuthFactor } from '@jetstream/auth/types';
 import { Card, ScopedNotification } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
 import { Profile2faEmail } from './Profile2faEmail';
@@ -8,12 +8,11 @@ import { Profile2faOtp } from './Profile2faOtp';
 
 export interface Profile2faProps {
   authFactors: UserProfileAuthFactor[];
-  loginConfiguration: LoginConfigurationUI | null;
   loginConfigAbility: LoginConfigAbility;
   onUpdate: (authFactors: UserProfileAuthFactor[]) => void;
 }
 
-export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, loginConfiguration, loginConfigAbility, onUpdate }) => {
+export const Profile2fa: FunctionComponent<Profile2faProps> = ({ authFactors, loginConfigAbility, onUpdate }) => {
   const factorsByType = useMemo(() => {
     return {
       // 'email': authFactors.filter((factor) => factor.type === 'email'), // TODO:

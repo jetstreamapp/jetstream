@@ -64,7 +64,7 @@ export const prisma = new PrismaClient({
 export async function createUser(lastLoggedIn: Date | null = new Date()) {
   const userId = uuid();
   return await prisma.user.create({
-    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId, lastLoggedIn },
+    data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId, lastLoggedIn },
   });
 }
 
@@ -529,6 +529,7 @@ describe('Org Expiration Integration Tests', () => {
 
       let updatedOrg = await prisma.salesforceOrg.findUnique({ where: { id: org.id } });
       expect(updatedOrg?.expirationScheduledFor).toBeTruthy();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const expirationDate = updatedOrg!.expirationScheduledFor!;
 
       // Next notification should be 7 days before expiration

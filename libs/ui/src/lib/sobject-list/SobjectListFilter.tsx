@@ -180,7 +180,7 @@ export const SobjectFieldListFilter: FunctionComponent<SobjectFieldListFilterPro
                 label={label}
                 value={value}
                 checked={selectedFilters.MANAGED === value}
-                onChange={(value: (typeof DEFAULT_VALUES)['MANAGED']) => handleRadioChange({ type: 'MANAGED', value: value })}
+                onChange={(value: (typeof DEFAULT_VALUES)['MANAGED']) => handleRadioChange({ type: 'MANAGED', value })}
               />
             ))}
           </RadioGroup>

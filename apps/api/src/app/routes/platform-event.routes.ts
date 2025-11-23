@@ -8,7 +8,7 @@ const routes: express.Router = Router();
 
 routes.use(checkAuth);
 
-routes.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+routes.use((_: express.Request, res: express.Response, next: express.NextFunction) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
 });

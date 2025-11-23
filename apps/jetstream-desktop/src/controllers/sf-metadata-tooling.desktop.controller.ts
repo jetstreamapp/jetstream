@@ -110,7 +110,7 @@ export const routeDefinition = {
 };
 
 // export async function describeMetadata(req: Request, res: Response, next: NextFunction) {
-const describeMetadata = createRoute(routeDefinition.describeMetadata.validators, async ({ jetstreamConn }, req) => {
+const describeMetadata = createRoute(routeDefinition.describeMetadata.validators, async ({ jetstreamConn }) => {
   try {
     const results = await jetstreamConn!.metadata.describe();
 
@@ -120,7 +120,7 @@ const describeMetadata = createRoute(routeDefinition.describeMetadata.validators
   }
 });
 
-const listMetadata = createRoute(routeDefinition.listMetadata.validators, async ({ body, jetstreamConn }, req) => {
+const listMetadata = createRoute(routeDefinition.listMetadata.validators, async ({ body, jetstreamConn }) => {
   try {
     const results = await jetstreamConn!.metadata.list(body.types);
 
@@ -130,7 +130,7 @@ const listMetadata = createRoute(routeDefinition.listMetadata.validators, async 
   }
 });
 
-const readMetadata = createRoute(routeDefinition.readMetadata.validators, async ({ body, params, jetstreamConn }, req) => {
+const readMetadata = createRoute(routeDefinition.readMetadata.validators, async ({ body, params, jetstreamConn }) => {
   try {
     const fullNames = body.fullNames;
     const metadataType = params.type;
@@ -143,13 +143,13 @@ const readMetadata = createRoute(routeDefinition.readMetadata.validators, async 
   }
 });
 
-const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, async ({ body, jetstreamConn }, req) => {
+const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, async ({ body, jetstreamConn }) => {
   try {
     const files = body.files;
     const options = body.options;
 
     // FIXME:
-    const results = await jetstreamConn!.metadata.deployMetadata(files as any, options);
+    const results = await jetstreamConn!.metadata.deployMetadata(files, options);
 
     return handleJsonResponse(results);
   } catch (ex) {
@@ -157,7 +157,7 @@ const deployMetadata = createRoute(routeDefinition.deployMetadata.validators, as
   }
 });
 
-const deployMetadataZip = createRoute(routeDefinition.deployMetadataZip.validators, async ({ body, query, jetstreamConn }, req) => {
+const deployMetadataZip = createRoute(routeDefinition.deployMetadataZip.validators, async ({ body, query, jetstreamConn }) => {
   try {
     const metadataPackage = body; // buffer
     // this is validated as valid JSON previously
@@ -171,7 +171,7 @@ const deployMetadataZip = createRoute(routeDefinition.deployMetadataZip.validato
   }
 });
 
-const checkMetadataResults = createRoute(routeDefinition.checkMetadataResults.validators, async ({ params, query, jetstreamConn }, req) => {
+const checkMetadataResults = createRoute(routeDefinition.checkMetadataResults.validators, async ({ params, query, jetstreamConn }) => {
   try {
     const id = params.id;
     const includeDetails = query.includeDetails;
@@ -186,13 +186,12 @@ const checkMetadataResults = createRoute(routeDefinition.checkMetadataResults.va
 
 const retrievePackageFromLisMetadataResults = createRoute(
   routeDefinition.retrievePackageFromLisMetadataResults.validators,
-  async ({ body, jetstreamConn }, req) => {
+  async ({ body, jetstreamConn }) => {
     try {
       const types = body;
 
       const results = await jetstreamConn!.metadata.retrieve(
-        // FIXME:
-        getRetrieveRequestFromListMetadata(types as any, jetstreamConn!.sessionInfo.apiVersion),
+        getRetrieveRequestFromListMetadata(types, jetstreamConn!.sessionInfo.apiVersion),
       );
 
       return handleJsonResponse(results);
@@ -204,7 +203,7 @@ const retrievePackageFromLisMetadataResults = createRoute(
 
 const retrievePackageFromExistingServerPackages = createRoute(
   routeDefinition.retrievePackageFromExistingServerPackages.validators,
-  async ({ body, jetstreamConn }, req) => {
+  async ({ body, jetstreamConn }) => {
     try {
       const packageNames = body.packageNames;
 
@@ -223,22 +222,19 @@ const retrievePackageFromExistingServerPackages = createRoute(
   },
 );
 
-const retrievePackageFromManifest = createRoute(
-  routeDefinition.retrievePackageFromManifest.validators,
-  async ({ body, jetstreamConn }, req) => {
-    try {
-      const packageManifest = body.packageManifest;
+const retrievePackageFromManifest = createRoute(routeDefinition.retrievePackageFromManifest.validators, async ({ body, jetstreamConn }) => {
+  try {
+    const packageManifest = body.packageManifest;
 
-      const results = await jetstreamConn!.metadata.retrieve(getRetrieveRequestFromManifest(packageManifest));
+    const results = await jetstreamConn!.metadata.retrieve(getRetrieveRequestFromManifest(packageManifest));
 
-      return handleJsonResponse(results);
-    } catch (ex) {
-      return handleErrorResponse(ex);
-    }
-  },
-);
+    return handleJsonResponse(results);
+  } catch (ex) {
+    return handleErrorResponse(ex);
+  }
+});
 
-const checkRetrieveStatus = createRoute(routeDefinition.checkRetrieveStatus.validators, async ({ query, jetstreamConn }, req) => {
+const checkRetrieveStatus = createRoute(routeDefinition.checkRetrieveStatus.validators, async ({ query, jetstreamConn }) => {
   try {
     const id: string = query.id;
 
@@ -252,7 +248,7 @@ const checkRetrieveStatus = createRoute(routeDefinition.checkRetrieveStatus.vali
 
 const checkRetrieveStatusAndRedeploy = createRoute(
   routeDefinition.checkRetrieveStatusAndRedeploy.validators,
-  async ({ body, query, jetstreamConn, targetJetstreamConn }, req) => {
+  async ({ body, query, jetstreamConn, targetJetstreamConn }) => {
     try {
       const id = query.id;
       const deployOptions = body.deployOptions;
@@ -290,7 +286,6 @@ const checkRetrieveStatusAndRedeploy = createRoute(
           return handleJsonResponse({ type: 'deploy', results: deployResults, zipFile: results.zipFile });
         } else {
           // Deploy package as-is
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const deployResults = await targetJetstreamConn!.metadata.deploy(results.zipFile!, deployOptions);
           return handleJsonResponse({ type: 'deploy', results: deployResults, zipFile: results.zipFile });
         }
@@ -303,13 +298,12 @@ const checkRetrieveStatusAndRedeploy = createRoute(
   },
 );
 
-const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }, req) => {
+const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, async ({ body, jetstreamConn }) => {
   try {
     const types = body.metadata;
     const otherFields = body.otherFields;
 
-    // FIXME:
-    const results = buildPackageXml(types as any, jetstreamConn!.sessionInfo.apiVersion, otherFields);
+    const results = buildPackageXml(types, jetstreamConn!.sessionInfo.apiVersion, otherFields);
     return handleJsonResponse(results);
   } catch (ex) {
     return handleErrorResponse(ex);
@@ -319,7 +313,7 @@ const getPackageXml = createRoute(routeDefinition.getPackageXml.validators, asyn
 /**
  * This uses the SOAP api to allow returning logs
  */
-const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, async ({ body, jetstreamConn }, req) => {
+const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, async ({ body, jetstreamConn }) => {
   try {
     const { apex, logLevel } = body;
 
@@ -331,7 +325,7 @@ const anonymousApex = createRoute(routeDefinition.anonymousApex.validators, asyn
   }
 });
 
-const apexCompletions = createRoute(routeDefinition.apexCompletions.validators, async ({ params, jetstreamConn }, req) => {
+const apexCompletions = createRoute(routeDefinition.apexCompletions.validators, async ({ params, jetstreamConn }) => {
   try {
     const type = params.type;
 

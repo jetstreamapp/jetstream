@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { checkHeartbeat, disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
@@ -89,7 +88,7 @@ APP VERSION ${version}
   useRollbar({
     accessToken: environment.rollbarClientAccessToken,
     environment: appInfo.environment,
-    userProfile: userProfile,
+    userProfile,
     version,
   });
   useAmplitude(analytics !== 'accepted');
@@ -116,7 +115,7 @@ APP VERSION ${version}
    * 2. make sure the app version has not changed, if it has then refresh the page
    */
   const handleWindowFocus = useCallback(
-    async (event: FocusEvent) => {
+    async (_: FocusEvent) => {
       try {
         if (document.visibilityState === 'visible') {
           const { version: serverVersion, announcements } = await checkHeartbeat();
@@ -129,7 +128,7 @@ APP VERSION ${version}
             onAnnouncements(announcements);
           }
         }
-      } catch (ex) {
+      } catch {
         // ignore error, but user should have been logged out if this failed
       }
     },

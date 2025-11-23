@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
 import { IconName } from '@jetstream/icon-factory';
 import { isValidSalesforceRecordId, useDebounce } from '@jetstream/shared/ui-utils';
@@ -77,7 +78,7 @@ export function SelectHeaderGroupRenderer<T>(props: RenderGroupCellProps<T>) {
           checked={isRowSelected}
           disabled={isRowSelectionDisabled}
           indeterminate={selectedRowIds.size > 0 && childRows.some((childRow) => selectedRowIds.has((getRowKey || getRowId)(childRow)))}
-          onChange={(checked) => onRowSelectionChange({ row: row, checked, isShiftClick: false })}
+          onChange={(checked) => onRowSelectionChange({ row, checked, isShiftClick: false })}
         />
       )}
     </DataTableSelectedContext.Consumer>

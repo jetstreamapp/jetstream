@@ -46,12 +46,14 @@ const copyToClipboardMsg = (
 const TooltipContent = ({
   org,
   field,
-  onContent,
+  onContent: _onContent,
 }: SobjectFieldListTypeRollupSummaryDetailsProps & { onContent: (value: string) => void }) => {
   const isMounted = useRef(true);
   const rollbar = useRollbar();
   const [content, setContent] = useState<{ label: string; items: string[] }>();
   const [loading, setLoading] = useState(false);
+  const onContent = useRef(_onContent);
+  onContent.current = _onContent;
 
   useEffect(() => {
     isMounted.current = true;
@@ -62,11 +64,12 @@ const TooltipContent = ({
 
   useEffect(() => {
     fetchSummaryMetadata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (content) {
-      onContent(`${content.label}\n${content.items.join('\n')}`);
+      onContent.current(`${content.label}\n${content.items.join('\n')}`);
     }
   }, [content]);
 
@@ -108,6 +111,7 @@ const TooltipContent = ({
         setLoading(false);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

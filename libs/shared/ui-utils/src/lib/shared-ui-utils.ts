@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-redeclare */
 import type { Placement } from '@floating-ui/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
@@ -32,6 +34,7 @@ import type {
   PositionAll,
   QueryFieldWithPolymorphic,
   QueryFilterOperator,
+  RecordResult,
   RetrieveResult,
   SalesforceOrgUi,
   SalesforceOrgUiType,
@@ -82,9 +85,8 @@ export function initXlsx(_xlsx: typeof import('xlsx')) {
 export function formatNumber(number?: number) {
   return numeral(number || 0).format('0,0');
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseQueryParams<T = any>(queryString: string): T {
-  const pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+  const pairs = (queryString[0] === '?' ? queryString.substring(1) : queryString).split('&');
   return pairs.reduce((query: Partial<T>, currPair) => {
     const [key, value] = currPair.split('=');
     query[decodeURIComponent(key)] = decodeURIComponent(value || '');
@@ -98,7 +100,7 @@ export function parseJsonCookie<T>(cookieName: string): T | null {
   if (cookieStr.startsWith('j:')) {
     try {
       return JSON.parse(cookieStr.slice(2));
-    } catch (ex) {
+    } catch {
       logger.warn('Could not parse cookie');
       return null;
     }
@@ -388,7 +390,6 @@ export function getFilenameWithoutOrg(parts: string[]) {
   return `${parts.join('-')}-${new Date().getTime()}`.replace(REGEX.SAFE_FILENAME, '_');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function saveFile(content: any, filename: string, type: MimeType) {
   const blob = new Blob([content], { type });
   saveAs(blob, filename);
@@ -687,7 +688,7 @@ export function escapeSoqlString(value: string) {
   }
   // https://github.com/packagestats/sql-escape/blob/master/index.js
   // return value.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, (char) => {
-  return value.replace(/['\\\%]/g, (char) => {
+  return value.replace(/['\\%]/g, (char) => {
     // prepends a backslash to backslash, percent, and double/single quotes
     return '\\' + char;
   });
@@ -932,7 +933,7 @@ function handleWindowEvent(event: MessageEvent) {
         windowRef.close();
         window.removeEventListener('message', handleWindowEvent);
       }
-    } catch (ex) {
+    } catch {
       // TODO: tell user there was a problem
     }
   }
@@ -1309,7 +1310,7 @@ export function convertArrayOfObjectToArrayOfArray(data: any[], headers?: string
   return [headers].concat(data.map((row) => headers?.map((header) => row[header]) || []));
 }
 
-export function getValueForExcel(value: any) {
+export function getValueForExcel(value: unknown) {
   if (isNil(value)) {
     value = '';
   } else if (isString(value)) {
@@ -1387,8 +1388,8 @@ export function transformTabularDataToHtml<T = unknown>(data: T[], fields?: Mayb
   return `<table>${output}</table>`;
 }
 
-export function isErrorResponse(value: any): value is ErrorResult {
-  return !value.success;
+export function isErrorResponse(value: Maybe<RecordResult>): value is ErrorResult {
+  return !value?.success;
 }
 
 /**
@@ -1403,7 +1404,7 @@ export function escapeHtml(value = '') {
       value = JSON.stringify(value);
     }
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-  } catch (ex) {
+  } catch {
     return value;
   }
 }
@@ -1426,14 +1427,12 @@ export function menuItemSelectScroll({
 
     if (domItem) {
       if (domItem.offsetHeight - container.scrollTop + domItem.offsetTop >= container.offsetHeight) {
-        // eslint-disable-next-line no-param-reassign
         container.scrollTop = domItem.offsetHeight + domItem.offsetTop - container.offsetHeight + scrollPadding;
       } else if (domItem.offsetTop <= container.scrollTop) {
-        // eslint-disable-next-line no-param-reassign
         container.scrollTop = domItem.offsetTop - scrollPadding;
       }
     }
-  } catch (ex) {
+  } catch {
     // ignore errors
   }
 }
@@ -1548,7 +1547,7 @@ export async function getChangesetsFromDomParse(org: SalesforceOrgUi) {
   const apex = `
     System.debug(new PageReference('/changemgmt/listOutboundChangeSet.apexp').getContent().toString());
   `;
-  const { result, debugLog } = await anonymousApex(org, apex, 'DEBUG');
+  const { debugLog } = await anonymousApex(org, apex, 'DEBUG');
 
   const htmlDocument = debugLog.substring(debugLog.indexOf('<html'), debugLog.indexOf('</html>') + '</html>'.length);
 
@@ -1622,7 +1621,7 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
       secondaryLabel: field.referenceTo?.[0],
       secondaryLabelOnNewLine: true,
       isDrillInItem: true,
-      parentId: parentId,
+      parentId,
       meta: field,
     }));
 
@@ -1632,7 +1631,7 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
     label: field.label,
     secondaryLabel: field.name,
     secondaryLabelOnNewLine: true,
-    parentId: parentId,
+    parentId,
     meta: field,
   }));
 

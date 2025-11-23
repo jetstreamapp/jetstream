@@ -120,7 +120,7 @@ export function getApiRequestFactoryFn(fetch: FetchFn) {
               }
 
               return apiRequest({ ...options, sessionInfo: { ...sessionInfo, accessToken: newAccessToken } }, false);
-            } catch (ex) {
+            } catch {
               logger.warn('Unable to refresh accessToken');
               responseText = ERROR_MESSAGES.SFDC_EXPIRED_TOKEN;
               onConnectionError?.(ERROR_MESSAGES.SFDC_EXPIRED_TOKEN);
@@ -149,7 +149,7 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
     try {
       const tempResult = JSON.parse(responseText) as { message: string } | { message: string }[];
       output = (Array.isArray(tempResult) ? tempResult[0] : tempResult)?.message;
-    } catch (ex) {
+    } catch {
       output = responseText;
     }
     output = output || responseText;
@@ -157,7 +157,7 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
     try {
       const tempResult = xmlConverter(responseText, { format: 'object', wellFormed: true }) as unknown as SoapErrorResponse;
       output = tempResult['soapenv:Envelope']['soapenv:Body']['soapenv:Fault']['faultstring'];
-    } catch (ex) {
+    } catch {
       output = responseText;
     }
     output = output || responseText;
@@ -169,7 +169,7 @@ function handleSalesforceApiError(outputType: ApiRequestOutputType, responseText
     try {
       const tempResult = xmlConverter(responseText, { format: 'object', wellFormed: true }) as unknown as BulkXmlErrorResponse;
       output = tempResult.error.exceptionMessage;
-    } catch (ex) {
+    } catch {
       output = responseText;
     }
     output = output || responseText;

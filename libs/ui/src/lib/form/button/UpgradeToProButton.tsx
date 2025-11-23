@@ -8,6 +8,7 @@ import Tooltip from '../../widgets/Tooltip';
 export interface UpgradeToProButtonProps {
   showOpenInNewTabIcon?: boolean;
   source: 'navbar' | string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackEvent: (key: string, value?: Record<string, any>) => void;
 }
 

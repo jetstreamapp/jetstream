@@ -125,7 +125,7 @@ export const Settings = () => {
     try {
       localStorage.clear();
       await localforage.clear();
-    } catch (ex) {
+    } catch {
       // error clearing local storage
     }
 
@@ -134,7 +134,7 @@ export const Settings = () => {
       eraseCookies();
 
       window.location.href = '/goodbye/';
-    } catch (ex) {
+    } catch {
       // error deleting everything from server
       fireToast({
         message: 'There was a problem deleting your account. Try again or file a support ticket for assistance.',

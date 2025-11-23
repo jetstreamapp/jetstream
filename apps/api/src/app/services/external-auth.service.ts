@@ -117,7 +117,7 @@ export async function getUserAndDeviceIdForExternalAuth(audience: Audience, req:
 }
 
 export function getExternalAuthMiddleware(audience: Audience) {
-  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  return async (req: express.Request, _: express.Response, next: express.NextFunction) => {
     try {
       const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req);
       if (!user) {

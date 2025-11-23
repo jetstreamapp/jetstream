@@ -273,7 +273,7 @@ async function fetchCompletions(
       detail: field.type,
       filterText: field.name,
       kind: monaco.languages.CompletionItemKind.Class,
-      insertText: field.name!,
+      insertText: field.name || '',
       range,
     });
     if (!!field.relationshipName && !!field.referenceTo?.length) {

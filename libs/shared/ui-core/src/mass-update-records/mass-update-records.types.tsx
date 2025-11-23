@@ -23,6 +23,7 @@ export interface MetadataRowConfiguration {
 export interface DeployResults {
   status: 'Not Started' | 'In Progress - Preparing' | 'In Progress - Uploading' | 'In Progress' | 'Finished' | 'Error';
   done: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   records: any[];
   jobInfo?: BulkJobWithBatches;
   batchIdToIndex: Record<string, number>;

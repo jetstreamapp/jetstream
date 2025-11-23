@@ -17,7 +17,6 @@ interface CaptchaProps {
   onStateChange: (isFinished: boolean) => void;
 }
 
-// eslint-disable-next-line react/display-name
 export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action, formError, onLoad, onChange, onStateChange }, ref) => {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const id = useId();
@@ -35,6 +34,7 @@ export const Captcha = forwardRef<{ reset: () => void }, CaptchaProps>(({ action
 
   // Skip rendering the captcha if we're running in Playwright or if the key is not set
   // In real environments the server will still validate and prevent access if there isn't a valid token
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!ENVIRONMENT.CAPTCHA_KEY || (window as any)?.playwright) {
     onStateChange(true);
     return null;

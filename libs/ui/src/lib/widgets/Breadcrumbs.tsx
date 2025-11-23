@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 export interface BreadcrumbsProps {
   items: { id: string; label: string; metadata?: any }[];

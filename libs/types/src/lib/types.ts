@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Query } from '@jetstreamapp/soql-parser-js';
 import { z } from 'zod';
 import { JetstreamPricesByLookupKey, StripeUserFacingCustomer } from './billing.types';

@@ -30,10 +30,12 @@ export class AuthError extends Error {
   constructor(message?: string | Error, errorOptions?: ErrorOptions) {
     if (message instanceof Error) {
       super(undefined, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         cause: { err: message, ...(message.cause as any), ...errorOptions },
       });
     } else if (typeof message === 'string') {
       if (errorOptions instanceof Error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         errorOptions = { err: errorOptions, ...(errorOptions.cause as any) };
       }
       super(message, errorOptions);

@@ -31,7 +31,10 @@ export function initAndRenderReact(
 ) {
   // Render
   const container = document.getElementById(elementId);
-  const root = createRoot(container!);
+  if (!container) {
+    throw new Error(`Container with id ${elementId} not found`);
+  }
+  const root = createRoot(container);
   root.render(content);
 }
 

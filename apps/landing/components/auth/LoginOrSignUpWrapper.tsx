@@ -42,10 +42,11 @@ export function LoginOrSignUpWrapper({ action }: LoginOrSignUpWrapperProps) {
       });
   }, []);
 
-  if (error || csrfTokenError) {
+  const resolvedError = error || csrfTokenError;
+  if (resolvedError) {
     return (
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
-        <Alert message={SIGN_IN_ERRORS[error || csrfTokenError!] ?? SIGN_IN_ERRORS.default} />
+        <Alert message={SIGN_IN_ERRORS[resolvedError] ?? SIGN_IN_ERRORS.default} />
       </div>
     );
   }

@@ -252,12 +252,12 @@ const acceptInvitation = createRoute(routeDefinition.acceptInvitation.validators
   sendJson(res, { success: true, redirectUrl: ENV.JETSTREAM_CLIENT_URL });
 });
 
-const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user }, req, res) => {
+const getTeam = createRoute(routeDefinition.getTeam.validators, async ({ user }, _, res) => {
   const team = await teamService.getTeamByUserId({ userId: user.id });
   sendJson(res, team);
 });
 
-const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ params, body, user }, req, res) => {
+const updateTeam = createRoute(routeDefinition.updateTeam.validators, async ({ params, body, user }, _, res) => {
   const { teamId } = params;
   const team = await teamService.updateTeam({ runningUserId: user.id, teamId, payload: body });
   sendJson(res, team);
@@ -271,13 +271,13 @@ const getUserSessions = createRoute(routeDefinition.getUserSessions.validators, 
   sendJson(res, { sessions, currentSessionId: req.session.id });
 });
 
-const revokeUserSession = createRoute(routeDefinition.revokeUserSession.validators, async ({ params, body }, req, res) => {
+const revokeUserSession = createRoute(routeDefinition.revokeUserSession.validators, async ({ params }, _, res) => {
   const { teamId, sessionId } = params;
   await authService.revokeTeamUserSession({ teamId, sessionId });
   sendJson(res, { success: true });
 });
 
-const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ params, query }, req, res) => {
+const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.validators, async ({ params, query }, _, res) => {
   const { teamId } = params;
   const { limit, cursorId: id } = query || {};
   const cursor = id ? { id } : undefined;
@@ -287,14 +287,14 @@ const getUserAuthActivity = createRoute(routeDefinition.getUserAuthActivity.vali
 
 const updateLoginConfiguration = createRoute(
   routeDefinition.updateLoginConfiguration.validators,
-  async ({ params, body, user }, req, res) => {
+  async ({ params, body, user }, _, res) => {
     const { teamId } = params;
     const team = await teamService.updateLoginConfiguration({ runningUserId: user.id, teamId, loginConfiguration: body });
     sendJson(res, team);
   },
 );
 
-const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators, async ({ params, body, user }, req, res) => {
+const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators, async ({ params, body, user }, _, res) => {
   const { teamId, userId } = params;
   const runningUserRole = user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER;
 
@@ -316,7 +316,7 @@ const updateTeamMember = createRoute(routeDefinition.updateTeamMember.validators
 
 const updateTeamMemberStatusAndRole = createRoute(
   routeDefinition.updateTeamMemberStatusAndRole.validators,
-  async ({ params, body, user }, req, res) => {
+  async ({ params, body, user }, _, res) => {
     const { teamId, userId } = params;
     const { status, role } = body;
     const runningUserRole = user.teamMembership?.role || TEAM_MEMBER_ROLE_MEMBER;
@@ -333,13 +333,13 @@ const updateTeamMemberStatusAndRole = createRoute(
   },
 );
 
-const getInvitations = createRoute(routeDefinition.getInvitations.validators, async ({ params }, req, res) => {
+const getInvitations = createRoute(routeDefinition.getInvitations.validators, async ({ params }, _, res) => {
   const { teamId } = params;
   const invitations = await teamService.getTeamInvitations({ teamId });
   sendJson(res, invitations);
 });
 
-const createInvitation = createRoute(routeDefinition.createInvitation.validators, async ({ user, params, body }, req, res) => {
+const createInvitation = createRoute(routeDefinition.createInvitation.validators, async ({ user, params, body }, _, res) => {
   const { teamId } = params;
 
   const allowedRoleUpdates = new Set(
@@ -358,7 +358,7 @@ const createInvitation = createRoute(routeDefinition.createInvitation.validators
   sendJson(res, invitations);
 });
 
-const resendInvitation = createRoute(routeDefinition.resendInvitation.validators, async ({ params, body, user }, req, res) => {
+const resendInvitation = createRoute(routeDefinition.resendInvitation.validators, async ({ params, body, user }, _, res) => {
   const { teamId, id } = params;
   const invitations = await teamService.resendInvitation({
     runningUserId: user.id,
@@ -369,7 +369,7 @@ const resendInvitation = createRoute(routeDefinition.resendInvitation.validators
   sendJson(res, invitations);
 });
 
-const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators, async ({ params }, req, res) => {
+const cancelInvitation = createRoute(routeDefinition.cancelInvitation.validators, async ({ params }, _, res) => {
   const { teamId, id } = params;
   const invitations = await teamService.revokeTeamInvitation({ id, teamId });
   sendJson(res, invitations);

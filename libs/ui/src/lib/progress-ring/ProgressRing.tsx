@@ -17,12 +17,12 @@ export interface ProgressRingProps {
 
 const viewBoxParams = '-1 -1 2 2';
 const progressRingRadius = 1;
-// Since the viewBox units are set to 2, radii are doubled for shape sizes.
-// For a 6px progress head in a 30 px, we use 0.2 units, instead of 0.1
-const progressHeadRadius = 6 / 30;
-// The radius of the circular path the progress head is plotted on is 21 pixels,
-// 24 pixels from the ring, minus 3px for the radius of the progress head
-const progressHeadPlotRadius = 21 / 30;
+// // Since the viewBox units are set to 2, radii are doubled for shape sizes.
+// // For a 6px progress head in a 30 px, we use 0.2 units, instead of 0.1
+// const progressHeadRadius = 6 / 30;
+// // The radius of the circular path the progress head is plotted on is 21 pixels,
+// // 24 pixels from the ring, minus 3px for the radius of the progress head
+// const progressHeadPlotRadius = 21 / 30;
 
 export const ProgressRing: FunctionComponent<ProgressRingProps> = ({ className, size, fillPercent, theme, children }) => {
   const [id] = useState(uniqueId('slds-progress-ring-path-'));

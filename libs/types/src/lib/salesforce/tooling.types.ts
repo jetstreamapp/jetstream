@@ -11,5 +11,6 @@ export interface ToolingApiResponse {
     message: string;
     statusCode: string;
   }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   infos: any[];
 }

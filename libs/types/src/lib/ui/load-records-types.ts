@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BulkJobWithBatches } from '../salesforce/bulk.types';
 import { EntityParticleRecord, InsertUpdateUpsertDelete, RecordAttributes } from '../salesforce/record.types';
 import { FieldType, FieldWithExtendedType } from '../salesforce/sobject.types';

@@ -225,7 +225,7 @@ const logout = createRoute(routeDefinition.logout.validators, async ({}, req, re
   });
 });
 
-const getProviders = createRoute(routeDefinition.getProviders.validators, async ({}, req, res, next) => {
+const getProviders = createRoute(routeDefinition.getProviders.validators, async ({}, _, res, next) => {
   try {
     const providers = listProviders();
 
@@ -235,7 +235,7 @@ const getProviders = createRoute(routeDefinition.getProviders.validators, async 
   }
 });
 
-const getCsrfToken = createRoute(routeDefinition.getCsrfToken.validators, async (_, req, res, next) => {
+const getCsrfToken = createRoute(routeDefinition.getCsrfToken.validators, async (_, __, res, next) => {
   try {
     const csrfToken = setCsrfCookie(res);
     sendJson(res, { csrfToken });

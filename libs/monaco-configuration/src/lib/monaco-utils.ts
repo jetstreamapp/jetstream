@@ -32,7 +32,7 @@ export function getApexLogFoldableRegions(log: string): languages.FoldingRange[]
           output.reachedExecutionLine = true;
         }
 
-        const [timestamp, lineType] = line.split('|');
+        const [, lineType] = line.split('|');
 
         if (!lineType) {
           return output;

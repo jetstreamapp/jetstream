@@ -86,6 +86,7 @@ export class Browser {
 
   private createContextMenu(browserWindow: BrowserWindow) {
     return (
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       event: {
         preventDefault: () => void;
         readonly defaultPrevented: boolean;

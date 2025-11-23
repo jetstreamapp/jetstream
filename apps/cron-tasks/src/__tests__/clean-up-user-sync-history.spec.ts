@@ -46,18 +46,18 @@ export function generateSyncRecords({
     const hashedKey = hashRecordSyncKey(key);
     return {
       id: uuid(),
-      userId: userId,
-      orgId: orgId,
+      userId,
+      orgId,
       key,
       hashedKey,
-      entity: entity,
+      entity,
       data: {
         key,
-        isFavorite: isFavorite,
+        isFavorite,
       },
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      deletedAt: deletedAt,
+      createdAt,
+      updatedAt,
+      deletedAt,
     };
   });
 }
@@ -88,7 +88,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     const orgId = uuid();
 
     await prisma.user.create({
-      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
     });
 
     const syncRecordsBeforeThreshold = generateSyncRecords({
@@ -131,7 +131,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     const orgId = uuid();
 
     await prisma.user.create({
-      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
     });
 
     const syncRecords = generateSyncRecords({
@@ -165,7 +165,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     const orgId = uuid();
 
     await prisma.user.create({
-      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
     });
 
     const recordCount = EXCESS_THRESHOLD + EXCESS_THRESHOLD;
@@ -200,7 +200,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     const orgId = uuid();
 
     await prisma.user.create({
-      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
     });
 
     const syncRecordsBeforeThreshold = generateSyncRecords({
@@ -243,7 +243,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     const orgId = uuid();
 
     await prisma.user.create({
-      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
     });
 
     const syncRecordsBeforeThreshold = generateSyncRecords({
@@ -296,7 +296,7 @@ describe('UserSyncData Cleanup Integration Test', () => {
     const orgId = uuid();
 
     await prisma.user.create({
-      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId: userId },
+      data: { id: userId, email: `${TEST_PREFIX}-${userId}@test.com`, name: userId, userId },
     });
 
     const syncRecordsBeforeThreshold = generateSyncRecords({

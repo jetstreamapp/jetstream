@@ -130,7 +130,7 @@ export function registerWebRequestHandlers() {
 }
 
 export function registerDownloadHandler() {
-  session.defaultSession.on('will-download', (event, item, webContents) => {
+  session.defaultSession.on('will-download', (_, item) => {
     const downloadPreferences = getUserPreferences().fileDownload;
     if (
       !downloadPreferences ||
@@ -142,7 +142,7 @@ export function registerDownloadHandler() {
     }
     const downloadFilename = join(downloadPreferences.downloadPath, item.getFilename());
     item.setSavePath(downloadFilename);
-    item.once('done', (event, state) => {
+    item.once('done', (_, state) => {
       if (state === 'completed') {
         logger.info(`Download completed: ${item.getSavePath()}`);
         app.addRecentDocument(downloadFilename);

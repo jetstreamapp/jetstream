@@ -161,7 +161,7 @@ export const fieldDefinitions: FieldDefinitions = {
     values: async (org, skipRequestCache) => {
       return (await describeGlobal(org, false, skipRequestCache)).data.sobjects
         .filter((obj) => !(obj as any).associateEntityType && obj.triggerable && obj.queryable)
-        .map(({ name, label }) => ({ id: name, value: name, label: label, secondaryLabel: name, secondaryLabelOnNewLine: true }));
+        .map(({ name, label }) => ({ id: name, value: name, label, secondaryLabel: name, secondaryLabelOnNewLine: true }));
     },
     required: true,
   },
@@ -954,7 +954,7 @@ export async function prepareCreateFieldsCompositeRequests(
   const existingFields = await queryAllFromList<EntityParticleRecord>(org, getQueriesForAllCustomFieldsForObjects(sobjects), true);
 
   const existingFieldsByFullName = existingFields.queryResults.records.reduce((output: Record<string, string>, record) => {
-    const [_, fieldId] = record.DurableId.split('.');
+    const [, fieldId] = record.DurableId.split('.');
     output[`${record.EntityDefinition.QualifiedApiName}.${record.QualifiedApiName}`.toLowerCase()] = fieldId;
     return output;
   }, {});

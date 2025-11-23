@@ -45,6 +45,7 @@ export function useDeployRecords(
       deployResults: DeployResults;
       sobject: string;
       fields: string[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       records: any[];
       batchSize: number;
       serialMode: boolean;
@@ -199,6 +200,7 @@ export function useDeployRecords(
       serialMode,
       configuration,
     }: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       records: any[];
       sobject: string;
       /** Fields to include in load */
@@ -208,8 +210,8 @@ export function useDeployRecords(
       configuration: MetadataRowConfiguration[];
     }) => {
       trackEvent(ANALYTICS_KEYS.mass_update_Submitted, {
-        batchSize: batchSize,
-        serialMode: serialMode,
+        batchSize,
+        serialMode,
         numObjects: initialRecords.length,
         source,
       });
@@ -267,7 +269,7 @@ export function useDeployRecords(
         logger.error('Error loading data for row', ex);
       }
     },
-    [trackEvent, source, onDeployResults, prepareRecords, performLoad, rollbar],
+    [trackEvent, source, onDeployResults, performLoad, rollbar],
   );
 
   const pollResults = useCallback(

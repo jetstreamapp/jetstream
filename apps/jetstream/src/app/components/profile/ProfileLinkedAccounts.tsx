@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { LoginConfigAbility } from '@jetstream/acl';
-import type { LoginConfigurationUI, UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import type { UserProfileIdentity, UserProfileUiWithIdentities } from '@jetstream/auth/types';
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { useCsrfToken, useRollbar } from '@jetstream/shared/ui-utils';
 import { fireToast, Grid } from '@jetstream/ui';
@@ -11,7 +11,6 @@ import { useLinkAccount } from './useLinkAccount';
 
 export interface ProfileLinkedAccountsProps {
   fullUserProfile: UserProfileUiWithIdentities;
-  loginConfiguration: LoginConfigurationUI | null;
   loginConfigAbility: LoginConfigAbility;
   onUserProfilesChange: (userProfile: UserProfileUiWithIdentities) => void;
 }
@@ -23,7 +22,6 @@ const searchParams = new URLSearchParams({
 
 export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps> = ({
   fullUserProfile,
-  loginConfiguration,
   loginConfigAbility,
   onUserProfilesChange,
 }) => {
@@ -58,7 +56,7 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
       <h2 className="slds-text-heading_small">Linked Accounts</h2>
       <p>You can login to Jetstream using any of these accounts</p>
       <ul className="slds-has-dividers_around-space">
-        {fullUserProfile.identities.map((identity, i) => (
+        {fullUserProfile.identities.map((identity) => (
           <ProfileIdentityCard
             key={identity.providerAccountId}
             omitUnlink={
@@ -67,7 +65,6 @@ export const ProfileLinkedAccounts: FunctionComponent<ProfileLinkedAccountsProps
               (fullUserProfile.identities.length === 1 && !fullUserProfile.hasPasswordSet)
             }
             identity={identity}
-            loginConfigAbility={loginConfigAbility}
             onUnlink={handleUnlinkAccount}
           />
         ))}

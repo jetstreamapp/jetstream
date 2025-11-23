@@ -40,6 +40,7 @@ export const findByKeys = async ({ hashedKeys, userId }: { userId: string; hashe
     })
     .then((records): PullResponse => {
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         records: records as any,
         hasMore: false,
         updatedAt: records.length > 0 ? records[records.length - 1].updatedAt : new Date(),
@@ -57,6 +58,7 @@ export const findByIds = async ({ ids, userId }: { userId: string; ids: string[]
     })
     .then((records): PullResponse => {
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         records: records as any,
         hasMore: false,
         updatedAt: records.length > 0 ? records[records.length - 1].updatedAt : new Date(),
@@ -101,6 +103,7 @@ export const findByIdsIncludingOtherModifiedRecords = async ({
     })
     .then((records): PullResponse => {
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         records: records as any,
         hasMore: false,
         updatedAt: records.length > 0 ? records[records.length - 1].updatedAt : updatedAt || new Date(),
@@ -147,6 +150,7 @@ export const findByUpdatedAt = async ({
     })
     .then((records): PullResponse => {
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         records: records as any,
         hasMore: records.length === limit,
         updatedAt: records.length > 0 ? records[records.length - 1].updatedAt : updatedAt || new Date(),

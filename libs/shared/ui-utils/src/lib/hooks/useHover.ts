@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef, useState } from 'react';
+import { RefObject, useEffect, useRef, useState } from 'react';
 
 /**
  * Returns ref to attach to HTML element and the value is a boolean flag
@@ -9,15 +9,14 @@ import { MutableRefObject, useEffect, useRef, useState } from 'react';
  *
  * @returns
  */
-export function useHover<T>(): [MutableRefObject<T | null>, boolean] {
+export function useHover<T extends HTMLElement>(): [RefObject<T | null>, boolean] {
   const [value, setValue] = useState<boolean>(false);
   const ref = useRef<T | null>(null);
   const handleMouseOver = (): void => setValue(true);
   const handleMouseOut = (): void => setValue(false);
 
-  /* eslint-disable consistent-return */
   useEffect(() => {
-    const node: any = ref.current;
+    const node = ref.current;
     if (node) {
       node.addEventListener('mouseover', handleMouseOver);
       node.addEventListener('mouseout', handleMouseOut);
@@ -27,7 +26,7 @@ export function useHover<T>(): [MutableRefObject<T | null>, boolean] {
         setValue(false);
       };
     }
-  }, [ref.current]);
+  }, []);
 
   return [ref, value];
 }

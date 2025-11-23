@@ -34,6 +34,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
   }, [getRecentRecords, selectedOrg]);
 
   const onKeydown = useCallback((event: KeyboardEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (hasModifierKey(event as any) && isKKey(event as any)) {
       event.stopPropagation();
       event.preventDefault();
@@ -76,7 +77,7 @@ export const RecordSearchPopover: FunctionComponent = () => {
       retainRecordId.current = false;
       appActionObservable.next({ action: 'VIEW_RECORD', payload: { recordId: _recordId } });
       popoverRef.current?.close();
-    } catch (ex) {
+    } catch {
       setErrorMessage('An unexpected error has occurred.');
     } finally {
       setLoading(false);

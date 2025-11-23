@@ -8,7 +8,7 @@ import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'rea
 import { Combobox, ComboboxPropsRef, ComboboxSharedProps } from './Combobox';
 import { ComboboxListItem } from './ComboboxListItem';
 
-const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem<string, any>>(['label', 'value'], filter);
+const defaultFilterFn = (filter) => multiWordObjectFilter<ListItem>(['label', 'value'], filter);
 const defaultSelectedItemLabelFn = (item: ListItem) => item.label;
 const defaultSelectedItemTitleFn = (item: ListItem) => item.title;
 

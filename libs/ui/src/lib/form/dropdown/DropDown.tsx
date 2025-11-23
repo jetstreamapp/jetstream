@@ -100,7 +100,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
             focusedIndex: focusedItem,
           });
         }
-      } catch (ex) {
+      } catch {
         // silent error on keyboard navigation
       }
     }
@@ -118,6 +118,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     } else if (!isOpen) {
       setFocusedItem(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
@@ -155,7 +156,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
         key: event.key,
         keyCode: event.keyCode,
         keyBuffer: keyBuffer.current,
-        items: items,
+        items,
         labelProp: 'value',
       });
     }
@@ -165,6 +166,7 @@ export const DropDown: FunctionComponent<DropDownProps> = ({
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleSelection(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>, id: string, metadata?: any) {
     event.preventDefault();
     setIsOpen(false);

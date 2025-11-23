@@ -86,6 +86,7 @@ export function useAmplitude(optOut?: boolean) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function track(key: string, value?: Record<string, any>) {
   try {
     if (!amplitudeToken) {

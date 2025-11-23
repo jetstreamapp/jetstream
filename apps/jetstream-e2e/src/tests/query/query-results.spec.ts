@@ -1,3 +1,4 @@
+/* eslint-disable playwright/no-skipped-test */
 import { expect, test } from '../../fixtures/fixtures';
 
 test.beforeEach(async ({ page }) => {
@@ -132,7 +133,7 @@ test.describe('QUERY RESULTS', () => {
     const downloadPromise = page.waitForEvent('download');
     await downloadRecordsModal.getByRole('button', { name: 'Download' }).click();
     const download = await downloadPromise;
-    await expect(download).toBeTruthy();
+    expect(download).toBeTruthy();
 
     // Download the updated records results
     await bulkUpdateModal.getByRole('button', { name: 'Download' }).click();
@@ -141,7 +142,7 @@ test.describe('QUERY RESULTS', () => {
     await downloadRecordsModal.getByRole('button', { name: 'Download' }).click();
     const download1 = await download1Promise;
 
-    await expect(download1).toBeTruthy();
+    expect(download1).toBeTruthy();
 
     await bulkUpdateModal.getByRole('contentinfo').getByRole('button', { name: 'Close' }).click();
   });

@@ -8,7 +8,6 @@ import Modal from './Modal';
 export interface XlsxSheetSelectionModalPromiseProps extends InstanceProps<string, never> {
   isOpen: boolean;
   worksheets: string[];
-  instanceId: any;
   onResolve: (params?: string) => void;
 }
 

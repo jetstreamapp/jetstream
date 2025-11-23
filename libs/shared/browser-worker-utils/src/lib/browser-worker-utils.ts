@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { bulkApiGetJob, checkMetadataRetrieveResults } from '@jetstream/shared/data';
@@ -5,7 +6,7 @@ import { NOOP, delay } from '@jetstream/shared/utils';
 import { BulkJobWithBatches, FieldType, Maybe, RetrieveResult, SalesforceOrgUi } from '@jetstream/types';
 import isFunction from 'lodash/isFunction';
 import numeral from 'numeral';
-import { UnparseConfig, unparse, unparse as unparseCsv } from 'papaparse';
+import { unparse } from 'papaparse';
 import * as XLSX from 'xlsx';
 
 /**
@@ -25,7 +26,7 @@ import * as XLSX from 'xlsx';
  */
 
 export function base64ToArrayBuffer(base64: string) {
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+  return Uint8Array.from(atob(base64), ({ charCodeAt }) => charCodeAt(0)).buffer;
 }
 
 function detectDelimiter(): string {
@@ -40,16 +41,6 @@ function detectDelimiter(): string {
     logger.warn('[ERROR] Error detecting CSV delimiter', ex);
   }
   return delimiter;
-}
-
-/** @deprecated - I think this is unused */
-export function generateCsv(data: any[], options: UnparseConfig = {}): string {
-  options = options || {};
-  options.newline = options.newline || '\n';
-  if (!options.delimiter) {
-    options.delimiter = detectDelimiter();
-  }
-  return unparseCsv(data, options);
 }
 
 export function prepareCsvFile(data: Record<string, string>[], header: string[]) {

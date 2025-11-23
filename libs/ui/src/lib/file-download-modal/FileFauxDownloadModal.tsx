@@ -82,10 +82,10 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
 }) => {
   const hasGoogleInputConfigured = googleIntegrationEnabled && !!google_apiKey && !!google_appId && !!google_clientId;
   const [allowedTypesSet, setAllowedTypesSet] = useState<Set<string>>(() => new Set(allowedTypes));
-  const [fileFormat, setFileFormat] = useState<FileExtAllTypes>(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
-  const [fileName, setFileName] = useState<string>(getFilename(org, fileNameParts));
+  const [fileFormat, setFileFormat] = useState(() => getInitialDownloadFileFormat(allowedTypes, LS_KEY));
+  const [fileName, setFileName] = useState(getFilename(org, fileNameParts));
   // If the user changes the filename, we do not want to focus/select the text again or else the user cannot type
-  const [doFocusInput, setDoFocusInput] = useState<boolean>(true);
+  const [doFocusInput, setDoFocusInput] = useState(true);
   const inputEl = useRef<HTMLInputElement>(null);
   const [filenameEmpty, setFilenameEmpty] = useState(false);
 
@@ -105,7 +105,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
       inputEl.current?.select();
       setDoFocusInput(false);
     }
-  }, [inputEl.current]);
+  }, [doFocusInput]);
 
   useEffect(() => {
     setAllowedTypesSet(new Set(allowedTypes));
@@ -160,7 +160,7 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
       onDownload({ fileName, fileFormat: _fileFormat, mimeType, uploadToGoogle, googleFolder });
       trackEvent(ANALYTICS_KEYS.file_download, { source, fileFormat, component: 'FileFauxDownloadModal' });
       saveFileFormatToStorage(fileFormat, LS_KEY);
-    } catch (ex) {
+    } catch {
       // TODO: show error message somewhere
     }
   }

@@ -78,7 +78,7 @@ async function getUserPreferences(): Promise<UserProfilePreferences> {
   try {
     const userPreferences = await localforage.getItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences);
     return ensureUserProfileInit(userPreferences);
-  } catch (ex) {
+  } catch {
     return ensureUserProfileInit();
   }
 }
@@ -87,7 +87,7 @@ async function getOrgsFromStorage(): Promise<SalesforceOrgUi[]> {
   try {
     const orgs = isBrowserExtension() ? [] : await getOrgs();
     return orgs || [];
-  } catch (ex) {
+  } catch {
     return [];
   }
 }
@@ -96,7 +96,7 @@ async function fetchOrgGroups(): Promise<OrgGroup[]> {
   try {
     const orgs = isBrowserExtension() ? [] : await getOrgGroups();
     return orgs || [];
-  } catch (ex) {
+  } catch {
     return [];
   }
 }
@@ -109,7 +109,7 @@ function getSelectedOrgFromStorage(): string | undefined {
       return atob(selectedOrgIdBase64);
     }
     return undefined;
-  } catch (ex) {
+  } catch {
     return undefined;
   }
 }
@@ -120,7 +120,7 @@ function getSelectedOrgGroupFromStorage(): Maybe<string> {
       sessionStorage.getItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY) ||
       localStorage.getItem(STORAGE_KEYS.SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY)
     );
-  } catch (ex) {
+  } catch {
     return undefined;
   }
 }
@@ -146,7 +146,7 @@ async function fetchAppInfo(): Promise<AppInfo> {
     return isBrowserExtension()
       ? { appInfo: getAppInfo(), version: getBrowserExtensionVersion(), announcements: [] }
       : await checkHeartbeat();
-  } catch (ex) {
+  } catch {
     return DEFAULT_APP_INFO;
   }
 }
@@ -358,7 +358,7 @@ export const useUserPreferenceState = (): [UserProfilePreferences | undefined, (
     setUserPreferenceState(Promise.resolve(_userPreference));
     try {
       localforage.setItem<UserProfilePreferences>(INDEXED_DB.KEYS.userPreferences, _userPreference);
-    } catch (ex) {
+    } catch {
       // could not save to localstorage
       logger.warn('could not save to localstorage');
     }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { isArrowDownKey, isArrowUpKey, useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { UpDown } from '@jetstream/types';
 import { FunctionComponent, KeyboardEvent, useEffect, useRef, useState } from 'react';

@@ -80,7 +80,7 @@ export function registerIpc(): void {
   registerHandler('installUpdate', handleInstallUpdateEvent);
 }
 
-const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async (event) => {
+const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async () => {
   const result = await dialog.showOpenDialog({
     buttonLabel: 'Select Folder',
     defaultPath: app.getPath('downloads'),
@@ -92,11 +92,11 @@ const handleSelectFolderEvent: MainIpcHandler<'selectFolder'> = async (event) =>
   return result.filePaths[0];
 };
 
-const handleGetPreferences: MainIpcHandler<'getPreferences'> = async (event) => {
+const handleGetPreferences: MainIpcHandler<'getPreferences'> = async () => {
   return dataService.getUserPreferences();
 };
 
-const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (event, payload) => {
+const handleSetPreferences: MainIpcHandler<'setPreferences'> = async (_, payload) => {
   return dataService.updateUserPreferences(payload);
 };
 
@@ -120,6 +120,7 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
       if (response.success) {
         const { userProfile } = dataService.saveAuthResponseToAppData({ deviceId, accessToken });
         const payload: AuthenticateSuccessPayload = {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           userProfile: userProfile as any,
           authInfo: { deviceId, accessToken },
           success: true,
@@ -148,7 +149,7 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
   }, 900000); // 15 minutes in milliseconds
 };
 
-const handleLogoutEvent: MainIpcHandler<'logout'> = async (event) => {
+const handleLogoutEvent: MainIpcHandler<'logout'> = async () => {
   const appData = dataService.getAppData();
   const { deviceId, accessToken } = appData;
 
@@ -216,9 +217,9 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
   }, 900000); // 15 minutes in milliseconds
 };
 
-const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (
-  event,
-): Promise<{ userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined> => {
+const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
+  { userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined
+> => {
   const AUTH_CHECK_INTERVAL_DAYS = 1;
   const appData = dataService.getAppData();
   const userProfile = dataService.getFullUserProfile();
@@ -247,7 +248,7 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (
   }
 };
 
-const handleRequestEvent: MainIpcHandler<'request'> = async (event, { url: urlString, request: rawRequest }): Promise<IcpResponse> => {
+const handleRequestEvent: MainIpcHandler<'request'> = async (_, { url: urlString, request: rawRequest }): Promise<IcpResponse> => {
   logger.debug('[REQUEST]', urlString, rawRequest);
 
   const url = new URL(urlString);

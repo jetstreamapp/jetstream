@@ -187,7 +187,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
   const minWidth = Math.max(POPOVER_MIN_WIDTH, (tableWidth || 0) + POPOVER_PADDING);
 
   function handleFixOrg() {
-    addOrg({ serverUrl: serverUrl, loginUrl: org.instanceUrl, loginHint: org.username }, (addedOrg: SalesforceOrgUi) => {
+    addOrg({ serverUrl, loginUrl: org.instanceUrl, loginHint: org.username }, (addedOrg: SalesforceOrgUi) => {
       onAddOrg?.(addedOrg, true);
     });
   }
@@ -221,7 +221,7 @@ export const OrgInfoPopover: FunctionComponent<OrgInfoPopoverProps> = ({
     try {
       setDidClearCache(true);
       await clearCacheForOrg(org);
-    } catch (ex) {
+    } catch {
       // error
     }
   }

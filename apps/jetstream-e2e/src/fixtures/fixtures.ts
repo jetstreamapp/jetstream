@@ -57,7 +57,6 @@ type MyFixtures = {
 };
 
 export const test = base.extend<MyFixtures>({
-  // eslint-disable-next-line no-empty-pattern
   environment: async ({}, use) => {
     await use(environmentSchema.parse(process.env));
   },

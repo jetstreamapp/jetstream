@@ -31,7 +31,7 @@ export const baseHrefPlugin: () => PluginOption = () => {
 export function replaceFiles(replacements: FileReplacement[]): null | {
   name: string;
   enforce: 'pre' | 'post' | undefined;
-  resolveId(source: any, importer: any, options: any): Promise<null | { id: string }>;
+  resolveId(source: unknown, importer: unknown, options: Record<string, unknown>): Promise<null | { id: string }>;
 } {
   if (!replacements?.length) {
     return null;

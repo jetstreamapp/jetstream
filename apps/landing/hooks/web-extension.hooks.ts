@@ -130,7 +130,9 @@ function reducer(state: State, action: Action): State {
 }
 
 export function useWebExtensionState() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timeoutRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ackIntervalRef = useRef<any>(null);
 
   const [{ status, isAcknowledged, errorMessage }, dispatch] = useReducer(reducer, {

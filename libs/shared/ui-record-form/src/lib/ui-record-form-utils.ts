@@ -33,31 +33,31 @@ const PICKLIST_FIELD_TYPES = new Set<FieldType>(['combobox', 'picklist', 'multip
 const TEXTAREA_FIELD_TYPES = new Set<FieldType>(['textarea']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
 
-export function isInput(value: any): value is EditableFieldInput {
+export function isInput(value: EditableFields): value is EditableFieldInput {
   return value && value.type === 'input';
 }
 
-export function isCheckbox(value: any): value is EditableFieldCheckbox {
+export function isCheckbox(value: EditableFields): value is EditableFieldCheckbox {
   return value && value.type === 'checkbox';
 }
 
-export function isTextarea(value: any): value is EditableFieldTextarea {
+export function isTextarea(value: EditableFields): value is EditableFieldTextarea {
   return value && value.type === 'textarea';
 }
 
-export function isDate(value: any): value is EditableFieldDate {
+export function isDate(value: EditableFields): value is EditableFieldDate {
   return value && value.type === 'date';
 }
 
-export function isDateTime(value: any): value is EditableFieldDateTime {
+export function isDateTime(value: EditableFields): value is EditableFieldDateTime {
   return value && value.type === 'datetime';
 }
 
-export function isTime(value: any): value is EditableFieldDate {
+export function isTime(value: EditableFields): value is EditableFieldDate {
   return value && value.type === 'time';
 }
 
-export function isPicklist(value: any): value is EditableFieldPicklist {
+export function isPicklist(value: EditableFields): value is EditableFieldPicklist {
   return value && value.type === 'picklist';
 }
 
@@ -119,6 +119,7 @@ export function convertMetadataToEditableFields(
             value: item.value,
             secondaryLabel: item.label !== item.value ? item.value : null,
             secondaryLabelOnNewLine: item.label !== item.value,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             meta: item as any,
           })),
         );

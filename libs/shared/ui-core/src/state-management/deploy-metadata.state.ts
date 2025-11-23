@@ -112,12 +112,12 @@ export const amplitudeSubmissionSelector = atom((get) => {
 
   return {
     metadataCount: selectedMetadataItems.size,
-    metadataSelectionType: metadataSelectionType,
-    userSelection: userSelection,
+    metadataSelectionType,
+    userSelection,
     selectedUserCount: selectedUsers.length,
-    dateRangeSelection: dateRangeSelection,
-    dateStartRange: dateStartRange,
-    dateEndRange: dateEndRange,
+    dateRangeSelection,
+    dateStartRange,
+    dateEndRange,
     includeManaged: includeManaged === 'Yes',
   };
 });

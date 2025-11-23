@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { logger, prisma } from '@jetstream/api-config';
 import { clearLoginConfigurationCacheItem } from '@jetstream/auth/server';
 import { SessionData, UserProfileSession } from '@jetstream/auth/types';

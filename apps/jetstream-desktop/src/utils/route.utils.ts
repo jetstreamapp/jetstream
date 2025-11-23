@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getErrorMessage } from '@jetstream/shared/utils';
@@ -30,7 +31,7 @@ export type ControllerFunction<TParamsSchema extends z.ZodTypeAny, TBodySchema e
     query: z.infer<TQuerySchema>;
     jetstreamConn?: ApiConnection;
     targetJetstreamConn?: Maybe<ApiConnection>;
-    // user: SalesforceOrgUi;// TODO:
+    // user: SalesforceOrgUi;
     // requestId: string;
     org?: SalesforceOrgUi;
     targetOrg?: SalesforceOrgUi;
@@ -75,7 +76,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
       if (req.request.headers.get('content-type')?.startsWith('application/json')) {
         try {
           parsedBody = await req.request.json();
-        } catch (ex) {
+        } catch {
           // headers may not have been correct, just ignore and continue
         }
       } else if (

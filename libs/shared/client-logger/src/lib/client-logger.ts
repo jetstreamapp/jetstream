@@ -4,7 +4,7 @@
 export const logBuffer: any[] = [];
 const LOG_BUFFER_SIZE = 5;
 
-function LOG_NOOP_NO_BUFFER(...logs: any[]) {
+function LOG_NOOP_NO_BUFFER(..._: any[]) {
   // no-op
 }
 
@@ -45,7 +45,7 @@ function getLoggingEnabledState() {
     if (sessionStorage) {
       return sessionStorage.getItem(SESSION_KEY);
     }
-  } catch (ex) {
+  } catch {
     return undefined;
   }
   return undefined;
@@ -56,7 +56,7 @@ function saveLoggingEnabledState() {
     if (sessionStorage) {
       sessionStorage.setItem(SESSION_KEY, SESSION_VALUE_ENABLED);
     }
-  } catch (ex) {
+  } catch {
     // ignore errors
   }
 }
@@ -66,7 +66,7 @@ function clearLoggingEnabledState() {
     if (sessionStorage) {
       sessionStorage.removeItem(SESSION_KEY);
     }
-  } catch (ex) {
+  } catch {
     // ignore errors
   }
 }
@@ -144,7 +144,7 @@ export const enableLogger = (enable: boolean, logLevel: LogLevel = 'debug') => {
         }
       }
       logger.info('Logging enabled', { logLevel });
-    } catch (ex) {
+    } catch {
       // fail silently
     }
   }
