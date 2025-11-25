@@ -26,7 +26,7 @@ import * as XLSX from 'xlsx';
  */
 
 export function base64ToArrayBuffer(base64: string) {
-  return Uint8Array.from(atob(base64), ({ charCodeAt }) => charCodeAt(0)).buffer;
+  return Uint8Array.from(atob(base64), (str) => str.charCodeAt(0)).buffer;
 }
 
 function detectDelimiter(): string {
