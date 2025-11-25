@@ -5,6 +5,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS, HTTP, INPUT_ACCEPT_FILETYPES } from '@jetstream/shared/constants';
 import {
   anonymousApex,
+  bulkApiGetJob,
   checkMetadataResults,
   checkMetadataRetrieveResults,
   checkMetadataRetrieveResultsAndDeployToTarget,
@@ -403,10 +404,6 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
-}
-
-export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }
 
 export function convertFloatingUiPlacementToSlds(placement: Placement): PositionAll | null {
@@ -1061,6 +1058,41 @@ export async function pollRetrieveMetadataResultsUntilDone(
     throw new Error('Timed out while checking for metadata results, check Salesforce for results.');
   }
   return retrieveResults;
+}
+
+export async function pollBulkApiJobUntilDone(
+  selectedOrg: SalesforceOrgUi,
+  jobInfo: BulkJobWithBatches,
+  totalBatches: number,
+  options?: { interval?: number; maxAttempts?: number; onChecked?: (jobInfo: BulkJobWithBatches) => void },
+): Promise<BulkJobWithBatches> {
+  let { interval, maxAttempts, onChecked } = options || {};
+  interval = interval || DEFAULT_INTERVAL_5_SEC;
+  maxAttempts = maxAttempts || DEFAULT_MAX_ATTEMPTS;
+  onChecked = isFunction(onChecked) ? onChecked : NOOP;
+
+  let attempts = 0;
+  let done = false;
+  let jobInfoWithBatches: BulkJobWithBatches = jobInfo;
+  while (!done && attempts <= maxAttempts) {
+    await delay(interval);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    jobInfoWithBatches = await bulkApiGetJob(selectedOrg, jobInfo.id!);
+
+    logger.log({ jobInfoWithBatches });
+    onChecked(jobInfoWithBatches);
+    done = checkIfBulkApiJobIsDone(jobInfoWithBatches, totalBatches);
+    attempts++;
+    // back off checking if it is taking a long time
+    if (attempts % BACK_OFF_INTERVAL === 0) {
+      interval += DEFAULT_INTERVAL_5_SEC;
+    }
+  }
+  if (!done) {
+    throw new Error('Timed out while waiting for the job to finish, check Salesforce for results.');
+  }
+  return jobInfoWithBatches;
 }
 
 /**
