@@ -1,13 +1,12 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  base64ToArrayBuffer,
   getOrgUrlParams,
   pollBulkApiJobUntilDone,
   pollRetrieveMetadataResultsUntilDone,
   prepareCsvFile,
   prepareExcelFile,
-} from '@jetstream/shared/browser-worker-utils';
+} from '@jetstream/shared/ui-utils';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
@@ -23,6 +22,7 @@ import {
 } from '@jetstream/shared/data';
 import { isBrowserExtension } from '@jetstream/shared/ui-utils';
 import {
+  base64ToArrayBuffer,
   ensureArray,
   flattenRecords,
   getErrorMessage,
@@ -213,7 +213,7 @@ export class JobWorker {
                   type: 'result',
                   isQuery: 'true',
                   fileName,
-                })}`,
+                }).toString()}`,
                 fileName,
                 fileFormat,
                 googleFolder,
