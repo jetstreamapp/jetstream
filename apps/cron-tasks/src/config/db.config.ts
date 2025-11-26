@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from '@jetstream/prisma';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import { getExceptionLog } from '../utils/utils';
 import { ENV } from './env-config';
@@ -10,8 +11,13 @@ if (ENV.PRISMA_DEBUG) {
   log.push('query');
 }
 
+const adapter = new PrismaPg({
+  connectionString: process.env.JETSTREAM_POSTGRES_DBURI,
+});
+
 export const prisma = new PrismaClient({
   log,
+  adapter,
 });
 
 export const pgPool = new Pool({

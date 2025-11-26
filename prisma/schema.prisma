@@ -1,12 +1,11 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider        = "prisma-client"
   output          = "../libs/prisma/src/lib/generated/prisma"
   previewFeatures = ["typedSql"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("JETSTREAM_POSTGRES_DBURI")
 }
 
 model User {

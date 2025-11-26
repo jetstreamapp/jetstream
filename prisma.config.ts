@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import path from 'node:path';
-import { defineConfig } from 'prisma/config';
+import { defineConfig, env } from 'prisma/config';
 
 export default defineConfig({
   schema: path.join(__dirname, 'prisma/schema.prisma'),
@@ -10,5 +10,8 @@ export default defineConfig({
   },
   typedSql: {
     path: path.join(__dirname, 'prisma/sql'),
+  },
+  datasource: {
+    url: env('JETSTREAM_POSTGRES_DBURI'),
   },
 });

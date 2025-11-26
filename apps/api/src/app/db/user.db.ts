@@ -3,7 +3,7 @@ import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
 import { TeamMemberRole, UserProfileUi, UserProfileUiSchema } from '@jetstream/types';
 
-const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPasswordSet?: boolean }>()({
+const FullUserFacingProfileSelect = {
   id: true,
   userId: true,
   name: true,
@@ -60,9 +60,9 @@ const FullUserFacingProfileSelect = Prisma.validator<Prisma.UserSelect & { hasPa
   },
   createdAt: true,
   updatedAt: true,
-});
+} satisfies Prisma.UserSelect & { hasPasswordSet?: boolean };
 
-const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
+const UserFacingProfileSelect = {
   id: true,
   userId: true,
   name: true,
@@ -118,7 +118,7 @@ const UserFacingProfileSelect = Prisma.validator<Prisma.UserSelect>()({
       },
     },
   },
-});
+} satisfies Prisma.UserSelect;
 
 export async function findUserWithIdentitiesById(id: string) {
   return await prisma.user.findUniqueOrThrow({

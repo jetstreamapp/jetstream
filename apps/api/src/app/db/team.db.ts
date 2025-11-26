@@ -34,7 +34,7 @@ import { NotFoundError, UserFacingError } from '../utils/error-handler';
 
 export const TEAM_INVITE_EXPIRES_DAYS = 14;
 
-const INVITE_SELECT = Prisma.validator<Prisma.TeamMemberInvitationSelect>()({
+const INVITE_SELECT = {
   id: true,
   email: true,
   expiresAt: true,
@@ -45,9 +45,9 @@ const INVITE_SELECT = Prisma.validator<Prisma.TeamMemberInvitationSelect>()({
   token: true,
   createdAt: true,
   updatedAt: true,
-});
+} satisfies Prisma.TeamMemberInvitationSelect;
 
-const SELECT_TEAM_MEMBER = Prisma.validator<Prisma.TeamMemberSelect>()({
+const SELECT_TEAM_MEMBER = {
   teamId: true,
   features: true,
   role: true,
@@ -81,9 +81,9 @@ const SELECT_TEAM_MEMBER = Prisma.validator<Prisma.TeamMemberSelect>()({
       },
     },
   },
-});
+} satisfies Prisma.TeamMemberSelect;
 
-const SELECT_WITH_RELATED = Prisma.validator<Prisma.TeamSelect>()({
+const SELECT_WITH_RELATED = {
   id: true,
   name: true,
   loginConfigId: true,
@@ -131,7 +131,7 @@ const SELECT_WITH_RELATED = Prisma.validator<Prisma.TeamSelect>()({
   },
   createdAt: true,
   updatedAt: true,
-});
+} satisfies Prisma.TeamSelect;
 
 function sortTeamMembers(members: TeamMember[], runningUserId: string) {
   members.sort((a, b) => {

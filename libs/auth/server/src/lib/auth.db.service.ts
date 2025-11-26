@@ -73,7 +73,7 @@ export const PLACEHOLDER_USER = AuthenticatedUserSchema.parse({
 } satisfies AuthenticatedUser);
 
 // Mirrors AuthenticatedUserSchema
-const AuthenticatedUserSelect = Prisma.validator<Prisma.UserSelect>()({
+const AuthenticatedUserSelect = {
   id: true,
   userId: true,
   name: true,
@@ -99,7 +99,7 @@ const AuthenticatedUserSelect = Prisma.validator<Prisma.UserSelect>()({
       },
     },
   },
-});
+} satisfies Prisma.UserSelect;
 
 export async function pruneExpiredRecords() {
   await prisma.loginActivity.deleteMany({

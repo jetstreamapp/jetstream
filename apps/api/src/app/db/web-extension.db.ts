@@ -11,7 +11,7 @@ export const TOKEN_TYPE_AUTH: TokenTypeAuthToken = 'AUTH_TOKEN';
 export const TOKEN_SOURCE_BROWSER_EXTENSION: TokenSourceBrowserExtensions = 'BROWSER_EXTENSION';
 export const TOKEN_SOURCE_DESKTOP: TokenSourceDesktop = 'DESKTOP';
 
-const SELECT = Prisma.validator<Prisma.WebExtensionTokenSelect>()({
+const SELECT = {
   id: true,
   userId: true,
   user: {
@@ -38,7 +38,7 @@ const SELECT = Prisma.validator<Prisma.WebExtensionTokenSelect>()({
   expiresAt: true,
   createdAt: true,
   updatedAt: true,
-});
+} satisfies Prisma.WebExtensionTokenSelect;
 
 export const findByUserIdAndDeviceId = async ({
   userId,

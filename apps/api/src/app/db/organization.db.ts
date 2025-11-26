@@ -2,7 +2,7 @@ import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { Maybe } from '@jetstream/types';
 
-const SELECT = Prisma.validator<Prisma.JetstreamOrganizationSelect>()({
+const SELECT = {
   id: true,
   orgs: {
     select: { uniqueId: true },
@@ -11,7 +11,7 @@ const SELECT = Prisma.validator<Prisma.JetstreamOrganizationSelect>()({
   description: true,
   createdAt: true,
   updatedAt: true,
-});
+} satisfies Prisma.JetstreamOrganizationSelect;
 
 export const findByUserId = async ({ userId }: { userId: string }) => {
   return await prisma.jetstreamOrganization.findMany({ where: { userId }, select: SELECT });

@@ -2,7 +2,7 @@ import { prisma } from '@jetstream/api-config';
 import { Prisma } from '@jetstream/prisma';
 import { groupByFlat } from '@jetstream/shared/utils';
 import { Maybe, PullResponse, SyncRecordOperation, SyncRecordOperationCreateUpdate, SyncRecordOperationDelete } from '@jetstream/types';
-import { InputJsonValue } from '@prisma/client/runtime/library';
+import { InputJsonValue } from '@prisma/client/runtime/client';
 import { isAfter } from 'date-fns';
 import clamp from 'lodash/clamp';
 import crypto from 'node:crypto';
@@ -19,7 +19,7 @@ export const hashRecordSyncKey = (key: string): string => {
   return crypto.createHash('SHA1').update(key).digest('hex');
 };
 
-const SELECT = Prisma.validator<Prisma.UserSyncDataSelect>()({
+const SELECT = {
   key: true,
   hashedKey: true,
   entity: true,
@@ -28,7 +28,7 @@ const SELECT = Prisma.validator<Prisma.UserSyncDataSelect>()({
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
-});
+} satisfies Prisma.UserSyncDataSelect;
 
 export const findByKeys = async ({ hashedKeys, userId }: { userId: string; hashedKeys: string[] }) => {
   hashedKeys = hashedKeys.filter(Boolean);

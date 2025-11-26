@@ -1,5 +1,10 @@
-import { PrismaClient } from '../libs/prisma/src/lib/generated/prisma/index.js';
-const prisma = new PrismaClient();
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../libs/prisma/src/lib/generated/prisma/client';
+
+const adapter = new PrismaPg({
+  connectionString: process.env.JETSTREAM_POSTGRES_DBURI,
+});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   await prisma.salesforceApi.createMany({

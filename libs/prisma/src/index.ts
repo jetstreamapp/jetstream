@@ -1,2 +1,2 @@
-export * from './lib/generated/prisma';
+export * from './lib/generated/prisma/client';
 export * from './lib/prisma-errors';

@@ -2,7 +2,7 @@ import {
   PrismaClientKnownRequestError,
   PrismaClientUnknownRequestError,
   PrismaClientValidationError,
-} from './generated/prisma/runtime/library';
+} from './generated/prisma/internal/prismaNamespace';
 
 /**
  * This is generally here for reference of all the error codes that Prisma might throw.
