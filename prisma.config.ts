@@ -6,7 +6,7 @@ export default defineConfig({
   schema: path.join(__dirname, 'prisma/schema.prisma'),
   migrations: {
     path: path.join(__dirname, 'prisma/migrations'),
-    seed: 'node prisma/seed-salesforce-api.mjs',
+    seed: 'tsx prisma/seed-salesforce-api.ts',
   },
   typedSql: {
     path: path.join(__dirname, 'prisma/sql'),
