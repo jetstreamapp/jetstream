@@ -28,6 +28,10 @@ const config: Config = {
   organizationName: 'jetstream', // Usually your GitHub org/user name.
   projectName: 'jetstream', // Usually your repo name.
   trailingSlash: false,
+  future: {
+    experimental_faster: true,
+    v4: true,
+  },
   markdown: {
     hooks: {
       onBrokenMarkdownImages: 'throw',
