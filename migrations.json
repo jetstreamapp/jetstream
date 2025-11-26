@@ -67,6 +67,65 @@
       "subject": "Bump dep versions"
     },
     "targetVersion": "latest",
-    "confirmedPackageUpdates": true
+    "confirmedPackageUpdates": true,
+    "runningMigrations": [],
+    "completedMigrations": {
+      "22-0-0-release-version-config-changes": {
+        "type": "successful",
+        "name": "22-0-0-release-version-config-changes",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "22-0-0-consolidate-release-tag-config": {
+        "type": "successful",
+        "name": "22-0-0-consolidate-release-tag-config",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "22-1-0-update-nx-wrapper": {
+        "type": "successful",
+        "name": "22-1-0-update-nx-wrapper",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "update-22-0-0-add-svgr-to-webpack-config": {
+        "type": "successful",
+        "name": "update-22-0-0-add-svgr-to-webpack-config",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "update-22-0-0-remove-deprecated-options": {
+        "type": "successful",
+        "name": "update-22-0-0-remove-deprecated-options",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "update-22-0-0-add-svgr-to-next-config": {
+        "type": "successful",
+        "name": "update-22-0-0-add-svgr-to-next-config",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "remove-external-options-from-js-executors": {
+        "type": "successful",
+        "name": "remove-external-options-from-js-executors",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      },
+      "remove-redundant-ts-project-references": {
+        "type": "successful",
+        "name": "remove-redundant-ts-project-references",
+        "changedFiles": [],
+        "ref": "6bc4f5554ec3cee1fc658880f821308bf6adc078",
+        "nextSteps": []
+      }
+    }
   }
 }
