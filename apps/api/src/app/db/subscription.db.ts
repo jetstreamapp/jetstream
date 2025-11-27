@@ -3,7 +3,7 @@ import { Prisma } from '@jetstream/prisma';
 import { EntitlementsAccess, EntitlementsAccessSchema, TeamBillingStatus } from '@jetstream/types';
 import Stripe from 'stripe';
 
-const SELECT = Prisma.validator<Prisma.SubscriptionSelect>()({
+const SELECT = {
   id: true,
   customerId: true,
   subscriptionId: true,
@@ -12,7 +12,7 @@ const SELECT = Prisma.validator<Prisma.SubscriptionSelect>()({
   userId: true,
   createdAt: true,
   updatedAt: true,
-});
+} satisfies Prisma.SubscriptionSelect;
 
 export const findByUserId = async (userId: string) => {
   return await prisma.subscription.findMany({ where: { userId, status: 'ACTIVE' }, select: SELECT });

@@ -1,6 +1,7 @@
 import { createAuditLog } from '@jetstream/audit-logs';
 import { sendOrgExpirationWarningEmail } from '@jetstream/email';
 import { PrismaClient } from '@jetstream/prisma';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { addDays, subDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { v4 as uuid } from 'uuid';
@@ -57,9 +58,10 @@ import { sendEmail } from '@jetstream/api-config';
 
 let orgCounter = 0;
 // Ensure this runs against a test database
-export const prisma = new PrismaClient({
-  datasourceUrl: process.env.PRISMA_TEST_DB_URI || 'postgres://postgres:postgres@postgres:5432/testdb',
+const adapter = new PrismaPg({
+  connectionString: process.env.PRISMA_TEST_DB_URI || 'postgres://postgres:postgres@postgres:5432/testdb',
 });
+export const prisma = new PrismaClient({ adapter });
 
 export async function createUser(lastLoggedIn: Date | null = new Date()) {
   const userId = uuid();

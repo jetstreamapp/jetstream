@@ -8,7 +8,7 @@ import isUndefined from 'lodash/isUndefined';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { NotFoundError } from '../utils/error-handler';
 
-const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
+const SELECT = {
   jetstreamOrganizationId: true,
   uniqueId: true,
   label: true,
@@ -36,24 +36,24 @@ const SELECT = Prisma.validator<Prisma.SalesforceOrgSelect>()({
   updatedAt: true,
   lastActivityAt: true,
   expirationScheduledFor: true,
-});
+} satisfies Prisma.SalesforceOrgSelect;
 
 export const SALESFORCE_ORG_SELECT = SELECT;
 
 const findUniqueOrg = ({ userId, uniqueId }: { userId: string; uniqueId: string }) => {
-  return Prisma.validator<Prisma.SalesforceOrgWhereUniqueInput>()({
+  return {
     uniqueOrg: {
       jetstreamUserId2: userId,
       uniqueId,
     },
-  });
+  } satisfies Prisma.SalesforceOrgWhereUniqueInput;
 };
 
 const findUsersOrgs = ({ userId }: { userId: string }) => {
-  return Prisma.validator<Prisma.SalesforceOrgWhereInput>()({
+  return {
     jetstreamUserId2: userId,
     jetstreamUrl: ENV.JETSTREAM_SERVER_URL,
-  });
+  } satisfies Prisma.SalesforceOrgWhereInput;
 };
 
 /**

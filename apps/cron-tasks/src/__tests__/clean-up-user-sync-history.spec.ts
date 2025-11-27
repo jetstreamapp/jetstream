@@ -1,4 +1,5 @@
 import { PrismaClient } from '@jetstream/prisma';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { addDays } from 'date-fns';
 import * as dotenv from 'dotenv';
 import { createHash } from 'node:crypto';
@@ -18,10 +19,12 @@ const TEST_PREFIX = 'cleanup-sync-test';
 const hashRecordSyncKey = (key: string): string => {
   return createHash('SHA1').update(key).digest('hex');
 };
+
 // Ensure this runs against a test database
-export const prisma = new PrismaClient({
-  datasourceUrl: process.env.PRISMA_TEST_DB_URI || 'postgres://postgres:postgres@postgres:5432/testdb',
+const adapter = new PrismaPg({
+  connectionString: process.env.PRISMA_TEST_DB_URI || 'postgres://postgres:postgres@postgres:5432/testdb',
 });
+export const prisma = new PrismaClient({ adapter });
 
 export function generateSyncRecords({
   entity,

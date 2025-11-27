@@ -1,5 +1,5 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
-import { PrismaPromise } from '@jetstream/prisma';
+import { Prisma } from '@jetstream/prisma';
 
 /**
  * This file manages db operations as transactions that span multiple tables
@@ -18,7 +18,7 @@ export async function hardDeleteUserAndOrgs(userId: string) {
     throw new Error('A valid userId must be provided');
   }
   try {
-    const dbTransactions: PrismaPromise<unknown>[] = [];
+    const dbTransactions: Prisma.PrismaPromise<unknown>[] = [];
 
     if ((await prisma.salesforceOrg.count({ where: { jetstreamUserId: userId } })) > 0) {
       dbTransactions.push(

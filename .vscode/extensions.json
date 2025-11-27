@@ -1,11 +1,13 @@
 {
   "recommendations": [
     "dbaeumer.vscode-eslint",
+    "eamodio.gitlens",
     "esbenp.prettier-vscode",
     "mikestead.dotenv",
+    "ms-playwright.playwright",
+    "vitest.explorer",
+    "nrwl.angular-console",
     "prisma.prisma",
-    "streetsidesoftware.code-spell-checker",
-    "eamodio.gitlens",
-    "ms-playwright.playwright"
+    "streetsidesoftware.code-spell-checker"
   ]
 }
