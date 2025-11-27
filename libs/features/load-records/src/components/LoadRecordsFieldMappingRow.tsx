@@ -29,7 +29,7 @@ export interface LoadRecordsFieldMappingRowProps {
   org: SalesforceOrgUi;
   isCustomMetadataObject: boolean;
   fields: FieldWithRelatedEntities[];
-  fieldMappingItem: FieldMappingItemCsv;
+  fieldMappingItem?: FieldMappingItemCsv;
   csvField: string;
   csvRowData: string;
   binaryAttachmentBodyField?: string;
@@ -79,7 +79,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         lookupOptionNullIfNoMatch: false,
         isBinaryBodyField: false,
       });
-    } else if (field.name !== fieldMappingItem.targetField) {
+    } else if (fieldMappingItem && field.name !== fieldMappingItem?.targetField) {
       onSelectionChanged(csvField, {
         ...fieldMappingItem,
         targetField: field.name,
@@ -93,6 +93,9 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
   }
 
   function handleMapToRelatedChanged(value: boolean) {
+    if (!fieldMappingItem) {
+      return;
+    }
     const referenceToItems = fieldMappingItem.fieldMetadata?.referenceTo || [];
     let selectedReferenceTo = referenceToItems[0];
     if (fieldMappingItem.selectedReferenceTo && referenceToItems.includes(fieldMappingItem.selectedReferenceTo)) {
@@ -107,7 +110,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
 
   const csvRowDataStr = getPreviewData(csvRowData);
 
-  const isLookup = fieldMappingItem.targetField && Array.isArray(fieldMappingItem.fieldMetadata?.referenceTo);
+  const isLookup = fieldMappingItem?.targetField && Array.isArray(fieldMappingItem?.fieldMetadata?.referenceTo);
 
   return (
     <tr>
@@ -134,7 +137,7 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         </div>
       </th>
       <td className="slds-align-top">
-        {fieldMappingItem.targetField && (
+        {fieldMappingItem?.targetField && (
           <Icon
             type="utility"
             icon="success"
@@ -155,12 +158,12 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
           comboboxProps={{
             hideLabel: true,
             label: 'Salesforce Fields',
-            hasError: !!fieldMappingItem.fieldErrorMsg,
-            errorMessage: fieldMappingItem.fieldErrorMsg,
-            errorMessageId: `${csvField}-${fieldMappingItem.targetField}-mapping-error`,
+            hasError: !!fieldMappingItem?.fieldErrorMsg,
+            errorMessage: fieldMappingItem?.fieldErrorMsg,
+            errorMessageId: `${csvField}-${fieldMappingItem?.targetField}-mapping-error`,
           }}
           items={fieldListItems}
-          selectedItemId={fieldMappingItem.targetField}
+          selectedItemId={fieldMappingItem?.targetField}
           selectedItemLabelFn={getComboboxFieldName}
           selectedItemTitleFn={getComboboxFieldTitle}
           onSelected={(item) => handleSelectionChanged(item.meta)}
@@ -212,13 +215,13 @@ export const LoadRecordsFieldMappingRow: FunctionComponent<LoadRecordsFieldMappi
         <div>
           <button
             className={classNames('slds-button slds-button_icon slds-button_icon-border', {
-              'slds-button_icon-error': fieldMappingItem.targetField,
+              'slds-button_icon-error': fieldMappingItem?.targetField,
             })}
             title="Clear mapping"
             onClick={() => {
               handleSelectionChanged(null);
             }}
-            disabled={!fieldMappingItem.targetField}
+            disabled={!fieldMappingItem?.targetField}
           >
             <Icon type="utility" icon="clear" className="slds-button__icon" omitContainer />
             <span className="slds-assistive-text">Clear Mapping</span>
