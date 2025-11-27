@@ -136,6 +136,7 @@ export function handleErrorResponse(error: Error, additionalHeaders?: Record<str
   const errorMessage = getErrorMessage(error);
   if (
     errorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN ||
+    errorMessage === ERROR_MESSAGES.SFDC_EXPIRED_SESSION ||
     errorMessage === ERROR_MESSAGES.SFDC_EXPIRED_TOKEN_VALIDITY ||
     ERROR_MESSAGES.SFDC_ORG_DOES_NOT_EXIST.test(errorMessage)
   ) {
