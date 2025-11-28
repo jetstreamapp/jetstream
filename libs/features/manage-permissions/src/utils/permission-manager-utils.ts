@@ -604,61 +604,63 @@ export function permissionsHaveError<T extends PermissionDefinitionMap>(permissi
  * @returns query for all permissionable fields
  */
 export function getQueryForAllPermissionableFields(allSobjects: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
-    return composeQuery({
-      fields: [
-        getField('QualifiedApiName'),
-        getField('Label'),
-        getField('DataType'),
-        getField('DurableId'),
-        getField('EntityDefinition.QualifiedApiName'),
-        getField('FieldDefinitionId'),
-        getField('NamespacePrefix'),
-        getField('IsCompound'),
-        getField('isCreatable'),
-        getField('IsUpdatable'),
-        getField('IsPermissionable'),
-      ],
-      sObject: 'EntityParticle',
-      where: {
-        left: {
-          field: 'EntityDefinition.QualifiedApiName',
-          operator: 'IN',
-          value: sobjects,
-          literalType: 'STRING',
-        },
-        operator: 'AND',
-        right: {
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY)
+    .filter((sobjects) => !!sobjects.length)
+    .map((sobjects) => {
+      return composeQuery({
+        fields: [
+          getField('QualifiedApiName'),
+          getField('Label'),
+          getField('DataType'),
+          getField('DurableId'),
+          getField('EntityDefinition.QualifiedApiName'),
+          getField('FieldDefinitionId'),
+          getField('NamespacePrefix'),
+          getField('IsCompound'),
+          getField('isCreatable'),
+          getField('IsUpdatable'),
+          getField('IsPermissionable'),
+        ],
+        sObject: 'EntityParticle',
+        where: {
           left: {
-            field: 'IsPermissionable',
-            operator: '=',
-            value: 'TRUE',
-            literalType: 'BOOLEAN',
+            field: 'EntityDefinition.QualifiedApiName',
+            operator: 'IN',
+            value: sobjects,
+            literalType: 'STRING',
           },
           operator: 'AND',
           right: {
             left: {
-              field: 'IsComponent',
+              field: 'IsPermissionable',
               operator: '=',
-              value: 'FALSE',
+              value: 'TRUE',
               literalType: 'BOOLEAN',
+            },
+            operator: 'AND',
+            right: {
+              left: {
+                field: 'IsComponent',
+                operator: '=',
+                value: 'FALSE',
+                literalType: 'BOOLEAN',
+              },
             },
           },
         },
-      },
-      orderBy: [
-        {
-          // EntityDefinition.QualifiedApiName is not supported in order by
-          field: 'EntityDefinitionId',
-          order: 'ASC',
-        },
-        {
-          field: 'QualifiedApiName',
-          order: 'ASC',
-        },
-      ],
+        orderBy: [
+          {
+            // EntityDefinition.QualifiedApiName is not supported in order by
+            field: 'EntityDefinitionId',
+            order: 'ASC',
+          },
+          {
+            field: 'QualifiedApiName',
+            order: 'ASC',
+          },
+        ],
+      });
     });
-  });
   logger.log('getFieldPermissionQueries()', queries);
   return queries;
 }
@@ -671,34 +673,36 @@ export function getQueryForAllPermissionableFields(allSobjects: string[]): strin
  * @returns query object permissions
  */
 export function getQueryObjectPermissions(allSobjects: string[], permSetIds: string[], profilePermSetIds: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
-    const query: Query = {
-      fields: [
-        getField('Id'),
-        getField('SobjectType'),
-        getField('PermissionsRead'),
-        getField('PermissionsCreate'),
-        getField('PermissionsEdit'),
-        getField('PermissionsDelete'),
-        getField('PermissionsModifyAllRecords'),
-        getField('PermissionsViewAllRecords'),
-        getField('PermissionsViewAllFields'),
-        getField('ParentId'),
-        getField('Parent.Id'),
-        getField('Parent.Name'),
-        getField('Parent.IsOwnedByProfile'),
-        getField('Parent.ProfileId'),
-      ],
-      sObject: 'ObjectPermissions',
-      where: getWhereClauseForPermissionQuery(sobjects, permSetIds, profilePermSetIds),
-      orderBy: {
-        field: 'SobjectType',
-        order: 'ASC',
-      },
-    };
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY)
+    .filter((sobjects) => !!sobjects.length)
+    .map((sobjects) => {
+      const query: Query = {
+        fields: [
+          getField('Id'),
+          getField('SobjectType'),
+          getField('PermissionsRead'),
+          getField('PermissionsCreate'),
+          getField('PermissionsEdit'),
+          getField('PermissionsDelete'),
+          getField('PermissionsModifyAllRecords'),
+          getField('PermissionsViewAllRecords'),
+          getField('PermissionsViewAllFields'),
+          getField('ParentId'),
+          getField('Parent.Id'),
+          getField('Parent.Name'),
+          getField('Parent.IsOwnedByProfile'),
+          getField('Parent.ProfileId'),
+        ],
+        sObject: 'ObjectPermissions',
+        where: getWhereClauseForPermissionQuery(sobjects, permSetIds, profilePermSetIds),
+        orderBy: {
+          field: 'SobjectType',
+          order: 'ASC',
+        },
+      };
 
-    return composeQuery(query);
-  });
+      return composeQuery(query);
+    });
   logger.log('getQueryObjectPermissions()', queries);
   return queries;
 }
@@ -711,30 +715,32 @@ export function getQueryObjectPermissions(allSobjects: string[], permSetIds: str
  * @returns query for field permissions
  */
 export function getQueryForFieldPermissions(allSobjects: string[], profilePermSetIds: string[], permSetIds: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
-    const query: Query = {
-      fields: [
-        getField('Id'),
-        getField('SobjectType'),
-        getField('Field'),
-        getField('PermissionsRead'),
-        getField('PermissionsEdit'),
-        getField('ParentId'),
-        getField('Parent.Id'),
-        getField('Parent.Name'),
-        getField('Parent.IsOwnedByProfile'),
-        getField('Parent.ProfileId'),
-      ],
-      sObject: 'FieldPermissions',
-      where: getWhereClauseForPermissionQuery(sobjects, profilePermSetIds, permSetIds),
-      orderBy: {
-        field: 'SobjectType',
-        order: 'ASC',
-      },
-    };
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY)
+    .filter((sobjects) => !!sobjects.length)
+    .map((sobjects) => {
+      const query: Query = {
+        fields: [
+          getField('Id'),
+          getField('SobjectType'),
+          getField('Field'),
+          getField('PermissionsRead'),
+          getField('PermissionsEdit'),
+          getField('ParentId'),
+          getField('Parent.Id'),
+          getField('Parent.Name'),
+          getField('Parent.IsOwnedByProfile'),
+          getField('Parent.ProfileId'),
+        ],
+        sObject: 'FieldPermissions',
+        where: getWhereClauseForPermissionQuery(sobjects, profilePermSetIds, permSetIds),
+        orderBy: {
+          field: 'SobjectType',
+          order: 'ASC',
+        },
+      };
 
-    return composeQuery(query);
-  });
+      return composeQuery(query);
+    });
   logger.log('getQueryForFieldPermissions()', queries);
   return queries;
 }
@@ -747,58 +753,62 @@ export function getQueryForFieldPermissions(allSobjects: string[], profilePermSe
  * @returns query object permissions
  */
 export function getQueryTabVisibilityPermissions(allSobjects: string[], permSetIds: string[], profilePermSetIds: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
-    const query: Query = {
-      fields: [
-        getField('Id'),
-        getField('Name'),
-        getField('Visibility'),
-        getField('ParentId'),
-        getField('Parent.Id'),
-        getField('Parent.Name'),
-        getField('Parent.IsOwnedByProfile'),
-        getField('Parent.ProfileId'),
-      ],
-      sObject: 'PermissionSetTabSetting',
-      where: getWhereClauseForPermissionQuery(
-        sobjects.map((sobject) => (sobject.endsWith('__c') ? sobject : `standard-${sobject}`)),
-        permSetIds,
-        profilePermSetIds,
-        'Name',
-      ),
-      orderBy: {
-        field: 'Name',
-        order: 'ASC',
-      },
-    };
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY)
+    .filter((sobjects) => !!sobjects.length)
+    .map((sobjects) => {
+      const query: Query = {
+        fields: [
+          getField('Id'),
+          getField('Name'),
+          getField('Visibility'),
+          getField('ParentId'),
+          getField('Parent.Id'),
+          getField('Parent.Name'),
+          getField('Parent.IsOwnedByProfile'),
+          getField('Parent.ProfileId'),
+        ],
+        sObject: 'PermissionSetTabSetting',
+        where: getWhereClauseForPermissionQuery(
+          sobjects.map((sobject) => (sobject.endsWith('__c') ? sobject : `standard-${sobject}`)),
+          permSetIds,
+          profilePermSetIds,
+          'Name',
+        ),
+        orderBy: {
+          field: 'Name',
+          order: 'ASC',
+        },
+      };
 
-    return composeQuery(query);
-  });
+      return composeQuery(query);
+    });
   logger.log('getQueryTabVisibilityPermissions()', queries);
   return queries;
 }
 
 export function getQueryTabDefinition(allSobjects: string[]): string[] {
-  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY).map((sobjects) => {
-    const query: Query = {
-      fields: [getField('Id'), getField('Name'), getField('Label'), getField('SobjectName')],
-      sObject: 'TabDefinition',
-      where: {
-        left: {
-          field: 'SobjectName',
-          operator: 'IN',
-          value: sobjects,
-          literalType: 'STRING',
+  const queries = splitArrayToMaxSize(allSobjects, MAX_OBJ_IN_QUERY)
+    .filter((sobjects) => !!sobjects.length)
+    .map((sobjects) => {
+      const query: Query = {
+        fields: [getField('Id'), getField('Name'), getField('Label'), getField('SobjectName')],
+        sObject: 'TabDefinition',
+        where: {
+          left: {
+            field: 'SobjectName',
+            operator: 'IN',
+            value: sobjects,
+            literalType: 'STRING',
+          },
         },
-      },
-      orderBy: {
-        field: 'SobjectName',
-        order: 'ASC',
-      },
-    };
+        orderBy: {
+          field: 'SobjectName',
+          order: 'ASC',
+        },
+      };
 
-    return composeQuery(query);
-  });
+      return composeQuery(query);
+    });
   logger.log('getQueryTabDefinition()', queries);
   return queries;
 }

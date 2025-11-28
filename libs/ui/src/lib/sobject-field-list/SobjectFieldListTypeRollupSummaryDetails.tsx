@@ -1,6 +1,5 @@
 import { css } from '@emotion/react';
 import { queryWithCache } from '@jetstream/shared/data';
-import { useRollbar } from '@jetstream/shared/ui-utils';
 import { FieldWrapper, SalesforceOrgUi } from '@jetstream/types';
 import copyToClipboard from 'copy-to-clipboard';
 import { Fragment, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
@@ -43,14 +42,16 @@ const copyToClipboardMsg = (
   </em>
 );
 
+const cache = new Map<string, { label: string; items: string[] }>();
+
 const TooltipContent = ({
   org,
   field,
   onContent: _onContent,
 }: SobjectFieldListTypeRollupSummaryDetailsProps & { onContent: (value: string) => void }) => {
+  const key = `${org.id}::${field.sobject}::${field.name}`;
   const isMounted = useRef(true);
-  const rollbar = useRollbar();
-  const [content, setContent] = useState<{ label: string; items: string[] }>();
+  const [content, setContent] = useState<{ label: string; items: string[] } | undefined>(() => cache.get(key));
   const [loading, setLoading] = useState(false);
   const onContent = useRef(_onContent);
   onContent.current = _onContent;
@@ -63,7 +64,20 @@ const TooltipContent = ({
   }, []);
 
   useEffect(() => {
-    fetchSummaryMetadata();
+    if (cache.has(key)) {
+      return;
+    }
+    setLoading(true);
+    const abortController = new AbortController();
+    setTimeout(() => {
+      if (abortController.signal.aborted) {
+        return;
+      }
+      fetchSummaryMetadata();
+    }, 1000);
+    return () => {
+      abortController.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,19 +104,16 @@ const TooltipContent = ({
       ${namespace ? `AND NamespacePrefix = '${namespace}'` : ''}
       LIMIT 1`;
       const results = await queryWithCache<CustomField>(org, query, true);
+      const { summarizedField, summaryOperation, summaryFilterItems } = results.data.queryResults.records[0].Metadata;
+      const value = {
+        label: `${summaryOperation.toUpperCase()}${summarizedField ? `(${summarizedField})` : ''}`,
+        items: summaryFilterItems.map(({ field, operation, value }) => `${field} ${operation} ${value}`),
+      };
+      cache.set(key, value);
       if (isMounted.current) {
-        const { summarizedField, summaryOperation, summaryFilterItems } = results.data.queryResults.records[0].Metadata;
-        setContent({
-          label: `${summaryOperation.toUpperCase()}${summarizedField ? `(${summarizedField})` : ''}`,
-          items: summaryFilterItems.map(({ field, operation, value }) => `${field} ${operation} ${value}`),
-        });
+        setContent(value);
       }
     } catch (ex) {
-      rollbar.error('Error getting tooltip content', {
-        query,
-        message: ex.message,
-        stack: ex.stack,
-      });
       if (isMounted.current) {
         setContent({ label: `Oops. There was a problem getting the Roll-Up Summary content.`, items: [] });
       }

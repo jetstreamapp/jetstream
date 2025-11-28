@@ -45,21 +45,12 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
     };
   }, []);
 
-  useEffect(() => {
-    // LOAD PROFILES/PERM SETS
-    if (selectedOrg) {
-      fetchMetadata();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg, sobjects, permSetIds, profilePermSetIds]);
-
   const fetchMetadata = useCallback(async () => {
     try {
       // init and reset in case of prior
       setLoading(true);
-      if (hasError) {
-        setHasError(false);
-      }
+      setHasError(false);
+
       // query all data and transform into state maps
       const output = await Promise.all([
         queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true, true),
@@ -105,14 +96,19 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         setLoading(false);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrg]);
+  }, [rollbar, selectedOrg, sobjects, permSetIds, profilePermSetIds]);
+
+  useEffect(() => {
+    // LOAD PROFILES/PERM SETS
+    if (selectedOrg) {
+      fetchMetadata();
+    }
+  }, [selectedOrg, sobjects, permSetIds, profilePermSetIds, fetchMetadata]);
 
   return {
     loading,
     fieldsByObject,
     fieldsByKey,
-    /** permissionsByObjectAndField, objectPermissionsByKey, fieldPermissionsByKey, */
     objectPermissionMap,
     fieldPermissionMap,
     tabVisibilityPermissionMap,

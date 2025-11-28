@@ -37,6 +37,14 @@ import isString from 'lodash/isString';
 import orderBy from 'lodash/orderBy';
 import { REGEX } from './regex';
 
+export class ErrorWithMetadata extends Error {
+  metadata: Record<string, any>;
+  constructor(message: string, metadata: Record<string, any> = {}, originalError?: Error) {
+    super(message, { cause: originalError });
+    this.metadata = metadata || {};
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 export function NOOP() {}
 
@@ -67,8 +75,11 @@ export function getErrorStack(error: unknown) {
 }
 
 export function getErrorMessageAndStackObj(error: unknown) {
+  if (error instanceof ErrorWithMetadata) {
+    return { message: error.message, stack: error.stack, cause: error.cause, metadata: error.metadata };
+  }
   if (error instanceof Error) {
-    return { message: error.message, stack: error.stack };
+    return { message: error.message, stack: error.stack, cause: error.cause };
   }
   return {};
 }

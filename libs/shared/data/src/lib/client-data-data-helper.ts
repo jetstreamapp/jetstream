@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
-import { delay } from '@jetstream/shared/utils';
+import { delay, ErrorWithMetadata } from '@jetstream/shared/utils';
 import {
   ApiResponse,
   ListMetadataResult,
@@ -75,7 +75,7 @@ function getCookie(name: string): string | null {
   return null;
 }
 
-function getHeader(headers: RawAxiosResponseHeaders | AxiosResponseHeaders, header: string) {
+function getHeader(headers?: RawAxiosResponseHeaders | AxiosResponseHeaders, header = '') {
   if (!headers || !header) {
     return null;
   }
@@ -99,10 +99,17 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
       return response;
     },
     (error: AxiosError) => {
-      logger.error('[HTTP][RESPONSE][ERROR]', {
-        errorName: error.name,
-        errorMessage: error.message,
-      });
+      const metadata = {
+        code: error.code,
+        method: error.config?.method,
+        url: error.config?.url,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+        clientRequestId: getHeader(error.config?.headers, HTTP.HEADERS.X_CLIENT_REQUEST_ID),
+        requestId: getHeader(error.response?.headers, HTTP.HEADERS.X_REQUEST_ID),
+        message: error.message,
+      };
+      logger.error('[HTTP][RESPONSE][ERROR]', { errorName: error.name, errorMessage: error.message }, metadata);
       let message = 'An unknown error has occurred';
       if (error.isAxiosError && error.response) {
         message = error.message || 'An unknown error has occurred';
@@ -110,7 +117,7 @@ export async function handleExternalRequest<T = any>(config: AxiosRequestConfig)
           response: response.data,
         });
       }
-      throw new Error(message);
+      throw new ErrorWithMetadata(message, metadata, error);
     },
   );
   const response = await axiosInstance.request<T>(config);
@@ -317,7 +324,17 @@ function responseErrorInterceptor(options: {
 }) {
   return (error: AxiosError) => {
     const { org } = options;
-    logger.error('[HTTP][RESPONSE][ERROR]', error.name, error.message);
+    const metadata = {
+      code: error.code,
+      method: error.config?.method,
+      url: error.config?.url,
+      responseStatus: error.response?.status,
+      responseData: error.response?.data,
+      clientRequestId: getHeader(error.config?.headers, HTTP.HEADERS.X_CLIENT_REQUEST_ID),
+      requestId: getHeader(error.response?.headers, HTTP.HEADERS.X_REQUEST_ID),
+      message: error.message,
+    };
+    logger.error('[HTTP][RESPONSE][ERROR]', { errorName: error.name, errorMessage: error.message }, metadata);
     let message = 'An unknown error has occurred';
     if (error.isAxiosError && error.response) {
       const response = error.response as AxiosResponse<{ error: boolean; message: string }>;
@@ -337,7 +354,7 @@ function responseErrorInterceptor(options: {
         (location as any).href = logoutUrl;
       }
     }
-    throw new Error(message);
+    throw new ErrorWithMetadata(message, metadata, error);
   };
 }
 
