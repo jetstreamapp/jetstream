@@ -83,6 +83,7 @@ export const HTTP = {
 
 export const ERROR_MESSAGES = {
   SFDC_EXPIRED_TOKEN: 'expired access/refresh token',
+  SFDC_EXPIRED_SESSION: 'Session expired or invalid',
   SFDC_EXPIRED_TOKEN_VALIDITY: 'token validity expired',
   SFDC_ORG_DOES_NOT_EXIST: /^getaddrinfo ENOTFOUND [a-z0-9-.]+\.salesforce\.com$/i,
   SFDC_REST_API_NOT_ENABLED: /api is not enabled/i,
