@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import classNames from 'classnames';
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import TreeItem from './TreeItem';
 
 export interface TreeItems<T = any> {
@@ -22,7 +22,7 @@ export interface TreeProps {
   onlyEmitOnLeafNodeClick?: boolean;
   /** If the list of items changes, then re-emit the selected item. Existing use-case is that some additional metadata is added to items and parent needs to know about it */
   reEmitSelectionOnItemsChange?: boolean;
-  onSelected?: (item: TreeItems) => void;
+  onSelected: (item: TreeItems) => void;
 }
 
 export interface TreeHandleRefFns {
@@ -63,11 +63,16 @@ export const Tree = forwardRef<any, TreeProps>(
   ) => {
     const [selectedItem, setSelectedItem] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState(new Set<string>());
+    const onSelectedRef = useRef(onSelected);
+    onSelectedRef.current = onSelected;
 
     useNonInitialEffect(() => {
-      if (onSelected && reEmitSelectionOnItemsChange && items?.length > 0 && selectedItem) {
+      if (onSelectedRef.current && reEmitSelectionOnItemsChange && items?.length > 0 && selectedItem) {
         const { idMap } = getAllIds(items);
-        onSelected && onSelected(idMap[selectedItem]);
+        const item = idMap[selectedItem];
+        if (item) {
+          onSelectedRef.current(item);
+        }
       }
     }, [reEmitSelectionOnItemsChange, items]);
 
@@ -82,7 +87,7 @@ export const Tree = forwardRef<any, TreeProps>(
           const firstLeafNode = Array.from(ids).find((id) => !idMap[id].treeItems?.length);
           if (firstLeafNode) {
             setSelectedItem(firstLeafNode);
-            onSelected && onSelected(idMap[firstLeafNode]);
+            onSelectedRef.current && onSelectedRef.current(idMap[firstLeafNode]);
           }
         }
       }
@@ -108,7 +113,7 @@ export const Tree = forwardRef<any, TreeProps>(
       expandedItems.has(item.id) ? expandedItems.delete(item.id) : expandedItems.add(item.id);
       setExpandedItems(new Set(expandedItems));
       if (!onlyEmitOnLeafNodeClick || !item.treeItems || !item.treeItems.length) {
-        onSelected && onSelected(item);
+        onSelectedRef.current(item);
       }
     }
 
