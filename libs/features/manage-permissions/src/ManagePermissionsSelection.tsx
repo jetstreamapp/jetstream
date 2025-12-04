@@ -25,7 +25,6 @@ import { filterPermissionsSobjects } from './utils/permission-manager-utils';
 
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ManagePermissionsSelectionProps {}
 
 export const ManagePermissionsSelection: FunctionComponent<ManagePermissionsSelectionProps> = () => {

@@ -47,7 +47,6 @@ const TABLE_ACTION_DOWNLOAD_SELECTED = 'table-download-selected';
 const TABLE_ACTION_DOWNLOAD_MANIFEST = 'download-manifest';
 const TABLE_ACTION_DELETE_METADATA = 'delete-manifest';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DeployMetadataDeploymentProps {}
 
 export const DeployMetadataDeployment: FunctionComponent<DeployMetadataDeploymentProps> = () => {

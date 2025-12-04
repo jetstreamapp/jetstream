@@ -27,7 +27,6 @@ import UserSelection from './selection-components/UserSelection';
 
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DeployMetadataSelectionProps {}
 
 export const DeployMetadataSelection: FunctionComponent<DeployMetadataSelectionProps> = () => {

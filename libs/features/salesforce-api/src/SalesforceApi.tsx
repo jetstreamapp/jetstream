@@ -15,7 +15,6 @@ import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'rea
 import { SalesforceApiRequest } from './SalesforceApiRequest';
 import { SalesforceApiResponse } from './SalesforceApiResponse';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SalesforceApiProps {}
 
 export const SalesforceApi: FunctionComponent<SalesforceApiProps> = () => {

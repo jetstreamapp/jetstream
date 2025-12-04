@@ -68,7 +68,6 @@ function SelectedItemsBadge({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CreateFieldsProps {}
 
 export const CreateFields: FunctionComponent<CreateFieldsProps> = () => {

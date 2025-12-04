@@ -83,7 +83,6 @@ const DEFAULT_OPTIONS: ExportOptions = {
   saveAsDefaultSelection: false,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SObjectExportProps {}
 
 export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {

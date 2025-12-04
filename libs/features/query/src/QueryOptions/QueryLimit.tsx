@@ -6,7 +6,6 @@ import { fromQueryState } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryLimitProps {}
 
 function sanitize(value: string) {

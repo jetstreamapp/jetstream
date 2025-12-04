@@ -3,7 +3,6 @@ import { fromQueryState } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
 import { FunctionComponent } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface IncludeDeletedRecordsToggleProps {
   containerClassname?: string;
 }

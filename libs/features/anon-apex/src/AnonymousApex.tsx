@@ -53,7 +53,6 @@ const LogLevelItems: ListItem<string, typeof LOG_LEVELS>[] = LOG_LEVELS.map((ite
 
 // TODO: ADD COMPLETIONS - useApexCompletions() need to refactor for monaco
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnonymousApexProps {}
 
 export const AnonymousApex: FunctionComponent<AnonymousApexProps> = () => {
