@@ -120,12 +120,12 @@ Many of the deployment features share a set of deployment options, as described 
   - If false, allow the deployment to partially succeed. _(This option is ignored for production orgs)_
 - **Unit tests to run**
   - Default
-    - **Production orgs**: Run all non-managed tests
+    - **Production orgs**: Run all unmanaged tests
     - **Other orgs**: Do not run any tests
   - Run specified tests
     - Provide a list of unit tests to run
   - Do not run any tests
-  - Run non-managed tests
+  - Run unmanaged tests
   - Run all tests in org
 
 ## Deploy metadata from one org to another
@@ -217,7 +217,7 @@ Choose your deployment options just like any other deployment and continue to de
 - If you choose **Validate Only**, then nothing will be changed in your org, but you will be able to find out if deleting the metadata will be successful.
 - If you choose **Skip Recycle Bin on Delete**, then the metadata will not be recoverable.
   - Not all types of metadata can be recovered - some items, like Custom Fields, can be restored directly in Salesforce.
-- If you are deleting metadata from production and the items you are deleting require code coverage, you may need to run all non-managed tests for the deployment to be successful.
+- If you are deleting metadata from production and the items you are deleting require code coverage, you may need to run all unmanaged tests for the deployment to be successful.
 
 In order to delete metadata, there cannot be any references to the metadata elsewhere in Salesforce. If there are, then Salesforce will return an error and metadata in your org will not be removed.
 

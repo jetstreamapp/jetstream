@@ -7,10 +7,10 @@ import { Fragment, FunctionComponent, useState } from 'react';
 const SPLIT_LINE_COMMA = /(\n|, |,)/g;
 
 const testLevelOptions: { label: string; value: DeployOptionsTestLevel | undefined }[] = [
-  { label: 'Default - Run non-managed tests in production, do not run any tests in other types of orgs', value: undefined },
+  { label: 'Default - Run unmanaged tests in production, do not run any tests in other types of orgs', value: undefined },
   { label: 'Run specified Tests', value: 'RunSpecifiedTests' },
   { label: 'Do not run any tests', value: 'NoTestRun' },
-  { label: 'Run non-managed tests', value: 'RunLocalTests' },
+  { label: 'Run unmanaged tests', value: 'RunLocalTests' },
   { label: 'Run all tests in org', value: 'RunAllTestsInOrg' },
 ];
 
@@ -180,23 +180,27 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
       </fieldset>
 
       {!hiddenOptions.has('testLevel') && (
-        <RadioGroup
-          className="slds-m-top_small"
-          idPrefix="deploy"
-          label="Unit Tests to Run"
-          labelHelp="testLevel - This determines which unit tests will be initiated as part of the deployment."
-        >
-          {testLevelOptions.map((item) => (
-            <Radio
-              key={item.value || 'default'}
-              name={item.label}
-              label={item.label}
-              value={item.value || ''}
-              disabled={disabledOptions.has('testLevel')}
-              checked={item.value === testLevel}
-              onChange={(value) => setTestLevel((value as DeployOptionsTestLevel) || undefined)}
-            />
-          ))}
+        <>
+          <RadioGroup
+            className="slds-m-top_small"
+            idPrefix="deploy"
+            label="Unit Tests to Run"
+            labelHelp="testLevel - This determines which unit tests will be initiated as part of the deployment."
+            errorMessage="Do not run any tests is not allowed for production orgs"
+            hasError={testLevel === 'NoTestRun' && orgType === 'Production'}
+          >
+            {testLevelOptions.map((item) => (
+              <Radio
+                key={item.value || 'default'}
+                name={item.label}
+                label={item.label}
+                value={item.value || ''}
+                disabled={disabledOptions.has('testLevel')}
+                checked={item.value === testLevel}
+                onChange={(value) => setTestLevel((value as DeployOptionsTestLevel) || undefined)}
+              />
+            ))}
+          </RadioGroup>
           <div
             css={css`
               min-height: 110px;
@@ -221,7 +225,7 @@ export const DeployMetadataOptions: FunctionComponent<DeployMetadataOptionsProps
               </Textarea>
             )}
           </div>
-        </RadioGroup>
+        </>
       )}
     </Fragment>
   );
