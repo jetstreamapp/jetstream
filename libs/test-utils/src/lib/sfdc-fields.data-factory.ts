@@ -184,7 +184,7 @@ export const sfdcEntityParticleRecordFactory: Factory<EntityParticleRecord> = Fa
     return {
       attributes: {
         type: 'EntityParticle',
-        url: `/services/data/v64.0/sobjects/EntityParticle/${EntityDefinitionId}.${Name}`,
+        url: `/services/data/v65.0/sobjects/EntityParticle/${EntityDefinitionId}.${Name}`,
       },
       Id: `${sequence}`.padStart(15, '0').padEnd(18, 'A'),
       Name,
@@ -192,7 +192,7 @@ export const sfdcEntityParticleRecordFactory: Factory<EntityParticleRecord> = Fa
       EntityDefinition: {
         attributes: {
           type: 'EntityDefinition',
-          url: `/services/data/v64.0/sobjects/EntityDefinition/${EntityDefinitionId}`,
+          url: `/services/data/v65.0/sobjects/EntityDefinition/${EntityDefinitionId}`,
         },
         QualifiedApiName: EntityDefinitionId,
       },

@@ -44,7 +44,7 @@ export function getDefaultAppState(initial?: Maybe<Partial<ApplicationState>>): 
   return {
     serverUrl: 'https://getjetstream.app',
     environment: 'production',
-    defaultApiVersion: 'v64.0',
+    defaultApiVersion: 'v65.0',
     google_appId: 'unset',
     google_apiKey: 'unset',
     google_clientId: 'unset',
