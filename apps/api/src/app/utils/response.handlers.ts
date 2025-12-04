@@ -267,23 +267,6 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       }
     }
 
-    try {
-      rollbarServer.warn('Error not handled by error handler', req, {
-        context: `route#errorHandler`,
-        custom: {
-          ...getExceptionLog(err, true),
-          url: req.url,
-          params: req.params,
-          query: req.query,
-          body: req.body,
-          userId: req.session.user?.id,
-          requestId: res.locals.requestId,
-        },
-      });
-    } catch (ex) {
-      responseLogger.error(getExceptionLog(ex), 'Error sending to Rollbar');
-    }
-
     const errorMessage = 'There was an error processing the request';
     if (!status || status < 100 || status > 500) {
       status = 500;
@@ -297,6 +280,23 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       data: err.data,
     });
   } catch (ex) {
+    try {
+      rollbarServer.warn('Exception in error handler', req, {
+        context: `route#errorHandler`,
+        custom: {
+          ...getExceptionLog(ex, true),
+          originalError: getExceptionLog(err, true),
+          url: req.url,
+          params: req.params,
+          query: req.query,
+          body: req.body,
+          userId: req.session.user?.id,
+          requestId: res.locals.requestId,
+        },
+      });
+    } catch (ex) {
+      logger.error(getExceptionLog(ex), 'Error sending to Rollbar');
+    }
     logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, message: 'Internal Server Error' });
   }
