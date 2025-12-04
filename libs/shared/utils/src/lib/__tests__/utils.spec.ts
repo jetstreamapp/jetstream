@@ -1169,7 +1169,7 @@ describe('utils.getSObjectNameFromAttributes', () => {
 describe('utils.base64ToArrayBuffer', () => {
   it('should convert base64 string to ArrayBuffer and decode to UTF-8 string', () => {
     const base64 =
-      'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48UGFja2FnZSB4bWxucz0iaHR0cDovL3NvYXAuc2ZvcmNlLmNvbS8yMDA2LzA0L21ldGFkYXRhIj48dHlwZXM+PG1lbWJlcnM+QV9DdXN0b21fT2JqX19jLmFfMV90ZXN0XzFfX2M8L21lbWJlcnM+PG5hbWU+Q3VzdG9tRmllbGQ8L25hbWU+PC90eXBlcz48dmVyc2lvbj42NC4wPC92ZXJzaW9uPjwvUGFja2FnZT4=';
+      'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48UGFja2FnZSB4bWxucz0iaHR0cDovL3NvYXAuc2ZvcmNlLmNvbS8yMDA2LzA0L21ldGFkYXRhIj48dHlwZXM+PG1lbWJlcnM+QV9DdXN0b21fT2JqX19jLmFfMV90ZXN0XzFfX2M8L21lbWJlcnM+PG5hbWU+Q3VzdG9tRmllbGQ8L25hbWU+PC90eXBlcz48dmVyc2lvbj42NS4wPC92ZXJzaW9uPjwvUGFja2FnZT4=';
     const expectedString =
       '<?xml version="1.0" encoding="UTF-8"?><Package xmlns="http://soap.sforce.com/2006/04/metadata"><types><members>A_Custom_Obj__c.a_1_test_1__c</members><name>CustomField</name></types><version>65.0</version></Package>';
 
