@@ -22,7 +22,7 @@ export interface TreeProps {
   onlyEmitOnLeafNodeClick?: boolean;
   /** If the list of items changes, then re-emit the selected item. Existing use-case is that some additional metadata is added to items and parent needs to know about it */
   reEmitSelectionOnItemsChange?: boolean;
-  onSelected: (item: TreeItems) => void;
+  onSelected?: (item: TreeItems) => void;
 }
 
 export interface TreeHandleRefFns {
@@ -113,7 +113,7 @@ export const Tree = forwardRef<any, TreeProps>(
       expandedItems.has(item.id) ? expandedItems.delete(item.id) : expandedItems.add(item.id);
       setExpandedItems(new Set(expandedItems));
       if (!onlyEmitOnLeafNodeClick || !item.treeItems || !item.treeItems.length) {
-        onSelectedRef.current(item);
+        onSelectedRef.current && onSelectedRef.current(item);
       }
     }
 
