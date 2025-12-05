@@ -294,8 +294,8 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
           requestId: res.locals.requestId,
         },
       });
-    } catch (ex) {
-      logger.error(getExceptionLog(ex), 'Error sending to Rollbar');
+    } catch (rollbarEx) {
+      logger.error(getExceptionLog(rollbarEx), 'Error sending to Rollbar');
     }
     logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
     res.status(500).json({ error: true, message: 'Internal Server Error' });

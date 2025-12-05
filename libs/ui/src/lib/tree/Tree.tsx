@@ -74,7 +74,7 @@ export const Tree = forwardRef<any, TreeProps>(
           onSelectedRef.current(item);
         }
       }
-    }, [reEmitSelectionOnItemsChange, items]);
+    }, [items, reEmitSelectionOnItemsChange, selectedItem]);
 
     useEffect(() => {
       if (Array.isArray(items)) {
