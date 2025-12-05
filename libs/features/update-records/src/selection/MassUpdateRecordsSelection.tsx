@@ -24,7 +24,6 @@ import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface MassUpdateRecordsSelectionProps {}
 
 export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSelectionProps> = () => {

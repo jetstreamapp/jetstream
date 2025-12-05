@@ -78,7 +78,7 @@ export const MetadataSelection: FunctionComponent<MetadataSelectionProps | Metad
     setMetadataItems(null);
     setMetadataItemsMap({});
     setSelectedMetadataItems(new Set());
-  }, [selectedOrg]);
+  }, [selectedOrg.uniqueId]);
 
   function handleMetadataSelection(items: string[], options: { selectAllValue?: boolean; clearSelection?: boolean } = {}) {
     const { selectAllValue, clearSelection } = options;

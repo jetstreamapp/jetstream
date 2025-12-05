@@ -34,7 +34,6 @@ import { useDebugLogs } from './useDebugLogs';
 
 const USER_DEBUG_REGEX = /\|USER_DEBUG\|/;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface DebugLogViewerProps {}
 
 export const DebugLogViewer: FunctionComponent<DebugLogViewerProps> = () => {

@@ -5,7 +5,6 @@ import { useAtomValue } from 'jotai';
 import { Fragment, FunctionComponent } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface QueryGroupByTitleSummaryProps {}
 
 export const QueryGroupByTitleSummary: FunctionComponent<QueryGroupByTitleSummaryProps> = () => {

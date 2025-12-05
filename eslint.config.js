@@ -4,6 +4,7 @@ module.exports = [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
+  ...nx.configs['flat/react'],
   {
     ignores: [
       '**/assets/**/*',
@@ -53,6 +54,12 @@ module.exports = [
           ],
         },
       ],
+    },
+  },
+  {
+    files: ['**/*.tsx'],
+    rules: {
+      'react-hooks/exhaustive-deps': ['warn', { additionalHooks: '(useNonInitialEffect)' }],
     },
   },
   {

@@ -113,7 +113,7 @@ export function getRetrieveRequestFromListMetadata(
 export function getRetrieveRequestFromManifest(packageManifest: string) {
   let manifestXml;
   try {
-    manifestXml = xmlBuilder(packageManifest).toObject({ wellFormed: true });
+    manifestXml = xmlBuilder({ parser: { comment: () => undefined } }, packageManifest).toObject({ wellFormed: true });
   } catch {
     throw new Error('The package manifest format is invalid');
   }

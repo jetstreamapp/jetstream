@@ -96,7 +96,6 @@ export function ErrorTooltip({ hasError, id }: { hasError: boolean; id: string }
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {

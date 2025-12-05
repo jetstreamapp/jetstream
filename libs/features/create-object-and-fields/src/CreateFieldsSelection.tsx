@@ -26,7 +26,6 @@ import CreateNewObject from './create-new-object/CreateNewObject';
 
 const HEIGHT_BUFFER = 170;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CreateFieldsSelectionProps {}
 
 export const CreateFieldsSelection: FunctionComponent<CreateFieldsSelectionProps> = () => {

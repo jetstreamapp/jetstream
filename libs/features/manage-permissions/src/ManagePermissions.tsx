@@ -7,7 +7,6 @@ import { useResetAtom } from 'jotai/utils';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ManagePermissionsProps {}
 
 export const ManagePermissions: FunctionComponent<ManagePermissionsProps> = () => {

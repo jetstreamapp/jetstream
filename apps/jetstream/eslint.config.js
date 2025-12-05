@@ -182,7 +182,6 @@ module.exports = [
       ],
       'no-with': 'warn',
       'no-whitespace-before-property': 'warn',
-      'react-hooks/exhaustive-deps': 'warn',
       'require-yield': 'warn',
       'rest-spread-spacing': ['warn', 'never'],
       strict: ['warn', 'never'],
