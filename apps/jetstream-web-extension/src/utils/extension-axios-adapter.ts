@@ -1,4 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
+import { createMultipartFromFormData } from '@jetstream/shared/data';
 import { AxiosError, AxiosHeaders, AxiosResponse, InternalAxiosRequestConfig, isAxiosError } from 'axios';
 import type { Method } from 'tiny-request-router';
 import { extensionRoutes } from '../controllers/extension.routes';
@@ -27,7 +28,15 @@ export async function browserExtensionAxiosAdapter(config: InternalAxiosRequestC
   try {
     const url = getUrl(config);
     let body = data;
-    if (data && typeof data !== 'string' && headers.get('content-type') === 'application/json') {
+
+    // NOTE: this assumes that FormData is always multipart/form-data, will need to adjust if that assumption changes
+    if (data instanceof FormData) {
+      const { body: formBody, boundary } = await createMultipartFromFormData(data);
+      body = formBody;
+
+      headers.set('Content-Type', `multipart/form-data; boundary=${boundary}`);
+      headers.set('Content-Length', String(formBody.byteLength));
+    } else if (data && typeof data !== 'string' && headers.get('content-type') === 'application/json') {
       body = JSON.stringify(data);
     }
     const request = new Request(url, {

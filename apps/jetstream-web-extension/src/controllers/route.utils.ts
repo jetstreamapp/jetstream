@@ -42,6 +42,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     query,
     hasSourceOrg = true,
     hasTargetOrg = false,
+    skipBodyParsing = false,
   }: {
     params?: TParamsSchema;
     body?: TBodySchema;
@@ -52,6 +53,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
      */
     hasSourceOrg?: boolean;
     hasTargetOrg?: boolean;
+    skipBodyParsing?: boolean;
   },
   controllerFn: ControllerFunction<TParamsSchema, TBodySchema, TQuerySchema>,
 ) {
@@ -61,7 +63,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
 
     let parsedBody: unknown = undefined;
 
-    if (req.request.method !== 'GET') {
+    if (req.request.method !== 'GET' && !skipBodyParsing) {
       if (req.request.headers.get('content-type') === 'application/json') {
         try {
           parsedBody = await req.request.json();

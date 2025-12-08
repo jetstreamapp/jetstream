@@ -141,6 +141,7 @@ export * from './lib/toolbar/Toolbar';
 export * from './lib/toolbar/ToolbarItemActions';
 export * from './lib/toolbar/ToolbarItemGroup';
 export * from './lib/tree/Tree';
+export * from './lib/user-feedback-widget/UserFeedbackWidget';
 export * from './lib/utils/ErrorBoundaryWithoutContent';
 export * from './lib/utils/OutsideClickHandler';
 export * from './lib/widgets/Breadcrumbs';

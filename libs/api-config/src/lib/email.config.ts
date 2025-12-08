@@ -5,6 +5,16 @@ import { ENV } from './env-config';
 
 let mailgun: ReturnType<Mailgun['client']>;
 
+type CustomFileData = string | Blob | File | Buffer | NodeJS.ReadableStream;
+type CustomFile = {
+  data: CustomFileData;
+  filename?: string;
+  contentType?: string;
+  knownLength?: number;
+  [key: string]: unknown;
+};
+type MessageAttachment = CustomFile | CustomFile[] | File | File[] | string | CustomFileData | CustomFileData[];
+
 if (ENV.MAILGUN_API_KEY) {
   mailgun = new Mailgun(FormData).client({
     username: 'api',
@@ -26,8 +36,7 @@ export async function sendEmail({
   replyTo?: string;
   to: string;
   subject: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  attachment?: any;
+  attachment?: MessageAttachment;
   html: string;
   text: string;
   [key: string]: unknown;

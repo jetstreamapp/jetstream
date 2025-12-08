@@ -24,16 +24,16 @@ function renderComponent(component: JSX.Element) {
 export async function sendUserFeedbackEmail(
   emailAddress: string,
   userId: string,
-  content: string,
-  attachment?: { data: Buffer; filename: string }[],
+  content: string[],
+  attachment?: Parameters<typeof sendEmail>[0]['attachment'],
 ) {
   try {
-    const component = <GenericEmail heading="User submitted feedback" preview="User submitted feedback" segments={[userId, content]} />;
+    const component = <GenericEmail heading="User submitted feedback" preview="User submitted feedback" segments={[userId, ...content]} />;
     const [html, text] = await renderComponent(component);
 
     await sendEmail({
       to: emailAddress,
-      subject: 'User submitted feedback',
+      subject: `User submitted feedback - ${new Date().getTime()}`,
       text,
       html,
       attachment,

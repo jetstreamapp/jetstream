@@ -1,8 +1,10 @@
 import { createRateLimit, ENV } from '@jetstream/api-config';
 import express, { Router } from 'express';
 import helmet from 'helmet';
+import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';
+import { feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 function getMaxRequests(value: number) {
   return ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : value;
@@ -65,5 +67,13 @@ routes.delete('/logout', STRICT_AuthRateLimit, webExtensionController.routeDefin
  */
 routes.get('/data-sync/pull', authMiddleware, webExtensionController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, webExtensionController.routeDefinition.dataSyncPush.controllerFn());
+
+routes.post(
+  '/feedback',
+  feedbackRateLimit,
+  authMiddleware,
+  feedbackUploadMiddleware.array('screenshots', 5),
+  userFeedbackController.sendUserFeedbackEmail,
+);
 
 export default routes;

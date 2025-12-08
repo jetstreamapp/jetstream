@@ -131,3 +131,10 @@ router.get('/api/bulk-query/:jobId/results', bulkQuery20ApiController.downloadRe
 router.get('/api/bulk-query/:jobId', bulkQuery20ApiController.getJob.controllerFn());
 router.post('/api/bulk-query/:jobId/abort', bulkQuery20ApiController.abortJob.controllerFn());
 router.delete('/api/bulk-query/:jobId', bulkQuery20ApiController.deleteJob.controllerFn());
+
+/**
+ * ************************************
+ * User Feedback Routes
+ * ************************************
+ */
+router.post('/api/feedback', userController.sendUserFeedbackEmail.controllerFn());

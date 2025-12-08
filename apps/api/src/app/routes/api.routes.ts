@@ -13,9 +13,18 @@ import { routeDefinition as metadataToolingController } from '../controllers/sf-
 import { routeDefinition as miscController } from '../controllers/sf-misc.controller';
 import { routeDefinition as queryController } from '../controllers/sf-query.controller';
 import { routeDefinition as recordController } from '../controllers/sf-record.controller';
+import * as userFeedbackController from '../controllers/user-feedback.controller';
 import { routeDefinition as userController } from '../controllers/user.controller';
 import { sendJson } from '../utils/response.handlers';
-import { addOrgsToLocal, checkAuth, ensureTargetOrgExists, validateDoubleCSRF, verifyEntitlement } from './route.middleware';
+import {
+  addOrgsToLocal,
+  checkAuth,
+  ensureTargetOrgExists,
+  feedbackRateLimit,
+  feedbackUploadMiddleware,
+  validateDoubleCSRF,
+  verifyEntitlement,
+} from './route.middleware';
 
 const routes: express.Router = Router();
 
@@ -195,5 +204,12 @@ routes.delete('/bulk-query/:jobId', bulkQuery20ApiController.deleteJob.controlle
  * ************************************
  */
 routes.get('/salesforce-api/requests', salesforceApiReqController.getSalesforceApiRequests.controllerFn());
+
+/**
+ * ************************************
+ * User Feedback Routes
+ * ************************************
+ */
+routes.post('/feedback', feedbackRateLimit, feedbackUploadMiddleware.array('screenshots', 5), userFeedbackController.sendUserFeedbackEmail);
 
 export default routes;

@@ -1,7 +1,14 @@
 import { css } from '@emotion/react';
 import { Announcement } from '@jetstream/types';
-import { AppToast, ConfirmationServiceProvider } from '@jetstream/ui';
-import { AppLoading, DownloadFileStream, ErrorBoundaryFallback, HeaderNavbar, ViewEditCloneRecordWrapper } from '@jetstream/ui-core';
+import { AppToast, ConfirmationServiceProvider, UserFeedbackWidget } from '@jetstream/ui';
+import {
+  AppLoading,
+  DownloadFileStream,
+  ErrorBoundaryEmptyFallback,
+  ErrorBoundaryFallback,
+  HeaderNavbar,
+  ViewEditCloneRecordWrapper,
+} from '@jetstream/ui-core';
 import { Suspense, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -34,6 +41,9 @@ export const App = () => {
                 <NotificationsRequestModal loadDelay={10000} />
                 <DownloadFileStream />
                 <ViewEditCloneRecordWrapper />
+                <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
+                  <UserFeedbackWidget />
+                </ErrorBoundary>
                 <div>
                   <div
                     css={css`

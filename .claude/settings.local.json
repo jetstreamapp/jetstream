@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "mcp__nx-mcp__nx_workspace"
+      "mcp__nx-mcp__nx_workspace",
+      "Bash(yarn nx type-check:*)",
+      "Bash(yarn nx build:*)"
     ],
     "deny": [],
     "ask": []

@@ -24,6 +24,11 @@ export interface FileSelectorProps {
   disabled?: boolean;
   accept?: InputAcceptType[];
   allowFromClipboard?: boolean;
+  /**
+   * Regex to filter clipboard items when pasting from clipboard
+   * This is from the "type" and is structured like "image/png" or "text/plain"
+   */
+  allowFromClipboardAcceptType?: RegExp;
   userHelpText?: React.ReactNode | string;
   hasError?: boolean;
   errorMessage?: React.ReactNode | string;
@@ -45,6 +50,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
   disabled,
   accept,
   allowFromClipboard,
+  allowFromClipboardAcceptType,
   userHelpText,
   hasError,
   errorMessage,
@@ -91,11 +97,14 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           return;
         }
         const item = event.clipboardData.items[0];
+        if (allowFromClipboardAcceptType && !allowFromClipboardAcceptType.test(item.type)) {
+          return;
+        }
         if (item.kind === 'file') {
           setSystemErrorMessage(null);
           setManagedFilename(null);
           handleFile(item.getAsFile());
-        } else if (item.kind === 'string') {
+        } else if (item.kind === 'string' && accept?.includes('.csv')) {
           item.getAsString((content) => {
             if (content && content.split('\n').length > 1) {
               setManagedFilename('Clipboard-Paste.csv');
@@ -122,7 +131,9 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
       } else if (!allowMultipleFiles && files.length > 1) {
         throw new Error('Only 1 file is supported');
       }
-      handleFile(files.item(0));
+      for (const file of Array.from(files)) {
+        await handleFile(file);
+      }
     } catch (ex) {
       setSystemErrorMessage(ex.message);
       setManagedFilename(null);
@@ -215,7 +226,7 @@ export const FileSelector: FunctionComponent<FileSelectorProps> = ({
           min-height: 20px;
         `}
       >
-        {!!userHelpText && !managedFilename && (
+        {!!userHelpText && (omitFilename || !managedFilename) && (
           <div
             className="slds-form-element__help slds-truncate"
             id={`${id}-file-input-help`}

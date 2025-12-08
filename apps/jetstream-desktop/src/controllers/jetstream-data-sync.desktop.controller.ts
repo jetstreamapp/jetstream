@@ -4,11 +4,6 @@ import { ENV } from '../config/environment';
 import { getAppData } from '../services/persistence.service';
 import { createRoute, handleErrorResponse } from '../utils/route.utils';
 
-export const MIN_PULL = 25;
-export const MAX_PULL = 100;
-
-export const MAX_SYNC = 50;
-
 /**
  * FIXME: this file needs to be worked on
  */
@@ -33,11 +28,12 @@ export const routeDefinition = {
 
 function getTokens() {
   const { accessToken, deviceId } = getAppData();
-  const { authTokens, extIdentifier } = { authTokens: { accessToken }, extIdentifier: { id: deviceId } };
-  if (!authTokens || !extIdentifier) {
+
+  if (!accessToken || !deviceId) {
     throw new Error('Unauthorized');
   }
-  return { authTokens, extIdentifier };
+
+  return { authTokens: { accessToken }, extIdentifier: { id: deviceId } };
 }
 
 const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {

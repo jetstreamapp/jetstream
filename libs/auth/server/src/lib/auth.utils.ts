@@ -5,6 +5,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
+import { Request as ExpressRequest } from 'express';
 import { createHmac } from 'node:crypto';
 
 export const REMEMBER_DEVICE_DAYS = 30;
@@ -234,7 +235,7 @@ export const convertUserProfileToSession = (user: UserProfileUi): UserProfileSes
   };
 };
 
-export function getApiAddressFromReq(req: Request<unknown, unknown, unknown>) {
+export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | ExpressRequest<unknown, unknown, unknown, unknown>): string {
   try {
     const ipAddress = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
     if (Array.isArray(ipAddress)) {

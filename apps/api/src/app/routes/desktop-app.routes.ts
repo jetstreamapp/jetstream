@@ -2,7 +2,9 @@ import { createRateLimit, ENV } from '@jetstream/api-config';
 import express, { Router } from 'express';
 import helmet from 'helmet';
 import * as desktopAppController from '../controllers/desktop-app.controller';
+import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as externalAuthService from '../services/external-auth.service';
+import { feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 function getMaxRequests(value: number) {
   return ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : value;
@@ -67,5 +69,13 @@ routes.get('/data-sync/pull', authMiddleware, desktopAppController.routeDefiniti
 routes.post('/data-sync/push', authMiddleware, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
 
 routes.get('/v1/notifications', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.notifications.controllerFn());
+
+routes.post(
+  '/feedback',
+  feedbackRateLimit,
+  authMiddleware,
+  feedbackUploadMiddleware.array('screenshots', 5),
+  userFeedbackController.sendUserFeedbackEmail,
+);
 
 export default routes;
