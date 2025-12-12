@@ -6,11 +6,15 @@
       "preset": {
         "name": "conventionalcommits"
       },
-      "ignoreRecommendedBump": true
+      "ignoreRecommendedBump": true,
+      "context": {
+        "host": "https://github.com",
+        "owner": "jetstreamapp",
+        "repository": "jetstream"
+      }
     }
   },
   "git": {
-    "changelog": "git log --pretty=format:\"* %s (%h)\" $(git describe --tags --abbrev=0 --match='v*' 2>/dev/null || echo '')...${to}",
     "commitMessage": "chore: release ${version}",
     "tag": true,
     "tagName": "v${version}",
