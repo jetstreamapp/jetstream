@@ -3,7 +3,9 @@
     "allow": [
       "mcp__nx-mcp__nx_workspace",
       "Bash(yarn nx type-check:*)",
-      "Bash(yarn nx build:*)"
+      "Bash(yarn nx build:*)",
+      "Bash(yarn nx test:*)",
+      "Bash(yarn nx:*)"
     ],
     "deny": [],
     "ask": []
