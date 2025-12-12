@@ -14,12 +14,10 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
     if (error && rollbar) {
       try {
         logger.error(error);
-        // logger.error(componentStack);
         rollbar.error(`[UNCAUGHT] ${error.message}`, error, {
           errorName: error.name,
           message: error.message,
           stack: error.stack,
-          // componentStack,
         });
       } catch (ex) {
         try {
@@ -30,7 +28,7 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
         }
       }
     }
-  }, [/** componentStack, */ error, rollbar]);
+  }, [error, rollbar]);
 
   function resetPage() {
     window.location.reload();

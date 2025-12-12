@@ -95,7 +95,13 @@ export const UserFeedbackWidget = () => {
       fireToast({ message: 'You can only upload up to 5 screenshots.', type: 'warning' });
       return;
     }
-    setScreenshots((prev) => [...prev, fileContent]);
+    setScreenshots((prev) => {
+      if (prev.length >= 5) {
+        setTimeout(() => fireToast({ message: 'You can only upload up to 5 screenshots.', type: 'warning' }), 0);
+        return prev;
+      }
+      return [...prev, fileContent];
+    });
   };
 
   const handleRemoveScreenshot = (index: number) => {
