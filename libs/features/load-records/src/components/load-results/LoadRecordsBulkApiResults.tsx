@@ -6,7 +6,6 @@ import { checkIfBulkApiJobIsDone, convertDateToLocale, useBrowserNotifications, 
 import {
   decodeHtmlEntity,
   getErrorMessage,
-  getErrorMessageAndStackObj,
   getSuccessOrFailureChar,
   pluralizeFromNumber,
   splitArrayToMaxSize,
@@ -286,7 +285,6 @@ export const LoadRecordsBulkApiResults = ({
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
-      rollbar.error('Error preparing bulk api data', getErrorMessageAndStackObj(ex));
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

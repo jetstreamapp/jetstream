@@ -91,18 +91,17 @@ const TooltipContent = ({
       LIMIT 1`;
       const results = await queryWithCache<CustomField>(org, query, true);
       if (isMounted.current) {
+        if (!results.data.queryResults.records[0]) {
+          setContent({ label: `Oops. There was a problem getting the Roll-Up Summary content.`, items: [] });
+          return;
+        }
         const { summarizedField, summaryOperation, summaryFilterItems } = results.data.queryResults.records[0].Metadata;
         setContent({
           label: `${summaryOperation.toUpperCase()}${summarizedField ? `(${summarizedField})` : ''}`,
           items: summaryFilterItems.map(({ field, operation, value }) => `${field} ${operation} ${value}`),
         });
       }
-    } catch (ex) {
-      rollbar.error('Error getting tooltip content', {
-        query,
-        message: ex.message,
-        stack: ex.stack,
-      });
+    } catch {
       if (isMounted.current) {
         setContent({ label: `Oops. There was a problem getting the Roll-Up Summary content.`, items: [] });
       }
