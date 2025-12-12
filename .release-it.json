@@ -1,6 +1,14 @@
 {
   "$schema": "https://unpkg.com/release-it@17/schema/release-it.json",
-  "plugins": {},
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "infile": "CHANGELOG.md",
+      "preset": {
+        "name": "conventionalcommits"
+      },
+      "ignoreRecommendedBump": true
+    }
+  },
   "git": {
     "changelog": "git log --pretty=format:\"* %s (%h)\" $(git describe --tags --abbrev=0 --match='v*' 2>/dev/null || echo '')...${to}",
     "commitMessage": "chore: release ${version}",

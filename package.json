@@ -12,6 +12,9 @@
     "node": ">=22 <23",
     "yarn": ">=1.22 <2"
   },
+  "resolutions": {
+    "conventional-changelog-conventionalcommits": "8.0.0"
+  },
   "scripts": {
     "postinstall": "prisma generate",
     "init:project": "zx ./scripts/init-project.mjs",
@@ -147,6 +150,7 @@
     "@playwright/test": "^1.48.2",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@release-it/bumper": "^6.0.1",
+    "@release-it/conventional-changelog": "^10.0.3",
     "@svgr/webpack": "8.0.1",
     "@swc-node/register": "1.9.2",
     "@swc/cli": "0.6.0",
