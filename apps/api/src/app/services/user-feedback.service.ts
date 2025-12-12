@@ -1,7 +1,7 @@
 import { ENV, getExceptionLog, logger, rollbarServer } from '@jetstream/api-config';
 import { sendUserFeedbackEmail } from '@jetstream/email';
 import { Request } from 'express';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import z from 'zod';
 
 export const UserFeedbackPayloadSchema = z.object({
@@ -67,11 +67,18 @@ export async function handleUserFeedbackEmail(
   const files = (req.files as Express.Multer.File[] | undefined) || [];
 
   // Prepare attachments from uploaded files
-  const attachments = files.map((file, i) => ({
-    data: fs.createReadStream(file.path),
-    filename: filenames?.[i] || file.originalname,
-    contentType: file.mimetype,
-  }));
+  // NOTE: ideally we would have the ability to stream the files to avoid loading them all into memory
+  // but this is unsupported by the email service provider
+  const attachments: { data: Buffer; filename: string; contentType: string }[] = [];
+  let i = 0;
+  for (const file of files) {
+    attachments.push({
+      data: await fs.readFile(file.path),
+      filename: filenames?.[i] || file.originalname,
+      contentType: file.mimetype,
+    });
+    i++;
+  }
 
   // Send email with feedback
   await sendUserFeedbackEmail(ENV.JETSTREAM_EMAIL_REPLY_TO, userId, feedbackContent, attachments);
@@ -96,21 +103,11 @@ export async function cleanupFeedbackAttachments(req: Request, loggerInfo: Recor
       return;
     }
     const filePaths = files.map((file) => file.path);
-    await Promise.allSettled(
-      filePaths.map((path) => {
-        return new Promise<void>((resolve, reject) => {
-          // Clean up temp files
-          return fs.unlink(path, (err) => {
-            if (err) {
-              logger.error({ message: err.message }, 'Error deleting temp feedback attachment file');
-              reject(err);
-              return;
-            }
-            resolve();
-          });
-        });
-      }),
-    );
+    // Clean up temp files
+    const results = await Promise.allSettled(filePaths.map((path) => fs.unlink(path)));
+    if (results.some((result) => result.status === 'rejected')) {
+      throw new Error('Error deleting one or more temp feedback attachment files');
+    }
     (req.log || logger).info({ filePaths, ...loggerInfo }, 'Temp feedback attachment files cleaned up');
   } catch (ex) {
     (req.log || logger).error({ ...getExceptionLog(ex), ...loggerInfo }, 'Error during cleanup of feedback attachments');
