@@ -11,6 +11,7 @@ import { routeDefinition as metadataToolingController } from './sf-metadata-tool
 import { routeDefinition as miscController } from './sf-misc.web-ext.controller';
 import { routeDefinition as queryController } from './sf-query.web-ext.controller';
 import { routeDefinition as recordController } from './sf-record.web-ext.controller';
+import { routeDefinition as userController } from './user.web-ext.controller';
 
 const router = new Router<(req: RequestOptions) => Promise<Response>>();
 export const extensionRoutes = router;
@@ -104,6 +105,7 @@ router.post('/api/request-manual', miscController.salesforceRequestManual.contro
  * recordController Routes
  * ************************************
  */
+router.post('/api/record/upload', recordController.binaryUpload.controllerFn());
 router.post('/api/record/:operation/:sobject', recordController.recordOperation.controllerFn());
 
 /**
@@ -130,3 +132,10 @@ router.get('/api/bulk-query/:jobId/results', bulkQuery20ApiController.downloadRe
 router.get('/api/bulk-query/:jobId', bulkQuery20ApiController.getJob.controllerFn());
 router.post('/api/bulk-query/:jobId/abort', bulkQuery20ApiController.abortJob.controllerFn());
 router.delete('/api/bulk-query/:jobId', bulkQuery20ApiController.deleteJob.controllerFn());
+
+/**
+ * ************************************
+ * User Feedback Routes
+ * ************************************
+ */
+router.post('/api/feedback', userController.sendUserFeedbackEmail.controllerFn());

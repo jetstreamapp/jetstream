@@ -6,19 +6,12 @@ import { ChromeStorageState } from '../utils/extension.types';
 import { createRoute, handleErrorResponse } from './route.utils';
 
 export const routeDefinition = {
-  pull: {
-    controllerFn: () => pull,
+  sendUserFeedbackEmail: {
+    controllerFn: () => sendUserFeedbackEmail,
     validators: {
-      query: z.any(),
       hasSourceOrg: false,
-    },
-  },
-  push: {
-    controllerFn: () => push,
-    validators: {
-      query: z.any(),
+      skipBodyParsing: true,
       body: z.any(),
-      hasSourceOrg: false,
     },
   },
 };
@@ -34,36 +27,30 @@ async function getTokens() {
   return { authTokens, extIdentifier };
 }
 
-const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req) => {
+const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.validators, async (_, req) => {
   try {
     const { authTokens, extIdentifier } = await getTokens();
+    const body = req.request.body;
 
-    return await fetch(`${environment.serverUrl}/web-extension/data-sync/pull?${new URLSearchParams(query).toString()}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${authTokens?.accessToken}`,
-        [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
-      },
-    });
-  } catch (ex) {
-    return handleErrorResponse(ex);
-  }
-});
+    const contentType = req.request.headers.get('content-type');
+    if (!contentType?.startsWith('multipart/form-data')) {
+      return handleErrorResponse(new Error('Expected multipart/form-data'));
+    }
+    if (!body) {
+      return handleErrorResponse(new Error('Missing request body'));
+    }
 
-const push = createRoute(routeDefinition.push.validators, async ({ query, body }, req) => {
-  try {
-    const { authTokens, extIdentifier } = await getTokens();
-
-    return await fetch(`${environment.serverUrl}/web-extension/data-sync/push?${new URLSearchParams(query).toString()}`, {
+    return await fetch(`${environment.serverUrl}/web-extension/feedback`, {
       method: 'POST',
+      // @ts-expect-error Fetch API types are wrong
+      duplex: 'half',
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        'Content-Type': contentType,
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
       },
-      body: JSON.stringify(body),
+      body,
     });
   } catch (ex) {
     return handleErrorResponse(ex);

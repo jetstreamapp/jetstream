@@ -2,6 +2,7 @@ import { logger, prisma } from '@jetstream/api-config';
 import { Maybe } from '@jetstream/types';
 import type { Request, Response } from 'express';
 import { AuthError } from './auth.errors';
+import { getApiAddressFromReq } from './auth.utils';
 
 export type Action =
   | 'LOGIN'
@@ -68,8 +69,7 @@ export async function createUserActivityFromReq(
   data: LoginActivity,
 ) {
   try {
-    const ipAddress =
-      res.locals.ipAddress || req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const ipAddress = getApiAddressFromReq(req);
     const userAgent = req.get('user-agent');
     const userId = data.userId || req.session?.user?.id;
     const email = data.email || req.session?.user?.email;

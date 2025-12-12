@@ -35,6 +35,7 @@ import {
   GenericRequestPayload,
   GoogleFileApiResponse,
   HttpMethod,
+  InputReadFileContent,
   JetstreamPricesByLookupKey,
   ListMetadataQuery,
   ListMetadataResult,
@@ -1193,4 +1194,54 @@ export async function downloadBinaryAttachmentsZip_WEB_EXTENSION(
       return response as any;
     },
   );
+}
+
+export async function submitUserFeedback({
+  type,
+  message,
+  screenshots,
+  canFeatureTestimonial,
+  clientVersion,
+}: {
+  type: string;
+  message: string;
+  screenshots: InputReadFileContent[];
+  canFeatureTestimonial?: boolean;
+  clientVersion?: string;
+}): Promise<{ success: true }> {
+  const formData = new FormData();
+  formData.append('type', type);
+  formData.append('message', message);
+  formData.append('clientVersion', clientVersion || 'unknown');
+  formData.append('language', window.navigator.language);
+  formData.append('url', window.location.href);
+
+  if (canFeatureTestimonial !== undefined) {
+    formData.append('canFeatureTestimonial', String(canFeatureTestimonial));
+  }
+
+  // Convert screenshots to File objects and append to FormData
+  screenshots.forEach((screenshot) => {
+    // Get the mime type from the extension or default to image/png
+    const mimeType =
+      screenshot.extension === 'jpg' || screenshot.extension === 'jpeg'
+        ? 'image/jpeg'
+        : screenshot.extension === 'gif'
+          ? 'image/gif'
+          : 'image/png';
+
+    // In this context, screenshot.content is always an ArrayBuffer
+    const file = new File([screenshot.content as ArrayBuffer], screenshot.filename, { type: mimeType });
+    formData.append('filenames', screenshot.filename);
+    formData.append('screenshots', file);
+  });
+
+  return handleRequest({
+    method: 'POST',
+    url: '/api/feedback',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }).then(unwrapResponseIgnoreCache);
 }

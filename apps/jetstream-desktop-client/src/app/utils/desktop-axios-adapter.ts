@@ -1,3 +1,4 @@
+import { createMultipartFromFormData } from '@jetstream/shared/data';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { AxiosError, AxiosHeaders, AxiosResponse, InternalAxiosRequestConfig, isAxiosError } from 'axios';
 
@@ -13,65 +14,6 @@ interface IcpResponse {
   statusText: string;
   headers: Record<string, string>;
   body?: unknown;
-}
-
-/**
- * Creates a multipart/form-data body from a FormData object.
- *
- */
-async function createMultipartFromFormData(formData: FormData): Promise<{ body: ArrayBuffer; boundary: string }> {
-  const boundary = '----electronBoundary' + Math.random().toString(16).slice(2);
-  const encoder = new TextEncoder();
-  const chunks: Uint8Array[] = [];
-
-  const escapeName = (name: string) => {
-    return name.replace(
-      /[\r\n"]/g,
-      (match) =>
-        ({
-          '\r': '%0D',
-          '\n': '%0A',
-          '"': '%22',
-        })[match] || match,
-    );
-  };
-
-  function pushString(str: string) {
-    chunks.push(encoder.encode(str));
-  }
-
-  for (const [name, value] of formData.entries()) {
-    pushString(`--${boundary}\r\n`);
-
-    if (typeof value === 'string') {
-      // Plain string field
-      pushString(`Content-Disposition: form-data; name="${escapeName(name)}"\r\n\r\n`);
-      pushString(value + '\r\n');
-    } else {
-      // File/Blob field
-      const filename = value.type === 'application/json' ? '' : ` filename="${escapeName(value.name || 'blob')}"`;
-      const type = value.type || 'application/octet-stream';
-
-      pushString(`Content-Disposition: form-data; name="${escapeName(name)}";${filename}\r\n`);
-      pushString(`Content-Type: ${type}\r\n\r\n`);
-      chunks.push(new Uint8Array(await value.arrayBuffer()));
-      pushString('\r\n');
-    }
-  }
-
-  // Closing boundary
-  pushString(`--${boundary}--\r\n`);
-
-  // Concatenate into buffer
-  const size = chunks.reduce((s, c) => s + c.byteLength, 0);
-  const byteArray = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    byteArray.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-
-  return { body: byteArray.buffer, boundary };
 }
 
 export async function desktopExtensionAxiosAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
@@ -94,7 +36,7 @@ export async function desktopExtensionAxiosAdapter(config: InternalAxiosRequestC
     const url = getUrl(config) || '/';
     let body = data;
 
-    // Handle FormData
+    // NOTE: this assumes that FormData is always multipart/form-data, will need to adjust if that assumption changes
     if (data instanceof FormData) {
       const { body: formBody, boundary } = await createMultipartFromFormData(data);
       body = formBody;

@@ -101,13 +101,6 @@ export const AppHome = ({ showAlternativeAppFormats, hideConnectedAppBanner = fa
           `}
         >
           <AppHomeOrgExpirationBanner />
-          <ScopedNotification theme="light" className="slds-m-bottom_x-small">
-            Our{' '}
-            <a href="https://docs.getjetstream.app/#jetstream-ip-addresses" target="_blank" rel="noopener noreferrer">
-              outbound IP addresses
-            </a>{' '}
-            will be changing on October 27th, 2025. The previous IP addresses will be retired no later than December 1st, 2025.
-          </ScopedNotification>
           {!hideConnectedAppBanner && (
             <ScopedNotification theme="light">
               Salesforce updated their{' '}

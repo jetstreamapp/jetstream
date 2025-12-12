@@ -1,6 +1,5 @@
 import { BooleanQueryParamSchema, RecordOperationRequestSchema, SalesforceApiRequestSchema } from '@jetstream/api-types';
 import { HTTP } from '@jetstream/shared/constants';
-import { toBoolean } from '@jetstream/shared/utils';
 import { z } from 'zod';
 import { createRoute, handleErrorResponse, handleJsonResponse } from '../utils/route.utils';
 
@@ -75,12 +74,8 @@ const binaryUpload = createRoute(routeDefinition.binaryUpload.validators, async 
 
 const recordOperation = createRoute(routeDefinition.recordOperation.validators, async ({ body, params, query, jetstreamConn }) => {
   try {
-    // FIXME: add express validator to operation
     const { sobject, operation } = params;
-    const { externalId } = query;
-    // FIXME: move to express validator to do data conversion
-    const allOrNone = toBoolean(query.allOrNone, true);
-    // TODO: validate combination based on operation or add validation to case statement
+    const { allOrNone, externalId } = query;
     // ids and records can be one or an array
     const { ids, records } = body;
 

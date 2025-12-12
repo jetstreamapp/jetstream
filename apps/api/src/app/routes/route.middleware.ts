@@ -1,14 +1,14 @@
-import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
+import { createRateLimit, ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import {
   AuthError,
-  ExpiredVerificationToken,
-  InvalidCaptcha,
-  MissingEntitlement,
-  PLACEHOLDER_USER_ID,
   checkUserAgentSimilarity,
+  ExpiredVerificationToken,
   generateHMACDoubleCSRFToken,
   getApiAddressFromReq,
   getCookieConfig,
+  InvalidCaptcha,
+  MissingEntitlement,
+  PLACEHOLDER_USER_ID,
   validateHMACDoubleCSRFToken,
 } from '@jetstream/auth/server';
 import { UserProfileSession } from '@jetstream/auth/types';
@@ -17,7 +17,9 @@ import { HTTP } from '@jetstream/shared/constants';
 import { ensureBoolean, getDefaultAppState, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { parse as parseCookie } from 'cookie';
 import { addDays, getUnixTime, isBefore } from 'date-fns';
-import * as express from 'express';
+import express, { Request } from 'express';
+import multer from 'multer';
+import os from 'node:os';
 import pino from 'pino';
 import { v4 as uuid } from 'uuid';
 import { environment } from '../../environments/environment';
@@ -522,7 +524,7 @@ export function validateDoubleCSRF(req: express.Request, res: express.Response, 
   next();
 }
 
-export function setPermissionPolicy(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function setPermissionPolicy(_req: express.Request, res: express.Response, next: express.NextFunction) {
   res.setHeader(
     'Permissions-Policy',
     [
@@ -553,7 +555,7 @@ export function setPermissionPolicy(req: express.Request, res: express.Response,
 /**
  * Only set this for static assets that should not be loaded by other origins
  */
-export function setCrossOriginResourcePolicy(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function setCrossOriginResourcePolicy(_req: express.Request, res: express.Response, next: express.NextFunction) {
   // "Production" is true in all environments except local dev
   if (environment.production) {
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
@@ -561,7 +563,40 @@ export function setCrossOriginResourcePolicy(req: express.Request, res: express.
   next();
 }
 
-export function setCacheControlForApiRoutes(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function setCacheControlForApiRoutes(_req: express.Request, res: express.Response, next: express.NextFunction) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
   next();
 }
+
+export const feedbackRateLimit = createRateLimit('api_feedback_submission', {
+  windowMs: 1000 * 60 * 15, // 15 minutes
+  limit: ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : 5,
+});
+
+// User uploads files and they are stored on disk temporarily, we delete them after processing
+export const feedbackUploadMiddleware = multer({
+  storage: multer.diskStorage({
+    // This is the default directory for multer, but we set it explicitly for clarity
+    destination: os.tmpdir(),
+    filename: (req, _file, cb) => {
+      const user = (req as Request).externalAuth?.user || req.session.user;
+      if (!user) {
+        return cb(new Error('Unauthorized'), '');
+      }
+      cb(null, uuid());
+    },
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+    files: 5, // max 5 files
+  },
+  fileFilter: (_req, file, cb) => {
+    // Only accept image files
+    const allowedImageMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+    if (allowedImageMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});

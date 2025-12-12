@@ -4,6 +4,7 @@ export * from './app/AppHome/AppHomeBillingUser';
 export * from './app/AppLoading';
 export * from './app/ConfirmPageChange';
 export * from './app/DownloadFileStream';
+export * from './app/ErrorBoundaryEmptyFallback';
 export * from './app/ErrorBoundaryFallback';
 export * from './app/Feedback';
 export * from './app/HeaderAnnouncementPopover';
