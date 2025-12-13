@@ -1,5 +1,5 @@
 import { css } from '@emotion/react';
-import { Field, ListItem, Maybe } from '@jetstream/types';
+import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithDrillInItems, ComboboxWithItems, Grid } from '@jetstream/ui';
 import { FunctionComponent, useMemo } from 'react';
 import { MassUpdateRecordsObjectRowValueStaticInput } from './MassUpdateRecordsObjectRowValueStaticInput';
@@ -7,6 +7,7 @@ import { TransformationOption, TransformationOptions } from './mass-update-recor
 import { transformationOptionListItems } from './mass-update-records.utils';
 
 export interface MassUpdateRecordsObjectRowValueProps {
+  org: SalesforceOrgUi;
   sobject: string;
   fields: ListItem[];
   selectedField?: Maybe<string>;
@@ -17,6 +18,7 @@ export interface MassUpdateRecordsObjectRowValueProps {
 }
 
 export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecordsObjectRowValueProps> = ({
+  org,
   sobject,
   fields,
   selectedField: selectedFieldId,
@@ -68,6 +70,7 @@ export const MassUpdateRecordsObjectRowValue: FunctionComponent<MassUpdateRecord
         {transformationOptions.option === 'staticValue' && (
           <Grid verticalAlign="end">
             <MassUpdateRecordsObjectRowValueStaticInput
+              org={org}
               selectedField={selectedField}
               value={transformationOptions.staticValue}
               disabled={disabled}

@@ -500,6 +500,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
       title: 'Record',
       content: (
         <UiRecordForm
+          org={selectedOrg}
           action={action}
           sobjectFields={sobjectFields || []}
           picklistValues={picklistValues || {}}
@@ -743,6 +744,7 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                 {/* Create and Edit do not show child records */}
                 {!isViewAsJson && action !== 'view' && (
                   <UiRecordForm
+                    org={selectedOrg}
                     action={action}
                     sobjectFields={sobjectFields || []}
                     picklistValues={picklistValues || {}}

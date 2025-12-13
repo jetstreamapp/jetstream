@@ -469,13 +469,13 @@ export function updateColumnWithEditMode(
     // } else if (type === 'id' || apexType === 'Id') {
     // } else if (type === 'datetime' || apexType === 'Datetime') {
     // } else if (type === 'time' || apexType === 'Time') {
-  } else if (type === 'reference' && field.referenceTo?.length === 1) {
+  } else if (type === 'reference' && field.referenceTo?.length && field.referenceTo?.length > 0) {
     column.editable = true;
     column.editorOptions = {
       commitOnOutsideClick: false,
       displayCellContent: true,
     };
-    column.renderEditCell = dataTableEditorRecordLookup({ sobject: field.referenceTo[0] });
+    column.renderEditCell = dataTableEditorRecordLookup({ sobjects: field.referenceTo });
   } else {
     // textType
     column.editable = true;

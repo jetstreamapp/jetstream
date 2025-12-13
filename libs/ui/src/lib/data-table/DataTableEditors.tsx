@@ -1,22 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
-import { describeSObject, query } from '@jetstream/shared/data';
-import { isEnterKey, isEscapeKey } from '@jetstream/shared/ui-utils';
+import { isEscapeKey } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
-import { ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { RenderEditCellProps } from 'react-data-grid';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
-import ComboboxWithItemsTypeAhead from '../form/combobox/ComboboxWithItemsTypeAhead';
+import { RecordLookupCombobox } from '../form/combobox/RecordLookupCombobox';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
-import PopoverContainer from '../popover/PopoverContainer';
-import Tabs from '../tabs/Tabs';
+import PopoverContainer, { PopoverContainerProps } from '../popover/PopoverContainer';
 import { DataTableGenericContext } from './data-table-context';
 import { getRowId } from './data-table-utils';
 
@@ -28,11 +25,13 @@ function autoFocusAndSelect(input: HTMLInputElement | null) {
 function DataTableEditorPopover({
   rowIdx,
   colIdx,
+  popoverContainerProps,
   onClose,
   children,
 }: {
   rowIdx: number;
   colIdx: number;
+  popoverContainerProps?: Omit<PopoverContainerProps, 'className' | 'isOpen' | 'referenceElement' | 'usePortal' | 'isEager' | 'children'>;
   onClose: (commitChanges?: boolean, shouldFocusCell?: boolean) => void;
   children: ReactNode;
 }) {
@@ -62,6 +61,7 @@ function DataTableEditorPopover({
       role="dialog"
       // offset={[0, -28.5]}
       usePortal
+      {...popoverContainerProps}
       onKeyDown={(event) => {
         if (isEscapeKey(event)) {
           onClose();
@@ -273,9 +273,7 @@ export function DataTableEditorDate<TRow extends { _idx: number }, TSummaryRow>(
   );
 }
 
-type Tab = 'lookup' | 'text';
-
-export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) => {
+export const dataTableEditorRecordLookup = ({ sobjects }: { sobjects: string[] }) => {
   return function DataTableEditorRecordLookup<TRow extends { _idx: number }, TSummaryRow>({
     row,
     column,
@@ -284,122 +282,36 @@ export const dataTableEditorRecordLookup = ({ sobject }: { sobject: string }) =>
   }: RenderEditCellProps<TRow, TSummaryRow>) {
     const currValue = row[column.key as keyof TRow] as unknown as string;
     const { org } = useContext(DataTableGenericContext) as { org: SalesforceOrgUi; defaultApiVersion: string };
-    const nameField = useRef<{ sobject: string; nameField: string }>(null);
-    const [records, setRecords] = useState<ListItem<string, any>[]>([]);
-    const [selectedRecord, setSelectedRecords] = useState<ListItem<string, any> | null>(null);
-    const [activeTab, setActiveTab] = useState<Tab>('text');
+    const [selectedSobject, setSelectedSobject] = useState(sobjects[0]);
 
-    const handleSearch = useCallback(
-      async (searchTerm: string) => {
-        searchTerm = (searchTerm || '').trim();
-        logger.log('search', searchTerm);
-        setSelectedRecords(null);
-        try {
-          if (!sobject) {
-            setRecords([]);
-            return;
-          }
-          if (!nameField.current || nameField.current.sobject !== sobject) {
-            nameField.current = {
-              sobject,
-              nameField: await describeSObject(org, sobject).then(
-                (result) => result.data.fields.find((field) => field.nameField)?.name || 'Name',
-              ),
-            };
-          }
-          const name = nameField.current.nameField;
-
-          let soql = `SELECT Id, ${name} FROM ${sobject} ORDER BY ${name} LIMIT 50`;
-          if (searchTerm) {
-            if (searchTerm.length === 15 || searchTerm.length === 18) {
-              soql = `SELECT Id, ${name} FROM ${sobject} WHERE Id = '${searchTerm}' OR ${name} LIKE '%${searchTerm}%' ORDER BY ${name} LIMIT 50`;
-            } else {
-              soql = `SELECT Id, ${name} FROM ${sobject} WHERE ${name} LIKE '%${searchTerm}%' ORDER BY ${name} LIMIT 50`;
-            }
-          }
-          const { queryResults } = await query(org, soql);
-          setRecords([
-            {
-              id: '',
-              label: SFDC_BLANK_PICKLIST_VALUE,
-              value: '',
-            },
-            ...queryResults.records.map((record) => ({
-              id: record.Id,
-              label: record[name],
-              secondaryLabel: record.Id,
-              secondaryLabelOnNewLine: true,
-              value: record.Id,
-            })),
-          ]);
-        } catch (ex) {
-          logger.warn('Error searching records', ex);
-          setRecords([]);
-        }
-      },
-      [org],
-    );
-
-    if (!org || !sobject) {
+    if (!org || !selectedSobject) {
       return <DataTableEditorText rowIdx={row._idx} column={column} onClose={onClose} onRowChange={onRowChange} row={row} />;
     }
 
     return (
-      <DataTableEditorPopover rowIdx={row._idx} colIdx={column.idx} onClose={onClose}>
-        <Tabs
-          initialActiveId={activeTab}
-          contentClassname="slds-p-bottom_none"
-          onChange={(value: Tab) => {
-            setActiveTab(value);
+      <DataTableEditorPopover
+        rowIdx={row._idx}
+        colIdx={column.idx}
+        onClose={onClose}
+        popoverContainerProps={{ minWidth: '25rem', maxWidth: '25rem' }}
+      >
+        <RecordLookupCombobox
+          org={org}
+          sobjects={sobjects}
+          allowManualMode
+          comboboxProps={{
+            label: `Edit ${isString(column.name) ? column.name : column.key}`,
+            hideLabel: true,
+            className: 'w-100',
+            placeholder: `Search ${selectedSobject} by name or id`,
           }}
-          tabs={[
-            {
-              id: 'text',
-              title: 'Text',
-              content: (
-                <Input id={`edit-${column.key}`} hideLabel label={`Edit ${isString(column.name) ? column.name : column.key}`}>
-                  <input
-                    id={`edit-${column.key}`}
-                    className="slds-input"
-                    ref={autoFocusAndSelect}
-                    value={(row[column.key as keyof TRow] as unknown as string) || ''}
-                    onChange={(event) => {
-                      const _touchedColumns = new Set((row as any)._touchedColumns || []);
-                      _touchedColumns.add(column.key);
-                      onRowChange({ ...row, [column.key]: event.target.value, _touchedColumns });
-                    }}
-                    onKeyDown={(event) => {
-                      if (isEnterKey(event)) {
-                        onClose(true);
-                      }
-                    }}
-                  />
-                </Input>
-              ),
-            },
-            {
-              id: 'lookup',
-              title: 'Lookup Search',
-              content: (
-                <ComboboxWithItemsTypeAhead
-                  comboboxProps={{
-                    label: `Edit ${isString(column.name) ? column.name : column.key}`,
-                    hideLabel: true,
-                    className: 'w-100',
-                    placeholder: sobject ? `Search ${sobject} by name or id` : 'select an object',
-                  }}
-                  items={records}
-                  onSearch={handleSearch}
-                  selectedItemId={selectedRecord?.id || currValue}
-                  onSelected={(item) => {
-                    const _touchedColumns = new Set((row as any)._touchedColumns || []);
-                    _touchedColumns.add(column.key);
-                    onRowChange({ ...row, [column.key]: item?.value || null, _touchedColumns }, !isNil(item?.value));
-                  }}
-                />
-              ),
-            },
-          ]}
+          value={currValue}
+          onChange={(value) => {
+            const _touchedColumns = new Set((row as any)._touchedColumns || []);
+            _touchedColumns.add(column.key);
+            onRowChange({ ...row, [column.key]: value || null, _touchedColumns }, !isNil(value));
+          }}
+          onObjectChange={setSelectedSobject}
         />
       </DataTableEditorPopover>
     );

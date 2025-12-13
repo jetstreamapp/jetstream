@@ -1,8 +1,20 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
 import { polyfillFieldDefinition } from '@jetstream/shared/ui-utils';
-import { Field, ListItem, Maybe, PicklistFieldValueItem, RecordAttributes } from '@jetstream/types';
-import { Checkbox, DatePicker, DateTime, Grid, Icon, Input, Picklist, ReadOnlyFormElement, Textarea, TimePicker } from '@jetstream/ui';
+import { Field, ListItem, Maybe, PicklistFieldValueItem, RecordAttributes, SalesforceOrgUi } from '@jetstream/types';
+import {
+  Checkbox,
+  DatePicker,
+  DateTime,
+  Grid,
+  Icon,
+  Input,
+  Picklist,
+  ReadOnlyFormElement,
+  RecordLookupCombobox,
+  Textarea,
+  TimePicker,
+} from '@jetstream/ui';
 import classNames from 'classnames';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
@@ -11,7 +23,7 @@ import { startOfDay } from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
-import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isTextarea, isTime } from './ui-record-form-utils';
+import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isReference, isTextarea, isTime } from './ui-record-form-utils';
 
 const REPLACE_NON_NUMERIC = /[^\d.-]/g;
 
@@ -53,6 +65,7 @@ function getInitialModifiedValue(
 }
 
 export interface UiRecordFormFieldProps {
+  org: SalesforceOrgUi;
   field: EditableFields;
   saveError?: string;
   disabled?: boolean;
@@ -72,6 +85,7 @@ function getUndoKey(name: string) {
   return uniqueId(`undo-key-${name}`);
 }
 export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
+  org,
   field,
   saveError,
   disabled,
@@ -207,6 +221,11 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
     checkIfDirtyAndEmit(newValue);
   }
 
+  function handleReferenceChange(currValue: Maybe<string>) {
+    setValue(currValue || null);
+    checkIfDirtyAndEmit(currValue || null);
+  }
+
   function handleClearInput() {
     setValue('');
     checkIfDirtyAndEmit('');
@@ -291,6 +310,34 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
                   step={field.step}
                 />
               </Input>
+            )}
+            {isReference(field) && (
+              <RecordLookupCombobox
+                org={org}
+                sobjects={field.referenceTo}
+                allowManualMode
+                manualModeInputProps={{
+                  onBlur: handleInputBlur,
+                }}
+                comboboxProps={{
+                  label,
+                  hideLabel,
+                  className: 'slds-form-element_stacked slds-is-editing',
+                  errorMessage: saveError,
+                  labelHelp: labelHelpText,
+                  helpText,
+                  isRequired: required,
+                  hasError: !!saveError,
+                  errorMessageId: `${id}-error`,
+                  disabled,
+                  inputProps: {
+                    id,
+                    'aria-describedby': `${id}-error`,
+                  },
+                }}
+                value={(value as string) || ''}
+                onChange={(value) => handleReferenceChange(value)}
+              />
             )}
             {isCheckbox(field) && (
               <Checkbox

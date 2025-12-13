@@ -19,6 +19,7 @@ import {
   EditableFieldDateTime,
   EditableFieldInput,
   EditableFieldPicklist,
+  EditableFieldReference,
   EditableFieldTextarea,
   EditableFields,
 } from './ui-record-form-types';
@@ -35,6 +36,10 @@ const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']
 
 export function isInput(value: EditableFields): value is EditableFieldInput {
   return value && value.type === 'input';
+}
+
+export function isReference(value: EditableFields): value is EditableFieldReference {
+  return value && value.type === 'reference';
 }
 
 export function isCheckbox(value: EditableFields): value is EditableFieldCheckbox {
@@ -138,6 +143,9 @@ export function convertMetadataToEditableFields(
           });
         }
       }
+    } else if (field.type === 'reference') {
+      output.type = 'reference';
+      (output as EditableFieldReference).referenceTo = field.referenceTo || [];
     } else {
       output.type = 'input';
       if (NUMBER_TYPES.has(field.type)) {

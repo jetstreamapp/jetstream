@@ -1,4 +1,4 @@
-import { ListItem } from '@jetstream/types';
+import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { AutoFullHeightContainer, EmptyState, OpenRoadIllustration } from '@jetstream/ui';
 import { MetadataRow, TransformationOptions } from '@jetstream/ui-core';
 import { Fragment, FunctionComponent } from 'react';
@@ -7,6 +7,7 @@ import MassUpdateRecordsObject from './MassUpdateRecordsObject';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
 export interface MassUpdateRecordsObjectsProps {
+  org: SalesforceOrgUi;
   rows: MetadataRow[];
   commonFields: ListItem[];
   onFieldSelected: ReturnType<typeof useMassUpdateFieldItems>['onFieldSelected'];
@@ -21,6 +22,7 @@ export interface MassUpdateRecordsObjectsProps {
 }
 
 export const MassUpdateRecordsObjects: FunctionComponent<MassUpdateRecordsObjectsProps> = ({
+  org,
   rows,
   commonFields,
   onFieldSelected,
@@ -49,6 +51,7 @@ export const MassUpdateRecordsObjects: FunctionComponent<MassUpdateRecordsObject
             {rows.map((row) => (
               <MassUpdateRecordsObject
                 key={row.sobject}
+                org={org}
                 row={row}
                 commonFields={commonFields}
                 onFieldSelected={onFieldSelected}

@@ -153,6 +153,7 @@ export const MassUpdateRecordsSelection: FunctionComponent<MassUpdateRecordsSele
           <div className="slds-p-horizontal_x-small">
             {selectedSObjects && (
               <MassUpdateRecordsObjects
+                org={selectedOrg}
                 rows={rows}
                 commonFields={commonFields}
                 onFieldSelected={onFieldSelected}
