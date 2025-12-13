@@ -1,16 +1,17 @@
 import { Field, ListItem, PicklistFieldValueItem } from '@jetstream/types';
 
 export type EditableFields =
-  | EditableFieldInput
   | EditableFieldCheckbox
   | EditableFieldDate
   | EditableFieldDateTime
-  | EditableFieldTime
+  | EditableFieldInput
+  | EditableFieldPicklist
+  | EditableFieldReference
   | EditableFieldTextarea
-  | EditableFieldPicklist;
+  | EditableFieldTime;
 
 export interface EditableField {
-  type: 'input' | 'textarea' | 'picklist' | 'date' | 'datetime' | 'time' | 'checkbox';
+  type: 'input' | 'textarea' | 'picklist' | 'date' | 'datetime' | 'time' | 'checkbox' | 'reference';
   label: string;
   name: string;
   labelHelpText?: string | null;
@@ -51,4 +52,9 @@ export interface EditableFieldPicklist extends EditableField {
   type: 'picklist';
   defaultValue: string | null;
   values: ListItem<string, PicklistFieldValueItem>[];
+}
+
+export interface EditableFieldReference extends EditableField {
+  type: 'reference';
+  referenceTo: string[];
 }

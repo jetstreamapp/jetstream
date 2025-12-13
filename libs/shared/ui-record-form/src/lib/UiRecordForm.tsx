@@ -1,6 +1,6 @@
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { multiWordObjectFilter, splitArrayToMaxSize } from '@jetstream/shared/utils';
-import { CloneEditView, Field, PicklistFieldValues, SalesforceRecord } from '@jetstream/types';
+import { CloneEditView, Field, PicklistFieldValues, SalesforceOrgUi, SalesforceRecord } from '@jetstream/types';
 import { Checkbox, EmptyState, Grid, SearchInput, Select } from '@jetstream/ui';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { EditableFields } from './ui-record-form-types';
 import { convertMetadataToEditableFields } from './ui-record-form-utils';
 
 export interface UiRecordFormProps {
+  org: SalesforceOrgUi;
   controlClassName?: string;
   formClassName?: string;
   action: CloneEditView;
@@ -22,6 +23,7 @@ export interface UiRecordFormProps {
 }
 
 export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
+  org,
   controlClassName = 'slds-p-vertical_x-small slds-p-horizontal_large',
   formClassName,
   action,
@@ -152,6 +154,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
               {row.map((field) => (
                 <div key={field.name} className="slds-form__item" role="listitem">
                   <UiRecordFormField
+                    org={org}
                     field={field}
                     saveError={saveErrors?.[field.name]}
                     disabled={disabled}

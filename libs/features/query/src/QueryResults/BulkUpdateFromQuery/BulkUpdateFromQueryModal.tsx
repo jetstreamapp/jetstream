@@ -313,6 +313,7 @@ export const BulkUpdateFromQueryModal: FunctionComponent<BulkUpdateFromQueryModa
         />
 
         <MassUpdateRecordsObjectRow
+          org={selectedOrg}
           className={'slds-is-relative slds-item read-only'}
           sobject={sobject}
           loading={false}

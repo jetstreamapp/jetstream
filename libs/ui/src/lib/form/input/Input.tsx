@@ -1,5 +1,4 @@
-// https://www.lightningdesignsystem.com/components/input/#Fixed-Text
-
+import { SerializedStyles } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, MouseEvent } from 'react';
@@ -11,6 +10,7 @@ export interface InputProps {
   id?: string;
   className?: string;
   formControlClassName?: string;
+  formControlStyles?: SerializedStyles;
   label?: string;
   labelClassName?: string;
   hideLabel?: boolean;
@@ -28,6 +28,10 @@ export interface InputProps {
   rightAddon?: React.ReactNode | string;
   clearButton?: boolean;
   loading?: boolean;
+  /**
+   * Allow for component to be added inside form element but outside of input field
+   */
+  trailingChildren?: React.ReactNode;
   onClear?: (ev?: MouseEvent<HTMLButtonElement>) => void;
   children?: React.ReactNode;
 }
@@ -36,6 +40,7 @@ export const Input: FunctionComponent<InputProps> = ({
   id,
   className,
   formControlClassName,
+  formControlStyles,
   label,
   labelClassName,
   hideLabel = false,
@@ -51,6 +56,7 @@ export const Input: FunctionComponent<InputProps> = ({
   iconRightType,
   clearButton = false,
   loading,
+  trailingChildren,
   onClear,
   // Addons - these cannot be used with icon in same location
   leftAddon,
@@ -90,6 +96,7 @@ export const Input: FunctionComponent<InputProps> = ({
           },
           formControlClassName,
         )}
+        css={formControlStyles}
       >
         {!leftAddon && iconLeft && iconLeftType && (
           <Icon
@@ -126,6 +133,7 @@ export const Input: FunctionComponent<InputProps> = ({
             <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
           </button>
         )}
+        {trailingChildren}
       </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}
       {hasError && errorMessage && (
