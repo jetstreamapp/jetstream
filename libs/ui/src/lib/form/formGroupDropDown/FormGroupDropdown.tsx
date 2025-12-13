@@ -91,7 +91,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
     }
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement | HTMLLIElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement | HTMLInputElement | HTMLLIElement>) {
     try {
       event.preventDefault();
       event.stopPropagation();
@@ -173,21 +173,41 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                     className="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
                   />
                 )}
-                <div
-                  role="combobox"
-                  tabIndex={0}
-                  className={classNames('slds-input slds-combobox__input slds-has-focus slds-combobox__input-value', {
-                    'slds-has-focus': isOpen,
-                  })}
-                  aria-labelledby={`${inputId}-label`}
-                  id={`${inputId}-selected-value`}
-                  aria-controls={id}
-                  aria-expanded={isOpen}
-                  aria-haspopup="listbox"
-                  onKeyDown={handleKeyDown}
-                >
-                  {selectedItem && <span className="slds-truncate">{selectedItem.label}</span>}
-                </div>
+                {iconOnly && (
+                  <input
+                    type="text"
+                    className="slds-input slds-combobox__input slds-combobox__input-value"
+                    id={`${inputId}-selected-value`}
+                    aria-controls={id}
+                    aria-expanded={isOpen}
+                    aria-haspopup="listbox"
+                    aria-labelledby={`${inputId}-label`}
+                    autoComplete="off"
+                    role="combobox"
+                    value={selectedItem.label}
+                    title={selectedItem.label}
+                    readOnly
+                    onKeyDown={handleKeyDown}
+                  />
+                )}
+                {!iconOnly && (
+                  <div
+                    role="combobox"
+                    tabIndex={0}
+                    className={classNames('slds-input_faux slds-combobox__input slds-combobox__input-value', {
+                      'slds-has-focus': isOpen,
+                    })}
+                    id={`${inputId}-selected-value`}
+                    aria-controls={id}
+                    aria-expanded={isOpen}
+                    aria-haspopup="listbox"
+                    aria-labelledby={`${inputId}-label`}
+                    title={selectedItem.label}
+                    onKeyDown={handleKeyDown}
+                  >
+                    {selectedItem && <span className="slds-truncate">{selectedItem.label}</span>}
+                  </div>
+                )}
                 <Icon
                   type="utility"
                   icon="down"
