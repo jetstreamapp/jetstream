@@ -1645,17 +1645,21 @@ export function getListItemsFromFieldWithRelatedItems(fields: Field[], parentId 
   const allowChildren = parentPath.split('.').length <= 5;
   const relatedFields: ListItem[] = fields
     .filter((field) => allowChildren && Array.isArray(field.referenceTo) && field.referenceTo.length > 0 && field.relationshipName)
-    .map((field) => ({
-      id: `${parentPath}${field.relationshipName}`,
-      value: `${parentPath}${field.relationshipName}`,
+    .flatMap((field) => {
+      // limit to first 5 references
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      label: field.relationshipName!,
-      secondaryLabel: field.referenceTo?.[0],
-      secondaryLabelOnNewLine: true,
-      isDrillInItem: true,
-      parentId,
-      meta: field,
-    }));
+      return field.referenceTo!.slice(0, 5).map((referenceTo) => ({
+        id: `${parentPath}${field.relationshipName}`,
+        value: `${parentPath}${field.relationshipName}`,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        label: field.relationshipName!,
+        secondaryLabel: referenceTo,
+        secondaryLabelOnNewLine: true,
+        isDrillInItem: true,
+        parentId,
+        meta: field,
+      }));
+    });
 
   const coreFields: ListItem[] = fields.flatMap((field) => ({
     id: `${parentPath}${field.name}`,
