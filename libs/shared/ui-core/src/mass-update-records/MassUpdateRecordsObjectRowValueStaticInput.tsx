@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
-import { Field, ListItem, Maybe } from '@jetstream/types';
-import { ControlledInput, DatePicker, DateTime, DropDown, Grid, Input, Picklist } from '@jetstream/ui';
+import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
+import { ControlledInput, DatePicker, DateTime, DropDown, Grid, Input, Picklist, RecordLookupCombobox } from '@jetstream/ui';
 import { formatISO } from 'date-fns/formatISO';
 import { FunctionComponent, useMemo, useState } from 'react';
 
@@ -12,6 +12,7 @@ const booleanValues: ListItem[] = [
 ];
 
 export interface MassUpdateRecordsObjectRowValueStaticInputProps {
+  org: SalesforceOrgUi;
   selectedField?: Maybe<Field>;
   value: string;
   disabled?: boolean;
@@ -60,9 +61,15 @@ export const MassUpdateRecordsObjectRowValueStaticInput: FunctionComponent<MassU
   );
 };
 
-export const StaticInputContent: FunctionComponent<
-  MassUpdateRecordsObjectRowValueStaticInputProps & { useManualInput: boolean; picklistItems: ListItem[] }
-> = ({ disabled, picklistItems, selectedField, useManualInput, value, onChange }) => {
+const StaticInputContent = ({
+  org,
+  disabled,
+  picklistItems,
+  selectedField,
+  useManualInput,
+  value,
+  onChange,
+}: MassUpdateRecordsObjectRowValueStaticInputProps & { useManualInput: boolean; picklistItems: ListItem[] }) => {
   if (!useManualInput && selectedField?.type === 'date') {
     return (
       <DatePicker
@@ -132,6 +139,35 @@ export const StaticInputContent: FunctionComponent<
           }
         }}
       ></Picklist>
+    );
+  }
+
+  if (selectedField?.type === 'reference' && selectedField.referenceTo && selectedField.referenceTo.length > 0) {
+    return (
+      <RecordLookupCombobox
+        key={selectedField.name}
+        org={org}
+        allowManualMode
+        comboboxProps={{
+          label: 'Provided Value',
+          placeholder: `Search by name or id`,
+          className: 'slds-m-right_x-small',
+          disabled,
+          isRequired: true,
+          inputCss: css`
+            min-width: 240px;
+          `,
+        }}
+        manualModeInputProps={{
+          style: { minWidth: '240px' },
+        }}
+        typeaheadProps={{
+          selectedItemTitleFn: (item) => `${item.label} - ${item.value}`,
+        }}
+        sobjects={selectedField.referenceTo}
+        value={value}
+        onChange={(value) => onChange(value || '')}
+      />
     );
   }
 

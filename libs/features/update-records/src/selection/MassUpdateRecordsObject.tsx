@@ -1,10 +1,11 @@
-import { ListItem } from '@jetstream/types';
+import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Tooltip } from '@jetstream/ui';
 import { MassUpdateRecordObjectHeading, MassUpdateRecordsObjectRow, MetadataRow } from '@jetstream/ui-core';
 import { FunctionComponent, useCallback } from 'react';
 import { useMassUpdateFieldItems } from './useMassUpdateFieldItems';
 
 export interface MassUpdateRecordsObjectProps {
+  org: SalesforceOrgUi;
   row: MetadataRow;
   commonFields: ListItem[];
   onFieldSelected: ReturnType<typeof useMassUpdateFieldItems>['onFieldSelected'];
@@ -18,6 +19,7 @@ export interface MassUpdateRecordsObjectProps {
  * Load listItem for single object and handle loading child fields
  */
 export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectProps> = ({
+  org,
   row,
   onFieldSelected,
   onLoadChildFields,
@@ -36,6 +38,7 @@ export const MassUpdateRecordsObject: FunctionComponent<MassUpdateRecordsObjectP
   return (
     <li className="slds-is-relative slds-item read-only slds-p-left_small">
       <MassUpdateRecordsObjectRow
+        org={org}
         sobject={row.sobject}
         loading={row.loading}
         fields={row.fields}

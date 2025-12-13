@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
 import { EditableFields, UiRecordFormField, convertMetadataToEditableFields } from '@jetstream/record-form';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { FieldMappingItemStatic, FieldWithRelatedEntities, ListItem, Maybe, PicklistFieldValues } from '@jetstream/types';
+import { FieldMappingItemStatic, FieldWithRelatedEntities, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi } from '@jetstream/types';
 import { ComboboxWithItems, Grid, Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useId, useState } from 'react';
 function getComboboxFieldName(item: ListItem) {
@@ -13,6 +13,7 @@ function getComboboxFieldTitle(item: ListItem) {
 }
 
 export interface LoadRecordsFieldMappingStaticRowProps {
+  org: SalesforceOrgUi;
   fields: FieldWithRelatedEntities[];
   fieldMappingItem: FieldMappingItemStatic;
   isCustomMetadata?: boolean;
@@ -52,6 +53,7 @@ function getFieldListItems(fields: FieldWithRelatedEntities[]) {
 }
 
 export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFieldMappingStaticRowProps> = ({
+  org,
   fields,
   fieldMappingItem,
   isCustomMetadata,
@@ -126,6 +128,7 @@ export const LoadRecordsFieldMappingStaticRow: FunctionComponent<LoadRecordsFiel
         {editableField && (
           <UiRecordFormField
             key={fieldMappingItem.targetField}
+            org={org}
             field={editableField}
             hideLabel
             initialValue={fieldMappingItem.staticValue}

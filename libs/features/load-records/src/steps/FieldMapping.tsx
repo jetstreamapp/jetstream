@@ -391,6 +391,7 @@ export const LoadRecordsFieldMapping = memo<LoadRecordsFieldMappingProps>(
               {staticRowHeaders.map((header, i) => (
                 <LoadRecordsFieldMappingStaticRow
                   key={`${keyPrefix}-static-${i}`}
+                  org={org}
                   fields={fields}
                   fieldMappingItem={fieldMapping[header] as FieldMappingItemStatic}
                   isCustomMetadata={isCustomMetadataObject}

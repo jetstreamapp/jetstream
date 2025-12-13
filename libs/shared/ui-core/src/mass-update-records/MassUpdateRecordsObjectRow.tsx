@@ -1,6 +1,6 @@
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { Field, ListItem, Maybe } from '@jetstream/types';
+import { Field, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { Grid, GridCol, Icon, ScopedNotification, Spinner } from '@jetstream/ui';
 import isNumber from 'lodash/isNumber';
 import { Fragment, FunctionComponent, ReactNode } from 'react';
@@ -11,6 +11,7 @@ import MassUpdateRecordsObjectRowValue from './MassUpdateRecordsObjectRowValue';
 import { MetadataRowConfiguration, TransformationOptions, ValidationResults } from './mass-update-records.types';
 
 export interface MassUpdateRecordsObjectRowProps {
+  org: SalesforceOrgUi;
   className?: string;
   sobject: string;
   loading: boolean;
@@ -31,6 +32,7 @@ export interface MassUpdateRecordsObjectRowProps {
 }
 
 export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObjectRowProps> = ({
+  org,
   className,
   sobject,
   loading,
@@ -71,6 +73,7 @@ export const MassUpdateRecordsObjectRow: FunctionComponent<MassUpdateRecordsObje
               />
             </GridCol>
             <MassUpdateRecordsObjectRowValue
+              org={org}
               sobject={sobject}
               fields={valueFields}
               selectedField={selectedField}

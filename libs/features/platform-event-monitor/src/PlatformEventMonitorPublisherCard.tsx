@@ -198,6 +198,7 @@ export const PlatformEventMonitorPublisherCard: FunctionComponent<PlatformEventM
                 <Fragment>
                   <UiRecordForm
                     key={publishKey}
+                    org={selectedOrg}
                     action="create"
                     sobjectFields={sobjectDescribeData.describe.fields}
                     picklistValues={sobjectDescribeData.picklistValues}

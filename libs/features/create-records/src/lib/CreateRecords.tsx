@@ -315,6 +315,7 @@ export const CreateRecords = () => {
                 )}
                 <UiRecordForm
                   key={`${key}-${selectedRecordTypeId || ''}`}
+                  org={selectedOrg}
                   controlClassName="slds-p-bottom_x-small slds-p-horizontal_xx-small"
                   action="create"
                   sobjectFields={sobjectMetadata.fields || []}

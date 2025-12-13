@@ -11,7 +11,7 @@ import {
   isEscapeKey,
 } from '@jetstream/shared/ui-utils';
 import { NOOP } from '@jetstream/shared/utils';
-import { DropDownItemLength, FormGroupDropdownItem } from '@jetstream/types';
+import { DropDownItemLength } from '@jetstream/types';
 import classNames from 'classnames';
 import uniqueId from 'lodash/uniqueId';
 import React, {
@@ -26,11 +26,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import PopoverContainer, { PopoverContainerProps } from '../../popover/PopoverContainer';
+import PopoverContainer from '../../popover/PopoverContainer';
 import HelpText from '../../widgets/HelpText';
 import Icon from '../../widgets/Icon';
 import Spinner from '../../widgets/Spinner';
-import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
+import { FormGroupDropdown, FormGroupDropdownProps } from '../formGroupDropDown/FormGroupDropdown';
 import { ComboboxListItem } from './ComboboxListItem';
 
 export interface ComboboxPropsRef {
@@ -76,11 +76,8 @@ export interface ComboboxProps {
    * Shows a dropdown at beginning to choose between different types of items.
    * {@link https://www.lightningdesignsystem.com/components/combobox/?variant=deprecated-multi-entity#Grouped-Comboboxes-(Cross-entity-Polymorphic)}
    */
-  leadingDropdown?: {
-    label: string;
-    items: FormGroupDropdownItem[];
-    initialSelectedItem?: FormGroupDropdownItem;
-  };
+  leadingDropdown?: Omit<FormGroupDropdownProps, 'comboboxId' | 'variant'>;
+  trailingDropdown?: Omit<FormGroupDropdownProps, 'comboboxId' | 'variant'>;
   /**
    * Depending on how Combobox is used, isEmpty may not be able to be automatically calculated.
    * if so, Set this field to true if you know there are no items in the list.
@@ -104,17 +101,12 @@ export interface ComboboxProps {
    */
   isVirtual?: boolean;
   usePortal?: boolean;
-  popoverProps?: PopoverContainerProps;
   onInputChange?: (value: string) => void;
   /** Same as onInputChange, but does not get called when closed */
   onFilterInputChange?: (value: string) => void;
   onInputEnter?: () => void;
   onClear?: () => void;
   onClose?: () => void;
-  /**
-   * If there is a leading grouped dropdown, indicates if item in that list changed
-   */
-  onLeadingDropdownChange?: (item: FormGroupDropdownItem) => void;
   /**
    * Notify parent of keyboard navigation event
    */
@@ -161,6 +153,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       selectedItemLabel,
       selectedItemTitle,
       leadingDropdown,
+      trailingDropdown,
       isEmpty = false,
       itemLength = 7,
       hasError,
@@ -173,7 +166,6 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
       onInputChange,
       onFilterInputChange,
       onInputEnter,
-      onLeadingDropdownChange,
       onClear,
       onClose,
       onKeyboardNavigation,
@@ -184,10 +176,11 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
     const inputBuffer = useRef('');
     const popoverRef = useRef<HTMLDivElement | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const [id] = useState<string>(uniqueId('Combobox'));
+    const [id] = useState<string>(inputProps?.id || uniqueId('Combobox'));
     const [listId] = useState<string>(uniqueId('Combobox-list'));
     const [value, setValue] = useState<string>(selectedItemLabel || '');
-    const hasDropdownGroup = !!leadingDropdown && !!leadingDropdown.items?.length;
+    const hasLeadingDropdown = !!leadingDropdown && !!leadingDropdown.items?.length;
+    const hasTrailingDropdown = !!trailingDropdown && !!trailingDropdown.items?.length;
 
     const inputEl = useRef<HTMLInputElement>(null);
     const divContainerEl = useRef<HTMLDivElement>(null);
@@ -380,20 +373,18 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
         {labelHelp && !hideLabel && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
         <div className="slds-form-element__control">
           {getContainer(
-            hasDropdownGroup,
+            hasLeadingDropdown || hasTrailingDropdown,
             <Fragment>
-              {hasDropdownGroup && (
-                <FormGroupDropdown
-                  comboboxId={id}
-                  label={leadingDropdown.label}
-                  initialSelectedItemId={leadingDropdown.initialSelectedItem?.id}
-                  items={leadingDropdown.items}
-                  onSelected={onLeadingDropdownChange}
-                />
-              )}
-              <div className={classNames('slds-combobox_container', { 'slds-has-selection': showSelectionAsButton && selectedItemLabel })}>
+              {hasLeadingDropdown && <FormGroupDropdown comboboxId={id} variant="start" {...leadingDropdown} />}
+              <div
+                className={classNames('slds-combobox_container', {
+                  'slds-has-selection': showSelectionAsButton && selectedItemLabel,
+                  'slds-combobox-addon_start': !hasLeadingDropdown && hasTrailingDropdown,
+                  'slds-combobox-addon_end': hasLeadingDropdown && !hasTrailingDropdown,
+                })}
+                ref={entireContainerEl}
+              >
                 <div
-                  ref={entireContainerEl}
                   className={classNames('slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click', { 'slds-is-open': isOpen })}
                   aria-expanded={isOpen}
                   aria-haspopup="listbox"
@@ -464,6 +455,7 @@ export const Combobox = forwardRef<ComboboxPropsRef, ComboboxProps>(
                   </PopoverContainer>
                 </div>
               </div>
+              {hasTrailingDropdown && <FormGroupDropdown comboboxId={id} variant="end" {...trailingDropdown} />}
             </Fragment>,
           )}
         </div>

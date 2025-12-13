@@ -174,7 +174,7 @@ export const DescribeMetadataList: FunctionComponent<DescribeMetadataListProps> 
                     selectedItems.size >= filteredMetadataItems.length &&
                     filteredMetadataItems.every((item) => selectedItems.has(item.name))
                   }
-                  label={'Select All'}
+                  label="Select All"
                   disabled={filteredMetadataItems.length === 0}
                   onChange={(value) => onSelected([...filteredMetadataItems.map((item) => item.name)], { selectAllValue: value })}
                 />

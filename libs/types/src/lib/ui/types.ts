@@ -411,7 +411,11 @@ export interface QueryFieldHeader {
 export interface FormGroupDropdownItem {
   id: string;
   label: string;
-  icon?: any; // FIXME:
+  /**
+   * Accepts utility icon names
+   * If set, will be used instead for each dropdown item instead of the checkmark icon
+   */
+  icon?: string; // FIXME: unable to import cross module boundaries
 }
 
 export type AsyncJobType =
