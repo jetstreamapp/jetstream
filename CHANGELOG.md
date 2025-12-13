@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.13.1](https://github.com/jetstreamapp/jetstream/compare/v8.13.0...v8.13.1) (2025-12-13)
+
+### Bug Fixes
+
+* lookup filter styles ([41e6674](https://github.com/jetstreamapp/jetstream/commit/41e6674b0a363744c67e42e4b385f956b0459418)), closes [#1471](https://github.com/jetstreamapp/jetstream/issues/1471)
+
 ## [8.13.0](https://github.com/jetstreamapp/jetstream/compare/v8.12.1...v8.13.0) (2025-12-13)
 
 ### Features
