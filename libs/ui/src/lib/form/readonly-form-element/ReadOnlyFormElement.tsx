@@ -64,15 +64,15 @@ export const ReadOnlyFormElement: FunctionComponent<ReadOnlyFormElementProps> = 
     <div className={classNames('slds-form-element', className, { 'slds-has-error': hasError })}>
       {label && (
         <Fragment>
-          <label className="slds-form-element__label" htmlFor={id}>
+          <span className="slds-form-element__label">
             {isRequired && (
               <abbr className="slds-required" title="required">
                 *{' '}
               </abbr>
             )}
             {label}
-          </label>
-          {labelHelp && <HelpText id={`${id}-label-help-text`} content={labelHelp} />}
+          </span>
+          {labelHelp && <HelpText content={labelHelp} />}
         </Fragment>
       )}
       <div id={id} className={classNames('slds-form-element__control', { 'slds-border_bottom': bottomBorder })}>

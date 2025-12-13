@@ -148,9 +148,9 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
       onOutsideClick={() => setIsOpen(false)}
     >
       <div className="slds-form-element">
-        <label id={`${inputId}-label`} className="slds-form-element__label slds-assistive-text" htmlFor={inputId}>
+        <span id={`${inputId}-label`} className="slds-form-element__label slds-assistive-text">
           {label}
-        </label>
+        </span>
         <div className="slds-form-element__control">
           <div className={classNames('slds-combobox_container', { 'slds-has-icon-only': !!iconOnly })}>
             <div
@@ -176,7 +176,9 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                 <div
                   role="combobox"
                   tabIndex={0}
-                  className={classNames('slds-input_faux slds-combobox__input slds-combobox__input-value', { 'slds-has-focus': isOpen })}
+                  className={classNames('slds-input slds-combobox__input slds-has-focus slds-combobox__input-value', {
+                    'slds-has-focus': isOpen,
+                  })}
                   aria-labelledby={`${inputId}-label`}
                   id={`${inputId}-selected-value`}
                   aria-controls={id}
