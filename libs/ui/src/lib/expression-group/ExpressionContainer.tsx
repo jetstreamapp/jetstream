@@ -9,6 +9,7 @@ import {
   ExpressionType,
   ListItem,
   QueryFilterOperator,
+  SalesforceOrgUi,
 } from '@jetstream/types';
 import { FunctionComponent, memo, useCallback, useEffect, useReducer, useState } from 'react';
 import DropDown from '../form/dropdown/DropDown';
@@ -22,6 +23,7 @@ const DISPLAY_OPT_ROW = 'expression-ancillary-row';
 const DISPLAY_OPT_WRAP = 'expression-ancillary-wrap';
 
 export interface ExpressionContainerProps {
+  org: SalesforceOrgUi;
   title?: string;
   actionLabel: string;
   actionHelpText?: string;
@@ -361,6 +363,7 @@ function getInitialState(initialState: ExpressionType) {
 
 export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = memo(
   ({
+    org,
     title,
     actionLabel,
     actionHelpText,
@@ -433,6 +436,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
     return (
       <Expression
         actionLabel={actionLabel}
+        actionHelpText={actionHelpText}
         title={title}
         value={expression.action}
         ancillaryOptions={
@@ -459,6 +463,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
             return (
               <ExpressionConditionRow
                 key={row.key}
+                org={org}
                 rowKey={row.key}
                 row={i + 1}
                 AndOr={expression.action}
@@ -485,7 +490,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 disableValueForOperators={disableValueForOperators}
                 onChange={(selected) => handleRowChange(selected, row)}
                 onDelete={() => handleDeleteRow(row)}
-              ></ExpressionConditionRow>
+              />
             );
           } else {
             return (
@@ -502,6 +507,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                 {row.rows.map((childRow: ExpressionConditionType, k) => (
                   <ExpressionConditionRow
                     key={childRow.key}
+                    org={org}
                     rowKey={childRow.key}
                     groupKey={row.key}
                     group={i + 1}
@@ -529,7 +535,7 @@ export const ExpressionContainer: FunctionComponent<ExpressionContainerProps> = 
                     disableValueForOperators={disableValueForOperators}
                     onChange={(selected) => handleRowChange(selected, childRow, row)}
                     onDelete={() => handleDeleteRow(childRow, row)}
-                  ></ExpressionConditionRow>
+                  />
                 ))}
               </ExpressionGroup>
             );

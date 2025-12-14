@@ -8,6 +8,7 @@ import {
   ExpressionRowValueType,
   ListItem,
   QueryFilterOperator,
+  SalesforceOrgUi,
 } from '@jetstream/types';
 import classNames from 'classnames';
 import { formatISO } from 'date-fns/formatISO';
@@ -20,6 +21,7 @@ import { useDrag } from 'react-dnd';
 import FormRowButton from '../form/button/FormRowButton';
 import ComboboxWithDrillInItems from '../form/combobox/ComboboxWithDrillInItems';
 import ComboboxWithItems from '../form/combobox/ComboboxWithItems';
+import { RecordLookupCombobox } from '../form/combobox/RecordLookupCombobox';
 import DatePicker from '../form/date/DatePicker';
 import Input from '../form/input/Input';
 import Picklist from '../form/picklist/Picklist';
@@ -30,6 +32,7 @@ import { Icon } from '../widgets/Icon';
 import { DraggableRow } from './expression-types';
 
 export interface ExpressionConditionRowProps {
+  org: SalesforceOrgUi;
   rowKey: number;
   groupKey?: number;
   row: number;
@@ -65,6 +68,7 @@ function getSelectionLabel(item: ListItem<string, unknown>) {
 }
 
 export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowProps> = ({
+  org,
   rowKey,
   groupKey,
   row,
@@ -101,6 +105,7 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
   // the default picklist value does not get picked up in time - so this forces the picklist to re-render
   const [picklistKey, setPicklistKey] = useState<string>(`${new Date().getTime()}`);
   const debouncedSelectedValue = useDebounce(selectedValue, 150);
+  const referenceSobjects: string[] = selected.resourceMeta?.referenceTo || [];
 
   const [{ isDragging }, drag, preview] = useDrag(
     () => ({
@@ -316,6 +321,23 @@ export const ExpressionConditionRow: FunctionComponent<ExpressionConditionRowPro
                 dropDownPosition="right"
                 onChange={(value) => value && setSelectValue(formatISO(value))}
                 disabled={disableValueInput}
+              />
+            )}
+            {resourceType === 'LOOKUP' && (
+              <RecordLookupCombobox
+                key={picklistKey}
+                allowManualMode
+                comboboxProps={{
+                  label: valueLabel,
+                  disabled: disableValueInput,
+                  onClear: () => onChange({ ...selected, value: '' }),
+                }}
+                value={selectedValue as string}
+                org={org}
+                sobjects={referenceSobjects}
+                onChange={(item) => {
+                  setSelectValue(item || '');
+                }}
               />
             )}
             {resourceType === 'SELECT' && (

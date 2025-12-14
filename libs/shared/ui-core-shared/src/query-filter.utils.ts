@@ -204,7 +204,11 @@ export function getDateTimeMultiResourceTypes(): ListItem<ExpressionRowValueType
   ];
 }
 
-export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilterOperator>, value?: string | string[]) {
+export function getTypeFromMetadata(
+  type: FieldType,
+  operator: Maybe<QueryFilterOperator>,
+  value?: string | string[],
+): ExpressionRowValueType {
   /**
    * TODO:
    * int / double / currency / percent
@@ -237,6 +241,9 @@ export function getTypeFromMetadata(type: FieldType, operator: Maybe<QueryFilter
     case 'picklist':
     case 'multipicklist': {
       return isListOperator(operator) ? 'SELECT-MULTI' : 'SELECT';
+    }
+    case 'reference': {
+      return isListOperator(operator) ? 'TEXTAREA' : 'LOOKUP';
     }
     default:
       return isListOperator(operator) ? 'TEXTAREA' : 'TEXT';

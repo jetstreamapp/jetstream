@@ -276,6 +276,7 @@ export type Up = 'UP';
 export type Down = 'DOWN';
 export type UpDown = Up | Down;
 
+export type Lookup = 'LOOKUP';
 export type Select = 'SELECT';
 export type SelectMulti = 'SELECT-MULTI';
 export type Text = 'TEXT';
@@ -283,7 +284,7 @@ export type TextArea = 'TEXTAREA';
 export type DateStr = 'DATE';
 export type Datetime = 'DATETIME';
 
-export type ExpressionRowValueType = Select | SelectMulti | Text | TextArea | DateStr | Datetime | 'NUMBER' | 'BOOLEAN';
+export type ExpressionRowValueType = Lookup | Select | SelectMulti | Text | TextArea | DateStr | Datetime | 'NUMBER' | 'BOOLEAN';
 
 export type AndOr = 'AND' | 'OR';
 export type AscDesc = 'ASC' | 'DESC';

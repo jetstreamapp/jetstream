@@ -1,4 +1,4 @@
-import { ListItem, QueryFieldWithPolymorphic, UiSection } from '@jetstream/types';
+import { ListItem, QueryFieldWithPolymorphic, SalesforceOrgUi, UiSection } from '@jetstream/types';
 import { Accordion, ScopedNotification } from '@jetstream/ui';
 import { fromQueryState } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
@@ -12,6 +12,7 @@ import QueryFilterTitleSummary from './accordion-titles/QueryFilterTitleSummary'
 import QueryGroupByTitleSummary from './accordion-titles/QueryGroupByTitleSummary';
 
 export interface QueryBuilderAdvancedOptionsProps {
+  org: SalesforceOrgUi;
   sobject: string;
   selectedFields: QueryFieldWithPolymorphic[];
   filterFields: ListItem[];
@@ -21,6 +22,7 @@ export interface QueryBuilderAdvancedOptionsProps {
 }
 
 export const QueryBuilderAdvancedOptions = ({
+  org,
   sobject,
   selectedFields,
   filterFields,
@@ -68,6 +70,7 @@ export const QueryBuilderAdvancedOptions = ({
           content: hasGroupByClause ? (
             <QueryFilter
               key={queryKey}
+              org={org}
               sobject={sobject}
               fields={filterFields}
               isHavingClause

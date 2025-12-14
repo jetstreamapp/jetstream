@@ -431,6 +431,7 @@ export const QueryBuilder = () => {
                                 content: (
                                   <QueryFilter
                                     key={queryKey}
+                                    org={selectedOrg}
                                     sobject={selectedSObject.name}
                                     fields={filterFields}
                                     filtersOrHaving={queryFilters}
@@ -495,6 +496,7 @@ export const QueryBuilder = () => {
                         content: (
                           <QueryBuilderAdvancedOptions
                             key={queryKey}
+                            org={selectedOrg}
                             sobject={selectedSObject.name}
                             selectedFields={selectedFields}
                             filterFields={filterFields}

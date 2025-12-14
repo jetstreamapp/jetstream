@@ -1,3 +1,4 @@
+import { css } from '@emotion/react';
 import { IconName, UtilityIcon } from '@jetstream/icon-factory';
 import {
   isArrowDownKey,
@@ -177,6 +178,11 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                   <input
                     type="text"
                     className="slds-input slds-combobox__input slds-combobox__input-value"
+                    css={css`
+                      &:focus {
+                        z-index: 1;
+                      }
+                    `}
                     id={`${inputId}-selected-value`}
                     aria-controls={id}
                     aria-expanded={isOpen}
@@ -215,73 +221,76 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                   className="slds-icon slds-icon slds-icon_xx-small slds-icon-text-default"
                 />
               </div>
-              <div
-                id={id}
-                className={`slds-dropdown slds-dropdown_length-7 slds-dropdown_x-small slds-dropdown_${variant === 'end' ? 'right' : 'left'}`}
-                role="listbox"
-              >
-                <ul className="slds-listbox slds-listbox_vertical" role="group" ref={ulContainerEl}>
-                  {headingLabel && (
-                    <li role="presentation" className="slds-listbox__item">
-                      <div
-                        id={`${id}-heading`}
-                        className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+              {isOpen && (
+                <div
+                  id={id}
+                  className={`slds-dropdown slds-dropdown_length-7 slds-dropdown_x-small slds-dropdown_${variant === 'end' ? 'right' : 'left'}`}
+                  role="listbox"
+                >
+                  <ul className="slds-listbox slds-listbox_vertical" role="group" ref={ulContainerEl}>
+                    {headingLabel && (
+                      <li role="presentation" className="slds-listbox__item">
+                        <div
+                          id={`${id}-heading`}
+                          className="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                          role="presentation"
+                        >
+                          <h3 className="slds-listbox__option-header" role="presentation">
+                            {headingLabel}
+                          </h3>
+                        </div>
+                      </li>
+                    )}
+                    {items.map((item, i) => (
+                      <li
+                        key={item.id}
+                        ref={elRefs.current[i]}
+                        tabIndex={-1}
                         role="presentation"
+                        className="slds-listbox__item slds-item"
+                        onKeyDown={handleKeyDown}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          selectItem(item);
+                        }}
                       >
-                        <h3 className="slds-listbox__option-header" role="presentation">
-                          {headingLabel}
-                        </h3>
-                      </div>
-                    </li>
-                  )}
-                  {items.map((item, i) => (
-                    <li
-                      ref={elRefs.current[i]}
-                      tabIndex={-1}
-                      role="presentation"
-                      className="slds-listbox__item slds-item"
-                      onKeyDown={handleKeyDown}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        selectItem(item);
-                      }}
-                    >
-                      <div
-                        className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {
-                          'slds-is-selected': item.id === selectedItem.id,
-                        })}
-                        aria-selected={item.id === selectedItem.id}
-                        role="option"
-                      >
-                        <span className="slds-media__figure slds-listbox__option-icon">
-                          {item.icon && (
-                            <Icon
-                              type="utility"
-                              icon={item.icon as IconName}
-                              containerClassname={classNames(`slds-icon_container slds-icon-utility-${item.icon} slds-current-color`)}
-                              className="slds-icon slds-icon_x-small"
-                            />
-                          )}
-                          {!item.icon && item.id === selectedItem.id && (
-                            <Icon
-                              type="utility"
-                              icon="check"
-                              containerClassname="slds-icon_container slds-icon-utility-check slds-current-color"
-                              className="slds-icon slds-icon_x-small"
-                            />
-                          )}
-                        </span>
-                        <span className="slds-media__body">
-                          <span className="slds-truncate" title={item.label}>
-                            {item.label}
+                        <div
+                          className={classNames('slds-media slds-listbox__option slds-listbox__option_plain slds-media_small', {
+                            'slds-is-selected': item.id === selectedItem.id,
+                          })}
+                          aria-selected={item.id === selectedItem.id}
+                          role="option"
+                        >
+                          <span className="slds-media__figure slds-listbox__option-icon">
+                            {item.icon && (
+                              <Icon
+                                type="utility"
+                                icon={item.icon as IconName}
+                                containerClassname={classNames(`slds-icon_container slds-icon-utility-${item.icon} slds-current-color`)}
+                                className="slds-icon slds-icon_x-small"
+                              />
+                            )}
+                            {!item.icon && item.id === selectedItem.id && (
+                              <Icon
+                                type="utility"
+                                icon="check"
+                                containerClassname="slds-icon_container slds-icon-utility-check slds-current-color"
+                                className="slds-icon slds-icon_x-small"
+                              />
+                            )}
                           </span>
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                          <span className="slds-media__body">
+                            <span className="slds-truncate" title={item.label}>
+                              {item.label}
+                            </span>
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>
