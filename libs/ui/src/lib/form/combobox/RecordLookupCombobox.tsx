@@ -175,10 +175,8 @@ export function RecordLookupCombobox({
         isRequired={comboboxProps.isRequired}
         hasError={comboboxProps.hasError}
         errorMessageId={`${id}-error`}
-        clearButton={!!comboboxProps.onClear}
         trailingChildren={
           <FormGroupDropdown
-            className="slds-m-bottom_x-small"
             comboboxId={id}
             label={INPUT_MODE_LABEL}
             initialSelectedItemId={inputMode}
@@ -189,7 +187,6 @@ export function RecordLookupCombobox({
             onSelected={(value) => setInputMode(value.id as InputMode)}
           />
         }
-        onClear={comboboxProps.onClear}
       >
         <input
           id={id}
@@ -199,6 +196,9 @@ export function RecordLookupCombobox({
             border-bottom-right-radius: 0;
             border-top-left-radius: 4px;
             border-bottom-left-radius: 4px;
+            &:focus {
+              z-index: 1;
+            }
           `}
           required={comboboxProps.isRequired}
           disabled={comboboxProps.disabled}

@@ -1,4 +1,4 @@
-import { SerializedStyles } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { IconName, IconType } from '@jetstream/icon-factory';
 import classNames from 'classnames';
 import { Fragment, FunctionComponent, MouseEvent } from 'react';
@@ -84,55 +84,62 @@ export const Input: FunctionComponent<InputProps> = ({
         </Fragment>
       )}
       <div
-        className={classNames(
-          'slds-form-element__control',
-          {
-            'slds-input-has-icon': iconLeft || iconRight || clearButton,
-            'slds-input-has-icon_left': !leftAddon && iconLeft && !iconRight && !clearButton,
-            'slds-input-has-icon_right': !leftAddon && !iconLeft && (iconRight || clearButton),
-            'slds-input-has-icon_left-right': (!leftAddon && !rightAddon && iconLeft && iconRight) || (iconLeft && clearButton),
-            'slds-input-has-fixed-addon': leftAddon || rightAddon,
-            'slds-input-has-icon_group-right': loading,
-          },
-          formControlClassName,
-        )}
-        css={formControlStyles}
+        css={css`
+          display: flex;
+          align-items: end;
+        `}
       >
-        {!leftAddon && iconLeft && iconLeftType && (
-          <Icon
-            omitContainer
-            type={iconLeftType}
-            icon={iconLeft}
-            className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_left"
-          />
-        )}
-        {!rightAddon && iconRight && iconRightType && (
-          <Icon
-            omitContainer
-            type={iconRightType}
-            icon={iconRight}
-            className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
-          />
-        )}
-        {leftAddon && <span className="slds-form-element__addon">{leftAddon}</span>}
-        {/* Input field must be passed through */}
-        {children}
-        {loading && (
-          <div className="slds-input__icon-group slds-input__icon-group_right">
-            <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
-            {clearButton && (
-              <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
-                <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
-              </button>
-            )}
-          </div>
-        )}
-        {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
-        {!rightAddon && clearButton && !loading && (
-          <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
-            <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
-          </button>
-        )}
+        <div
+          className={classNames(
+            'slds-form-element__control slds-grow',
+            {
+              'slds-input-has-icon': iconLeft || iconRight || clearButton,
+              'slds-input-has-icon_left': !leftAddon && iconLeft && !iconRight && !clearButton,
+              'slds-input-has-icon_right': !leftAddon && !iconLeft && (iconRight || clearButton),
+              'slds-input-has-icon_left-right': (!leftAddon && !rightAddon && iconLeft && iconRight) || (iconLeft && clearButton),
+              'slds-input-has-fixed-addon': leftAddon || rightAddon,
+              'slds-input-has-icon_group-right': loading,
+            },
+            formControlClassName,
+          )}
+          css={formControlStyles}
+        >
+          {!leftAddon && iconLeft && iconLeftType && (
+            <Icon
+              omitContainer
+              type={iconLeftType}
+              icon={iconLeft}
+              className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_left"
+            />
+          )}
+          {!rightAddon && iconRight && iconRightType && (
+            <Icon
+              omitContainer
+              type={iconRightType}
+              icon={iconRight}
+              className="slds-icon slds-input__icon slds-icon-text-default slds-input__icon_right"
+            />
+          )}
+          {leftAddon && <span className="slds-form-element__addon">{leftAddon}</span>}
+          {/* Input field must be passed through */}
+          {children}
+          {loading && (
+            <div className="slds-input__icon-group slds-input__icon-group_right">
+              <Spinner className="slds-spinner slds-spinner_brand slds-spinner_x-small slds-input__spinner" hasContainer={false} />
+              {clearButton && (
+                <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
+                  <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
+                </button>
+              )}
+            </div>
+          )}
+          {rightAddon && <span className="slds-form-element__addon">{rightAddon}</span>}
+          {!rightAddon && clearButton && !loading && (
+            <button className="slds-button slds-button_icon slds-input__icon slds-input__icon_right" title="Clear" onClick={onClear}>
+              <Icon type="utility" icon="clear" omitContainer className="slds-button__icon slds-icon-text-light" />
+            </button>
+          )}
+        </div>
         {trailingChildren}
       </div>
       {helpText && <div className="slds-form-element__help">{helpText}</div>}

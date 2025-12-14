@@ -92,6 +92,7 @@ export const ComboboxWithItemsTypeAhead: FunctionComponent<ComboboxWithItemsType
     onSearch('')
       .then(() => setLoading(false))
       .catch(() => setLoading(false));
+    comboboxProps?.onClear?.();
   }
 
   const handleKeyboardNavigation = (action: 'up' | 'down' | 'right' | 'enter') => {
