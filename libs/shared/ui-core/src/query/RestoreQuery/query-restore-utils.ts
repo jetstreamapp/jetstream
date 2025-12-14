@@ -408,7 +408,7 @@ function flattenWhereClause(
             resourceTypes: getFieldResourceTypes(field, operator),
             selected: {
               resource: fieldKey,
-              resourceMeta: fieldMetadata,
+              resourceMeta: fieldMetadata.metadata,
               resourceGroup: parentKey,
               function: clauseFunction,
               operator,

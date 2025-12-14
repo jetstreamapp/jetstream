@@ -1,10 +1,11 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { ExpressionType, ListItem, QueryFilterOperator } from '@jetstream/types';
+import { ExpressionType, ListItem, QueryFilterOperator, SalesforceOrgUi } from '@jetstream/types';
 import { ExpressionContainer } from '@jetstream/ui';
 import { QUERY_FIELD_FUNCTIONS, QUERY_OPERATORS, getResourceTypeFnsFromFields } from '@jetstream/ui-core/shared';
 import { FunctionComponent, useCallback, useEffect, useRef, useState } from 'react';
 
 export interface QueryFilterProps {
+  org: SalesforceOrgUi;
   sobject: string;
   fields: ListItem[];
   filtersOrHaving: ExpressionType;
@@ -16,6 +17,7 @@ export interface QueryFilterProps {
 const disableValueForOperators: QueryFilterOperator[] = ['isNull', 'isNotNull'];
 
 export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
+  org,
   sobject,
   fields,
   filtersOrHaving,
@@ -51,6 +53,7 @@ export const QueryFilter: FunctionComponent<QueryFilterProps> = ({
 
   return (
     <ExpressionContainer
+      org={org}
       expressionInitValue={initialQueryFilters}
       actionLabel="Filter When"
       operatorHelpText="Use the In or Not In operators to match against a list of values."
