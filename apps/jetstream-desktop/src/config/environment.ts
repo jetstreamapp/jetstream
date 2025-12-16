@@ -20,7 +20,7 @@ const { defaultApiVersion } = getDefaultAppState();
 
 const ENV_INTERNAL_DEV = {
   ENVIRONMENT: 'development',
-  CLIENT_URL: 'http://localhost:4200',
+  CLIENT_URL: 'http://localhost:4201',
   SERVER_URL: 'http://localhost:3333',
   SFDC_API_VERSION: defaultApiVersion.replace('v', ''),
   DESKTOP_SFDC_CALLBACK_URL: 'jetstream://addOrg/oauth/sfdc/callback',

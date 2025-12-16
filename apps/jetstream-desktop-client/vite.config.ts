@@ -11,7 +11,7 @@ export default defineConfig(() => ({
   cacheDir: '../../node_modules/.vite/jetstream-desktop-client',
   envPrefix: 'NX',
   server: {
-    port: 4200,
+    port: 4201,
     host: 'localhost',
     fs: {
       allow: ['..'],
