@@ -19,7 +19,7 @@ export const AnalyticsTrackingSetting = () => {
   }
 
   return (
-    <RadioGroup label="Allow Analytics Tracking" isButtonGroup>
+    <RadioGroup label="Analytics Tracking" isButtonGroup>
       <RadioButton
         id="cookie-consent-accept"
         name="cookie-analytics-consent"
