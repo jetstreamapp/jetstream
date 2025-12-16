@@ -14,6 +14,8 @@ import {
 import { getDefaultAppState, groupByFlat, orderObjectsBy } from '@jetstream/shared/utils';
 import {
   AppInfo,
+  SoqlQueryFormatOptions,
+  SoqlQueryFormatOptionsSchema,
   TeamBillingStatusSchema,
   type Announcement,
   type ApplicationState,
@@ -41,6 +43,7 @@ export const DEFAULT_PROFILE: UserProfileUi = {
   preferences: {
     skipFrontdoorLogin: true,
     recordSyncEnabled: true,
+    soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
   },
   // FIXME: we want these true for the browser extension
   entitlements: {
@@ -329,6 +332,17 @@ export const selectSkipFrontdoorAuth = atom((get) => {
   const userProfile = get(userProfileSyncState);
   return userProfile?.preferences?.skipFrontdoorLogin ?? false;
 });
+
+export const soqlQueryFormatOptionsState = atom(
+  (get) => {
+    const userProfile = get(userProfileSyncState);
+    return userProfile?.preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({});
+  },
+  (get, set, soqlQueryFormatOptions: SoqlQueryFormatOptions) => {
+    const userProfile = get(userProfileSyncState);
+    set(userProfileSyncState, { ...userProfile, preferences: { ...userProfile.preferences, soqlQueryFormatOptions } });
+  },
+);
 
 export const salesforceOrgsById = atom((get) => {
   const salesforceOrgs = get(salesforceOrgsState) || [];

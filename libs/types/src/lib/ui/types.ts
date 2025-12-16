@@ -4,7 +4,7 @@ import type * as XLSX from 'xlsx';
 import { DeployOptions, DeployResult, DeployResultStatus, ListMetadataResult } from '../salesforce/metadata.types';
 import { FileNameFormat } from '../salesforce/query.types';
 import { ChildRelationship, DescribeSObjectResult, Field } from '../salesforce/sobject.types';
-import { HttpMethod, Maybe, QueryResultsColumn, SalesforceOrgUi } from '../types';
+import { HttpMethod, Maybe, QueryResultsColumn, SalesforceOrgUi, SoqlQueryFormatOptions } from '../types';
 
 export type DropDownItemLength = 5 | 7 | 10;
 
@@ -428,6 +428,7 @@ export type AsyncJobType =
   | 'UploadToGoogle'
   | 'DesktopFileDownload'
   | 'CancelJob';
+
 export type AsyncJobStatus = 'pending' | 'in-progress' | 'success' | 'finished-warning' | 'failed' | 'aborted';
 
 export type AsyncJobNew<T = unknown> = Omit<AsyncJob<T>, 'id' | 'started' | 'finished' | 'lastActivity' | 'status' | 'statusMessage'>;
@@ -467,14 +468,27 @@ export interface AsyncJobWorkerMessageResponse<T = unknown, R = unknown> {
   results?: R;
 }
 
-export type JetstreamEventType = 'newJob' | 'jobFinished' | 'lastActivityUpdate' | 'addOrg' | 'streamFileDownload';
+export type JetstreamEventType =
+  | 'newJob'
+  | 'jobFinished'
+  | 'lastActivityUpdate'
+  | 'addOrg'
+  | 'streamFileDownload'
+  | 'saveSoqlQueryFormatOptions';
 export type JetstreamEvents =
   | JetstreamEventJobFinished
   | JetstreamEventLastActivityUpdate
   | JetstreamEventNewJob
   | JetstreamEventAddOrg
-  | JetstreamEventStreamFile;
-export type JetstreamEventPayloads = AsyncJob | AsyncJobNew[] | JetstreamEventAddOrgPayload | JetstreamEventStreamFilePayload;
+  | JetstreamEventStreamFile
+  | JetstreamEventSaveSoqlQueryFormatOptions;
+
+export type JetstreamEventPayloads =
+  | AsyncJob
+  | AsyncJobNew[]
+  | JetstreamEventAddOrgPayload
+  | JetstreamEventStreamFilePayload
+  | JetstreamEventSaveSoqlQueryFormatOptionsPayload;
 
 export interface JetstreamEvent<T> {
   type: JetstreamEventType;
@@ -512,6 +526,14 @@ export interface JetstreamEventStreamFile extends JetstreamEvent<JetstreamEventP
 export interface JetstreamEventStreamFilePayload {
   link: string;
   fileName: string;
+}
+
+export interface JetstreamEventSaveSoqlQueryFormatOptions extends JetstreamEvent<JetstreamEventPayloads> {
+  type: 'saveSoqlQueryFormatOptions';
+  payload: JetstreamEventSaveSoqlQueryFormatOptionsPayload;
+}
+export interface JetstreamEventSaveSoqlQueryFormatOptionsPayload {
+  value: SoqlQueryFormatOptions;
 }
 
 export interface CancelJob {

@@ -31,7 +31,7 @@ import {
   sendInternalAccountDeletionEmail,
   sendPasswordReset,
 } from '@jetstream/email';
-import { PasswordSchema, UserProfileUiSchema } from '@jetstream/types';
+import { PasswordSchema, SoqlQueryFormatOptionsSchema, UserProfileUiSchema } from '@jetstream/types';
 import { AxiosError } from 'axios';
 import { z } from 'zod';
 import * as userDbService from '../db/user.db';
@@ -130,6 +130,7 @@ export const routeDefinition = {
           .object({
             skipFrontdoorLogin: z.boolean().optional(),
             recordSyncEnabled: z.boolean().optional(),
+            soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.optional(),
           })
           .optional(),
       }),

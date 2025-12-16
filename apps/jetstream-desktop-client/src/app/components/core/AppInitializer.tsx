@@ -3,15 +3,15 @@ import { logger } from '@jetstream/shared/client-logger';
 import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
-import { Announcement, SalesforceOrgUi } from '@jetstream/types';
-import { useAmplitude } from '@jetstream/ui-core';
+import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
+import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
 import { AxiosResponse } from 'axios';
 import { useAtom, useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import React, { Fragment, FunctionComponent, useEffect } from 'react';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { useElectronActionLoader } from './useElectronActionLoader';
 
@@ -39,11 +39,15 @@ export interface AppInitializerProps {
 }
 
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ authInfo, onAnnouncements, children }) => {
-  const userProfile = useAtomValue(fromAppState.userProfileState);
+  const [userProfile, setUserProfile] = useAtom(fromAppState.userProfileState);
   const ability = useAtomValue(fromAppState.abilityState);
   const { version, announcements, appInfo } = useAtomValue(fromAppState.appInfoState);
   const [orgs, setOrgs] = useAtom(fromAppState.salesforceOrgsState);
   const invalidOrg = useObservable(orgConnectionError$);
+
+  const onSaveSoqlQueryFormatOptions = useObservable(
+    fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
+  );
 
   useElectronActionLoader();
 
@@ -89,13 +93,34 @@ APP VERSION ${version}
     announcements && onAnnouncements && onAnnouncements(announcements);
   }, [announcements, onAnnouncements]);
 
-  useRollbar({
+  const rollbar = useRollbar({
     accessToken: environment.rollbarClientAccessToken,
     environment: appInfo.environment,
     userProfile,
     version,
   });
   useAmplitude();
+
+  useEffect(() => {
+    if (onSaveSoqlQueryFormatOptions?.value) {
+      (async () => {
+        try {
+          if (!window.electronAPI) {
+            return;
+          }
+          const soqlQueryFormatOptions = onSaveSoqlQueryFormatOptions.value;
+          const preferences = await window.electronAPI.getPreferences();
+          const updatedPreferences = await window.electronAPI.setPreferences({
+            ...preferences,
+            soqlQueryFormatOptions,
+          });
+          setUserProfile((prev) => ({ ...prev, preferences: updatedPreferences }));
+        } catch (ex) {
+          rollbar.error('Error saving query format options', { stack: ex.stack, message: ex.message });
+        }
+      })();
+    }
+  }, [onSaveSoqlQueryFormatOptions, rollbar, setUserProfile]);
 
   useEffect(() => {
     if (invalidOrg) {

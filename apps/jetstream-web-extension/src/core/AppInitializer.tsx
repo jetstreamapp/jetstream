@@ -4,14 +4,18 @@ import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket } from '@jetstream/shared/data';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { getErrorMessage } from '@jetstream/shared/utils';
+import { JetstreamEventSaveSoqlQueryFormatOptionsPayload, UserProfileUi } from '@jetstream/types';
 import { ScopedNotification } from '@jetstream/ui';
-import { AppLoading } from '@jetstream/ui-core';
+import { AppLoading, fromJetstreamEvents } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
+import { useObservable } from 'dexie-react-hooks';
 import { useAtomValue, useSetAtom } from 'jotai';
 import localforage from 'localforage';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Observable } from 'rxjs';
+import browser from 'webextension-polyfill';
 import { chromeLocalStorage, chromeSyncStorage, UserProfileState } from '../utils/extension.store';
 import { sendMessage } from '../utils/web-extension.utils';
 import { GlobalExtensionError } from './GlobalExtensionError';
@@ -33,7 +37,7 @@ export interface AppInitializerProps {
 export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWithoutSalesforceOrg, children }) => {
   const location = useLocation();
 
-  const { authTokens, extIdentifier } = useAtomValue(chromeSyncStorage);
+  const { authTokens, extIdentifier, soqlQueryFormatOptions } = useAtomValue(chromeSyncStorage);
   const { options } = useAtomValue(chromeLocalStorage);
   const chromeUserProfile = useAtomValue(UserProfileState);
   const { serverUrl } = useAtomValue(fromAppState.applicationCookieState);
@@ -42,6 +46,10 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
   const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
   const setSalesforceOrgs = useSetAtom(fromAppState.salesforceOrgsState);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
+
+  const onSaveSoqlQueryFormatOptions = useObservable(
+    fromJetstreamEvents.getObservable('saveSoqlQueryFormatOptions') as Observable<JetstreamEventSaveSoqlQueryFormatOptionsPayload>,
+  );
 
   const [fatalError, setFatalError] = useState<string>();
 
@@ -75,12 +83,26 @@ export const AppInitializer: FunctionComponent<AppInitializerProps> = ({ allowWi
     }
   }, []);
 
+  useEffect(() => {
+    if (onSaveSoqlQueryFormatOptions && onSaveSoqlQueryFormatOptions.value) {
+      (async () => {
+        try {
+          const soqlQueryFormatOptions = onSaveSoqlQueryFormatOptions.value;
+          await browser.storage.sync.set({ soqlQueryFormatOptions });
+          setUserProfile((prev: UserProfileUi) => ({ ...prev, preferences: { ...prev.preferences, soqlQueryFormatOptions } }));
+        } catch (ex) {
+          logger.error('Error saving query format options', ex);
+        }
+      })();
+    }
+  }, [onSaveSoqlQueryFormatOptions, setUserProfile]);
+
   // set userProfile from chromeUserProfile
   useEffect(() => {
     if (chromeUserProfile) {
-      setUserProfile(chromeUserProfile);
+      setUserProfile({ ...chromeUserProfile, preferences: { ...chromeUserProfile.preferences, soqlQueryFormatOptions } });
     }
-  }, [chromeUserProfile, setUserProfile]);
+  }, [chromeUserProfile, setUserProfile, soqlQueryFormatOptions]);
 
   useNonInitialEffect(() => {
     const pageUrl = new URL(window.location.href);

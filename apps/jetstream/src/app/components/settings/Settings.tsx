@@ -4,6 +4,7 @@ import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { deleteUserProfile, getFullUserProfile, getUserProfile as getUserProfileUi, updateUserProfile } from '@jetstream/shared/data';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { eraseCookies, useRollbar, useTitle } from '@jetstream/shared/ui-utils';
+import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   CheckboxToggle,
@@ -15,7 +16,7 @@ import {
   Spinner,
   fireToast,
 } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState, userProfileState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue } from 'jotai';
@@ -44,6 +45,8 @@ export const Settings = () => {
 
   // TODO: Give option to disable
   const recordSyncEnabled = ability.can('access', 'RecordSync');
+
+  const soqlQueryFormatOptions = modifiedUser?.preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({});
 
   useEffect(() => {
     isMounted.current = true;
@@ -105,6 +108,12 @@ export const Settings = () => {
 
   function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
     const _modifiedUser = { ...modifiedUser, preferences: { skipFrontdoorLogin } } as UserProfileUiWithIdentities;
+    setModifiedUser(_modifiedUser);
+    handleSave(_modifiedUser);
+  }
+
+  function handleQueryFormatOptionChange(soqlQueryFormatOptions: SoqlQueryFormatOptions) {
+    const _modifiedUser = { ...modifiedUser, preferences: { soqlQueryFormatOptions } } as UserProfileUiWithIdentities;
     setModifiedUser(_modifiedUser);
     handleSave(_modifiedUser);
   }
@@ -207,6 +216,8 @@ export const Settings = () => {
               labelHelp="When enabled, Jetstream will not attempt to auto-login to Salesforce when you click a link in Jetstream. If you have issues with multi-factor authentication when clicking links, enable this."
               onChange={handleFrontdoorLoginChange}
             />
+
+            <SoqlQueryFormatConfig location="Settings" value={soqlQueryFormatOptions} onChange={handleQueryFormatOptionChange} />
 
             {recordSyncEnabled && (
               <div className="slds-m-top_large">

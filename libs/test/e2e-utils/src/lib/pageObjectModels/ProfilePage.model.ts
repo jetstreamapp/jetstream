@@ -1,4 +1,5 @@
 import { LoginConfigurationUI, UserProfileUiWithIdentities } from '@jetstream/auth/types';
+import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { APIRequestContext, Locator, Page } from '@playwright/test';
 import { ApiRequestUtils } from '../ApiRequestUtils';
 import { PlaywrightPage } from './PlaywrightPage.model';
@@ -16,6 +17,7 @@ export function getDefaultProfile() {
       userId: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
       skipFrontdoorLogin: false,
       recordSyncEnabled: true,
+      soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
       createdAt: new Date('2025-06-13T14:42:53.022Z'),
       updatedAt: new Date('2025-06-13T14:42:53.022Z'),
     },

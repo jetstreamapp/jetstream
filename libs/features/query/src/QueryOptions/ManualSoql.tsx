@@ -1,8 +1,11 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
+import { SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, GridCol, Icon, Popover, PopoverRef, Spinner, Textarea } from '@jetstream/ui';
-import { RestoreQuery, SoqlValidIndicator, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, RestoreQuery, SoqlQueryFormatConfigPopover, SoqlValidIndicator, useAmplitude } from '@jetstream/ui-core';
+import { soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount } from '@monaco-editor/react';
+import { useAtom } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,6 +26,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   const [isRestoring, setIsRestoring] = useState(false);
   const [queryIsValid, setQueryIsValid] = useState(false);
   const [userTooling, setUserTooling] = useState<boolean>(isTooling);
+  const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useAtom(soqlQueryFormatOptionsState);
 
   useEffect(() => {
     isMounted.current = true;
@@ -55,7 +59,13 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
   }
 
   function handleFormat() {
-    setSoql(formatQuery(soql, { fieldMaxLineLength: 80 }));
+    setSoql(formatQuery(soql, soqlQueryFormatOptions));
+  }
+
+  function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): void {
+    setSoqlQueryFormatOptions(options);
+    setSoql(formatQuery(soql, options));
+    fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 
   const handleEditorMount: OnMount = (currEditor, monaco) => {
@@ -84,7 +94,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
       keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
       contextMenuGroupId: '9_cutcopypaste',
       run: (currEditor) => {
-        setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
+        setSoql(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
       },
     });
   };
@@ -124,6 +134,11 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                     >
                       format
                     </button>
+                    <SoqlQueryFormatConfigPopover
+                      location="ManualSoql"
+                      value={soqlQueryFormatOptions}
+                      onChange={handleSaveSoqlQueryFormatOptions}
+                    />
                   </span>
                 </Grid>
               }
@@ -136,6 +151,7 @@ export const ManualSoql: FunctionComponent<ManualSoqlProps> = ({ className, isTo
                 value={soql}
                 options={{
                   minimap: { enabled: false },
+                  tabSize: 2,
                   lineNumbers: 'off',
                   glyphMargin: false,
                   folding: false,

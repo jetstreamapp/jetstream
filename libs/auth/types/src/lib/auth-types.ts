@@ -1,4 +1,4 @@
-import { Maybe, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatusSchema } from '@jetstream/types';
+import { Maybe, SoqlQueryFormatOptions, TeamMemberRole, TeamMemberRoleSchema, TeamMemberStatusSchema } from '@jetstream/types';
 import type { SerializeOptions as CookieSerializeOptions } from 'cookie';
 import { z } from 'zod';
 
@@ -31,6 +31,7 @@ export interface UserProfileUiWithIdentities extends UserProfile {
     updatedAt: Date;
     skipFrontdoorLogin: boolean;
     recordSyncEnabled: boolean;
+    soqlQueryFormatOptions: SoqlQueryFormatOptions;
   } | null;
   identities: UserProfileIdentity[];
   authFactors: UserProfileAuthFactor[];

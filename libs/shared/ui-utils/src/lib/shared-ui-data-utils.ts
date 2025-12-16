@@ -16,7 +16,6 @@ import type {
   SalesforceOrgUi,
   UserTrace,
 } from '@jetstream/types';
-import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import copyToClipboard from 'copy-to-clipboard';
 import { addHours } from 'date-fns/addHours';
 import { formatISO } from 'date-fns/formatISO';
@@ -28,10 +27,6 @@ import {
   transformTabularDataToExcelStr,
   transformTabularDataToHtml,
 } from './shared-ui-utils';
-
-export function buildQuery(sObject: string, fields: string[]) {
-  return composeQuery({ sObject, fields: fields.map((field) => getField(field)) }, { format: true });
-}
 
 export function getFieldKey(parentKey: string, field: Field) {
   return `${parentKey}${field.relationshipName}.`;

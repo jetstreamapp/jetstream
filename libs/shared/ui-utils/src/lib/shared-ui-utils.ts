@@ -454,7 +454,6 @@ export function convertFiltersToWhereClause<T extends WhereClause | HavingClause
   if (!filters) {
     return;
   }
-  logger.log({ filters });
 
   // Process all where clauses
   const whereOrHavingClauses = filters.rows.reduce((whereOrHavingClauses: T[], row, i) => {

@@ -54,6 +54,7 @@ import {
   SalesforceOrgUi,
   SobjectCollectionResponse,
   SobjectOperation,
+  SoqlQueryFormatOptions,
   StripePriceKey,
   StripeUserFacingCustomer,
   SyncRecord,
@@ -215,7 +216,7 @@ export async function removePassword(): Promise<UserProfileUiWithIdentities> {
 
 export async function updateUserProfile<T = UserProfileUiWithIdentities>(userProfile: {
   name?: string;
-  preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean };
+  preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean; soqlQueryFormatOptions?: SoqlQueryFormatOptions };
 }): Promise<T> {
   return handleRequest({ method: 'POST', url: '/api/me/profile', data: userProfile }).then(unwrapResponseIgnoreCache);
 }

@@ -6,10 +6,11 @@ import { chromeStorageOptions, chromeSyncStorage } from '../utils/extension.stor
 import { sendMessage } from '../utils/web-extension.utils';
 
 export const useExtensionSettings = () => {
-  const { authTokens } = useAtomValue(chromeSyncStorage);
+  const { authTokens, soqlQueryFormatOptions: _soqlQueryFormatOptions } = useAtomValue(chromeSyncStorage);
   const options = useAtomValue(chromeStorageOptions);
   const [enabled, setEnabled] = useState(options.enabled);
   const [recordSyncEnabled, setRecordSyncEnabled] = useState(options.recordSyncEnabled);
+  const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useState(_soqlQueryFormatOptions);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const loggedIn = !!authTokens?.loggedIn;
@@ -31,6 +32,16 @@ export const useExtensionSettings = () => {
     })();
   }, [enabled, recordSyncEnabled]);
 
+  useNonInitialEffect(() => {
+    (async () => {
+      try {
+        await browser.storage.sync.set({ soqlQueryFormatOptions });
+      } catch (ex) {
+        console.warn('Error setting options', ex);
+      }
+    })();
+  }, [soqlQueryFormatOptions]);
+
   function handleLogout() {
     sendMessage({ message: 'LOGOUT' })
       .then(() => {
@@ -48,6 +59,8 @@ export const useExtensionSettings = () => {
     setEnabled,
     recordSyncEnabled,
     setRecordSyncEnabled,
+    soqlQueryFormatOptions,
+    setSoqlQueryFormatOptions,
     authError,
     setAuthError,
     handleLogout,

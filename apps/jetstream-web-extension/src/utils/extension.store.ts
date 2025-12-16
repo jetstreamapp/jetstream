@@ -1,4 +1,4 @@
-import { UserProfileUi } from '@jetstream/types';
+import { SoqlQueryFormatOptionsSchema, UserProfileUi } from '@jetstream/types';
 import { atom, createStore } from 'jotai';
 import { loadable, unwrap } from 'jotai/utils';
 import browser from 'webextension-polyfill';
@@ -36,27 +36,30 @@ browser.storage.onChanged.addListener((changes, namespace) => {
 });
 
 async function initAuthState(): Promise<ChromeStorageState> {
-  const [local, sync] = await Promise.all([
+  const [_local, _sync] = await Promise.all([
     browser.storage.local.get(['options', 'connections']),
-    browser.storage.sync.get(['extIdentifier', 'authTokens', 'buttonPosition']),
+    browser.storage.sync.get(['extIdentifier', 'authTokens', 'buttonPosition', 'soqlQueryFormatOptions']),
   ]);
+  const local = _local as Partial<ChromeStorageState['local']>;
+  const sync = _sync as Partial<ChromeStorageState['sync']>;
   return {
     local: {
-      ...(local as ChromeStorageState['local']),
+      ...local,
       options: {
-        ...(local as ChromeStorageState['local'])?.options,
-        enabled: (local as ChromeStorageState['local'])?.options?.enabled ?? true,
-        recordSyncEnabled: (local as ChromeStorageState['local'])?.options?.recordSyncEnabled ?? false,
+        ...local?.options,
+        enabled: local?.options?.enabled ?? true,
+        recordSyncEnabled: local?.options?.recordSyncEnabled ?? false,
       },
     },
     sync: {
-      ...(sync as ChromeStorageState['sync']),
-      authTokens: (sync as ChromeStorageState['sync'])?.authTokens ?? null,
-      extIdentifier: (sync as ChromeStorageState['sync'])?.extIdentifier ?? null,
+      ...sync,
+      authTokens: sync?.authTokens ?? null,
+      extIdentifier: sync?.extIdentifier ?? null,
       buttonPosition: {
         ...DEFAULT_BUTTON_POSITION,
-        ...(sync as ChromeStorageState['sync'])?.buttonPosition,
+        ...sync?.buttonPosition,
       },
+      soqlQueryFormatOptions: sync?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({}),
     },
   };
 }
@@ -72,7 +75,12 @@ export const chromeStorageState = unwrap(
   chromeStorageAsyncState,
   (prev) =>
     prev ?? {
-      sync: { extIdentifier: null, authTokens: null, buttonPosition: DEFAULT_BUTTON_POSITION },
+      sync: {
+        extIdentifier: null,
+        authTokens: null,
+        buttonPosition: DEFAULT_BUTTON_POSITION,
+        soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
+      },
       local: { options: { enabled: true, recordSyncEnabled: false } },
     },
 );

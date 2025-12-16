@@ -27,6 +27,7 @@ import {
   QueryResult,
   SalesforceRecord,
   SobjectCollectionResponse,
+  SoqlQueryFormatOptions,
 } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
@@ -54,9 +55,9 @@ import {
   useQueryRestore,
 } from '@jetstream/ui-core';
 import { getFlattenSubqueryFlattenedFieldMap } from '@jetstream/ui-core/shared';
-import { fromAppState, googleDriveAccessState } from '@jetstream/ui/app-state';
+import { fromAppState, googleDriveAccessState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { queryHistoryDb } from '@jetstream/ui/db';
-import { FieldSubquery, Query, composeQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
+import { FieldSubquery, Query, composeQuery, formatQuery, isFieldSubquery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import classNames from 'classnames';
 import { useAtom, useAtomValue } from 'jotai';
 import isString from 'lodash/isString';
@@ -98,6 +99,7 @@ export const QueryResults = React.memo(() => {
   const queryHistoryRef = useRef<QueryHistoryRef>(null);
   const previousSoql = useAtomValue(fromQueryState.querySoqlState);
   const includeDeletedRecords = useAtomValue(fromQueryState.queryIncludeDeletedRecordsState);
+  const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useAtom(soqlQueryFormatOptionsState);
   const [priorSelectedOrg, setPriorSelectedOrg] = useState<string | null>(null);
   const [isTooling, setIsTooling] = useAtom(fromQueryState.isTooling);
   const location = useLocation();
@@ -277,6 +279,12 @@ export const QueryResults = React.memo(() => {
         logger.warn(ex);
       }
     }
+  }
+
+  async function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): Promise<void> {
+    setSoqlQueryFormatOptions(options);
+    setSoql(formatQuery(soql, options));
+    fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 
   async function executeQuery(
@@ -532,7 +540,7 @@ export const QueryResults = React.memo(() => {
           fields: columnOrder.map((idx) => parsedQuery.fields![idx]),
         };
         setParsedQuery(newParsedQuery);
-        setSoql(composeQuery(newParsedQuery, { format: true }));
+        setSoql(composeQuery(newParsedQuery, { format: true, formatOptions: soqlQueryFormatOptions }));
       }
     } catch (ex) {
       logger.warn('Error setting query after fields changed', getErrorMessage(ex));
@@ -562,7 +570,7 @@ export const QueryResults = React.memo(() => {
         };
         setParsedQuery(newParsedQuery);
 
-        setSoql(composeQuery(newParsedQuery, { format: true }));
+        setSoql(composeQuery(newParsedQuery, { format: true, formatOptions: soqlQueryFormatOptions }));
       }
     } catch (ex) {
       logger.warn('Error setting query after fields changed (Subquery)', getErrorMessage(ex));
@@ -663,6 +671,7 @@ export const QueryResults = React.memo(() => {
       <div className="slds-grid">
         <QueryResultsSoqlPanel
           soql={soql}
+          soqlQueryFormatOptions={soqlQueryFormatOptions}
           isTooling={isTooling}
           isOpen={soqlPanelOpen}
           selectedOrg={selectedOrg}
@@ -670,6 +679,7 @@ export const QueryResults = React.memo(() => {
           onClosed={() => setSoqlPanelOpen(false)}
           executeQuery={(soql, tooling) => executeQuery(soql, SOURCE_MANUAL, { isTooling: tooling })}
           onOpenHistory={handleOpenHistory}
+          onSaveSoqlQueryFormatOptions={handleSaveSoqlQueryFormatOptions}
         />
         <AutoFullHeightContainer
           className="slds-scrollable bg-white"

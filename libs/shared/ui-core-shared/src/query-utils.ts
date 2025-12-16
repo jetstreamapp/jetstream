@@ -1,6 +1,6 @@
 import { convertFiltersToWhereClause } from '@jetstream/shared/ui-utils';
 import { groupByFlat } from '@jetstream/shared/utils';
-import { ErrorResult, ExpressionType, Field, FieldType, Maybe, SalesforceRecord } from '@jetstream/types';
+import { ErrorResult, ExpressionType, Field, FieldType, Maybe, SalesforceRecord, SoqlQueryFormatOptions } from '@jetstream/types';
 import { FieldSubquery, HavingClause, Query, WhereClause, composeQuery, getFlattenedFields } from '@jetstreamapp/soql-parser-js';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
@@ -18,14 +18,19 @@ const DATE_FIELD_TYPES = new Set<FieldType>(['date', 'datetime']);
 const TIME_FIELD_TYPES = new Set<FieldType>(['time']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
 
-export function composeSoqlQuery(query: Query, whereExpression: ExpressionType, havingClauses?: ExpressionType) {
+export function composeSoqlQuery(
+  query: Query,
+  soqlQueryFormatOptions: SoqlQueryFormatOptions,
+  whereExpression: ExpressionType,
+  havingClauses?: ExpressionType,
+) {
   return composeQuery(
     {
       ...query,
       where: convertFiltersToWhereClause<WhereClause>(whereExpression),
       having: havingClauses ? convertFiltersToWhereClause<HavingClause>(havingClauses) : undefined,
     },
-    { format: true, formatOptions: { fieldMaxLineLength: 80 } },
+    { format: true, formatOptions: soqlQueryFormatOptions },
   );
 }
 

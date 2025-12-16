@@ -16,7 +16,7 @@ import {
   useNonInitialEffect,
 } from '@jetstream/shared/ui-utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
-import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, Field, ListItem, QueryFieldWithPolymorphic, SoqlQueryFormatOptions } from '@jetstream/types';
 import {
   Accordion,
   AutoFullHeightContainer,
@@ -31,8 +31,16 @@ import {
   PageHeaderTitle,
   Tabs,
 } from '@jetstream/ui';
-import { fromQueryHistoryState, fromQueryState, QueryHistory, QueryHistoryRef, useAmplitude } from '@jetstream/ui-core';
-import { applicationCookieState, selectedOrgState } from '@jetstream/ui/app-state';
+import {
+  fromJetstreamEvents,
+  fromQueryHistoryState,
+  fromQueryState,
+  QueryHistory,
+  QueryHistoryRef,
+  useAmplitude,
+} from '@jetstream/ui-core';
+import { applicationCookieState, selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
+import { formatQuery } from '@jetstreamapp/soql-parser-js';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useResetAtom } from 'jotai/utils';
 import { Fragment, useCallback, useRef, useState } from 'react';
@@ -72,7 +80,8 @@ export const QueryBuilder = () => {
 
   const selectedOrg = useAtomValue(selectedOrgState);
   const childRelationships = useAtomValue(fromQueryState.queryChildRelationships);
-  const soql = useAtomValue(fromQueryState.querySoqlState);
+  const [soql, setSoql] = useAtom(fromQueryState.querySoqlState);
+  const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useAtom(soqlQueryFormatOptionsState);
 
   const [sobjects, setSobjects] = useAtom(fromQueryState.sObjectsState);
   const [sObjectFilterTerm, setSObjectFilterTerm] = useAtom(fromQueryState.sObjectFilterTerm);
@@ -158,6 +167,12 @@ export const QueryBuilder = () => {
       resetState(false);
       setSelectedSObject(sobject);
     }
+  }
+
+  function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): void {
+    setSoqlQueryFormatOptions(options);
+    setSoql(formatQuery(soql, options));
+    fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
   }
 
   /**
@@ -472,10 +487,12 @@ export const QueryBuilder = () => {
                                   <SoqlTextarea
                                     key={selectedSObject.name}
                                     soql={soql}
+                                    soqlQueryFormatOptions={soqlQueryFormatOptions}
                                     selectedOrg={selectedOrg}
                                     selectedSObject={selectedSObject}
                                     isTooling={isTooling}
                                     onOpenHistory={handleOpenHistory}
+                                    onSaveSoqlQueryFormatOptions={handleSaveSoqlQueryFormatOptions}
                                   />
                                 ),
                               },
@@ -510,10 +527,12 @@ export const QueryBuilder = () => {
                                   <SoqlTextarea
                                     key={selectedSObject.name}
                                     soql={soql}
+                                    soqlQueryFormatOptions={soqlQueryFormatOptions}
                                     selectedOrg={selectedOrg}
                                     selectedSObject={selectedSObject}
                                     isTooling={isTooling}
                                     onOpenHistory={handleOpenHistory}
+                                    onSaveSoqlQueryFormatOptions={handleSaveSoqlQueryFormatOptions}
                                   />
                                 ),
                               },
