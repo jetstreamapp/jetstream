@@ -1,5 +1,15 @@
 # Changelog
 
+## [8.15.0](https://github.com/jetstreamapp/jetstream/compare/v8.14.0...v8.15.0) (2025-12-16)
+
+### Features
+
+* add user configurable soql format options ([993fa8c](https://github.com/jetstreamapp/jetstream/commit/993fa8c80932d8b556767fb5d814101e68971252)), closes [#1472](https://github.com/jetstreamapp/jetstream/issues/1472)
+
+### Bug Fixes
+
+* desktop build editor assets ([ceaf863](https://github.com/jetstreamapp/jetstream/commit/ceaf86345dd5dcda0b10e9953458c551247eb7c6))
+
 ## [8.14.0](https://github.com/jetstreamapp/jetstream/compare/v8.13.1...v8.14.0) (2025-12-14)
 
 ### Features
