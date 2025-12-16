@@ -1,5 +1,6 @@
 import { DesktopUserPreferences } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
+import { SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { atom } from 'jotai';
 
 async function fetchPreferences(): Promise<DesktopUserPreferences> {
@@ -8,6 +9,7 @@ async function fetchPreferences(): Promise<DesktopUserPreferences> {
     : {
         recordSyncEnabled: false,
         skipFrontdoorLogin: false,
+        soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
         fileDownload: undefined,
       };
   logger.info('desktop preferences', preferences);

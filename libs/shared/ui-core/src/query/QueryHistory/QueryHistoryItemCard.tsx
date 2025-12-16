@@ -303,6 +303,7 @@ export const QueryHistoryItemCard: FunctionComponent<QueryHistoryItemCardProps> 
                   options={{
                     readOnly: !isEditing,
                     minimap: { enabled: false },
+                    tabSize: 2,
                     contextmenu: isEditing,
                     lineNumbers: 'off',
                     glyphMargin: false,

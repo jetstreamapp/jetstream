@@ -1,7 +1,7 @@
 import { useDebounce, useNonInitialEffect } from '@jetstream/shared/ui-utils';
-import { SalesforceOrgUi } from '@jetstream/types';
+import { SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { CheckboxToggle, Grid, Icon, Panel, Textarea, Tooltip } from '@jetstream/ui';
-import { fromQueryHistoryState } from '@jetstream/ui-core';
+import { fromQueryHistoryState, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
 import { formatQuery, parseQuery } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
@@ -10,7 +10,7 @@ import SaveFavoriteSoql from '../QueryOptions/SaveFavoriteSoql';
 
 type Action =
   | { type: 'VALIDATE_SOQL'; payload: { soql: string } }
-  | { type: 'FORMAT_SOQL'; payload: { soql: string } }
+  | { type: 'FORMAT_SOQL'; payload: { soql: string; soqlQueryFormatOptions: SoqlQueryFormatOptions } }
   | { type: 'RESET_FORMAT' };
 
 interface State {
@@ -37,7 +37,7 @@ function reducer(state: State, action: Action): State {
     case 'FORMAT_SOQL':
       if (action.payload.soql) {
         try {
-          return { ...state, formattedSoql: formatQuery(action.payload.soql, { fieldMaxLineLength: 1 }) };
+          return { ...state, formattedSoql: formatQuery(action.payload.soql, action.payload.soqlQueryFormatOptions) };
         } catch (ex) {
           return { ...state, isValid: false };
         }
@@ -56,9 +56,11 @@ export interface QueryResultsSoqlPanelProps {
   isOpen: boolean;
   selectedOrg: SalesforceOrgUi;
   sObject: string;
+  soqlQueryFormatOptions: SoqlQueryFormatOptions;
   onClosed: () => void;
   executeQuery: (soql: string, isTooling: boolean) => void;
   onOpenHistory: (type: fromQueryHistoryState.QueryHistoryType) => void;
+  onSaveSoqlQueryFormatOptions: (options: SoqlQueryFormatOptions) => Promise<void>;
 }
 
 export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps> = ({
@@ -67,9 +69,11 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   isOpen,
   selectedOrg,
   sObject,
+  soqlQueryFormatOptions,
   onClosed,
   executeQuery,
   onOpenHistory,
+  onSaveSoqlQueryFormatOptions,
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
   const [userSoql, setUserSoql] = useState<string>(soql);
@@ -117,7 +121,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
   }, [executeQuery]);
 
   function handleFormat() {
-    dispatch({ type: 'FORMAT_SOQL', payload: { soql: userSoql } });
+    dispatch({ type: 'FORMAT_SOQL', payload: { soql: userSoql, soqlQueryFormatOptions } });
   }
 
   function submitQuery(currSoql?: string) {
@@ -141,7 +145,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
       keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
       contextMenuGroupId: '9_cutcopypaste',
       run: (currEditor) => {
-        setUserSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
+        setUserSoql(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
       },
     });
   };
@@ -156,7 +160,7 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
             <div>
               <span>SOQL Query</span>
               {!isValid && (
-                <Tooltip id="tooltip-query-error" content="Your query does not appear to be valid.">
+                <Tooltip content="Your query does not appear to be valid.">
                   <Icon type="utility" icon="error" className="slds-icon slds-icon-text-error slds-icon_xx-small slds-m-left_small" />
                 </Tooltip>
               )}
@@ -170,6 +174,11 @@ export const QueryResultsSoqlPanel: FunctionComponent<QueryResultsSoqlPanelProps
               >
                 format
               </button>
+              <SoqlQueryFormatConfigPopover
+                location="QueryResultsSoqlPanel"
+                value={soqlQueryFormatOptions}
+                onChange={onSaveSoqlQueryFormatOptions}
+              />
             </span>
           </Grid>
         }

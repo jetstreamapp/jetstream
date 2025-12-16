@@ -9,6 +9,7 @@ import {
   ScopedNotification,
   Spinner,
 } from '@jetstream/ui';
+import { SoqlQueryFormatConfig } from '@jetstream/ui-core';
 import { dexieDataSync } from '@jetstream/ui/db';
 import { useState } from 'react';
 import { AppWrapper } from '../../core/AppWrapper';
@@ -22,7 +23,17 @@ initAndRenderReact(
 );
 
 export function AdditionalSettings() {
-  const { authTokens, loggedIn, enabled, setEnabled, recordSyncEnabled, setRecordSyncEnabled, authError } = useExtensionSettings();
+  const {
+    authTokens,
+    loggedIn,
+    enabled,
+    setEnabled,
+    recordSyncEnabled,
+    setRecordSyncEnabled,
+    soqlQueryFormatOptions,
+    setSoqlQueryFormatOptions,
+    authError,
+  } = useExtensionSettings();
   const [resetSyncLoading, setResetSyncLoading] = useState(false);
 
   async function resetSync() {
@@ -60,6 +71,13 @@ export function AdditionalSettings() {
                 labelHelp="If disabled, the Jetstream floating button will not be visible when you are on a Salesforce page."
                 labelPosition="right"
                 onChange={(value) => setEnabled(value)}
+              />
+
+              <SoqlQueryFormatConfig
+                className="slds-m-top_large"
+                location="AdditionalSettings"
+                value={soqlQueryFormatOptions}
+                onChange={setSoqlQueryFormatOptions}
               />
             </>
           )}

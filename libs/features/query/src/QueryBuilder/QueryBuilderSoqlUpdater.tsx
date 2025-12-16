@@ -1,5 +1,6 @@
 import { fromQueryState } from '@jetstream/ui-core';
 import { composeSoqlQuery } from '@jetstream/ui-core/shared';
+import { soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { GroupByFieldClause, GroupByFnClause, Query } from '@jetstreamapp/soql-parser-js';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { FunctionComponent, useEffect } from 'react';
@@ -10,6 +11,7 @@ import { FunctionComponent, useEffect } from 'react';
  */
 
 export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
+  const soqlQueryFormatOptions = useAtomValue(soqlQueryFormatOptionsState);
   const selectedSObject = useAtomValue(fromQueryState.selectedSObjectState);
   const selectedFields = useAtomValue(fromQueryState.selectQueryField);
   const filters = useAtomValue(fromQueryState.queryFiltersState);
@@ -33,7 +35,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
         limit: queryLimit,
         offset: queryLimitSkip,
       };
-      setSoql(composeSoqlQuery(query, filters, hasGroupBy ? havingClauses : undefined));
+      setSoql(composeSoqlQuery(query, soqlQueryFormatOptions, filters, hasGroupBy ? havingClauses : undefined));
 
       const queryCount: Query = {
         ...query,
@@ -44,7 +46,7 @@ export const QueryBuilderSoqlUpdater: FunctionComponent = () => {
       if (query.groupBy || query.having) {
         setSoqlCount('');
       } else {
-        setSoqlCount(composeSoqlQuery(queryCount, filters));
+        setSoqlCount(composeSoqlQuery(queryCount, soqlQueryFormatOptions, filters));
       }
     } else if (soql !== '') {
       setSoql('');

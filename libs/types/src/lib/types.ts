@@ -22,6 +22,16 @@ export interface Announcement {
   createdAt: string;
 }
 
+export const SoqlQueryFormatOptionsSchema = z.object({
+  numIndent: z.number().min(1).default(1),
+  fieldMaxLineLength: z.int().min(1).default(1),
+  fieldSubqueryParensOnOwnLine: z.boolean().default(true),
+  whereClauseOperatorsIndented: z.boolean().default(true),
+  newLineAfterKeywords: z.boolean().default(false),
+});
+
+export type SoqlQueryFormatOptions = z.infer<typeof SoqlQueryFormatOptionsSchema>;
+
 export type CopyAsDataType = 'excel' | 'csv' | 'json';
 
 export interface RequestResult<T> {
@@ -113,6 +123,9 @@ export interface UserProfilePreferences {
 const PreferencesSchema = z.object({
   skipFrontdoorLogin: z.boolean().default(false),
   recordSyncEnabled: z.boolean().default(false),
+  soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.nullish().transform((value) =>
+    !value ? SoqlQueryFormatOptionsSchema.parse({}) : value,
+  ),
 });
 
 const EntitlementsSchema = z.object({

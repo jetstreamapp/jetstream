@@ -3,8 +3,9 @@ import { DesktopUserPreferences } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
+import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
-import { useAmplitude } from '@jetstream/ui-core';
+import { SoqlQueryFormatConfig, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { dexieDataSync, recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -30,6 +31,8 @@ export const Settings = () => {
   const [recentRecentItemLoading, setRecentRecentItemLoading] = useState<false | 'all' | 'current'>(false);
 
   const recordSyncEnabled = ability.can('access', 'RecordSync');
+
+  const soqlQueryFormatOptions = preferences?.soqlQueryFormatOptions ?? SoqlQueryFormatOptionsSchema.parse({});
 
   useEffect(() => {
     isMounted.current = true;
@@ -85,6 +88,12 @@ export const Settings = () => {
 
   function handleFrontdoorLoginChange(skipFrontdoorLogin: boolean) {
     const _modifiedPreferences = { ...preferences, skipFrontdoorLogin };
+    setModifiedPreferences(_modifiedPreferences);
+    handleSave(_modifiedPreferences);
+  }
+
+  function handleQueryFormatOptionsChange(soqlQueryFormatOptions: SoqlQueryFormatOptions) {
+    const _modifiedPreferences = { ...preferences, soqlQueryFormatOptions };
     setModifiedPreferences(_modifiedPreferences);
     handleSave(_modifiedPreferences);
   }
@@ -236,6 +245,8 @@ export const Settings = () => {
                 </div>
               )}
             </Grid>
+
+            <SoqlQueryFormatConfig location="Settings" value={soqlQueryFormatOptions} onChange={handleQueryFormatOptionsChange} />
 
             {recordSyncEnabled && (
               <div className="slds-m-top_large">

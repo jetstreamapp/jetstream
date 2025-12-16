@@ -1,7 +1,7 @@
 import { css } from '@emotion/react';
-import { DescribeGlobalSObjectResult, SalesforceOrgUi } from '@jetstream/types';
+import { DescribeGlobalSObjectResult, SalesforceOrgUi, SoqlQueryFormatOptions } from '@jetstream/types';
 import { Grid, GridCol, Textarea } from '@jetstream/ui';
-import { fromQueryHistoryState } from '@jetstream/ui-core';
+import { fromQueryHistoryState, SoqlQueryFormatConfigPopover } from '@jetstream/ui-core';
 import Editor, { OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { Fragment, FunctionComponent, memo, useCallback, useRef } from 'react';
@@ -12,14 +12,16 @@ import SaveFavoriteSoql from './SaveFavoriteSoql';
 
 export interface SoqlTextareaProps {
   soql: string;
+  soqlQueryFormatOptions: SoqlQueryFormatOptions;
   isTooling: boolean;
   selectedOrg: SalesforceOrgUi;
   selectedSObject: DescribeGlobalSObjectResult;
   onOpenHistory: (type: fromQueryHistoryState.QueryHistoryType) => void;
+  onSaveSoqlQueryFormatOptions: (options: SoqlQueryFormatOptions) => void;
 }
 
 export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
-  ({ soql, isTooling, selectedOrg, selectedSObject, onOpenHistory }) => {
+  ({ soql, isTooling, selectedOrg, selectedSObject, soqlQueryFormatOptions, onOpenHistory, onSaveSoqlQueryFormatOptions }) => {
     const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
 
     const handleEditorMount: OnMount = (currEditor, monaco) => {
@@ -42,7 +44,19 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
 
     return (
       <Fragment>
-        <Textarea id="soql-textarea" label="Generated SOQL">
+        <Textarea
+          id="soql-textarea"
+          label={
+            <>
+              Generated SOQL
+              <SoqlQueryFormatConfigPopover
+                location="SoqlTextarea"
+                value={soqlQueryFormatOptions}
+                onChange={onSaveSoqlQueryFormatOptions}
+              />
+            </>
+          }
+        >
           <div
             ref={ref}
             className="slds-border_top slds-border_right slds-border_bottom slds-border_left"
@@ -59,6 +73,7 @@ export const SoqlTextarea: FunctionComponent<SoqlTextareaProps> = memo(
               options={{
                 readOnly: true,
                 minimap: { enabled: false },
+                tabSize: 2,
                 contextmenu: false,
                 lineNumbers: 'off',
                 glyphMargin: false,

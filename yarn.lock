@@ -5874,10 +5874,10 @@
     "@types/yargs" "^17.0.8"
     chalk "^4.0.0"
 
-"@jetstreamapp/soql-parser-js@^6.3.0":
-  version "6.3.0"
-  resolved "https://registry.yarnpkg.com/@jetstreamapp/soql-parser-js/-/soql-parser-js-6.3.0.tgz#63f07e82611e88795d1ec1c0de2e63759803eff0"
-  integrity sha512-XsHjg64QBZEtiRhcPjn+vYS1no0Xs0g+PonKyVdzDchG+ohKBKQGE4Fa15CND9x1O46qzGA8mcse4EF/E7xUnA==
+"@jetstreamapp/soql-parser-js@^6.3.1":
+  version "6.3.1"
+  resolved "https://registry.yarnpkg.com/@jetstreamapp/soql-parser-js/-/soql-parser-js-6.3.1.tgz#c6dd5c17370847d42bea7f8b6138cc4c3ab25a55"
+  integrity sha512-kbFu1pVMupAC2CxCBPWFloCCFMgC8YvkcjYKgVknG5AsD31DwiL1qPzzdqghAKa6h+CkudBNYdmYFF4XFGJIaw==
   dependencies:
     chevrotain "^11.0.3"
     commander "^2.20.3"

@@ -222,6 +222,10 @@ export const ANALYTICS_KEYS = {
   quick_query_Execute: 'quick_query_Execute',
   quick_query_Restore: 'quick_query_Restore',
   quick_query_Format: 'quick_query_Format',
+  /** SOQL FORMAT */
+  soql_format_saved: 'soql_format_saved',
+  soql_format_reset: 'soql_format_reset',
+  soql_format_opened: 'soql_format_open',
   /** DOWNLOAD FILES */
   attachment_QueriedEligibleObject: 'attachment_QueriedEligibleObject',
   attachment_ModalOpened: 'attachment_ModalOpened',

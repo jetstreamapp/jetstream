@@ -1,5 +1,5 @@
 import { ApiConnection } from '@jetstream/salesforce-api';
-import type { Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import type { Maybe, SalesforceOrgUi, SoqlQueryFormatOptions, UserProfileUi } from '@jetstream/types';
 import { z } from 'zod';
 
 export const AUTH_CHECK_INTERVAL_MIN = 5;
@@ -34,6 +34,7 @@ export interface ChromeStorageState {
     extIdentifier: z.infer<typeof ExtensionIdentifier> | null;
     authTokens: z.infer<typeof AuthTokens> | null;
     buttonPosition: ButtonPosition;
+    soqlQueryFormatOptions: SoqlQueryFormatOptions;
   };
   local: {
     options: {

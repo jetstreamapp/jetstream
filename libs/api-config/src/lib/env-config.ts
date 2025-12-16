@@ -1,5 +1,5 @@
 import type { UserProfileSession, UserProfileUiWithIdentities } from '@jetstream/auth/types';
-import type { Maybe } from '@jetstream/types';
+import { SoqlQueryFormatOptionsSchema, type Maybe } from '@jetstream/types';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
 import { readFileSync } from 'fs-extra';
@@ -52,6 +52,7 @@ const EXAMPLE_USER_FULL_PROFILE: UserProfileUiWithIdentities = {
   preferences: {
     skipFrontdoorLogin: false,
     recordSyncEnabled: false,
+    soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.parse({}),
     id: 'aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa',
     userId: 'test|TEST_USER_ID',
     createdAt: new Date(),

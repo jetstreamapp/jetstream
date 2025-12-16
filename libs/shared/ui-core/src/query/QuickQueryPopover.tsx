@@ -1,8 +1,9 @@
 import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { hasModifierKey, hasShiftModifierKey, isEKey, useGlobalEventHandler } from '@jetstream/shared/ui-utils';
-import { QueryHistoryItem } from '@jetstream/types';
+import { QueryHistoryItem, SoqlQueryFormatOptions } from '@jetstream/types';
 import {
   CheckboxToggle,
+  getModifierKey,
   Grid,
   GridCol,
   Icon,
@@ -12,18 +13,19 @@ import {
   Spinner,
   Textarea,
   Tooltip,
-  getModifierKey,
 } from '@jetstream/ui';
-import { selectedOrgState } from '@jetstream/ui/app-state';
+import { selectedOrgState, soqlQueryFormatOptionsState } from '@jetstream/ui/app-state';
 import { dexieDb } from '@jetstream/ui/db';
 import { formatQuery, isQueryValid } from '@jetstreamapp/soql-parser-js';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useAtomValue } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import type { editor } from 'monaco-editor';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAmplitude } from '../analytics';
+import { fromJetstreamEvents } from '../jetstream-events';
+import { SoqlQueryFormatConfigPopover } from '../settings/SoqlQueryFormatConfigPopover';
 import { QueryHistoryModal } from './QueryHistory/QueryHistoryModal';
 import { useQueryRestore } from './RestoreQuery/useQueryRestore';
 
@@ -40,6 +42,7 @@ export const QuickQueryPopover = () => {
   const [queryIsValid, setQueryIsValid] = useState(false);
   const [isTooling, setIsTooling] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [soqlQueryFormatOptions, setSoqlQueryFormatOptions] = useAtom(soqlQueryFormatOptionsState);
 
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
 
@@ -82,7 +85,7 @@ export const QuickQueryPopover = () => {
   useGlobalEventHandler('keydown', onKeydown);
 
   function handleFormat() {
-    setSoql(formatQuery(soql, { fieldMaxLineLength: 80 }));
+    setSoql(formatQuery(soql, soqlQueryFormatOptions));
   }
 
   function handleOpenQueryHistory() {
@@ -148,13 +151,19 @@ export const QuickQueryPopover = () => {
       keybindings: [monaco?.KeyMod.Shift | monaco?.KeyMod.Alt | monaco?.KeyCode.KeyF],
       contextMenuGroupId: '9_cutcopypaste',
       run: (currEditor) => {
-        setSoql(formatQuery(currEditor.getValue(), { fieldMaxLineLength: 80 }));
+        setSoql(formatQuery(currEditor.getValue(), soqlQueryFormatOptions));
         trackEvent(ANALYTICS_KEYS.quick_query_Format, { method: 'editor-shortcut' });
       },
     });
   };
 
   const isDisabled = !queryIsValid || isRestoring;
+
+  async function handleSaveSoqlQueryFormatOptions(options: SoqlQueryFormatOptions): Promise<void> {
+    setSoqlQueryFormatOptions(options);
+    setSoql(formatQuery(soql, options));
+    fromJetstreamEvents.emit({ type: 'saveSoqlQueryFormatOptions', payload: { value: options } });
+  }
 
   if (!selectedOrg?.uniqueId || !!selectedOrg.connectionError) {
     return null;
@@ -265,6 +274,11 @@ export const QuickQueryPopover = () => {
                       >
                         format
                       </button>
+                      <SoqlQueryFormatConfigPopover
+                        location="QuickQueryPopover"
+                        value={soqlQueryFormatOptions}
+                        onChange={handleSaveSoqlQueryFormatOptions}
+                      />
                     </span>
                   </Grid>
                 }

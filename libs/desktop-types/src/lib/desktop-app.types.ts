@@ -1,4 +1,11 @@
-import { FileNameFormat, InputReadFileContent, Maybe, SalesforceOrgUi, UserProfileUi } from '@jetstream/types';
+import {
+  FileNameFormat,
+  InputReadFileContent,
+  Maybe,
+  SalesforceOrgUi,
+  SoqlQueryFormatOptionsSchema,
+  UserProfileUi,
+} from '@jetstream/types';
 import { z } from 'zod';
 
 /**
@@ -132,6 +139,7 @@ export type AppData = z.infer<typeof AppDataSchema>;
 export const DesktopUserPreferencesSchema = z.object({
   skipFrontdoorLogin: z.boolean().optional().default(false),
   recordSyncEnabled: z.boolean().optional().default(false),
+  soqlQueryFormatOptions: SoqlQueryFormatOptionsSchema.prefault({}),
   fileDownload: z
     .object({
       omitPrompt: z.boolean().optional().default(true),

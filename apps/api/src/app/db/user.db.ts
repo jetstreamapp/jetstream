@@ -1,7 +1,7 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
-import { TeamMemberRole, UserProfileUi, UserProfileUiSchema } from '@jetstream/types';
+import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema, TeamMemberRole, UserProfileUi, UserProfileUiSchema } from '@jetstream/types';
 
 const FullUserFacingProfileSelect = {
   id: true,
@@ -252,16 +252,27 @@ export const checkUserEntitlement = async ({
 
 export async function updateUser(
   user: UserProfileSession,
-  data: { name?: string; preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean } },
+  data: {
+    name?: string;
+    preferences?: { skipFrontdoorLogin?: boolean; recordSyncEnabled?: boolean; soqlQueryFormatOptions?: SoqlQueryFormatOptions };
+  },
 ) {
   try {
     const existingUser = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { id: true, name: true, preferences: { select: { skipFrontdoorLogin: true, recordSyncEnabled: true } } },
+      select: {
+        id: true,
+        name: true,
+        preferences: { select: { skipFrontdoorLogin: true, recordSyncEnabled: true, soqlQueryFormatOptions: true } },
+      },
     });
     // PATCH update
     const skipFrontdoorLogin = data.preferences?.skipFrontdoorLogin ?? existingUser?.preferences?.skipFrontdoorLogin ?? false;
     const recordSyncEnabled = data.preferences?.recordSyncEnabled ?? existingUser?.preferences?.recordSyncEnabled ?? true;
+    const soqlQueryFormatOptions =
+      data.preferences?.soqlQueryFormatOptions ??
+      existingUser?.preferences?.soqlQueryFormatOptions ??
+      SoqlQueryFormatOptionsSchema.parse({});
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -269,8 +280,8 @@ export async function updateUser(
         name: data.name ?? existingUser.name,
         preferences: {
           upsert: {
-            create: { skipFrontdoorLogin, recordSyncEnabled },
-            update: { skipFrontdoorLogin, recordSyncEnabled },
+            create: { skipFrontdoorLogin, recordSyncEnabled, soqlQueryFormatOptions },
+            update: { skipFrontdoorLogin, recordSyncEnabled, soqlQueryFormatOptions },
           },
         },
       },

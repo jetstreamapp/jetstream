@@ -147,6 +147,7 @@ export const SaveFavoriteSoql: FunctionComponent<SaveFavoriteSoqlProps> = ({
                 value={soql}
                 options={{
                   minimap: { enabled: false },
+                  tabSize: 2,
                   readOnly: true,
                   lineNumbers: 'off',
                   glyphMargin: false,
