@@ -13,6 +13,7 @@ import {
   BulkJobBatchInfo,
   BulkJobWithBatches,
   HttpMethod,
+  InsertUpdateUpsertDeleteQuery,
   LoadDataBulkApi,
   LoadDataBulkApiStatusPayload,
   LoadDataPayload,
@@ -25,6 +26,16 @@ import {
 import { LoadRecordsBatchError, fetchMappedRelatedRecords, transformData } from '@jetstream/ui-core';
 import JSZip from 'jszip';
 import isString from 'lodash/isString';
+
+export const LoadTypeDisplayNames: Record<InsertUpdateUpsertDeleteQuery, string> = {
+  INSERT: 'Insert',
+  UPDATE: 'Update',
+  UPSERT: 'Upsert',
+  DELETE: 'Delete',
+  HARD_DELETE: 'Hard Delete',
+  QUERY: 'Query',
+  QUERY_ALL: 'Query All',
+};
 
 /**
  * Pre-process all load data to prepare for loading
@@ -162,7 +173,7 @@ export async function loadBatchApiData(
         if (checkIfAborted()) {
           throw new Error('Aborted');
         }
-        if (type === 'DELETE') {
+        if (type === 'DELETE' || type === 'HARD_DELETE') {
           queryParams = `?ids=${batch.records
             ?.map((record) => record.Id)
             .filter(Boolean)

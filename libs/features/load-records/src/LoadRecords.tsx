@@ -240,7 +240,7 @@ export const LoadRecords = () => {
       let tempFields = fields;
       if (loadType === 'INSERT') {
         tempFields = fields.filter((field) => field.name !== 'Id');
-      } else if (loadType === 'DELETE') {
+      } else if (loadType === 'DELETE' || loadType === 'HARD_DELETE') {
         tempFields = fields.filter((field) => field.name === 'Id');
       }
       setMappableFields(tempFields);

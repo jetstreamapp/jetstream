@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const CreateJobRequestSchema = z
   .object({
-    type: z.enum(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'QUERY', 'QUERY_ALL']),
+    type: z.enum(['INSERT', 'UPDATE', 'UPSERT', 'DELETE', 'HARD_DELETE', 'QUERY', 'QUERY_ALL']),
     sObject: z.string(),
     serialMode: z.boolean().nullish(),
     externalId: z.string().nullish(),

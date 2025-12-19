@@ -46,7 +46,9 @@ export const fieldMappingState = atomWithReset<FieldMapping>({});
 
 export const selectAllowBinaryAttachment = atom<boolean | null>((get) => {
   const selectedObject = get(selectedSObjectState);
-  return selectedObject && SUPPORTED_ATTACHMENT_OBJECTS.has(selectedObject.name) && get(loadTypeState) !== 'DELETE';
+  const loadType = get(loadTypeState);
+  const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
+  return selectedObject && SUPPORTED_ATTACHMENT_OBJECTS.has(selectedObject.name) && !isDelete;
 });
 
 export const selectBinaryAttachmentBodyField = atom<string | null>((get) => {
@@ -116,11 +118,17 @@ export const selectTrialRunSizeError = atom<string | null>((get) => {
 
 export const selectBulkApiModeLabel = atom<string | React.ReactNode>((get) => {
   const inputFileDataLength = get(inputFileDataState)?.length || 0;
-  return getLabelWithOptionalRecommended('Bulk API', inputFileDataLength > BATCH_RECOMMENDED_THRESHOLD, false);
+  const loadType = get(loadTypeState);
+  return getLabelWithOptionalRecommended('Bulk API', inputFileDataLength > BATCH_RECOMMENDED_THRESHOLD, loadType === 'HARD_DELETE');
 });
 
 export const selectBatchApiModeLabel = atom<string | React.ReactNode>((get) => {
   const inputFileDataLength = get(inputFileDataState)?.length || 0;
   const hasZipAttachment = !!get(inputZipFileDataState);
-  return getLabelWithOptionalRecommended('Batch API', inputFileDataLength <= BATCH_RECOMMENDED_THRESHOLD, hasZipAttachment);
+  const loadType = get(loadTypeState);
+  return getLabelWithOptionalRecommended(
+    'Batch API',
+    loadType !== 'HARD_DELETE' && inputFileDataLength <= BATCH_RECOMMENDED_THRESHOLD,
+    hasZipAttachment,
+  );
 });

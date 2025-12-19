@@ -40,6 +40,9 @@ function getLoadDescription(loadType: InsertUpdateUpsertDelete, totalRecordCount
     case 'UPSERT':
       action = 'update or create';
       break;
+    case 'HARD_DELETE':
+      action = 'hard delete';
+      break;
     case 'DELETE':
     default:
       action = 'delete';
