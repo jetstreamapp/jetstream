@@ -1,5 +1,16 @@
 # Changelog
 
+## [8.15.1](https://github.com/jetstreamapp/jetstream/compare/v8.15.0...v8.15.1) (2025-12-23)
+
+### Features
+
+* **load:** add hard delete option to load records ([36d16da](https://github.com/jetstreamapp/jetstream/commit/36d16da3a1252050b0d5bff3a594cd0b9ff12075)), closes [#1447](https://github.com/jetstreamapp/jetstream/issues/1447)
+
+### Bug Fixes
+
+* ensure space does not scroll picklist menu ([94438ac](https://github.com/jetstreamapp/jetstream/commit/94438acead4cf4e68edf35b9d18c357bd279dd05))
+* **query:** data table editor lookup editor ([360312b](https://github.com/jetstreamapp/jetstream/commit/360312bb417989b077b2180e67c2ee5a2ce689fd)), closes [#1483](https://github.com/jetstreamapp/jetstream/issues/1483)
+
 ## [8.15.0](https://github.com/jetstreamapp/jetstream/compare/v8.14.0...v8.15.0) (2025-12-16)
 
 ### Features
