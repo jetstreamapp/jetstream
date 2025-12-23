@@ -288,6 +288,8 @@ export function prepareBulkApiRequestPayload({
   let operation = type.toLowerCase();
   if (operation === 'query_all') {
     operation = 'queryAll';
+  } else if (operation === 'hard_delete') {
+    operation = 'hardDelete';
   }
 
   const xml = [

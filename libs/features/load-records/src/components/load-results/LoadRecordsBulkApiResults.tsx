@@ -51,7 +51,7 @@ import {
 import { applicationCookieState, googleDriveAccessState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadBulkApiData, prepareData } from '../../utils/load-records-process';
+import { LoadTypeDisplayNames, loadBulkApiData, prepareData } from '../../utils/load-records-process';
 
 type Status = 'Preparing Data' | 'Uploading Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
 
@@ -266,7 +266,7 @@ export const LoadRecordsBulkApiResults = ({
           batches: [],
         });
         onFinish({ success: 0, failure: inputFileData.length });
-        notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+        notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
@@ -282,7 +282,7 @@ export const LoadRecordsBulkApiResults = ({
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
       onFinish({ success: 0, failure: inputFileData.length });
-      notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
@@ -335,7 +335,7 @@ export const LoadRecordsBulkApiResults = ({
         } else {
           setStatus(STATUSES.ERROR);
           onFinish({ success: 0, failure: inputFileData.length });
-          notifyUser(`Your data load failed`, {
+          notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
             body: `❌ ${loadError.message}`,
             tag: 'load-records',
           });
@@ -355,6 +355,12 @@ export const LoadRecordsBulkApiResults = ({
     } catch (ex) {
       logger.error('ERROR', ex);
       setFatalError(getErrorMessage(ex));
+      setStatus(STATUSES.ERROR);
+      onFinish({ success: 0, failure: inputFileData.length });
+      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
+        body: `❌ ${getErrorMessage(ex)}`,
+        tag: 'load-records',
+      });
       return;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -409,6 +415,7 @@ export const LoadRecordsBulkApiResults = ({
       let results: BulkJobResultRecord[];
       let records: any[] = preparedData.data;
       let removedBatches = false;
+      const isDelete = loadType === 'DELETE' || loadType === 'HARD_DELETE';
 
       if (scope === 'all') {
         // Download results across all batches
@@ -425,7 +432,7 @@ export const LoadRecordsBulkApiResults = ({
         // download records, combine results from salesforce with actual records, open download modal
         results = await bulkApiGetRecordsFromAllBatches<BulkJobResultRecord>(selectedOrg, jobInfo.id, batchIds);
         /** For delete, only records with a mapped Id will be included in response from SFDC */
-        records = preparedData.data.filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
+        records = preparedData.data.filter((record) => (isDelete ? !!record.Id : true));
       } else {
         // Download results for a single batch
         // download records, combine results from salesforce with actual records, open download modal
@@ -437,7 +444,7 @@ export const LoadRecordsBulkApiResults = ({
          * Get records from this one batch
          * For delete, only records with a mapped Id will be included in response from SFDC
          */
-        records = preparedData.data.slice(startIdx, startIdx + batchSize).filter((record) => (loadType !== 'DELETE' ? true : !!record.Id));
+        records = preparedData.data.slice(startIdx, startIdx + batchSize).filter((record) => (isDelete ? !!record.Id : true));
       }
 
       const combinedResults: BulkJobResultRecord[] = [];

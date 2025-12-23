@@ -22,11 +22,12 @@ export type Insert = 'INSERT';
 export type Update = 'UPDATE';
 export type Upsert = 'UPSERT';
 export type Delete = 'DELETE';
+export type HardDelete = 'HARD_DELETE';
 export type Query = 'QUERY';
 export type QueryAll = 'QUERY_ALL';
 export type InsertUpdateUpsert = Insert | Update | Upsert;
-export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete;
-export type InsertUpdateUpsertDeleteQuery = Insert | Update | Upsert | Delete | Query | QueryAll;
+export type InsertUpdateUpsertDelete = Insert | Update | Upsert | Delete | HardDelete;
+export type InsertUpdateUpsertDeleteQuery = Insert | Update | Upsert | Delete | HardDelete | Query | QueryAll;
 
 export interface ErrorResult {
   errors: {

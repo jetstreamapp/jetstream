@@ -550,6 +550,7 @@ export function getHttpMethod(type: InsertUpdateUpsertDelete): HttpMethod {
     case 'UPSERT':
       return 'PATCH';
     case 'DELETE':
+    case 'HARD_DELETE':
       return 'DELETE';
     default:
       return 'POST';

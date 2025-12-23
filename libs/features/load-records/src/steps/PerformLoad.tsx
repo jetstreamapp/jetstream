@@ -6,7 +6,7 @@ import { Badge, Checkbox, ConfirmationModalPromise, Grid, Input, Radio, RadioBut
 import { ConfirmPageChange, fromLoadRecordsState, getMaxBatchSize, useAmplitude } from '@jetstream/ui-core';
 import { useAtom, useAtomValue } from 'jotai';
 import startCase from 'lodash/startCase';
-import { ChangeEvent, FunctionComponent, useState } from 'react';
+import { ChangeEvent, FunctionComponent, useEffect, useState } from 'react';
 import LoadRecordsAssignmentRules from '../components/LoadRecordsAssignmentRules';
 import LoadRecordsDuplicateWarning from '../components/LoadRecordsDuplicateWarning';
 import LoadRecordsResults from '../components/load-results/LoadRecordsResults';
@@ -84,6 +84,13 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
 
   const numRecordsImpactedLabel = formatNumber(inputFileDataToLoad.length);
   const numRecordsImpactedTrialRunLabel = formatNumber(inputFileDataTrialRun.length);
+
+  useEffect(() => {
+    // Hard delete requires the bulk api - the batch api gets disabled in this case but we need to ensure the state is correct
+    if (loadType === 'HARD_DELETE') {
+      setApiMode('BULK');
+    }
+  }, [loadType, setApiMode]);
 
   useNonInitialEffect(() => {
     setBatchSize(getMaxBatchSize(apiMode));
@@ -208,7 +215,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             label={bulkApiModeLabel}
             value="BULK"
             checked={apiMode === 'BULK'}
-            disabled={loading || !!inputZipFileData}
+            disabled={loading || !!inputZipFileData || loadType === 'HARD_DELETE'}
             onChange={setApiMode as (value: string) => void}
           />
           <Radio
@@ -218,7 +225,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
             label={batchApiModeLabel}
             value="BATCH"
             checked={apiMode === 'BATCH'}
-            disabled={loading || !!inputZipFileData}
+            disabled={loading || !!inputZipFileData || loadType === 'HARD_DELETE'}
             onChange={setApiMode as (value: string) => void}
           />
         </RadioGroup>
@@ -250,7 +257,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
         <Input
           id="batch-size"
           label="Batch Size"
-          isRequired={true}
+          isRequired
           hasError={!!batchSizeError || !!batchApiLimitError}
           errorMessageId="batch-size-error"
           errorMessage={batchSizeError || batchApiLimitError}

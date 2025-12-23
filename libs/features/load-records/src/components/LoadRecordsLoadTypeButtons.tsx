@@ -65,62 +65,77 @@ export const LoadRecordsLoadTypeButtons: FunctionComponent<LoadRecordsLoadTypeBu
   }
 
   return (
-    <Grid testId="load-type" verticalAlign="end">
-      <GridCol growNone>
-        <RadioGroup label="Type of Data Load" required isButtonGroup>
-          <RadioButton
-            name="INSERT"
-            label="Insert"
-            value="INSERT"
-            checked={selectedType === 'INSERT'}
-            disabled={isCustomMetadataObject}
-            onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-          />
-          <RadioButton
-            name="UPDATE"
-            label="Update"
-            value="UPDATE"
-            checked={selectedType === 'UPDATE'}
-            disabled={isCustomMetadataObject}
-            onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-          />
-          <RadioButton
-            name="UPSERT"
-            label="Upsert"
-            value="UPSERT"
-            checked={selectedType === 'UPSERT'}
-            disabled={isCustomMetadataObject}
-            onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-          />
-          <RadioButton
-            name="DELETE"
-            label="Delete"
-            value="DELETE"
-            checked={selectedType === 'DELETE'}
-            disabled={isCustomMetadataObject}
-            onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
-          />
-        </RadioGroup>
-      </GridCol>
-      {selectedType === 'UPSERT' && !isCustomMetadataObject && (
-        <GridCol>
-          <div className="slds-is-relative">
-            {loadingFields && <Spinner size="small" />}
-            <ComboboxWithItems
-              comboboxProps={{
-                label: 'External Id',
-                noItemsPlaceholder: externalIdNoItemsText,
-                labelHelp:
-                  'Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created.',
-              }}
-              items={externalIdFieldOptions}
-              selectedItemId={externalId}
-              onSelected={(item) => handleExternalIdChange(item.id)}
+    <>
+      <Grid testId="load-type" verticalAlign="end">
+        <GridCol growNone>
+          <RadioGroup label="Type of Data Load" required isButtonGroup>
+            <RadioButton
+              name="INSERT"
+              label="Insert"
+              value="INSERT"
+              checked={selectedType === 'INSERT'}
+              disabled={isCustomMetadataObject}
+              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
             />
-          </div>
+            <RadioButton
+              name="UPDATE"
+              label="Update"
+              value="UPDATE"
+              checked={selectedType === 'UPDATE'}
+              disabled={isCustomMetadataObject}
+              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
+            />
+            <RadioButton
+              name="UPSERT"
+              label="Upsert"
+              value="UPSERT"
+              checked={selectedType === 'UPSERT'}
+              disabled={isCustomMetadataObject}
+              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
+            />
+            <RadioButton
+              name="DELETE"
+              label="Delete"
+              value="DELETE"
+              checked={selectedType === 'DELETE'}
+              disabled={isCustomMetadataObject}
+              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
+            />
+            <RadioButton
+              name="HARD_DELETE"
+              label="Hard Delete"
+              value="HARD_DELETE"
+              checked={selectedType === 'HARD_DELETE'}
+              disabled={isCustomMetadataObject}
+              onChange={(value) => handleChange(value as InsertUpdateUpsertDelete)}
+            />
+          </RadioGroup>
         </GridCol>
+        {selectedType === 'UPSERT' && !isCustomMetadataObject && (
+          <GridCol>
+            <div className="slds-is-relative">
+              {loadingFields && <Spinner size="small" />}
+              <ComboboxWithItems
+                comboboxProps={{
+                  label: 'External Id',
+                  noItemsPlaceholder: externalIdNoItemsText,
+                  labelHelp:
+                    'Upsert requires an external Id as an alternative to a record id for matching rows in your input data to records in Salesforce. If a match is found, the record will be updated. Otherwise a new record will be created.',
+                }}
+                items={externalIdFieldOptions}
+                selectedItemId={externalId}
+                onSelected={(item) => handleExternalIdChange(item.id)}
+              />
+            </div>
+          </GridCol>
+        )}
+      </Grid>
+      {selectedType === 'HARD_DELETE' && (
+        <p className="slds-p-top_xx-small slds-p-left_small text-color_warning">
+          Hard Delete skips the Recycle Bin and requires the <strong>"Bulk API Hard Delete"</strong> system permission.
+        </p>
       )}
-    </Grid>
+    </>
   );
 };
 

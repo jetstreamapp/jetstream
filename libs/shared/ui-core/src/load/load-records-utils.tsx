@@ -898,9 +898,10 @@ export function checkForDuplicateRecords(
   duplicateRecords: [string, any[]][];
 } | null {
   let mappingItem: FieldMappingItem | undefined;
+
   if (isCustomMetadata) {
     mappingItem = Object.values(fieldMapping).find(({ targetField }) => targetField === 'DeveloperName');
-  } else if (loadType === 'UPDATE' || loadType === 'DELETE') {
+  } else if (loadType === 'UPDATE' || loadType === 'DELETE' || loadType === 'HARD_DELETE') {
     mappingItem = Object.values(fieldMapping).find(({ targetField }) => targetField === 'Id');
   } else if (loadType === 'UPSERT' && externalId) {
     mappingItem = Object.values(fieldMapping).find(({ targetField }) => targetField === externalId);

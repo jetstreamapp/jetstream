@@ -25,11 +25,11 @@ import {
   ViewModalData,
 } from '@jetstream/types';
 import { FileDownloadModal, Grid, ProgressRing, Spinner, Tooltip } from '@jetstream/ui';
-import { LoadRecordsResultsModal, fromJetstreamEvents, getFieldHeaderFromMapping, useAmplitude } from '@jetstream/ui-core';
+import { fromJetstreamEvents, getFieldHeaderFromMapping, LoadRecordsResultsModal, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadBatchApiData, prepareData } from '../../utils/load-records-process';
+import { loadBatchApiData, LoadTypeDisplayNames, prepareData } from '../../utils/load-records-process';
 import LoadRecordsBatchApiResultsTable from './LoadRecordsBatchApiResultsTable';
 
 type Status = 'Preparing Data' | 'Processing Data' | 'Aborting' | 'Finished' | 'Error';
@@ -151,7 +151,7 @@ export const LoadRecordsBatchApiResults = ({
         setStartTime(dateString);
         setEndTime(dateString);
         onFinish({ success: 0, failure: inputFileData.length });
-        notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+        notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
           body: `❌ Pre-processing records failed.`,
           tag: 'load-records',
         });
@@ -168,7 +168,7 @@ export const LoadRecordsBatchApiResults = ({
       setStatus(STATUSES.ERROR);
       setFatalError(getErrorMessage(ex));
       onFinish({ success: 0, failure: inputFileData.length });
-      notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
@@ -221,7 +221,7 @@ export const LoadRecordsBatchApiResults = ({
       setStatus(STATUSES.ERROR);
       onFinish({ success: 0, failure: inputFileData.length });
       setEndTime(dateString);
-      notifyUser(`Your ${loadType.toLowerCase()} data load failed`, {
+      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load failed`, {
         body: `❌ ${getErrorMessage(ex)}`,
         tag: 'load-records',
       });
@@ -250,7 +250,7 @@ export const LoadRecordsBatchApiResults = ({
     if (status === STATUSES.FINISHED && preparedData) {
       const numSuccess = processingStatus.success;
       const numFailure = processingStatus.failure + preparedData.errors.length;
-      notifyUser(`Your ${loadType.toLowerCase()} data load is finished`, {
+      notifyUser(`Your ${LoadTypeDisplayNames[loadType]} data load is finished`, {
         body: `${getSuccessOrFailureChar('success', numSuccess)} ${numSuccess.toLocaleString()} ${pluralizeFromNumber(
           'record',
           numSuccess,

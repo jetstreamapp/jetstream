@@ -1,6 +1,13 @@
-import { vi, Mock } from 'vitest';
+import { vi } from 'vitest';
 import { ApiConnection } from '../connection';
-import { SalesforceApi, correctInvalidXmlResponseTypes, prepareCloseOrAbortJobPayload, toSoapXML } from '../utils';
+import {
+  SalesforceApi,
+  correctInvalidArrayXmlResponseTypes,
+  correctInvalidXmlResponseTypes,
+  prepareBulkApiRequestPayload,
+  prepareCloseOrAbortJobPayload,
+  toSoapXML,
+} from '../utils';
 
 describe('getRestApiUrl', () => {
   const apiConnection = new ApiConnection({
@@ -48,8 +55,6 @@ it('should convert object to SOAP XML', () => {
 
   expect(result).toBe(expectedXML);
 });
-
-import { correctInvalidArrayXmlResponseTypes, prepareBulkApiRequestPayload } from '../utils';
 
 describe('getRestApiUrl', () => {
   const apiConnection = new ApiConnection({
@@ -291,6 +296,29 @@ describe('prepareBulkApiRequestPayload', () => {
     const expectedXML = `<?xml version="1.0" encoding="UTF-8"?>
 <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
 <operation>delete</operation>
+<object>Lead</object>
+<concurrencyMode>Parallel</concurrencyMode>
+<contentType>CSV</contentType>
+</jobInfo>`;
+
+    const result = prepareBulkApiRequestPayload(payload);
+
+    expect(result).toBe(expectedXML);
+  });
+
+  it('should generate the correct XML payload for HARD_DELETE operation without assignment rule', () => {
+    const payload: any = {
+      type: 'HARD_DELETE',
+      sObject: 'Lead',
+      assignmentRuleId: '',
+      serialMode: false,
+      externalId: '',
+      hasZipAttachment: false,
+    };
+
+    const expectedXML = `<?xml version="1.0" encoding="UTF-8"?>
+<jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
+<operation>hardDelete</operation>
 <object>Lead</object>
 <concurrencyMode>Parallel</concurrencyMode>
 <contentType>CSV</contentType>
