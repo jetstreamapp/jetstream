@@ -57,6 +57,11 @@ export interface PicklistProps {
   allowDeselection?: boolean;
   scrollLength?: DropDownItemLength;
   disabled?: boolean;
+  /**
+   * Additional props to pass to the internal input element
+   * Currently only supports 'autoFocus' - other properties can be added as required
+   */
+  inputProps?: Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoFocus'>;
   onChange: (selectedItems: ListItem[]) => void;
   onClose?: () => void;
   onBlur?: () => void;
@@ -104,6 +109,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       allowDeselection = true,
       scrollLength,
       disabled,
+      inputProps,
       onChange,
       onClose,
       onBlur,
@@ -245,6 +251,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       }
 
       if (isEnterKey(event) || isSpaceKey(event)) {
+        event.preventDefault();
         const item = items[focusedItem ?? -1];
         if (item) {
           handleKeyboardSelection(item);
@@ -352,6 +359,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
                     disabled={disabled}
                     onKeyUp={handleKeyDown}
                     onBlur={onBlur}
+                    {...inputProps}
                   />
                   <span className="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right">
                     <Icon

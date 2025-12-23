@@ -5,6 +5,7 @@ import { SFDC_BLANK_PICKLIST_VALUE } from '@jetstream/shared/constants';
 import { describeGlobal, describeSObject, query } from '@jetstream/shared/data';
 import { DescribeGlobalSObjectResult, FormGroupDropdownItem, ListItem, Maybe, SalesforceOrgUi } from '@jetstream/types';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { z } from 'zod';
 import { FormGroupDropdown } from '../formGroupDropDown/FormGroupDropdown';
 import Input from '../input/Input';
 import { ComboboxSharedProps } from './Combobox';
@@ -14,11 +15,33 @@ const INPUT_MODE_LABEL = 'Input Mode';
 export const INPUT_MODE_LOOKUP = 'LOOKUP';
 export const INPUT_MODE_MANUAL = 'MANUAL';
 
+const InputModeSchema = z.enum([INPUT_MODE_LOOKUP, INPUT_MODE_MANUAL]);
+
 const INPUT_MODE_OPTIONS: FormGroupDropdownItem[] = [
   { id: INPUT_MODE_LOOKUP, label: 'Lookup', icon: 'record_lookup' },
   { id: INPUT_MODE_MANUAL, label: 'Manual Entry', icon: 'text' },
 ];
 type InputMode = typeof INPUT_MODE_LOOKUP | typeof INPUT_MODE_MANUAL;
+
+const getDefaultValue = (allowManualMode?: boolean) => {
+  if (!allowManualMode) {
+    return INPUT_MODE_LOOKUP;
+  }
+  try {
+    const parsedValue = InputModeSchema.parse(localStorage.getItem('RecordLookupCombobox.inputMode'));
+    return parsedValue;
+  } catch {
+    return INPUT_MODE_LOOKUP;
+  }
+};
+
+const setDefaultValue = (inputMode: InputMode) => {
+  try {
+    localStorage.setItem('RecordLookupCombobox.inputMode', InputModeSchema.parse(inputMode));
+  } catch {
+    // could not save default value
+  }
+};
 
 interface RecordLookupComboboxProps {
   org: SalesforceOrgUi;
@@ -56,7 +79,7 @@ export function RecordLookupCombobox({
   const [key, setKey] = useState(() => Date.now());
   const id = useId();
   const selectedObjectMetadata = useRef<{ sobject: string; nameField: string; keyPrefix?: Maybe<string> } | null>(null);
-  const [inputMode, setInputMode] = useState<InputMode>(INPUT_MODE_LOOKUP);
+  const [inputMode, setInputMode] = useState<InputMode>(() => getDefaultValue(allowManualMode));
   const [selectedSObject, setSelectedSObject] = useState(sobjects[0]);
   const [records, setRecords] = useState<ListItem<string, any>[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<ListItem<string, any> | null>(null);
@@ -184,7 +207,10 @@ export function RecordLookupCombobox({
             headingLabel={INPUT_MODE_LABEL}
             variant="end"
             iconOnly
-            onSelected={(value) => setInputMode(value.id as InputMode)}
+            onSelected={(value) => {
+              setInputMode(value.id as InputMode);
+              setDefaultValue(value.id as InputMode);
+            }}
           />
         }
       >
@@ -249,7 +275,10 @@ export function RecordLookupCombobox({
               initialSelectedItemId: inputMode,
               items: INPUT_MODE_OPTIONS,
               iconOnly: true,
-              onSelected: (value) => setInputMode(value.id as InputMode),
+              onSelected: (value) => {
+                setInputMode(value.id as InputMode);
+                setDefaultValue(value.id as InputMode);
+              },
             }
           : undefined,
         ...comboboxProps,

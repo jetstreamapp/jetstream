@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@jetstream/shared/client-logger';
-import { isEscapeKey } from '@jetstream/shared/ui-utils';
+import { isEscapeKey, isTabKey } from '@jetstream/shared/ui-utils';
 import { ListItem, SalesforceOrgUi } from '@jetstream/types';
 import { formatISO } from 'date-fns/formatISO';
 import { parseISO } from 'date-fns/parseISO';
-import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import { ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { RenderEditCellProps } from 'react-data-grid';
@@ -59,12 +58,16 @@ function DataTableEditorPopover({
       referenceElement={referenceElement as any}
       className="slds-popover slds-popover slds-popover_edit"
       role="dialog"
-      // offset={[0, -28.5]}
       usePortal
       {...popoverContainerProps}
       onKeyDown={(event) => {
         if (isEscapeKey(event)) {
           onClose();
+        }
+        if (isTabKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose(true, true);
         }
       }}
     >
@@ -86,15 +89,14 @@ export function DataTableEditorText<TRow extends { _idx: number }, TSummaryRow>(
           id={`edit-${column.key}`}
           className="slds-input"
           ref={autoFocusAndSelect}
+          autoFocus
           value={(row[column.key as keyof TRow] as unknown as string) || ''}
           onChange={(event) => {
             const _touchedColumns = new Set((row as any)._touchedColumns || []);
             _touchedColumns.add(column.key);
             onRowChange({ ...row, [column.key]: event.target.value, _touchedColumns });
           }}
-          onBlur={() => {
-            onClose(true);
-          }}
+          onBlur={() => onClose(true, true)}
         />
       </Input>
     </DataTableEditorPopover>
@@ -122,14 +124,13 @@ export function DataTableEditorBoolean<TRow extends { _idx: number }, TSummaryRo
               type="checkbox"
               name="options"
               checked={value}
+              autoFocus
               onChange={(event) => {
                 const _touchedColumns = new Set((row as any)._touchedColumns || []);
                 _touchedColumns.add(column.key);
                 onRowChange({ ...row, [column.key]: event.target.checked, _touchedColumns });
               }}
-              onBlur={() => {
-                onClose(true);
-              }}
+              onBlur={() => onClose(true, true)}
             />
             <span className="slds-checkbox_faux"></span>
           </div>
@@ -190,9 +191,8 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
             multiSelection
             omitMultiSelectPills
             scrollLength={10}
-            onClose={() => {
-              onClose(true);
-            }}
+            inputProps={{ autoFocus: true }}
+            onClose={() => onClose(true, true)}
             onChange={(items) => {
               const _touchedColumns = new Set((row as any)._touchedColumns || []);
               _touchedColumns.add(column.key);
@@ -220,9 +220,7 @@ export function dataTableEditorDropdownWrapper<TRow extends { _idx: number }, TS
             label: `Edit ${isString(column.name) ? column.name : column.key}`,
             hideLabel: true,
             itemLength: 10,
-            inputProps: {
-              autoFocus: true,
-            },
+            inputProps: { autoFocus: true },
           }}
           items={values}
           selectedItemId={selectedItemId}
@@ -304,12 +302,17 @@ export const dataTableEditorRecordLookup = ({ sobjects }: { sobjects: string[] }
             hideLabel: true,
             className: 'w-100',
             placeholder: `Search ${selectedSobject} by name or id`,
+            inputProps: { autoFocus: true },
+          }}
+          manualModeInputProps={{
+            autoFocus: true,
+            placeholder: `Enter ${selectedSobject} Id`,
           }}
           value={currValue}
           onChange={(value) => {
             const _touchedColumns = new Set((row as any)._touchedColumns || []);
             _touchedColumns.add(column.key);
-            onRowChange({ ...row, [column.key]: value || null, _touchedColumns }, !isNil(value));
+            onRowChange({ ...row, [column.key]: value || null, _touchedColumns }, false);
           }}
           onObjectChange={setSelectedSobject}
         />
