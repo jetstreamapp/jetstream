@@ -251,6 +251,7 @@ export const Picklist = forwardRef<unknown, PicklistProps>(
       }
 
       if (isEnterKey(event) || isSpaceKey(event)) {
+        event.preventDefault();
         const item = items[focusedItem ?? -1];
         if (item) {
           handleKeyboardSelection(item);
