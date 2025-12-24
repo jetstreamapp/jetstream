@@ -794,7 +794,7 @@ export async function canAddBillableMember({
     if (existingBillableMemberCount + existingBillableInvitationCount >= licenseCountLimit) {
       return {
         canAdd: false,
-        reason: `You don't have any available licensed to assign. Please purchase more licenses or contact support for assistance.`,
+        reason: `You don't have any available licenses to assign. Please purchase more licenses or contact support for assistance.`,
       };
     }
   }
