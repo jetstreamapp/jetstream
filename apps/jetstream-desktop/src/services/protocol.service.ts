@@ -1,4 +1,4 @@
-import { DesktopActionLoadRecord } from '@jetstream/desktop/types';
+import { DesktopActionLoadRecord, IpcEventChannel } from '@jetstream/desktop/types';
 import { HTTP, HTTP_SOURCE_DESKTOP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { app, net, protocol, session } from 'electron';
@@ -184,10 +184,10 @@ export function registerFileOpenHandler() {
       const newWindow = Browser.create();
       if (newWindow.webContents?.isLoading()) {
         newWindow.webContents.once('did-finish-load', () => {
-          newWindow.webContents.send('action', fileData);
+          newWindow.webContents.send(IpcEventChannel.action, fileData);
         });
       } else if (newWindow) {
-        newWindow.webContents.send('file-dropped', fileData);
+        newWindow.webContents.send(IpcEventChannel.fileDropped, fileData);
       }
     } catch (ex) {
       logger.error('Error opening file:', getErrorMessageAndStackObj(ex));

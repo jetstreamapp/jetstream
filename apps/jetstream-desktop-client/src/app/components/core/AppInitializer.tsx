@@ -4,6 +4,7 @@ import { HTTP } from '@jetstream/shared/constants';
 import { disconnectSocket, initSocket, registerMiddleware } from '@jetstream/shared/data';
 import { useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { Announcement, JetstreamEventSaveSoqlQueryFormatOptionsPayload, SalesforceOrgUi } from '@jetstream/types';
+import { fireToast } from '@jetstream/ui';
 import { fromJetstreamEvents, useAmplitude } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { initDexieDb } from '@jetstream/ui/db';
@@ -92,6 +93,12 @@ APP VERSION ${version}
   useEffect(() => {
     announcements && onAnnouncements && onAnnouncements(announcements);
   }, [announcements, onAnnouncements]);
+
+  useEffect(() => {
+    if (window.electronAPI?.onToastMessage) {
+      window.electronAPI.onToastMessage((payload) => fireToast(payload));
+    }
+  }, []);
 
   const rollbar = useRollbar({
     accessToken: environment.rollbarClientAccessToken,
