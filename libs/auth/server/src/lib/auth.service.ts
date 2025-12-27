@@ -1,7 +1,7 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import type { Request, Response } from '@jetstream/api-types';
 import { OauthAndLocalProviders, OauthProviderType, Providers, ResponseLocalsCookies, SessionIpData } from '@jetstream/auth/types';
-import { parse as parseCookie } from 'cookie';
+import { parseCookie } from 'cookie';
 import * as crypto from 'crypto';
 import { addHours, addMinutes } from 'date-fns';
 import * as QRCode from 'qrcode';

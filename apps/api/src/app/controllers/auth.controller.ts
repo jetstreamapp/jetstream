@@ -36,8 +36,10 @@ import {
   ProviderNotAllowed,
   resetUserPassword,
   setUserEmailVerified,
+  timingSafeStringCompare,
   TOKEN_DURATION_MINUTES,
   validateCallback,
+  validateRedirectUrl,
   verify2faTotpOrThrow,
   verifyCSRFFromRequestOrThrow,
 } from '@jetstream/auth/server';
@@ -58,7 +60,7 @@ import {
 } from '@jetstream/email';
 import { ensureBoolean, getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe, PasswordSchema } from '@jetstream/types';
-import { parse as parseCookie } from 'cookie';
+import { parseCookie } from 'cookie';
 import { addMinutes } from 'date-fns/addMinutes';
 import { z } from 'zod';
 import { redirect, sendJson, setCsrfCookie } from '../utils/response.handlers';
@@ -82,7 +84,6 @@ export const routeDefinition = {
     controllerFn: () => getCsrfToken,
     responseType: z.object({ csrfToken: z.string() }),
     validators: {
-      query: z.object().loose(),
       hasSourceOrg: false,
     },
   },
@@ -114,7 +115,7 @@ export const routeDefinition = {
     controllerFn: () => callback,
     responseType: z.object({ error: z.boolean(), redirect: z.string() }).nullable(),
     validators: {
-      query: z.object({ returnUrl: z.string().optional() }).loose(),
+      query: z.looseObject({ returnUrl: z.string().optional() }),
       params: z.object({ provider: ProviderKeysSchema }),
       body: z.union([
         z.discriminatedUnion('action', [
@@ -451,7 +452,12 @@ const callback = createRoute(
             method: provider.provider.toUpperCase(),
             success: true,
           });
-          redirect(res, returnUrl || `${ENV.JETSTREAM_CLIENT_URL}/profile`);
+          const validatedReturnUrl = validateRedirectUrl(
+            returnUrl,
+            [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+            `${ENV.JETSTREAM_CLIENT_URL}/profile`,
+          );
+          redirect(res, validatedReturnUrl);
           return;
         }
 
@@ -568,12 +574,19 @@ const callback = createRoute(
           clearCookie(redirectUrlCookie.name, redirectUrlCookie.options);
         }
 
+        // Validate redirect URL to prevent open redirect
+        const safeRedirectUrl = validateRedirectUrl(
+          redirectUrl,
+          [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+          ENV.JETSTREAM_CLIENT_URL,
+        );
+
         // No verification required
         if (provider.type === 'oauth') {
-          redirect(res, redirectUrl);
+          redirect(res, safeRedirectUrl);
         } else {
           // this was an API call, client will handle redirect
-          sendJson(res, { error: false, redirect: redirectUrl });
+          sendJson(res, { error: false, redirect: safeRedirectUrl });
         }
       }
 
@@ -626,7 +639,7 @@ const verification = createRoute(
       switch (pendingVerification.type) {
         case 'email': {
           const { token } = pendingVerification;
-          if (token !== code) {
+          if (!timingSafeStringCompare(token, code)) {
             throw new InvalidVerificationToken('Provided code does not match');
           }
           if (!isPlaceholderUser) {
@@ -636,7 +649,7 @@ const verification = createRoute(
         }
         case '2fa-email': {
           const { token } = pendingVerification;
-          if (token !== code) {
+          if (!timingSafeStringCompare(token, code)) {
             throw new InvalidVerificationToken('Provided code does not match');
           }
           rememberDeviceId = rememberDevice ? generateRandomString(32) : undefined;
@@ -699,6 +712,13 @@ const verification = createRoute(
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
 
+      // Validate redirect URL to prevent open redirect
+      const safeRedirectUrl = validateRedirectUrl(
+        redirectUrl,
+        [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+        ENV.JETSTREAM_CLIENT_URL,
+      );
+
       createUserActivityFromReq(req, res, {
         action: '2FA_VERIFICATION',
         method: type.toUpperCase(),
@@ -706,10 +726,10 @@ const verification = createRoute(
       });
 
       if (req.session.pendingMfaEnrollment) {
-        setCookie(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options);
+        setCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options);
         sendJson(res, { error: false, redirect: '/auth/mfa-enroll' });
       } else {
-        sendJson(res, { error: false, redirect: redirectUrl });
+        sendJson(res, { error: false, redirect: safeRedirectUrl });
       }
     } catch (ex) {
       createUserActivityFromReqWithError(req, res, ex, {
@@ -885,12 +905,19 @@ const verifyEmailViaLink = createRoute(
         clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
       }
 
+      // Validate redirect URL to prevent open redirect
+      const safeRedirectUrl = validateRedirectUrl(
+        redirectUrl,
+        [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+        ENV.JETSTREAM_CLIENT_URL,
+      );
+
       if (!req.session.pendingVerification?.length) {
         if (req.session.pendingMfaEnrollment) {
-          setCookie(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options);
+          setCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options);
           redirect(res, '/auth/mfa-enroll');
         } else {
-          redirect(res, redirectUrl);
+          redirect(res, safeRedirectUrl);
         }
         return;
       }
@@ -910,7 +937,7 @@ const verifyEmailViaLink = createRoute(
       switch (pendingVerification.type) {
         case 'email': {
           const { token } = pendingVerification;
-          if (token !== code) {
+          if (!timingSafeStringCompare(token, code)) {
             throw new InvalidVerificationToken('Provided code does not match');
           }
           req.session.user = (await setUserEmailVerified(req.session.user.id)) as UserProfileSession;
@@ -929,10 +956,10 @@ const verifyEmailViaLink = createRoute(
       req.session.pendingVerification = null;
 
       if (req.session.pendingMfaEnrollment) {
-        setCookie(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options);
+        setCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options);
         redirect(res, '/auth/mfa-enroll');
       } else {
-        redirect(res, redirectUrl);
+        redirect(res, safeRedirectUrl);
       }
     } catch (ex) {
       createUserActivityFromReqWithError(req, res, ex, {
@@ -997,7 +1024,14 @@ const enrollOtpFactor = createRoute(routeDefinition.enrollOtpFactor.validators, 
       clearCookie(cookieConfig.redirectUrl.name, cookieConfig.redirectUrl.options);
     }
 
-    sendJson(res, { error: false, redirectUrl });
+    // Validate redirect URL to prevent open redirect
+    const safeRedirectUrl = validateRedirectUrl(
+      redirectUrl,
+      [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL],
+      ENV.JETSTREAM_CLIENT_URL,
+    );
+
+    sendJson(res, { error: false, redirectUrl: safeRedirectUrl });
 
     createUserActivityFromReq(req, res, {
       action: '2FA_SETUP',

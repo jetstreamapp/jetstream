@@ -1,8 +1,7 @@
 import { Request, Response } from '@jetstream/api-types';
 import * as authService from '@jetstream/auth/server';
 import { TEAM_MEMBER_ROLE_ADMIN, TEAM_MEMBER_ROLE_BILLING, TeamMemberRole, TeamMemberRoleSchema } from '@jetstream/types';
-import express from 'express';
-import Router from 'express-promise-router';
+import express, { Router } from 'express';
 import { routeDefinition as teamController } from '../controllers/team.controller';
 import { checkTeamRole } from '../db/team.db';
 import { checkAuth } from './route.middleware';
