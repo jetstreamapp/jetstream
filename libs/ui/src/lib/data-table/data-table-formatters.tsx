@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { logger } from '@jetstream/shared/client-logger';
 import { DATE_FORMATS } from '@jetstream/shared/constants';
-import { logErrorToRollbar } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
 import { formatDate } from 'date-fns/format';
 import { parse as parseDate } from 'date-fns/parse';
@@ -16,26 +16,19 @@ export const dataTableDateFormatter = (dateOrDateTime: Maybe<Date | string>): st
   try {
     if (!dateOrDateTime) {
       return null;
-    } else if (isDate(dateOrDateTime)) {
-      return formatDate(dateOrDateTime as Date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-    } else if (dateOrDateTime.length === 28) {
-      return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
-    } else if (dateOrDateTime.length === 10) {
-      return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
-    } else {
-      return dateOrDateTime;
     }
+    if (isDate(dateOrDateTime)) {
+      return formatDate(dateOrDateTime as Date, DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+    }
+    if (dateOrDateTime.length === 28) {
+      return formatDate(parseISO(dateOrDateTime), DATE_FORMATS.YYYY_MM_DD_HH_mm_ss_a);
+    }
+    if (dateOrDateTime.length === 10) {
+      return formatDate(startOfDay(parseISO(dateOrDateTime)), DATE_FORMATS.yyyy_MM_dd);
+    }
+    return dateOrDateTime;
   } catch (ex) {
-    logErrorToRollbar(
-      ex.message,
-      {
-        stack: ex.stack,
-        place: 'dataTableDateFormatter',
-        type: 'Error formatting date',
-        inputValue: dateOrDateTime,
-      },
-      'warn',
-    );
+    logger.warn('error formatting date', dateOrDateTime, ex);
     return String(dateOrDateTime || '');
   }
 };
@@ -45,43 +38,25 @@ export const dataTableTimeFormatter = (value: Maybe<string>): string | null => {
     const time = value;
     if (!time) {
       return null;
-    } else if (time.length === 13) {
-      return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
-    } else {
-      return time;
     }
+    if (time.length === 13) {
+      return formatDate(parseDate(time, DATE_FORMATS.HH_mm_ss_ssss_z, new Date()), DATE_FORMATS.HH_MM_SS_a);
+    }
+    return time;
   } catch (ex) {
-    logErrorToRollbar(
-      ex.message,
-      {
-        stack: ex.stack,
-        place: 'dataTableDateFormatter',
-        type: 'Error formatting time',
-        inputValue: value,
-      },
-      'warn',
-    );
+    logger.warn('error formatting time', value, ex);
     return String(value || '');
   }
 };
 
 export const dataTableFileSizeFormatter = (sizeInBytes: Maybe<string | number>): string | null => {
-  if (isNil(sizeInBytes)) {
-    return null;
-  }
   try {
-    return fileSizeFormatter(sizeInBytes as any);
+    if (isNil(sizeInBytes)) {
+      return null;
+    }
+    return fileSizeFormatter(sizeInBytes);
   } catch (ex) {
-    logErrorToRollbar(
-      ex.message,
-      {
-        stack: ex.stack,
-        place: 'dataTableDateFormatter',
-        type: 'error formatting file size',
-        inputValue: sizeInBytes,
-      },
-      'warn',
-    );
+    logger.warn('error formatting file size', sizeInBytes, ex);
     return String(sizeInBytes || '');
   }
 };
@@ -98,16 +73,7 @@ export const dataTableAddressValueFormatter = (value: any): string | null => {
     const remainingParts = [address.city, address.state, address.postalCode, address.country].filter((part) => !!part).join(', ');
     return [street, remainingParts].join('\n');
   } catch (ex) {
-    logErrorToRollbar(
-      ex.message,
-      {
-        stack: ex.stack,
-        place: 'dataTableDateFormatter',
-        type: 'error formatting address',
-        inputValue: value,
-      },
-      'warn',
-    );
+    logger.warn('error formatting address', value, ex);
     return String(value || '');
   }
 };
@@ -120,16 +86,7 @@ export const dataTableLocationFormatter = (value: Maybe<SalesforceLocationField>
     const location: SalesforceLocationField = value as SalesforceLocationField;
     return `Latitude: ${location.latitude}°, Longitude: ${location.longitude}°`;
   } catch (ex) {
-    logErrorToRollbar(
-      ex.message,
-      {
-        stack: ex.stack,
-        place: 'dataTableDateFormatter',
-        type: 'error formatting location',
-        inputValue: value,
-      },
-      'warn',
-    );
+    logger.warn('error formatting location', value, ex);
     return String(value || '');
   }
 };
