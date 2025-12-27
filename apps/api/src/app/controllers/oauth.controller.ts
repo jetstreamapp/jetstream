@@ -1,13 +1,13 @@
 import { ENV, getExceptionLog, logger } from '@jetstream/api-config';
 import { ApiConnection, ApiRequestError, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import * as oauthService from '@jetstream/salesforce-oauth';
 import { ERROR_MESSAGES } from '@jetstream/shared/constants';
 import { getErrorMessage } from '@jetstream/shared/utils';
 import { Maybe, SObjectOrganization, SalesforceOrgUi } from '@jetstream/types';
-import { CallbackParamsType } from 'openid-client';
+import { ResponseBodyError } from 'oauth4webapi';
 import { z } from 'zod';
 import * as jetstreamOrganizationsDb from '../db/organization.db';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
-import * as oauthService from '../services/oauth.service';
 import * as sfdcEncService from '../services/salesforce-org-encryption.service';
 import { createRoute } from '../utils/route.utils';
 
@@ -46,7 +46,7 @@ export const routeDefinition = {
   salesforceOauthCallback: {
     controllerFn: () => salesforceOauthCallback,
     validators: {
-      query: z.object().loose(),
+      query: z.record(z.string(), z.string()),
       hasSourceOrg: false,
     },
   },
@@ -59,9 +59,16 @@ export const routeDefinition = {
  */
 const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitAuth.validators, async ({ query }, req, res) => {
   const { loginUrl, addLoginParam, loginHint, jetstreamOrganizationId, orgGroupId } = query;
-  const { authorizationUrl, code_verifier, nonce, state } = oauthService.salesforceOauthInit(loginUrl, { addLoginParam, loginHint });
+  const { authorizationUrl, code_verifier, nonce, state } = await oauthService.salesforceOauthInit({
+    clientId: ENV.SFDC_CONSUMER_KEY,
+    clientSecret: ENV.SFDC_CONSUMER_SECRET,
+    redirectUri: ENV.SFDC_CALLBACK_URL,
+    loginUrl,
+    addLoginParam,
+    loginHint,
+  });
   req.session.orgAuth = { code_verifier, nonce, state, loginUrl, orgGroupId: orgGroupId || jetstreamOrganizationId };
-  res.redirect(authorizationUrl);
+  res.redirect(authorizationUrl.toString());
 });
 
 /**
@@ -69,76 +76,103 @@ const salesforceOauthInitAuth = createRoute(routeDefinition.salesforceOauthInitA
  * @param req
  * @param res
  */
-const salesforceOauthCallback = createRoute(routeDefinition.salesforceOauthCallback.validators, async ({ query, user }, req, res) => {
-  const queryParams = query as CallbackParamsType;
-  const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL).origin;
-  const returnParams: OauthLinkParams = {
-    type: 'salesforce',
-    clientUrl,
-  };
+const salesforceOauthCallback = createRoute(
+  routeDefinition.salesforceOauthCallback.validators,
+  async ({ query: queryParams, user }, req, res) => {
+    const clientUrl = new URL(ENV.JETSTREAM_CLIENT_URL).origin;
+    const returnParams: OauthLinkParams = {
+      type: 'salesforce',
+      clientUrl,
+    };
 
-  try {
-    const orgAuth = req.session.orgAuth;
-    req.session.orgAuth = undefined;
+    try {
+      const orgAuth = req.session.orgAuth;
+      req.session.orgAuth = undefined;
 
-    // ERROR PATH
-    if (queryParams.error) {
-      returnParams.error = (queryParams.error as string) || 'Unexpected Error';
-      returnParams.message = queryParams.error_description
-        ? (queryParams.error_description as string)
-        : 'There was an error authenticating with Salesforce.';
-      req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+      // ERROR PATH
+      if (queryParams.error) {
+        returnParams.error = (queryParams.error as string) || 'Unexpected Error';
+        returnParams.message = queryParams.error_description
+          ? (queryParams.error_description as string)
+          : 'There was an error authenticating with Salesforce.';
+        req.log.info({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] %s', queryParams.error);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+      } else if (!orgAuth) {
+        returnParams.error = 'Authentication Error';
+        returnParams.message = queryParams.error_description
+          ? (queryParams.error_description as string)
+          : 'There was an error authenticating with Salesforce.';
+        req.log.info({ ...queryParams, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
+      }
+
+      const { code_verifier, nonce, state, loginUrl, orgGroupId } = orgAuth;
+
+      const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(
+        {
+          clientId: ENV.SFDC_CONSUMER_KEY,
+          clientSecret: ENV.SFDC_CONSUMER_SECRET,
+          redirectUri: ENV.SFDC_CALLBACK_URL,
+          loginUrl,
+        },
+        new URLSearchParams(queryParams),
+        {
+          code_verifier,
+          nonce,
+          state,
+        },
+      );
+
+      const jetstreamConn = new ApiConnection({
+        apiRequestAdapter: getApiRequestFactoryFn(fetch),
+        userId: userInfo.user_id as string,
+        organizationId: userInfo.organization_id as string,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        accessToken: access_token!,
+        apiVersion: ENV.SFDC_API_VERSION,
+        instanceUrl: (userInfo.urls?.custom_domain as string) || loginUrl,
+        refreshToken: refresh_token,
+        logging: ENV.LOG_LEVEL === 'trace',
+      });
+
+      const salesforceOrg = await initConnectionFromOAuthResponse({
+        jetstreamConn,
+        userId: user.id,
+        orgGroupId,
+      });
+
+      returnParams.data = JSON.stringify(salesforceOrg);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
-    } else if (!orgAuth) {
-      returnParams.error = 'Authentication Error';
+    } catch (ex) {
+      let errorLogObj = getExceptionLog(ex) as any;
+
+      returnParams.error = ex.message || 'Unexpected Error';
       returnParams.message = queryParams.error_description
         ? (queryParams.error_description as string)
         : 'There was an error authenticating with Salesforce.';
-      req.log.info({ ...query, requestId: res.locals.requestId, queryParams }, '[OAUTH][ERROR] Missing orgAuth from session');
+
+      if (ex instanceof ResponseBodyError) {
+        returnParams.error = ex.error;
+        returnParams.message = `There was an error authenticating with Salesforce. ${ex.error_description || ''}`.trim();
+        errorLogObj = {
+          ...errorLogObj,
+          responseError: {
+            error: ex.error,
+            error_description: ex.error_description,
+          },
+        };
+      }
+
+      req.log.info({ ...errorLogObj }, '[OAUTH][ERROR]');
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
     }
-
-    const { code_verifier, nonce, state, loginUrl, orgGroupId } = orgAuth;
-
-    const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(loginUrl, query, {
-      code_verifier,
-      nonce,
-      state,
-    });
-
-    const jetstreamConn = new ApiConnection({
-      apiRequestAdapter: getApiRequestFactoryFn(fetch),
-      userId: userInfo.user_id,
-      organizationId: userInfo.organization_id,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      accessToken: access_token!,
-      apiVersion: ENV.SFDC_API_VERSION,
-      instanceUrl: userInfo.urls.custom_domain || loginUrl,
-      refreshToken: refresh_token,
-      logging: ENV.LOG_LEVEL === 'trace',
-    });
-
-    const salesforceOrg = await initConnectionFromOAuthResponse({
-      jetstreamConn,
-      userId: user.id,
-      orgGroupId,
-    });
-
-    returnParams.data = JSON.stringify(salesforceOrg);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
-  } catch (ex) {
-    req.log.info({ ...getExceptionLog(ex) }, '[OAUTH][ERROR]');
-    returnParams.error = ex.message || 'Unexpected Error';
-    returnParams.message = query.error_description
-      ? (query.error_description as string)
-      : 'There was an error authenticating with Salesforce.';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return res.redirect(`/oauth-link/?${new URLSearchParams(returnParams as any).toString().replaceAll('+', '%20')}`);
-  }
-});
+  },
+);
 
 export async function initConnectionFromOAuthResponse({
   jetstreamConn,

@@ -8,6 +8,7 @@ import {
   IcpResponse,
 } from '@jetstream/desktop/types';
 import { ApiConnection, BinaryFileDownload, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
+import * as oauthService from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
 import { addDays } from 'date-fns';
@@ -22,7 +23,7 @@ import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils
 import { logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
 import * as dataService from './persistence.service';
-import { initConnectionFromOAuthResponse, salesforceOauthCallback, salesforceOauthInit } from './sfdc-oauth.service';
+import { initConnectionFromOAuthResponse } from './sfdc-oauth.service';
 import { downloadAndZipFilesToDisk } from './zip-download.service';
 
 type MainIpcHandler<Key extends keyof ElectronApiRequestResponse> = (
@@ -168,20 +169,31 @@ const handleLogoutEvent: MainIpcHandler<'logout'> = async () => {
 
 const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
   // : { loginUrl: string; addLoginParam?: boolean; loginHint?: string }
-  const { authorizationUrl, code_verifier, nonce, state } = await salesforceOauthInit(payload.loginUrl, {
+  const { authorizationUrl, code_verifier, nonce, state } = await oauthService.salesforceOauthInit({
+    clientId: ENV.DESKTOP_SFDC_CLIENT_ID,
+    redirectUri: ENV.DESKTOP_SFDC_CALLBACK_URL,
+    loginUrl: payload.loginUrl,
     addLoginParam: payload.addLoginTrue,
     loginHint: payload.loginHint,
   });
 
-  await shell.openExternal(authorizationUrl);
+  await shell.openExternal(authorizationUrl.toString());
 
   const handleCallback = async (queryParams: Record<string, string>) => {
     try {
-      const { access_token, refresh_token, userInfo } = await salesforceOauthCallback(payload.loginUrl, queryParams, {
-        code_verifier,
-        nonce,
-        state,
-      });
+      const { access_token, refresh_token, userInfo } = await oauthService.salesforceOauthCallback(
+        {
+          clientId: ENV.DESKTOP_SFDC_CLIENT_ID,
+          redirectUri: ENV.DESKTOP_SFDC_CALLBACK_URL,
+          loginUrl: payload.loginUrl,
+        },
+        new URLSearchParams(queryParams),
+        {
+          code_verifier,
+          nonce,
+          state,
+        },
+      );
 
       const jetstreamConn = new ApiConnection({
         apiRequestAdapter: getApiRequestFactoryFn(fetch),
@@ -203,6 +215,7 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
 
       event.sender.send('orgAdded', salesforceOrg);
     } catch (ex) {
+      // TODO: send error back to renderer so user can be notified
       logger.error('Error handling callback', ex);
     } finally {
       clearTimeout(timeout);

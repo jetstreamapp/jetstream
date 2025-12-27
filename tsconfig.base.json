@@ -66,7 +66,8 @@
       "@jetstream/ui/app-state": ["libs/shared/ui-app-state/src/index.ts"],
       "@jetstream/ui/cookie-consent-banner": ["libs/shared/cookie-consent-banner/src/index.ts"],
       "@jetstream/ui/db": ["libs/shared/ui-db/src/index.ts"],
-      "@jetstream/workspace-plugin": ["tools/workspace-plugin/src/index.ts"]
+      "@jetstream/workspace-plugin": ["tools/workspace-plugin/src/index.ts"],
+      "@jetstream/salesforce-oauth": ["libs/auth/salesforce-oauth/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

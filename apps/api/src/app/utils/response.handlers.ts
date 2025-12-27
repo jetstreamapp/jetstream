@@ -4,7 +4,7 @@ import { AuthError, createCSRFToken, getCookieConfig } from '@jetstream/auth/ser
 import { isPrismaError, Prisma, SalesforceOrg, toTypedPrismaError } from '@jetstream/prisma';
 import { ERROR_MESSAGES, HTTP } from '@jetstream/shared/constants';
 import { Maybe } from '@jetstream/types';
-import { serialize } from 'cookie';
+import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
 import { Duplex } from 'stream';
 import * as salesforceOrgsDb from '../db/salesforce-org.db';
@@ -48,10 +48,10 @@ function setCookieHeaders(res: Response) {
     Object.values(res.locals?.cookies || {}).forEach(({ name, options, clear, value }) => {
       try {
         if (clear) {
-          res.appendHeader('Set-Cookie', serialize(name, '', { ...options, expires: new Date(0) }));
+          res.appendHeader('Set-Cookie', stringifySetCookie(name, '', { ...options, expires: new Date(0) }));
           return;
         }
-        res.appendHeader('Set-Cookie', serialize(name, value, options));
+        res.appendHeader('Set-Cookie', stringifySetCookie(name, value, options));
       } catch (ex) {
         logger.error({ ...getExceptionLog(ex) }, 'Error setting cookie: %s', name);
       }

@@ -2,11 +2,12 @@ import { logger } from '@jetstream/api-config';
 import { Request } from '@jetstream/api-types';
 import { CookieConfig, CreateCSRFTokenParams, UserProfileSession, ValidateCSRFTokenParams } from '@jetstream/auth/types';
 import { HTTP } from '@jetstream/shared/constants';
+import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { UserProfileUi } from '@jetstream/types';
 import * as bcrypt from 'bcryptjs';
 import * as Bowser from 'bowser';
 import { Request as ExpressRequest } from 'express';
-import { createHmac } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const REMEMBER_DEVICE_DAYS = 30;
 
@@ -170,6 +171,32 @@ export function randomString(size: number) {
   return Array.from(bytes).reduce(r, '');
 }
 
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ * Converts strings to buffers and uses crypto.timingSafeEqual
+ */
+export function timingSafeStringCompare(a: string | undefined | null, b: string | undefined | null): boolean {
+  if (!a || !b) {
+    return false;
+  }
+
+  // Ensure both strings are the same length to prevent timing attacks
+  // If lengths differ, we still need to do a constant-time comparison
+  const bufferA = Buffer.from(a);
+  const bufferB = Buffer.from(b);
+
+  // timingSafeEqual requires same length buffers
+  if (bufferA.length !== bufferB.length) {
+    return false;
+  }
+
+  try {
+    return timingSafeEqual(bufferA, bufferB);
+  } catch {
+    return false;
+  }
+}
+
 export function createCSRFToken({ secret }: CreateCSRFTokenParams) {
   if (!secret) {
     throw new Error('Secret is required to create a CSRF token');
@@ -194,14 +221,12 @@ export function validateCSRFToken({ secret, cookieValue, bodyValue }: ValidateCS
 
   const expectedCsrfTokenHash = createHMAC(secret, csrfToken);
 
-  if (csrfTokenHash !== expectedCsrfTokenHash) {
+  if (!timingSafeStringCompare(csrfTokenHash, expectedCsrfTokenHash)) {
     logger.debug('CSRF token hash does not match');
     return false;
   }
 
-  const csrfTokenVerified = csrfToken === bodyValue;
-
-  if (!csrfTokenVerified) {
+  if (!timingSafeStringCompare(csrfToken, bodyValue)) {
     logger.debug('CSRF token does not match');
     return false;
   }
@@ -249,6 +274,59 @@ export function getApiAddressFromReq(req: Request<unknown, unknown, unknown> | E
 }
 
 /**
+ * Validates a redirect URL to prevent open redirect vulnerabilities.
+ * Only allows:
+ * - Relative paths starting with / (but not // which could be protocol-relative)
+ * - Absolute URLs that match allowed origins (JETSTREAM_CLIENT_URL or JETSTREAM_SERVER_URL)
+ *
+ * @param url - The URL to validate (from user input, cookies, or query params)
+ * @param allowedOrigins - Array of allowed origin URLs (e.g., ['https://app.example.com'])
+ * @param defaultUrl - The default safe URL to return if validation fails
+ * @returns The validated URL or the default URL if validation fails
+ */
+export function validateRedirectUrl(url: string | null | undefined, allowedOrigins: string[], defaultUrl: string): string {
+  if (!url || typeof url !== 'string') {
+    return defaultUrl;
+  }
+
+  // Trim whitespace
+  url = url.trim();
+
+  // Empty string
+  if (!url) {
+    return defaultUrl;
+  }
+
+  // Allow relative paths that start with / but not //
+  // Protocol-relative URLs (//example.com) are not allowed
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return url;
+  }
+
+  // For absolute URLs, validate the origin
+  try {
+    const parsedUrl = new URL(url);
+    const origin = parsedUrl.origin;
+
+    // Check if the origin matches any allowed origin
+    for (const allowedOrigin of allowedOrigins) {
+      const parsedAllowedOrigin = new URL(allowedOrigin);
+      if (origin === parsedAllowedOrigin.origin) {
+        return url;
+      }
+    }
+
+    // Origin not in allowed list
+    logger.warn({ url, origin, allowedOrigins }, '[SECURITY] Attempted open redirect blocked');
+    return defaultUrl;
+  } catch (ex) {
+    // Invalid URL format
+    logger.warn({ url, ...getErrorMessageAndStackObj(ex) }, '[SECURITY] Invalid redirect URL format blocked');
+    return defaultUrl;
+  }
+}
+
+/**
  * Generate an HMAC-based double CSRF token for session protection
  * Returns a token that can be used both as cookie and header value
  */
@@ -274,7 +352,7 @@ export function validateHMACDoubleCSRFToken(
   headerToken: string | undefined,
   sessionId: string,
 ): boolean {
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  if (!cookieToken || !headerToken || !timingSafeStringCompare(cookieToken, headerToken)) {
     return false;
   }
 
@@ -286,8 +364,8 @@ export function validateHMACDoubleCSRFToken(
     }
 
     const [randomValue, timestamp, tokenSessionId, providedHmac] = parts;
-    // Verify session ID matches
-    if (tokenSessionId !== sessionId) {
+    // Verify session ID matches using timing-safe comparison
+    if (!timingSafeStringCompare(tokenSessionId, sessionId)) {
       return false;
     }
     const payload = `${randomValue}:${timestamp}:${tokenSessionId}`;
@@ -295,19 +373,8 @@ export function validateHMACDoubleCSRFToken(
     // Recreate HMAC using the same secret
     const expectedHmac = createHMAC(secret, payload);
 
-    // Compare HMACs using constant-time comparison
-    if (expectedHmac.length !== providedHmac.length) {
-      return false;
-    }
-
-    let isEqual = true;
-    for (let i = 0; i < expectedHmac.length; i++) {
-      if (expectedHmac[i] !== providedHmac[i]) {
-        isEqual = false;
-      }
-    }
-
-    if (!isEqual) {
+    // Compare HMACs using timing-safe comparison
+    if (!timingSafeStringCompare(expectedHmac, providedHmac)) {
       return false;
     }
 

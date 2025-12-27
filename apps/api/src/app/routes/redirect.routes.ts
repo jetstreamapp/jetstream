@@ -1,12 +1,10 @@
 import { ENV } from '@jetstream/api-config';
-import { getCookieConfig } from '@jetstream/auth/server';
-import { serialize } from 'cookie';
+import { getCookieConfig, validateRedirectUrl } from '@jetstream/auth/server';
+import { stringifySetCookie } from 'cookie';
 import * as express from 'express';
-import Router from 'express-promise-router';
 import { isString } from 'lodash';
-import { UserFacingError } from '../utils/error-handler';
 
-export const routes: express.Router = Router();
+export const routes = express.Router();
 
 routes.get('/', (req, res, next) => {
   const action = req.query.action as 'team-invite' | undefined;
@@ -22,22 +20,21 @@ routes.get('/', (req, res, next) => {
   }
   const isLoggedIn = !!req.session.user;
 
-  if (
-    !redirectUrl.startsWith('/') &&
-    !redirectUrl.startsWith(ENV.JETSTREAM_CLIENT_URL) &&
-    !redirectUrl.startsWith(ENV.JETSTREAM_SERVER_URL)
-  ) {
-    res.log.warn('Redirect URL is not a valid path or is an external URL:', redirectUrl);
-    throw new UserFacingError('Invalid redirect URL', { redirectUrl });
+  // Validate redirect URL to prevent open redirect attacks
+  const safeRedirectUrl = validateRedirectUrl(redirectUrl, [ENV.JETSTREAM_CLIENT_URL, ENV.JETSTREAM_SERVER_URL], ENV.JETSTREAM_CLIENT_URL);
+
+  // If validation changed the URL, log the attempted redirect
+  if (safeRedirectUrl !== redirectUrl) {
+    res.log.warn({ originalUrl: redirectUrl, validatedUrl: safeRedirectUrl }, '[SECURITY] Invalid redirect URL blocked');
   }
 
   // If the user is logged in, redirect them to desired redirectUrl
   if (isLoggedIn) {
-    return res.redirect(redirectUrl);
+    return res.redirect(safeRedirectUrl);
   }
 
   const cookieConfig = getCookieConfig(ENV.USE_SECURE_COOKIES);
-  res.appendHeader('Set-Cookie', serialize(cookieConfig.redirectUrl.name, redirectUrl, cookieConfig.redirectUrl.options));
+  res.appendHeader('Set-Cookie', stringifySetCookie(cookieConfig.redirectUrl.name, safeRedirectUrl, cookieConfig.redirectUrl.options));
 
   const params = new URLSearchParams();
   if (isString(email)) {
@@ -47,7 +44,11 @@ routes.get('/', (req, res, next) => {
   if (action === 'team-invite' && isString(teamId) && isString(token)) {
     res.appendHeader(
       'Set-Cookie',
-      serialize(cookieConfig.teamInviteState.name, new URLSearchParams({ token, teamId }).toString(), cookieConfig.teamInviteState.options),
+      stringifySetCookie(
+        cookieConfig.teamInviteState.name,
+        new URLSearchParams({ token, teamId }).toString(),
+        cookieConfig.teamInviteState.options,
+      ),
     );
   }
 

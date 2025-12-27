@@ -1,0 +1,16 @@
+{
+  "name": "salesforce-oauth",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/auth/salesforce-oauth/src",
+  "projectType": "library",
+  "tags": ["scope:server"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../../../coverage/libs/auth/salesforce-oauth"
+      }
+    }
+  }
+}
