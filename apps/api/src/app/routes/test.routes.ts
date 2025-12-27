@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ENV, logger } from '@jetstream/api-config';
 import { ApiConnection, getApiRequestFactoryFn } from '@jetstream/salesforce-api';
+import { salesforceLoginUsernamePassword_UNSAFE } from '@jetstream/salesforce-oauth';
 import express, { Router } from 'express';
 import { initConnectionFromOAuthResponse } from '../controllers/oauth.controller';
-import { salesforceLoginUsernamePassword_UNSAFE } from '../services/oauth.service';
 import { NotAllowedError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 
@@ -31,7 +31,12 @@ routes.post('/e2e-integration-org', async (_: express.Request, res: express.Resp
   const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD!;
 
   const { id, access_token, instance_url } = await salesforceLoginUsernamePassword_UNSAFE(
-    E2E_LOGIN_URL,
+    {
+      clientId: ENV.SFDC_CONSUMER_KEY,
+      clientSecret: ENV.SFDC_CONSUMER_SECRET,
+      redirectUri: ENV.SFDC_CALLBACK_URL,
+      loginUrl: E2E_LOGIN_URL,
+    },
     E2E_LOGIN_USERNAME,
     E2E_LOGIN_PASSWORD,
   );
