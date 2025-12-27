@@ -1,5 +1,6 @@
 import {
   FileNameFormat,
+  InfoSuccessWarningError,
   InputReadFileContent,
   Maybe,
   SalesforceOrgUi,
@@ -13,13 +14,27 @@ import { z } from 'zod';
  * This interface defines the methods and events that are available in the Electron app
  * and can be used in the preload script to communicate with the main process.
  */
-// FIXME: these are "just here" - they don't do anything but do provide documentation
+
+export const IpcEventChannel = {
+  action: 'action',
+  authenticate: 'authenticate',
+  downloadProgress: 'download-progress',
+  /**
+   * This is a native Electron event name; do not change it.
+   */
+  fileDropped: 'file-dropped',
+  orgAdded: 'org-added',
+  toastMessage: 'toast-message',
+  updateStatus: 'update-status',
+} as const;
+
 export interface ElectronApiCallback {
-  onAuthenticate: (payload: (payload: AuthenticatePayload) => void) => void;
-  onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => void;
   onAction: (payload: (action: DesktopAction) => void) => void;
-  onUpdateStatus: (callback: (status: UpdateStatus) => void) => void;
+  onAuthenticate: (payload: (payload: AuthenticatePayload) => void) => void;
   onDownloadProgress: (callback: (progress: DownloadZipProgress) => void) => void;
+  onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => void;
+  onToastMessage: (callback: (message: { type: InfoSuccessWarningError; message: string; duration?: number }) => void) => void;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => void;
 }
 
 export interface ElectronApiRequestResponse {

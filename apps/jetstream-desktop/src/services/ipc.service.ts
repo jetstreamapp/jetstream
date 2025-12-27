@@ -6,6 +6,7 @@ import {
   DownloadZipResult,
   ElectronApiRequestResponse,
   IcpResponse,
+  IpcEventChannel,
 } from '@jetstream/desktop/types';
 import { ApiConnection, BinaryFileDownload, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
@@ -14,6 +15,7 @@ import { UserProfileUi } from '@jetstream/types';
 import { addDays } from 'date-fns';
 import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
+import { ResponseBodyError } from 'oauth4webapi';
 import { Method } from 'tiny-request-router';
 import { z } from 'zod';
 import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../config/auto-updater';
@@ -126,17 +128,17 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
           authInfo: { deviceId, accessToken },
           success: true,
         };
-        event.sender.send('authenticate', payload);
+        event.sender.send(IpcEventChannel.authenticate, payload);
       } else {
         // show error message to user
         // ensure auth state is cleared out if it existed
         const payload: AuthenticateFailurePayload = { success: false, error: response.error };
-        event.sender.send('authenticate', payload);
+        event.sender.send(IpcEventChannel.authenticate, payload);
       }
     } catch (ex) {
       logger.error('Error handling callback', ex);
       const payload: AuthenticateFailurePayload = { success: false, error: 'There was an unknown error authenticating your account' };
-      event.sender.send('authenticate', payload);
+      event.sender.send(IpcEventChannel.authenticate, payload);
     } finally {
       clearTimeout(timeout);
     }
@@ -213,10 +215,18 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
         // jetstreamOrganizationId,
       });
 
-      event.sender.send('orgAdded', salesforceOrg);
+      event.sender.send(IpcEventChannel.orgAdded, salesforceOrg);
     } catch (ex) {
-      // TODO: send error back to renderer so user can be notified
+      let message = queryParams.error_description
+        ? (queryParams.error_description as string)
+        : 'There was an error authenticating with Salesforce.';
+
+      if (ex instanceof ResponseBodyError) {
+        message = `There was an error authenticating with Salesforce. ${ex.error_description || ''}`.trim();
+      }
+
       logger.error('Error handling callback', ex);
+      event.sender.send(IpcEventChannel.toastMessage, { type: 'error', message });
     } finally {
       clearTimeout(timeout);
     }
@@ -307,7 +317,7 @@ const handleRequestEvent: MainIpcHandler<'request'> = async (_, { url: urlString
 const handleCheckForUpdatesEvent: MainIpcHandler<'checkForUpdates'> = async (event, userInitiated) => {
   checkForUpdates(false, userInitiated);
   // Send current status immediately
-  event.sender.send('update-status', getCurrentUpdateStatus());
+  event.sender.send(IpcEventChannel.updateStatus, getCurrentUpdateStatus());
 };
 
 const handleGetUpdateStatusEvent: MainIpcHandler<'getUpdateStatus'> = async (_event) => {
