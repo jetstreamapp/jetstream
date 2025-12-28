@@ -1,12 +1,17 @@
 import { NotificationMessageV1Response, NotificationMessageV1ResponseSchema } from '@jetstream/desktop/types';
 import { HTTP } from '@jetstream/shared/constants';
-import { Maybe } from '@jetstream/types';
+import { Maybe, UserProfileUiSchema } from '@jetstream/types';
 import { app, net } from 'electron';
 import logger from 'electron-log';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 
-const SuccessOrErrorSchema = z.union([z.object({ success: z.literal(true) }), z.object({ success: z.literal(false), error: z.string() })]);
+const AuthResponseSuccessSchema = z.object({ success: z.literal(true), userProfile: UserProfileUiSchema });
+const AuthResponseErrorSchema = z.object({ success: z.literal(false), error: z.string() });
+const SuccessOrErrorSchema = z.union([AuthResponseSuccessSchema, AuthResponseErrorSchema]);
+
+export type AuthResponseSuccess = z.infer<typeof AuthResponseSuccessSchema>;
+export type AuthResponseError = z.infer<typeof AuthResponseErrorSchema>;
 
 export async function verifyAuthToken(payload: { deviceId: string; accessToken: string }) {
   const response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/auth/verify`, {
@@ -14,6 +19,8 @@ export async function verifyAuthToken(payload: { deviceId: string; accessToken: 
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: payload.deviceId,
     },
     body: JSON.stringify(payload),
   });
@@ -39,6 +46,8 @@ export async function logout(payload: { deviceId: string; accessToken: string })
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: payload.deviceId,
     },
     body: JSON.stringify(payload),
   });
@@ -74,6 +83,7 @@ export async function checkNotifications({
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${accessToken}`,
+      [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
       [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
     },
   });

@@ -22,7 +22,7 @@ import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../confi
 import { ENV } from '../config/environment';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
-import { logout, verifyAuthToken } from './api.service';
+import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
 import * as dataService from './persistence.service';
 import { initConnectionFromOAuthResponse } from './sfdc-oauth.service';
@@ -121,7 +121,11 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
       const response = await verifyAuthToken({ accessToken, deviceId });
 
       if (response.success) {
-        const { userProfile } = dataService.saveAuthResponseToAppData({ deviceId, accessToken });
+        const { userProfile } = dataService.saveAuthResponseToAppData({
+          deviceId,
+          accessToken,
+          userProfile: (response as AuthResponseSuccess).userProfile,
+        });
         const payload: AuthenticateSuccessPayload = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           userProfile: userProfile as any,

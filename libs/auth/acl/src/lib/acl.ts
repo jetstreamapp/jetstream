@@ -96,6 +96,10 @@ function getAbilityRules({ isBrowserExtension, isDesktop, user }: GetAbilityOpti
         can('delete', 'TeamMemberSession');
       }
     }
+  } else if (isDesktop && activeTeamMembership) {
+    if (isTeamsBillingOrAdmin) {
+      can(['read'], ['Team']);
+    }
   }
 
   if (user.entitlements.chromeExtension) {
