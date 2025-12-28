@@ -176,6 +176,10 @@ const envSchema = z.object({
       }
       return val || '';
     }),
+  // Should be a base64-encoded 32-byte key (generate with: openssl rand -base64 32)
+  JWT_ENCRYPTION_KEY: z.string().min(44, {
+    error: 'JWT_ENCRYPTION_KEY must be a base64-encoded 32-byte key',
+  }),
   /**
    * EMAIL
    * If not set, email will not be sent

@@ -56,10 +56,14 @@ const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAut
 // NOTE: MIDDLEWARE ROUTE - will either redirect to login or will call next() to allow static page to be served
 routes.get('/init', LAX_AuthRateLimit, webExtensionController.routeDefinition.initAuthMiddleware.controllerFn());
 
-// API endpoint that /init calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
+/**
+ * @deprecated - use POST instead
+ */
 routes.get('/session', STRICT_2X_AuthRateLimit, webExtensionController.routeDefinition.initSession.controllerFn());
+// API endpoint that /init calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
+routes.post('/session', STRICT_2X_AuthRateLimit, webExtensionController.routeDefinition.initSession.controllerFn());
 // Validate authentication status from browser extension
-routes.post('/verify', STRICT_AuthRateLimit, webExtensionController.routeDefinition.verifyTokens.controllerFn());
+routes.post('/verify', STRICT_AuthRateLimit, webExtensionController.routeDefinition.verifyToken.controllerFn());
 routes.delete('/logout', STRICT_AuthRateLimit, webExtensionController.routeDefinition.logout.controllerFn());
 
 /**

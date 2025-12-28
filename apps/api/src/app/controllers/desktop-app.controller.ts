@@ -1,8 +1,15 @@
 import { ENV } from '@jetstream/api-config';
-import { getApiAddressFromReq, getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
+import {
+  createUserActivityFromReq,
+  getApiAddressFromReq,
+  getCookieConfig,
+  InvalidSession,
+  MissingEntitlement,
+} from '@jetstream/auth/server';
 import { NotificationMessageV1Response } from '@jetstream/desktop/types';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { UserProfileUiSchema } from '@jetstream/types';
 import { fromUnixTime } from 'date-fns';
 import { z } from 'zod';
 import * as userSyncDbService from '../db/data-sync.db';
@@ -11,6 +18,7 @@ import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
+import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 import { routeDefinition as dataSyncController } from './data-sync.controller';
@@ -43,9 +51,9 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
-  verifyTokens: {
-    controllerFn: () => verifyTokens,
-    responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
+  verifyToken: {
+    controllerFn: () => verifyToken,
+    responseType: z.object({ success: z.boolean(), error: z.string().nullish(), userProfile: UserProfileUiSchema.optional() }),
     validators: {
       body: z.object({
         deviceId: z.string(),
@@ -111,44 +119,62 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     return;
   }
 
-  let accessToken = '';
-
   const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
-  const existingRecord = await webExtDb.findByUserIdAndDeviceId({
+
+  // Check for existing valid token with refresh buffer (7 days)
+  const existingTokenRecord = await webExtDb.findByUserIdAndDeviceId({
     userId: user.id,
     deviceId,
     type: webExtDb.TOKEN_TYPE_AUTH,
     expiresAtBufferDays: externalAuthService.TOKEN_AUTO_REFRESH_DAYS,
   });
 
-  // issue a new token if one does not exist withing the auto-refresh buffer
-  if (!existingRecord) {
-    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_DESKTOP);
-    await webExtDb.create(user.id, {
-      type: 'AUTH_TOKEN',
-      source: webExtDb.TOKEN_SOURCE_DESKTOP,
-      token: accessToken,
-      deviceId,
-      ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
-      userAgent: req.get('User-Agent') || 'unknown',
-      expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
-    });
-  } else {
-    // return existing token since it is still valid
-    accessToken = existingRecord.token;
+  if (existingTokenRecord) {
+    // Decrypt the stored token and return it (supports both encrypted and legacy plaintext)
+    const decryptedToken = decryptJwtTokenOrPlaintext(existingTokenRecord.token);
+    const decoded = externalAuthService.decodeToken(decryptedToken);
+    const expiresAt = fromUnixTime(decoded.exp);
+
+    res.log.info({ userId: user.id, deviceId, expiresAt }, 'Reusing existing desktop token');
+
+    sendJson(res, { accessToken: decryptedToken });
+    return;
   }
 
+  // Issue new token if none exists or about to expire
+  const accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_DESKTOP);
+  await webExtDb.create(user.id, {
+    type: webExtDb.TOKEN_TYPE_AUTH,
+    source: webExtDb.TOKEN_SOURCE_DESKTOP,
+    token: accessToken,
+    deviceId,
+    ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+    userAgent: req.get('User-Agent') || 'unknown',
+    expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
+  });
+
+  res.log.info({ userId: user.id, deviceId }, 'Issued new desktop token');
+
   sendJson(res, { accessToken });
+
+  createUserActivityFromReq(req, res, {
+    action: 'DESKTOP_LOGIN_TOKEN_ISSUED',
+    success: true,
+  });
 });
 
-const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async ({ body }, _, res) => {
+const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ body }, _, res) => {
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_DESKTOP);
+    const { userProfile: userProfileJwt } = await externalAuthService.verifyToken(
+      { token: accessToken, deviceId },
+      externalAuthService.AUDIENCE_DESKTOP,
+    );
+    const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: userProfileJwt.id, omitSubscriptions: true });
     res.log.info({ userId: userProfile.id, deviceId }, 'Desktop App token verified');
 
-    sendJson(res, { success: true });
+    sendJson(res, { success: true, userProfile });
   } catch (ex) {
     res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying Desktop App token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);

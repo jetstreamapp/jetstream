@@ -56,10 +56,14 @@ const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAut
 // NOTE: MIDDLEWARE ROUTE - will either redirect to login or will call next() to allow static page to be served
 routes.get('/auth', LAX_AuthRateLimit, desktopAppController.routeDefinition.initAuthMiddleware.controllerFn());
 
-// API endpoint that /auth/desktop calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
+/**
+ * @deprecated - use POST instead
+ */
 routes.get('/auth/session', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.initSession.controllerFn());
+// API endpoint that /auth/desktop calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
+routes.post('/auth/session', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.initSession.controllerFn());
 // Validate authentication status from desktop app
-routes.post('/auth/verify', STRICT_AuthRateLimit, desktopAppController.routeDefinition.verifyTokens.controllerFn());
+routes.post('/auth/verify', STRICT_AuthRateLimit, desktopAppController.routeDefinition.verifyToken.controllerFn());
 routes.delete('/auth/logout', STRICT_AuthRateLimit, desktopAppController.routeDefinition.logout.controllerFn());
 
 /**

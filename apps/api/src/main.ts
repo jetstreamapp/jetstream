@@ -411,8 +411,8 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   server.on('error', (error) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((error as any).code === 'EADDRINUSE') {
-      console.error(`Port ${ENV.PORT} is already in use`, error.message);
-      console.info('Kill with: lsof -ti:3333 | xargs kill -9');
+      logger.info('Kill with: lsof -ti:3333 | xargs kill -9');
+      logger.error(getExceptionLog(error), `Port ${ENV.PORT} is already in use`);
       process.exit(1);
     } else {
       logger.error(getExceptionLog(error), '[SERVER][ERROR]');

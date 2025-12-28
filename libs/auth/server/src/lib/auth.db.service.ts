@@ -122,6 +122,11 @@ export async function pruneExpiredRecords() {
       expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_TOKEN_DAYS) },
     },
   });
+  await prisma.webExtensionToken.deleteMany({
+    where: {
+      expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_TOKEN_DAYS) },
+    },
+  });
 }
 
 async function findUserByProviderId(provider: OauthProviderType, providerAccountId: string) {

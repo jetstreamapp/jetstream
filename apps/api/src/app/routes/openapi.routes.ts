@@ -565,17 +565,15 @@ export function getOpenApiSpec() {
         post: { ...getRequest({ ...billingController.createBillingPortalSession.validators, tags: ['billing'] }) },
       },
 
-      // Web Extension Controller Routes (prefix: /desktop-app)
-      '/desktop-app/init': {
-        get: { ...getRequest({ ...desktopController.initAuthMiddleware.validators, tags: ['desktop'] }) },
+      // Desktop App Controller Routes (prefix: /desktop-app)
+      '/desktop-app/auth/session': {
+        get: { ...getRequest({ ...desktopController.initSession.validators, tags: ['desktop'] }), deprecated: true },
+        post: { ...getRequest({ ...desktopController.initSession.validators, tags: ['desktop'] }) },
       },
-      '/desktop-app/session': {
-        get: { ...getRequest({ ...desktopController.initSession.validators, tags: ['desktop'] }) },
+      '/desktop-app/auth/verify': {
+        post: { ...getRequest({ ...desktopController.verifyToken.validators, tags: ['desktop'] }) },
       },
-      '/desktop-app/verify': {
-        post: { ...getRequest({ ...desktopController.verifyTokens.validators, tags: ['desktop'] }) },
-      },
-      '/desktop-app/logout': {
+      '/desktop-app/auth/logout': {
         delete: { ...getRequest({ ...desktopController.logout.validators, tags: ['desktop'] }) },
       },
       '/desktop-app/data-sync/pull': {
@@ -584,19 +582,17 @@ export function getOpenApiSpec() {
       '/desktop-app/data-sync/push': {
         post: { ...getRequest({ ...desktopController.dataSyncPush.validators, tags: ['desktop'] }) },
       },
-      '/v1/notifications': {
+      '/desktop-app/v1/notifications': {
         post: { ...getRequest({ ...desktopController.notifications.validators, tags: ['desktop'] }) },
       },
 
       // Web Extension Controller Routes (prefix: /web-extension)
-      '/web-extension/init': {
-        get: { ...getRequest({ ...webExtensionController.initAuthMiddleware.validators, tags: ['webExtension'] }) },
-      },
       '/web-extension/session': {
-        get: { ...getRequest({ ...webExtensionController.initSession.validators, tags: ['webExtension'] }) },
+        get: { ...getRequest({ ...webExtensionController.initSession.validators, tags: ['webExtension'] }), deprecated: true },
+        post: { ...getRequest({ ...webExtensionController.initSession.validators, tags: ['webExtension'] }) },
       },
       '/web-extension/verify': {
-        post: { ...getRequest({ ...webExtensionController.verifyTokens.validators, tags: ['webExtension'] }) },
+        post: { ...getRequest({ ...webExtensionController.verifyToken.validators, tags: ['webExtension'] }) },
       },
       '/web-extension/logout': {
         delete: { ...getRequest({ ...webExtensionController.logout.validators, tags: ['webExtension'] }) },

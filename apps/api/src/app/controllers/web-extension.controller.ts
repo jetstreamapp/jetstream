@@ -1,5 +1,11 @@
 import { ENV } from '@jetstream/api-config';
-import { getApiAddressFromReq, getCookieConfig, InvalidSession, MissingEntitlement } from '@jetstream/auth/server';
+import {
+  createUserActivityFromReq,
+  getApiAddressFromReq,
+  getCookieConfig,
+  InvalidSession,
+  MissingEntitlement,
+} from '@jetstream/auth/server';
 import { HTTP } from '@jetstream/shared/constants';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { fromUnixTime } from 'date-fns';
@@ -11,6 +17,7 @@ import { checkUserEntitlement } from '../db/user.db';
 import * as webExtDb from '../db/web-extension.db';
 import { emitRecordSyncEventsToOtherClients, SyncEvent } from '../services/data-sync-broadcast.service';
 import * as externalAuthService from '../services/external-auth.service';
+import { decryptJwtTokenOrPlaintext } from '../services/jwt-token-encryption.service';
 import { redirect, sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
 
@@ -43,8 +50,8 @@ export const routeDefinition = {
       hasSourceOrg: false,
     },
   },
-  verifyTokens: {
-    controllerFn: () => verifyTokens,
+  verifyToken: {
+    controllerFn: () => verifyToken,
     responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
       body: z.object({
@@ -102,44 +109,58 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     return;
   }
 
-  let accessToken = '';
-
   const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
-  const existingRecord = await webExtDb.findByUserIdAndDeviceId({
+  const existingTokenRecord = await webExtDb.findByUserIdAndDeviceId({
     userId: user.id,
     deviceId,
     type: webExtDb.TOKEN_TYPE_AUTH,
     expiresAtBufferDays: externalAuthService.TOKEN_AUTO_REFRESH_DAYS,
   });
 
-  // issue a new token if one does not exist withing the auto-refresh buffer
-  if (!existingRecord) {
-    accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
-    await webExtDb.create(user.id, {
-      type: 'AUTH_TOKEN',
-      source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
-      token: accessToken,
-      deviceId,
-      ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
-      userAgent: req.get('User-Agent') || 'unknown',
-      expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
-    });
-  } else {
-    // return existing token since it is still valid
-    accessToken = existingRecord.token;
+  if (existingTokenRecord) {
+    // Decrypt the stored token and return it (token reuse)
+    const decryptedToken = decryptJwtTokenOrPlaintext(existingTokenRecord.token);
+    const decoded = externalAuthService.decodeToken(decryptedToken);
+    const expiresAt = fromUnixTime(decoded.exp);
+
+    res.log.info({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
+
+    sendJson(res, { accessToken: decryptedToken });
+    return;
   }
 
+  // Issue new token if none exists or about to expire
+  const accessToken = await externalAuthService.issueAccessToken(userProfile, externalAuthService.AUDIENCE_WEB_EXT);
+  await webExtDb.create(user.id, {
+    type: webExtDb.TOKEN_TYPE_AUTH,
+    source: webExtDb.TOKEN_SOURCE_BROWSER_EXTENSION,
+    token: accessToken,
+    deviceId,
+    ipAddress: res.locals.ipAddress || getApiAddressFromReq(req),
+    userAgent: req.get('User-Agent') || 'unknown',
+    expiresAt: fromUnixTime(externalAuthService.decodeToken(accessToken).exp),
+  });
+
   sendJson(res, { accessToken });
+
+  createUserActivityFromReq(req, res, {
+    action: 'WEB_EXTENSION_LOGIN_TOKEN_ISSUED',
+    success: true,
+  });
 });
 
-const verifyTokens = createRoute(routeDefinition.verifyTokens.validators, async ({ body }, _, res) => {
+const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ body }, _, res) => {
   try {
     const { accessToken, deviceId } = body;
     // This validates the token against the database record
-    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_WEB_EXT);
+    const { userProfile: userProfileJwt } = await externalAuthService.verifyToken(
+      { token: accessToken, deviceId },
+      externalAuthService.AUDIENCE_WEB_EXT,
+    );
+    const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: userProfileJwt.id, omitSubscriptions: true });
     res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
 
-    sendJson(res, { success: true });
+    sendJson(res, { success: true, userProfile });
   } catch (ex) {
     res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);

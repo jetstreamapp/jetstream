@@ -41,6 +41,7 @@ const EVENT_MAP = {
 
 async function fetchTokens(deviceId: string) {
   const response = await fetch(`${ENVIRONMENT.SERVER_URL}/web-extension/session?deviceId=${deviceId}`, {
+    method: 'POST',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',

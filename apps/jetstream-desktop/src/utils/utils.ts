@@ -18,14 +18,14 @@ const CspPolicy = {
     `wss://${SERVER_URL.host}`,
     'https://*.salesforce.com',
   ],
-  'font-src': [`'self'`],
+  'font-src': [`'self'`, 'data:'],
   'frame-ancestors': ["'self'", 'getjetstream.app', '*.google.com', '*.googleapis.com', '*.gstatic.com'],
   // 'frame-src': [`'self'`, '*.google.com', '*.googleapis.com', '*.gstatic.com'],
-  'img-src': [`'self'`, `data:`, '*.googleusercontent.com'],
+  'img-src': [`'self'`, 'data:', '*.googleusercontent.com'],
   'script-src': [`'self'`, `'unsafe-inline'`, '*.google.com'],
   'script-src-attr': ['none'],
   'style-src': [`'self'`, `'unsafe-inline'`],
-  'worker-src': [`'self'`, `blob:`],
+  'worker-src': [`'self'`, 'blob:'],
 };
 
 export function getCspPolicy() {

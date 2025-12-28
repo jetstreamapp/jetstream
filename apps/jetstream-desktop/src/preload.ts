@@ -3,12 +3,36 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 const API: ElectronAPI = {
   // One-Way to Client
-  onAuthenticate: (callback) => ipcRenderer.on(IpcEventChannel.authenticate, (_event, payload) => callback(payload)),
-  onOrgAdded: (callback) => ipcRenderer.on(IpcEventChannel.orgAdded, (_event, payload) => callback(payload)),
-  onAction: (callback) => ipcRenderer.on(IpcEventChannel.action, (_event, payload) => callback(payload)),
-  onUpdateStatus: (callback) => ipcRenderer.on(IpcEventChannel.updateStatus, (_event, payload) => callback(payload)),
-  onDownloadProgress: (callback) => ipcRenderer.on(IpcEventChannel.downloadProgress, (_event, payload) => callback(payload)),
-  onToastMessage: (callback) => ipcRenderer.on(IpcEventChannel.toastMessage, (_event, payload) => callback(payload)),
+  onAuthenticate: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.authenticate, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.authenticate, handler);
+  },
+  onOrgAdded: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.orgAdded, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.orgAdded, handler);
+  },
+  onAction: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.action, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.action, handler);
+  },
+  onUpdateStatus: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.updateStatus, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.updateStatus, handler);
+  },
+  onDownloadProgress: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.downloadProgress, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.downloadProgress, handler);
+  },
+  onToastMessage: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on(IpcEventChannel.toastMessage, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.toastMessage, handler);
+  },
   // One-Way from Client
   login: () => ipcRenderer.invoke('login'),
   logout: () => ipcRenderer.invoke('logout'),

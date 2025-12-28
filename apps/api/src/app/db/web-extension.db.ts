@@ -1,7 +1,9 @@
-import { prisma } from '@jetstream/api-config';
+import { logger, prisma } from '@jetstream/api-config';
 import { TokenSource, TokenSourceBrowserExtensions, TokenSourceDesktop } from '@jetstream/auth/types';
 import { Prisma } from '@jetstream/prisma';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { addDays } from 'date-fns';
+import { encryptJwtToken, hashToken, isTokenEncrypted } from '../services/jwt-token-encryption.service';
 
 export type TokenTypeAuthToken = 'AUTH_TOKEN';
 export type TokenType = TokenTypeAuthToken;
@@ -32,6 +34,7 @@ const SELECT = {
   type: true,
   source: true,
   token: true,
+  tokenHash: true,
   deviceId: true,
   ipAddress: true,
   userAgent: true,
@@ -67,14 +70,48 @@ export const findByUserIdAndDeviceId = async ({
   });
 };
 
+/**
+ * Upgrade a legacy token (plaintext) to encrypted format
+ * This is called automatically when we encounter an old token during migration
+ */
+async function upgradeLegacyToken(recordId: string, plaintextToken: string): Promise<void> {
+  try {
+    const encryptedToken = encryptJwtToken(plaintextToken);
+    const tokenHash = hashToken(plaintextToken);
+
+    await prisma.webExtensionToken.update({
+      where: { id: recordId },
+      data: {
+        token: encryptedToken,
+        tokenHash,
+      },
+    });
+  } catch (error) {
+    logger.error({ error: getErrorMessage(error) }, 'Failed to upgrade legacy token');
+  }
+}
+
 export const findByAccessTokenAndDeviceId = async ({ token, deviceId, type }: { token: string; deviceId: string; type: TokenType }) => {
-  return await prisma.webExtensionToken.findUnique({
+  const tokenHashValue = hashToken(token);
+
+  const record = await prisma.webExtensionToken.findUnique({
     where: {
-      type_token_deviceId: { type, deviceId, token },
+      type_tokenHash_deviceId: { type, deviceId, tokenHash: tokenHashValue },
       expiresAt: { gt: new Date() },
     },
     select: SELECT,
   });
+
+  // TEMPORARY: This is here to prevent breaking changes during migration
+  // After all tokens have been encrypted, we can remove this block
+  // Auto-upgrade legacy tokens to encrypted format
+  if (record && !isTokenEncrypted(record.token)) {
+    upgradeLegacyToken(record.id, token).catch((err) => {
+      logger.error('Failed to upgrade legacy token:', err);
+    });
+  }
+
+  return record;
 };
 
 export const create = async (
@@ -89,10 +126,14 @@ export const create = async (
     expiresAt: Date;
   },
 ) => {
+  // Encrypt the token before storing and create hash for lookup
+  const token = encryptJwtToken(payload.token);
+  const tokenHash = hashToken(payload.token);
+
   return await prisma.webExtensionToken.upsert({
     select: SELECT,
-    create: { userId, ...payload },
-    update: { userId, ...payload },
+    create: { userId, ...payload, token, tokenHash },
+    update: { userId, ...payload, token, tokenHash },
     where: {
       type_userId_deviceId: { type: payload.type, userId, deviceId: payload.deviceId },
     },
