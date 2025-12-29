@@ -4,6 +4,7 @@
  */
 /// <reference lib="WebWorker" />
 import { enableLogger, logger } from '@jetstream/shared/client-logger';
+import { HTTP } from '@jetstream/shared/constants';
 import { addMinutes } from 'date-fns/addMinutes';
 import { fromUnixTime } from 'date-fns/fromUnixTime';
 import { isAfter } from 'date-fns/isAfter';
@@ -409,11 +410,18 @@ async function handleLogout(sender: browser.Runtime.MessageSender): Promise<Logo
       return { hasTokens: false, loggedIn: false };
     }
 
-    const results: { success: true } | { success: false; error: string } = await fetch(`${environment.serverUrl}/web-extension/logout`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken: authTokens.accessToken, deviceId: extIdentifier.id }),
-    }).then((res) =>
+    const results: { success: true } | { success: false; error: string } = await fetch(
+      `${environment.serverUrl}/web-extension/auth/logout`,
+      {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${authTokens.accessToken}`,
+          [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+          [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
+        },
+      },
+    ).then((res) =>
       res
         .json()
         .then(({ data }) => data)
@@ -458,11 +466,18 @@ async function handleVerifyAuth(sender: browser.Runtime.MessageSender): Promise<
       return { hasTokens: true, loggedIn: true };
     }
 
-    const results: { success: true } | { success: false; error: string } = await fetch(`${environment.serverUrl}/web-extension/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken: authTokens.accessToken, deviceId: extIdentifier.id }),
-    }).then((res) =>
+    const results: { success: true } | { success: false; error: string } = await fetch(
+      `${environment.serverUrl}/web-extension/auth/verify`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${authTokens.accessToken}`,
+          [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+          [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
+        },
+      },
+    ).then((res) =>
       res
         .json()
         .then(({ data }) => data)

@@ -1,5 +1,6 @@
 import { DesktopUserPreferencesSchema } from '@jetstream/desktop/types';
 import { HTTP } from '@jetstream/shared/constants';
+import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import * as dataService from '../services/persistence.service';
@@ -91,6 +92,7 @@ const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.
         'Content-Type': req.request.headers.get('content-type')!,
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
       },
       body,
     });

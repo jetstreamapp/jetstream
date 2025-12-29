@@ -33,10 +33,16 @@ export const routeDefinition = {
     controllerFn: () => logout,
     responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
-      body: z.object({
-        deviceId: z.string(),
-        accessToken: z.string(),
-      }),
+      /**
+       * @deprecated, prefer headers for passing deviceId and accessToken
+       * For backwards compatibility, auth checks attempt to pull from body if headers are not present
+       */
+      body: z
+        .object({
+          deviceId: z.string().optional(),
+          accessToken: z.string().optional(),
+        })
+        .optional(),
       hasSourceOrg: false,
     },
   },
@@ -44,9 +50,6 @@ export const routeDefinition = {
     controllerFn: () => initSession,
     responseType: z.object({ accessToken: z.string() }),
     validators: {
-      query: z.object({
-        deviceId: z.uuid(),
-      }),
       hasSourceOrg: false,
     },
   },
@@ -54,10 +57,16 @@ export const routeDefinition = {
     controllerFn: () => verifyToken,
     responseType: z.object({ success: z.boolean(), error: z.string().nullish() }),
     validators: {
-      body: z.object({
-        deviceId: z.string(),
-        accessToken: z.string(),
-      }),
+      /**
+       * @deprecated, prefer headers for passing deviceId and accessToken
+       * For backwards compatibility, auth checks attempt to pull from body if headers are not present
+       */
+      body: z
+        .object({
+          deviceId: z.string().optional(),
+          accessToken: z.string().optional(),
+        })
+        .optional(),
       hasSourceOrg: false,
     },
   },
@@ -85,7 +94,7 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
   // redirect to login flow if user is not signed in
   if (!req.session.user) {
     const { redirectUrl: redirectUrlCookie } = getCookieConfig(ENV.USE_SECURE_COOKIES);
-    setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/web-extension/init`, redirectUrlCookie.options);
+    setCookie(redirectUrlCookie.name, `${ENV.JETSTREAM_SERVER_URL}/web-extension/auth`, redirectUrlCookie.options);
     redirect(res, '/auth/login/');
     return;
   }
@@ -96,10 +105,10 @@ const initAuthMiddleware = createRoute(routeDefinition.initAuthMiddleware.valida
  * This issues access tokens or returns existing access tokens
  * This route is called after the user is already authenticated through normal means
  */
-const initSession = createRoute(routeDefinition.initSession.validators, async ({ query, user }, req, res, next) => {
-  const { deviceId } = query;
+const initSession = createRoute(routeDefinition.initSession.validators, async ({ user }, req, res, next) => {
+  const { deviceId } = res.locals;
 
-  if (!req.session.user) {
+  if (!req.session.user || !deviceId) {
     next(new InvalidSession());
     return;
   }
@@ -126,6 +135,10 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
     res.log.info({ userId: user.id, deviceId, expiresAt }, 'Reusing existing web extension token');
 
     sendJson(res, { accessToken: decryptedToken });
+    createUserActivityFromReq(req, res, {
+      action: 'WEB_EXTENSION_LOGIN_TOKEN_REUSED',
+      success: true,
+    });
     return;
   }
 
@@ -149,35 +162,35 @@ const initSession = createRoute(routeDefinition.initSession.validators, async ({
   });
 });
 
-const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ body }, _, res) => {
+const verifyToken = createRoute(routeDefinition.verifyToken.validators, async ({ user }, _, res) => {
+  const { deviceId } = res.locals;
   try {
-    const { accessToken, deviceId } = body;
-    // This validates the token against the database record
-    const { userProfile: userProfileJwt } = await externalAuthService.verifyToken(
-      { token: accessToken, deviceId },
-      externalAuthService.AUDIENCE_WEB_EXT,
-    );
-    const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: userProfileJwt.id, omitSubscriptions: true });
+    if (!user) {
+      throw new InvalidSession();
+    }
+    const userProfile = await userDbService.findIdByUserIdUserFacing({ userId: user.id, omitSubscriptions: true });
     res.log.info({ userId: userProfile.id, deviceId }, 'Web extension token verified');
 
     sendJson(res, { success: true, userProfile });
   } catch (ex) {
-    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
+    res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error verifying web extension token');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });
 
-const logout = createRoute(routeDefinition.logout.validators, async ({ body }, _, res) => {
+const logout = createRoute(routeDefinition.logout.validators, async ({ user }, _, res) => {
+  const { deviceId } = res.locals;
   try {
-    const { accessToken, deviceId } = body;
+    if (!deviceId || !user) {
+      throw new InvalidSession();
+    }
     // This validates the token against the database record
-    const { userProfile } = await externalAuthService.verifyToken({ token: accessToken, deviceId }, externalAuthService.AUDIENCE_WEB_EXT);
-    webExtDb.deleteByUserIdAndDeviceId({ userId: userProfile.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
-    res.log.info({ userId: userProfile.id, deviceId }, 'User logged out of browser extension');
+    await webExtDb.deleteByUserIdAndDeviceId({ userId: user.id, deviceId, type: webExtDb.TOKEN_TYPE_AUTH });
+    res.log.info({ userId: user.id, deviceId }, 'User logged out of browser extension');
 
     sendJson(res, { success: true });
   } catch (ex) {
-    res.log.error({ deviceId: body?.deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of browser extension');
+    res.log.error({ userId: user?.id, deviceId, ...getErrorMessageAndStackObj(ex) }, 'Error logging out of browser extension');
     sendJson(res, { success: false, error: 'Invalid session' }, 401);
   }
 });

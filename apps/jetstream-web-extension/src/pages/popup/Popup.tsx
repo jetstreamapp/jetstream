@@ -86,7 +86,7 @@ export function Component() {
           <>
             <p>To get started with Jetstream, sign in to your account.</p>
             <a
-              href={`${environment.serverUrl}/web-extension/init`}
+              href={`${environment.serverUrl}/web-extension/auth`}
               target="_blank"
               className="slds-button slds-button_brand slds-button_stretch slds-m-top_small"
               rel="noreferrer"

@@ -1,3 +1,4 @@
+import { HTTP } from '@jetstream/shared/constants';
 import type { Maybe } from '@jetstream/types';
 import { useEffect, useReducer, useRef } from 'react';
 import { ENVIRONMENT } from '../utils/environment';
@@ -40,12 +41,13 @@ const EVENT_MAP = {
 } as const;
 
 async function fetchTokens(deviceId: string) {
-  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/web-extension/session?deviceId=${deviceId}`, {
+  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/web-extension/auth/session`, {
     method: 'POST',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
     },
   });
   if (!response.ok) {

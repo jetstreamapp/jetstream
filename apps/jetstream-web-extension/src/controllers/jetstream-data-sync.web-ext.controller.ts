@@ -44,6 +44,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }, req)
         Accept: 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
       },
     });
   } catch (ex) {
@@ -62,6 +63,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ query, body }
         'Content-Type': 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
       },
       body: JSON.stringify(body),
     });

@@ -87,6 +87,11 @@ export function setApplicationCookieMiddleware(_: express.Request, res: express.
   next();
 }
 
+export function deprecatedRouteMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  res.log.warn({ path: req.path, method: req.method }, '[DEPRECATED][ROUTE] This route is deprecated');
+  next();
+}
+
 export function notFoundMiddleware(_: express.Request, __: express.Response, next: express.NextFunction) {
   const error = new NotFoundError('Route not found');
   next(error);

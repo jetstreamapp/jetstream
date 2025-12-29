@@ -103,11 +103,12 @@ export const findByAccessTokenAndDeviceId = async ({ token, deviceId, type }: { 
   });
 
   // TEMPORARY: This is here to prevent breaking changes during migration
+  // Ticket to resolve: #1494
   // After all tokens have been encrypted, we can remove this block
   // Auto-upgrade legacy tokens to encrypted format
   if (record && !isTokenEncrypted(record.token)) {
-    upgradeLegacyToken(record.id, token).catch((err) => {
-      logger.error('Failed to upgrade legacy token:', err);
+    await upgradeLegacyToken(record.id, token).catch((err) => {
+      logger.error({ error: getErrorMessage(err) }, 'Failed to upgrade legacy token');
     });
   }
 

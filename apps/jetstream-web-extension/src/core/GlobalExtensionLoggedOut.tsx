@@ -6,7 +6,7 @@ export const GlobalExtensionLoggedOut = () => {
     <div className="slds-card slds-box">
       <p>This page is only accessible when you are logged in to the browser extension. Login to continue.</p>
       <a
-        href={`${environment.serverUrl}/web-extension/init`}
+        href={`${environment.serverUrl}/web-extension/auth`}
         target="_blank"
         className="slds-button slds-button_brand slds-m-top_small"
         rel="noreferrer"

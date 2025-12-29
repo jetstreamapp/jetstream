@@ -1,3 +1,4 @@
+import { Maybe } from '@jetstream/types';
 import 'express';
 import 'express-session';
 import { SessionData as JetstreamSessionData, UserProfileSession } from './auth-types';
@@ -10,7 +11,7 @@ declare module 'express' {
      */
     externalAuth?: {
       user: UserProfileSession;
-      deviceId?: string;
+      deviceId?: Maybe<string>;
     };
   }
 }

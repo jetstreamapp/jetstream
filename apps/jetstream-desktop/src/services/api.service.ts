@@ -9,20 +9,20 @@ import { ENV } from '../config/environment';
 const AuthResponseSuccessSchema = z.object({ success: z.literal(true), userProfile: UserProfileUiSchema });
 const AuthResponseErrorSchema = z.object({ success: z.literal(false), error: z.string() });
 const SuccessOrErrorSchema = z.union([AuthResponseSuccessSchema, AuthResponseErrorSchema]);
+const SuccessWithoutUserProfileOrErrorSchema = z.union([AuthResponseSuccessSchema.omit({ userProfile: true }), AuthResponseErrorSchema]);
 
 export type AuthResponseSuccess = z.infer<typeof AuthResponseSuccessSchema>;
 export type AuthResponseError = z.infer<typeof AuthResponseErrorSchema>;
 
-export async function verifyAuthToken(payload: { deviceId: string; accessToken: string }) {
+export async function verifyAuthToken({ accessToken, deviceId }: { deviceId: string; accessToken: string }) {
   const response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/auth/verify`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
       [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
-      [HTTP.HEADERS.X_EXT_DEVICE_ID]: payload.deviceId,
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
     },
-    body: JSON.stringify(payload),
   });
 
   const results = SuccessOrErrorSchema.safeParse(
@@ -40,19 +40,18 @@ export async function verifyAuthToken(payload: { deviceId: string; accessToken: 
   return results.data;
 }
 
-export async function logout(payload: { deviceId: string; accessToken: string }) {
-  const response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/logout`, {
+export async function logout({ accessToken, deviceId }: { deviceId: string; accessToken: string }) {
+  const response = await net.fetch(`${ENV.SERVER_URL}/desktop-app/auth/logout`, {
     method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
       [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
-      [HTTP.HEADERS.X_EXT_DEVICE_ID]: payload.deviceId,
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
     },
-    body: JSON.stringify(payload),
   });
 
-  const results = SuccessOrErrorSchema.safeParse(
+  const results = SuccessWithoutUserProfileOrErrorSchema.safeParse(
     await response
       .json()
       .then((value) => value?.data)

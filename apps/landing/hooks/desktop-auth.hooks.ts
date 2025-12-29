@@ -26,7 +26,7 @@ const ERROR_MAP = {
 const STORAGE_KEY = 'desktop-auth-success';
 
 async function fetchTokens(deviceId: string) {
-  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/desktop-app/auth/session?deviceId=${deviceId}`, {
+  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/desktop-app/auth/session`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -126,8 +126,8 @@ export function useDesktopAuthState() {
           .then((tokens) => {
             // Provide tokens to the extension
             window.location.href = `jetstream://auth?deviceId=${deviceId}&token=${token}&accessToken=${tokens.accessToken}`;
-            sessionStorage.setItem(STORAGE_KEY, 'true');
             dispatch({ type: 'SUCCESS' });
+            sessionStorage.setItem(STORAGE_KEY, 'true');
           })
           .catch((err) => {
             if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {

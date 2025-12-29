@@ -92,11 +92,16 @@ export async function verifyToken(
   return (await jwtVerifier(token)) as JwtDecodedPayload;
 }
 
-export async function getUserAndDeviceIdForExternalAuth(audience: Audience, req: express.Request<unknown, unknown, unknown, unknown>) {
-  let deviceId: Maybe<string> = null;
+export async function getUserAndDeviceIdForExternalAuth(
+  audience: Audience,
+  req: express.Request<unknown, unknown, unknown, unknown>,
+  res: express.Response,
+) {
+  const deviceId = getDeviceId(req, res);
   try {
-    const accessToken = req.get('Authorization')?.split(' ')[1];
-    deviceId = req.get(HTTP.HEADERS.X_EXT_DEVICE_ID) || req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID);
+    // Some prior endpoints may have accessToken in the body instead of Authorization header
+    const accessToken = req.get('Authorization')?.split(' ')[1] || (req.body as Maybe<{ accessToken?: string }>)?.accessToken;
+
     let user: UserProfileSession | null = null;
     if (accessToken && deviceId) {
       const cacheKey = `${accessToken}-${deviceId}`;
@@ -116,10 +121,29 @@ export async function getUserAndDeviceIdForExternalAuth(audience: Audience, req:
   }
 }
 
+export function getDeviceId(req: express.Request<unknown, unknown, unknown, unknown>, res: express.Response) {
+  try {
+    const deviceId =
+      res.locals.deviceId ||
+      req.get(HTTP.HEADERS.X_EXT_DEVICE_ID) ||
+      req.get(HTTP.HEADERS.X_WEB_EXTENSION_DEVICE_ID) ||
+      (req.body as Maybe<{ deviceId?: string }>)?.deviceId ||
+      (req.query as Maybe<{ deviceId?: string }>)?.deviceId;
+    return deviceId as Maybe<string>;
+  } catch {
+    return null;
+  }
+}
+
+export function addDeviceIdToLocals(req: express.Request, res: express.Response, next: express.NextFunction) {
+  res.locals.deviceId = getDeviceId(req, res);
+  next();
+}
+
 export function getExternalAuthMiddleware(audience: Audience) {
-  return async (req: express.Request, _: express.Response, next: express.NextFunction) => {
+  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
-      const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req);
+      const { deviceId, user } = await getUserAndDeviceIdForExternalAuth(audience, req, res);
       if (!user) {
         throw new AuthenticationError('Unauthorized', { skipLogout: true });
       }
@@ -127,6 +151,7 @@ export function getExternalAuthMiddleware(audience: Audience) {
         deviceId,
         user,
       };
+      res.locals.deviceId = deviceId;
       next();
     } catch (ex) {
       req.log.info('[DESKTOP-AUTH][AUTH ERROR] Error decoding token', ex);

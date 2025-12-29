@@ -24,7 +24,9 @@ export type Action =
   | 'REVOKE_SESSION'
   | 'DELETE_ACCOUNT'
   | 'DESKTOP_LOGIN_TOKEN_ISSUED'
-  | 'WEB_EXTENSION_LOGIN_TOKEN_ISSUED';
+  | 'DESKTOP_LOGIN_TOKEN_REUSED'
+  | 'WEB_EXTENSION_LOGIN_TOKEN_ISSUED'
+  | 'WEB_EXTENSION_LOGIN_TOKEN_REUSED';
 
 export const actionDisplayName: Record<Action, string> = {
   LOGIN: 'Login Attempt',
@@ -46,7 +48,9 @@ export const actionDisplayName: Record<Action, string> = {
   REVOKE_SESSION: 'Revoke Session',
   DELETE_ACCOUNT: 'Delete Account',
   DESKTOP_LOGIN_TOKEN_ISSUED: 'Desktop Login Token Issued',
+  DESKTOP_LOGIN_TOKEN_REUSED: 'Desktop Login Token Reused',
   WEB_EXTENSION_LOGIN_TOKEN_ISSUED: 'Web Extension Login Token Issued',
+  WEB_EXTENSION_LOGIN_TOKEN_REUSED: 'Web Extension Login Token Reused',
 };
 
 export const methodDisplayName: Record<string, string> = {

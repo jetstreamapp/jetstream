@@ -567,7 +567,6 @@ export function getOpenApiSpec() {
 
       // Desktop App Controller Routes (prefix: /desktop-app)
       '/desktop-app/auth/session': {
-        get: { ...getRequest({ ...desktopController.initSession.validators, tags: ['desktop'] }), deprecated: true },
         post: { ...getRequest({ ...desktopController.initSession.validators, tags: ['desktop'] }) },
       },
       '/desktop-app/auth/verify': {
@@ -587,14 +586,13 @@ export function getOpenApiSpec() {
       },
 
       // Web Extension Controller Routes (prefix: /web-extension)
-      '/web-extension/session': {
-        get: { ...getRequest({ ...webExtensionController.initSession.validators, tags: ['webExtension'] }), deprecated: true },
+      '/web-extension/auth/session': {
         post: { ...getRequest({ ...webExtensionController.initSession.validators, tags: ['webExtension'] }) },
       },
-      '/web-extension/verify': {
+      '/web-extension/auth/verify': {
         post: { ...getRequest({ ...webExtensionController.verifyToken.validators, tags: ['webExtension'] }) },
       },
-      '/web-extension/logout': {
+      '/web-extension/auth/logout': {
         delete: { ...getRequest({ ...webExtensionController.logout.validators, tags: ['webExtension'] }) },
       },
       '/web-extension/data-sync/pull': {
