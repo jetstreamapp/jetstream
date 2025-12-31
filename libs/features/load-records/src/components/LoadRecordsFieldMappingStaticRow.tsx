@@ -2,7 +2,7 @@ import { css } from '@emotion/react';
 import { EditableFields, UiRecordFormField, convertMetadataToEditableFields } from '@jetstream/record-form';
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { FieldMappingItemStatic, FieldWithRelatedEntities, ListItem, Maybe, PicklistFieldValues, SalesforceOrgUi } from '@jetstream/types';
-import { ComboboxWithItems, Grid, Icon } from '@jetstream/ui';
+import { ComboboxWithItems, Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect, useId, useState } from 'react';
 function getComboboxFieldName(item: ListItem) {
   return `${item.label} (${item.value})`;
@@ -26,29 +26,10 @@ function getFieldListItems(fields: FieldWithRelatedEntities[]) {
     id: field.name,
     label: field.label,
     value: field.name,
-    secondaryLabel: field.typeLabel,
+    secondaryLabel: field.name,
+    secondaryLabelOnNewLine: true,
+    tertiaryLabel: field.typeLabel,
     meta: field,
-    customRenderer: (item: ListItem<string, FieldWithRelatedEntities>) => (
-      <>
-        <span className="slds-listbox__option-text slds-listbox__option-text_entity">
-          <Grid align="spread">
-            <span title={item.label} className="slds-truncate">
-              {item.label}
-            </span>
-            {item.secondaryLabel && (
-              <span className="slds-badge slds-badge_lightest slds-truncate" title={item.secondaryLabel}>
-                {item.secondaryLabel}
-              </span>
-            )}
-          </Grid>
-        </span>
-        <span className="slds-listbox__option-meta">
-          <span title={item.value} className="slds-truncate">
-            {item.value}
-          </span>
-        </span>
-      </>
-    ),
   }));
 }
 
