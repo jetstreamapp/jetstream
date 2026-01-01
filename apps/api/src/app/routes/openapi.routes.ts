@@ -582,7 +582,7 @@ export function getOpenApiSpec() {
         post: { ...getRequest({ ...desktopController.dataSyncPush.validators, tags: ['desktop'] }) },
       },
       '/desktop-app/v1/notifications': {
-        post: { ...getRequest({ ...desktopController.notifications.validators, tags: ['desktop'] }) },
+        get: { ...getRequest({ ...desktopController.notifications.validators, tags: ['desktop'] }) },
       },
 
       // Web Extension Controller Routes (prefix: /web-extension)
