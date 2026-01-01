@@ -94,7 +94,12 @@ export function SalesforceOrgCardDraggable({ org, isActive, onAddOrgHandlerFn }:
             </Grid>
           </Grid>
 
-          <SalesforceOrgCardConnectionRefresh onAddOrg={handleAddOrg} org={org} onAddOrgHandlerFn={onAddOrgHandlerFn} />
+          <SalesforceOrgCardConnectionRefresh
+            onAddOrg={handleAddOrg}
+            org={org}
+            onAddOrgHandlerFn={onAddOrgHandlerFn}
+            onRemoveOrg={handleRemoveOrg}
+          />
 
           <p className="slds-m-top_x-small">{org.organizationId}</p>
           <p className="slds-truncate" title={org.instanceUrl}>

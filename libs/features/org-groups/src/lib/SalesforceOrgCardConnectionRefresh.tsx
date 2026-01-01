@@ -2,7 +2,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { checkOrgHealth, getOrgs } from '@jetstream/shared/data';
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
 import { AddOrgHandlerFn, BadgeType, SalesforceOrgUi } from '@jetstream/types';
-import { Badge, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
+import { Badge, ConfirmationModalPromise, Grid, Icon, Spinner, Tooltip, fireToast } from '@jetstream/ui';
 import { AddOrg, OrgExpirationStatus, useOrgExpiration, useUpdateOrgs } from '@jetstream/ui-core';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useSetAtom } from 'jotai';
@@ -16,6 +16,7 @@ interface SalesforceOrgCardConnectionRefreshProps {
    */
   onAddOrgHandlerFn?: AddOrgHandlerFn;
   onAddOrg: ReturnType<typeof useUpdateOrgs>['handleAddOrg'];
+  onRemoveOrg: ReturnType<typeof useUpdateOrgs>['handleRemoveOrg'];
 }
 
 function getConnectionState(orgExpiration: OrgExpirationStatus, hasConnectionError: boolean) {
@@ -50,7 +51,12 @@ function getConnectionState(orgExpiration: OrgExpirationStatus, hasConnectionErr
   return connectionState;
 }
 
-export function SalesforceOrgCardConnectionRefresh({ org, onAddOrgHandlerFn, onAddOrg }: SalesforceOrgCardConnectionRefreshProps) {
+export function SalesforceOrgCardConnectionRefresh({
+  org,
+  onAddOrgHandlerFn,
+  onAddOrg,
+  onRemoveOrg,
+}: SalesforceOrgCardConnectionRefreshProps) {
   const orgExpiration = useOrgExpiration(org);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const setOrgs = useSetAtom(fromAppState.salesforceOrgsAsyncState);
@@ -74,6 +80,12 @@ export function SalesforceOrgCardConnectionRefresh({ org, onAddOrgHandlerFn, onA
       });
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleRemoveOrg = async () => {
+    if (await ConfirmationModalPromise({ content: 'Are you sure you want to remove this org from Jetstream?', confirm: 'Remove Org' })) {
+      onRemoveOrg(org);
     }
   };
 
@@ -107,15 +119,25 @@ export function SalesforceOrgCardConnectionRefresh({ org, onAddOrgHandlerFn, onA
       )}
 
       {reconnectOrg.isVisible && (
-        <AddOrg
-          omitIcon
-          className="slds-button_neutral"
-          existingOrg={org}
-          label="Reconnect Org"
-          popoverLabel="Reconnect Org"
-          onAddOrg={onAddOrg}
-          onAddOrgHandlerFn={onAddOrgHandlerFn}
-        />
+        <>
+          <AddOrg
+            omitIcon
+            className="slds-button_neutral"
+            existingOrg={org}
+            label="Reconnect Org"
+            popoverLabel="Reconnect Org"
+            onAddOrg={onAddOrg}
+            onAddOrgHandlerFn={onAddOrgHandlerFn}
+          />
+          <button
+            className="slds-button slds-button_icon slds-button_icon-border slds-button_icon-error slds-m-left_xx-small"
+            title="Remove Org"
+            onClick={handleRemoveOrg}
+          >
+            <Icon type="utility" icon="delete" className="slds-button__icon" omitContainer />
+            <span className="slds-assistive-text">Remove Org</span>
+          </button>
+        </>
       )}
     </Grid>
   );
