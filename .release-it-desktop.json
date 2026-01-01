@@ -22,8 +22,7 @@
   "npm": false,
   "github": {
     "release": true,
-    "releaseName": "Jetstream Desktop ${version}",
-    "draft": true
+    "releaseName": "Jetstream Desktop ${version}"
   },
   "hooks": {
     "before:init": ["yarn test:all"],
