@@ -110,7 +110,17 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         await controllerFn(data as any, req, res, next);
       } catch (ex) {
         if (logErrorToBugTracker) {
-          rollbarServer.error(ex, req);
+          rollbarServer.error(ex, req, {
+            custom: {
+              ...getExceptionLog(ex, true),
+              url: req.url,
+              params: req.params,
+              query: req.query,
+              body: req.body,
+              userId: req.session.user?.id,
+              requestId: res.locals.requestId,
+            },
+          });
         }
         if (isKnownError(ex)) {
           return next(ex);
@@ -121,7 +131,17 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
     } catch (ex) {
       req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
       if (logErrorToBugTracker) {
-        rollbarServer.error(ex, req);
+        rollbarServer.error(ex, req, {
+          custom: {
+            ...getExceptionLog(ex, true),
+            url: req.url,
+            params: req.params,
+            query: req.query,
+            body: req.body,
+            userId: req.session.user?.id,
+            requestId: res.locals.requestId,
+          },
+        });
       }
       if (typeof onErrorHandler === 'function') {
         return onErrorHandler(ex, req, res, next);

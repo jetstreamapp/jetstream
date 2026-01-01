@@ -111,11 +111,12 @@ export async function cleanupFeedbackAttachments(req: Request, loggerInfo: Recor
     (req.log || logger).info({ filePaths, ...loggerInfo }, 'Temp feedback attachment files cleaned up');
   } catch (ex) {
     (req.log || logger).error({ ...getExceptionLog(ex), ...loggerInfo }, 'Error during cleanup of feedback attachments');
-    rollbarServer.error('Error during cleanup of feedback attachments', {
+    rollbarServer.error('Error during cleanup of feedback attachments', req, {
       context: `user-feedback.service#cleanupFeedbackAttachments`,
       custom: {
         ...getExceptionLog(ex, true),
         ...loggerInfo,
+        userId: req.session.user?.id,
       },
     });
   }
