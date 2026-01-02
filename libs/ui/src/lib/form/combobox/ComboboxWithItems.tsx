@@ -231,7 +231,7 @@ export const ComboboxWithItems = forwardRef<ComboboxWithItemsRef, ComboboxWithIt
         {visibleItems.map((item, i) =>
           !item.customRenderer ? (
             <ComboboxListItem
-              key={item.id}
+              key={`item.id-${i}`}
               ref={refs[i]}
               id={item.id}
               label={item.label}
