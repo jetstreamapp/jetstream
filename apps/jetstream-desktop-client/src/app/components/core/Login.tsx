@@ -42,7 +42,10 @@ export function Login({ children }: LoginProps) {
     if (!window.electronAPI) {
       return;
     }
-    window.electronAPI.onAuthenticate(authenticationEventHandler);
+
+    // Register authentication event listener and get cleanup function
+    const unsubscribeAuth = window.electronAPI.onAuthenticate(authenticationEventHandler);
+
     window.electronAPI
       .checkAuth()
       .then((response) => {
@@ -54,7 +57,7 @@ export function Login({ children }: LoginProps) {
       })
       .finally(() => setLoading(false));
 
-    // Check auth every 12 hours
+    // Check auth occasionally in case of token expiry or revocation
     const interval = setInterval(() => {
       window.electronAPI?.checkAuth().then((response) => {
         if (response) {
@@ -70,6 +73,7 @@ export function Login({ children }: LoginProps) {
 
     return () => {
       clearInterval(interval);
+      unsubscribeAuth();
     };
   }, [authenticationEventHandler, setUserProfile]);
 

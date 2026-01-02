@@ -1,5 +1,5 @@
-import { vi, Mock } from 'vitest';
 import { decryptString, encryptString } from '@jetstream/shared/node-utils';
+import { Mock, vi } from 'vitest';
 import { decryptAccessToken, encryptAccessToken } from '../salesforce-org-encryption.service';
 
 vi.mock('@jetstream/shared/node-utils', () => ({
@@ -10,6 +10,7 @@ vi.mock('@jetstream/shared/node-utils', () => ({
 
 vi.mock('@jetstream/api-config', () => ({
   ENV: {
+    JWT_ENCRYPTION_KEY: 'test-jwt-key',
     SFDC_ENCRYPTION_KEY: 'test-master-key',
     SFDC_ENCRYPTION_CACHE_MAX_ENTRIES: 10000,
     SFDC_ENCRYPTION_CACHE_TTL_MS: 3600000,

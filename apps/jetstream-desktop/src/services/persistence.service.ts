@@ -90,8 +90,16 @@ export function setAppData(appData: AppData) {
   }
 }
 
-export function saveAuthResponseToAppData({ deviceId, accessToken }: { deviceId: string; accessToken: string }): AppData {
-  const { exp, userProfile } = jwtDecode<JwtPayload>(accessToken);
+export function saveAuthResponseToAppData({
+  deviceId,
+  accessToken,
+  userProfile,
+}: {
+  deviceId: string;
+  accessToken: string;
+  userProfile: UserProfileUiDesktop;
+}): AppData {
+  const { exp } = jwtDecode<JwtPayload>(accessToken);
   const expiresAt = exp ? fromUnixTime(exp) : new Date();
   const authState: AppData = {
     deviceId,
@@ -128,10 +136,10 @@ export function getFullUserProfile() {
   const userProfile: UserProfileUiDesktop = {
     id: appData.userProfile.id,
     userId: appData.userProfile.id,
-    email: appData.userProfile.name,
-    name: appData.userProfile.email,
+    email: appData.userProfile.email,
+    name: appData.userProfile.name,
     emailVerified: true,
-    picture: null,
+    picture: appData.userProfile.picture,
     preferences: userPreferences,
     entitlements: {
       googleDrive: false,
@@ -139,6 +147,7 @@ export function getFullUserProfile() {
       chromeExtension: false,
       recordSync: true,
     },
+    teamMembership: appData.userProfile.teamMembership,
     subscriptions: [],
   };
 

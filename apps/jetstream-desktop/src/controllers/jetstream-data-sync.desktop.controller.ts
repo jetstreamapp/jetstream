@@ -1,4 +1,5 @@
 import { HTTP } from '@jetstream/shared/constants';
+import { app } from 'electron';
 import { z } from 'zod';
 import { ENV } from '../config/environment';
 import { getAppData } from '../services/persistence.service';
@@ -46,6 +47,7 @@ const pull = createRoute(routeDefinition.pull.validators, async ({ query }) => {
         Accept: 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
       },
     });
   } catch (ex) {
@@ -64,6 +66,7 @@ const push = createRoute(routeDefinition.push.validators, async ({ query, body }
         'Content-Type': 'application/json',
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: app.getVersion(),
       },
       body: JSON.stringify(body),
     });

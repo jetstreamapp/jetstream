@@ -79,6 +79,7 @@ export function registerWebRequestHandlers() {
         requestHeaders[HTTP.HEADERS.X_SOURCE] = HTTP_SOURCE_DESKTOP;
         requestHeaders[HTTP.HEADERS.AUTHORIZATION] = `Bearer ${accessToken}`;
         requestHeaders[HTTP.HEADERS.X_EXT_DEVICE_ID] = deviceId;
+        requestHeaders[HTTP.HEADERS.X_APP_VERSION] = app.getVersion();
       }
     }
     callback({ requestHeaders });

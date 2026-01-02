@@ -40,7 +40,7 @@ export class Browser {
       const clientUrl = new URL(ENV.CLIENT_URL);
       // Open all external links in the browser
       // FIXME: this should be more protective over what is externally opened
-      if (url.hostname !== clientUrl.hostname) {
+      if (url.host !== clientUrl.host) {
         shell.openExternal(details.url);
         return { action: 'deny' };
       }

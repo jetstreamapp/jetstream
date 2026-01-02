@@ -1,5 +1,6 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { ENV } from '@jetstream/api-config';
+import { ENV, logger } from '@jetstream/api-config';
+import { getErrorMessage } from '@jetstream/shared/utils';
 import { load } from 'js-yaml';
 import { z } from 'zod';
 
@@ -113,7 +114,7 @@ export async function getLatestDesktopVersion({ arch, platform }: PlatformArch):
 
     return cached.data;
   } catch (error) {
-    console.error(`Failed to get latest version for ${platform}/${arch}:`, error);
+    logger.error({ error: getErrorMessage(error) }, `Failed to get latest version for ${platform}/${arch}`);
     // Cache null result to avoid repeated failures
     versionCache.set(cacheKey, { data: null, expiry: Date.now() + CACHE_DURATION_MS });
     return null;

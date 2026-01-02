@@ -49,6 +49,7 @@ const sendUserFeedbackEmail = createRoute(routeDefinition.sendUserFeedbackEmail.
         'Content-Type': contentType,
         Authorization: `Bearer ${authTokens?.accessToken}`,
         [HTTP.HEADERS.X_EXT_DEVICE_ID]: extIdentifier.id,
+        [HTTP.HEADERS.X_APP_VERSION]: browser.runtime.getManifest().version,
       },
       body,
     });

@@ -111,9 +111,14 @@ export const HeaderNavbar = ({
       case 'profile':
         navigate(APP_ROUTES.PROFILE.ROUTE);
         break;
-      case 'team-dashboard':
-        navigate(APP_ROUTES.TEAM_DASHBOARD.ROUTE);
+      case 'team-dashboard': {
+        if (isDesktop) {
+          window.open(`${applicationState.serverUrl}/app/teams`, '_blank');
+        } else {
+          navigate(APP_ROUTES.TEAM_DASHBOARD.ROUTE);
+        }
         break;
+      }
       case 'billing':
         navigate(APP_ROUTES.BILLING.ROUTE);
         break;

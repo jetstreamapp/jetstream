@@ -12,7 +12,7 @@ import { ApiConnection, BinaryFileDownload, getApiRequestFactoryFn, getBinaryFil
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
 import { UserProfileUi } from '@jetstream/types';
-import { addDays } from 'date-fns';
+import { addHours } from 'date-fns';
 import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
 import { ResponseBodyError } from 'oauth4webapi';
@@ -22,7 +22,7 @@ import { checkForUpdates, getCurrentUpdateStatus, installUpdate } from '../confi
 import { ENV } from '../config/environment';
 import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
-import { logout, verifyAuthToken } from './api.service';
+import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
 import * as dataService from './persistence.service';
 import { initConnectionFromOAuthResponse } from './sfdc-oauth.service';
@@ -121,7 +121,11 @@ const handleLoginEvent: MainIpcHandler<'login'> = async (event) => {
       const response = await verifyAuthToken({ accessToken, deviceId });
 
       if (response.success) {
-        const { userProfile } = dataService.saveAuthResponseToAppData({ deviceId, accessToken });
+        const { userProfile } = dataService.saveAuthResponseToAppData({
+          deviceId,
+          accessToken,
+          userProfile: (response as AuthResponseSuccess).userProfile,
+        });
         const payload: AuthenticateSuccessPayload = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           userProfile: userProfile as any,
@@ -157,7 +161,7 @@ const handleLogoutEvent: MainIpcHandler<'logout'> = async () => {
   const { deviceId, accessToken } = appData;
 
   if (deviceId && accessToken) {
-    logout({ deviceId, accessToken });
+    await logout({ deviceId, accessToken });
   }
 
   dataService.setAppData({
@@ -243,13 +247,14 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
 const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
   { userProfile: UserProfileUi; authInfo: DesktopAuthInfo } | undefined
 > => {
-  const AUTH_CHECK_INTERVAL_DAYS = 1;
+  // Check auth occasionally to ensure token is still valid
+  const AUTH_CHECK_INTERVAL_HOURS = 3;
   const appData = dataService.getAppData();
   const userProfile = dataService.getFullUserProfile();
   const { deviceId, accessToken, lastChecked } = appData;
   if (accessToken && userProfile) {
     // TODO: implement a refresh token flow
-    if (!lastChecked || lastChecked < addDays(new Date(), -AUTH_CHECK_INTERVAL_DAYS).getTime()) {
+    if (!lastChecked || lastChecked < addHours(new Date(), -AUTH_CHECK_INTERVAL_HOURS).getTime()) {
       const response = await verifyAuthToken({ accessToken, deviceId });
       if (!response.success) {
         logger.error('Authentication error', response.error);
@@ -262,8 +267,10 @@ const handleCheckAuthEvent: MainIpcHandler<'checkAuth'> = async (): Promise<
         });
         return;
       }
+      logger.info('Authentication check successful');
       dataService.setAppData({
         ...appData,
+        userProfile: (response as AuthResponseSuccess).userProfile,
         lastChecked: Date.now(),
       });
     }

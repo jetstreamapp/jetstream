@@ -6,6 +6,7 @@ import {
   SalesforceOrgUi,
   SoqlQueryFormatOptionsSchema,
   UserProfileUi,
+  UserProfileUiSchema,
 } from '@jetstream/types';
 import { z } from 'zod';
 
@@ -29,12 +30,12 @@ export const IpcEventChannel = {
 } as const;
 
 export interface ElectronApiCallback {
-  onAction: (payload: (action: DesktopAction) => void) => void;
-  onAuthenticate: (payload: (payload: AuthenticatePayload) => void) => void;
-  onDownloadProgress: (callback: (progress: DownloadZipProgress) => void) => void;
-  onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => void;
-  onToastMessage: (callback: (message: { type: InfoSuccessWarningError; message: string; duration?: number }) => void) => void;
-  onUpdateStatus: (callback: (status: UpdateStatus) => void) => void;
+  onAction: (payload: (action: DesktopAction) => void) => () => void;
+  onAuthenticate: (payload: (payload: AuthenticatePayload) => void) => () => void;
+  onDownloadProgress: (callback: (progress: DownloadZipProgress) => void) => () => void;
+  onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => () => void;
+  onToastMessage: (callback: (message: { type: InfoSuccessWarningError; message: string; duration?: number }) => void) => () => void;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 }
 
 export interface ElectronApiRequestResponse {
@@ -139,13 +140,7 @@ export const AppDataSchema = z.object({
     .optional()
     .default(() => crypto.randomUUID()),
   accessToken: z.string().nullish(),
-  userProfile: z
-    .looseObject({
-      id: z.string(),
-      name: z.string(),
-      email: z.string(),
-    })
-    .nullish(),
+  userProfile: UserProfileUiSchema.nullish(),
   expiresAt: z.number().nullish(),
   lastChecked: z.number().nullish(),
 });

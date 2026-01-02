@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import * as desktopAppController from '../controllers/desktop-app.controller';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as externalAuthService from '../services/external-auth.service';
-import { feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
+import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 function getMaxRequests(value: number) {
   return ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : value;
@@ -48,6 +48,8 @@ routes.use(
   }),
 );
 
+routes.use(externalAuthService.addDeviceIdToLocals);
+
 const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_DESKTOP);
 
 /**
@@ -57,10 +59,21 @@ const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAut
 routes.get('/auth', LAX_AuthRateLimit, desktopAppController.routeDefinition.initAuthMiddleware.controllerFn());
 
 // API endpoint that /auth/desktop calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
-routes.get('/auth/session', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.initSession.controllerFn());
+routes.post('/auth/session', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.initSession.controllerFn());
 // Validate authentication status from desktop app
-routes.post('/auth/verify', STRICT_AuthRateLimit, desktopAppController.routeDefinition.verifyTokens.controllerFn());
-routes.delete('/auth/logout', STRICT_AuthRateLimit, desktopAppController.routeDefinition.logout.controllerFn());
+routes.post('/auth/verify', STRICT_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.verifyToken.controllerFn());
+/**
+ * @deprecated - use /auth/logout instead
+ * Kept for backward compatibility as clients may be on older versions
+ */
+routes.delete(
+  '/logout',
+  STRICT_AuthRateLimit,
+  deprecatedRouteMiddleware,
+  authMiddleware,
+  desktopAppController.routeDefinition.logout.controllerFn(),
+);
+routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.logout.controllerFn());
 
 /**
  * Other Routes
@@ -68,7 +81,7 @@ routes.delete('/auth/logout', STRICT_AuthRateLimit, desktopAppController.routeDe
 routes.get('/data-sync/pull', authMiddleware, desktopAppController.routeDefinition.dataSyncPull.controllerFn());
 routes.post('/data-sync/push', authMiddleware, desktopAppController.routeDefinition.dataSyncPush.controllerFn());
 
-routes.get('/v1/notifications', STRICT_2X_AuthRateLimit, desktopAppController.routeDefinition.notifications.controllerFn());
+routes.get('/v1/notifications', STRICT_2X_AuthRateLimit, authMiddleware, desktopAppController.routeDefinition.notifications.controllerFn());
 
 routes.post(
   '/feedback',

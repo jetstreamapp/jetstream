@@ -251,6 +251,7 @@ model WebExtensionToken {
   type      String
   source    String   @default("BROWSER_EXTENSION")
   token     String
+  tokenHash String   @db.VarChar(64)
   deviceId  String   @unique
   ipAddress String
   userAgent String
@@ -261,7 +262,7 @@ model WebExtensionToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([type, userId, deviceId])
-  @@unique([type, token, deviceId])
+  @@unique([type, tokenHash, deviceId])
   @@map("web_extension_token")
 }
 

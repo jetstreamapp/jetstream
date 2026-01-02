@@ -1,3 +1,4 @@
+import { logger } from '@jetstream/api-config';
 import z from 'zod';
 import { getLatestDesktopVersion, PlatformArch, PlatformArchSchema } from '../services/desktop-asset.service';
 import { createRoute } from '../utils/route.utils';
@@ -74,7 +75,7 @@ const getDownloadLink = createRoute(routeDefinition.getDownloadLink.validators, 
       downloadUrl,
     });
   } catch (error) {
-    console.error('Download link generation failed:', error);
+    logger.error('Download link generation failed:', error);
     res.status(500).json({ error: 'Failed to generate download link' });
   }
 });
@@ -114,7 +115,7 @@ const getAllDownloadLinks = createRoute(routeDefinition.getAllDownloadLinks.vali
 
     res.json(downloads);
   } catch (error) {
-    console.error('Failed to get all download links:', error);
+    logger.error('Failed to get all download links:', error);
     res.status(500).json({ error: 'Failed to get download links' });
   }
 });

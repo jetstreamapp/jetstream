@@ -1,3 +1,4 @@
+import { HTTP } from '@jetstream/shared/constants';
 import type { Maybe } from '@jetstream/types';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useReducer } from 'react';
@@ -22,12 +23,16 @@ const ERROR_MAP = {
   MissingEntitlement: ERROR_MESSAGES.INVALID_SUBSCRIPTION,
 };
 
+const STORAGE_KEY = 'desktop-auth-success';
+
 async function fetchTokens(deviceId: string) {
-  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/desktop-app/auth/session?deviceId=${deviceId}`, {
+  const response = await fetch(`${ENVIRONMENT.SERVER_URL}/desktop-app/auth/session`, {
+    method: 'POST',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      [HTTP.HEADERS.X_EXT_DEVICE_ID]: deviceId,
     },
   });
   if (!response.ok) {
@@ -101,6 +106,12 @@ export function useDesktopAuthState() {
 
   useEffect(() => {
     try {
+      // Ensure if the page is refreshed we do not try to re-authenticate
+      const didSaveAlready = sessionStorage.getItem(STORAGE_KEY) === 'true';
+      if (didSaveAlready) {
+        dispatch({ type: 'SUCCESS' });
+        return;
+      }
       if (!deviceId || !token) {
         // For some reason on the initial render, the deviceId and token are not available
         if (!deviceId && window.location.href.includes('deviceId')) {
@@ -115,8 +126,8 @@ export function useDesktopAuthState() {
           .then((tokens) => {
             // Provide tokens to the extension
             window.location.href = `jetstream://auth?deviceId=${deviceId}&token=${token}&accessToken=${tokens.accessToken}`;
-            // TODO: ideally we could poll server to figure out if the app was able to login successfully
             dispatch({ type: 'SUCCESS' });
+            sessionStorage.setItem(STORAGE_KEY, 'true');
           })
           .catch((err) => {
             if (err instanceof Error && Object.values(ERROR_MESSAGES).includes(err.message)) {

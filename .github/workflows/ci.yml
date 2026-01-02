@@ -37,6 +37,7 @@ env:
   SFDC_CONSUMER_KEY: ${{ secrets.SFDC_CONSUMER_KEY }}
   SFDC_CONSUMER_SECRET: ${{ secrets.SFDC_CONSUMER_SECRET }}
   SFDC_ENCRYPTION_KEY: ${{ secrets.SFDC_ENCRYPTION_KEY }}
+  JWT_ENCRYPTION_KEY: ${{ secrets.JWT_ENCRYPTION_KEY }}
 
 jobs:
   # Build application

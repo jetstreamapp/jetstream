@@ -37,5 +37,9 @@ export type Response<ResBody = unknown> = ExpressResponse<
      */
     cookies?: ResponseLocalsCookies;
     ipAddress: string;
+    /**
+     * Used for desktop and web-extension requests to track the device ID
+     */
+    deviceId?: string;
   }
 > & { log: pino.Logger };

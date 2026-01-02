@@ -1,3 +1,4 @@
+import { HTTP } from '@jetstream/shared/constants';
 import type express from 'express';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
@@ -49,9 +50,11 @@ export const httpLogger = pinoHttp<express.Request, express.Response>({
           referer: req.raw.headers.referer,
           'cf-ray': req.raw.headers['cf-ray'],
           'rndr-id': req.raw.headers['rndr-id'],
-          'x-sfdc-id': req.raw.headers['x-sfdc-id'],
-          'x-client-request-id': req.raw.headers['x-client-request-id'],
-          'x-retry': req.raw.headers['x-retry'],
+          'x-sfdc-id': req.raw.headers[HTTP.HEADERS.X_SFDC_ID.toLowerCase()],
+          'x-client-request-id': req.raw.headers[HTTP.HEADERS.X_CLIENT_REQUEST_ID.toLowerCase()],
+          'x-retry': req.raw.headers[HTTP.HEADERS.X_RETRY.toLowerCase()],
+          'x-ext-id': req.raw.headers[HTTP.HEADERS.X_EXT_DEVICE_ID.toLowerCase()],
+          'x-app-version': req.raw.headers[HTTP.HEADERS.X_APP_VERSION.toLowerCase()],
           ip: req.raw.headers['cf-connecting-ip'] || req.raw.headers['x-forwarded-for'] || req.raw.socket.remoteAddress,
           country: req.headers['cf-ipcountry'],
         },

@@ -21,6 +21,7 @@ export async function healthCheck(_: express.Request, res: express.Response) {
   } catch (ex) {
     res.status(500).json({
       error: true,
+      success: false,
       uptime: process.uptime(),
       message: `Unhealthy: ${ex.message}`,
     });
@@ -119,7 +120,7 @@ export function streamParsedCsvAsJson(res: express.Response, csvParseStream: Dup
   csvParseStream.on('error', (err) => {
     res.log.warn({ requestId: res.locals.requestId, ...getExceptionLog(err) }, 'Error streaming CSV.');
     if (!res.headersSent) {
-      res.status(400).json({ error: true, message: 'Error streaming CSV' });
+      res.status(400).json({ error: true, success: false, message: 'Error streaming CSV' });
     } else {
       res.status(400).end();
     }
@@ -200,9 +201,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       if (isJson) {
         return res.json({
           error: true,
+          success: false,
           errorType: err.type,
           data: {
             error: true,
+            success: false,
             errorType: err.type,
           },
         });
@@ -216,6 +219,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       responseLogger.debug({ ...getExceptionLog(err, true), statusCode }, '[RESPONSE][ERROR]');
       return res.json({
         error: true,
+        success: false,
         message: err.message,
         data: err.additionalData,
       });
@@ -225,10 +229,11 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       res.status(status || 400);
       return res.json({
         error: true,
+        success: false,
         message,
       });
     } else if (err instanceof AuthenticationError) {
-      // This error is emitted when a user attempts to make a request taht requires authentication, but the user is not logged in
+      // This error is emitted when a user attempts to make a request that requires authentication, but the user is not logged in
       responseLogger.warn({ ...getExceptionLog(err), statusCode: 401 }, '[RESPONSE][ERROR]');
       res.status(status || 401);
       if (!err.skipLogout) {
@@ -242,6 +247,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       if (isJson) {
         return res.json({
           error: true,
+          success: false,
           message: err.message,
           data: err.additionalData,
         });
@@ -257,6 +263,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       if (isJson) {
         return res.json({
           error: true,
+          success: false,
           message: err.message,
           data: err.additionalData,
         });
@@ -299,7 +306,7 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       logger.error(getExceptionLog(rollbarEx), 'Error sending to Rollbar');
     }
     logger.error(getExceptionLog(ex, true), 'Error in uncaughtErrorHandler');
-    res.status(500).json({ error: true, message: 'Internal Server Error' });
+    res.status(500).json({ error: true, success: false, message: 'Internal Server Error' });
   }
 }
 

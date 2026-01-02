@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import * as userFeedbackController from '../controllers/user-feedback.controller';
 import * as webExtensionController from '../controllers/web-extension.controller';
 import * as externalAuthService from '../services/external-auth.service';
-import { feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
+import { deprecatedRouteMiddleware, feedbackRateLimit, feedbackUploadMiddleware } from './route.middleware';
 
 function getMaxRequests(value: number) {
   return ENV.CI || ENV.ENVIRONMENT === 'development' ? 10000 : value;
@@ -48,19 +48,51 @@ routes.use(
   }),
 );
 
+routes.use(externalAuthService.addDeviceIdToLocals);
+
 const authMiddleware = externalAuthService.getExternalAuthMiddleware(externalAuthService.AUDIENCE_WEB_EXT);
 
 /**
  * Authentication routes
  */
+/**
+ * @deprecated - redirect to new route - /auth
+ */
+routes.get('/init', (req, res) => {
+  const queryString = new URLSearchParams(req.query as Record<string, string>).toString();
+  res.redirect(301, `/web-extension/auth${queryString ? `?${queryString}` : ''}`);
+});
 // NOTE: MIDDLEWARE ROUTE - will either redirect to login or will call next() to allow static page to be served
-routes.get('/init', LAX_AuthRateLimit, webExtensionController.routeDefinition.initAuthMiddleware.controllerFn());
+routes.get('/auth', LAX_AuthRateLimit, webExtensionController.routeDefinition.initAuthMiddleware.controllerFn());
 
-// API endpoint that /init calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
-routes.get('/session', STRICT_2X_AuthRateLimit, webExtensionController.routeDefinition.initSession.controllerFn());
+// API endpoint that /auth calls to get tokens to avoid having them defined in the HTML directly - this endpoint issues tokens
+routes.post('/auth/session', STRICT_2X_AuthRateLimit, webExtensionController.routeDefinition.initSession.controllerFn());
 // Validate authentication status from browser extension
-routes.post('/verify', STRICT_AuthRateLimit, webExtensionController.routeDefinition.verifyTokens.controllerFn());
-routes.delete('/logout', STRICT_AuthRateLimit, webExtensionController.routeDefinition.logout.controllerFn());
+/**
+ * @deprecated - use /auth/verify instead
+ * Kept for backward compatibility as clients may be on older versions
+ */
+routes.post(
+  '/verify',
+  STRICT_AuthRateLimit,
+  deprecatedRouteMiddleware,
+  authMiddleware,
+  webExtensionController.routeDefinition.verifyToken.controllerFn(),
+);
+routes.post('/auth/verify', STRICT_AuthRateLimit, authMiddleware, webExtensionController.routeDefinition.verifyToken.controllerFn());
+
+/**
+ * @deprecated - use /auth/logout instead
+ * Kept for backward compatibility as clients may be on older versions
+ */
+routes.delete(
+  '/logout',
+  STRICT_AuthRateLimit,
+  deprecatedRouteMiddleware,
+  authMiddleware,
+  webExtensionController.routeDefinition.logout.controllerFn(),
+);
+routes.delete('/auth/logout', STRICT_AuthRateLimit, authMiddleware, webExtensionController.routeDefinition.logout.controllerFn());
 
 /**
  * Other Routes
