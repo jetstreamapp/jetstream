@@ -142,6 +142,7 @@ export async function decryptAccessToken({
     rollbarServer.error('Failed to decrypt token', {
       context: `salesforce-org-encryption.service#decryptAccessToken`,
       custom: {
+        userId,
         ...getExceptionLog(error, true),
       },
     });

@@ -80,6 +80,7 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
         context: `route#sendJson`,
         custom: {
           requestId: res.locals.requestId,
+          status,
         },
       });
     } catch (ex) {
