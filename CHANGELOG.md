@@ -1,5 +1,20 @@
 # Changelog
 
+## [8.16.0](https://github.com/jetstreamapp/jetstream/compare/v8.15.1...v8.16.0) (2026-01-02)
+
+### Features
+
+* add delete button to org card ([81e3504](https://github.com/jetstreamapp/jetstream/commit/81e35042b0e6f54af3b2e8a457cbd667a4665a9d))
+* **desktop:** show org connection error on desktop ([0ec59c0](https://github.com/jetstreamapp/jetstream/commit/0ec59c0fdc299f46c1b2f0f49b24fe14d2c1248d))
+* enable team dashboard in desktop app ([3a80f5d](https://github.com/jetstreamapp/jetstream/commit/3a80f5dc3a513d10995a01d4066bfec2410bac05))
+
+### Bug Fixes
+
+* change load static field dropdown styles ([4c4e576](https://github.com/jetstreamapp/jetstream/commit/4c4e57651edd9e69f6b5ddfae21944345d8f05a8))
+* error message typo ([d7770c3](https://github.com/jetstreamapp/jetstream/commit/d7770c363b57d5b3f096d23aab4d37f6bc4c70a6))
+* incorrect openapi route method ([f1e355c](https://github.com/jetstreamapp/jetstream/commit/f1e355c5559d5e7238fd190bdff837de59b9b5b6))
+* redirect url validation ([e31e980](https://github.com/jetstreamapp/jetstream/commit/e31e980753ffdd371ee7d5a99f7817ffb17ac2d9))
+
 ## [8.15.1](https://github.com/jetstreamapp/jetstream/compare/v8.15.0...v8.15.1) (2025-12-23)
 
 ### Features
