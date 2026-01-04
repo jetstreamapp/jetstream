@@ -1,5 +1,5 @@
-import { ClusterMemoryStorePrimary } from '@express-rate-limit/cluster-memory-store';
 import '@jetstream/api-config'; // this gets imported first to ensure as some items require early initialization
+
 import { createRateLimit, ENV, getExceptionLog, httpLogger, logger, pgPool } from '@jetstream/api-config';
 import '@jetstream/auth/types';
 import { HTTP, SESSION_EXP_DAYS } from '@jetstream/shared/constants';
@@ -67,9 +67,6 @@ if (ENV.NODE_ENV === 'production' && !ENV.CI && cluster.isPrimary) {
   });
 
   setupPrimary();
-
-  const rateLimiterStore = new ClusterMemoryStorePrimary();
-  rateLimiterStore.init();
 
   for (let i = 0; i < CPU_COUNT; i++) {
     cluster.fork();
