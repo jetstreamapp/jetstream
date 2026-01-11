@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { app, Menu, shell } from 'electron';
+import logger from 'electron-log';
 import { Browser } from '../browser/browser';
 import { checkForUpdates } from '../config/auto-updater';
 import { isMac } from '../utils/utils';
@@ -76,7 +77,15 @@ export function initAppMenu() {
             await shell.openExternal('email:support@getjetstream.app');
           },
         },
-        ...((isMac() ? [] : [{ type: 'separator' }, { role: 'about' }]) as any[]),
+        { type: 'separator' },
+        {
+          label: 'Open Log File',
+          click: async () => {
+            const logPath = logger.transports.file.getFile().path;
+            await shell.openPath(logPath);
+          },
+        },
+        ...((isMac() ? [] : [{ role: 'about' }]) as any[]),
       ],
     },
   ];
