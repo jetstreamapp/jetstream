@@ -38,12 +38,6 @@ export class Browser {
     browserWindow.webContents.setWindowOpenHandler((details) => {
       const url = new URL(details.url);
       const clientUrl = new URL(ENV.CLIENT_URL);
-      // Open all external links in the browser
-      // FIXME: this should be more protective over what is externally opened
-      if (url.host !== clientUrl.host) {
-        shell.openExternal(details.url);
-        return { action: 'deny' };
-      }
 
       // Frontdoor login
       const orgUniqueId = url.searchParams.get(HTTP.HEADERS.X_SFDC_ID);
@@ -57,6 +51,13 @@ export class Browser {
           });
           return { action: 'deny' };
         }
+      }
+
+      // Open all external links in the browser
+      // FIXME: this should be more protective over what is externally opened
+      if (url.host !== clientUrl.host) {
+        shell.openExternal(details.url);
+        return { action: 'deny' };
       }
 
       return {
