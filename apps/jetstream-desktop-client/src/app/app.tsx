@@ -3,7 +3,6 @@ import { Announcement } from '@jetstream/types';
 import { AppToast, ConfirmationServiceProvider, UserFeedbackWidget } from '@jetstream/ui';
 import {
   AppLoading,
-  DownloadFileStream,
   ErrorBoundaryEmptyFallback,
   ErrorBoundaryFallback,
   HeaderNavbar,
@@ -18,6 +17,7 @@ import { AppRoutes } from './AppRoutes';
 import { AnnouncementAlerts } from './components/core/AnnouncementAlerts';
 import AppInitializer from './components/core/AppInitializer';
 import AppStateResetOnOrgChange from './components/core/AppStateResetOnOrgChange';
+import { DownloadFileStreamDesktop } from './components/core/DownloadFileStreamDesktop';
 import { Login } from './components/core/Login';
 import LogInitializer from './components/core/LogInitializer';
 import './components/core/monaco-loader';
@@ -39,7 +39,7 @@ export const App = () => {
                 <AppToast />
                 <LogInitializer />
                 <NotificationsRequestModal loadDelay={10000} />
-                <DownloadFileStream />
+                <DownloadFileStreamDesktop />
                 <ViewEditCloneRecordWrapper />
                 <ErrorBoundary FallbackComponent={ErrorBoundaryEmptyFallback}>
                   <UserFeedbackWidget />

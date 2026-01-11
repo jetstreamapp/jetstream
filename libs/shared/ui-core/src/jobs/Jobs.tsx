@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { css } from '@emotion/react';
-import { DownloadZipResult } from '@jetstream/desktop/types';
+import { DownloadFileResult } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { fileExtToGoogleDriveMimeType, fileExtToMimeType, MIME_TYPES } from '@jetstream/shared/constants';
 import { googleUploadFile } from '@jetstream/shared/data';
-import { formatNumber, saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
+import { formatNumber, isDesktop, saveFile, useBrowserNotifications, useObservable, useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, pluralizeIfMultiple } from '@jetstream/shared/utils';
 import {
   AsyncJob,
@@ -335,13 +335,15 @@ export const Jobs: FunctionComponent = () => {
                       payload: {
                         fileName,
                         link: results,
+                        jobId: newJob.id,
                       },
                     });
                     setJobs((prevJobs) => ({
                       ...prevJobs,
                       [newJob.id]: {
                         ...newJob,
-                        results,
+                        // the link is to a static download, so we don't show on desktop app
+                        results: isDesktop() ? undefined : results,
                         finished: new Date(),
                         lastActivity: new Date(),
                       },
@@ -532,7 +534,7 @@ export const Jobs: FunctionComponent = () => {
             notifyUser(`File download failed`, { body: newJob.statusMessage, tag: 'DesktopFileDownload' });
             setJobs((prevJobs) => ({ ...prevJobs, [newJob.id]: newJob }));
           } else {
-            const { success, error, filePath } = data.results as DownloadZipResult;
+            const { success, error, filePath } = data.results as DownloadFileResult;
             const { recordIds = [] } = newJob.meta as { recordIds: string[] };
 
             newJob = {

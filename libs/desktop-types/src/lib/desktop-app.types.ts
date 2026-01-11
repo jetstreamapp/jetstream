@@ -2,6 +2,7 @@ import {
   FileNameFormat,
   InfoSuccessWarningError,
   InputReadFileContent,
+  JetstreamEventStreamFilePayload,
   Maybe,
   SalesforceOrgUi,
   SoqlQueryFormatOptionsSchema,
@@ -47,7 +48,8 @@ export interface ElectronApiRequestResponse {
   getPreferences: () => Promise<DesktopUserPreferences>;
   setPreferences: (preferences: DesktopUserPreferences) => Promise<DesktopUserPreferences>;
   request: (payload: { url: string; request: IcpRequest }) => Promise<IcpResponse>;
-  downloadZipToFile: (payload: DownloadZipPayload) => Promise<DownloadZipResult>;
+  downloadZipToFile: (payload: DownloadZipPayload) => Promise<DownloadFileResult>;
+  downloadBulkApiFile: (payload: JetstreamEventStreamFilePayload) => Promise<DownloadFileResult>;
   openFile: (filePath: string) => Promise<void>;
   showFileInFolder: (filePath: string) => Promise<void>;
   checkForUpdates: (userInitiated?: boolean) => Promise<void>;
@@ -89,7 +91,7 @@ export interface DownloadZipPayload {
   jobId: string;
 }
 
-export interface DownloadZipResult {
+export interface DownloadFileResult {
   success: boolean;
   filePath?: string;
   error?: string;
@@ -99,8 +101,8 @@ export interface DownloadZipProgress {
   currentFile: number;
   totalFiles: number;
   fileName: string;
-  bytesDownloaded: number;
-  totalBytes: number;
+  bytesDownloaded?: number;
+  totalBytes?: number;
   percentComplete: number;
   jobId: string;
 }

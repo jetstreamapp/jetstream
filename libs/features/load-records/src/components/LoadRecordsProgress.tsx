@@ -1,5 +1,5 @@
 import { Step } from '@jetstream/types';
-import { ProgressIndicator, ProgressIndicatorListItem } from '@jetstream/ui';
+import { ProgressStepIndicator, ProgressStepIndicatorListItem } from '@jetstream/ui';
 import { FunctionComponent } from 'react';
 
 export interface LoadRecordsProgressProps {
@@ -9,9 +9,9 @@ export interface LoadRecordsProgressProps {
 
 export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = ({ currentStepIdx, enabledSteps }) => {
   return (
-    <ProgressIndicator currentStep={currentStepIdx} isVertical>
+    <ProgressStepIndicator currentStep={currentStepIdx} isVertical>
       {enabledSteps.map((step, i) => (
-        <ProgressIndicatorListItem
+        <ProgressStepIndicatorListItem
           key={step.name}
           step={i}
           stepText={step.label}
@@ -20,7 +20,7 @@ export const LoadRecordsProgress: FunctionComponent<LoadRecordsProgressProps> = 
           isComplete={currentStepIdx > i}
         />
       ))}
-    </ProgressIndicator>
+    </ProgressStepIndicator>
   );
 };
 

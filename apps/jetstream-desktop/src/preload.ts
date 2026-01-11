@@ -44,6 +44,7 @@ const API: ElectronAPI = {
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),
   request: (payload) => ipcRenderer.invoke('request', payload),
   downloadZipToFile: (payload) => ipcRenderer.invoke('downloadZipToFile', payload),
+  downloadBulkApiFile: (payload) => ipcRenderer.invoke('downloadBulkApiFile', payload),
   openFile: (filePath) => ipcRenderer.invoke('openFile', filePath),
   showFileInFolder: (filePath) => ipcRenderer.invoke('showFileInFolder', filePath),
   checkForUpdates: (userInitiated) => ipcRenderer.invoke('checkForUpdates', userInitiated),

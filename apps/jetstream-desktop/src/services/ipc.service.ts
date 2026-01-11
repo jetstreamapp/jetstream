@@ -1,9 +1,10 @@
+import { BooleanQueryParamSchema } from '@jetstream/api-types';
 import {
   AuthenticateFailurePayload,
   AuthenticateSuccessPayload,
   DesktopAuthInfo,
+  DownloadFileResult,
   DownloadZipPayload,
-  DownloadZipResult,
   ElectronApiRequestResponse,
   IcpResponse,
   IpcEventChannel,
@@ -11,7 +12,7 @@ import {
 import { ApiConnection, BinaryFileDownload, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
-import { UserProfileUi } from '@jetstream/types';
+import { JetstreamEventStreamFilePayload, UserProfileUi } from '@jetstream/types';
 import { addHours } from 'date-fns';
 import { app, dialog, ipcMain, shell } from 'electron';
 import logger from 'electron-log';
@@ -24,9 +25,9 @@ import { desktopRoutes } from '../controllers/desktop.routes';
 import { getOrgFromHeaderOrQuery, initApiConnection } from '../utils/route.utils';
 import { AuthResponseSuccess, logout, verifyAuthToken } from './api.service';
 import { deepLink } from './deep-link.service';
+import { downloadAndZipFilesToDisk, downloadBulkApiFileAndSaveToDisk } from './file-download.service';
 import * as dataService from './persistence.service';
 import { initConnectionFromOAuthResponse } from './sfdc-oauth.service';
-import { downloadAndZipFilesToDisk } from './zip-download.service';
 
 type MainIpcHandler<Key extends keyof ElectronApiRequestResponse> = (
   event: Electron.IpcMainEvent,
@@ -74,6 +75,7 @@ export function registerIpc(): void {
   registerHandler('request', handleRequestEvent);
   // Handle zip download to file
   registerHandler('downloadZipToFile', handleDownloadZipToFile);
+  registerHandler('downloadBulkApiFile', handleDownloadBulkApiFile);
   // Handle file operations
   registerHandler('openFile', handleOpenFile);
   registerHandler('showFileInFolder', handleShowFileInFolder);
@@ -338,7 +340,7 @@ const handleInstallUpdateEvent: MainIpcHandler<'installUpdate'> = async (_event)
 const handleDownloadZipToFile: MainIpcHandler<'downloadZipToFile'> = async (
   event,
   payload: DownloadZipPayload,
-): Promise<DownloadZipResult> => {
+): Promise<DownloadFileResult> => {
   try {
     const { orgId, nameFormat, sobject, recordIds, fileName, jobId } = payload;
 
@@ -363,6 +365,46 @@ const handleDownloadZipToFile: MainIpcHandler<'downloadZipToFile'> = async (
     return result;
   } catch (ex) {
     logger.error('Error handling downloadZipToFile', ex);
+    return {
+      success: false,
+      error: ex instanceof Error ? ex.message : 'An unknown error occurred',
+    };
+  }
+};
+
+const handleDownloadBulkApiFile: MainIpcHandler<'downloadBulkApiFile'> = async (
+  event,
+  payload: JetstreamEventStreamFilePayload,
+): Promise<DownloadFileResult> => {
+  try {
+    const { fileName, link } = payload;
+
+    const url = new URL(link);
+    const [jobId, batchId] = url.pathname.split('/').slice(3, 5); // /static/bulk/750fo00000486tzAAA/751fo000004618rAAA/file
+    const orgUniqueId = url.searchParams.get(HTTP.HEADERS.X_SFDC_ID);
+    const type = z.enum(['request', 'result']).parse(url.searchParams.get('type'));
+    const isQuery = BooleanQueryParamSchema.parse(url.searchParams.get('isQuery'));
+
+    if (!orgUniqueId) {
+      throw new Error('Missing org identifier for Bulk API file download');
+    }
+
+    const connectionResult = initApiConnection(orgUniqueId);
+    if (!connectionResult) {
+      throw new Error('Could not initialize Salesforce connection');
+    }
+    const { jetstreamConn } = connectionResult;
+
+    return await downloadBulkApiFileAndSaveToDisk({
+      jetstreamConn,
+      fileName,
+      jobId,
+      batchId,
+      isQuery,
+      type,
+    });
+  } catch (ex) {
+    logger.error('Error handling handleDownloadBulkApiFile', ex);
     return {
       success: false,
       error: ex instanceof Error ? ex.message : 'An unknown error occurred',

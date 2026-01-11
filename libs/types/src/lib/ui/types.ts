@@ -524,6 +524,7 @@ export interface JetstreamEventStreamFile extends JetstreamEvent<JetstreamEventP
   payload: JetstreamEventStreamFilePayload;
 }
 export interface JetstreamEventStreamFilePayload {
+  jobId: string;
   link: string;
   fileName: string;
 }
