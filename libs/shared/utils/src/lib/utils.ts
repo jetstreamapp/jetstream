@@ -267,6 +267,7 @@ export function truncate(value: string, maxLength: number, trailingChar = '...')
 }
 
 export function truncateMiddle(value: string, maxLength: number, ellipsis = '...'): string {
+  maxLength = Math.max(ellipsis.length + 2, maxLength);
   if (!value || value.length <= maxLength) {
     return value;
   }

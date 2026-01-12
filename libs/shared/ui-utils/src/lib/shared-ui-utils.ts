@@ -319,7 +319,7 @@ export function prepareExcelFile(data: any, header: any, defaultSheetName: any =
   let compression = false;
 
   if (Array.isArray(data)) {
-    header = header || Object.keys(data[0]);
+    header = header || Object.keys(data[0] || {});
     const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header as string[]), { dense: true });
     XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
     compression = data.length > COMPRESS_SHEET_ROW_COUNT;
