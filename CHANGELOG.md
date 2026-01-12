@@ -1,5 +1,23 @@
 # Changelog
 
+## [8.17.0](https://github.com/jetstreamapp/jetstream/compare/v8.16.0...v8.17.0) (2026-01-12)
+
+### Features
+
+* **desktop:** add menu option to open recent log file ([35d4c7a](https://github.com/jetstreamapp/jetstream/commit/35d4c7a36cd85387aceeb7731bc1df6dda87bf97))
+* **desktop:** add menu option to open settings ([fd39313](https://github.com/jetstreamapp/jetstream/commit/fd39313bf9b6b76897b8403d74ebf0ecbe786c3e))
+* **desktop:** show recent files in menu ([139d333](https://github.com/jetstreamapp/jetstream/commit/139d3332e4c666aa5de6d59aff3ec8750dbceb4c))
+* **desktop:** show recent files in menu ([9f03030](https://github.com/jetstreamapp/jetstream/commit/9f0303076657fbaee1812eef52718fcfeba72300))
+
+### Bug Fixes
+
+* **desktop:** disable logging in dev mode ([f704ff0](https://github.com/jetstreamapp/jetstream/commit/f704ff0e9514968cc8f52120948d5126809e15cc))
+* **desktop:** fix bulk API query download ([fa91968](https://github.com/jetstreamapp/jetstream/commit/fa91968904d073d0c0b4fb2bf8d7dd035b06a3e8))
+* **desktop:** fix desktop open org link ([15afc27](https://github.com/jetstreamapp/jetstream/commit/15afc271267ec5388dbfd563978e44d6aff769c8))
+* **desktop:** increase heap memory for electron ([e1133ad](https://github.com/jetstreamapp/jetstream/commit/e1133ad40367e7ea3f023220f7c9e4d005e4a299))
+* **desktop:** unsubscribe to electron callbacks ([7febf9b](https://github.com/jetstreamapp/jetstream/commit/7febf9b33bf2f40ad6fc7761b22a56f9829f08ea))
+* handle large xlsx files ([d940488](https://github.com/jetstreamapp/jetstream/commit/d9404882ddb10222f921848ef6522cf6a3db8e58))
+
 ## [8.16.0](https://github.com/jetstreamapp/jetstream/compare/v8.15.1...v8.16.0) (2026-01-02)
 
 ### Features
