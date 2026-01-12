@@ -14,6 +14,9 @@ import {
 } from './services/protocol.service';
 import { isMac } from './utils/utils';
 
+// Increase memory limit for large file operations
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6144');
+
 logger.transports.file.level = 'info';
 logger.transports.console.level = 'debug';
 logger.transports.file.maxSize = 10 * 1024 * 1024; // 10 MB
