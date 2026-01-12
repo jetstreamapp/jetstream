@@ -87,7 +87,12 @@ export const Jobs: FunctionComponent = () => {
           return prevJobs;
         });
       };
-      window.electronAPI.onDownloadProgress(handleProgress);
+      const unsubscribe = window.electronAPI.onDownloadProgress(handleProgress);
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
     }
   }, [setJobs]);
 

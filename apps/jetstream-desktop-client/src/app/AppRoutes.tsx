@@ -104,7 +104,12 @@ export const AppRoutes = () => {
       const handle = () => {
         navigate(APP_ROUTES.SETTINGS.ROUTE);
       };
-      window.electronAPI.onOpenSettings(handle);
+      const unsubscribe = window.electronAPI.onOpenSettings(handle);
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
     }
   }, [navigate]);
 

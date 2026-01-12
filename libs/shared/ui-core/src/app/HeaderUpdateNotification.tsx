@@ -28,7 +28,7 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
     });
 
     // Listen for update status changes from main process
-    window.electronAPI.onUpdateStatus((status: UpdateStatus) => {
+    const unsubscribe = window.electronAPI.onUpdateStatus((status: UpdateStatus) => {
       logger.info('Update status received:', status);
       setUpdateStatus(status);
 
@@ -42,6 +42,11 @@ export const HeaderUpdateNotification = ({ onCheckForUpdates, onInstallUpdate }:
         }
       }
     });
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const handleCheckForUpdates = () => {
