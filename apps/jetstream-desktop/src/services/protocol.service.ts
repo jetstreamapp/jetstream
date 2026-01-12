@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { Browser } from '../browser/browser';
 import { ENV, SERVER_URL } from '../config/environment';
 import { initApiConnection } from '../utils/route.utils';
-import { getCspPolicy } from '../utils/utils';
+import { getCspPolicy, setRecentDocument } from '../utils/utils';
 import { getAppData, getUserPreferences } from './persistence.service';
 
 const cspPolicy = getCspPolicy();
@@ -146,7 +146,7 @@ export function registerDownloadHandler() {
     item.once('done', (_, state) => {
       if (state === 'completed') {
         logger.info(`Download completed: ${item.getSavePath()}`);
-        app.addRecentDocument(downloadFilename);
+        setRecentDocument(downloadFilename);
       }
     });
   });

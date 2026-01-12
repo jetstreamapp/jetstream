@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { SERVER_URL } from '../config/environment';
+import { initAppMenu } from '../services/menu.service';
 
 export const isDev = () => !app.isPackaged;
 export const isMac = () => process.platform === 'darwin';
@@ -33,4 +34,14 @@ export function getCspPolicy() {
     .map(([key, value]) => `${key} ${value.join(' ')}`)
     .join('; ');
   return cspPolicy;
+}
+
+export function setRecentDocument(path: string) {
+  app.addRecentDocument(path);
+  initAppMenu();
+}
+
+export function clearRecentDocuments() {
+  app.clearRecentDocuments();
+  initAppMenu();
 }

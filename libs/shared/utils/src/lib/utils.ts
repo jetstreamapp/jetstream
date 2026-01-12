@@ -266,6 +266,18 @@ export function truncate(value: string, maxLength: number, trailingChar = '...')
   return `${value.substring(0, maxLength)}${trailingChar}`;
 }
 
+export function truncateMiddle(value: string, maxLength: number, ellipsis = '...'): string {
+  if (!value || value.length <= maxLength) {
+    return value;
+  }
+
+  const keep = maxLength - ellipsis.length;
+  const start = Math.ceil(keep / 2);
+  const end = Math.floor(keep / 2);
+
+  return value.slice(0, start) + ellipsis + value.slice(value.length - end);
+}
+
 export function pluralizeIfMultiple(value: string, items: any[], plural = 's'): string {
   if (!items || items.length !== 1) {
     return `${value}${plural}`;

@@ -8,6 +8,7 @@ import { createWriteStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
+import { setRecentDocument } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
 
 function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress) {
@@ -91,7 +92,7 @@ export async function downloadAndZipFilesToDisk(
     await pipeline(nodeStream, writeStream);
 
     logger.info(`Zip file downloaded successfully: ${downloadPath}`);
-    app.addRecentDocument(downloadPath);
+    setRecentDocument(downloadPath);
 
     return { success: true, filePath: downloadPath };
   } catch (error) {
@@ -157,7 +158,7 @@ export async function downloadBulkApiFileAndSaveToDisk({
     await pipeline(nodeStream, writeStream);
 
     logger.info(`File downloaded successfully: ${downloadPath}`);
-    app.addRecentDocument(downloadPath);
+    setRecentDocument(downloadPath);
 
     return { success: true, filePath: downloadPath };
   } catch (error) {

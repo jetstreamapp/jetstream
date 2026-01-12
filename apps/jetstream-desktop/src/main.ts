@@ -41,6 +41,8 @@ logger.info({
 });
 
 app.whenReady().then(async () => {
+  // re-initialize so that recent documents menu is up to date
+  initAppMenu();
   registerProtocols();
 
   let mainWindow = Browser.create(() => registerIpc());
