@@ -28,6 +28,7 @@ export const IpcEventChannel = {
   orgAdded: 'org-added',
   toastMessage: 'toast-message',
   updateStatus: 'update-status',
+  openSettings: 'open-settings',
 } as const;
 
 export interface ElectronApiCallback {
@@ -37,6 +38,7 @@ export interface ElectronApiCallback {
   onOrgAdded: (payload: (org: SalesforceOrgUi) => void) => () => void;
   onToastMessage: (callback: (message: { type: InfoSuccessWarningError; message: string; duration?: number }) => void) => () => void;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+  onOpenSettings: (callback: () => void) => () => void;
 }
 
 export interface ElectronApiRequestResponse {

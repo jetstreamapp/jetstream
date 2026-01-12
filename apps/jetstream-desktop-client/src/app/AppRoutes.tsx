@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { AppHome, Feedback, OrgSelectionRequired as OrgSelectionRequiredExternal } from '@jetstream/ui-core';
 import { useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { environment } from '../environments/environment';
 import lazy from './components/core/LazyLoad';
 import { addDesktopOrg } from './utils/utils';
@@ -97,6 +97,16 @@ const OrgSelectionRequired = ({ children }: { children: React.ReactNode }) => (
 
 export const AppRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.electronAPI?.onOpenSettings) {
+      const handle = () => {
+        navigate(APP_ROUTES.SETTINGS.ROUTE);
+      };
+      window.electronAPI.onOpenSettings(handle);
+    }
+  }, [navigate]);
 
   // Preload sub-pages if user is on parent page
   useEffect(() => {
