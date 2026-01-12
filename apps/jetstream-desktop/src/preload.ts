@@ -33,6 +33,11 @@ const API: ElectronAPI = {
     ipcRenderer.on(IpcEventChannel.toastMessage, handler);
     return () => ipcRenderer.removeListener(IpcEventChannel.toastMessage, handler);
   },
+  onOpenSettings: (callback) => {
+    const handler = (_event) => callback();
+    ipcRenderer.on(IpcEventChannel.openSettings, handler);
+    return () => ipcRenderer.removeListener(IpcEventChannel.openSettings, handler);
+  },
   // One-Way from Client
   login: () => ipcRenderer.invoke('login'),
   logout: () => ipcRenderer.invoke('logout'),
@@ -44,6 +49,7 @@ const API: ElectronAPI = {
   setPreferences: (payload) => ipcRenderer.invoke('setPreferences', payload),
   request: (payload) => ipcRenderer.invoke('request', payload),
   downloadZipToFile: (payload) => ipcRenderer.invoke('downloadZipToFile', payload),
+  downloadBulkApiFile: (payload) => ipcRenderer.invoke('downloadBulkApiFile', payload),
   openFile: (filePath) => ipcRenderer.invoke('openFile', filePath),
   showFileInFolder: (filePath) => ipcRenderer.invoke('showFileInFolder', filePath),
   checkForUpdates: (userInitiated) => ipcRenderer.invoke('checkForUpdates', userInitiated),

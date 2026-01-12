@@ -1,5 +1,5 @@
 import { AsyncJob, AsyncJobType } from '@jetstream/types';
-import { Icon } from '@jetstream/ui';
+import { Icon, ProgressIndicator } from '@jetstream/ui';
 import classNames from 'classnames';
 import { formatDate } from 'date-fns/format';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
@@ -70,24 +70,11 @@ export const Job: FunctionComponent<JobProps> = ({ job, cancelJob, dismiss }) =>
             </p>
             {job.progress && inProgress && (
               <div className="slds-m-top_x-small">
-                {job.progress.label && (
-                  <p className="slds-text-body_small slds-m-bottom_x-small">
-                    {job.progress.label}
-                  </p>
-                )}
-                <div
-                  className="slds-progress-bar slds-progress-bar_small"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={job.progress.percent}
-                  role="progressbar"
-                >
-                  <span className="slds-progress-bar__value" style={{ width: `${job.progress.percent}%` }}>
-                    <span className="slds-assistive-text">{job.progress.percent}% Complete</span>
-                  </span>
-                </div>
+                {job.progress.label && <p className="slds-text-body_small slds-m-bottom_x-small">{job.progress.label}</p>}
+                <ProgressIndicator currentValue={job.progress.percent} isIndeterminate={job.progress.percent === -1} />
                 <p className="slds-text-body_small slds-m-top_x-small slds-text-align_center">
-                  {job.progress.current} of {job.progress.total} ({job.progress.percent}%)
+                  {job.progress.current} of {job.progress.total}
+                  {job.progress.percent >= 0 ? ` (${job.progress.percent}%)` : ''}
                 </p>
               </div>
             )}

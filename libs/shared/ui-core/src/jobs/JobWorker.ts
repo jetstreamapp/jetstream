@@ -1,12 +1,5 @@
 /// <reference lib="webworker" />
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  getOrgUrlParams,
-  pollBulkApiJobUntilDone,
-  pollRetrieveMetadataResultsUntilDone,
-  prepareCsvFile,
-  prepareExcelFile,
-} from '@jetstream/shared/ui-utils';
 import { logger } from '@jetstream/shared/client-logger';
 import { MIME_TYPES } from '@jetstream/shared/constants';
 import {
@@ -20,7 +13,14 @@ import {
   retrieveMetadataFromPackagesNames,
   sobjectOperation,
 } from '@jetstream/shared/data';
-import { isBrowserExtension } from '@jetstream/shared/ui-utils';
+import {
+  getOrgUrlParams,
+  isBrowserExtension,
+  pollBulkApiJobUntilDone,
+  pollRetrieveMetadataResultsUntilDone,
+  prepareCsvFile,
+  prepareExcelFile,
+} from '@jetstream/shared/ui-utils';
 import {
   base64ToArrayBuffer,
   ensureArray,
@@ -263,6 +263,7 @@ export class JobWorker {
         } catch (ex) {
           const response: AsyncJobWorkerMessageResponse = { job };
           this.replyToMessage(name, response, getErrorMessage(ex));
+          logger.error('Error in BulkDownload job:', ex);
         }
         break;
       }

@@ -1,8 +1,8 @@
 import classNames from 'classnames';
-import { Fragment, FunctionComponent } from 'react';
+import { Fragment } from 'react';
 import Icon from '../widgets/Icon';
 
-export interface ProgressIndicatorListItemProps {
+export interface ProgressStepIndicatorListItemProps {
   step: number;
   stepText?: string;
   isVertical?: boolean;
@@ -12,7 +12,7 @@ export interface ProgressIndicatorListItemProps {
   onChangeStep?: (step: number) => void; // does not apply to vertical
 }
 
-export const ProgressIndicatorListItem: FunctionComponent<ProgressIndicatorListItemProps> = ({
+export const ProgressStepIndicatorListItem = ({
   step,
   stepText,
   isVertical,
@@ -20,7 +20,7 @@ export const ProgressIndicatorListItem: FunctionComponent<ProgressIndicatorListI
   isComplete,
   disabled,
   onChangeStep,
-}) => {
+}: ProgressStepIndicatorListItemProps) => {
   const stepTitleVertical = `Step ${step + 1}`;
   let stepTitle = stepTitleVertical;
   if (isActive) {
@@ -66,5 +66,3 @@ export const ProgressIndicatorListItem: FunctionComponent<ProgressIndicatorListI
     </li>
   );
 };
-
-export default ProgressIndicatorListItem;

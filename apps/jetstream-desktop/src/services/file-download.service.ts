@@ -1,4 +1,4 @@
-import { DownloadZipProgress } from '@jetstream/desktop/types';
+import { DownloadFileResult, DownloadZipProgress } from '@jetstream/desktop/types';
 import { ApiConnection, BinaryFileDownload } from '@jetstream/salesforce-api';
 import { getErrorMessageAndStackObj } from '@jetstream/shared/utils';
 import { Maybe } from '@jetstream/types';
@@ -8,7 +8,13 @@ import { createWriteStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
+import { setRecentDocument } from '../utils/utils';
 import { getUserPreferences } from './persistence.service';
+
+function emitProgress(sender: Maybe<WebContents>, progress: DownloadZipProgress) {
+  // Send progress update to renderer
+  sender?.send('download-progress', progress);
+}
 
 /**
  * Downloads multiple binary files from Salesforce and zips them directly to disk
@@ -20,7 +26,7 @@ export async function downloadAndZipFilesToDisk(
   zipFileName: string,
   jobId: string,
   sender?: Maybe<WebContents>,
-): Promise<{ success: boolean; filePath?: string; error?: string }> {
+): Promise<DownloadFileResult> {
   try {
     // Get download location from user preferences or prompt user
     const downloadPreferences = getUserPreferences().fileDownload;
@@ -70,7 +76,8 @@ export async function downloadAndZipFilesToDisk(
         currentFileIndex = estimatedCurrentFile;
       }
 
-      const progress: DownloadZipProgress = {
+      // Send progress update to renderer
+      emitProgress(sender, {
         currentFile: currentFileIndex + 1,
         totalFiles: files.length,
         fileName: files[currentFileIndex]?.fileName || zipFileName,
@@ -78,17 +85,80 @@ export async function downloadAndZipFilesToDisk(
         totalBytes,
         percentComplete,
         jobId,
-      };
-
-      // Send progress update to renderer
-      sender?.send('download-progress', progress);
+      });
     });
 
     // Pipe the stream to file
     await pipeline(nodeStream, writeStream);
 
     logger.info(`Zip file downloaded successfully: ${downloadPath}`);
-    app.addRecentDocument(downloadPath);
+    setRecentDocument(downloadPath);
+
+    return { success: true, filePath: downloadPath };
+  } catch (error) {
+    logger.error('Error downloading and zipping files', getErrorMessageAndStackObj(error));
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unknown error occurred',
+    };
+  }
+}
+
+export async function downloadBulkApiFileAndSaveToDisk({
+  jetstreamConn,
+  fileName,
+  jobId,
+  batchId,
+  isQuery,
+  type,
+}: {
+  jetstreamConn: ApiConnection;
+  fileName: string;
+  jobId: string;
+  batchId: string;
+  isQuery: boolean;
+  type: 'request' | 'result';
+}): Promise<DownloadFileResult> {
+  try {
+    // Get download location from user preferences or prompt user
+    const downloadPreferences = getUserPreferences().fileDownload;
+    let downloadPath: string;
+
+    if (downloadPreferences?.omitPrompt && downloadPreferences?.downloadPath && existsSync(downloadPreferences.downloadPath)) {
+      downloadPath = join(downloadPreferences.downloadPath, fileName);
+    } else {
+      const defaultPath = app.getPath('downloads');
+      const result = await dialog.showSaveDialog({
+        title: 'Save File',
+        defaultPath: join(defaultPath, fileName),
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, error: 'Download canceled by user' };
+      }
+
+      downloadPath = result.filePath;
+    }
+
+    let resultId: string | undefined;
+    if (isQuery) {
+      resultId = (await jetstreamConn.bulk.getQueryResultsJobIds(jobId, batchId))[0];
+    }
+
+    const results = await jetstreamConn.bulk.downloadRecords(jobId, batchId, type, resultId);
+
+    // Create write stream for the zip file
+    const writeStream = createWriteStream(downloadPath);
+
+    // Convert web stream to Node.js readable stream
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nodeStream = Readable.fromWeb(results as any);
+
+    // Pipe the stream to file
+    await pipeline(nodeStream, writeStream);
+
+    logger.info(`File downloaded successfully: ${downloadPath}`);
+    setRecentDocument(downloadPath);
 
     return { success: true, filePath: downloadPath };
   } catch (error) {

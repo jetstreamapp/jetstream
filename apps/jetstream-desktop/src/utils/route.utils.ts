@@ -222,7 +222,7 @@ export function initApiConnection(
       instanceUrl: org.instanceUrl,
       refreshToken,
       logger: logger as any,
-      logging: ENV.LOG_LEVEL === 'debug',
+      logging: false,
       sfdcClientId: ENV.DESKTOP_SFDC_CLIENT_ID,
     },
     handleRefresh,

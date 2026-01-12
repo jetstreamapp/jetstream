@@ -314,42 +314,51 @@ export function polyfillFieldDefinition(field: Field): string {
 export function prepareExcelFile(data: any[], header?: string[], defaultSheetName?: string): ArrayBuffer;
 export function prepareExcelFile(data: Record<string, any[]>, header?: Record<string, string[]>, defaultSheetName?: void): ArrayBuffer;
 export function prepareExcelFile(data: any, header: any, defaultSheetName: any = 'Records'): ArrayBuffer {
+  const COMPRESS_SHEET_ROW_COUNT = 10_000;
   const workbook = XLSX.utils.book_new();
+  let compression = false;
 
   if (Array.isArray(data)) {
-    header = header || Object.keys(data[0]);
-    const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header as string[]));
+    header = header || Object.keys(data[0] || {});
+    const worksheet = XLSX.utils.aoa_to_sheet(convertArrayOfObjectToArrayOfArray(data, header as string[]), { dense: true });
     XLSX.utils.book_append_sheet(workbook, worksheet, defaultSheetName);
+    compression = data.length > COMPRESS_SHEET_ROW_COUNT;
   } else {
     Object.keys(data).forEach((sheetName) => {
-      if (data[sheetName].length > 0) {
+      const values = data[sheetName];
+      if (values.length > 0) {
+        compression = compression || values.length > COMPRESS_SHEET_ROW_COUNT;
         let currentHeader = header && header[sheetName];
         let isArrayOfArray = false;
         if (!currentHeader) {
-          if (Array.isArray(data[sheetName][0])) {
+          if (Array.isArray(values[0])) {
             isArrayOfArray = true;
           } else {
-            currentHeader = Object.keys(data[sheetName][0]);
+            currentHeader = Object.keys(values[0]);
           }
         }
         XLSX.utils.book_append_sheet(
           workbook,
-          XLSX.utils.aoa_to_sheet(isArrayOfArray ? data[sheetName] : convertArrayOfObjectToArrayOfArray(data[sheetName], currentHeader)),
+          XLSX.utils.aoa_to_sheet(isArrayOfArray ? values : convertArrayOfObjectToArrayOfArray(values, currentHeader), {
+            dense: true,
+          }),
           sheetName,
         );
       }
     });
   }
 
-  return excelWorkbookToArrayBuffer(workbook);
+  return excelWorkbookToArrayBuffer(workbook, compression);
 }
 
-export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook): ArrayBuffer {
+export function excelWorkbookToArrayBuffer(workbook: XLSX.WorkBook, compression = false): ArrayBuffer {
   // https://github.com/sheetjs/sheetjs#writing-options
   const workbookArrayBuffer: ArrayBuffer = XLSX.write(workbook, {
     bookType: 'xlsx',
     bookSST: false,
     type: 'array', // ArrayBuffer
+    // Compression=true is slower, but helps avoid "Invalid Array Length" errors on large files
+    compression,
   });
   return workbookArrayBuffer;
 }

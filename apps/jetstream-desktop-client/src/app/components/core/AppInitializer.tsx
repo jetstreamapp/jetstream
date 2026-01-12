@@ -96,7 +96,12 @@ APP VERSION ${version}
 
   useEffect(() => {
     if (window.electronAPI?.onToastMessage) {
-      window.electronAPI.onToastMessage((payload) => fireToast(payload));
+      const unsubscribe = window.electronAPI.onToastMessage((payload) => fireToast(payload));
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
     }
   }, []);
 

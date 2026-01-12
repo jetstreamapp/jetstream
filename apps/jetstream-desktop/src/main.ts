@@ -14,6 +14,9 @@ import {
 } from './services/protocol.service';
 import { isMac } from './utils/utils';
 
+// Increase memory limit for large file operations
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=6144');
+
 logger.transports.file.level = 'info';
 logger.transports.console.level = 'debug';
 logger.transports.file.maxSize = 10 * 1024 * 1024; // 10 MB
@@ -41,6 +44,8 @@ logger.info({
 });
 
 app.whenReady().then(async () => {
+  // re-initialize so that recent documents menu is up to date
+  initAppMenu();
   registerProtocols();
 
   let mainWindow = Browser.create(() => registerIpc());

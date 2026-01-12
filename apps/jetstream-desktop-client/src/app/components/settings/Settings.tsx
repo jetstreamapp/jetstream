@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { DesktopUserPreferences } from '@jetstream/desktop/types';
 import { logger } from '@jetstream/shared/client-logger';
 import { ANALYTICS_KEYS, TITLES } from '@jetstream/shared/constants';
+import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { isEscapeKey, useGlobalEventHandler, useTitle } from '@jetstream/shared/ui-utils';
 import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema } from '@jetstream/types';
 import { AutoFullHeightContainer, CheckboxToggle, Grid, Icon, Input, Page, Spinner, fireToast } from '@jetstream/ui';
@@ -195,7 +196,7 @@ export const Settings = () => {
             className="slds-button slds-button_icon slds-modal__close"
             title="Close"
             disabled={false}
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(APP_ROUTES.HOME.ROUTE)}
           >
             <Icon type="utility" icon="close" className="slds-button__icon slds-button__icon_large" omitContainer />
             <span className="slds-assistive-text">Close</span>
