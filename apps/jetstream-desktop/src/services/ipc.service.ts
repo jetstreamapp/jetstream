@@ -212,7 +212,8 @@ const handleAddOrgEvent: MainIpcHandler<'addOrg'> = async (event, payload) => {
         apiVersion: ENV.SFDC_API_VERSION,
         instanceUrl: userInfo.urls.custom_domain || payload.loginUrl,
         refreshToken: refresh_token,
-        logging: ENV.LOG_LEVEL === 'debug',
+        logger: logger as any,
+        logging: false,
       });
 
       const salesforceOrg = await initConnectionFromOAuthResponse({
