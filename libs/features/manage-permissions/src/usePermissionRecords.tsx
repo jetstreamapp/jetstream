@@ -73,6 +73,11 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
           groupByFlat(tabs, 'SobjectName'),
         ),
       ]).then(([fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
+        // Some FieldPermission records are auto-generated with invalid Ids that represent inferred access.
+        // This seems like it is some new behavior that did not exist previously - but means we try to save an invalid record.
+        // #1504
+        objectPermissions = objectPermissions.filter((record) => !record.Id.startsWith('000'));
+        fieldPermissions = fieldPermissions.filter((record) => !record.Id.startsWith('000'));
         return {
           fieldsByObject: getAllFieldsByObject(fieldDefinition),
           fieldsByKey: groupFields(fieldDefinition),
