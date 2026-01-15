@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.17.1](https://github.com/jetstreamapp/jetstream/compare/v8.17.0...v8.17.1) (2026-01-15)
+
+### Bug Fixes
+
+* manage permission invalid id ([610080d](https://github.com/jetstreamapp/jetstream/commit/610080d9c032b84b709738b402cd017283a9515b)), closes [#1504](https://github.com/jetstreamapp/jetstream/issues/1504)
+
 ## [8.17.0](https://github.com/jetstreamapp/jetstream/compare/v8.16.0...v8.17.0) (2026-01-12)
 
 ### Features
