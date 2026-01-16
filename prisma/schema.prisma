@@ -548,3 +548,15 @@ model AuditLog {
   @@index([resource, resourceId, createdAt])
   @@map("audit_log")
 }
+
+model RateLimit {
+  key       String   @id @db.VarChar(255)
+  hits      Int      @default(0)
+  resetTime DateTime @db.Timestamp(6)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @db.Timestamp(6)
+
+  // Index for cleanup queries to find expired entries
+  @@index([resetTime])
+  @@map("rate_limit")
+}
