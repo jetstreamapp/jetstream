@@ -67,6 +67,7 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
   onErrorHandler?: (error: unknown, req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => void,
 ) {
   return async (req: Request<unknown, unknown, unknown>, res: Response, next: NextFunction) => {
+    const logger = res.log || req.log;
     try {
       res.locals.ipAddress = getApiAddressFromReq(req);
       res.locals.cookies = res.locals.cookies || {};
@@ -98,11 +99,11 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         },
       };
       if (hasSourceOrg && !data.jetstreamConn) {
-        req.log.info('[INIT-ORG][ERROR] A source org did not exist on locals');
+        logger.info('[INIT-ORG][ERROR] A source org did not exist on locals');
         return next(new UserFacingError('An org is required for this action'));
       }
       if (hasTargetOrg && !data.targetJetstreamConn) {
-        req.log.info('[INIT-ORG][ERROR] A target org did not exist on locals');
+        logger.info('[INIT-ORG][ERROR] A target org did not exist on locals');
         return next(new UserFacingError('A source and target org are required for this action'));
       }
       try {
@@ -110,16 +111,15 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         await controllerFn(data as any, req, res, next);
       } catch (ex) {
         if (logErrorToBugTracker) {
+          logger.error(getExceptionLog(ex), 'Logging error to bug tracker');
           rollbarServer.error(ex, req, {
-            custom: {
-              ...getExceptionLog(ex, true),
-              url: req.url,
-              params: req.params,
-              query: req.query,
-              body: req.body,
-              userId: req.session.user?.id,
-              requestId: res.locals.requestId,
-            },
+            ...getExceptionLog(ex, true),
+            url: req.url,
+            params: req.params,
+            query: req.query,
+            body: req.body,
+            userId: req.session.user?.id,
+            requestId: res.locals.requestId,
           });
         }
         if (isKnownError(ex)) {
@@ -129,18 +129,16 @@ export function createRoute<TParamsSchema extends z.ZodTypeAny, TBodySchema exte
         next(new UserFacingError(ex));
       }
     } catch (ex) {
-      req.log.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
+      logger.error(getExceptionLog(ex), '[ROUTE][VALIDATION ERROR]');
       if (logErrorToBugTracker) {
         rollbarServer.error(ex, req, {
-          custom: {
-            ...getExceptionLog(ex, true),
-            url: req.url,
-            params: req.params,
-            query: req.query,
-            body: req.body,
-            userId: req.session.user?.id,
-            requestId: res.locals.requestId,
-          },
+          ...getExceptionLog(ex, true),
+          url: req.url,
+          params: req.params,
+          query: req.query,
+          body: req.body,
+          userId: req.session.user?.id,
+          requestId: res.locals.requestId,
         });
       }
       if (typeof onErrorHandler === 'function') {

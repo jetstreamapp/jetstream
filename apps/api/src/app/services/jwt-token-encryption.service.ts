@@ -35,9 +35,7 @@ export function encryptJwtToken(token: string): string {
     logger.error({ ...getExceptionLog(error) }, 'Failed to encrypt JWT token');
     rollbarServer.error('Failed to encrypt JWT token', {
       context: 'jwt-token-encryption.service#encryptJwtToken',
-      custom: {
-        ...getExceptionLog(error, true),
-      },
+      ...getExceptionLog(error, true),
     });
     throw new Error('Failed to encrypt token');
   }
@@ -66,9 +64,7 @@ export function decryptJwtToken(encryptedToken: string): string {
     logger.error({ ...getExceptionLog(error) }, 'Failed to decrypt JWT token');
     rollbarServer.error('Failed to decrypt JWT token', {
       context: 'jwt-token-encryption.service#decryptJwtToken',
-      custom: {
-        ...getExceptionLog(error, true),
-      },
+      ...getExceptionLog(error, true),
     });
     throw new Error('Failed to decrypt token');
   }
