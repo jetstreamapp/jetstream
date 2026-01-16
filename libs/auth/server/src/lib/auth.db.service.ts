@@ -36,7 +36,12 @@ import { addMinutes } from 'date-fns/addMinutes';
 import clamp from 'lodash/clamp';
 import { LRUCache } from 'lru-cache';
 import { actionDisplayName, methodDisplayName } from './auth-logging.db.service';
-import { DELETE_ACTIVITY_DAYS, DELETE_TOKEN_DAYS, PASSWORD_RESET_DURATION_MINUTES } from './auth.constants';
+import {
+  DELETE_AUTH_ACTIVITY_DAYS,
+  DELETE_EMAIL_ACTIVITY_DAYS,
+  DELETE_TOKEN_DAYS,
+  PASSWORD_RESET_DURATION_MINUTES,
+} from './auth.constants';
 import {
   AccountLocked,
   IdentityLinkingNotAllowed,
@@ -104,12 +109,12 @@ const AuthenticatedUserSelect = {
 export async function pruneExpiredRecords() {
   await prisma.loginActivity.deleteMany({
     where: {
-      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_ACTIVITY_DAYS) },
+      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_AUTH_ACTIVITY_DAYS) },
     },
   });
   await prisma.emailActivity.deleteMany({
     where: {
-      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_ACTIVITY_DAYS) },
+      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_EMAIL_ACTIVITY_DAYS) },
     },
   });
   await prisma.passwordResetToken.deleteMany({
