@@ -134,6 +134,7 @@ export class StreamingZip {
   private byteCounterBig = BigInt(0);
   private outputController?: ReadableStreamDefaultController<Uint8Array>;
   private aborted = false;
+  private controllerClosed = false;
   private abortCallbacks: Array<() => void> = [];
 
   outputStream: ReadableStream<Uint8Array>;
@@ -168,6 +169,8 @@ export class StreamingZip {
       return;
     }
     this.aborted = true;
+    // When stream is cancelled, the controller is automatically closed by the runtime
+    this.controllerClosed = true;
     this.abortCallbacks.forEach((callback) => callback());
     this.abortCallbacks = [];
   }
@@ -194,8 +197,19 @@ export class StreamingZip {
   }
 
   private close(): void {
-    if (this.outputController) {
-      this.outputController.close();
+    if (this.outputController && !this.controllerClosed) {
+      try {
+        this.outputController.close();
+        this.controllerClosed = true;
+      } catch (error) {
+        // Ignore errors if controller is already closed
+        // This can happen in race conditions between client disconnect and finish()
+        if (error instanceof TypeError) {
+          this.controllerClosed = true;
+        } else {
+          throw error;
+        }
+      }
     }
   }
 

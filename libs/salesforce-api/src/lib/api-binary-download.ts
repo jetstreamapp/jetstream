@@ -90,6 +90,7 @@ export class ApiBinaryDownload extends SalesforceApi {
     // The zip format requires files to be added one at a time
     (async () => {
       try {
+        this.logger.info(`Starting download of ${files.length} file(s) into zip: ${zipFileName}`);
         for (const { url, fileName } of files) {
           // Check if client disconnected before starting next file
           if (zip.isAborted()) {
@@ -170,11 +171,16 @@ export class ApiBinaryDownload extends SalesforceApi {
         // Only finish if not aborted
         if (!abortController.signal.aborted) {
           await zip.finish();
+          this.logger.info(`Successfully completed download of ${files.length} file(s) into zip: ${zipFileName}`);
+        } else {
+          this.logger.info(`Download aborted for zip: ${zipFileName}`);
         }
       } catch (error) {
         // Don't log errors if we aborted intentionally
         if (!abortController.signal.aborted) {
-          this.logger.error(getErrorMessageAndStackObj(error), 'Error while creating zip');
+          this.logger.error(getErrorMessageAndStackObj(error), `Error while creating zip: ${zipFileName}`);
+        } else {
+          this.logger.info(`Download aborted after error for zip: ${zipFileName}`);
         }
         // Abort to clean up any pending operations
         zip.abort();
