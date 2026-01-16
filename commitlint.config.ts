@@ -1,8 +1,12 @@
-module.exports = {
+import type { UserConfig } from '@commitlint/types';
+import { RuleConfigSeverity } from '@commitlint/types';
+
+const Configuration: UserConfig = {
   extends: ['@commitlint/config-conventional'],
   rules: {
+    'body-max-line-length': [RuleConfigSeverity.Error, 'always', 200],
     'type-enum': [
-      2,
+      RuleConfigSeverity.Error,
       'always',
       [
         'feat', // New feature
@@ -19,4 +23,7 @@ module.exports = {
       ],
     ],
   },
+  // ...
 };
+
+export default Configuration;
