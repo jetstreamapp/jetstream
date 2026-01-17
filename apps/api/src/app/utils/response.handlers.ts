@@ -79,10 +79,8 @@ export function sendJson<ResponseType = unknown>(res: Response, content?: Respon
     try {
       rollbarServer.warn('Response not handled by sendJson, headers already sent', new Error('headers already sent'), {
         context: `route#sendJson`,
-        custom: {
-          requestId: res.locals.requestId,
-          status,
-        },
+        requestId: res.locals.requestId,
+        status,
       });
     } catch (ex) {
       res.log.error(getExceptionLog(ex), 'Error sending to Rollbar');
@@ -145,15 +143,13 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
       try {
         rollbarServer.warn('Error not handled by error handler, headers already sent', req, {
           context: `route#errorHandler`,
-          custom: {
-            ...getExceptionLog(err, true),
-            url: req.url,
-            params: req.params,
-            query: req.query,
-            body: req.body,
-            userId: req.session.user?.id,
-            requestId: res.locals.requestId,
-          },
+          ...getExceptionLog(err, true),
+          url: req.url,
+          params: req.params,
+          query: req.query,
+          body: req.body,
+          userId: req.session.user?.id,
+          requestId: res.locals.requestId,
         });
       } catch (ex) {
         responseLogger.error(getExceptionLog(ex), 'Error sending to Rollbar');
@@ -291,16 +287,14 @@ export async function uncaughtErrorHandler(err: any, req: express.Request, res: 
     try {
       rollbarServer.warn('Exception in error handler', req, {
         context: `route#errorHandler`,
-        custom: {
-          ...getExceptionLog(ex, true),
-          originalError: getExceptionLog(err, true),
-          url: req.url,
-          params: req.params,
-          query: req.query,
-          body: req.body,
-          userId: req.session.user?.id,
-          requestId: res.locals.requestId,
-        },
+        ...getExceptionLog(ex, true),
+        originalError: getExceptionLog(err, true),
+        url: req.url,
+        params: req.params,
+        query: req.query,
+        body: req.body,
+        userId: req.session.user?.id,
+        requestId: res.locals.requestId,
       });
     } catch (rollbarEx) {
       logger.error(getExceptionLog(rollbarEx), 'Error sending to Rollbar');
