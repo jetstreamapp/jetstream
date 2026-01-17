@@ -10,6 +10,7 @@ export * from './lib/hooks/useGoogleApi';
 export * from './lib/hooks/useHover';
 export * from './lib/hooks/useInjectScript';
 export * from './lib/hooks/useInterval';
+export * from './lib/hooks/useLatest';
 export * from './lib/hooks/useLocationState';
 export * from './lib/hooks/useNonInitialEffect';
 export * from './lib/hooks/useObservable';

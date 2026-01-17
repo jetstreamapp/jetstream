@@ -4,7 +4,18 @@ import { query } from '@jetstream/shared/data';
 import { formatNumber } from '@jetstream/shared/ui-utils';
 import { REGEX, groupByFlat } from '@jetstream/shared/utils';
 import { DescribeGlobalSObjectResult, InsertUpdateUpsertDelete, Maybe, SalesforceOrgUi } from '@jetstream/types';
-import { Alert, AutoFullHeightContainer, DataTable, Grid, GridCol, RowWithKey, Spinner, getColumnsForGenericTable } from '@jetstream/ui';
+import {
+  Alert,
+  AutoFullHeightContainer,
+  DataTable,
+  Grid,
+  GridCol,
+  Icon,
+  RowWithKey,
+  Spinner,
+  Tabs,
+  getColumnsForGenericTable,
+} from '@jetstream/ui';
 import { ErrorBoundaryFallback, fromLoadRecordsState } from '@jetstream/ui-core';
 import { applicationCookieState, selectSkipFrontdoorAuth } from '@jetstream/ui/app-state';
 import { useAtom, useAtomValue } from 'jotai';
@@ -12,6 +23,7 @@ import isNil from 'lodash/isNil';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { Column } from 'react-data-grid';
 import { ErrorBoundary } from 'react-error-boundary';
+import { LoadRecordsDataZipPreview } from './LoadRecordsDataZipPreview';
 
 const MAX_RECORD_FOR_PREVIEW = 100_000;
 const MAX_COLUMNS_TO_KEEP_SET_FILTER = 2000;
@@ -24,6 +36,9 @@ export interface LoadRecordsDataPreviewProps {
   loadType: InsertUpdateUpsertDelete;
   data: Maybe<any[]>;
   header: Maybe<string[]>;
+  inputZipFileData: Maybe<ArrayBuffer>;
+  allowBinaryAttachment: Maybe<boolean>;
+  binaryAttachmentBodyField: Maybe<string>;
 }
 
 // function valueGetter: ((params: ValueGetterParams) => any) | string;
@@ -83,6 +98,9 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   data,
   header,
   loadType,
+  inputZipFileData,
+  allowBinaryAttachment,
+  binaryAttachmentBodyField,
 }) => {
   const isMounted = useRef(true);
   const { serverUrl } = useAtomValue(applicationCookieState);
@@ -92,6 +110,7 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
   const [columns, setColumns] = useState<Maybe<Column<RowWithKey>[]>>(null);
   const [rows, setRows] = useState<Maybe<RowWithKey[]>>(null);
   const [loading, setLoading] = useState(false);
+  const [hasBinaryWarnings, setHasBinaryWarnings] = useState(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -99,6 +118,10 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    setHasBinaryWarnings(false);
+  }, [data, inputZipFileData, allowBinaryAttachment, binaryAttachmentBodyField]);
 
   useEffect(() => {
     if (selectedOrg && selectedSObject && isNil(totalRecordCount)) {
@@ -197,16 +220,76 @@ export const LoadRecordsDataPreview: FunctionComponent<LoadRecordsDataPreviewPro
             >
               <p className="slds-text-heading_small">File Preview</p>
               <ErrorBoundary FallbackComponent={ErrorBoundaryFallback}>
-                <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
-                  <DataTable
-                    org={selectedOrg}
-                    serverUrl={serverUrl}
-                    skipFrontdoorLogin={skipFrontdoorLogin}
-                    columns={columns}
-                    data={rows}
-                    getRowKey={getRowId}
-                  />
-                </AutoFullHeightContainer>
+                {allowBinaryAttachment ? (
+                  <Tabs
+                    initialActiveId="ZIP"
+                    tabs={[
+                      {
+                        id: 'RECORDS',
+                        title: (
+                          <div>
+                            Record Data <Icon icon="table" type="utility" className="slds-icon slds-icon_x-small slds-icon-text-default" />
+                          </div>
+                        ),
+                        titleText: 'Record Data',
+                        content: (
+                          <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
+                            <DataTable
+                              org={selectedOrg}
+                              serverUrl={serverUrl}
+                              skipFrontdoorLogin={skipFrontdoorLogin}
+                              columns={columns}
+                              data={rows}
+                              getRowKey={getRowId}
+                            />
+                          </AutoFullHeightContainer>
+                        ),
+                      },
+                      {
+                        id: 'ZIP',
+                        title: (
+                          <div>
+                            Zip File <Icon icon="archive" type="utility" className="slds-icon slds-icon_x-small slds-icon-text-default" />
+                            {hasBinaryWarnings && (
+                              <Icon
+                                icon="warning"
+                                type="utility"
+                                className="slds-icon slds-icon_x-small slds-icon-text-warning slds-m-left_x-small"
+                                title="There are warnings related to the zip file contents"
+                              />
+                            )}
+                          </div>
+                        ),
+                        titleText: 'Zip File Data',
+                        content: (
+                          <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
+                            {!inputZipFileData ? (
+                              <div>Upload a zip file to preview its contents</div>
+                            ) : (
+                              <LoadRecordsDataZipPreview
+                                binaryAttachmentBodyField={binaryAttachmentBodyField}
+                                inputZipFileData={inputZipFileData}
+                                rows={rows}
+                                onWarnings={setHasBinaryWarnings}
+                              />
+                            )}
+                          </AutoFullHeightContainer>
+                        ),
+                      },
+                    ]}
+                  ></Tabs>
+                ) : (
+                  <AutoFullHeightContainer fillHeight setHeightAttr bottomBuffer={25}>
+                    <DataTable
+                      org={selectedOrg}
+                      serverUrl={serverUrl}
+                      skipFrontdoorLogin={skipFrontdoorLogin}
+                      columns={columns}
+                      data={rows}
+                      getRowKey={getRowId}
+                    />
+                  </AutoFullHeightContainer>
+                )}
               </ErrorBoundary>
             </div>
           )}
