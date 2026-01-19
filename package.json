@@ -98,7 +98,7 @@
     "icons:build:doctype": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/doctype ./node_modules/@salesforce-ux/design-system/assets/icons/doctype",
     "icons:build:standard": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/standard ./node_modules/@salesforce-ux/design-system/assets/icons/standard",
     "icons:build:utility": "npx @svgr/cli@5.5.0 --config-file .svgo-config.json -d ./libs/icon-factory/src/lib/icons/utility ./node_modules/@salesforce-ux/design-system/assets/icons/utility",
-    "test": "nx test",
+    "test": "cross-env TZ=UTC nx test",
     "test:affected": "cross-env TZ=UTC nx affected -t test --output-style=stream",
     "test:all": "cross-env TZ=UTC nx run-many -t test --exclude cron-tasks --output-style=stream --skip-nx-cache",
     "test:cron": "cross-env TZ=UTC nx run-many -t test -p cron-tasks --output-style=stream --skip-nx-cache",
