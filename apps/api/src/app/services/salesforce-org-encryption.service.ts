@@ -141,10 +141,8 @@ export async function decryptAccessToken({
     logger.error({ userId, ...getExceptionLog(error) }, 'Failed to decrypt token, it may be corrupted');
     rollbarServer.error('Failed to decrypt token', {
       context: `salesforce-org-encryption.service#decryptAccessToken`,
-      custom: {
-        userId,
-        ...getExceptionLog(error, true),
-      },
+      userId,
+      ...getExceptionLog(error, true),
     });
     // return invalid data to allow the org to get marked as having invalid credentials once we attempt use them for Salesforce connection
     return [DUMMY_INVALID_ENCRYPTED_TOKEN, DUMMY_INVALID_ENCRYPTED_TOKEN];

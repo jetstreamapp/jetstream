@@ -210,7 +210,13 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
   try {
     if (req.get(HTTP.HEADERS.X_SFDC_ID) || req.query[HTTP.HEADERS.X_SFDC_ID]) {
       res.locals = res.locals || {};
-      const results = await getOrgFromHeaderOrQuery(req, HTTP.HEADERS.X_SFDC_ID, HTTP.HEADERS.X_SFDC_API_VERSION, res.locals.requestId);
+      const results = await getOrgFromHeaderOrQuery(
+        req,
+        res,
+        HTTP.HEADERS.X_SFDC_ID,
+        HTTP.HEADERS.X_SFDC_API_VERSION,
+        res.locals.requestId,
+      );
       if (results) {
         const { org, jetstreamConn } = results;
         res.locals.org = org;
@@ -221,6 +227,7 @@ export async function addOrgsToLocal(req: express.Request, res: express.Response
       res.locals = res.locals || {};
       const results = await getOrgFromHeaderOrQuery(
         req,
+        res,
         HTTP.HEADERS.X_SFDC_ID_TARGET,
         HTTP.HEADERS.X_SFDC_API_TARGET_VERSION,
         res.locals.requestId,
@@ -287,10 +294,17 @@ export function ensureTargetOrgExists(req: express.Request, res: express.Respons
  * return org
  *
  * @param req
+ * @param res
  * @param headerKey
  * @param versionHeaderKey
  */
-export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: string, versionHeaderKey: string, requestId?: string) {
+export async function getOrgFromHeaderOrQuery(
+  req: express.Request,
+  res: express.Response,
+  headerKey: string,
+  versionHeaderKey: string,
+  requestId?: string,
+) {
   const uniqueId = (req.get(headerKey) || req.query[headerKey]) as string;
   // TODO: not yet implemented on the front-end
   const apiVersion = (req.get(versionHeaderKey) || req.query[versionHeaderKey]) as string | undefined;
@@ -304,7 +318,7 @@ export async function getOrgFromHeaderOrQuery(req: express.Request, headerKey: s
     return;
   }
 
-  return getOrgForRequest(user, uniqueId, req.log, apiVersion, includeCallOptions, requestId);
+  return getOrgForRequest(user, uniqueId, res.log || req.log || logger, apiVersion, includeCallOptions, requestId);
 }
 
 export async function getOrgForRequest(

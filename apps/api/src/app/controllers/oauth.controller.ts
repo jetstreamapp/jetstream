@@ -134,6 +134,7 @@ const salesforceOauthCallback = createRoute(
         apiVersion: ENV.SFDC_API_VERSION,
         instanceUrl: (userInfo.urls?.custom_domain as string) || loginUrl,
         refreshToken: refresh_token,
+        logger: res.log || req.log || logger,
         logging: ENV.LOG_LEVEL === 'trace',
       });
 
