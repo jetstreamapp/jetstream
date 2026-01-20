@@ -22,6 +22,11 @@ const sidebar = {
     },
     {
       type: 'category',
+      label: 'Team Management',
+      items: ['team-management/team-management'],
+    },
+    {
+      type: 'category',
       label: 'Query',
       items: ['query/query', 'query/query-results', 'query/download-attachments'],
     },
