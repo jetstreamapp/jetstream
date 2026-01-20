@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.18.0](https://github.com/jetstreamapp/jetstream/compare/v8.17.1...v8.18.0) (2026-01-20)
+
+### Features
+
+* show preview of zip file on data loads ([33b76f4](https://github.com/jetstreamapp/jetstream/commit/33b76f43c25c6b5545538f03f0d163227330482c))
+
+### Bug Fixes
+
+* add team-management page to docs ([179331f](https://github.com/jetstreamapp/jetstream/commit/179331f5015fc657646d5c965c8d4b76ea139326))
+* **api:** handle aborted download job ([1b64de5](https://github.com/jetstreamapp/jetstream/commit/1b64de588a3c57bbdc6e464869158c749550e451))
+* mark record as error if missing binary attachment ([451954e](https://github.com/jetstreamapp/jetstream/commit/451954ed44e15537c04a0afde50164010cc3975a)), closes [#1503](https://github.com/jetstreamapp/jetstream/issues/1503)
+
 ## [8.17.1](https://github.com/jetstreamapp/jetstream/compare/v8.17.0...v8.17.1) (2026-01-15)
 
 ### Bug Fixes
