@@ -5,7 +5,8 @@
       "Bash(yarn nx type-check:*)",
       "Bash(yarn nx build:*)",
       "Bash(yarn nx test:*)",
-      "Bash(yarn nx:*)"
+      "Bash(yarn nx:*)",
+      "Bash(yarn test:*)"
     ],
     "deny": [],
     "ask": []

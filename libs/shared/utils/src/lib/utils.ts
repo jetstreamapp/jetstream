@@ -1271,3 +1271,16 @@ export const fileExtensionFromMimeType = (mimeType: string): Maybe<string> => {
       return null;
   }
 };
+
+// eslint-disable-next-line no-misleading-character-class
+const INVISIBLE_UNICODE_REGEX = /[\u00A0\u1680\u180E\u2000-\u200A\u200B\u200C\u200D\u202F\u205F\u2060\u3000\uFEFF]/g;
+
+export function findInvisibleUnicode(input: string) {
+  const matches = [...input.matchAll(INVISIBLE_UNICODE_REGEX)];
+
+  return matches.map((m) => ({
+    char: m[0],
+    codePoint: `U+${m[0].codePointAt(0)?.toString(16).toUpperCase()}`,
+    index: m.index,
+  }));
+}

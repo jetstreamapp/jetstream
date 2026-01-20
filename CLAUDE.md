@@ -84,28 +84,32 @@ yarn build:web-extension # Build browser extension
 
 ```bash
 # Run tests
-yarn test [project]     # Test specific project
-yarn test:all           # Test all projects
-yarn test:affected      # Test affected by changes
+yarn test [project]            # Test specific project (nx project name)
+yarn test [folder]             # Test a specific folder
+  --testNamePattern="testName" # Run a specific test
+
+yarn test:all                  # Test all projects
+yarn test:affected             # Test affected by changes
 
 # Linting
-yarn lint:all          # Lint all projects
-yarn lint:affected     # Lint affected projects
+yarn lint:all                  # Lint all projects
+yarn lint:affected             # Lint affected projects
 
 # E2E tests
-yarn playwright:test   # Run Playwright tests
-yarn e2e               # Run E2E tests
+yarn playwright:test           # Run Playwright tests
+yarn e2e                       # Run E2E tests
 
 # Format code
-yarn format           # Auto-format code
+yarn format                    # Auto-format code
 ```
 
 ### Nx Commands
 
 ```bash
-yarn nx dep-graph      # View dependency graph
-yarn nx affected:build # Build affected projects
-yarn nx affected:test  # Test affected projects
+yarn nx show projects      # Show a list of all projects
+yarn nx dep-graph --print  # View dependency graph
+yarn nx affected:build     # Build affected projects
+yarn nx affected:test      # Test affected projects
 ```
 
 ## Architecture Patterns
@@ -155,8 +159,8 @@ Prefer using Salesforce lightning design system CSS classes when applicable, but
 
 ```bash
 yarn db:generate        # Regenerate Prisma client after schema changes
-yarn db:migrate        # Apply pending migrations
-npx prisma studio      # Open database GUI
+yarn db:migrate         # Apply pending migrations
+npx prisma studio       # Open database GUI
 ```
 
 ### Adding New Features
