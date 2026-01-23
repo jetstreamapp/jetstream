@@ -188,6 +188,7 @@ const envSchema = z.object({
   JETSTREAM_EMAIL_FROM_NAME: z.string().optional().default(''),
   JETSTREAM_EMAIL_REPLY_TO: z.string().optional().default(''),
   MAILGUN_API_KEY: z.string().optional(),
+  MAILGUN_WEBHOOK_SIGNING_KEY: z.string().optional(),
   /**
    * Salesforce Org Connections
    * Connected App OAuth2 for connecting orgs
