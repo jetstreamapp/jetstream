@@ -1,5 +1,6 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
+import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
 import { groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
   DirtyRow,
@@ -28,6 +29,7 @@ import {
   ConfirmationModalPromise,
   FileDownloadModal,
   Icon,
+  ScopedNotification,
   Spinner,
   Tabs,
   Toast,
@@ -131,7 +133,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const resetFieldPermissionMap = useResetAtom(fromPermissionsState.fieldPermissionMap);
   const resetTabVisibilityPermissionMap = useResetAtom(fromPermissionsState.tabVisibilityPermissionMap);
 
-  const recordData = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
+  const { refetchMetadata, ...recordData } = usePermissionRecords(selectedOrg, selectedSObjects, selectedProfiles, selectedPermissionSets);
 
   const [objectColumns, setObjectColumns] = useState<ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[]>([]);
   const [objectRows, setObjectRows] = useState<PermissionTableObjectCell[] | null>(null);
@@ -156,6 +158,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [dirtyObjectCount, setDirtyObjectCount] = useState<number>(0);
   const [dirtyFieldCount, setDirtyFieldCount] = useState<number>(0);
   const [dirtyTabVisibilityCount, setDirtyTabVisibilityCount] = useState<number>(0);
+  const [hasModifiedViewAllFields, setHasModifiedViewAllFields] = useState(false);
 
   const [objectsHaveErrors, setObjectsHaveErrors] = useState<boolean>(false);
   const [fieldsHaveErrors, setFieldsHaveErrors] = useState<boolean>(false);
@@ -207,6 +210,11 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
 
   useEffect(() => {
     setDirtyObjectCount(Object.values(dirtyObjectRows).reduce((output, { dirtyCount }) => output + dirtyCount, 0));
+    setHasModifiedViewAllFields(
+      Object.values(dirtyObjectRows).some(({ row }) =>
+        Object.values(row.permissions).some(({ viewAllFieldsIsDirty }) => viewAllFieldsIsDirty),
+      ),
+    );
   }, [dirtyObjectRows]);
 
   useEffect(() => {
@@ -480,7 +488,16 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         }
         setLoading(false);
       }
+      trackEvent(ANALYTICS_KEYS.permission_manager_saved, { dirtyObjectCount, dirtyFieldCount, dirtyTabVisibilityCount });
+    } else {
+      trackEvent(ANALYTICS_KEYS.permission_manager_save_cancelled);
     }
+  }
+
+  async function reloadPermissions() {
+    setHasLoaded(false);
+    await refetchMetadata();
+    trackEvent(ANALYTICS_KEYS.permission_manager_reload);
   }
 
   function resetChanges() {
@@ -491,6 +508,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldPermissionMap(updatedFieldPermissionMap);
     setTabVisibilityPermissionMap(updatedTabVisibilityPermissionMap);
     initTableData(false, updatedObjectPermissionMap, updatedFieldPermissionMap, updatedTabVisibilityPermissionMap);
+    trackEvent(ANALYTICS_KEYS.permission_manager_reset);
   }
 
   function handleGoBack() {
@@ -532,8 +550,15 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
         <ToolbarItemActions>
           <button
             className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
+            onClick={reloadPermissions}
+            disabled={loading}
+          >
+            <Icon type="utility" icon="refresh" className="slds-button__icon slds-button__icon_left" />
+            <span>Reload All Permissions</span>
+          </button>
+          <button
+            className="slds-button slds-button_neutral collapsible-button collapsible-button-xs"
             onClick={resetChanges}
-            title="Reset Changes"
             disabled={
               loading ||
               (!dirtyObjectCount &&
@@ -576,6 +601,12 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
       >
         {loading && <Spinner />}
         {hasError && <Toast type="error">Uh Oh. There was a problem getting the permission data from Salesforce.</Toast>}
+        {hasModifiedViewAllFields && (
+          <ScopedNotification theme="info">
+            After saving "View All Fields" object permission, you will need to reload all permissions before changing field permissions for
+            that object.
+          </ScopedNotification>
+        )}
         {hasLoaded && (
           <Tabs
             initialActiveId="field-permissions"

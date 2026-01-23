@@ -179,6 +179,11 @@ export const ANALYTICS_KEYS = {
   /** Create Record */
   create_record_save: 'create_record_save',
   create_record_action: 'create_record_action',
+  /** PERMISSION MANAGER */
+  permission_manager_reset: 'permission_manager_reset',
+  permission_manager_reload: 'permission_manager_reload',
+  permission_manager_saved: 'permission_manager_saved',
+  permission_manager_save_cancelled: 'permission_manager_save_cancelled',
   /** USER SEARCH MODAL */
   user_search_opened: 'user_search_opened',
   user_search_view_user: 'user_search_view_user',
