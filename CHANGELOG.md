@@ -1,5 +1,7 @@
 # Changelog
 
+## [8.19.0](https://github.com/jetstreamapp/jetstream/compare/v8.18.1...v8.19.0) (2026-01-23)
+
 ## [8.18.1](https://github.com/jetstreamapp/jetstream/compare/v8.18.0...v8.18.1) (2026-01-23)
 
 ### Bug Fixes
