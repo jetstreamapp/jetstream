@@ -7,7 +7,7 @@ export default function Page() {
   const email = 'support@getjetstream.app';
   return (
     <div className="m-8">
-      <LastUpdated className="text-gray-500" day={2} month="November" year={2025} />
+      <LastUpdated className="text-gray-500" day={4} month="January" year={2026} />
       <h1>Privacy Policy</h1>
       <p className="mb-2 pl-2">
         This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from
@@ -21,7 +21,9 @@ export default function Page() {
         </li>
         <li>We never store any of your Salesforce record data.</li>
         <li>We use browser-based caching to avoid having to store any metadata on our server.</li>
-        <li>We will never make API requests to Salesforce without explicit action from a user, such as executing a query.</li>
+        <li>
+          We will never make API requests to access any Salesforce data without explicit action from a user, such as executing a query.
+        </li>
         <li>
           All data stored by Jetstream is{' '}
           <a
@@ -36,7 +38,8 @@ export default function Page() {
         </li>
         <li>
           Some metadata, such as Object and Field names may be included in log entries for up to 1 year with our logging provider. This is
-          used only for the purpose of troubleshooting errors and ensuring auditability for security purposes.
+          used only for the purpose of troubleshooting errors and ensuring auditability for security purposes. We make every reasonable
+          effort to avoid including any sensitive information in our logs at the application level and via log redaction.
         </li>
         <li>
           If there is a fatal error with the application, our bug tracker may store metadata and error messages based on whatever Salesforce
@@ -149,7 +152,8 @@ export default function Page() {
       above. Additionally, please note that your information will be transferred outside of Europe, to the United States.
       <h2>DATA RETENTION</h2>
       <p className="mb-2 pl-2">
-        We will store information in our logs for up to 14 days. We will store information related to errors for up to 30 days.
+        We will store information in our logs for up to 365 days in order to be able to research issues and security events. We will store
+        information related to errors for up to 30 days.
       </p>
       <h2>MINORS</h2>
       <p className="mb-2 pl-2">The Site is not intended for individuals under the age of 13.</p>
@@ -157,6 +161,10 @@ export default function Page() {
       <p className="mb-2 pl-2">
         We may update this privacy policy from time to time in order to reflect, for example, changes to our practices or for other
         operational, legal or regulatory reasons.
+      </p>
+      <p className="mb-2 pl-2">
+        We may make non-material changes to this Privacy Policy without prior notice. If we make material changes to this Privacy Policy, we
+        will notify you either through the email address you have provided us, or by placing a prominent notice on our website.
       </p>
       <h2>CONTACT US</h2>
       <p className="mb-2 pl-2">
