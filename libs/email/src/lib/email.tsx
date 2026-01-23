@@ -79,7 +79,6 @@ export async function sendGoodbyeEmail(emailAddress: string, billingPortalLinkTe
   const component = (
     <GenericEmail
       heading="We're sorry to see you go!"
-      preview="We're sorry to see you go!"
       segments={[
         `We hope that you will give us a try in the future.`,
         `If you have any feedback on how we can improve or why Jetstream wasn't the right tool for you, please let us know by replying to this email.`,

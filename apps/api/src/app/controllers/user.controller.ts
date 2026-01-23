@@ -259,7 +259,6 @@ const deletePassword = createRoute(routeDefinition.deletePassword.validators, as
   await removePasswordFromUser(user.id);
 
   await sendAuthenticationChangeConfirmation(user.email, 'Your password has been removed from your account', {
-    preview: 'Your password has been removed from your account.',
     heading: 'You have removed your password as a login method',
   });
 
@@ -367,7 +366,6 @@ const saveOtpAuthFactor = createRoute(routeDefinition.saveOtpAuthFactor.validato
     sendJson(res, authFactors);
 
     await sendAuthenticationChangeConfirmation(user.email, 'A new 2FA method has been added to your account', {
-      preview: 'A new 2FA method has been added to your account.',
       heading: 'Authenticator app added',
     });
 
@@ -400,12 +398,10 @@ const toggleEnableDisableAuthFactorRoute = createRoute(
       const emailAction = action === 'enable' ? 'enabled' : 'disabled';
       if (type === '2fa-email') {
         await sendAuthenticationChangeConfirmation(user.email, `Email 2FA has been ${emailAction}`, {
-          preview: `Email 2FA has been ${emailAction}.`,
           heading: `Email 2FA has been ${emailAction}`,
         });
       } else if (type === '2fa-otp') {
         await sendAuthenticationChangeConfirmation(user.email, `Authenticator app 2FA has been ${emailAction}`, {
-          preview: `Authenticator app 2FA has been ${emailAction}.`,
           heading: `Authenticator app 2FA has been ${emailAction}`,
         });
       }
@@ -436,7 +432,6 @@ const deleteAuthFactorRoute = createRoute(routeDefinition.deleteAuthFactor.valid
     sendJson(res, authFactors);
 
     await sendAuthenticationChangeConfirmation(user.email, 'Two-factor authentication method removed', {
-      preview: 'Two-factor authentication method removed.',
       heading: 'An authentication method has been removed',
     });
 
@@ -468,7 +463,6 @@ const unlinkIdentity = createRoute(routeDefinition.unlinkIdentity.validators, as
     sendJson(res, updatedUser);
 
     await sendAuthenticationChangeConfirmation(user.email, 'An linked identity has been removed from your account', {
-      preview: 'An linked identity has been removed from your account.',
       heading: 'An linked identity has been removed from your account',
       additionalTextSegments: [`The ${provider} identity has been removed from your account.`, 'You can link a new identity at any time.'],
     });
@@ -507,7 +501,6 @@ const linkIdentity = createRoute(routeDefinition.linkIdentity.validators, async 
     redirect(res, authorizationUrl.toString());
 
     await sendAuthenticationChangeConfirmation(user.email, 'A new identity has been linked to your account', {
-      preview: 'A new identity has been linked to your account.',
       heading: 'A new login method has been added to your account',
     });
 

@@ -1,5 +1,5 @@
 import { pluralizeFromNumber } from '@jetstream/shared/utils';
-import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
+import { Body, Button, Container, Head, Heading, Html, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
@@ -16,7 +16,6 @@ interface VerifyEmailProps {
 export const VerifyEmail = ({ baseUrl = 'https://getjetstream.app', validationCode, expHours }: VerifyEmailProps) => (
   <Html>
     <Head />
-    <Preview>Verify your email address with Jetstream - {validationCode}</Preview>
     <Body style={EMAIL_STYLES.main}>
       <Container style={EMAIL_STYLES.container}>
         <EmailLogo />

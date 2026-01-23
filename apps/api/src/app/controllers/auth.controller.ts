@@ -858,7 +858,6 @@ const validatePasswordReset = createRoute(routeDefinition.validatePasswordReset.
     const userId = await resetUserPassword(email, token, password);
 
     await sendAuthenticationChangeConfirmation(email, 'Password change confirmation', {
-      preview: 'Your password has been successfully changed.',
       heading: 'Password changed',
     });
 

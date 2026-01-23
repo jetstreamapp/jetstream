@@ -7,7 +7,7 @@ import { EMAIL_STYLES } from '../../shared-styles';
 void React.createElement;
 
 interface GenericEmailProps {
-  preview: string;
+  preview?: string;
   heading: string;
   segments: string[];
 }
@@ -15,7 +15,7 @@ interface GenericEmailProps {
 export const GenericEmail = ({ preview, heading, segments }: GenericEmailProps) => (
   <Html>
     <Head />
-    <Preview>{preview}</Preview>
+    {preview && <Preview>{preview}</Preview>}
     <Body style={EMAIL_STYLES.main}>
       <Container style={EMAIL_STYLES.container}>
         <EmailLogo />

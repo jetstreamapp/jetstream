@@ -1,4 +1,4 @@
-import { Body, Container, Head, Heading, Html, Preview, Text } from '@react-email/components';
+import { Body, Container, Head, Heading, Html, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
@@ -10,7 +10,6 @@ export const PasswordResetConfirmationEmail = () => {
   return (
     <Html>
       <Head />
-      <Preview>Your password has been reset</Preview>
       <Body style={EMAIL_STYLES.main}>
         <Container style={EMAIL_STYLES.container}>
           <EmailLogo />

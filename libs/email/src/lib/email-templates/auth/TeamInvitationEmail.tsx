@@ -1,4 +1,4 @@
-import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
+import { Body, Button, Container, Head, Heading, Html, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
@@ -35,7 +35,6 @@ export const TeamInvitation = ({ baseUrl, teamId, teamName, token, email, expire
   return (
     <Html>
       <Head />
-      <Preview>You're invited to join the team "{teamName}" on Jetstream!</Preview>
       <Body style={EMAIL_STYLES.main}>
         <Container style={EMAIL_STYLES.container}>
           <EmailLogo />
