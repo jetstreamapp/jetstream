@@ -486,12 +486,16 @@ export function getUpdatedFieldPermissions(
           [dirtyPermission.parentId]: {
             ...output[fieldKey].permissions[dirtyPermission.parentId],
             errorMessage: response.errors
-              .map((err) =>
+              .map((err) => {
                 // (field not detectable in advance): Field Name: bad value for restricted picklist field: X.X
-                err.statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'
-                  ? 'Salesforce does not allow modification of permissions for this field.'
-                  : err.message,
-              )
+                if (err.statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST') {
+                  return 'Salesforce does not allow modification of permissions for this field.';
+                }
+                if (err.statusCode === 'FIELD_INTEGRITY_EXCEPTION' && err.message.startsWith('Read permission is required')) {
+                  return `${err.message}. "View All Fields" Object Permissions must be disabled before field-level read permission can be removed.`;
+                }
+                return err.message;
+              })
               .join('\n'),
           },
         },

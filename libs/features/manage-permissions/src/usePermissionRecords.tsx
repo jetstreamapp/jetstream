@@ -1,5 +1,5 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
+import { describeSObject, queryAll, queryAllUsingOffset } from '@jetstream/shared/data';
 import { useRollbar } from '@jetstream/shared/ui-utils';
 import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat } from '@jetstream/shared/utils';
 import {
@@ -22,6 +22,8 @@ import {
   getQueryTabDefinition,
   getQueryTabVisibilityPermissions,
 } from './utils/permission-manager-utils';
+
+const INVALID_ID_PREFIX = '000';
 
 export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: string[], profilePermSetIds: string[], permSetIds: string[]) {
   const isMounted = useRef(true);
@@ -62,6 +64,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
       }
       // query all data and transform into state maps
       const output = await Promise.all([
+        describeSObject(selectedOrg, 'FieldPermissions'),
         queryAndCombineResults<EntityParticlePermissionsRecord>(selectedOrg, getQueryForAllPermissionableFields(sobjects), true, true),
         queryAndCombineResults<ObjectPermissionRecord>(selectedOrg, getQueryObjectPermissions(sobjects, permSetIds, profilePermSetIds)),
         queryAndCombineResults<FieldPermissionRecord>(selectedOrg, getQueryForFieldPermissions(sobjects, permSetIds, profilePermSetIds)),
@@ -72,26 +75,31 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
         queryAndCombineResults<TabDefinitionRecord>(selectedOrg, getQueryTabDefinition(sobjects), false, true).then((tabs) =>
           groupByFlat(tabs, 'SobjectName'),
         ),
-      ]).then(([fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
-        // Some FieldPermission records are auto-generated with invalid Ids that represent inferred access.
-        // This seems like it is some new behavior that did not exist previously - but means we try to save an invalid record.
-        // #1504
-        objectPermissions = objectPermissions.filter((record) => !record.Id.startsWith('000'));
-        fieldPermissions = fieldPermissions.filter((record) => !record.Id.startsWith('000'));
-        return {
-          fieldsByObject: getAllFieldsByObject(fieldDefinition),
-          fieldsByKey: groupFields(fieldDefinition),
-          objectPermissionMap: getObjectPermissionMap(sobjects, profilePermSetIds, permSetIds, objectPermissions),
-          fieldPermissionMap: getFieldPermissionMap(fieldDefinition, profilePermSetIds, permSetIds, fieldPermissions),
-          tabVisibilityPermissionMap: getTabVisibilityPermissionMap(
-            sobjects,
-            profilePermSetIds,
-            permSetIds,
-            tabVisibilityPermissions,
-            tabDefinitions,
-          ),
-        };
-      });
+      ]).then(
+        ([fieldPermissionMetadata, fieldDefinition, objectPermissions, fieldPermissions, tabVisibilityPermissions, tabDefinitions]) => {
+          // Exclude any fields which are not available in the FieldPermissions.Field picklist (meaning that permissions cannot be set on them)
+          // They show up as "permissionable" but are not supported for permissioning :shrug:
+          const availableFields = new Set<string>(
+            fieldPermissionMetadata.data.fields.find((field) => field.name === 'Field')?.picklistValues?.map((value) => value.value),
+          );
+          fieldDefinition = availableFields.size
+            ? fieldDefinition.filter((field) => availableFields.has(`${field.EntityDefinition.QualifiedApiName}.${field.QualifiedApiName}`))
+            : fieldDefinition;
+          return {
+            fieldsByObject: getAllFieldsByObject(fieldDefinition),
+            fieldsByKey: groupFields(fieldDefinition),
+            objectPermissionMap: getObjectPermissionMap(sobjects, profilePermSetIds, permSetIds, objectPermissions),
+            fieldPermissionMap: getFieldPermissionMap(fieldDefinition, profilePermSetIds, permSetIds, fieldPermissions),
+            tabVisibilityPermissionMap: getTabVisibilityPermissionMap(
+              sobjects,
+              profilePermSetIds,
+              permSetIds,
+              tabVisibilityPermissions,
+              tabDefinitions,
+            ),
+          };
+        },
+      );
       if (isMounted.current) {
         setFieldsByObject(output.fieldsByObject);
         setFieldsByKey(output.fieldsByKey);
@@ -115,6 +123,7 @@ export function usePermissionRecords(selectedOrg: SalesforceOrgUi, sobjects: str
 
   return {
     loading,
+    refetchMetadata: fetchMetadata,
     fieldsByObject,
     fieldsByKey,
     /** permissionsByObjectAndField, objectPermissionsByKey, fieldPermissionsByKey, */
@@ -193,7 +202,9 @@ function getObjectPermissionMap(
           viewAll: permissionRecord.PermissionsViewAllRecords,
           modifyAll: permissionRecord.PermissionsModifyAllRecords,
           viewAllFields: permissionRecord.PermissionsViewAllFields,
-          record: permissionRecord,
+          // Salesforce creates placeholder records in some cases, but the record is invalid and cannot be modified
+          // we will create a new record which will supersede this one if the user modifies permissions
+          record: permissionRecord.Id.startsWith(INVALID_ID_PREFIX) ? null : permissionRecord,
         };
       } else {
         currItem.permissions[id] = {
@@ -246,7 +257,9 @@ function getFieldPermissionMap(
         currItem.permissions[id] = {
           read: fieldPermissionRecord.PermissionsRead,
           edit: fieldPermissionRecord.PermissionsEdit,
-          record: fieldPermissionRecord,
+          // Salesforce creates placeholder records in some cases, but the record is invalid and cannot be modified
+          // we will create a new record which will supersede this one if the user modifies permissions
+          record: fieldPermissionRecord.Id.startsWith(INVALID_ID_PREFIX) ? null : fieldPermissionRecord,
         };
       } else {
         currItem.permissions[id] = {
