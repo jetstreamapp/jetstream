@@ -39,6 +39,7 @@ import { actionDisplayName, methodDisplayName } from './auth-logging.db.service'
 import {
   DELETE_AUTH_ACTIVITY_DAYS,
   DELETE_EMAIL_ACTIVITY_DAYS,
+  DELETE_MAILGUN_WEBHOOK_DAYS,
   DELETE_TOKEN_DAYS,
   PASSWORD_RESET_DURATION_MINUTES,
 } from './auth.constants';
@@ -130,6 +131,11 @@ export async function pruneExpiredRecords() {
   await prisma.webExtensionToken.deleteMany({
     where: {
       expiresAt: { lte: addDays(startOfDay(new Date()), -DELETE_TOKEN_DAYS) },
+    },
+  });
+  await prisma.mailgunWebhookEvent.deleteMany({
+    where: {
+      createdAt: { lte: addDays(startOfDay(new Date()), -DELETE_MAILGUN_WEBHOOK_DAYS) },
     },
   });
 }

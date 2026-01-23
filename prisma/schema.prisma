@@ -337,6 +337,57 @@ model EmailActivity {
   createdAt  DateTime @default(now())
 }
 
+model MailgunWebhookEvent {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  eventId   String?  @db.VarChar(255)
+  event     String   @db.VarChar(50)
+  timestamp DateTime
+  logLevel  String?  @db.VarChar(20)
+
+  // Recipient information
+  recipient         String  @db.VarChar(255)
+  recipientDomain   String  @db.VarChar(255)
+  recipientProvider String? @db.VarChar(100)
+
+  // Message information
+  subject     String? @db.VarChar(500)
+  messageId   String? @db.VarChar(255)
+  fromAddress String? @db.VarChar(255)
+  toAddress   String? @db.VarChar(255)
+  messageSize Int?
+
+  // Delivery status
+  deliveryCode           Int?
+  deliveryMessage        String?  @db.VarChar(500)
+  deliveryDescription    String?  @db.VarChar(500)
+  deliveryEnhancedCode   String?  @db.VarChar(50)
+  deliveryAttemptNo      Int?
+  deliveryMxHost         String?  @db.VarChar(255)
+  deliverySessionSeconds Float?
+  deliveryTls            Boolean?
+  deliveryCertVerified   Boolean?
+
+  // Envelope information
+  envelopeSender    String? @db.VarChar(255)
+  envelopeSendingIp String? @db.VarChar(50)
+  envelopeTransport String? @db.VarChar(20)
+
+  // Additional metadata
+  tags          String[] @default([])
+  userVariables Json?    @db.Json
+  flags         Json?    @db.Json
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([event, createdAt])
+  @@index([recipient, createdAt])
+  @@index([recipientDomain, createdAt])
+  @@index([deliveryCode, event])
+  @@index([timestamp])
+  @@map("mailgun_webhook_event")
+}
+
 model UserPreference {
   id                     String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
