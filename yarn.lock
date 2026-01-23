@@ -5474,14 +5474,6 @@
     "@eslint/core" "^0.12.0"
     levn "^0.4.1"
 
-"@express-rate-limit/cluster-memory-store@^0.3.1":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@express-rate-limit/cluster-memory-store/-/cluster-memory-store-0.3.1.tgz#28177e93a3fb1d01bbf8d2fc83704636c197fd5c"
-  integrity sha512-rB1NrctHayZI1foj6DnPV0EO8VnfRakcIaksC+RO1VYl/IbXyDIKYKbeyaqneuq5oUv6fTCv6/GOuUYcYX8KTw==
-  dependencies:
-    "@types/debug" "4.1.12"
-    debug "4.3.4"
-
 "@floating-ui/core@^1.7.3":
   version "1.7.3"
   resolved "https://registry.yarnpkg.com/@floating-ui/core/-/core-1.7.3.tgz#462d722f001e23e46d86fd2bd0d21b7693ccb8b7"
@@ -9445,7 +9437,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/debug@4.1.12", "@types/debug@^4.1.6":
+"@types/debug@^4.1.6":
   version "4.1.12"
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.12.tgz#a155f21690871953410df4b6b6f53187f0500917"
   integrity sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==
