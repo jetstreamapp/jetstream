@@ -1,4 +1,4 @@
-import { Body, Container, Head, Heading, Html, Preview, Section, Text } from '@react-email/components';
+import { Body, Container, Head, Heading, Html, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
@@ -6,20 +6,14 @@ import { EMAIL_STYLES } from '../../shared-styles';
 
 void React.createElement;
 export interface AuthenticationChangeConfirmationEmailProps {
-  preview: string;
   heading: string;
   additionalTextSegments?: string[];
 }
 
-export const AuthenticationChangeConfirmationEmail = ({
-  preview,
-  heading,
-  additionalTextSegments,
-}: AuthenticationChangeConfirmationEmailProps) => {
+export const AuthenticationChangeConfirmationEmail = ({ heading, additionalTextSegments }: AuthenticationChangeConfirmationEmailProps) => {
   return (
     <Html>
       <Head />
-      <Preview>{preview}</Preview>
       <Body style={EMAIL_STYLES.main}>
         <Container style={EMAIL_STYLES.container}>
           <EmailLogo />

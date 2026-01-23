@@ -1,4 +1,4 @@
-import { Body, Container, Head, Heading, Html, Link, Preview, Section, Text } from '@react-email/components';
+import { Body, Container, Head, Heading, Html, Link, Section, Text } from '@react-email/components';
 import * as React from 'react';
 import { EmailFooter } from '../../components/EmailFooter';
 import { EmailLogo } from '../../components/EmailLogo';
@@ -19,7 +19,6 @@ export const TwoStepVerificationEmail = ({
 }: TwoStepVerificationEmailProps) => (
   <Html>
     <Head />
-    <Preview>Verify your identity with Jetstream - {validationCode}</Preview>
     <Body style={EMAIL_STYLES.main}>
       <Container style={EMAIL_STYLES.container}>
         <EmailLogo />
