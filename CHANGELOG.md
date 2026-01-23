@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.18.1](https://github.com/jetstreamapp/jetstream/compare/v8.18.0...v8.18.1) (2026-01-23)
+
+### Bug Fixes
+
+* remove email preview ([7556bcd](https://github.com/jetstreamapp/jetstream/commit/7556bcda521240f40b3401749435621317448c28))
+
 ## [8.18.0](https://github.com/jetstreamapp/jetstream/compare/v8.17.1...v8.18.0) (2026-01-20)
 
 ### Features
