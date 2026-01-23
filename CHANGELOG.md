@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.19.1](https://github.com/jetstreamapp/jetstream/compare/v8.19.0...v8.19.1) (2026-01-23)
+
+### Bug Fixes
+
+* field permissions missing correct values ([e87a33a](https://github.com/jetstreamapp/jetstream/commit/e87a33ae2e04e6bf8aed2f75d3baa866dbe85fe8)), closes [#1513](https://github.com/jetstreamapp/jetstream/issues/1513)
+
 ## [8.19.0](https://github.com/jetstreamapp/jetstream/compare/v8.18.1...v8.19.0) (2026-01-23)
 
 ## [8.18.1](https://github.com/jetstreamapp/jetstream/compare/v8.18.0...v8.18.1) (2026-01-23)
