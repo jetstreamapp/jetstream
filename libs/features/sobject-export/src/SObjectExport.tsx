@@ -3,7 +3,7 @@ import { logger } from '@jetstream/shared/client-logger';
 import { INDEXED_DB, TITLES } from '@jetstream/shared/constants';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar, useTitle } from '@jetstream/shared/ui-utils';
-import { getErrorMessage, getErrorMessageAndStackObj } from '@jetstream/shared/utils';
+import { getErrorMessage, getErrorMessageAndStackObj, NOOP } from '@jetstream/shared/utils';
 import { SplitWrapper as Split } from '@jetstream/splitjs';
 import { DescribeGlobalSObjectResult, ListItem, Maybe } from '@jetstream/types';
 import {
@@ -31,7 +31,9 @@ import { recentHistoryItemsDb } from '@jetstream/ui/db';
 import { useAtomValue } from 'jotai';
 import localforage from 'localforage';
 import { Fragment, FunctionComponent, useEffect, useRef, useState } from 'react';
+import { prepareMetadataExport } from './sobject-export-metadata-utils';
 import {
+  ExportFormat,
   ExportHeaderOption,
   ExportOptions,
   ExportWorksheetLayout,
@@ -44,6 +46,7 @@ import {
   getAttributes,
   getChildRelationshipNames,
   getExtendedFieldDefinitionData,
+  getMetadataAttributes,
   getSobjectMetadata,
   prepareExport,
 } from './sobject-export-utils';
@@ -56,6 +59,16 @@ const FIELD_ATTRIBUTES: ListItem<SobjectExportFieldName>[] = getAttributes().map
   secondaryLabel: description,
   tertiaryLabel,
 }));
+
+const METADATA_FIELD_ATTRIBUTES: ListItem<SobjectExportFieldName>[] = getMetadataAttributes().map(
+  ({ label, name, description, tertiaryLabel }) => ({
+    id: name,
+    label: `${label} (${name})`,
+    value: name,
+    secondaryLabel: description,
+    tertiaryLabel,
+  }),
+);
 
 const DEFAULT_SELECTION: SobjectExportFieldName[] = [
   'calculatedFormula',
@@ -75,9 +88,12 @@ const DEFAULT_SELECTION: SobjectExportFieldName[] = [
   'updateable',
 ];
 
+const DEFAULT_METADATA_SELECTION = METADATA_FIELD_ATTRIBUTES.map((item) => item.value);
+
 const DEFAULT_OPTIONS: ExportOptions = {
+  exportFormat: 'describe', // describe, metadata
   worksheetLayout: 'combined', // combined, split
-  headerOption: 'label', // label, name
+  headerOption: 'name', // label, name
   includesStandardFields: true,
   includeObjectAttributes: false,
   saveAsDefaultSelection: false,
@@ -93,6 +109,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
 
+  const picklistExportFormatRef = useRef<PicklistRef>(null);
   const picklistWorksheetLayoutRef = useRef<PicklistRef>(null);
   const picklistHeaderOptionRef = useRef<PicklistRef>(null);
 
@@ -109,10 +126,19 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
   const [hasSelectionsMade, setHasSelectionsMade] = useState(false);
   const [options, setOptions] = useState<ExportOptions>({ ...DEFAULT_OPTIONS });
 
+  const isMetadataExport = options.exportFormat === 'metadata';
+
   useEffect(() => {
     setSobjects(null);
     setSelectedSObjects([]);
   }, [selectedOrg]);
+
+  useEffect(() => {
+    if (isMetadataExport) {
+      picklistHeaderOptionRef.current?.selectItem('name');
+      picklistWorksheetLayoutRef.current?.selectItem('split');
+    }
+  }, [isMetadataExport]);
 
   useEffect(() => {
     (async () => {
@@ -120,6 +146,9 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
         const results = await localforage.getItem<SavedExportOptions>(INDEXED_DB.KEYS.sobjectExportSelection);
         if (results?.options) {
           setOptions(results.options);
+          if (picklistExportFormatRef.current) {
+            picklistExportFormatRef.current.selectItem(results.options.exportFormat || 'describe');
+          }
           if (picklistWorksheetLayoutRef.current) {
             picklistWorksheetLayoutRef.current.selectItem(results.options.worksheetLayout);
           }
@@ -136,7 +165,7 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
         logger.error('Error loading default export selection', ex);
       }
     })();
-  }, [picklistWorksheetLayoutRef, picklistHeaderOptionRef]);
+  }, [picklistExportFormatRef, picklistWorksheetLayoutRef, picklistHeaderOptionRef]);
 
   useEffect(() => {
     setHasSelectionsMade(!!selectedSObjects?.length && !!selectedAttributes?.length);
@@ -152,6 +181,9 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
 
   function resetOptionsToDefault() {
     setOptions({ ...DEFAULT_OPTIONS });
+    if (picklistExportFormatRef.current) {
+      picklistExportFormatRef.current.selectItem(DEFAULT_OPTIONS.exportFormat);
+    }
     if (picklistWorksheetLayoutRef.current) {
       picklistWorksheetLayoutRef.current.selectItem(DEFAULT_OPTIONS.worksheetLayout);
     }
@@ -168,24 +200,27 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const metadataResults = await getSobjectMetadata(selectedOrg, selectedSObjects);
-      const sobjectsWithChildRelationships = selectedAttributes.includes('childRelationshipName')
-        ? await getChildRelationshipNames(selectedOrg, metadataResults)
-        : {};
 
-      const extendedFieldDefinitionData: Record<string, Record<string, FieldDefinitionRecord>> = selectedAttributes.some((item) =>
-        FIELD_DEFINITION_API_FIELDS.has(item as any),
-      )
-        ? await getExtendedFieldDefinitionData(selectedOrg, selectedSObjects)
-        : {};
+      let output: Record<string, any[]>;
 
-      const output = prepareExport(
-        metadataResults,
-        sobjectsWithChildRelationships,
-        extendedFieldDefinitionData,
-        selectedAttributes,
-        options,
-      );
+      if (isMetadataExport) {
+        // Use metadata export for Create Fields import template format
+        output = await prepareMetadataExport(selectedOrg, selectedSObjects, options);
+      } else {
+        // Use describe export for traditional format
+        const metadataResults = await getSobjectMetadata(selectedOrg, selectedSObjects);
+        const sobjectsWithChildRelationships = selectedAttributes.includes('childRelationshipName')
+          ? await getChildRelationshipNames(selectedOrg, metadataResults)
+          : {};
+
+        const extendedFieldDefinitionData: Record<string, Record<string, FieldDefinitionRecord>> = selectedAttributes.some((item) =>
+          FIELD_DEFINITION_API_FIELDS.has(item as any),
+        )
+          ? await getExtendedFieldDefinitionData(selectedOrg, selectedSObjects)
+          : {};
+
+        output = prepareExport(metadataResults, sobjectsWithChildRelationships, extendedFieldDefinitionData, selectedAttributes, options);
+      }
 
       if (options.saveAsDefaultSelection) {
         try {
@@ -284,20 +319,68 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
               />
             </div>
             <div className="slds-p-horizontal_x-small">
-              <ListWithFilterMultiSelect
-                labels={{
-                  listHeading: 'Field Attributes',
-                  filter: 'Filter Attributes',
-                  descriptorSingular: 'field attribute',
-                  descriptorPlural: 'field attributes',
-                }}
-                items={FIELD_ATTRIBUTES as ListItem[]}
-                selectedItems={selectedAttributes}
-                allowRefresh
-                lastRefreshed="Reset to default"
-                onRefresh={resetAttributesToDefault}
-                onSelected={(items) => setSelectedAttributes(items as SobjectExportFieldName[])}
+              <Picklist
+                ref={picklistExportFormatRef}
+                className="slds-m-top_x-small"
+                label="Export Format"
+                items={[
+                  {
+                    id: 'describe',
+                    value: 'describe',
+                    label: 'Describe Format',
+                    secondaryLabel: 'Same format as Query Builder',
+                    secondaryLabelOnNewLine: true,
+                  },
+                  {
+                    id: 'metadata',
+                    value: 'metadata',
+                    label: 'Metadata Format',
+                    secondaryLabel: 'Create Fields import template',
+                    secondaryLabelOnNewLine: true,
+                  },
+                ]}
+                selectedItemIds={[options.exportFormat]}
+                allowDeselection={false}
+                disabled={loading}
+                onChange={(items) => handleOptionsChange({ exportFormat: items[0].id as ExportFormat })}
               />
+              {isMetadataExport && (
+                <>
+                  <ScopedNotification theme="info" className="slds-m-top_x-small">
+                    Metadata format will include all metadata fields and can be used as an import template in the Create Object and Fields
+                    feature.
+                  </ScopedNotification>
+                  <ListWithFilterMultiSelect
+                    labels={{
+                      listHeading: 'Metadata Attributes',
+                      filter: 'Filter Metadata Attributes',
+                      descriptorSingular: 'metadata attribute',
+                      descriptorPlural: 'metadata attributes',
+                    }}
+                    disabled
+                    items={METADATA_FIELD_ATTRIBUTES as ListItem[]}
+                    selectedItems={DEFAULT_METADATA_SELECTION}
+                    omitFilter
+                    onSelected={NOOP}
+                  />
+                </>
+              )}
+              {!isMetadataExport && (
+                <ListWithFilterMultiSelect
+                  labels={{
+                    listHeading: 'Field Attributes',
+                    filter: 'Filter Attributes',
+                    descriptorSingular: 'field attribute',
+                    descriptorPlural: 'field attributes',
+                  }}
+                  items={FIELD_ATTRIBUTES as ListItem[]}
+                  selectedItems={selectedAttributes}
+                  allowRefresh
+                  lastRefreshed="Reset to default"
+                  onRefresh={resetAttributesToDefault}
+                  onSelected={(items) => setSelectedAttributes(items as SobjectExportFieldName[])}
+                />
+              )}
             </div>
             <div className="slds-p-horizontal_x-small">
               <Grid>
@@ -346,17 +429,18 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                     { id: 'label', value: 'label', label: 'Use standard label (e.x. AI Prediction Field)' },
                     { id: 'name', value: 'name', label: 'Use camelCase label (e.x. aiPredictionField)' },
                   ]}
-                  selectedItemIds={[options.headerOption]}
+                  selectedItemIds={[isMetadataExport ? 'name' : options.headerOption]}
                   allowDeselection={false}
-                  disabled={loading}
+                  disabled={loading || isMetadataExport}
                   onChange={(items) => handleOptionsChange({ headerOption: items[0].id as ExportHeaderOption })}
                 />
                 <Checkbox
                   id={`includeStandardFields`}
                   className="slds-m-top_x-small"
                   label="Includes standard fields"
-                  checked={options.includesStandardFields}
-                  disabled={loading}
+                  labelHelp="If selected, standard fields will be included in addition to custom fields."
+                  checked={isMetadataExport ? false : options.includesStandardFields}
+                  disabled={loading || isMetadataExport}
                   onChange={(value) => handleOptionsChange({ includesStandardFields: value })}
                 />
                 <Checkbox
@@ -364,8 +448,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                   className="slds-m-top_x-small"
                   label="Include object attributes"
                   labelHelp="If selected, a worksheet will be added with object attributes in addition to field attributes"
-                  checked={options.includeObjectAttributes}
-                  disabled={loading}
+                  checked={isMetadataExport ? false : options.includeObjectAttributes}
+                  disabled={loading || isMetadataExport}
                   onChange={(value) => handleOptionsChange({ includeObjectAttributes: value })}
                 />
                 <Checkbox
@@ -373,8 +457,8 @@ export const SObjectExport: FunctionComponent<SObjectExportProps> = () => {
                   className="slds-m-top_x-small"
                   label="Save selected fields and options as default"
                   labelHelp="Choose this option if you want the default selected fields to be saved for the next time you need to do an export."
-                  checked={options.saveAsDefaultSelection}
-                  disabled={loading}
+                  checked={isMetadataExport ? false : options.saveAsDefaultSelection}
+                  disabled={loading || isMetadataExport}
                   onChange={(value) => handleOptionsChange({ saveAsDefaultSelection: value })}
                 />
               </div>

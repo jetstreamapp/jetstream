@@ -408,6 +408,18 @@ export const fieldDefinitions: FieldDefinitions = {
     },
     invalidErrorMessage: 'Must be a valid API name',
   },
+  displayLocationInDecimal: {
+    label: 'Display Location in Decimal',
+    type: 'checkbox',
+  },
+  maskChar: {
+    label: 'Mask Character',
+    type: 'text',
+  },
+  maskType: {
+    label: 'Mask Type',
+    type: 'text',
+  },
 };
 
 export const baseFields: FieldDefinitionType[] = ['type', 'label', 'fullName', 'inlineHelpText', 'description'];
@@ -440,6 +452,9 @@ export const allFields: FieldDefinitionType[] = [
   'restricted',
   'visibleLines',
   'relationshipName',
+  'displayLocationInDecimal',
+  'maskChar',
+  'maskType',
 ];
 
 // The thought here is to know which fields to show when
@@ -483,6 +498,8 @@ export const fieldTypeDependencies: FieldValueDependencies = {
   ],
   Phone: ['defaultValue', 'required'],
   Email: ['defaultValue', 'required', 'unique', 'externalId'],
+  EncryptedText: ['length', 'required', 'maskChar', 'maskType'],
+  Location: ['scale', 'required', 'displayLocationInDecimal'],
   MasterDetail: ['referenceTo', 'relationshipName', 'writeRequiresMasterRead', 'reparentableMasterDetail'],
   Lookup: ['referenceTo', 'relationshipName', 'deleteConstraint', 'required'],
   Picklist: ['defaultValue', 'required', 'firstAsDefault', 'restricted'],
@@ -676,6 +693,24 @@ export function getInitialValues(key: number): FieldValues {
       errorMessage: null,
     },
     relationshipName: {
+      value: '',
+      touched: false,
+      isValid: true,
+      errorMessage: null,
+    },
+    displayLocationInDecimal: {
+      value: false,
+      touched: false,
+      isValid: true,
+      errorMessage: null,
+    },
+    maskChar: {
+      value: '',
+      touched: false,
+      isValid: true,
+      errorMessage: null,
+    },
+    maskType: {
       value: '',
       touched: false,
       isValid: true,

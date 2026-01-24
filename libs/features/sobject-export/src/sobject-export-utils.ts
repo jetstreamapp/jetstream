@@ -642,3 +642,149 @@ export function getAttributes(): SobjectExportField[] {
     },
   ];
 }
+
+export function getMetadataAttributes(): SobjectExportField[] {
+  return [
+    {
+      name: 'name',
+      label: 'Full Name',
+      description: 'The unique identifier for the field. This must be specified when creating, updating, or deleting.',
+    },
+    {
+      name: 'label',
+      label: 'Label',
+      description: 'Text label that is displayed next to the field in the Salesforce user interface. This label can be localized.',
+    },
+    {
+      name: 'type',
+      label: 'Type',
+      description: 'The field type for the field.',
+    },
+    {
+      name: 'inlineHelpText',
+      label: 'Inline Help Text',
+      description: 'Represents the content of field-level help.',
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      description: 'Description of the field.',
+    },
+    {
+      name: 'length',
+      label: 'Length',
+      description: 'Length of the field.',
+    },
+    {
+      name: 'precision',
+      label: 'Precision',
+      description: 'The precision for number values. Precision is the number of digits in a number. For example, the number 256.99 has a precision value of 5.',
+    },
+    {
+      name: 'scale',
+      label: 'Scale',
+      description: 'The scale for the field. Scale is the number of digits to the right of the decimal point in a number. For example, the number 256.99 has a scale of 2.',
+    },
+    {
+      name: 'required',
+      label: 'Required',
+      description: 'Indicates whether the field requires a value on creation (true) or not (false).',
+    },
+    {
+      name: 'unique',
+      label: 'Unique',
+      description: 'Indicates whether the field is unique (true) or not (false).',
+    },
+    {
+      name: 'externalId',
+      label: 'External ID',
+      description: 'Indicates whether the field is an external ID field (true) or not (false). This property is returned only if the custom field data type is AutoNumber, Email, Number, or Text.',
+    },
+    {
+      name: 'defaultValue',
+      label: 'Default Value',
+      description: 'If specified, represents the default value of the field.',
+    },
+    {
+      name: 'referenceTo',
+      label: 'Reference To',
+      description: 'If specified, indicates a reference this field has to another object.',
+      getterFn: (value) => {
+        if (Array.isArray(value)) {
+          return value.join(', ');
+        }
+        return value;
+      },
+    },
+    {
+      name: 'deleteConstraint',
+      label: 'Delete Constraint',
+      description: 'Provides deletion options for lookup relationships. Valid values are: Cascade (deletes the lookup record as well as associated lookup fields), Restrict (prevents the record from being deleted if it\'s in a lookup relationship), SetNull (if the lookup record is deleted, the lookup field is cleared).',
+    },
+    {
+      name: 'relationshipName',
+      label: 'Relationship Name',
+      description: 'Label for the relationship.',
+    },
+    {
+      name: 'formula',
+      label: 'Formula',
+      description: 'If specified, represents a formula on the field.',
+    },
+    {
+      name: 'formulaTreatBlanksAs',
+      label: 'Formula Treat Blanks As',
+      description: 'Indicates how to treat blanks in a formula. Valid values are: BlankAsBlank and BlankAsZero.',
+    },
+    {
+      name: 'writeRequiresMasterRead',
+      label: 'Write Requires Master Read',
+      description: 'Sets the minimum sharing access level required on the primary record to create, edit, or delete child records. This field applies only to master-detail or junction object custom field types. True allows users with Read access to the primary record permission to create, edit, or delete child records. False allows users with Read/Write access to the primary record permission to create, edit, or delete child records.',
+    },
+    {
+      name: 'reparentableMasterDetail',
+      label: 'Reparentable Master Detail',
+      description: 'Indicates whether the child records in a master-detail relationship on a custom object can be reparented to different parent records. The default value is false.',
+    },
+    {
+      name: 'visibleLines',
+      label: 'Visible Lines',
+      description: 'Indicates the number of lines displayed for the field.',
+    },
+    {
+      name: 'displayFormat',
+      label: 'Display Format',
+      description: 'The display format.',
+    },
+    {
+      name: 'startingNumber',
+      label: 'Starting Number',
+      description: 'If specified, indicates the starting number for the field. When you create records, Starting Number\'s value increments to store the number that will be assigned to the next auto-number field created.',
+    },
+    {
+      name: 'populateExistingRows',
+      label: 'Populate Existing Rows',
+      description: 'Indicates whether existing rows are going to be populated (true) or not (false).',
+    },
+    {
+      name: 'displayLocationInDecimal',
+      label: 'Display Location In Decimal',
+      description: 'Indicates how the geolocation values of a custom Location field appear in the user interface. If true, the geolocation values appear in decimal notation. If false, the geolocation values appear as degrees, minutes, and seconds.',
+    },
+    {
+      name: 'maskChar',
+      label: 'Mask Character',
+      description: 'For encrypted fields, specifies the character to be used as a mask. Valid values are: asterisk, X.',
+    },
+    {
+      name: 'maskType',
+      label: 'Mask Type',
+      description: 'For encrypted text fields, specifies the format of the masked and unmasked characters in the field. Valid values are: all (all characters hidden), creditCard (first 12 characters hidden, last four display), lastFour (all characters hidden but last four display), nino (all characters hidden with automatic spaces after each pair), sin (all characters hidden but last four display), ssn (first five characters hidden, last four display).',
+    },
+    {
+      name: 'valueSet',
+      label: 'Value Set',
+      description: 'Represents the set of values that make up a picklist on a custom field. If this custom field is a picklist that uses a global value set, valueSet is the name of the global value set whose values this picklist inherits.',
+    },
+  ];
+}

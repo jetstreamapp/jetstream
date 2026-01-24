@@ -9,6 +9,17 @@ export type SobjectExportFieldName =
   | 'formulaTreatNullNumberAsZero'
   | 'restrictedDelete'
   | 'typeLabel'
+  | 'description'
+  | 'required'
+  | 'deleteConstraint'
+  | 'formulaTreatBlanksAs'
+  | 'reparentableMasterDetail'
+  | 'visibleLines'
+  | 'displayFormat'
+  | 'startingNumber'
+  | 'populateExistingRows'
+  | 'maskChar'
+  | 'valueSet'
   | ExtendedFieldDefinition;
 
 export type ExtendedFieldDefinition =
@@ -48,8 +59,10 @@ export interface SavedExportOptions {
 
 export type ExportWorksheetLayout = 'combined' | 'split';
 export type ExportHeaderOption = 'label' | 'name';
+export type ExportFormat = 'describe' | 'metadata';
 
 export interface ExportOptions {
+  exportFormat: ExportFormat;
   worksheetLayout: ExportWorksheetLayout;
   headerOption: ExportHeaderOption;
   includesStandardFields: boolean;

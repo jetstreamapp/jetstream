@@ -32,6 +32,7 @@ export interface ListWithFilterMultiSelectProps {
   allowRefresh?: boolean;
   lastRefreshed?: Maybe<string>;
   autoFillContainerProps?: AutoFullHeightContainerProps;
+  omitFilter?: boolean;
   onSelected: (items: string[]) => void;
   errorReattempt?: () => void;
   onRefresh?: () => void;
@@ -52,6 +53,7 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
   allowRefresh,
   lastRefreshed,
   autoFillContainerProps,
+  omitFilter = false,
   onSelected,
   errorReattempt,
   onRefresh = NOOP,
@@ -161,39 +163,41 @@ export const ListWithFilterMultiSelect: FunctionComponent<ListWithFilterMultiSel
         )}
         {!hasError && items && filteredItems && (
           <Fragment>
-            <div className="slds-p-bottom--xx-small">
-              <SearchInput
-                id={searchInputId}
-                placeholder={labels.filter}
-                onChange={setSearchTerm}
-                onArrowKeyUpDown={handleSearchKeyboard}
-              />
-              <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                Showing {formatNumber(filteredItems.length)} of {formatNumber(items.length)}{' '}
-                {pluralizeIfMultiple(labels.descriptorSingular, items)}
-              </div>
-              {allowSelectAll && (
+            {!omitFilter && (
+              <div className="slds-p-bottom--xx-small">
+                <SearchInput
+                  id={searchInputId}
+                  placeholder={labels.filter}
+                  onChange={setSearchTerm}
+                  onArrowKeyUpDown={handleSearchKeyboard}
+                />
                 <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
-                  <Checkbox
-                    id={id}
-                    checked={
-                      filteredItems.length !== 0 &&
-                      selectedItemsSet.size >= filteredItems.length &&
-                      filteredItems.every((item) => selectedItemsSet.has(item.id))
-                    }
-                    label="Select All"
-                    onChange={handleSelectAll}
-                    disabled={disabled || filteredItems.length === 0}
-                  />
-                  <ItemSelectionSummary
-                    items={items.filter((item) => selectedItemsSet.has(item.id)).map((item) => ({ label: item.label, value: item.id }))}
-                    disabled={disabled}
-                    onClearAll={() => onSelected([])}
-                    onClearItem={handleSelection}
-                  />
+                  Showing {formatNumber(filteredItems.length)} of {formatNumber(items.length)}{' '}
+                  {pluralizeIfMultiple(labels.descriptorSingular, items)}
                 </div>
-              )}
-            </div>
+                {allowSelectAll && (
+                  <div className="slds-text-body_small slds-text-color_weak slds-p-left--xx-small">
+                    <Checkbox
+                      id={id}
+                      checked={
+                        filteredItems.length !== 0 &&
+                        selectedItemsSet.size >= filteredItems.length &&
+                        filteredItems.every((item) => selectedItemsSet.has(item.id))
+                      }
+                      label="Select All"
+                      onChange={handleSelectAll}
+                      disabled={disabled || filteredItems.length === 0}
+                    />
+                    <ItemSelectionSummary
+                      items={items.filter((item) => selectedItemsSet.has(item.id)).map((item) => ({ label: item.label, value: item.id }))}
+                      disabled={disabled}
+                      onClearAll={() => onSelected([])}
+                      onClearItem={handleSelection}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             <AutoFullHeightContainer bottomBuffer={15} {...autoFillContainerProps}>
               <List
                 ref={ulRef}
