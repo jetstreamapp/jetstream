@@ -364,7 +364,7 @@
     "socket.io-client": "^4.8.1",
     "split.js": "^1.6.5",
     "stripe": "^17.7.0",
-    "tar": "^7.5.3",
+    "tar": "^7.5.7",
     "tiny-request-router": "^1.2.2",
     "tslib": "^2.3.0",
     "unzipper": "^0.12.3",
