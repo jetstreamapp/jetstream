@@ -1,8 +1,10 @@
 import { css } from '@emotion/react';
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS } from '@jetstream/shared/constants';
-import { groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
+import { ANALYTICS_KEYS, MIME_TYPES } from '@jetstream/shared/constants';
+import { saveFile, useRollbar } from '@jetstream/shared/ui-utils';
+import { getErrorMessage, getErrorMessageAndStackObj, groupByFlat, multiWordObjectFilter } from '@jetstream/shared/utils';
 import {
+  AsyncJobNew,
   DirtyRow,
   FieldPermissionDefinitionMap,
   FieldPermissionRecordForSave,
@@ -22,12 +24,14 @@ import {
   PermissionTableTabVisibilityCellPermission,
   TabVisibilityPermissionDefinitionMap,
   TabVisibilityPermissionRecordForSave,
+  UploadToGoogleJob,
 } from '@jetstream/types';
 import {
   AutoFullHeightContainer,
   ColumnWithFilter,
   ConfirmationModalPromise,
-  FileDownloadModal,
+  FileFauxDownloadModal,
+  FileFauxDownloadModalProps,
   Icon,
   ScopedNotification,
   Spinner,
@@ -37,6 +41,7 @@ import {
   ToolbarItemActions,
   ToolbarItemGroup,
   Tooltip,
+  fireToast,
 } from '@jetstream/ui';
 import { ConfirmPageChange, RequireMetadataApiBanner, fromJetstreamEvents, fromPermissionsState, useAmplitude } from '@jetstream/ui-core';
 import { applicationCookieState, googleDriveAccessState, selectedOrgState } from '@jetstream/ui/app-state';
@@ -48,7 +53,7 @@ import ManagePermissionsEditorFieldTable from './ManagePermissionsEditorFieldTab
 import ManagePermissionsEditorObjectTable from './ManagePermissionsEditorObjectTable';
 import ManagePermissionsEditorTabVisibilityTable from './ManagePermissionsEditorTabVisibilityTable';
 import { usePermissionRecords } from './usePermissionRecords';
-import { generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
+import { generateCsvFilesFromTable, generateExcelWorkbookFromTable } from './utils/permission-manager-export-utils';
 import {
   getConfirmationModalContent,
   getDirtyFieldPermissions,
@@ -102,6 +107,7 @@ export interface ManagePermissionsEditorProps {}
 
 export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorProps> = () => {
   const { trackEvent } = useAmplitude();
+  const rollbar = useRollbar();
   const isMounted = useRef(true);
   const { google_apiKey, google_appId, google_clientId } = useAtomValue(applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
@@ -113,7 +119,6 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [fileDownloadModalOpen, setFileDownloadModalOpen] = useState<boolean>(false);
-  const [fileDownloadData, setFileDownloadData] = useState<ArrayBuffer | null>(null);
 
   const selectedProfiles = useAtomValue(fromPermissionsState.selectedProfilesPermSetState);
   const selectedPermissionSets = useAtomValue(fromPermissionsState.selectedPermissionSetsState);
@@ -178,19 +183,33 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
     setFieldPermissionMap(recordData.fieldPermissionMap);
     setTabVisibilityPermissionMap(recordData.tabVisibilityPermissionMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordData.fieldsByObject, recordData.fieldsByKey, recordData.objectPermissionMap, recordData.fieldPermissionMap]);
+  }, [
+    recordData.fieldsByObject,
+    recordData.fieldsByKey,
+    recordData.objectPermissionMap,
+    recordData.fieldPermissionMap,
+    recordData.tabVisibilityPermissionMap,
+  ]);
 
   useEffect(() => {
     setLoading(recordData.loading);
   }, [recordData.loading]);
 
   useEffect(() => {
-    if (!loading && !hasLoaded && fieldsByObject && fieldsByKey && objectPermissionMap && fieldPermissionMap) {
+    if (
+      !loading &&
+      !hasLoaded &&
+      fieldsByObject &&
+      fieldsByKey &&
+      objectPermissionMap &&
+      fieldPermissionMap &&
+      tabVisibilityPermissionMap
+    ) {
       setHasLoaded(true);
       initTableData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap]);
+  }, [loading, fieldsByObject, fieldsByKey, objectPermissionMap, fieldPermissionMap, tabVisibilityPermissionMap]);
 
   useEffect(() => {
     setHasError(recordData.hasError);
@@ -357,26 +376,84 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   }
 
   function exportChanges() {
-    // generate brand-new columns/rows just for export
-    // This is required in the case where a tab may not have been rendered
-    setFileDownloadData(
-      generateExcelWorkbookFromTable(
-        {
-          columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-          rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
-        },
-        {
-          columns: getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-          rows: getTabVisibilityRows(selectedSObjects, tabVisibilityPermissionMap || {}),
-        },
-        {
-          columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
-          rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
-        },
-      ),
-    );
     setFileDownloadModalOpen(true);
   }
+
+  const handleExport: FileFauxDownloadModalProps['onDownload'] = async ({
+    fileFormat,
+    fileName,
+    mimeType,
+    uploadToGoogle,
+    googleFolder,
+  }) => {
+    try {
+      // generate brand-new columns/rows just for export
+      // This is required in the case where a tab may not have been rendered
+      switch (fileFormat) {
+        case 'xlsx':
+        case 'gdrive': {
+          const fileData = generateExcelWorkbookFromTable(
+            {
+              columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
+            },
+            {
+              columns: getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              rows: getTabVisibilityRows(selectedSObjects, tabVisibilityPermissionMap || {}),
+            },
+            {
+              columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
+            },
+          );
+
+          if (uploadToGoogle) {
+            const jobs: AsyncJobNew<UploadToGoogleJob>[] = [
+              {
+                type: 'UploadToGoogle',
+                title: `Upload to Google`,
+                org: selectedOrg,
+                meta: { fileName, fileData, fileType: 'xlsx', googleFolder },
+              },
+            ];
+            fromJetstreamEvents.emit({ type: 'newJob', payload: jobs });
+          } else {
+            saveFile(fileData, `${fileName}.${fileFormat}`, mimeType);
+          }
+          break;
+        }
+        case 'csv': {
+          const zipFile = await generateCsvFilesFromTable(
+            {
+              columns: getObjectColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              rows: getObjectRows(selectedSObjects, objectPermissionMap || {}),
+            },
+            {
+              columns: getTabVisibilityColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              rows: getTabVisibilityRows(selectedSObjects, tabVisibilityPermissionMap || {}),
+            },
+            {
+              columns: getFieldColumns(selectedProfiles, selectedPermissionSets, profilesById, permissionSetsById),
+              rows: getFieldRows(selectedSObjects, fieldsByObject || {}, fieldPermissionMap || {}),
+            },
+          );
+          saveFile(zipFile, `${fileName}.zip`, MIME_TYPES.ZIP);
+          break;
+        }
+        case 'json':
+        case 'xml':
+        case 'zip':
+        default:
+          throw new Error('A valid file type type has not been selected');
+      }
+
+      setFileDownloadModalOpen(false);
+    } catch (ex) {
+      logger.error('Error exporting permission data', ex);
+      rollbar.error('Error exporting permission data', getErrorMessageAndStackObj(ex));
+      fireToast({ message: `There was an error preparing the data for export: ${getErrorMessage(ex)}`, type: 'error' });
+    }
+  };
 
   async function saveChanges() {
     if (
@@ -522,19 +599,19 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
   return (
     <div>
       <ConfirmPageChange actionInProgress={loading} />
-      {fileDownloadData && fileDownloadModalOpen && (
-        <FileDownloadModal
+      {fileDownloadModalOpen && (
+        <FileFauxDownloadModal
+          modalHeader="Download Permissions"
           org={selectedOrg}
           googleIntegrationEnabled={hasGoogleDriveAccess}
           googleShowUpgradeToPro={googleShowUpgradeToPro}
           google_apiKey={google_apiKey}
           google_appId={google_appId}
           google_clientId={google_clientId}
-          data={fileDownloadData}
           fileNameParts={['permissions', 'export']}
-          allowedTypes={['xlsx']}
-          onModalClose={() => setFileDownloadModalOpen(false)}
-          emitUploadToGoogleEvent={fromJetstreamEvents.emit}
+          allowedTypes={['csv', 'xlsx', 'gdrive']}
+          onCancel={() => setFileDownloadModalOpen(false)}
+          onDownload={handleExport}
           source="manage_permissions"
           trackEvent={trackEvent}
         />
