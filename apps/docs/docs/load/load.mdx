@@ -139,6 +139,14 @@ The batch size determines how many records will be loaded at once.
 
 You don't normally need to adjust this, but if you run into limits (e.x. CPU timeout or too many SOQL queries), then you can reduce this number to limit how many records are processed together.
 
+:::tip
+
+- The free plan has an API limit of 1,000 calls per data load.
+- If you are on a paid plan, you have an API limit of 5,000 calls per data load.
+- If you are using the Browser Extension or Desktop App, there is no limit imposed by Jetstream.
+
+:::
+
 ### Date Format
 
 This will normally be auto-detected based on your locale, but make sure that it matches the format of the dates in your file.
