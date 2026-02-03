@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.20.0](https://github.com/jetstreamapp/jetstream/compare/v8.19.2...v8.20.0) (2026-02-03)
+
+### Bug Fixes
+
+* improve permission export download ([b46454a](https://github.com/jetstreamapp/jetstream/commit/b46454a9c05e845dab5b1de1091efeb34690864d)), closes [#1522](https://github.com/jetstreamapp/jetstream/issues/1522)
+
 ## [8.19.2](https://github.com/jetstreamapp/jetstream/compare/v8.19.1...v8.19.2) (2026-02-02)
 
 ## [8.19.1](https://github.com/jetstreamapp/jetstream/compare/v8.19.0...v8.19.1) (2026-01-23)
