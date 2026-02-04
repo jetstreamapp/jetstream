@@ -223,6 +223,7 @@ export interface PermissionManagerTableContext {
   type: PermissionType;
   rows: PermissionTableCellExtended[];
   totalCount: number;
+  filterValue?: string;
   onFilterRows: (value: string) => void;
   onRowAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
   onColumnAction: (action: 'selectAll' | 'unselectAll' | 'reset', columnKey: string) => void;
