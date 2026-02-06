@@ -22,13 +22,14 @@ export interface ManagePermissionsEditorTabVisibilityTableProps {
   columns: ColumnWithFilter<PermissionTableTabVisibilityCell, PermissionTableSummaryRow>[];
   rows: PermissionTableTabVisibilityCell[];
   totalCount: number;
+  filterText?: string;
   onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableTabVisibilityCell[], indexes?: number[]) => void;
   onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableTabVisibilityCell>>) => void;
 }
 
 export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManagePermissionsEditorTabVisibilityTableProps>(
-  ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
+  ({ columns, rows, totalCount, filterText, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableTabVisibilityCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableTabVisibilityCell>>>({});
 
@@ -70,6 +71,7 @@ export const ManagePermissionsEditorTabVisibilityTable = forwardRef<any, ManageP
               {
                 type: 'tabVisibility',
                 totalCount,
+                filterValue: filterText,
                 onFilterRows: onFilter,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,

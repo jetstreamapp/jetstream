@@ -32,13 +32,14 @@ export interface ManagePermissionsEditorFieldTableProps {
   columns: ColumnWithFilter<PermissionTableFieldCell, PermissionTableSummaryRow>[];
   rows: PermissionTableFieldCell[];
   totalCount: number;
+  filterText?: string;
   onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableFieldCell[], indexes?: number[]) => void;
   onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableFieldCell>>) => void;
 }
 
 export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissionsEditorFieldTableProps>(
-  ({ columns, rows, totalCount, onFilter, onDirtyRows, onBulkUpdate }, ref) => {
+  ({ columns, rows, totalCount, filterText, onFilter, onDirtyRows, onBulkUpdate }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableFieldCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableFieldCell>>>({});
     const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set<any>(rows.map((row) => row.sobject)));
@@ -81,6 +82,7 @@ export const ManagePermissionsEditorFieldTable = forwardRef<any, ManagePermissio
               {
                 type: 'field',
                 totalCount,
+                filterValue: filterText,
                 onFilterRows: onFilter,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,

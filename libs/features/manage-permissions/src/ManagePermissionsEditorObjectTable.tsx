@@ -22,13 +22,14 @@ export interface ManagePermissionsEditorObjectTableProps {
   columns: ColumnWithFilter<PermissionTableObjectCell, PermissionTableSummaryRow>[];
   rows: PermissionTableObjectCell[];
   totalCount: number;
+  filterText?: string;
   onFilter: (value: string) => void;
   onBulkUpdate: (rows: PermissionTableObjectCell[], indexes?: number[]) => void;
   onDirtyRows?: (values: Record<string, DirtyRow<PermissionTableObjectCell>>) => void;
 }
 
 export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissionsEditorObjectTableProps>(
-  ({ columns, rows, totalCount, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
+  ({ columns, rows, totalCount, filterText, onFilter, onBulkUpdate, onDirtyRows }, ref) => {
     const tableRef = useRef<DataTableRef<PermissionTableObjectCell>>(null);
     const [dirtyRows, setDirtyRows] = useState<Record<string, DirtyRow<PermissionTableObjectCell>>>({});
 
@@ -70,6 +71,7 @@ export const ManagePermissionsEditorObjectTable = forwardRef<any, ManagePermissi
               {
                 type: 'object',
                 totalCount,
+                filterValue: filterText,
                 onFilterRows: onFilter,
                 onColumnAction: handleColumnAction,
                 onBulkAction: onBulkUpdate,

@@ -712,6 +712,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     columns={objectColumns}
                     rows={visibleObjectRows || []}
                     totalCount={objectRows?.length || 0}
+                    filterText={objectFilter}
                     onFilter={setObjectFilter}
                     onBulkUpdate={handleObjectBulkRowUpdate}
                     onDirtyRows={setDirtyObjectRows}
@@ -743,6 +744,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     columns={tabVisibilityColumns}
                     rows={visibleTabVisibilityRows || []}
                     totalCount={objectRows?.length || 0}
+                    filterText={tabVisibilityFilter}
                     onFilter={setTabVisibilityFilter}
                     onBulkUpdate={handleTabVisibilityBulkRowUpdate}
                     onDirtyRows={setDirtyTabVisibilityRows}
@@ -773,6 +775,7 @@ export const ManagePermissionsEditor: FunctionComponent<ManagePermissionsEditorP
                     columns={fieldColumns}
                     rows={visibleFieldRows || []}
                     totalCount={fieldRows?.length || 0}
+                    filterText={fieldFilter}
                     onFilter={setFieldFilter}
                     onBulkUpdate={handleFieldBulkRowUpdate}
                     onDirtyRows={setDirtyFieldRows}

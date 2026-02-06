@@ -62,6 +62,7 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
   const hasDateFieldMapped = useAtomValue(fromLoadRecordsState.selectHasDateFieldMapped);
 
   const batchSizeError = useAtomValue(fromLoadRecordsState.selectBatchSizeError);
+  const batchApiLimitWarning = useAtomValue(fromLoadRecordsState.selectBatchApiLimitWarning);
   const batchApiLimitError = useAtomValue(fromLoadRecordsState.selectBatchApiLimitError);
   const trialRunSizeError = useAtomValue(fromLoadRecordsState.selectTrialRunSizeError);
   const bulkApiModeLabel = useAtomValue(fromLoadRecordsState.selectBulkApiModeLabel);
@@ -258,9 +259,9 @@ export const LoadRecordsPerformLoad: FunctionComponent<LoadRecordsPerformLoadPro
           id="batch-size"
           label="Batch Size"
           isRequired
-          hasError={!!batchSizeError || !!batchApiLimitError}
+          hasError={!!batchSizeError || !!batchApiLimitError || !!batchApiLimitWarning}
           errorMessageId="batch-size-error"
-          errorMessage={batchSizeError || batchApiLimitError}
+          errorMessage={batchSizeError || batchApiLimitError || batchApiLimitWarning}
           labelHelp="The batch size determines how many records will be modified at a time. Only change this if you are experiencing issues with Salesforce governor limits."
           helpText={hasZipAttachment ? 'The batch size will be auto-calculated based on the size of the attachments.' : null}
         >

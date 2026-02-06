@@ -35,7 +35,6 @@ export interface SavedFieldMapping {
 export const SELF_LOOKUP_KEY = '~SELF_LOOKUP~';
 export const STATIC_MAPPING_PREFIX = '~STATIC~MAPPING~';
 export const BATCH_RECOMMENDED_THRESHOLD = 2000;
-export const MAX_API_CALLS = 250;
 export const MAX_BULK = 10000;
 export const MAX_BATCH = 200;
 const DEFAULT_NON_EXT_ID_MAPPING_OPT: NonExtIdLookupOption = 'ERROR_IF_MULTIPLE';

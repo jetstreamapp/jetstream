@@ -1,15 +1,10 @@
-import { detectDateFormatForLocale, formatNumber } from '@jetstream/shared/ui-utils';
+import { detectDateFormatForLocale, formatNumber, isBrowserExtension, isDesktop } from '@jetstream/shared/ui-utils';
 import { ApiMode, DescribeGlobalSObjectResult, FieldMapping, InsertUpdateUpsertDelete, LocalOrGoogle, Maybe } from '@jetstream/types';
+import { hasPaidPlanState } from '@jetstream/ui/app-state';
 import { atom } from 'jotai';
 import { atomWithReset } from 'jotai/utils';
 import isNumber from 'lodash/isNumber';
-import {
-  BATCH_RECOMMENDED_THRESHOLD,
-  MAX_API_CALLS,
-  MAX_BULK,
-  getLabelWithOptionalRecommended,
-  getMaxBatchSize,
-} from '../load/load-records-utils';
+import { BATCH_RECOMMENDED_THRESHOLD, MAX_BULK, getLabelWithOptionalRecommended, getMaxBatchSize } from '../load/load-records-utils';
 
 const SUPPORTED_ATTACHMENT_OBJECTS = new Map<string, { bodyField: string }>();
 SUPPORTED_ATTACHMENT_OBJECTS.set('Attachment', { bodyField: 'Body' });
@@ -93,14 +88,54 @@ export const selectBatchSizeError = atom<string | null>((get) => {
   return null;
 });
 
-export const selectBatchApiLimitError = atom<string | null>((get) => {
+const loadApiLimitsState = atom((get) => {
+  const API_WARNING_CALLS = 250;
+  const API_MAX_CALLS_FREE = 1000;
+  const API_MAX_CALLS_PAID = 5000;
+
+  if (isDesktop() || isBrowserExtension()) {
+    return {
+      warningApiCalls: API_WARNING_CALLS,
+      maxApiCalls: Infinity,
+    };
+  }
+
+  const hasPaidPlan = get(hasPaidPlanState);
+  if (hasPaidPlan) {
+    return {
+      warningApiCalls: API_WARNING_CALLS,
+      maxApiCalls: API_MAX_CALLS_PAID,
+    };
+  }
+
+  return {
+    warningApiCalls: API_WARNING_CALLS,
+    maxApiCalls: API_MAX_CALLS_FREE,
+  };
+});
+
+export const selectBatchApiLimitWarning = atom<string | null>((get) => {
+  const { warningApiCalls } = get(loadApiLimitsState);
   const inputFileDataLength = get(inputFileDataState)?.length || 0;
   const batchSize = get(batchSizeState) || 1;
-  if (inputFileDataLength && batchSize && inputFileDataLength / batchSize > MAX_API_CALLS) {
+
+  if (inputFileDataLength && batchSize && inputFileDataLength / batchSize > warningApiCalls) {
+    const numApiCalls = Math.round(inputFileDataLength / batchSize);
+    return `Your configuration requires ${formatNumber(numApiCalls)} calls to Salesforce which will contribute to your API call limits.`;
+  }
+  return null;
+});
+
+export const selectBatchApiLimitError = atom<string | null>((get) => {
+  const { maxApiCalls } = get(loadApiLimitsState);
+  const inputFileDataLength = get(inputFileDataState)?.length || 0;
+  const batchSize = get(batchSizeState) || 1;
+
+  if (inputFileDataLength && batchSize && inputFileDataLength / batchSize > maxApiCalls) {
     const numApiCalls = Math.round(inputFileDataLength / batchSize);
     return (
       `Either your batch size is too low or you are loading in too many records. ` +
-      `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${MAX_API_CALLS}. ` +
+      `Your configuration would require ${formatNumber(numApiCalls)} calls to Salesforce, which exceeds the limit of ${formatNumber(maxApiCalls)}. ` +
       `Increase your batch size or reduce the number of records in your file.`
     );
   }

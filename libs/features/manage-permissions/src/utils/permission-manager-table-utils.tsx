@@ -1446,8 +1446,8 @@ export const RowActionRenderer = ({
  * This component provides a modal that the user can open to make changes that apply to an entire visible table
  */
 export const ColumnSearchFilter = () => {
-  const { onFilterRows } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
-  return <SearchInput id="column-filter" value="" placeholder="Filter..." onChange={onFilterRows} />;
+  const { filterValue: initialFilterValue, onFilterRows } = useContext(DataTableGenericContext) as PermissionManagerTableContext;
+  return <SearchInput id="column-filter" value={initialFilterValue || ''} placeholder="Filter..." onChange={onFilterRows} />;
 };
 
 export const ColumnSearchFilterSummary = () => {
