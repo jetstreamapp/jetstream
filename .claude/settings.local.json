@@ -10,5 +10,8 @@
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "nx-mcp"
+  ]
 }
