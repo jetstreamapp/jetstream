@@ -543,6 +543,13 @@ export const QueryBuilder = () => {
                     ]}
                   />
                 )}
+                {/* Placeholder to allow over-scrolling */}
+                <div
+                  aria-hidden="true"
+                  css={css`
+                    min-height: 100px;
+                  `}
+                />
               </AutoFullHeightContainer>
             </div>
           </Split>

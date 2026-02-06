@@ -4,7 +4,7 @@ import { submitUserFeedback } from '@jetstream/shared/data';
 import { InputReadFileContent } from '@jetstream/types';
 import { fromAppState } from '@jetstream/ui/app-state';
 import { useAtomValue } from 'jotai';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Checkbox from '../form/checkbox/Checkbox';
 import FileSelector from '../form/file-selector/FileSelector';
 import { RadioButton } from '../form/radio/RadioButton';
@@ -16,8 +16,13 @@ import ScopedNotification from '../scoped-notification/ScopedNotification';
 import { fireToast } from '../toast/AppToast';
 import Icon from '../widgets/Icon';
 import Spinner from '../widgets/Spinner';
+import Tooltip from '../widgets/Tooltip';
 
 export type FeedbackType = 'bug' | 'feature' | 'other' | 'testimonial';
+export type FeedbackPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+
+const STORAGE_KEY = 'jetstream-feedback-widget-position';
+const HIDDEN_STORAGE_KEY = 'jetstream-feedback-widget-hidden';
 
 const allowFromClipboardAcceptType = /^image\/(png|jpg|jpeg|gif)$/;
 
@@ -34,6 +39,19 @@ const getFeedbackHelpText = (type: FeedbackType): string => {
   }
 };
 
+const getPositionStyles = (position: FeedbackPosition) => {
+  switch (position) {
+    case 'bottom-right':
+      return { bottom: '1.5rem', right: '1.5rem' };
+    case 'bottom-left':
+      return { bottom: '1.5rem', left: '1.5rem' };
+    case 'top-right':
+      return { top: '1.5rem', right: '1.5rem' };
+    case 'top-left':
+      return { top: '1.5rem', left: '1.5rem' };
+  }
+};
+
 export const UserFeedbackWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('bug');
@@ -42,7 +60,47 @@ export const UserFeedbackWidget = () => {
   const [canFeatureTestimonial, setCanFeatureTestimonial] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [position, setPosition] = useState<FeedbackPosition>('bottom-right');
+  const [isHidden, setIsHidden] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const { version: clientVersion } = useAtomValue(fromAppState.appInfoState);
+
+  // Load position from localStorage on mount
+  useEffect(() => {
+    const savedPosition = localStorage.getItem(STORAGE_KEY);
+    if (savedPosition && ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(savedPosition)) {
+      setPosition(savedPosition as FeedbackPosition);
+    }
+  }, []);
+
+  // Load hidden state from sessionStorage on mount
+  useEffect(() => {
+    const isHiddenFromStorage = sessionStorage.getItem(HIDDEN_STORAGE_KEY) === 'true';
+    if (isHiddenFromStorage) {
+      setIsHidden(true);
+    }
+  }, []);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowContextMenu(false);
+      }
+    };
+
+    if (showContextMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showContextMenu]);
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -108,19 +166,50 @@ export const UserFeedbackWidget = () => {
     setScreenshots((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handlePositionChange = (newPosition: FeedbackPosition) => {
+    setPosition(newPosition);
+    localStorage.setItem(STORAGE_KEY, newPosition);
+    setShowContextMenu(false);
+  };
+
+  const handleHideForSession = () => {
+    setIsHidden(true);
+    sessionStorage.setItem(HIDDEN_STORAGE_KEY, 'true');
+    setShowContextMenu(false);
+    fireToast({
+      message: 'Feedback button hidden for this session and will be visible again when you open Jetstream in a new tab.',
+      type: 'info',
+    });
+  };
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault();
+    setShowContextMenu(true);
+  };
+
   const canSubmit = message.trim().length > 0;
+  const positionStyles = getPositionStyles(position);
+
+  if (isHidden) {
+    return null;
+  }
 
   return (
     <>
       {/* Floating feedback button */}
+
       <button
+        ref={buttonRef}
+        aria-label="Send Feedback"
         className="slds-button slds-button_icon slds-button_icon-container slds-button_icon-border-filled"
-        title="Send Feedback"
         onClick={handleOpen}
+        onContextMenu={handleContextMenu}
         css={css`
           position: fixed;
-          bottom: 1.5rem;
-          right: 1.5rem;
+          ${positionStyles.top ? `top: ${positionStyles.top}` : ''};
+          ${positionStyles.bottom ? `bottom: ${positionStyles.bottom}` : ''};
+          ${positionStyles.left ? `left: ${positionStyles.left}` : ''};
+          ${positionStyles.right ? `right: ${positionStyles.right}` : ''};
           z-index: 9000;
           width: 3.5rem;
           height: 3.5rem;
@@ -129,7 +218,7 @@ export const UserFeedbackWidget = () => {
           background-color: #0176d3;
           border-color: #0176d3;
           transition: all 0.2s ease;
-          opacity: 0.75;
+          opacity: 0.6;
 
           &:hover {
             background-color: #014486;
@@ -142,9 +231,120 @@ export const UserFeedbackWidget = () => {
           }
         `}
       >
-        <Icon type="standard" icon="feedback" className="" omitContainer />
-        <span className="slds-assistive-text">Send Feedback</span>
+        <Tooltip
+          content={isOpen || showContextMenu ? undefined : 'Send us your feedback. Right click for positioning options.'}
+          openDelay={300}
+        >
+          <Icon type="standard" icon="feedback" className="" omitContainer />
+          <span className="slds-assistive-text">Send Feedback</span>
+        </Tooltip>
       </button>
+
+      {/* Context menu for positioning */}
+      {showContextMenu && (
+        <div
+          ref={contextMenuRef}
+          css={css`
+            position: fixed;
+            ${positionStyles.top ? `top: calc(${positionStyles.top} + 4rem)` : ''};
+            ${positionStyles.bottom ? `bottom: calc(${positionStyles.bottom} + 4rem)` : ''};
+            ${positionStyles.left ? `left: ${positionStyles.left}` : ''};
+            ${positionStyles.right ? `right: ${positionStyles.right}` : ''};
+            z-index: 5001;
+            background: white;
+            border-radius: 0.25rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+            padding: 0.5rem 0;
+          `}
+        >
+          <div
+            css={css`
+              padding: 0.5rem 1rem;
+              font-size: 0.75rem;
+              font-weight: 600;
+              color: #3e3e3c;
+              text-transform: uppercase;
+              letter-spacing: 0.025em;
+            `}
+          >
+            Button Position
+          </div>
+          {(['bottom-right', 'bottom-left', 'top-right', 'top-left'] as FeedbackPosition[]).map((pos) => (
+            <button
+              key={pos}
+              onClick={() => handlePositionChange(pos)}
+              css={css`
+                display: flex;
+                align-items: center;
+                width: 100%;
+                padding: 0.5rem 1rem;
+                border: none;
+                background: ${pos === position ? '#f3f2f2' : 'transparent'};
+                text-align: left;
+                cursor: pointer;
+                font-size: 0.875rem;
+                color: #181818;
+                transition: background-color 0.1s ease;
+
+                &:hover {
+                  background-color: #f3f2f2;
+                }
+              `}
+            >
+              {pos === position && (
+                <Icon
+                  type="utility"
+                  icon="check"
+                  className="slds-icon slds-icon-text-success slds-icon_xx-small"
+                  containerClassname="slds-m-right_x-small"
+                />
+              )}
+              <span style={{ marginLeft: pos === position ? '0' : '1.25rem' }}>
+                {pos
+                  .split('-')
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')}
+              </span>
+            </button>
+          ))}
+          <div
+            css={css`
+              height: 1px;
+              background-color: #dddbda;
+              margin: 0.5rem 0;
+            `}
+          />
+          <button
+            onClick={handleHideForSession}
+            css={css`
+              display: flex;
+              align-items: center;
+              width: 100%;
+              padding: 0.5rem 1rem;
+              border: none;
+              background: transparent;
+              text-align: left;
+              cursor: pointer;
+              font-size: 0.875rem;
+              color: #181818;
+              transition: background-color 0.1s ease;
+
+              &:hover {
+                background-color: #f3f2f2;
+              }
+            `}
+          >
+            <Icon
+              type="utility"
+              icon="hide"
+              className="slds-icon slds-icon-text-default slds-icon_xx-small"
+              containerClassname="slds-m-right_x-small"
+            />
+            Hide for session
+          </button>
+        </div>
+      )}
 
       {/* Feedback modal */}
       {isOpen && (

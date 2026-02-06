@@ -95,6 +95,7 @@ import UtilityIcon_Formula from './icons/utility/Formula';
 import UtilityIcon_Forward from './icons/utility/Forward';
 import UtilityIcon_Help from './icons/utility/Help';
 import UtilityIcon_HelpDocExt from './icons/utility/HelpDocExt';
+import UtilityIcon_Hide from './icons/utility/Hide';
 import UtilityIcon_Home from './icons/utility/Home';
 import UtilityIcon_Identity from './icons/utility/Identity';
 import UtilityIcon_Image from './icons/utility/Image';
@@ -286,8 +287,9 @@ const utilityIcons = {
   filterList: UtilityIcon_FilterList,
   formula: UtilityIcon_Formula,
   forward: UtilityIcon_Forward,
-  help_doc_ext: UtilityIcon_HelpDocExt,
   help: UtilityIcon_Help,
+  help_doc_ext: UtilityIcon_HelpDocExt,
+  hide: UtilityIcon_Hide,
   home: UtilityIcon_Home,
   identity: UtilityIcon_Identity,
   image: UtilityIcon_Image,
