@@ -25,10 +25,13 @@ export async function sendUserFeedbackEmail(
   emailAddress: string,
   userId: string,
   content: string[],
+  feedbackContent: string,
   attachment?: Parameters<typeof sendEmail>[0]['attachment'],
 ) {
   try {
-    const component = <GenericEmail heading="User submitted feedback" preview="User submitted feedback" segments={[userId, ...content]} />;
+    let preview = feedbackContent.length > 100 ? `${feedbackContent.slice(0, 100)}...` : feedbackContent;
+    preview = preview.replace(/\r?\n|\r/g, ' '); // Replace newlines with spaces for better email preview display
+    const component = <GenericEmail heading="User submitted feedback" preview={preview} segments={[userId, ...content]} />;
     const [html, text] = await renderComponent(component);
 
     await sendEmail({

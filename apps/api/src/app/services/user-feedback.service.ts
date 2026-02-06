@@ -46,8 +46,10 @@ export async function handleUserFeedbackEmail(
   }: UserFeedbackPayload,
   req: Request,
 ) {
+  message = message.trim();
   // Build the email content with feedback details
   const feedbackContent: string[] = [
+    message,
     `Feedback Type: ${type || 'Not specified'}`,
     `userEmail: ${userEmail}`,
     `clientVersion: ${clientVersion || 'unspecified'}`,
@@ -63,7 +65,6 @@ export async function handleUserFeedbackEmail(
     feedbackContent.push('✅ User has granted permission to feature this testimonial');
   }
 
-  feedbackContent.push(message.trim());
   const files = (req.files as Express.Multer.File[] | undefined) || [];
 
   // Prepare attachments from uploaded files
@@ -81,7 +82,7 @@ export async function handleUserFeedbackEmail(
   }
 
   // Send email with feedback
-  await sendUserFeedbackEmail(ENV.JETSTREAM_EMAIL_REPLY_TO, userId, feedbackContent, attachments);
+  await sendUserFeedbackEmail(ENV.JETSTREAM_EMAIL_REPLY_TO, userId, feedbackContent, message.trim(), attachments);
 
   await cleanupFeedbackAttachments(req, {
     clientVersion,
