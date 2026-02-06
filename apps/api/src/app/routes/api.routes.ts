@@ -159,7 +159,7 @@ routes.get('/apex/completions/:type', metadataToolingController.apexCompletions.
  * ************************************
  */
 routes.get('/file/stream-download', miscController.streamFileDownload.controllerFn());
-routes.get('/file/stream-download/zip', miscController.streamFileDownloadToZip.controllerFn());
+routes.post('/file/stream-download/zip', miscController.streamFileDownloadToZip.controllerFn());
 routes.post('/request', miscController.salesforceRequest.controllerFn());
 routes.post('/request-manual', miscController.salesforceRequestManual.controllerFn());
 

@@ -1,7 +1,14 @@
 import { getExceptionLog, logger, prisma } from '@jetstream/api-config';
 import { UserProfileSession } from '@jetstream/auth/types';
 import { Entitlement, Prisma } from '@jetstream/prisma';
-import { SoqlQueryFormatOptions, SoqlQueryFormatOptionsSchema, TeamMemberRole, UserProfileUi, UserProfileUiSchema } from '@jetstream/types';
+import {
+  Maybe,
+  SoqlQueryFormatOptions,
+  SoqlQueryFormatOptionsSchema,
+  TeamMemberRole,
+  UserProfileUi,
+  UserProfileUiSchema,
+} from '@jetstream/types';
 
 const FullUserFacingProfileSelect = {
   id: true,
@@ -229,6 +236,22 @@ export const hasManualBilling = async ({ userId }: { userId: string }): Promise<
     return true;
   }
   return false;
+};
+
+export const isPaidUser = async ({ teamId, userId }: { teamId: Maybe<string>; userId: string }): Promise<boolean> => {
+  const hasIndividualSubscription = await prisma.subscription
+    .count({ where: { userId, status: { in: ['ACTIVE', 'TRIALING'] } } })
+    .then((result) => result > 0);
+  if (hasIndividualSubscription) {
+    return true;
+  }
+  if (!teamId) {
+    return false;
+  }
+  const hasTeamSubscription = await prisma.teamSubscription
+    .count({ where: { teamId, status: { in: ['ACTIVE', 'TRIALING'] } } })
+    .then((result) => result > 0);
+  return hasTeamSubscription;
 };
 
 export const checkUserEntitlement = async ({

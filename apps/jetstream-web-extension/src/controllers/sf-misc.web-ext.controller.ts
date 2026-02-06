@@ -1,6 +1,5 @@
 import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
 import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
-import { MAX_BINARY_DOWNLOAD_RECORDS } from '@jetstream/shared/constants';
 import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, type ManualRequestResponse } from '@jetstream/types';
 import { z } from 'zod';
 import { createRoute, handleErrorResponse, handleJsonResponse } from './route.utils';
@@ -26,7 +25,7 @@ export const routeDefinition = {
       body: z.object({
         fileName: z.string().endsWith('.zip').optional(),
         sobject: BinaryDownloadCompatibleObjectsSchema,
-        recordIds: z.array(z.string().min(15).max(18)).max(MAX_BINARY_DOWNLOAD_RECORDS),
+        recordIds: z.array(z.string().min(15).max(18)).min(1),
         nameFormat: FileNameFormatSchema.default('name'),
       }),
     },
@@ -86,11 +85,14 @@ const streamFileDownloadToZip = createRoute(routeDefinition.streamFileDownloadTo
       throw new Error(`Unsupported sObject for binary download: ${sobject}`);
     }
 
-    const soql = fileQueryInfo.getQuery(recordIds);
-    const records = await jetstreamConn!.query.query(soql);
-    const files = fileQueryInfo.transformToBinaryFileDownload(records.queryResults.records);
+    const queries = fileQueryInfo.getQuery(recordIds);
+    const records: unknown[] = [];
+    for (const soql of queries) {
+      records.push(...(await jetstreamConn!.query.query(soql).then((res) => res.queryResults.records)));
+    }
+    const files = fileQueryInfo.transformToBinaryFileDownload(records);
 
-    const results = await jetstreamConn!.binary.downloadAndZipFiles(files, fileName || `download-${sobject}s.zip`);
+    const results = await jetstreamConn!.binary.downloadAndZipFiles(files, fileName || `download-${sobject}s.zip`, true);
 
     return new Response(results.stream, {
       headers: {

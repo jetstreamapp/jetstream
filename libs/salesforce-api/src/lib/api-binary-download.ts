@@ -35,6 +35,7 @@ export class ApiBinaryDownload extends SalesforceApi {
   async downloadAndZipFiles(
     files: BinaryFileDownload[],
     zipFileName = 'download.zip',
+    skipFilesizeLimitCheck = false,
   ): Promise<{
     stream: ReadableStream<Uint8Array>;
     fileName: string;
@@ -46,7 +47,7 @@ export class ApiBinaryDownload extends SalesforceApi {
 
     // TODO: if we hit this, the user is never notified - ideally we would have a way to inform them before starting the download
     // But all the solutions are complicated, require server state, or lose the streaming download benefit
-    if (totalSize > BigInt(MAX_BINARY_DOWNLOAD_SIZE_BYTES)) {
+    if (!skipFilesizeLimitCheck && totalSize > BigInt(MAX_BINARY_DOWNLOAD_SIZE_BYTES)) {
       throw new Error(
         `The total size of the files exceeds the maximum allowed size of ${Math.floor(MAX_BINARY_DOWNLOAD_SIZE_BYTES / (1024 * 1024))} MB.`,
       );
