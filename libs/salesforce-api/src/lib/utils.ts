@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HTTP } from '@jetstream/shared/constants';
-import { ensureArray, ensureBoolean, fileExtensionFromMimeType, splitFilenameByExtension, unSanitizeXml } from '@jetstream/shared/utils';
+import {
+  ensureArray,
+  ensureBoolean,
+  fileExtensionFromMimeType,
+  splitArrayToMaxSize,
+  splitFilenameByExtension,
+  unSanitizeXml,
+} from '@jetstream/shared/utils';
 import { BulkApiCreateJobRequestPayload, DeployResult, FileNameFormat, Maybe, RecordResult, SalesforceRecord } from '@jetstream/types';
 import { composeQuery, getField } from '@jetstreamapp/soql-parser-js';
 import isEmpty from 'lodash/isEmpty';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
+import type { BinaryFileDownload } from './api-binary-download';
 import { ApiConnection } from './connection';
 import { ApiRequestOptions } from './types';
 
@@ -322,7 +330,14 @@ export function prepareCloseOrAbortJobPayload(state: 'Closed' | 'Aborted' = 'Clo
   return xml;
 }
 
-export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
+export function getBinaryFileRecordQueryMap(
+  fileNameFormat: FileNameFormat,
+): Record<
+  string,
+  { getQuery: (allRecordIds: string[]) => string[]; transformToBinaryFileDownload: (records: any[]) => BinaryFileDownload[] }
+> {
+  // Split query up to avoid large URLs in GET requests to salesforce and to avoid hitting max query size limits.
+  const MAX_IDS_PER_QUERY = 200;
   function getFileNameAndExtension(record: SalesforceRecord, recordId: string, nameField: string, fileExtension?: Maybe<string>) {
     fileExtension = fileExtension ?? splitFilenameByExtension(record[nameField])[1];
     switch (fileNameFormat) {
@@ -342,14 +357,17 @@ export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
 
   return {
     attachment: {
-      getQuery: (recordIds: string[]) =>
-        composeQuery({
-          fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('ContentType')],
-          sObject: 'Attachment',
-          where: {
-            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
-          },
-        }),
+      getQuery: (allRecordIds: string[]) =>
+        splitArrayToMaxSize(allRecordIds, MAX_IDS_PER_QUERY).map((recordIds) =>
+          composeQuery({
+            fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('ContentType')],
+            sObject: 'Attachment',
+            where: {
+              left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+            },
+            limit: Math.min(recordIds.length || 1, MAX_IDS_PER_QUERY),
+          }),
+        ),
       transformToBinaryFileDownload: (records: { Id: string; Name: string; Body: string; BodyLength: number; ContentType: string }[]) =>
         records.map((record) => ({
           id: record.Id,
@@ -359,14 +377,17 @@ export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
         })),
     },
     document: {
-      getQuery: (recordIds: string[]) =>
-        composeQuery({
-          fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('Type')],
-          sObject: 'Document',
-          where: {
-            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
-          },
-        }),
+      getQuery: (allRecordIds: string[]) =>
+        splitArrayToMaxSize(allRecordIds, MAX_IDS_PER_QUERY).map((recordIds) =>
+          composeQuery({
+            fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('Type')],
+            sObject: 'Document',
+            where: {
+              left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+            },
+            limit: Math.min(recordIds.length || 1, MAX_IDS_PER_QUERY),
+          }),
+        ),
       transformToBinaryFileDownload: (records: { Id: string; Name: string; Body: string; BodyLength: number; Type: string }[]) =>
         records.map((record) => ({
           id: record.Id,
@@ -376,14 +397,17 @@ export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
         })),
     },
     staticresource: {
-      getQuery: (recordIds: string[]) =>
-        composeQuery({
-          fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('ContentType')],
-          sObject: 'StaticResource',
-          where: {
-            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
-          },
-        }),
+      getQuery: (allRecordIds: string[]) =>
+        splitArrayToMaxSize(allRecordIds, MAX_IDS_PER_QUERY).map((recordIds) =>
+          composeQuery({
+            fields: [getField('Id'), getField('Name'), getField('Body'), getField('BodyLength'), getField('ContentType')],
+            sObject: 'StaticResource',
+            where: {
+              left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+            },
+            limit: Math.min(recordIds.length || 1, MAX_IDS_PER_QUERY),
+          }),
+        ),
       transformToBinaryFileDownload: (records: { Id: string; Name: string; Body: string; BodyLength: number; ContentType: string }[]) =>
         records.map((record) => ({
           id: record.Id,
@@ -393,21 +417,24 @@ export function getBinaryFileRecordQueryMap(fileNameFormat: FileNameFormat) {
         })),
     },
     contentversion: {
-      getQuery: (recordIds: string[]) =>
-        composeQuery({
-          fields: [
-            getField('Id'),
-            getField('PathOnClient'),
-            getField('Title'),
-            getField('FileExtension'),
-            getField('VersionData'),
-            getField('ContentSize'),
-          ],
-          sObject: 'ContentVersion',
-          where: {
-            left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
-          },
-        }),
+      getQuery: (allRecordIds: string[]) =>
+        splitArrayToMaxSize(allRecordIds, MAX_IDS_PER_QUERY).map((recordIds) =>
+          composeQuery({
+            fields: [
+              getField('Id'),
+              getField('PathOnClient'),
+              getField('Title'),
+              getField('FileExtension'),
+              getField('VersionData'),
+              getField('ContentSize'),
+            ],
+            sObject: 'ContentVersion',
+            where: {
+              left: { field: 'Id', operator: 'IN', value: recordIds, literalType: 'STRING' },
+            },
+            limit: Math.min(recordIds.length || 1, MAX_IDS_PER_QUERY),
+          }),
+        ),
       transformToBinaryFileDownload: (
         records: {
           Id: string;

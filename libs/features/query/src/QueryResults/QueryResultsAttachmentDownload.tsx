@@ -1,6 +1,11 @@
 import { logger } from '@jetstream/shared/client-logger';
-import { ANALYTICS_KEYS, MAX_BINARY_DOWNLOAD_RECORDS } from '@jetstream/shared/constants';
-import { downloadBinaryAttachmentsZip_WEB_EXTENSION } from '@jetstream/shared/data';
+import {
+  ANALYTICS_KEYS,
+  HTTP,
+  MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER,
+  MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER,
+} from '@jetstream/shared/constants';
+import { downloadBinaryAttachmentsZip_WEB_EXTENSION, getCsrfTokenFromCookie } from '@jetstream/shared/data';
 import {
   formatNumber,
   getFilename,
@@ -28,6 +33,17 @@ export interface QueryResultsAttachmentDownloadProps {
   sobjectName: Maybe<string>;
   selectedRecords: SalesforceRecord[];
   hasRecords: boolean;
+  hasPaidPlan: boolean;
+}
+
+function getMaxDownloadRecords(hasPaidPlan: boolean) {
+  if (isBrowserExtension() || isDesktop()) {
+    return Infinity;
+  }
+  if (hasPaidPlan) {
+    return MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER;
+  }
+  return MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER;
 }
 
 export const binaryCompatibleObjects = new Set(Object.keys(BinaryDownloadCompatibleObjectsSchema.enum));
@@ -38,10 +54,12 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
   sobjectName,
   selectedRecords,
   hasRecords,
+  hasPaidPlan,
 }) => {
   sobjectName = sobjectName?.toLowerCase() || null;
   const rollbar = useRollbar();
   const { trackEvent } = useAmplitude();
+  const [csrfToken] = useState(() => getCsrfTokenFromCookie());
   const [modalOpen, setModalOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -70,17 +88,28 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
 
   useEffect(() => {
     setVisible(binaryCompatibleObjects.has(sobjectName?.toLowerCase() || '') && hasRecords);
-    if (selectedRecords.length && selectedRecords.length <= MAX_BINARY_DOWNLOAD_RECORDS) {
+
+    const maxDownloadRecords = getMaxDownloadRecords(hasPaidPlan);
+
+    if (selectedRecords.length && (isBrowserExtension() || isDesktop() || selectedRecords.length <= maxDownloadRecords)) {
       setDisabled(false);
       setDisabledReason('');
-    } else if (selectedRecords.length > MAX_BINARY_DOWNLOAD_RECORDS) {
+    } else if (selectedRecords.length > maxDownloadRecords) {
       setDisabled(true);
-      setDisabledReason(`You can select up to ${formatNumber(MAX_BINARY_DOWNLOAD_RECORDS)} records at a time for attachment download`);
+      if (hasPaidPlan) {
+        setDisabledReason(
+          `You can select up to ${formatNumber(maxDownloadRecords)} records at a time for attachment download. The desktop application and browser extension do not have this limit.`,
+        );
+      } else {
+        setDisabledReason(
+          `You can select up to ${formatNumber(maxDownloadRecords)} records at a time for attachment download. Upgrade to a paid plan to increase this limit to ${formatNumber(MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER)} records. The desktop application and browser extension, offered with our paid plans, do not have this limit.`,
+        );
+      }
     } else {
       setDisabled(true);
       setDisabledReason('Select one or more records');
     }
-  }, [sobjectName, selectedRecords, trackEvent, hasRecords]);
+  }, [sobjectName, selectedRecords, trackEvent, hasRecords, hasPaidPlan]);
 
   useEffect(() => {
     if (visible) {
@@ -159,19 +188,35 @@ export const QueryResultsAttachmentDownload: FunctionComponent<QueryResultsAttac
         handleModalClose(false);
       } else {
         // Web app: download so that the browser streams the file directly to get progress indication from the browser
-        const url = `/api/file/stream-download/zip?${getOrgUrlParams(selectedOrg, {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/api/file/stream-download/zip?${getOrgUrlParams(selectedOrg, {
           sobject: sobjectName.toLowerCase(),
-          recordIds: selectedRecords.map((record) => record['Id'] || getRecordIdFromAttributes(record)).join(','),
           nameFormat: fileNameFormat,
           fileName,
         })}`;
+        form.target = '_blank';
 
-        // Programmatically trigger download
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.download = fileName;
-        link.click();
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = HTTP.BODY.CSRF_TOKEN;
+        csrfInput.value = csrfToken || '';
+        form.appendChild(csrfInput);
+
+        selectedRecords
+          .map((record) => record['Id'] || getRecordIdFromAttributes(record))
+          .forEach((id) => {
+            // Append recordIds as multiple inputs to support large number of records without hitting URL length limits
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'recordIds[]';
+            input.value = id;
+            form.appendChild(input);
+          });
+
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
 
         handleModalClose(false);
       }

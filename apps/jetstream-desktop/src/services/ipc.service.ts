@@ -9,7 +9,7 @@ import {
   IcpResponse,
   IpcEventChannel,
 } from '@jetstream/desktop/types';
-import { ApiConnection, BinaryFileDownload, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
+import { ApiConnection, getApiRequestFactoryFn, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
 import * as oauthService from '@jetstream/salesforce-oauth';
 import { HTTP } from '@jetstream/shared/constants';
 import { JetstreamEventStreamFilePayload, UserProfileUi } from '@jetstream/types';
@@ -358,9 +358,12 @@ const handleDownloadZipToFile: MainIpcHandler<'downloadZipToFile'> = async (
       throw new Error(`Unsupported sObject for binary download: ${sobject}`);
     }
 
-    const soql = fileQueryInfo.getQuery(recordIds);
-    const records = await jetstreamConn.query.query(soql);
-    const files: BinaryFileDownload[] = fileQueryInfo.transformToBinaryFileDownload(records.queryResults.records);
+    const queries = fileQueryInfo.getQuery(recordIds);
+    const records: unknown[] = [];
+    for (const soql of queries) {
+      records.push(...(await jetstreamConn.query.query(soql).then((res) => res.queryResults.records)));
+    }
+    const files = fileQueryInfo.transformToBinaryFileDownload(records);
 
     const result = await downloadAndZipFilesToDisk(jetstreamConn, files, fileName, jobId, event.sender);
     return result;

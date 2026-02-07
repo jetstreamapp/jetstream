@@ -1,9 +1,11 @@
 import { SalesforceApiRequestSchema, SalesforceRequestManualRequestSchema } from '@jetstream/api-types';
 import { FetchResponse, getBinaryFileRecordQueryMap } from '@jetstream/salesforce-api';
-import { MAX_BINARY_DOWNLOAD_RECORDS } from '@jetstream/shared/constants';
+import { MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER, MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER } from '@jetstream/shared/constants';
+import { ensureArray } from '@jetstream/shared/utils';
 import { BinaryDownloadCompatibleObjectsSchema, FileNameFormatSchema, ManualRequestResponse } from '@jetstream/types';
 import { Readable } from 'stream';
 import { z } from 'zod';
+import { isPaidUser } from '../db/user.db';
 import { UserFacingError } from '../utils/error-handler';
 import { sendJson } from '../utils/response.handlers';
 import { createRoute } from '../utils/route.utils';
@@ -32,10 +34,10 @@ export const routeDefinition = {
       query: z.object({
         fileName: z.string().endsWith('.zip').optional(),
         sobject: BinaryDownloadCompatibleObjectsSchema,
-        recordIds: z
-          .string()
-          .transform((val) => z.array(z.string().min(15).max(18)).max(MAX_BINARY_DOWNLOAD_RECORDS).parse(val.split(','))),
         nameFormat: FileNameFormatSchema.default('name'),
+      }),
+      body: z.object({
+        recordIds: z.preprocess(ensureArray, z.array(z.string().min(15).max(18)).min(1).max(MAX_BINARY_DOWNLOAD_RECORDS_PAID_USER)),
       }),
     },
   },
@@ -92,9 +94,17 @@ const streamFileDownload = createRoute(routeDefinition.streamFileDownload.valida
  */
 const streamFileDownloadToZip = createRoute(
   routeDefinition.streamFileDownloadToZip.validators,
-  async ({ query, jetstreamConn }, req, res, next) => {
+  async ({ query, body, jetstreamConn, user, teamMembership }, req, res, next) => {
     try {
-      const { sobject, recordIds, nameFormat, fileName } = query;
+      const { recordIds } = body;
+      const { sobject, nameFormat, fileName } = query;
+
+      const paidUser = await isPaidUser({ userId: user.id, teamId: teamMembership?.teamId });
+      if (!paidUser && recordIds.length > MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER) {
+        throw new UserFacingError(
+          `Your current plan allows downloading up to ${MAX_BINARY_DOWNLOAD_RECORDS_FREE_USER} records at a time. Please reduce the number of records or upgrade your plan to download more.`,
+        );
+      }
 
       const queryMap = getBinaryFileRecordQueryMap(nameFormat);
       const fileQueryInfo = queryMap[sobject];
@@ -103,11 +113,14 @@ const streamFileDownloadToZip = createRoute(
         throw new Error(`Unsupported sObject for binary download: ${sobject}`);
       }
 
-      const soql = fileQueryInfo.getQuery(recordIds);
-      const records = await jetstreamConn.query.query(soql);
-      const files = fileQueryInfo.transformToBinaryFileDownload(records.queryResults.records);
+      const queries = fileQueryInfo.getQuery(recordIds);
+      const records: unknown[] = [];
+      for (const soql of queries) {
+        records.push(...(await jetstreamConn.query.query(soql).then((res) => res.queryResults.records)));
+      }
+      const files = fileQueryInfo.transformToBinaryFileDownload(records);
 
-      const results = await jetstreamConn.binary.downloadAndZipFiles(files, fileName || `download-${sobject}s.zip`);
+      const results = await jetstreamConn.binary.downloadAndZipFiles(files, fileName || `download-${sobject}s.zip`, false);
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="${results.fileName}"`);
       res.setHeader('Content-Length', results.size.toString());

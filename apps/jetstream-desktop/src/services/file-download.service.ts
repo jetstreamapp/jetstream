@@ -50,7 +50,7 @@ export async function downloadAndZipFilesToDisk(
     }
 
     // Use the downloadAndZipFiles method from the salesforce-api library
-    const zipResult = await jetstreamConn.binary.downloadAndZipFiles(files, zipFileName);
+    const zipResult = await jetstreamConn.binary.downloadAndZipFiles(files, zipFileName, true);
 
     // Track progress
     let bytesDownloaded = 0;

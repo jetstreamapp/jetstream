@@ -124,6 +124,7 @@ export const QueryResults = React.memo(() => {
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgState);
+  const hasPaidPlan = useAtomValue(fromAppState.hasPaidPlanState);
   const { serverUrl, defaultApiVersion, google_apiKey, google_appId, google_clientId } = useAtomValue(fromAppState.applicationCookieState);
   const { hasGoogleDriveAccess, googleShowUpgradeToPro } = useAtomValue(googleDriveAccessState);
   const skipFrontdoorLogin = useAtomValue(fromAppState.selectSkipFrontdoorAuth);
@@ -697,6 +698,7 @@ export const QueryResults = React.memo(() => {
               sobjectName={allowContentDownload.sobjectName}
               selectedRecords={selectedRows}
               hasRecords={!loading && !errorMessage && !!records?.length && !!recordCount}
+              hasPaidPlan={hasPaidPlan}
             />
           </Grid>
           {errorMessage && (
