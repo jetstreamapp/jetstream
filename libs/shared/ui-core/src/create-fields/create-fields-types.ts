@@ -52,7 +52,10 @@ export type FieldDefinitionType =
   | 'secondaryType'
   | 'writeRequiresMasterRead'
   | 'reparentableMasterDetail'
-  | 'relationshipName';
+  | 'relationshipName'
+  | 'displayLocationInDecimal'
+  | 'maskChar'
+  | 'maskType';
 
 export type SalesforceFieldType =
   | 'AutoNumber'
@@ -67,6 +70,8 @@ export type SalesforceFieldType =
   | 'Percent'
   | 'Phone'
   | 'Email'
+  | 'EncryptedText'
+  | 'Location'
   | 'MasterDetail'
   | 'Lookup'
   | 'Picklist'
