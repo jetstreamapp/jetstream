@@ -1,5 +1,17 @@
 # Changelog
 
+## [8.21.0](https://github.com/jetstreamapp/jetstream/compare/v8.20.0...v8.21.0) (2026-02-07)
+
+### Features
+
+* improve feedback widget ([5ae0ba8](https://github.com/jetstreamapp/jetstream/commit/5ae0ba8373e0fc8005eaa665c0535439900af9af)), closes [#1528](https://github.com/jetstreamapp/jetstream/issues/1528)
+* increase api limit for data loads ([d5c044c](https://github.com/jetstreamapp/jetstream/commit/d5c044ce5000698330df7d6c9b3fb5b2c3a3454c)), closes [#1521](https://github.com/jetstreamapp/jetstream/issues/1521)
+* increase download limit for file attachments ([230efd2](https://github.com/jetstreamapp/jetstream/commit/230efd26e194334a93ffad723042eb5b4615db0d)), closes [#1527](https://github.com/jetstreamapp/jetstream/issues/1527)
+
+### Bug Fixes
+
+* retain permission manager filter text on tab change ([d913068](https://github.com/jetstreamapp/jetstream/commit/d913068a5061fbae54689f477e3e3434f2e32966)), closes [#1525](https://github.com/jetstreamapp/jetstream/issues/1525)
+
 ## [8.20.0](https://github.com/jetstreamapp/jetstream/compare/v8.19.2...v8.20.0) (2026-02-03)
 
 ### Bug Fixes
