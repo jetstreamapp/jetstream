@@ -31,6 +31,7 @@ import { atom, useAtom, useSetAtom } from 'jotai';
 import { unwrap } from 'jotai/utils';
 import localforage from 'localforage';
 import isString from 'lodash/isString';
+import z from 'zod';
 
 // FIXME: browser extension should be able to obtain all of this information after logging in
 export const DEFAULT_PROFILE: UserProfileUi = {
@@ -57,10 +58,15 @@ export const DEFAULT_PROFILE: UserProfileUi = {
 
 export const STORAGE_KEYS = {
   SELECTED_ORG_STORAGE_KEY: `SELECTED_ORG`,
+  RECENTLY_SELECTED_ORGS_STORAGE_KEY: `RECENTLY_SELECTED_ORGS`,
   SELECTED_JETSTREAM_ORGANIZATION_STORAGE_KEY: `SELECTED_JETSTREAM_ORGANIZATION`,
   ANONYMOUS_APEX_STORAGE_KEY: `ANONYMOUS_APEX`,
   PLATFORM_EVENT_SORT_COLUMNS: `PLATFORM_EVENT_SORT_COLUMNS`,
 };
+
+const NO_GROUP_KEY = 'NO_GROUP';
+
+type RecentlySelectedOrgsMap = Record<string, string>;
 
 /**
  * Parse application state with a fallback in case there is an issue parsing
@@ -140,6 +146,33 @@ function setSelectedOrgGroupFromStorage(id: Maybe<string>) {
   } catch (ex) {
     logger.warn('could not save organization to localstorage', ex);
   }
+}
+
+function getRecentlySelectedOrgsFromStorage(): RecentlySelectedOrgsMap {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.RECENTLY_SELECTED_ORGS_STORAGE_KEY);
+    if (stored) {
+      return z.record(z.string(), z.string()).parse(JSON.parse(stored));
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+export function setRecentlySelectedOrgsToStorage({ groupId, orgId }: { groupId: Maybe<string>; orgId: string }) {
+  try {
+    const map = getRecentlySelectedOrgsFromStorage();
+    map[groupId || NO_GROUP_KEY] = orgId;
+    setItemInLocalStorage(STORAGE_KEYS.RECENTLY_SELECTED_ORGS_STORAGE_KEY, JSON.stringify(z.record(z.string(), z.string()).parse(map)));
+  } catch (ex) {
+    logger.warn('could not save recently selected orgs to localstorage', ex);
+  }
+}
+
+export function getRecentlySelectedOrgForGroup(groupId: Maybe<string>): Maybe<string> {
+  const map = getRecentlySelectedOrgsFromStorage();
+  return map[groupId || NO_GROUP_KEY] || null;
 }
 
 const DEFAULT_APP_INFO: AppInfo = { appInfo: getAppInfo(), version: 'unknown', announcements: [] as Announcement[] };
