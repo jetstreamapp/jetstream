@@ -26,7 +26,7 @@ import {
   PageHeaderTitle,
 } from '@jetstream/ui';
 import { AddOrg, useAmplitude, useUpdateOrgs } from '@jetstream/ui-core';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { fromAppState, getRecentlySelectedOrgForGroup } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useCallback, useState } from 'react';
@@ -210,12 +210,29 @@ export function OrgGroups({ onAddOrgHandlerFn }: { onAddOrgHandlerFn?: AddOrgHan
     (group?: Maybe<OrgGroupWithOrgs>) => {
       setActiveOrgGroupId(group?.id);
       if (group && (!selectedOrg || !group.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
-        const firstOrgUniqueId = group.orgs?.[0]?.uniqueId || null;
-        setSelectedOrgId(firstOrgUniqueId);
+        // Try to select the recently selected org for this group
+        const recentOrgId = getRecentlySelectedOrgForGroup(group.id);
+        const recentOrgExists = recentOrgId && group.orgs.find(({ uniqueId }) => uniqueId === recentOrgId);
+
+        if (recentOrgExists) {
+          setSelectedOrgId(recentOrgId);
+        } else {
+          const firstOrgUniqueId = group.orgs?.[0]?.uniqueId || null;
+          setSelectedOrgId(firstOrgUniqueId);
+        }
       } else if (!group && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
         const orgsWithNoOrganization = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
-        const firstUnassignedOrgId = orgsWithNoOrganization?.[0]?.uniqueId || null;
-        setSelectedOrgId(firstUnassignedOrgId);
+
+        // Try to select the recently selected org for no group
+        const recentOrgId = getRecentlySelectedOrgForGroup(null);
+        const recentOrgExists = recentOrgId && orgsWithNoOrganization.find(({ uniqueId }) => uniqueId === recentOrgId);
+
+        if (recentOrgExists) {
+          setSelectedOrgId(recentOrgId);
+        } else {
+          const firstUnassignedOrgId = orgsWithNoOrganization?.[0]?.uniqueId || null;
+          setSelectedOrgId(firstUnassignedOrgId);
+        }
       }
     },
     [allOrgs, selectedOrg, setActiveOrgGroupId, setSelectedOrgId],

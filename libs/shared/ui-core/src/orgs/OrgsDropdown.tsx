@@ -1,10 +1,10 @@
 import { css } from '@emotion/react';
 import { AddOrgHandlerFn, Maybe, OrgGroup, SalesforceOrgUi } from '@jetstream/types';
 import { Badge, Grid, Icon, Tooltip } from '@jetstream/ui';
-import { fromAppState } from '@jetstream/ui/app-state';
+import { fromAppState, getRecentlySelectedOrgForGroup, setRecentlySelectedOrgsToStorage } from '@jetstream/ui/app-state';
 import classNames from 'classnames';
-import { useAtomValue, useSetAtom } from 'jotai';
-import { Fragment, FunctionComponent } from 'react';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { Fragment, FunctionComponent, useEffect } from 'react';
 import { OrgsCombobox, useOrgPermissions } from '..';
 import { hasOrderByConfigured } from '../state-management/query.state';
 import { AddOrg } from './AddOrg';
@@ -34,7 +34,7 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
   const orgs = useAtomValue(fromAppState.salesforceOrgsForGroupSelector);
   const selectedOrg = useAtomValue(fromAppState.selectedOrgStateWithoutPlaceholder);
   const { hasMetadataAccess } = useOrgPermissions(selectedOrg);
-  const setSelectedOrgId = useSetAtom(fromAppState.selectedOrgIdState);
+  const [selectedOrgId, setSelectedOrgId] = useAtom(fromAppState.selectedOrgIdState);
   const orgType = useAtomValue(fromAppState.selectedOrgType);
   const orgGroups = useAtomValue(fromAppState.orgGroupsState);
   const hasOrgGroupsConfigured = useAtomValue(fromAppState.orgGroupExistsSelector);
@@ -43,19 +43,39 @@ export const OrgsDropdown: FunctionComponent<OrgsDropdownProps> = ({
 
   const { actionInProgress, orgLoading, handleAddOrg, handleRemoveOrg, handleUpdateOrg } = useUpdateOrgs();
 
+  // Save selected org to recently selected orgs in storage whenever it changes, so that it can be pre-selected when switching between groups
+  useEffect(() => {
+    if (!selectedOrgId) {
+      return;
+    }
+    const groupId = orgGroups.find((group) => group.orgs.some((org) => org.uniqueId === selectedOrgId))?.id || null;
+    setRecentlySelectedOrgsToStorage({ groupId, orgId: selectedOrgId });
+  }, [orgGroups, selectedOrgId]);
+
   function handleOrgGroupChange(group: Maybe<OrgGroup>) {
     if (group && (!selectedOrg || !group.orgs.find(({ uniqueId }) => uniqueId === selectedOrg.uniqueId))) {
-      if (group.orgs.length === 1) {
-        setSelectedOrgId(group.orgs[0].uniqueId);
+      // Try to select the recently selected org for this group
+      const recentOrgId = getRecentlySelectedOrgForGroup(group.id);
+      const recentOrgExists = recentOrgId && group.orgs.find(({ uniqueId }) => uniqueId === recentOrgId);
+
+      if (recentOrgExists) {
+        setSelectedOrgId(recentOrgId);
       } else {
-        setSelectedOrgId(null);
+        const firstOrgUniqueId = group.orgs?.[0]?.uniqueId || null;
+        setSelectedOrgId(firstOrgUniqueId);
       }
     } else if (!group && (!selectedOrg || selectedOrg.jetstreamOrganizationId != null)) {
       const orgsWithNoGroup = allOrgs.filter(({ jetstreamOrganizationId }) => !jetstreamOrganizationId);
-      if (orgsWithNoGroup.length === 1) {
-        setSelectedOrgId(orgsWithNoGroup[0].uniqueId);
+
+      // Try to select the recently selected org for no group
+      const recentOrgId = getRecentlySelectedOrgForGroup(null);
+      const recentOrgExists = recentOrgId && orgsWithNoGroup.find(({ uniqueId }) => uniqueId === recentOrgId);
+
+      if (recentOrgExists) {
+        setSelectedOrgId(recentOrgId);
       } else {
-        setSelectedOrgId(null);
+        const firstUnassignedOrgId = orgsWithNoGroup?.[0]?.uniqueId || null;
+        setSelectedOrgId(firstUnassignedOrgId);
       }
     }
     setActiveOrgGroup(group?.id);
