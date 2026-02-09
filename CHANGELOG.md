@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.22.0](https://github.com/jetstreamapp/jetstream/compare/v8.21.0...v8.22.0) (2026-02-09)
+
+### Features
+
+* auto-select org when changing groups ([5c02120](https://github.com/jetstreamapp/jetstream/commit/5c021205375076aaad4d711387cdb6ada9ad3a44)), closes [#1434](https://github.com/jetstreamapp/jetstream/issues/1434)
+
 ## [8.21.0](https://github.com/jetstreamapp/jetstream/compare/v8.20.0...v8.21.0) (2026-02-07)
 
 ### Features
