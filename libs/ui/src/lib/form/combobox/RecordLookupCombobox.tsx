@@ -78,6 +78,7 @@ export function RecordLookupCombobox({
 }: RecordLookupComboboxProps) {
   const [key, setKey] = useState(() => Date.now());
   const id = useId();
+  const autoFocusRef = useRef(false);
   const selectedObjectMetadata = useRef<{ sobject: string; nameField: string; keyPrefix?: Maybe<string> } | null>(null);
   const [inputMode, setInputMode] = useState<InputMode>(() => getDefaultValue(allowManualMode));
   const [selectedSObject, setSelectedSObject] = useState(sobjects[0]);
@@ -180,6 +181,15 @@ export function RecordLookupCombobox({
     [org, selectedSObject],
   );
 
+  // When the input type changes, we want to focus on the input
+  // since it is not in the dom yet, we rely on auto-focus to handle this
+  const handleAutoFocus = useCallback(() => {
+    autoFocusRef.current = true;
+    setTimeout(() => {
+      autoFocusRef.current = false;
+    }, 100);
+  }, []);
+
   if (inputMode === INPUT_MODE_MANUAL) {
     return (
       <Input
@@ -208,6 +218,7 @@ export function RecordLookupCombobox({
             variant="end"
             iconOnly
             onSelected={(value) => {
+              handleAutoFocus();
               setInputMode(value.id as InputMode);
               setDefaultValue(value.id as InputMode);
             }}
@@ -226,6 +237,7 @@ export function RecordLookupCombobox({
               z-index: 1;
             }
           `}
+          autoFocus={!!autoFocusRef.current}
           required={comboboxProps.isRequired}
           disabled={comboboxProps.disabled}
           value={value || ''}
@@ -276,12 +288,17 @@ export function RecordLookupCombobox({
               items: INPUT_MODE_OPTIONS,
               iconOnly: true,
               onSelected: (value) => {
+                handleAutoFocus();
                 setInputMode(value.id as InputMode);
                 setDefaultValue(value.id as InputMode);
               },
             }
           : undefined,
         ...comboboxProps,
+        inputProps: {
+          autoFocus: !!autoFocusRef.current,
+          ...comboboxProps?.inputProps,
+        },
       }}
       selectedItemLabelFn={(item) => (item.label !== item.id ? `${item.label} (${item.id})` : item.label)}
       selectedItemTitleFn={(item) => (item.label !== item.id ? `${item.label} - ${item.id}` : item.label)}
