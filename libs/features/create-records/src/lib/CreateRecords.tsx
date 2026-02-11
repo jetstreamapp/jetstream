@@ -200,7 +200,8 @@ export const CreateRecords = () => {
     if (currentFormErrors.hasErrors) {
       setFormErrors({ hasErrors: true, fieldErrors: currentFormErrors.fieldErrors, generalErrors: [] });
       return;
-    } else if (Object.keys(formErrors).length) {
+    } else if (formErrors.hasErrors) {
+      // reset state since there are no longer any errors
       setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
     }
 

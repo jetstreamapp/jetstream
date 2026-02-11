@@ -312,14 +312,17 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     setModifiedRecord(record);
   }
 
-  async function handleSave() {
+  async function handleSave(ignoreValidationErrors = false) {
     let record = transformEditForm(sobjectFields || [], modifiedRecord);
     const currentFormErrors = validateEditForm(sobjectFields || [], record);
 
     if (currentFormErrors.hasErrors) {
       setFormErrors({ hasErrors: true, fieldErrors: currentFormErrors.fieldErrors, generalErrors: [] });
-      return;
-    } else if (Object.keys(formErrors).length) {
+      if (!ignoreValidationErrors) {
+        return;
+      }
+    } else if (formErrors.hasErrors) {
+      // reset state since there are no longer any errors
       setFormErrors({ hasErrors: false, fieldErrors: {}, generalErrors: [] });
     }
 
@@ -531,6 +534,9 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
     });
   }
 
+  const isSaveButtonDisabled = loading || saving || !initialRecord;
+  const showSaveWithErrorsButton = !isSaveButtonDisabled && formErrors.hasErrors;
+
   return (
     <div>
       {downloadModalData.open && (
@@ -723,13 +729,24 @@ export const ViewEditCloneRecord: FunctionComponent<ViewEditCloneRecordProps> = 
                     >
                       Cancel
                     </button>
-                    <button
-                      className="slds-button slds-button_brand"
-                      onClick={handleSave}
-                      disabled={(action === 'edit' && !formIsDirty) || loading || saving || !initialRecord}
-                    >
-                      Save
-                    </button>
+                    <ButtonGroupContainer>
+                      <button className="slds-button slds-button_brand" onClick={() => handleSave()} disabled={isSaveButtonDisabled}>
+                        Save
+                      </button>
+                      {showSaveWithErrorsButton && (
+                        <DropDown
+                          className="slds-button_last"
+                          dropDownClassName="slds-dropdown_actions"
+                          position="right"
+                          items={[{ id: 'save', value: 'Attempt save with errors' }]}
+                          onSelected={(id) => {
+                            if (id === 'save') {
+                              handleSave(true);
+                            }
+                          }}
+                        />
+                      )}
+                    </ButtonGroupContainer>
                   </div>
                 </div>
               )}
