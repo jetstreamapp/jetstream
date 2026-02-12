@@ -6,7 +6,7 @@ import classNames from 'classnames';
 import { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import UiRecordFormField from './UiRecordFormField';
 import { EditableFields } from './ui-record-form-types';
-import { convertMetadataToEditableFields } from './ui-record-form-utils';
+import { convertMetadataToEditableFields, OWNER_AND_AUDIT_FIELDS } from './ui-record-form-utils';
 
 export interface UiRecordFormProps {
   org: SalesforceOrgUi;
@@ -48,19 +48,33 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
   const [filter, setFilter] = useState('');
   const debouncedFilters = useDebounce(filter);
 
+  const isCreateOrClone = action === 'create' || action === 'clone';
+
   useEffect(() => {
     if (fieldMetadata) {
       let visibleFields = fieldMetadata;
-      if (action === 'create' || action === 'clone') {
+      if (isCreateOrClone) {
         visibleFields = visibleFields.filter((field) => field.metadata.createable);
       }
       if (debouncedFilters) {
         visibleFields = fieldMetadata.filter(multiWordObjectFilter(['name', 'label', 'type'], debouncedFilters));
       }
       if (limitToRequired) {
-        visibleFields = visibleFields.filter(
-          (field) => !field.metadata.nillable && field.metadata.type !== 'boolean' && field.metadata.createable,
-        );
+        visibleFields = visibleFields.filter((field) => {
+          if (field.metadata.nillable) {
+            return false;
+          }
+          if (field.metadata.type === 'boolean') {
+            return false;
+          }
+          if (!field.metadata.createable) {
+            return false;
+          }
+          if (isCreateOrClone && OWNER_AND_AUDIT_FIELDS.has(field.name)) {
+            return false;
+          }
+          return true;
+        });
       }
       if (limitToErrorFields) {
         visibleFields = visibleFields.filter((field) => saveErrors?.[field.name]);
@@ -71,7 +85,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
         setVisibleFieldMetadataRows([]);
       }
     }
-  }, [fieldMetadata, debouncedFilters, columnSize, limitToRequired, action, limitToErrorFields, saveErrors]);
+  }, [fieldMetadata, debouncedFilters, columnSize, limitToRequired, limitToErrorFields, saveErrors, isCreateOrClone]);
 
   useNonInitialEffect(() => {
     setFieldMetadata(convertMetadataToEditableFields(sobjectFields, picklistValues, action, record));
@@ -163,6 +177,7 @@ export const UiRecordForm: FunctionComponent<UiRecordFormProps> = ({
                     relatedRecord={field.metadata.relationshipName ? record[field.metadata.relationshipName] : null}
                     showFieldTypes={showFieldTypes}
                     omitUndoIndicator={action === 'create'}
+                    showOwnerAndAuditFieldsAsOptional={isCreateOrClone}
                     onChange={handleRecordUpdate}
                     viewRelatedRecord={viewRelatedRecord}
                   />

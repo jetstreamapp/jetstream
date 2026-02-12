@@ -23,7 +23,17 @@ import { startOfDay } from 'date-fns/startOfDay';
 import uniqueId from 'lodash/uniqueId';
 import { Fragment, FunctionComponent, ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { EditableFields } from './ui-record-form-types';
-import { isCheckbox, isDate, isDateTime, isInput, isPicklist, isReference, isTextarea, isTime } from './ui-record-form-utils';
+import {
+  isCheckbox,
+  isDate,
+  isDateTime,
+  isInput,
+  isPicklist,
+  isReference,
+  isTextarea,
+  isTime,
+  OWNER_AND_AUDIT_FIELDS,
+} from './ui-record-form-utils';
 
 const REPLACE_NON_NUMERIC = /[^\d.-]/g;
 
@@ -74,6 +84,7 @@ export interface UiRecordFormFieldProps {
   relatedRecord?: Maybe<{ attributes: RecordAttributes; Name: string }>;
   showFieldTypes: boolean;
   omitUndoIndicator?: boolean;
+  showOwnerAndAuditFieldsAsOptional?: boolean;
   hideLabel?: boolean;
   usePortal?: boolean;
   // picklist values are converted to strings prior to emitting
@@ -94,19 +105,26 @@ export const UiRecordFormField: FunctionComponent<UiRecordFormFieldProps> = ({
   relatedRecord,
   showFieldTypes,
   omitUndoIndicator,
+  showOwnerAndAuditFieldsAsOptional,
   hideLabel = false,
   usePortal = false,
   onChange,
   viewRelatedRecord,
 }) => {
-  const { label, name, labelHelpText, readOnly, metadata } = field;
-  const required = !readOnly && field.required;
+  const { label, name, readOnly, metadata } = field;
+  let { labelHelpText } = field;
+  let required = !readOnly && field.required;
   const [id] = useState(uniqueId(name));
   const [key, setKey] = useState(getUndoKey(name));
   const [initialValue] = useState(() => getInitialValue(_initialValue, field));
   const [value, setValue] = useState(() => getInitialModifiedValue(modifiedValue, initialValue, field));
   const [isDirty, setIsDirty] = useState(readOnly ? false : checkIfDirty(false, modifiedValue).isDirty);
   const [helpText, setHelpText] = useState<ReactNode>();
+
+  if (required && showOwnerAndAuditFieldsAsOptional && OWNER_AND_AUDIT_FIELDS.has(name)) {
+    required = false;
+    labelHelpText = labelHelpText || 'This field will be auto-populated by Salesforce if a value is not provided.';
+  }
 
   const [initialSelectedDate] = useState(() => {
     if (value && (isDate(field) || isDateTime(field))) {

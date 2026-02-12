@@ -34,6 +34,8 @@ const PICKLIST_FIELD_TYPES = new Set<FieldType>(['combobox', 'picklist', 'multip
 const TEXTAREA_FIELD_TYPES = new Set<FieldType>(['textarea']);
 const NUMBER_TYPES = new Set<FieldType>(['int', 'double', 'currency', 'percent']);
 
+export const OWNER_AND_AUDIT_FIELDS = new Set<string>(['OwnerId', 'CreatedById', 'CreatedDate', 'LastModifiedById', 'LastModifiedDate']);
+
 export function isInput(value: EditableFields): value is EditableFieldInput {
   return value && value.type === 'input';
 }

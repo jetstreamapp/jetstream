@@ -6,6 +6,7 @@ import {
   isEnterKey,
   isEscapeKey,
   isSpaceKey,
+  isTabKey,
   KeyBuffer,
   menuItemSelectScroll,
   selectMenuItemFromKeyboard,
@@ -45,6 +46,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
   onSelected,
 }) => {
   const [id] = useState(uniqueId('object-switcher'));
+  const inputRef = useRef<HTMLInputElement | HTMLDivElement>(null);
   const keyBuffer = useRef(new KeyBuffer());
   const [inputId] = useState(uniqueId('object-switcher-input'));
   const [isOpen, setIsOpen] = useState(false);
@@ -94,12 +96,20 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement | HTMLInputElement | HTMLLIElement>) {
     try {
+      if (isTabKey(event)) {
+        setIsOpen(false);
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
       let newFocusedItem;
 
       if (isEscapeKey(event)) {
         setIsOpen(false);
+        if (inputRef.current && typeof inputRef.current.focus === 'function') {
+          inputRef.current.focus();
+        }
         return;
       }
 
@@ -176,6 +186,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                 )}
                 {iconOnly && (
                   <input
+                    ref={inputRef as RefObject<HTMLInputElement | null>}
                     type="text"
                     className="slds-input slds-combobox__input slds-combobox__input-value"
                     css={css`
@@ -198,6 +209,7 @@ export const FormGroupDropdown: FunctionComponent<FormGroupDropdownProps> = ({
                 )}
                 {!iconOnly && (
                   <div
+                    ref={inputRef as RefObject<HTMLDivElement | null>}
                     role="combobox"
                     tabIndex={0}
                     className={classNames('slds-input_faux slds-combobox__input slds-combobox__input-value', {
