@@ -1,5 +1,16 @@
 # Changelog
 
+## [8.23.0](https://github.com/jetstreamapp/jetstream/compare/v8.22.0...v8.23.0) (2026-02-12)
+
+### Features
+
+* better handling of audit fields when creating records ([419b7d3](https://github.com/jetstreamapp/jetstream/commit/419b7d347b194fdc7a54d87a4c4e968c8dca1854)), closes [#1536](https://github.com/jetstreamapp/jetstream/issues/1536)
+
+### Bug Fixes
+
+* fix error boundary after upgrade ([c7afc1d](https://github.com/jetstreamapp/jetstream/commit/c7afc1d5c7bc851340e6e1fc1de7ab79b9a3319e))
+* keyboard navigation for lookup combobox ([0428958](https://github.com/jetstreamapp/jetstream/commit/0428958e56806175a5759e5cf370c31b5e044c3e)), closes [#1535](https://github.com/jetstreamapp/jetstream/issues/1535)
+
 ## [8.22.0](https://github.com/jetstreamapp/jetstream/compare/v8.21.0...v8.22.0) (2026-02-09)
 
 ### Features
