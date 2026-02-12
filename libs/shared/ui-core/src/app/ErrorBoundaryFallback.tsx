@@ -1,18 +1,20 @@
 import { logger } from '@jetstream/shared/client-logger';
 import { APP_ROUTES } from '@jetstream/shared/ui-router';
 import { useRollbar } from '@jetstream/shared/ui-utils';
+import { ensureError } from '@jetstream/shared/utils';
 import { Icon } from '@jetstream/ui';
 import { FunctionComponent, useEffect } from 'react';
 import { FallbackProps } from 'react-error-boundary';
 import { Link } from 'react-router-dom';
 
-// componentStack is depreacted in version 3.0 and must be added as a listener to every place ErrorBoundary is used
-export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error, resetErrorBoundary }) => {
+// componentStack is deprecated in version 3.0 and must be added as a listener to every place ErrorBoundary is used
+export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error: _error, resetErrorBoundary }) => {
   const rollbar = useRollbar();
 
   useEffect(() => {
-    if (error && rollbar) {
+    if (_error && rollbar) {
       try {
+        const error = ensureError(_error);
         logger.error(error);
         rollbar.error(`[UNCAUGHT] ${error.message}`, error, {
           errorName: error.name,
@@ -28,7 +30,7 @@ export const ErrorBoundaryFallback: FunctionComponent<FallbackProps> = ({ error,
         }
       }
     }
-  }, [error, rollbar]);
+  }, [_error, rollbar]);
 
   function resetPage() {
     window.location.reload();
