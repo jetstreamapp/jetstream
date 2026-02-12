@@ -505,6 +505,15 @@ export function ensureStringValue(value: Maybe<string>, allowedValues: string[],
   return allowedValues.find((v) => value.toLowerCase() === v.toLowerCase()) || fallback;
 }
 
+export function ensureError(value: unknown): Error {
+  if (value instanceof Error) {
+    return value;
+  } else if (isString(value)) {
+    return new Error(value);
+  }
+  return new Error('Unknown error');
+}
+
 /**
  * Returns a promise that is delayed by {milliseconds}
  * @param milliseconds
