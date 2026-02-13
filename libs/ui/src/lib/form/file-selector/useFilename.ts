@@ -1,25 +1,15 @@
 import { useNonInitialEffect } from '@jetstream/shared/ui-utils';
 import { Maybe } from '@jetstream/types';
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 
 export function useFilename(
   filename: Maybe<string>,
-): [{ managedFilename: string | null; filenameTruncated: string | null }, Dispatch<SetStateAction<string | null>>] {
-  const [managedFilename, setManagedFilename] = useState<string | null>(filename || null);
-  const [filenameTruncated, setFilenameTruncated] = useState<string | null>(null);
+): [{ managedFilename: Maybe<string>; filenameTruncated: Maybe<string> }, Dispatch<SetStateAction<Maybe<string>>>] {
+  const [managedFilename, setManagedFilename] = useState<Maybe<string>>(filename || null);
 
-  useEffect(() => {
-    const _filename = filename || managedFilename;
-    if (!_filename) {
-      setFilenameTruncated(null);
-    } else {
-      if (_filename.length > 40) {
-        setFilenameTruncated(`${_filename.substring(0, 25)}...${_filename.substring(_filename.length - 10)}`);
-      } else {
-        setFilenameTruncated(_filename || '');
-      }
-    }
-  }, [filename, managedFilename]);
+  const _filename = filename || managedFilename || '';
+  const filenameTruncated =
+    _filename.length > 40 ? `${_filename.substring(0, 25)}...${_filename.substring(_filename.length - 10)}` : _filename || null;
 
   useNonInitialEffect(() => {
     setManagedFilename(filename || null);

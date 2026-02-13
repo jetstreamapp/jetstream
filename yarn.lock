@@ -9634,10 +9634,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/gapi.auth2@^0.0.60":
-  version "0.0.60"
-  resolved "https://registry.yarnpkg.com/@types/gapi.auth2/-/gapi.auth2-0.0.60.tgz#a1623ef3ca6f47535d7445ff8691de2da030c846"
-  integrity sha512-KQiyTHRyAcat6marTRAixrkHhkS7mqclcbQvInfxyp7IeUDSUzLBlgH1s0SFaLl1m1jRY6b+qh4NMlmVm0wPEw==
+"@types/gapi.auth2@^0.0.61":
+  version "0.0.61"
+  resolved "https://registry.yarnpkg.com/@types/gapi.auth2/-/gapi.auth2-0.0.61.tgz#a01c1878915eef270a9b91a01bfbf46bff9be334"
+  integrity sha512-cn+omiRoE/LTxZncnVl1QhcLggOT0sJ8Yz9RXIsw5R2zLyRf+0o6kaZzJ/Gr3Sxz6i7J/+PbXAF8yeZipCaiWw==
   dependencies:
     "@types/gapi" "*"
 
@@ -9665,15 +9665,15 @@
   resolved "https://registry.npmjs.org/@types/gapi/-/gapi-0.0.42.tgz"
   integrity sha512-kskWpouTGqutaIVRo/swiGnMVoRxOYdRwvaDrh0yavfR9vQoHvJJ7Enp4KE9MEGS8qF7F5KiP6bRNOYcCgRXCA==
 
-"@types/google.accounts@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@types/google.accounts/-/google.accounts-0.0.2.tgz#4e03bd249fe490f004f4f8d6423343fc51f5614a"
-  integrity sha512-wmnbDIiGZNr3dJ+NCGiWme78rhsf5gn1YJM6uRjf3FCb8lrRptybQeAnHQ+GDfKSo+z2hRxhS32VRDXJEAvCmg==
+"@types/google.accounts@^0.0.18":
+  version "0.0.18"
+  resolved "https://registry.yarnpkg.com/@types/google.accounts/-/google.accounts-0.0.18.tgz#13dc6a49630c7e54c662539ec5cbe81e64a8227a"
+  integrity sha512-yHaPznll97ZnMJlPABHyeiIlLn3u6gQaUjA5k/O9lrrpgFB9VT10CKPLuKM0qTHMl50uXpW5sIcG+utm8jMOHw==
 
-"@types/google.picker@^0.0.42":
-  version "0.0.42"
-  resolved "https://registry.yarnpkg.com/@types/google.picker/-/google.picker-0.0.42.tgz#91285c47c3c15a57060a3c7d16b2ec3a2937bd19"
-  integrity sha512-7Ut1zDLCGNhyN+0fuIcncpBP9eUsIjLKz6qmVKvdkBUi1EzAskxTcIZcU/w2cO1ens/hEXlqeLd5qAKs/Kqqyw==
+"@types/google.picker@^0.0.52":
+  version "0.0.52"
+  resolved "https://registry.yarnpkg.com/@types/google.picker/-/google.picker-0.0.52.tgz#028e23ead7eb2644037f47b4d4a1b1d421d14be8"
+  integrity sha512-k0HyW8HxJePomM2r0JWq9nE9XG6qY93lVpoVnaV4WjQggDHrGwDKq3G8CGpcBWhQlJBTxX9jDIrI7RQnqjM63w==
 
 "@types/har-format@*":
   version "1.2.15"
