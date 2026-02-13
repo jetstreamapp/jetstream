@@ -1,5 +1,11 @@
 # Changelog
 
+## [8.23.1](https://github.com/jetstreamapp/jetstream/compare/v8.23.0...v8.23.1) (2026-02-13)
+
+### Bug Fixes
+
+* manage permission export to google fix ([c67fb77](https://github.com/jetstreamapp/jetstream/commit/c67fb775fa2bdfe3d844bf0545a43b9af892204a)), closes [#1541](https://github.com/jetstreamapp/jetstream/issues/1541)
+
 ## [8.23.0](https://github.com/jetstreamapp/jetstream/compare/v8.22.0...v8.23.0) (2026-02-12)
 
 ### Features
