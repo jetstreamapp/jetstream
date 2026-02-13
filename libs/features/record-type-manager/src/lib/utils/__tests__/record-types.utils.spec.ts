@@ -5,7 +5,7 @@ const TEST_DATA: { 'Contact.Record_Type_1': ReadMetadataRecordTypeExtended; 'Con
   'Contact.Record_Type_1': {
     sobject: 'Contact',
     recordType: 'Record_Type_1',
-    '@xsi:type': 'RecordType',
+    '@_type': 'RecordType',
     fullName: 'Contact.Record_Type_1',
     active: true,
     description: '123',
@@ -60,7 +60,7 @@ const TEST_DATA: { 'Contact.Record_Type_1': ReadMetadataRecordTypeExtended; 'Con
   'Contact.Record_Type_2': {
     sobject: 'Contact',
     recordType: 'Record_Type_2',
-    '@xsi:type': 'RecordType',
+    '@_type': 'RecordType',
     fullName: 'Contact.Record_Type_2',
     active: true,
     label: 'Record Type 2',

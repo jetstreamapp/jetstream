@@ -1,9 +1,9 @@
 import { ensureArray, getFullNameFromListMetadata, orderObjectsBy } from '@jetstream/shared/utils';
 import { ListMetadataResult, Maybe, PackageTypeMembers, RetrieveRequest } from '@jetstream/types';
+import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import lodashGet from 'lodash/get';
 import isObjectLike from 'lodash/isObjectLike';
 import isString from 'lodash/isString';
-import { create as xmlBuilder } from 'xmlbuilder2';
 
 const VALID_PACKAGE_VERSION = /^[0-9]+\.[0-9]+$/;
 
@@ -43,37 +43,32 @@ export function buildPackageXml(
   otherFields: Maybe<Record<string, string>> = {},
   prettyPrint = true,
 ) {
-  // prettier-ignore
-  const packageNode = xmlBuilder({ version: '1.0', encoding: 'UTF-8' })
-    .ele('Package', { xmlns: 'http://soap.sforce.com/2006/04/metadata' });
-
   mutateFolderMetadataTypes(types);
 
-  Object.keys(types).forEach((metadataType) => {
-    const typesNode = packageNode.ele('types');
-    if (types[metadataType].length) {
-      orderObjectsBy(types[metadataType], 'fullName').forEach(({ fullName, namespacePrefix }) => {
-        typesNode.ele('members').txt(
-          getFullNameFromListMetadata({
-            fullName,
-            metadataType,
-            namespace: namespacePrefix,
+  let xmlString = new XMLBuilder({ format: prettyPrint, ignoreAttributes: false, attributeNamePrefix: '@' }).build({
+    Package: {
+      '@xmlns': 'http://soap.sforce.com/2006/04/metadata',
+      types: Object.keys(types).map((metadataType) => {
+        const members = orderObjectsBy(types[metadataType], 'fullName');
+        return {
+          members: members.map(({ fullName, namespacePrefix }) => {
+            return getFullNameFromListMetadata({
+              fullName,
+              metadataType,
+              namespace: namespacePrefix,
+            });
           }),
-        );
-      });
-      typesNode.ele('name').txt(metadataType);
-    }
+          name: metadataType,
+        };
+      }),
+      ...otherFields,
+      version,
+    },
   });
 
-  if (otherFields) {
-    Object.keys(otherFields).forEach((key) => {
-      packageNode.ele(key).txt(otherFields[key]);
-    });
-  }
+  xmlString = `<?xml version="1.0" encoding="UTF-8"?>\n${xmlString}`;
 
-  packageNode.ele('version').txt(version);
-
-  return packageNode.end({ prettyPrint });
+  return xmlString;
 }
 
 export function getRetrieveRequestFromListMetadata(
@@ -113,7 +108,12 @@ export function getRetrieveRequestFromListMetadata(
 export function getRetrieveRequestFromManifest(packageManifest: string) {
   let manifestXml;
   try {
-    manifestXml = xmlBuilder({ parser: { comment: () => undefined } }, packageManifest).toObject({ wellFormed: true });
+    manifestXml = new XMLParser({
+      trimValues: true,
+      ignoreAttributes: true,
+      removeNSPrefix: true,
+      parseTagValue: false,
+    }).parse(packageManifest);
   } catch {
     throw new Error('The package manifest format is invalid');
   }
