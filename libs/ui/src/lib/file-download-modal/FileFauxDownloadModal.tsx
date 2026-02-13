@@ -139,14 +139,13 @@ export const FileFauxDownloadModal: FunctionComponent<FileFauxDownloadModalProps
         }
         case 'gdrive': {
           uploadToGoogle = true;
-          if (allowedTypesSet.has('csv')) {
+          if (allowedTypesSet.has('xlsx')) {
+            mimeType = MIME_TYPES.XLSX_OPEN_OFFICE;
+            _fileFormat = 'xlsx';
+          } else if (allowedTypesSet.has('csv')) {
             // TODO: this is not tested since it is not in use
             mimeType = MIME_TYPES.CSV;
             _fileFormat = 'csv';
-          } else if (allowedTypesSet.has('xlsx')) {
-            // TODO: this is not tested since it is not in use
-            mimeType = MIME_TYPES.XLSX_OPEN_OFFICE;
-            _fileFormat = 'xlsx';
           } else {
             mimeType = MIME_TYPES.ZIP;
             _fileFormat = 'zip';
