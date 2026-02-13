@@ -151,7 +151,7 @@
     "@nx/web": "22.2.1",
     "@nx/webpack": "22.2.1",
     "@nx/workspace": "22.2.1",
-    "@playwright/test": "^1.48.2",
+    "@playwright/test": "^1.57.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@release-it/bumper": "^6.0.1",
     "@release-it/conventional-changelog": "^10.0.3",
